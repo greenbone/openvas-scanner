@@ -220,9 +220,13 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
     return -1;
 
   snprintf (key, sizeof (key), "internal/%s/scanprefs", globals->scan_id);
+
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     return -1;
+  // 2022-10-19: currently internal/%s/scanprefs are set by ospd which is the
+  // main_kb in our context
+  set_main_kb (kb);
 
   res = kb_item_get_all (kb, key);
   if (!res)

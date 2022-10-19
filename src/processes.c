@@ -25,6 +25,7 @@
 
 #include "processes.h"
 
+#include "../misc/plugutils.h"
 #include "debug_utils.h" /* for init_sentry() */
 #include "sighand.h"
 
@@ -88,7 +89,7 @@ procs_cleanup_children (void)
  *
  */
 static void
-clean_procs ()
+clean_procs (void)
 {
   ipc_destroy_contexts (ipcc);
   ipcc = NULL;
@@ -138,7 +139,7 @@ terminate_process (pid_t pid)
  *
  */
 void
-procs_terminate_childs ()
+procs_terminate_childs (void)
 {
   if (ipcc == NULL)
     return;
@@ -174,7 +175,7 @@ init_child_signal_handlers (void)
 }
 
 static void
-pre_fork_fun_call (struct ipc_context *ctx, void *args)
+pre_fn_call (struct ipc_context *ctx, void *args)
 {
   (void) ctx;
   (void) args;
@@ -188,11 +189,12 @@ pre_fork_fun_call (struct ipc_context *ctx, void *args)
   mqtt_reset ();
   init_sentry ();
   srand48 (getpid () + getppid () + (long) time (NULL));
+
   g_debug ("%s: exit", __func__);
 }
 
 static void
-post_fork_fun_call (struct ipc_context *ctx, void *args)
+post_fn_call (struct ipc_context *ctx, void *args)
 {
   (void) ctx;
   (void) args;
@@ -240,8 +242,8 @@ create_ipc_process (ipc_process_func func, void *args)
   if (ipcc == NULL)
     ipcc = ipc_contexts_init (10);
 
-  ec.pre_func = (ipc_process_func) &pre_fork_fun_call;
-  ec.post_func = (ipc_process_func) &post_fork_fun_call;
+  ec.pre_func = (ipc_process_func) &pre_fn_call;
+  ec.post_func = (ipc_process_func) &post_fn_call;
   ec.func = (ipc_process_func) func;
   ec.func_arg = args;
   // check for exited processes and clean file descriptor
