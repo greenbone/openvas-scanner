@@ -25,7 +25,7 @@
 
 #include "processes.h"
 
-#include "../misc/plugutils.h"
+#include "../misc/kb_cache.h"
 #include "debug_utils.h" /* for init_sentry() */
 #include "sighand.h"
 

@@ -35,6 +35,7 @@
 
 #include "openvas.h"
 
+#include "../misc/kb_cache.h"
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/scan_id.h"       /* to manage global scan_id */
 #include "../misc/vendorversion.h" /* for vendor_version_set */

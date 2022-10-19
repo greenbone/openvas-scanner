@@ -148,10 +148,6 @@ host_get_port_state_udp (struct script_infos *, int);
  */
 int check_kb_inconsistency (kb_t);
 
-void set_main_kb (kb_t);
-kb_t
-get_main_kb (void);
-
 int
 kb_item_push_str_with_main_kb_check (kb_t, const char *, const char *);
 
@@ -192,9 +188,6 @@ plug_replace_key_len (struct script_infos *, char *, int, void *, size_t);
 
 kb_t
 plug_get_kb (struct script_infos *);
-
-kb_t
-plug_get_results_kb (struct script_infos *);
 
 void *
 plug_get_key (struct script_infos *, char *, int *, size_t *, int);

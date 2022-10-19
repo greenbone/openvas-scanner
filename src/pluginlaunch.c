@@ -488,8 +488,7 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   processes[p].plugin = plugin;
   processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
-  processes[p].pid =
-    nasl_plugin_launch (globals, ip, vhosts, kb, main_kb, plugin->oid);
+  processes[p].pid = nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
 
   if (processes[p].pid > 0)
     num_running_processes++;

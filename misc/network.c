@@ -25,6 +25,7 @@
  */
 
 #include "../nasl/nasl_debug.h" /* for nasl_*_filename */
+#include "kb_cache.h"
 
 #include <arpa/inet.h> /* for inet_pton */
 #include <errno.h>
@@ -1994,7 +1995,8 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
                 " was set to closed.",
                 host_port_ip_str,
                 plug_current_vhost () ? plug_current_vhost () : " ", port);
-              kb_item_push_str_with_main_kb_check (args->results,
+
+              kb_item_push_str_with_main_kb_check (get_main_kb (),
                                                    "internal/results", buffer);
             }
         }
