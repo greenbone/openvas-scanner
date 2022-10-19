@@ -26,6 +26,7 @@
 #include "attack.h"
 
 #include "../misc/ipc_openvas.h"
+#include "../misc/kb_cache.h"
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
@@ -85,7 +86,6 @@
 struct attack_start_args
 {
   struct scan_globals *globals;
-  kb_t main_kb;
   kb_t host_kb;
   struct ipc_context *ipc_context; // use dto communicate with parent
   plugins_scheduler_t sched;
@@ -525,7 +525,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   nvti_t *nvti;
 
-  kb_lnk_reset (args->main_kb);
+  kb_lnk_reset (get_main_kb ());
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
@@ -597,7 +597,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     }
   launch_error = 0;
   pid = plugin_launch (globals, plugin, ip, vhosts, args->host_kb,
-                       args->main_kb, nvti, &launch_error);
+                       get_main_kb (), nvti, &launch_error);
   if (launch_error == ERR_NO_FREE_SLOT || launch_error == ERR_CANT_FORK)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
@@ -634,8 +634,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   host_kb = args->host_kb;
   host_vhosts = args->host->vhosts;
   globals->host_pid = getpid ();
-  host_set_time (args->main_kb, ip_str, "HOST_START");
-  kb_lnk_reset (args->main_kb);
+  host_set_time (get_main_kb (), ip_str, "HOST_START");
+  kb_lnk_reset (get_main_kb ());
   setproctitle ("openvas: testing %s", ip_str);
   kb_lnk_reset (args->host_kb);
 
@@ -652,7 +652,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
           return;
         }
 
-      if (check_kb_inconsistency (args->main_kb) != 0)
+      if (check_kb_inconsistency (get_main_kb ()) != 0)
         {
           // As long as we don't have a proper communication channel
           // to our ancestors we just kill our parent and ourselves
@@ -688,9 +688,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
                   kb_item_push_str_with_main_kb_check (
-                    args->main_kb, "internal/results", buffer);
+                    get_main_kb (), "internal/results", buffer);
 
-                  comm_send_status_host_dead (args->main_kb, ip_str);
+                  comm_send_status_host_dead (get_main_kb (), ip_str);
                   goto host_died;
                 }
               else if (e == ERR_NO_FREE_SLOT)
@@ -729,7 +729,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status (args->main_kb, ip_str, cur_plug, num_plugs)
+              if (comm_send_status (get_main_kb (), ip_str, cur_plug, num_plugs)
                   < 0)
                 goto host_died;
             }
@@ -740,7 +740,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (args->main_kb, args->host_kb);
+      pluginlaunch_wait_for_free_process (get_main_kb (), args->host_kb);
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
@@ -754,17 +754,17 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
             buffer, sizeof (buffer),
             "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
             ip_str);
-          kb_item_push_str_with_main_kb_check (args->main_kb,
+          kb_item_push_str_with_main_kb_check (get_main_kb (),
                                                "internal/results", buffer);
           g_warning ("%s: Unable to launch table driven LSC", __func__);
         }
     }
 
-  pluginlaunch_wait (args->main_kb, args->host_kb);
+  pluginlaunch_wait (get_main_kb (), args->host_kb);
   if (!scan_is_stopped ())
     {
       int ret;
-      ret = comm_send_status (args->main_kb, ip_str, num_plugs, num_plugs);
+      ret = comm_send_status (get_main_kb (), ip_str, num_plugs, num_plugs);
       if (ret == 0)
         all_plugs_launched = 1;
     }
@@ -776,7 +776,7 @@ host_died:
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
   plugins_scheduler_free (args->sched);
-  host_set_time (args->main_kb, ip_str, "HOST_END");
+  host_set_time (get_main_kb (), ip_str, "HOST_END");
 }
 
 /*
@@ -913,7 +913,7 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
   struct in6_addr hostip;
   struct timeval then;
   kb_t kb = args->host_kb;
-  kb_t main_kb = args->main_kb;
+  kb_t main_kb = get_main_kb ();
   int ret, ret_host_auth;
   args->ipc_context = ipcc;
 
@@ -1369,7 +1369,6 @@ attack_network (struct scan_globals *globals)
       args.globals = globals;
       args.sched = sched;
       args.host_kb = arg_host_kb;
-      args.main_kb = main_kb;
 
     forkagain:
       pid = create_ipc_process ((ipc_process_func) attack_start, &args);
