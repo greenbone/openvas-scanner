@@ -859,9 +859,9 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   make_call_func_list (lexic_aux, st, &called_funcs);
 
   /* Loads all defined functions. */
-  ret = nasl_lint_def (lexic_aux, st, lint_mode, &include_files,
-                        &func_fnames_tab, err_fname, &called_funcs,
-                        &def_func_tree);
+  ret =
+    nasl_lint_def (lexic_aux, st, lint_mode, &include_files, &func_fnames_tab,
+                   err_fname, &called_funcs, &def_func_tree);
   if (ret == NULL)
     {
       inc_errors_cnt ();
@@ -886,9 +886,8 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
 
   /* Now check that each function was loaded just once. */
   lint_mode = 0;
-  ret = nasl_lint_def (lexic, st, lint_mode, &include_files,
-                       &func_fnames_tab, err_fname, &called_funcs,
-                       &def_func_tree);
+  ret = nasl_lint_def (lexic, st, lint_mode, &include_files, &func_fnames_tab,
+                       err_fname, &called_funcs, &def_func_tree);
   if (ret == NULL)
     {
       inc_errors_cnt ();
