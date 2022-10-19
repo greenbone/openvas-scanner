@@ -24,13 +24,12 @@
 
 #include "scanneraux.h"
 
-
 void
 destroy_scan_globals (struct scan_globals *globals)
 {
   if (globals == NULL)
     return;
-  
+
   g_free (globals->scan_id);
 
   if (globals->files_translation)
