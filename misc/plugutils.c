@@ -468,7 +468,7 @@ get_main_kb (void)
  * @return 0 on success, -1 on inconsistency.
  */
 static int
-check_kb_inconsistency_log (const char *name)
+check_kb_inconsistency_log (void)
 {
   char *current_scan_id;
   kb_t kb = get_main_kb ();
@@ -478,18 +478,21 @@ check_kb_inconsistency_log (const char *name)
     case -3:
       current_scan_id = kb_item_get_str (kb, ("internal/scanid"));
       g_warning (
-        "%s: scan_id (%s) does not match global scan_id (%s); will not "
-        "store %s in kb.",
-        __func__, current_scan_id, get_scan_id (), name);
+        "%s: scan_id (%s) does not match global scan_id (%s); abort to "
+        "prevent data corruption",
+        __func__, current_scan_id, get_scan_id ());
       g_free (current_scan_id);
-      return -1;
+      _exit (1);
+      break;
     case -1:
       // a call without global scan id can happen in e.g. nasl-lint or
       // openvas-nasl calls
       break;
     case -2:
-      g_warning ("%s: No internal/scanid found.", __func__);
-      return -1;
+      g_warning (
+        "%s: No internal/scanid found; abort to prevent data corruption.",
+        __func__);
+      _exit (1);
       break;
     default:
       {
@@ -517,7 +520,7 @@ check_kb_inconsistency_log (const char *name)
 int
 kb_check_push_str (kb_t kb, const char *name, const char *value)
 {
-  int result = check_kb_inconsistency_log (name);
+  int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_push_str (kb, name, value) : -1;
 }
 
@@ -539,7 +542,7 @@ kb_check_push_str (kb_t kb, const char *name, const char *value)
 int
 kb_check_set_str (kb_t kb, const char *name, const char *value, size_t len)
 {
-  int result = check_kb_inconsistency_log (name);
+  int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_set_str (kb, name, value, len) : -1;
 }
 
@@ -562,7 +565,7 @@ int
 kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
                          size_t len, int pos)
 {
-  int result = check_kb_inconsistency_log (name);
+  int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_add_str_unique (kb, name, value, len, pos) : -1;
 }
 
@@ -584,7 +587,7 @@ kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
 int
 kb_check_set_int (kb_t kb, const char *name, int value)
 {
-  int result = check_kb_inconsistency_log (name);
+  int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_set_int (kb, name, value) : -1;
 }
 
@@ -606,7 +609,7 @@ kb_check_set_int (kb_t kb, const char *name, int value)
 int
 kb_check_add_int (kb_t kb, const char *name, int value)
 {
-  int result = check_kb_inconsistency_log (name);
+  int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_add_int (kb, name, value) : -1;
 }
 
@@ -628,7 +631,7 @@ kb_check_add_int (kb_t kb, const char *name, int value)
 int
 kb_check_add_int_unique (kb_t kb, const char *name, int value)
 {
-  int result = check_kb_inconsistency_log (name);
+  int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_add_int_unique (kb, name, value) : -1;
 }
 
