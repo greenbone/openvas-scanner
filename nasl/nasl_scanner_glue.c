@@ -1073,6 +1073,10 @@ nasl_vendor_version (lex_ctxt *lexic)
  *
  * @naslfn{update_table_driven_lsc_data}
  *
+ * @naslnparam
+ * - @a pkg_list String containing the gathered package list.
+ * - @a os_release The OS release.
+ *
  * @param[in] lexic  Lexical context of the NASL interpreter.
  *
  * @return NULL
@@ -1080,8 +1084,22 @@ nasl_vendor_version (lex_ctxt *lexic)
 tree_cell *
 nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
 {
+  struct script_infos *script_infos = lexic->script_infos;
   ipc_data_t *lsc = NULL;
   const char *json = NULL;
+  gchar *pkg_list = get_str_var_by_name (lexic, "pkg_list");
+  gchar *os_version = get_str_var_by_name (lexic, "os_release");
+
+  if (os_version == NULL || pkg_list == NULL)
+    {
+      g_warning ("%s: Missing data for running LSC", __func__);
+      return NULL;
+    }
+
+  plug_set_key (script_infos, "ssh/login/package_list_notus", ARG_STRING,
+                pkg_list);
+  plug_set_key (script_infos, "ssh/login/release_notus", ARG_STRING,
+                os_version);
 
   lsc = ipc_data_type_from_lsc (TRUE);
   if (!lsc)
