@@ -87,11 +87,14 @@ check_dos_char_slowly_ntlmssp (uint16 c)
 {
   char buf[10];
   uint16_t c2 = 0;
-  int len1, len2;
+  size_t len1, len2;
 
   len1 = convert_string_ntlmssp (CH_UTF16LE, CH_DOS, &c, 2, buf, sizeof (buf),
                                  False);
-  if (len1 <= 0)
+
+  /* convert_string_ntlmssp returns a size_t value, and uses
+   * (size_t) -1 as error code */
+  if (len1 == 0 || len1 == (size_t) -1)
     {
       return 0;
     }
@@ -490,7 +493,8 @@ use_as_is:
  * @param destlen maximal length allowed for string - *NEVER* -1.
  * @param allow_bad_conv determines if a "best effort" conversion is acceptable
  *(never returns errors)
- * @returns the number of bytes occupied in the destination
+ * @returns the number of bytes occupied in the destination.
+ * On error (size_t) -1 as error code.
  *
  * Ensure the srclen contains the terminating zero.
  *
