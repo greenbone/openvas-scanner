@@ -1406,7 +1406,7 @@ nasl_exec (lex_ctxt *lexic, tree_cell *st)
                   s3 = g_malloc0 (sz + 1);
                   if (p - p1 > 0)
                     memcpy (s3, p1, p - p1);
-                  if (sz > p - p1 && p != NULL)
+                  if (p != NULL && sz > p - p1)
                     memcpy (s3 + (p - p1), p + len2, sz - (p - p1));
                 }
               ret = alloc_typed_cell (flag);
