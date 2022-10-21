@@ -1032,7 +1032,6 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
   int tbl_slot;
   int session_id;
   ssh_session session;
-  int rc;
   const char *s = NULL;
   int methods;
   int verbose;
@@ -1064,8 +1063,8 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
     {
       /* Our strategy for kbint is to send the password to the first
          prompt marked as non-echo.  */
-      rc = ssh_userauth_kbdint (session, NULL, NULL);
-      while (rc == SSH_AUTH_INFO)
+
+      while (ssh_userauth_kbdint (session, NULL, NULL) == SSH_AUTH_INFO)
         {
           int n, nprompt;
           char echoflag;
@@ -1091,7 +1090,6 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
               if (s && *s && !echoflag && !found_prompt)
                 goto leave;
             }
-          rc = ssh_userauth_kbdint (session, NULL, NULL);
         }
       if (verbose)
         g_message (

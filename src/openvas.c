@@ -554,12 +554,10 @@ openvas (int argc, char *argv[], char *env[])
     }
   tzset ();
 
-  err = init_logging ();
-  if (err != 0)
+  if (init_logging () != 0)
     return EXIT_FAILURE;
 
-  err = init_sentry ();
-  if (!err)
+  if (!init_sentry ())
     {
       g_message ("Sentry is enabled. This can log sensitive information.");
     }
@@ -608,8 +606,7 @@ openvas (int argc, char *argv[], char *env[])
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->scan_id = g_strdup (get_scan_id ());
 
-      err = attack_network_init (globals, config_file);
-      if (err != 0)
+      if (attack_network_init (globals, config_file) != 0)
         {
           destroy_scan_globals (globals);
           return EXIT_FAILURE;

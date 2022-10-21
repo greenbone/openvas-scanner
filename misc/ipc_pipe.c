@@ -64,7 +64,7 @@ char *
 ipc_pipe_retrieve (struct ipc_pipe_context *context)
 {
   char *result = NULL;
-  int rfd, rr, pf;
+  int rfd, pf;
   rfd = context->fd[0];
   pf = fcntl (rfd, F_GETFL, 0);
   if (pf < 0 && errno != EBADF)
@@ -73,8 +73,8 @@ ipc_pipe_retrieve (struct ipc_pipe_context *context)
   fcntl (rfd, F_SETFL, pf | O_NONBLOCK);
   if ((result = calloc (1, IPC_MAX_BUFFER)) == NULL)
     return NULL;
-  rr = read (rfd, result, IPC_MAX_BUFFER);
-  if (rr > 0)
+
+  if (read (rfd, result, IPC_MAX_BUFFER) > 0)
     {
       return result;
     }
