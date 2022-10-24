@@ -111,7 +111,6 @@ user_agent_set (const gchar *ua)
 const gchar *
 user_agent_get (struct ipc_context *ipc_context)
 {
-  g_usleep (20 * 1000 * 1000);
   if (!user_agent || user_agent[0] == '\0')
     {
       user_agent_create ();
