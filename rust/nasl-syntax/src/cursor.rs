@@ -41,7 +41,7 @@ impl<'a> Cursor<'a> {
         self.chars.as_str().is_empty()
     }
 
-    /// Skips characters until the given predicate returns true
+    /// Skips characters while given predicate returns true
     pub fn skip_while(&mut self, mut predicate: impl FnMut(char) -> bool) {
         while predicate(self.peek(0)) && !self.is_eof() {
             self.bump();
@@ -62,42 +62,42 @@ mod tests {
 
     #[test]
     fn peek() {
-        let mut crsr = Cursor::new("a = \"test\";");
-        assert_eq!(crsr.peek(2), '=');
-        assert_eq!(crsr.bump(), Some('a'));
+        let mut cursor = Cursor::new("a = \"test\";");
+        assert_eq!(cursor.peek(2), '=');
+        assert_eq!(cursor.bump(), Some('a'));
     }
 
     #[test]
     fn skip_whitespaces() {
-        let mut crsr = Cursor::new("    a = \"test\";");
-        crsr.skip_while(|c| c.is_ascii_whitespace());
-        assert_eq!(crsr.bump(), Some('a'));
+        let mut cursor = Cursor::new("    a = \"test\";");
+        cursor.skip_while(|c| c.is_ascii_whitespace());
+        assert_eq!(cursor.bump(), Some('a'));
     }
 
     #[test]
     fn eof() {
-        let mut crsr = Cursor::new("a = \"test\";");
-        crsr.skip_while(|c|c != ';');
-        assert!(!crsr.is_eof());
-        crsr.bump();
-        assert!(crsr.is_eof());
+        let mut cursor = Cursor::new("a = \"test\";");
+        cursor.skip_while(|c|c != ';');
+        assert!(!cursor.is_eof());
+        cursor.bump();
+        assert!(cursor.is_eof());
     }
 
     #[test]
     fn gather_string_literal() {
         let code = "a = \"test\";";
-        let mut crsr = Cursor::new(code);
+        let mut cursor = Cursor::new(code);
         // skip to "
-        crsr.skip_while(|c| c != '"');
+        cursor.skip_while(|c| c != '"');
         // jump over "
-        crsr.bump();
+        cursor.bump();
         // remember previosuly consumed
-        let pconsumed = crsr.len_consumed();
-        crsr.skip_while(|c| c != '"');
+        let pconsumed = cursor.len_consumed();
+        cursor.skip_while(|c| c != '"');
         // get string within the range
         let actual = &code[Range {
             start: pconsumed,
-            end: crsr.len_consumed(),
+            end: cursor.len_consumed(),
         }];
         assert_eq!(actual, "test");
     }

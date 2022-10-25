@@ -5,8 +5,8 @@ mod tests {
 
     #[test]
     fn use_a_cursor() {
-        let mut crsr = Cursor::new("  \n\tdisplay(12);");
-        crsr.skip_while(|c| c.is_whitespace());
-        assert_eq!(crsr.bump(), Some('d'));
+        let mut cursor = Cursor::new("  \n\tdisplay(12);");
+        cursor.skip_while(|c| c.is_whitespace());
+        assert_eq!(cursor.bump(), Some('d'));
     }
 }
