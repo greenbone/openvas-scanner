@@ -32,7 +32,7 @@ impl<'a> Cursor<'a> {
     }
 
     /// Returns the next char or None if at the end
-    pub fn bump(&mut self) -> Option<char> {
+    pub fn advance(&mut self) -> Option<char> {
         self.chars.next()
     }
 
@@ -44,7 +44,7 @@ impl<'a> Cursor<'a> {
     /// Skips characters while given predicate returns true
     pub fn skip_while(&mut self, mut predicate: impl FnMut(char) -> bool) {
         while predicate(self.peek(0)) && !self.is_eof() {
-            self.bump();
+            self.advance();
         }
     }
 
@@ -64,14 +64,14 @@ mod tests {
     fn peek() {
         let mut cursor = Cursor::new("a = \"test\";");
         assert_eq!(cursor.peek(2), '=');
-        assert_eq!(cursor.bump(), Some('a'));
+        assert_eq!(cursor.advance(), Some('a'));
     }
 
     #[test]
     fn skip_whitespaces() {
         let mut cursor = Cursor::new("    a = \"test\";");
         cursor.skip_while(|c| c.is_ascii_whitespace());
-        assert_eq!(cursor.bump(), Some('a'));
+        assert_eq!(cursor.advance(), Some('a'));
     }
 
     #[test]
@@ -79,7 +79,7 @@ mod tests {
         let mut cursor = Cursor::new("a = \"test\";");
         cursor.skip_while(|c|c != ';');
         assert!(!cursor.is_eof());
-        cursor.bump();
+        cursor.advance();
         assert!(cursor.is_eof());
     }
 
@@ -90,7 +90,7 @@ mod tests {
         // skip to "
         cursor.skip_while(|c| c != '"');
         // jump over "
-        cursor.bump();
+        cursor.advance();
         // remember previosuly consumed
         let pconsumed = cursor.len_consumed();
         cursor.skip_while(|c| c != '"');
