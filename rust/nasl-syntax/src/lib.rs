@@ -1,4 +1,5 @@
 pub mod cursor;
+pub mod token;
 #[cfg(test)]
 mod tests {
     use crate::cursor::Cursor;
