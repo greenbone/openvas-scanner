@@ -28,16 +28,20 @@ pub enum Category {
     PipePipe,           // ||
     Bang,               // !
     BangEqual,          // !=
+    BangTilde,          // !~
     Equal,              // =
     EqualEqual,         // ==
+    EqualTilde,         // =~
     Greater,            // >
-    GreaterGreatr,      // >>
+    GreaterGreater,     // >>
     GreaterEqual,       // >=
+    GreaterLess,        // ><
     Less,               // <
     LessLess,           // <<
     LessEqual,          // <=
     Minus,              // -
     MinusMinus,         // --
+    MinusEqual,         // -=
     Plus,               // +
     PlusEqual,          // +=
     PlusPlus,           // ++
@@ -136,17 +140,31 @@ impl<'a> Iterator for Tokenizer<'a> {
             '}' => single_token!(RightCurlyBracket, start, self.cursor.len_consumed()),
             ',' => single_token!(Comma, start, self.cursor.len_consumed()),
             '.' => single_token!(Dot, start, self.cursor.len_consumed()),
-            '-' => single_token!(Minus, start, self.cursor.len_consumed()),
+            '-' => double_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => double_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
             '%' => single_token!(Percent, start, self.cursor.len_consumed()),
             ';' => single_token!(Semicolon, start, self.cursor.len_consumed()),
-            '/' => single_token!(Slash, start, self.cursor.len_consumed()),
-            '*' => single_token!(Star, start, self.cursor.len_consumed()),
+            '/' => double_token!(self.cursor, start, Slash, '=', SlashEqual),
+            '*' => double_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
             ':' => single_token!(DoublePoint, start, self.cursor.len_consumed()),
             '~' => single_token!(Tilde, start, self.cursor.len_consumed()),
-            '&' => single_token!(Ampersand, start, self.cursor.len_consumed()),
-            '|' => single_token!(Pipe, start, self.cursor.len_consumed()),
+            '&' => double_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand),
+            '|' => double_token!(self.cursor, start, Pipe, '|', PipePipe),
             '^' => single_token!(Caret, start, self.cursor.len_consumed()),
+            '!' => double_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde),
+            '=' => double_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
+            '>' => double_token!(
+                self.cursor,
+                start,
+                Greater,
+                '=',
+                GreaterEqual,
+                '>',
+                GreaterGreater,
+                '<',
+                GreaterLess
+            ),
+            '<' => double_token!(self.cursor, start, Less, '=', LessEqual, '<', LessLess),
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
@@ -203,7 +221,32 @@ mod tests {
 
     #[test]
     fn double_token() {
-        verify_tokens!("++", vec![(Category::PlusPlus, 0, 2)]);
+        verify_tokens!("&", vec![(Category::Ampersand, 0, 1)]);
+        verify_tokens!("&&", vec![(Category::AmpersandAmpersand, 0, 2)]);
+        verify_tokens!("|", vec![(Category::Pipe, 0, 1)]);
+        verify_tokens!("||", vec![(Category::PipePipe, 0, 2)]);
+        verify_tokens!("!", vec![(Category::Bang, 0, 1)]);
+        verify_tokens!("!=", vec![(Category::BangEqual, 0, 2)]);
+        verify_tokens!("!~", vec![(Category::BangTilde, 0, 2)]);
+        verify_tokens!("=", vec![(Category::Equal, 0, 1)]);
+        verify_tokens!("==", vec![(Category::EqualEqual, 0, 2)]);
+        verify_tokens!("=~", vec![(Category::EqualTilde, 0, 2)]);
+        verify_tokens!(">", vec![(Category::Greater, 0, 1)]);
+        verify_tokens!(">>", vec![(Category::GreaterGreater, 0, 2)]);
+        verify_tokens!(">=", vec![(Category::GreaterEqual, 0, 2)]);
+        verify_tokens!("><", vec![(Category::GreaterLess, 0, 2)]);
+        verify_tokens!("<", vec![(Category::Less, 0, 1)]);
+        verify_tokens!("<<", vec![(Category::LessLess, 0, 2)]);
+        verify_tokens!("<=", vec![(Category::LessEqual, 0, 2)]);
+        verify_tokens!("-", vec![(Category::Minus, 0, 1)]);
+        verify_tokens!("--", vec![(Category::MinusMinus, 0, 2)]);
+        verify_tokens!("+", vec![(Category::Plus, 0, 1)]);
         verify_tokens!("+=", vec![(Category::PlusEqual, 0, 2)]);
+        verify_tokens!("++", vec![(Category::PlusPlus, 0, 2)]);
+        verify_tokens!("/", vec![(Category::Slash, 0, 1)]);
+        verify_tokens!("/=", vec![(Category::SlashEqual, 0, 2)]);
+        verify_tokens!("*", vec![(Category::Star, 0, 1)]);
+        verify_tokens!("**", vec![(Category::StarStar, 0, 2)]);
+        verify_tokens!("*=", vec![(Category::StarEqual, 0, 2)]);
     }
 }
