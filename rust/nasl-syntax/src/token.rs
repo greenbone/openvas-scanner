@@ -50,8 +50,17 @@ pub enum Category {
     Star,               // *
     StarStar,           // **
     StarEqual,          // *=
+    // Triple tokens
+    GreaterGreaterGreater, // >>>
+    GreaterGreaterEqual,   // >>=
+    LessLessEqual,         // <<=
+    LessLessLess,          // <<<
+    GreaterBangLess,       // >!<
 
-    UnknownSymbol, // used when the symbol is unknown
+    // Tuple Tokens
+    GreaterGreaterGreaterEqual, // >>>=
+    LessLessLessEqual,          // <<<=
+    UnknownSymbol,              // used when the symbol is unknown
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -85,15 +94,6 @@ pub struct Tokenizer<'a> {
     cursor: Cursor<'a>,
 }
 
-impl<'a> Tokenizer<'a> {
-    /// Creates a new Tokenizer
-    pub fn new(code: &'a str) -> Self {
-        Tokenizer {
-            cursor: Cursor::new(code),
-        }
-    }
-}
-
 // Is used to build Some(Token{ ... }) to make the match case within Iterator for Tokenizer easier to read
 macro_rules! single_token {
     ($category:expr, $start:expr, $end:expr) => {
@@ -102,6 +102,109 @@ macro_rules! single_token {
             position: ($start, $end),
         })
     };
+}
+
+impl<'a> Tokenizer<'a> {
+    /// Creates a new Tokenizer
+    pub fn new(code: &'a str) -> Self {
+        Tokenizer {
+            cursor: Cursor::new(code),
+        }
+    }
+
+    // we break out of the macro since > can be parsed to:
+    // >>>
+    // >>=
+    // >>>=
+    // >!<
+    // most operators don't have triple or tuple variant
+    fn tokenize_greater(&mut self) -> Option<Token> {
+        use Category::*;
+        let start = self.cursor.len_consumed() - 1;
+        let next = self.cursor.peek(0);
+        match next {
+            '=' => {
+                self.cursor.advance();
+                single_token!(GreaterEqual, start, self.cursor.len_consumed())
+            }
+            '<' => {
+                self.cursor.advance();
+                single_token!(GreaterLess, start, self.cursor.len_consumed())
+            }
+            '>' => {
+                self.cursor.advance();
+                let next = self.cursor.peek(0);
+                match next {
+                    '>' => {
+                        self.cursor.advance();
+                        if self.cursor.peek(0) == '=' {
+                            self.cursor.advance();
+                            return single_token!(
+                                GreaterGreaterGreaterEqual,
+                                start,
+                                self.cursor.len_consumed()
+                            );
+                        }
+
+                        single_token!(GreaterGreaterGreater, start, self.cursor.len_consumed())
+                    }
+                    '=' => {
+                        self.cursor.advance();
+                        single_token!(GreaterGreaterEqual, start, self.cursor.len_consumed())
+                    }
+                    _ => single_token!(GreaterGreater, start, self.cursor.len_consumed()),
+                }
+            }
+            '!' if self.cursor.peek(1) == '<' => {
+                self.cursor.advance();
+                self.cursor.advance();
+                single_token!(GreaterBangLess, start, self.cursor.len_consumed())
+            }
+            _ => single_token!(Greater, start, self.cursor.len_consumed()),
+        }
+    }
+
+    // we break out of the macro since < can be parsed to:
+    // <<<
+    // <<=
+    // <<<=
+    // most operators don't have triple or tuple variant
+    fn tokenize_less(&mut self) -> Option<Token> {
+        use Category::*;
+        let start = self.cursor.len_consumed() - 1;
+        let next = self.cursor.peek(0);
+        match next {
+            '=' => {
+                self.cursor.advance();
+                single_token!(LessEqual, start, self.cursor.len_consumed())
+            }
+            '<' => {
+                self.cursor.advance();
+                let next = self.cursor.peek(0);
+                match next {
+                    '<' => {
+                        self.cursor.advance();
+                        if self.cursor.peek(0) == '=' {
+                            self.cursor.advance();
+                            return single_token!(
+                                LessLessLessEqual,
+                                start,
+                                self.cursor.len_consumed()
+                            );
+                        }
+
+                        single_token!(LessLessLess, start, self.cursor.len_consumed())
+                    }
+                    '=' => {
+                        self.cursor.advance();
+                        single_token!(LessLessEqual, start, self.cursor.len_consumed())
+                    }
+                    _ => single_token!(LessLess, start, self.cursor.len_consumed()),
+                }
+            }
+            _ => single_token!(Less, start, self.cursor.len_consumed()),
+        }
+    }
 }
 
 // Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
@@ -153,18 +256,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             '^' => single_token!(Caret, start, self.cursor.len_consumed()),
             '!' => double_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde),
             '=' => double_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
-            '>' => double_token!(
-                self.cursor,
-                start,
-                Greater,
-                '=',
-                GreaterEqual,
-                '>',
-                GreaterGreater,
-                '<',
-                GreaterLess
-            ),
-            '<' => double_token!(self.cursor, start, Less, '=', LessEqual, '<', LessLess),
+            '>' => self.tokenize_greater(),
+            '<' => self.tokenize_less(),
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
@@ -248,5 +341,20 @@ mod tests {
         verify_tokens!("*", vec![(Category::Star, 0, 1)]);
         verify_tokens!("**", vec![(Category::StarStar, 0, 2)]);
         verify_tokens!("*=", vec![(Category::StarEqual, 0, 2)]);
+    }
+
+    #[test]
+    fn triple_tokens() {
+        verify_tokens!(">>>", vec![(Category::GreaterGreaterGreater, 0, 3)]);
+        verify_tokens!(">>=", vec![(Category::GreaterGreaterEqual, 0, 3)]);
+        verify_tokens!(">!<", vec![(Category::GreaterBangLess, 0, 3)]);
+        verify_tokens!("<<=", vec![(Category::LessLessEqual, 0, 3)]);
+        verify_tokens!("<<<", vec![(Category::LessLessLess, 0, 3)]);
+    }
+
+    #[test]
+    fn four_tuple_tokens() {
+        verify_tokens!("<<<=", vec![(Category::LessLessLessEqual, 0, 4)]);
+        verify_tokens!(">>>=", vec![(Category::GreaterGreaterGreaterEqual, 0, 4)]);
     }
 }
