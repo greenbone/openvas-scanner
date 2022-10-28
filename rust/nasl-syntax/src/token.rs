@@ -228,6 +228,32 @@ impl<'a> Tokenizer<'a> {
             _ => single_token!(Less, start, self.cursor.len_consumed()),
         }
     }
+
+    fn tokenize_string(
+        &mut self,
+        string_category: StringCategory,
+        predicate: impl FnMut(char) -> bool,
+    ) -> Option<Token> {
+        // we don't want the lookup to contain "
+        let start = self.cursor.len_consumed();
+        self.cursor.skip_while(predicate);
+        if self.cursor.is_eof() {
+            single_token!(
+                Category::UnclosedString(string_category),
+                start,
+                self.cursor.len_consumed()
+            )
+        } else {
+            let result = single_token!(
+                Category::String(string_category),
+                start,
+                self.cursor.len_consumed()
+            );
+            // skip "
+            self.cursor.advance();
+            result
+        }
+    }
 }
 
 // Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
@@ -281,27 +307,17 @@ impl<'a> Iterator for Tokenizer<'a> {
             '=' => double_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
-            '"' => {
-                // we don't want the lookup to contain "
-                let start = self.cursor.len_consumed();
-                // we neither care about newlines nor escape character
-                self.cursor.skip_while(|c| c != '"');
-                if self.cursor.is_eof() {
-                    single_token!(
-                        UnclosedString(StringCategory::Unquoteable),
-                        start,
-                        self.cursor.len_consumed()
-                    )
-                } else {
-                    let result = single_token!(
-                        String(StringCategory::Unquoteable),
-                        start,
-                        self.cursor.len_consumed()
-                    );
-                    // skip "
-                    self.cursor.advance();
-                    result
-                }
+            '"' => self.tokenize_string(StringCategory::Unquoteable, |c| c != '"'),
+            '\'' => {
+                let mut back_slash = false;
+                self.tokenize_string(StringCategory::Quoteable, |c| {
+                    if !back_slash && c == '\'' {
+                        false
+                    } else {
+                        back_slash = c == '\\';
+                        true
+                    }
+                })
             }
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
@@ -415,7 +431,18 @@ mod tests {
             tokenizer.lookup(result[0].range()),
             "hello I am a closed string\\"
         );
-        let code = "\"hello I am a closed string\\";
-        verify_tokens!(code, vec![(Category::UnclosedString(Unquoteable), 1, 28)]);
+        let code = "\"hello I am a unclosed string\\";
+        verify_tokens!(code, vec![(Category::UnclosedString(Unquoteable), 1, 30)]);
+    }
+
+    #[test]
+    fn quoteable_string() {
+        use StringCategory::*;
+        let code = "'Hello \\'you\\'!'";
+        let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quoteable), 1, 15)]);
+        assert_eq!(tokenizer.lookup(result[0].range()), "Hello \\'you\\'!");
+
+        let code = "'Hello \\'you\\'!\\'";
+        verify_tokens!(code, vec![(Category::UnclosedString(Quoteable), 1, 17)]);
     }
 }
