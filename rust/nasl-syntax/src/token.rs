@@ -3,8 +3,24 @@ use std::ops::Range;
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
+/// Identifies if a string is quoteable or unquoteable
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StringCategory {
+    Quoteable,   // '..\''
+    Unquoteable, // "..\"
+}
+
+/// Identifies if number is base10, base 8, hex or binary
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Base {
+    Binary, // 0b010101
+    Octal,  // 0123456780
+    Base10, // 1234567890
+    Hex,    //0x123456789ABCDEF0
+}
+
 /// Is used to identify a Token
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Category {
     // Single-character tokens.
     LeftParen,         // (
@@ -20,7 +36,6 @@ pub enum Category {
     DoublePoint,       // :
     Tilde,             // ~
     Caret,             // ^
-
     // One or two character tokens
     Ampersand,          // &
     AmpersandAmpersand, // &&
@@ -56,15 +71,17 @@ pub enum Category {
     LessLessEqual,         // <<=
     LessLessLess,          // <<<
     GreaterBangLess,       // >!<
-
     // Tuple Tokens
     GreaterGreaterGreaterEqual, // >>>=
     LessLessLessEqual,          // <<<=
-    UnknownSymbol,              // used when the symbol is unknown
+    // Variable size
+    String(StringCategory), // "...\", multiline
+    UnclosedString(StringCategory),
+    Number(Base),
+    UnknownSymbol, // used when the symbol is unknown
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-
 /// Contains the TokenType as well as the position in form of Range<usize>
 pub struct Token {
     category: Category,
@@ -88,9 +105,10 @@ impl Token {
 }
 
 /// Tokenizer uses a cursor to create tokens
+#[derive(Clone)]
 pub struct Tokenizer<'a> {
     // Is used to lookup keywords
-    //code: &'a str,
+    code: &'a str,
     cursor: Cursor<'a>,
 }
 
@@ -108,8 +126,13 @@ impl<'a> Tokenizer<'a> {
     /// Creates a new Tokenizer
     pub fn new(code: &'a str) -> Self {
         Tokenizer {
+            code,
             cursor: Cursor::new(code),
         }
+    }
+
+    pub fn lookup(&self, range: Range<usize>) -> &'a str {
+        &self.code[range]
     }
 
     // we break out of the macro since > can be parsed to:
@@ -258,6 +281,28 @@ impl<'a> Iterator for Tokenizer<'a> {
             '=' => double_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
+            '"' => {
+                // we don't want the lookup to contain "
+                let start = self.cursor.len_consumed();
+                // we neither care about newlines nor escape character
+                self.cursor.skip_while(|c| c != '"');
+                if self.cursor.is_eof() {
+                    single_token!(
+                        UnclosedString(StringCategory::Unquoteable),
+                        start,
+                        self.cursor.len_consumed()
+                    )
+                } else {
+                    let result = single_token!(
+                        String(StringCategory::Unquoteable),
+                        start,
+                        self.cursor.len_consumed()
+                    );
+                    // skip "
+                    self.cursor.advance();
+                    result
+                }
+            }
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
@@ -277,11 +322,13 @@ mod tests {
 
     // use macro instead of a method to have correct line numbers on failure
     macro_rules! verify_tokens {
-        ($code:expr, $expected:expr) => {
-            let actual: Vec<Token> = Tokenizer::new($code).collect();
+        ($code:expr, $expected:expr) => {{
+            let tokenizer = Tokenizer::new($code);
+            let actual: Vec<Token> = tokenizer.clone().collect();
             let expected: Vec<Token> = $expected.iter().map(|x| build_token(*x)).collect();
             assert_eq!(actual, expected);
-        };
+            (tokenizer, actual)
+        }};
     }
 
     #[test]
@@ -356,5 +403,19 @@ mod tests {
     fn four_tuple_tokens() {
         verify_tokens!("<<<=", vec![(Category::LessLessLessEqual, 0, 4)]);
         verify_tokens!(">>>=", vec![(Category::GreaterGreaterGreaterEqual, 0, 4)]);
+    }
+
+    #[test]
+    fn unquoteable_string() {
+        use StringCategory::*;
+        let code = "\"hello I am a closed string\\\"";
+        let (tokenizer, result) =
+            verify_tokens!(code, vec![(Category::String(Unquoteable), 1, 28)]);
+        assert_eq!(
+            tokenizer.lookup(result[0].range()),
+            "hello I am a closed string\\"
+        );
+        let code = "\"hello I am a closed string\\";
+        verify_tokens!(code, vec![(Category::UnclosedString(Unquoteable), 1, 28)]);
     }
 }

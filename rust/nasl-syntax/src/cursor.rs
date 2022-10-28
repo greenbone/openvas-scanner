@@ -7,6 +7,7 @@ pub const EOF_CHAR: char = '\0';
 ///
 /// Next characters can be peeked via `peek` method,
 /// and position can be shifted forward via `bump` method.
+#[derive(Clone)]
 pub struct Cursor<'a> {
     /// is needed to calculate the length when e.g. tokenizing
     initial_len: usize,
