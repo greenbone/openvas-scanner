@@ -15,17 +15,37 @@ pub enum Category {
     RightCurlyBracket, // }
     Comma,             // ,
     Dot,               // .
-    Minus,             // -
-    Plus,              // +
     Percent,           // %
     Semicolon,         // ;
-    Slash,             // /
-    Star,              // *
     DoublePoint,       // :
     Tilde,             // ~
-    Ampersand,         // &
-    Pipe,              // |
     Caret,             // ^
+
+    // One or two character tokens
+    Ampersand,          // &
+    AmpersandAmpersand, // &&
+    Pipe,               // |
+    PipePipe,           // ||
+    Bang,               // !
+    BangEqual,          // !=
+    Equal,              // =
+    EqualEqual,         // ==
+    Greater,            // >
+    GreaterGreatr,      // >>
+    GreaterEqual,       // >=
+    Less,               // <
+    LessLess,           // <<
+    LessEqual,          // <=
+    Minus,              // -
+    MinusMinus,         // --
+    Plus,               // +
+    PlusEqual,          // +=
+    PlusPlus,           // ++
+    Slash,              // /
+    SlashEqual,         // /=
+    Star,               // *
+    StarStar,           // **
+    StarEqual,          // *=
 
     UnknownSymbol, // used when the symbol is unknown
 }
@@ -62,6 +82,7 @@ pub struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
+    /// Creates a new Tokenizer
     pub fn new(code: &'a str) -> Self {
         Tokenizer {
             cursor: Cursor::new(code),
@@ -69,63 +90,64 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
+// Is used to build Some(Token{ ... }) to make the match case within Iterator for Tokenizer easier to read
+macro_rules! single_token {
+    ($category:expr, $start:expr, $end:expr) => {
+        Some(Token {
+            category: $category,
+            position: ($start, $end),
+        })
+    };
+}
+
+// Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
+// this macro can be used:
+//'+' => double_token!(self.cursor, start, '+', '+', PlusPlus, '=', PlusEqual),
+// within the Iterator implementation of Tokenizer
+macro_rules! double_token {
+    ($cursor:expr, $start:tt, $c:tt, $($l:tt, $bt:expr ), *) => {
+        {
+            // enforce start to be usize
+            let next = $cursor.peek(0);
+            match next {
+                $($l => {
+                  $cursor.advance();
+                  single_token!($bt, $start, $cursor.len_consumed())
+                }, )*
+                _ => single_token!($c, $start, $cursor.len_consumed()),
+            }
+        }
+    };
+}
+
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
+        use Category::*;
         self.cursor.skip_while(|c| c.is_whitespace());
-        let initial_pos = self.cursor.len_consumed();
-        let build_token = |category, start, end| -> Option<Token> {
-            Some(Token {
-                category,
-                position: (start, end),
-            })
-        };
+        let start = self.cursor.len_consumed();
         match self.cursor.advance()? {
-            '(' => build_token(Category::LeftParen, initial_pos, self.cursor.len_consumed()),
-            ')' => build_token(
-                Category::RightParen,
-                initial_pos,
-                self.cursor.len_consumed(),
-            ),
-            '[' => build_token(Category::LeftBrace, initial_pos, self.cursor.len_consumed()),
-            ']' => build_token(
-                Category::RightBrace,
-                initial_pos,
-                self.cursor.len_consumed(),
-            ),
-            '{' => build_token(
-                Category::LeftCurlyBracket,
-                initial_pos,
-                self.cursor.len_consumed(),
-            ),
-            '}' => build_token(
-                Category::RightCurlyBracket,
-                initial_pos,
-                self.cursor.len_consumed(),
-            ),
-            ',' => build_token(Category::Comma, initial_pos, self.cursor.len_consumed()),
-            '.' => build_token(Category::Dot, initial_pos, self.cursor.len_consumed()),
-            '-' => build_token(Category::Minus, initial_pos, self.cursor.len_consumed()),
-            '+' => build_token(Category::Plus, initial_pos, self.cursor.len_consumed()),
-            '%' => build_token(Category::Percent, initial_pos, self.cursor.len_consumed()),
-            ';' => build_token(Category::Semicolon, initial_pos, self.cursor.len_consumed()),
-            '/' => build_token(Category::Slash, initial_pos, self.cursor.len_consumed()),
-            '*' => build_token(Category::Star, initial_pos, self.cursor.len_consumed()),
-            ':' => build_token(
-                Category::DoublePoint,
-                initial_pos,
-                self.cursor.len_consumed(),
-            ),
-            '~' => build_token(Category::Tilde, initial_pos, self.cursor.len_consumed()),
-            '&' => build_token(Category::Ampersand, initial_pos, self.cursor.len_consumed()),
-            '|' => build_token(Category::Pipe, initial_pos, self.cursor.len_consumed()),
-            '^' => build_token(Category::Caret, initial_pos, self.cursor.len_consumed()),
-            _ => build_token(
-                Category::UnknownSymbol,
-                initial_pos,
-                self.cursor.len_consumed(),
-            ),
+            '(' => single_token!(LeftParen, start, self.cursor.len_consumed()),
+            ')' => single_token!(RightParen, start, self.cursor.len_consumed()),
+            '[' => single_token!(LeftBrace, start, self.cursor.len_consumed()),
+            ']' => single_token!(RightBrace, start, self.cursor.len_consumed()),
+            '{' => single_token!(LeftCurlyBracket, start, self.cursor.len_consumed()),
+            '}' => single_token!(RightCurlyBracket, start, self.cursor.len_consumed()),
+            ',' => single_token!(Comma, start, self.cursor.len_consumed()),
+            '.' => single_token!(Dot, start, self.cursor.len_consumed()),
+            '-' => single_token!(Minus, start, self.cursor.len_consumed()),
+            '+' => double_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
+            '%' => single_token!(Percent, start, self.cursor.len_consumed()),
+            ';' => single_token!(Semicolon, start, self.cursor.len_consumed()),
+            '/' => single_token!(Slash, start, self.cursor.len_consumed()),
+            '*' => single_token!(Star, start, self.cursor.len_consumed()),
+            ':' => single_token!(DoublePoint, start, self.cursor.len_consumed()),
+            '~' => single_token!(Tilde, start, self.cursor.len_consumed()),
+            '&' => single_token!(Ampersand, start, self.cursor.len_consumed()),
+            '|' => single_token!(Pipe, start, self.cursor.len_consumed()),
+            '^' => single_token!(Caret, start, self.cursor.len_consumed()),
+            _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
 }
@@ -177,5 +199,11 @@ mod tests {
         verify_tokens!("&", vec![(Category::Ampersand, 0, 1)]);
         verify_tokens!("|", vec![(Category::Pipe, 0, 1)]);
         verify_tokens!("^", vec![(Category::Caret, 0, 1)]);
+    }
+
+    #[test]
+    fn double_token() {
+        verify_tokens!("++", vec![(Category::PlusPlus, 0, 2)]);
+        verify_tokens!("+=", vec![(Category::PlusEqual, 0, 2)]);
     }
 }
