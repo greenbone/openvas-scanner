@@ -47,71 +47,109 @@ impl Base {
     }
 }
 
+/// Is used to identify which Category type is unclosed
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnclosedCategory {
     String(StringCategory),
     Comment,
 }
+
+/// Are reserved words that cannot be reused otherwise.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Keyword {
+    For,       // for
+    ForEach,   // foreach
+    If,        // if
+    Else,      // else
+    While,     //while
+    Repeat,    //repeat
+    Until,     // until
+    LocalVar,  // local_var
+    GlobalVar, // global_var
+    NULL,      // NULL
+    Return,    // return
+    Include,   // include (is not a buildin if overridden NASL cannot work )
+    Exit,      // exit (is not a buildin function of overridden NASL detail run cannot work)
+}
+
+impl Keyword {
+    /// Parses given keyword and returns Keyword enum or None
+    pub fn new(keyword: &str) -> Option<Self> {
+        match keyword {
+            "for" => Some(Keyword::For),
+            "foreach" => Some(Keyword::ForEach),
+            "if" => Some(Keyword::If),
+            "else" => Some(Keyword::Else),
+            "while" => Some(Keyword::While),
+            "repeat" => Some(Keyword::Repeat),
+            "until" => Some(Keyword::Until),
+            "local_var" => Some(Keyword::LocalVar),
+            "global_var" => Some(Keyword::GlobalVar),
+            "NULL" => Some(Keyword::NULL),
+            "return" => Some(Keyword::Return),
+            "include" => Some(Keyword::Include),
+            "exit" => Some(Keyword::Exit),
+            _ => None,
+        }
+    }
+}
+
 /// Is used to identify a Token
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Category {
-    // Single-character tokens.
-    LeftParen,         // (
-    RightParen,        // )
-    LeftBrace,         // [
-    RightBrace,        // ]
-    LeftCurlyBracket,  // {
-    RightCurlyBracket, // }
-    Comma,             // ,
-    Dot,               // .
-    Percent,           // %
-    Semicolon,         // ;
-    DoublePoint,       // :
-    Tilde,             // ~
-    Caret,             // ^
-    // One or two character tokens
-    Ampersand,          // &
-    AmpersandAmpersand, // &&
-    Pipe,               // |
-    PipePipe,           // ||
-    Bang,               // !
-    BangEqual,          // !=
-    BangTilde,          // !~
-    Equal,              // =
-    EqualEqual,         // ==
-    EqualTilde,         // =~
-    Greater,            // >
-    GreaterGreater,     // >>
-    GreaterEqual,       // >=
-    GreaterLess,        // ><
-    Less,               // <
-    LessLess,           // <<
-    LessEqual,          // <=
-    Minus,              // -
-    MinusMinus,         // --
-    MinusEqual,         // -=
-    Plus,               // +
-    PlusEqual,          // +=
-    PlusPlus,           // ++
-    Slash,              // /
-    SlashEqual,         // /=
-    Star,               // *
-    StarStar,           // **
-    StarEqual,          // *=
-    // Triple tokens
-    GreaterGreaterGreater, // >>>
-    GreaterGreaterEqual,   // >>=
-    LessLessEqual,         // <<=
-    LessLessLess,          // <<<
-    GreaterBangLess,       // >!<
-    // Tuple Tokens
+    LeftParen,                  // (
+    RightParen,                 // )
+    LeftBrace,                  // [
+    RightBrace,                 // ]
+    LeftCurlyBracket,           // {
+    RightCurlyBracket,          // }
+    Comma,                      // ,
+    Dot,                        // .
+    Percent,                    // %
+    Semicolon,                  // ;
+    DoublePoint,                // :
+    Tilde,                      // ~
+    Caret,                      // ^
+    Ampersand,                  // &
+    AmpersandAmpersand,         // &&
+    Pipe,                       // |
+    PipePipe,                   // ||
+    Bang,                       // !
+    BangEqual,                  // !=
+    BangTilde,                  // !~
+    Equal,                      // =
+    EqualEqual,                 // ==
+    EqualTilde,                 // =~
+    Greater,                    // >
+    GreaterGreater,             // >>
+    GreaterEqual,               // >=
+    GreaterLess,                // ><
+    Less,                       // <
+    LessLess,                   // <<
+    LessEqual,                  // <=
+    Minus,                      // -
+    MinusMinus,                 // --
+    MinusEqual,                 // -=
+    Plus,                       // +
+    PlusEqual,                  // +=
+    PlusPlus,                   // ++
+    Slash,                      // /
+    SlashEqual,                 // /=
+    Star,                       // *
+    StarStar,                   // **
+    StarEqual,                  // *=
+    GreaterGreaterGreater,      // >>>
+    GreaterGreaterEqual,        // >>=
+    LessLessEqual,              // <<=
+    LessLessLess,               // <<<
+    GreaterBangLess,            // >!<
     GreaterGreaterGreaterEqual, // >>>=
     LessLessLessEqual,          // <<<=
-    // Variable size
-    String(StringCategory), // "...\", multiline
+    String(StringCategory),     // "...\", multiline
     Number(Base),
     IllegalNumber(Base),
     Comment,
+    Identifier(Option<Keyword>),
     Unclosed(UnclosedCategory),
     UnknownBase,
     UnknownSymbol, // used when the symbol is unknown
@@ -383,6 +421,22 @@ impl<'a> Tokenizer<'a> {
             _ => single_token!(Category::Slash, start, self.cursor.len_consumed()),
         }
     }
+
+    // Checks if an identifier is a Keyword or not
+    #[inline(always)]
+    fn tokenize_identifier(&mut self, start: usize) -> Option<Token> {
+        self.cursor
+            .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
+        let keyword = Keyword::new(self.lookup(Range {
+            start,
+            end: self.cursor.len_consumed(),
+        }));
+        single_token!(
+            Category::Identifier(keyword),
+            start,
+            self.cursor.len_consumed()
+        )
+    }
 }
 
 // Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
@@ -392,7 +446,6 @@ impl<'a> Tokenizer<'a> {
 macro_rules! double_token {
     ($cursor:expr, $start:tt, $c:tt, $($l:tt, $bt:expr ), *) => {
         {
-            // enforce start to be usize
             let next = $cursor.peek(0);
             match next {
                 $($l => {
@@ -449,7 +502,8 @@ impl<'a> Iterator for Tokenizer<'a> {
                 })
             }
 
-            current if current.is_numeric() => self.tokenize_number(start, current),
+            current if ('0'..='9').contains(&current) => self.tokenize_number(start, current),
+            current if current.is_alphabetic() || current == '_' => self.tokenize_identifier(start),
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
@@ -631,10 +685,7 @@ mod tests {
          */
         */
         ";
-        verify_tokens!(
-            code,
-            vec![(Comment, 9, 164)]
-        );
+        verify_tokens!(code, vec![(Comment, 9, 164)]);
         verify_tokens!(
             r"
         /*
@@ -647,5 +698,35 @@ mod tests {
         ",
             vec![(Unclosed(UnclosedCategory::Comment), 9, 196)]
         );
+    }
+
+    #[test]
+    fn identifier() {
+        use Category::*;
+        verify_tokens!("hel_lo", vec![(Identifier(None), 0, 6)]);
+        verify_tokens!("_hello", vec![(Identifier(None), 0, 6)]);
+        verify_tokens!("_h4llo", vec![(Identifier(None), 0, 6)]);
+        verify_tokens!(
+            "4_h4llo",
+            vec![(Number(Base::Base10), 0, 1), (Identifier(None), 1, 7)]
+        );
+    }
+    #[test]
+    fn keywords() {
+        use Category::*;
+        use Keyword::*;
+        verify_tokens!("for", vec![(Identifier(Some(For)), 0, 3)]);
+        verify_tokens!("foreach", vec![(Identifier(Some(ForEach)), 0, 7)]);
+        verify_tokens!("if", vec![(Identifier(Some(If)), 0, 2)]);
+        verify_tokens!("else", vec![(Identifier(Some(Else)), 0, 4)]);
+        verify_tokens!("while", vec![(Identifier(Some(While)), 0, 5)]);
+        verify_tokens!("repeat", vec![(Identifier(Some(Repeat)), 0, 6)]);
+        verify_tokens!("until", vec![(Identifier(Some(Until)), 0, 5)]);
+        verify_tokens!("local_var", vec![(Identifier(Some(LocalVar)), 0, 9)]);
+        verify_tokens!("global_var", vec![(Identifier(Some(GlobalVar)), 0, 10)]);
+        verify_tokens!("NULL", vec![(Identifier(Some(NULL)), 0, 4)]);
+        verify_tokens!("return", vec![(Identifier(Some(Return)), 0, 6)]);
+        verify_tokens!("include", vec![(Identifier(Some(Include)), 0, 7)]);
+        verify_tokens!("exit", vec![(Identifier(Some(Exit)), 0, 4)]);
     }
 }
