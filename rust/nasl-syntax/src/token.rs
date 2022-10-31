@@ -158,11 +158,11 @@ pub enum Category {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// Contains the TokenType as well as the position in form of Range<usize>
 pub struct Token {
-    category: Category,
+    pub category: Category,
     // using a tuple in favor of Range to have the possibility
     // to easily copy tokens rather than clone; to create a range for lookups
     // call range()
-    position: (usize, usize),
+    pub position: (usize, usize),
 }
 
 impl Token {
@@ -339,8 +339,7 @@ impl<'a> Tokenizer<'a> {
         use Base::*;
         let may_base = {
             if current == '0' {
-                let peeked = self.cursor.peek(0);
-                match peeked {
+                match self.cursor.peek(0) {
                     'b' => {
                         // jump over non numeric
                         self.cursor.advance();
@@ -355,13 +354,13 @@ impl<'a> Tokenizer<'a> {
                         start += 2;
                         Some(Hex)
                     }
-                    _ if peeked.is_numeric() => {
+                    peeked if ('0'..='7').contains(&peeked) => {
                         // we don't need leading 0 later
                         start += 1;
                         Some(Octal)
                     }
-                    _ if peeked == '.' => Some(Base10),
-                    _ => None,
+                    peeked if peeked.is_alphabetic() => None,
+                    _ => Some(Base10),
                 }
             } else {
                 Some(Base10)
@@ -649,6 +648,7 @@ mod tests {
     fn numbers() {
         use Base::*;
         use Category::*;
+        verify_tokens!("0", vec![(Number(Base10), 0, 1)]);
         verify_tokens!("0b01", vec![(Number(Binary), 2, 4)]);
         verify_tokens!("1234567890", vec![(Number(Base10), 0, 10)]);
         verify_tokens!("0.123456789", vec![(Number(Base10), 0, 11)]);
@@ -728,5 +728,65 @@ mod tests {
         verify_tokens!("return", vec![(Identifier(Some(Return)), 0, 6)]);
         verify_tokens!("include", vec![(Identifier(Some(Include)), 0, 7)]);
         verify_tokens!("exit", vec![(Identifier(Some(Exit)), 0, 4)]);
+    }
+
+    #[test]
+    fn tokenize_description_block() {
+        use Base::*;
+        use Category::*;
+        use Keyword::*;
+        use StringCategory::*;
+
+        let code = r#"
+if(description)
+{
+  script_oid("1.3.6.1.4.1.25623.1.0.99999");
+  exit(0);
+}
+
+j = 123;
+j >>>= 8;
+display(j);
+exit(1);
+"#;
+        verify_tokens!(
+            code,
+            vec![
+                (Identifier(Some(If)), 1, 3),
+                (LeftParen, 3, 4),                    // start expression block
+                (Identifier(None), 4, 15),            // verify is description is true
+                (RightParen, 15, 16),                 // end expression block
+                (LeftCurlyBracket, 17, 18),           // start execution block
+                (Identifier(None), 21, 31),           // lookup function script_oid
+                (LeftParen, 31, 32),                  // start parameter expression block
+                (String(Unquoteable), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
+                (RightParen, 61, 62),          // end expression block
+                (Semicolon, 62, 63),           // finish execution
+                (Identifier(Some(Exit)), 66, 70), // lookup keyword exit
+                (LeftParen, 70, 71),           // start parameter expression block
+                (Number(Base10), 71, 72),      // call exit with 0
+                (RightParen, 72, 73),          // end expression block
+                (Semicolon, 73, 74),           // finish execution
+                (RightCurlyBracket, 75, 76),   // finish expression block
+                (Identifier(None), 78, 79),    // lookup j
+                (Equal, 80, 81),               // assign to j
+                (Number(Base10), 82, 85),      // number 123
+                (Semicolon, 85, 86),           // finish execution
+                (Identifier(None), 87, 88),    // lookup j
+                (GreaterGreaterGreaterEqual, 89, 93), // shift j and assign to j
+                (Number(Base10), 94, 95),      // 8
+                (Semicolon, 95, 96),           // finish execution
+                (Identifier(None), 97, 104),   // lookup display
+                (LeftParen, 104, 105),         // start parameter expression block
+                (Identifier(None), 105, 106),  // resolve j primitive
+                (RightParen, 106, 107),        // finish parameter expression block
+                (Semicolon, 107, 108),         // finish execution
+                (Identifier(Some(Exit)), 109, 113), // lookup keyword exit
+                (LeftParen, 113, 114),         // start parameter expression block
+                (Number(Base10), 114, 115),    // call exit with 1
+                (RightParen, 115, 116),        // finish parameter expression block
+                (Semicolon, 116, 117)          // finish execution
+            ]
+        );
     }
 }
