@@ -47,6 +47,11 @@ impl Base {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UnclosedCategory {
+    String(StringCategory),
+    Comment,
+}
 /// Is used to identify a Token
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Category {
@@ -104,9 +109,10 @@ pub enum Category {
     LessLessLessEqual,          // <<<=
     // Variable size
     String(StringCategory), // "...\", multiline
-    UnclosedString(StringCategory),
     Number(Base),
     IllegalNumber(Base),
+    Comment,
+    Unclosed(UnclosedCategory),
     UnknownBase,
     UnknownSymbol, // used when the symbol is unknown
 }
@@ -171,6 +177,7 @@ impl<'a> Tokenizer<'a> {
     // >>>=
     // >!<
     // most operators don't have triple or tuple variant
+    #[inline(always)]
     fn tokenize_greater(&mut self) -> Option<Token> {
         use Category::*;
         let start = self.cursor.len_consumed() - 1;
@@ -222,6 +229,7 @@ impl<'a> Tokenizer<'a> {
     // <<=
     // <<<=
     // most operators don't have triple or tuple variant
+    #[inline(always)]
     fn tokenize_less(&mut self) -> Option<Token> {
         use Category::*;
         let start = self.cursor.len_consumed() - 1;
@@ -259,6 +267,8 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    // Skips initital and ending string identifier ' || " and verifies that a string is closed
+    #[inline(always)]
     fn tokenize_string(
         &mut self,
         string_category: StringCategory,
@@ -269,7 +279,7 @@ impl<'a> Tokenizer<'a> {
         self.cursor.skip_while(predicate);
         if self.cursor.is_eof() {
             single_token!(
-                Category::UnclosedString(string_category),
+                Category::Unclosed(UnclosedCategory::String(string_category)),
                 start,
                 self.cursor.len_consumed()
             )
@@ -285,7 +295,9 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    pub(crate) fn tokenize_number(&mut self, mut start: usize, current: char) -> Option<Token> {
+    // checks if a number is binary, octal, base10 or hex
+    #[inline(always)]
+    pub fn tokenize_number(&mut self, mut start: usize, current: char) -> Option<Token> {
         use Base::*;
         let may_base = {
             if current == '0' {
@@ -333,6 +345,44 @@ impl<'a> Tokenizer<'a> {
             single_token!(Category::UnknownBase, start, self.cursor.len_consumed())
         }
     }
+
+    // checks if a starting slash is either an operator or a comment
+    #[inline(always)]
+    pub fn tokenize_slash(&mut self, start: usize) -> Option<Token> {
+        match self.cursor.peek(0) {
+            '=' => {
+                self.cursor.advance();
+                single_token!(Category::SlashEqual, start, self.cursor.len_consumed())
+            }
+            '/' => {
+                self.cursor.skip_while(|c| c != '\n');
+                single_token!(Category::Comment, start, self.cursor.len_consumed())
+            }
+            '*' => {
+                let mut comments = 1;
+                while comments > 0 {
+                    self.cursor.skip_while(|c| c != '*' && c != '/');
+                    self.cursor.advance();
+                    // handles nested multiline comments
+                    if let Some(c) = self.cursor.advance() {
+                        if c == '/' {
+                            comments -= 1;
+                        } else if c == '*' {
+                            comments += 1;
+                        }
+                    } else {
+                        return single_token!(
+                            Category::Unclosed(UnclosedCategory::Comment),
+                            start,
+                            self.cursor.len_consumed()
+                        );
+                    }
+                }
+                single_token!(Category::Comment, start, self.cursor.len_consumed())
+            }
+            _ => single_token!(Category::Slash, start, self.cursor.len_consumed()),
+        }
+    }
 }
 
 // Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
@@ -375,7 +425,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             '+' => double_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
             '%' => single_token!(Percent, start, self.cursor.len_consumed()),
             ';' => single_token!(Semicolon, start, self.cursor.len_consumed()),
-            '/' => double_token!(self.cursor, start, Slash, '=', SlashEqual),
+            '/' => self.tokenize_slash(start),
             '*' => double_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
             ':' => single_token!(DoublePoint, start, self.cursor.len_consumed()),
             '~' => single_token!(Tilde, start, self.cursor.len_consumed()),
@@ -398,6 +448,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                     }
                 })
             }
+
             current if current.is_numeric() => self.tokenize_number(start, current),
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
@@ -512,7 +563,14 @@ mod tests {
             "hello I am a closed string\\"
         );
         let code = "\"hello I am a unclosed string\\";
-        verify_tokens!(code, vec![(Category::UnclosedString(Unquoteable), 1, 30)]);
+        verify_tokens!(
+            code,
+            vec![(
+                Category::Unclosed(UnclosedCategory::String(Unquoteable)),
+                1,
+                30
+            )]
+        );
     }
 
     #[test]
@@ -523,7 +581,14 @@ mod tests {
         assert_eq!(tokenizer.lookup(result[0].range()), "Hello \\'you\\'!");
 
         let code = "'Hello \\'you\\'!\\'";
-        verify_tokens!(code, vec![(Category::UnclosedString(Quoteable), 1, 17)]);
+        verify_tokens!(
+            code,
+            vec![(
+                Category::Unclosed(UnclosedCategory::String(Quoteable)),
+                1,
+                17
+            )]
+        );
     }
 
     #[test]
@@ -538,6 +603,49 @@ mod tests {
         // That would be later illegal because a number if followed by a number
         // but within tokenizing I think it is the best to ignore that and let it be handled by AST
         verify_tokens!("0b02", vec![(Number(Binary), 2, 3), (Number(Base10), 3, 4)]);
-        verify_tokens!("0b2", vec![(IllegalNumber(Binary), 2, 2), (Number(Base10), 2, 3)]);
+        verify_tokens!(
+            "0b2",
+            vec![(IllegalNumber(Binary), 2, 2), (Number(Base10), 2, 3)]
+        );
+    }
+
+    #[test]
+    fn single_line_comments() {
+        use Category::*;
+        verify_tokens!(
+            "// this is a comment\n;",
+            vec![(Comment, 0, 20), (Semicolon, 21, 22)]
+        );
+    }
+
+    #[test]
+    fn multi_line_comments() {
+        use Category::*;
+        verify_tokens!("/*\n\nthis\nis\na\ncomment\n\n*/", vec![(Comment, 0, 25)]);
+        let code = r"
+        /*
+         * This is very important:
+         /*
+          * Therefore I do multiple comments inside
+          /* comment blocks */
+         */
+        */
+        ";
+        verify_tokens!(
+            code,
+            vec![(Comment, 9, 164)]
+        );
+        verify_tokens!(
+            r"
+        /*
+         * This is very important:
+         /*
+          * Therefore I do multiple comments inside
+          /* comment blocks but I forgot to close one
+         */
+        */
+        ",
+            vec![(Unclosed(UnclosedCategory::Comment), 9, 196)]
+        );
     }
 }
