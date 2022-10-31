@@ -19,6 +19,34 @@ pub enum Base {
     Hex,    //0x123456789ABCDEF0
 }
 
+impl Base {
+    fn verify_binary(peeked: char) -> bool {
+        peeked == '0' || peeked == '1'
+    }
+
+    fn verify_octal(peeked: char) -> bool {
+        ('0'..='7').contains(&peeked)
+    }
+
+    fn verify_base10(peeked: char) -> bool {
+        ('0'..='9').contains(&peeked)
+    }
+
+    fn verify_hex(peeked: char) -> bool {
+        ('0'..='9').contains(&peeked)
+            || ('A'..='F').contains(&peeked)
+            || ('a'..='f').contains(&peeked)
+    }
+    pub(crate) fn verifier(self) -> impl Fn(char) -> bool {
+        match self {
+            Self::Binary => Self::verify_binary,
+            Self::Octal => Self::verify_octal,
+            Self::Base10 => Self::verify_base10,
+            Self::Hex => Self::verify_hex,
+        }
+    }
+}
+
 /// Is used to identify a Token
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Category {
@@ -78,6 +106,8 @@ pub enum Category {
     String(StringCategory), // "...\", multiline
     UnclosedString(StringCategory),
     Number(Base),
+    IllegalNumber(Base),
+    UnknownBase,
     UnknownSymbol, // used when the symbol is unknown
 }
 
@@ -254,6 +284,55 @@ impl<'a> Tokenizer<'a> {
             result
         }
     }
+
+    pub(crate) fn tokenize_number(&mut self, mut start: usize, current: char) -> Option<Token> {
+        use Base::*;
+        let may_base = {
+            if current == '0' {
+                let peeked = self.cursor.peek(0);
+                match peeked {
+                    'b' => {
+                        // jump over non numeric
+                        self.cursor.advance();
+                        // we don't need `0b` later
+                        start += 2;
+                        Some(Binary)
+                    }
+                    'x' => {
+                        // jump over non numeric
+                        self.cursor.advance();
+                        // we don't need `0x` later
+                        start += 2;
+                        Some(Hex)
+                    }
+                    _ if peeked.is_numeric() => {
+                        // we don't need leading 0 later
+                        start += 1;
+                        Some(Octal)
+                    }
+                    _ if peeked == '.' => Some(Base10),
+                    _ => None,
+                }
+            } else {
+                Some(Base10)
+            }
+        };
+        if let Some(base) = may_base {
+            self.cursor.skip_while(base.verifier());
+            // we only allow float numbers in base10
+            if base == Base10 && self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
+                self.cursor.advance();
+                self.cursor.skip_while(base.verifier());
+            }
+            if start == self.cursor.len_consumed() {
+                single_token!(Category::IllegalNumber(base), start, start)
+            } else {
+                single_token!(Category::Number(base), start, self.cursor.len_consumed())
+            }
+        } else {
+            single_token!(Category::UnknownBase, start, self.cursor.len_consumed())
+        }
+    }
 }
 
 // Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
@@ -319,6 +398,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                     }
                 })
             }
+            current if current.is_numeric() => self.tokenize_number(start, current),
             _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
@@ -444,5 +524,20 @@ mod tests {
 
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(code, vec![(Category::UnclosedString(Quoteable), 1, 17)]);
+    }
+
+    #[test]
+    fn numbers() {
+        use Base::*;
+        use Category::*;
+        verify_tokens!("0b01", vec![(Number(Binary), 2, 4)]);
+        verify_tokens!("1234567890", vec![(Number(Base10), 0, 10)]);
+        verify_tokens!("0.123456789", vec![(Number(Base10), 0, 11)]);
+        verify_tokens!("012345670", vec![(Number(Octal), 1, 9)]);
+        verify_tokens!("0x1234567890ABCDEF", vec![(Number(Hex), 2, 18)]);
+        // That would be later illegal because a number if followed by a number
+        // but within tokenizing I think it is the best to ignore that and let it be handled by AST
+        verify_tokens!("0b02", vec![(Number(Binary), 2, 3), (Number(Base10), 3, 4)]);
+        verify_tokens!("0b2", vec![(IllegalNumber(Binary), 2, 2), (Number(Base10), 2, 3)]);
     }
 }
