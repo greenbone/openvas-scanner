@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{ops::Range, fmt};
 
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
@@ -162,6 +162,7 @@ pub struct Token {
     // call range()
     pub position: (usize, usize),
 }
+
 
 impl Token {
     /// Returns the Category
@@ -632,6 +633,7 @@ mod tests {
             vec![(Number(Base::Base10), 0, 1), (Identifier(None), 1, 7)]
         );
     }
+
     #[test]
     fn keywords() {
         use Category::*;
