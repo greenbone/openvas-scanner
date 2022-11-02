@@ -1,5 +1,6 @@
-pub mod cursor;
-pub mod token;
+mod cursor;
+mod token;
+mod operator_precedence_parser;
 #[cfg(test)]
 mod tests {
     use crate::{
