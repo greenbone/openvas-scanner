@@ -97,46 +97,37 @@ impl<'a> Lexer<'a> {
     }
 
     fn prefix_statement(&mut self) -> Result<Statement, ParseErr<'a>> {
-        {
-            if let Some(token) = self.next() {
-                println!("HIIIIIIII {:?}", token.category());
-                if let Some(op) = Operator::new(token) {
-                    match op {
-                        Operator::Operator(kind) => {
-                            let bp = prefix_binding_power(token)?;
-                            let rhs = self.expression_bp(bp)?;
-                            Ok(Statement::Operator(kind, vec![rhs]))
-                        }
-                        Operator::Primitive(token) => Ok(Statement::Primitive(token)),
-                        Operator::Variable(token) => match self.peek() {
-                            Some(x) if x.category() == Category::LeftParen => {
-                                self.next();
-                                let parameter = self.parse_paren(x)?;
-                                Ok(Statement::Call(token, Box::new(parameter)))
-                            }
-
-                            _ => Ok(Statement::Variable(token)),
-                        },
-                        Operator::Grouping(category) if category == Category::LeftParen => {
-                            self.parse_paren(token)
-                        }
-                        Operator::Grouping(_) => Err(ParseErr {
-                            reason: "Unknown grouping",
-                            position: token.position,
-                        }),
-                    }
-                } else {
-                    Err(ParseErr {
-                        reason: "Unknown operator",
-                        position: token.position,
-                    })
-                }
-            } else {
-                Err(ParseErr {
-                    reason: "Insufficient statements",
-                    position: (0, 0),
-                })
+        let token = self.next().map(Ok).unwrap_or(Err(ParseErr {
+            reason: "Insufficient statements",
+            position: (0, 0),
+        }))?;
+        let op = Operator::new(token).map(Ok).unwrap_or(Err(ParseErr {
+            reason: "Unknown operator",
+            position: token.position,
+        }))?;
+        match op {
+            Operator::Operator(kind) => {
+                let bp = prefix_binding_power(token)?;
+                let rhs = self.expression_bp(bp)?;
+                Ok(Statement::Operator(kind, vec![rhs]))
             }
+            Operator::Primitive(token) => Ok(Statement::Primitive(token)),
+            Operator::Variable(token) => match self.peek() {
+                Some(x) if x.category() == Category::LeftParen => {
+                    self.next();
+                    let parameter = self.parse_paren(x)?;
+                    Ok(Statement::Call(token, Box::new(parameter)))
+                }
+
+                _ => Ok(Statement::Variable(token)),
+            },
+            Operator::Grouping(category) if category == Category::LeftParen => {
+                self.parse_paren(token)
+            }
+            Operator::Grouping(_) => Err(ParseErr {
+                reason: "Unknown grouping",
+                position: token.position,
+            }),
         }
     }
 
@@ -158,7 +149,6 @@ impl<'a> Lexer<'a> {
                 }),
             }?;
 
-            // we skip postifx for now
             if let Some(pfbp) = postfix_binding_power(guarded) {
                 if pfbp < min_bp {
                     break;
@@ -346,9 +336,9 @@ mod test {
         assert_eq!(expression!("a"), Variable(token(Identifier(None), 0, 1)));
         let fn_name = token(Identifier(None), 0, 1);
         let args = Box::new(Parameter(vec![
-            Primitive(token( Number(Base10), 2, 3)), 
-            Primitive(token( Number(Base10), 5, 6)), 
-            Primitive(token( Number(Base10), 8, 9)), 
+            Primitive(token(Number(Base10), 2, 3)),
+            Primitive(token(Number(Base10), 5, 6)),
+            Primitive(token(Number(Base10), 8, 9)),
         ]));
 
         assert_eq!(expression!("a(1, 2, 3)"), Call(fn_name, args));
