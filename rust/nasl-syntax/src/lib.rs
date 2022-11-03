@@ -1,6 +1,7 @@
 mod cursor;
 mod token;
 mod operator_precedence_parser;
+mod parser;
 #[cfg(test)]
 mod tests {
     use crate::{
