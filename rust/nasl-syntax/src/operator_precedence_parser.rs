@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, string::ParseError};
 
 use crate::token::{self, Category, Token};
 
@@ -17,24 +17,14 @@ struct Lexer<'a> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Statement {
-    Atom(Token),
-    Operation(token::Category, Vec<Statement>),
-}
-
-impl Statement {
-    pub fn format(self, code: &str) -> String {
-        match self {
-            Self::Atom(i) => format!(" {} ", code[i.range()].to_owned()),
-            Self::Operation(head, rest) => {
-                let mut result = format!("({:?}", head);
-                for s in rest {
-                    result += &Statement::format(s, code);
-                }
-                result += ")";
-                result
-            }
-        }
-    }
+    Primitive(Token),
+    Operator(token::Category, Vec<Statement>),
+    // Logic
+    //
+    Variable(Token),
+    Call(Token, Box<Statement>), // TODO maybe box
+    Parameter(Vec<Statement>),
+    // Function(Token, Vec<Token>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,10 +35,10 @@ struct ParseErr<'a> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Operator {
-    Arithmetic(token::Category), // only allowed on numbers
-    Grouping(token::Category),   // grouping operator ()
-
-    Atom(Token), // not an operation
+    Operator(token::Category), // only allowed on numbers
+    Grouping(token::Category), // grouping operator ()
+    Variable(Token),           // not an operation
+    Primitive(Token),          // not an operation
 }
 
 impl Operator {
@@ -57,12 +47,12 @@ impl Operator {
             Category::Plus
             | Category::Star
             | Category::Slash
-            | Category::Minus 
-            | Category::Percent // modulo 
-            | Category::StarStar // pow 
-                => Some(Operator::Arithmetic(token.category())),
-            Category::Identifier(_) | Category::Number(_) => Some(Operator::Atom(token)),
-            Category::LeftParen => Some(Operator::Grouping(token.category())),
+            | Category::Minus
+            | Category::Percent
+            | Category::StarStar => Some(Operator::Operator(token.category())),
+            Category::String(_) | Category::Number(_) => Some(Operator::Primitive(token)),
+            Category::LeftParen | Category::Comma => Some(Operator::Grouping(token.category())),
+            Category::Identifier(_) => Some(Operator::Variable(token)),
             _ => None,
         }
     }
@@ -109,31 +99,26 @@ impl<'a> Lexer<'a> {
     fn prefix_statement(&mut self) -> Result<Statement, ParseErr<'a>> {
         {
             if let Some(token) = self.next() {
+                println!("HIIIIIIII {:?}", token.category());
                 if let Some(op) = Operator::new(token) {
                     match op {
-                        Operator::Arithmetic(kind) => {
+                        Operator::Operator(kind) => {
                             let bp = prefix_binding_power(token)?;
                             let rhs = self.expression_bp(bp)?;
-                            Ok(Statement::Operation(kind, vec![rhs]))
+                            Ok(Statement::Operator(kind, vec![rhs]))
                         }
-                        Operator::Atom(token) => Ok(Statement::Atom(token)),
-                        Operator::Grouping(category) if category == Category::LeftParen => {
-                            let lhs = self.expression_bp(0)?;
-                            if let Some(peeked) = self.peek() {
-                                if peeked.category() != Category::RightParen {
-                                    return Err(ParseErr {
-                                        reason: "Unclosed parent",
-                                        position: peeked.position,
-                                    });
-                                } else {
-                                    self.next();
-                                    return Ok(lhs);
-                                }
+                        Operator::Primitive(token) => Ok(Statement::Primitive(token)),
+                        Operator::Variable(token) => match self.peek() {
+                            Some(x) if x.category() == Category::LeftParen => {
+                                self.next();
+                                let parameter = self.parse_paren(x)?;
+                                Ok(Statement::Call(token, Box::new(parameter)))
                             }
-                            Err(ParseErr {
-                                reason: "Unclosed parent",
-                                position: token.position,
-                            })
+
+                            _ => Ok(Statement::Variable(token)),
+                        },
+                        Operator::Grouping(category) if category == Category::LeftParen => {
+                            self.parse_paren(token)
                         }
                         Operator::Grouping(_) => Err(ParseErr {
                             reason: "Unknown grouping",
@@ -157,37 +142,97 @@ impl<'a> Lexer<'a> {
 
     fn expression_bp(&mut self, min_bp: u8) -> Result<Statement, ParseErr<'a>> {
         let mut lhs = self.prefix_statement()?;
-        loop {
-            let token = match self.peek() {
-                Some(t) => t,
-                None => break,
-            };
-            match Operator::new(token) {
-                Some(op) => {
-                    let guarded = match op {
-                        Operator::Arithmetic(category) => Ok(category),
-                        _ => Err(ParseErr {
-                            reason: "Unknown Operator",
-                            position: token.position,
-                        }),
-                    }?;
-                    // we skip postifx for now
-                    if let Some((l_bp, r_bp)) = infix_binding_power(guarded) {
-                        if l_bp < min_bp {
-                            break;
-                        }
-                        self.next();
-                        lhs = {
-                            let rhs = self.expression_bp(r_bp)?;
-                            Statement::Operation(token.category(), vec![lhs, rhs])
-                        }
-                    }
+        while let Some(token) = self.peek() {
+            let op = {
+                match Operator::new(token) {
+                    Some(x) => x,
+                    None => break,
                 }
-                None => break,
+            };
+            let guarded = match op {
+                Operator::Operator(category) => Ok(category),
+                Operator::Grouping(category) => Ok(category),
+                _ => Err(ParseErr {
+                    reason: "Wrong Operator",
+                    position: token.position,
+                }),
+            }?;
+
+            // we skip postifx for now
+            if let Some(pfbp) = postfix_binding_power(guarded) {
+                if pfbp < min_bp {
+                    break;
+                }
+
+                lhs = self.postfix_statement(token, lhs)?;
+                continue;
+            }
+            if let Some((l_bp, r_bp)) = infix_binding_power(guarded) {
+                if l_bp < min_bp {
+                    break;
+                }
+                self.next();
+                lhs = {
+                    let rhs = self.expression_bp(r_bp)?;
+                    Statement::Operator(token.category(), vec![lhs, rhs])
+                }
             }
         }
         Ok(lhs)
     }
+
+    fn parse_paren(&mut self, token: Token) -> Result<Statement, ParseErr<'a>> {
+        let lhs = self.expression_bp(0)?;
+        if let Some(peeked) = self.peek() {
+            if peeked.category() != Category::RightParen {
+                return Err(ParseErr {
+                    reason: "Unclosed parent",
+                    position: peeked.position,
+                });
+            } else {
+                self.next();
+                return Ok(lhs);
+            }
+        }
+        Err(ParseErr {
+            reason: "Unclosed parent",
+            position: token.position,
+        })
+    }
+
+    fn postfix_statement(
+        &mut self,
+        token: Token,
+        lhs: Statement,
+    ) -> Result<Statement, ParseErr<'a>> {
+        self.next();
+        match token.category() {
+            Category::Comma => {
+                let mut lhs = match lhs {
+                    Statement::Parameter(x) => x,
+                    x => vec![x],
+                };
+                match self.expression_bp(0)? {
+                    Statement::Parameter(mut x) => lhs.append(&mut x),
+                    x => lhs.push(x),
+                };
+                // flatten parameer
+                Ok(Statement::Parameter(lhs))
+            }
+            _ => Err(ParseErr {
+                reason: "Unknown postfix operator",
+                position: token.position,
+            }),
+        }
+    }
+}
+
+fn postfix_binding_power(category: Category) -> Option<u8> {
+    let res = match category {
+        Category::Comma => 9,
+        _ => return None,
+    };
+    Some(res)
 }
 
 fn infix_binding_power(guarded: Category) -> Option<(u8, u8)> {
@@ -201,26 +246,39 @@ fn infix_binding_power(guarded: Category) -> Option<(u8, u8)> {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
     use crate::token::Base::*;
     use crate::token::Category::*;
     use crate::token::{Token, Tokenizer};
+    use std::ops::Range;
     use Statement::*;
 
+    fn string_hasher(input: &str) -> i64 {
+        let mut hash: u64 = 0;
+        for b in input.bytes() {
+            hash = b as u64 + (hash << 6) + (hash << 16) - hash;
+        }
+        hash as i64
+    }
+
     // simplified resolve method to verify a calculate with a given statement
-    fn resolve(code: &str, s: Statement) -> i64 {
+    fn resolve(variables: &[(&str, i32)], code: &str, s: Statement) -> i64 {
         let callable = |mut stmts: Vec<Statement>, calulus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
             let right = stmts.pop().unwrap();
             let left = stmts.pop().unwrap();
-            calulus(resolve(code, left), resolve(code, right))
+            calulus(
+                resolve(variables, code, left),
+                resolve(variables, code, right),
+            )
         };
         match s {
-            Atom(token) => match token.category() {
+            Primitive(token) => match token.category() {
                 Number(_) => code[token.range()].parse().unwrap(),
-                Identifier(_) => 1,
+                String(_) => string_hasher(&code[token.range()]),
                 _ => 0,
             },
-            Operation(head, rest) => match head {
+            Operator(head, rest) => match head {
                 Plus => callable(rest, Box::new(|left, right| left + right)),
                 Star => callable(rest, Box::new(|left, right| left * right)),
                 Slash => callable(rest, Box::new(|left, right| left / right)),
@@ -231,20 +289,69 @@ mod test {
                 ),
                 _ => -42,
             },
+            Variable(token) => {
+                let wanted = &code[token.range()];
+                for (id, val) in variables {
+                    if id == &wanted {
+                        return *val as i64;
+                    }
+                }
+                -1
+            }
+            Call(_, _) => todo!(),
+            Parameter(_) => todo!(),
         }
+    }
+
+    fn token(category: token::Category, start: usize, end: usize) -> Token {
+        Token {
+            category,
+            position: (start, end),
+        }
+    }
+
+    macro_rules! expression {
+        ($code:expr) => {{
+            let mut tokens = Tokenizer::new($code).collect::<Vec<Token>>();
+            let mut parser = Lexer::new(&mut tokens);
+            match parser.expression() {
+                Ok(stmt) => stmt,
+                Err(p) => {
+                    let (start, end) = p.position;
+                    panic!(
+                        "{}: `{}` {:?}",
+                        p.reason,
+                        &$code[Range { start, end }],
+                        p.position
+                    );
+                }
+            }
+        }};
     }
 
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
-            let mut tokenizer = Tokenizer::new($code).collect::<Vec<Token>>();
-            let mut parser = Lexer::new(&mut tokenizer);
-            let expr = parser.expression().unwrap();
-            assert_eq!(resolve($code, expr), $expected);
+            let variables = [("a", 1)];
+            let expr = expression!($code);
+            assert_eq!(resolve(&variables, $code, expr), $expected);
         };
     }
     #[test]
     fn single_statement() {
-        calculated_test!("1", 1);
+        assert_eq!(expression!("1"), Primitive(token(Number(Base10), 0, 1)));
+        assert_eq!(
+            expression!("'a'"),
+            Primitive(token(String(token::StringCategory::Quoteable), 1, 2))
+        );
+        assert_eq!(expression!("a"), Variable(token(Identifier(None), 0, 1)));
+        let fn_name = token(Identifier(None), 0, 1);
+        let args = Box::new(Parameter(vec![
+            Primitive(token( Number(Base10), 2, 3)), 
+            Primitive(token( Number(Base10), 5, 6)), 
+            Primitive(token( Number(Base10), 8, 9)), 
+        ]));
+
+        assert_eq!(expression!("a(1, 2, 3)"), Call(fn_name, args));
     }
 
     #[test]
