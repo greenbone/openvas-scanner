@@ -1,4 +1,4 @@
-use std::{ops::Range, fmt};
+use std::ops::Range;
 
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
@@ -66,7 +66,7 @@ pub enum Keyword {
     Until,     // until
     LocalVar,  // local_var
     GlobalVar, // global_var
-    NULL,      // NULL
+    Null,      // NULL
     Return,    // return
     Include,   // include (is not a buildin if overridden NASL cannot work )
     Exit,      // exit (is not a buildin function of overridden NASL detail run cannot work)
@@ -85,7 +85,7 @@ impl Keyword {
             "until" => Some(Keyword::Until),
             "local_var" => Some(Keyword::LocalVar),
             "global_var" => Some(Keyword::GlobalVar),
-            "NULL" => Some(Keyword::NULL),
+            "NULL" => Some(Keyword::Null),
             "return" => Some(Keyword::Return),
             "include" => Some(Keyword::Include),
             "exit" => Some(Keyword::Exit),
@@ -647,7 +647,7 @@ mod tests {
         verify_tokens!("until", vec![(Identifier(Some(Until)), 0, 5)]);
         verify_tokens!("local_var", vec![(Identifier(Some(LocalVar)), 0, 9)]);
         verify_tokens!("global_var", vec![(Identifier(Some(GlobalVar)), 0, 10)]);
-        verify_tokens!("NULL", vec![(Identifier(Some(NULL)), 0, 4)]);
+        verify_tokens!("NULL", vec![(Identifier(Some(Null)), 0, 4)]);
         verify_tokens!("return", vec![(Identifier(Some(Return)), 0, 6)]);
         verify_tokens!("include", vec![(Identifier(Some(Include)), 0, 7)]);
         verify_tokens!("exit", vec![(Identifier(Some(Exit)), 0, 4)]);
