@@ -1,6 +1,7 @@
-use std::{fmt, string::ParseError};
-
-use crate::token::{self, Category, Token};
+use crate::{
+    parser::{TokenError, Statement},
+    token::{self, Category, Token},
+};
 
 /// Parses given statements containing numeric Operator to order the precedence.
 ///
@@ -13,24 +14,6 @@ use crate::token::{self, Category, Token};
 
 struct Lexer<'a> {
     tokens: &'a mut Vec<Token>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-enum Statement {
-    Primitive(Token),
-    Operator(token::Category, Vec<Statement>),
-    // Logic
-    //
-    Variable(Token),
-    Call(Token, Box<Statement>), // TODO maybe box
-    Parameter(Vec<Statement>),
-    // Function(Token, Vec<Token>),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct ParseErr<'a> {
-    reason: &'a str,
-    position: (usize, usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -58,13 +41,10 @@ impl Operator {
     }
 }
 
-fn prefix_binding_power<'a>(token: Token) -> Result<u8, ParseErr<'a>> {
+fn prefix_binding_power<'a>(token: Token) -> Result<u8, TokenError> {
     match token.category() {
         token::Category::Plus | token::Category::Minus => Ok(9),
-        _ => Err(ParseErr {
-            reason: "Bad operation",
-            position: token.position,
-        }),
+        _ => Err(TokenError::unexpected_token(token)),
     }
 }
 
@@ -80,7 +60,7 @@ impl<'a> Lexer<'a> {
     //
     /// This Parser only intention is to order operator therefore we rely on the caller
     /// to verify if a macthing Operator is in that statement.
-    pub fn new(tokens: &mut Vec<Token>) -> Lexer {
+    fn new(tokens: &mut Vec<Token>) -> Lexer {
         tokens.reverse();
         Lexer { tokens }
     }
@@ -92,19 +72,16 @@ impl<'a> Lexer<'a> {
         self.tokens.last().copied()
     }
 
-    pub fn expression(&mut self) -> Result<Statement, ParseErr<'a>> {
-        self.expression_bp(0)
-    }
-
-    fn prefix_statement(&mut self) -> Result<Statement, ParseErr<'a>> {
-        let token = self.next().map(Ok).unwrap_or(Err(ParseErr {
-            reason: "Insufficient statements",
-            position: (0, 0),
-        }))?;
-        let op = Operator::new(token).map(Ok).unwrap_or(Err(ParseErr {
-            reason: "Unknown operator",
-            position: token.position,
-        }))?;
+    /// Handles statements before operation statements get handled.
+    /// This is mostly done to detect statements that should not be weighted and executed before hand
+    fn prefix_statement(&mut self) -> Result<Statement, TokenError> {
+        let token = self
+            .next()
+            .map(Ok)
+            .unwrap_or_else(|| Err(TokenError::unexpected_end("parsing prefix statements")))?;
+        let op = Operator::new(token)
+            .map(Ok)
+            .unwrap_or_else(|| Err(TokenError::unexpected_token(token)))?;
         match op {
             Operator::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
@@ -124,14 +101,11 @@ impl<'a> Lexer<'a> {
             Operator::Grouping(category) if category == Category::LeftParen => {
                 self.parse_paren(token)
             }
-            Operator::Grouping(_) => Err(ParseErr {
-                reason: "Unknown grouping",
-                position: token.position,
-            }),
+            Operator::Grouping(_) => Err(TokenError::unexpected_token(token)),
         }
     }
 
-    fn expression_bp(&mut self, min_bp: u8) -> Result<Statement, ParseErr<'a>> {
+    fn expression_bp(&mut self, min_bp: u8) -> Result<Statement, TokenError> {
         let mut lhs = self.prefix_statement()?;
         while let Some(token) = self.peek() {
             let op = {
@@ -143,10 +117,7 @@ impl<'a> Lexer<'a> {
             let guarded = match op {
                 Operator::Operator(category) => Ok(category),
                 Operator::Grouping(category) => Ok(category),
-                _ => Err(ParseErr {
-                    reason: "Wrong Operator",
-                    position: token.position,
-                }),
+                _ => Err(TokenError::unexpected_token(token)),
             }?;
 
             if let Some(pfbp) = postfix_binding_power(guarded) {
@@ -171,33 +142,28 @@ impl<'a> Lexer<'a> {
         Ok(lhs)
     }
 
-    fn parse_paren(&mut self, token: Token) -> Result<Statement, ParseErr<'a>> {
+    fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
         let lhs = self.expression_bp(0)?;
         if let Some(peeked) = self.peek() {
             if peeked.category() != Category::RightParen {
-                return Err(ParseErr {
-                    reason: "Unclosed parent",
-                    position: peeked.position,
-                });
+                return Err(TokenError::unclosed(token));
             } else {
                 self.next();
                 return Ok(lhs);
             }
         }
-        Err(ParseErr {
-            reason: "Unclosed parent",
-            position: token.position,
-        })
+        Err(TokenError::unclosed(token))
     }
 
     fn postfix_statement(
         &mut self,
         token: Token,
         lhs: Statement,
-    ) -> Result<Statement, ParseErr<'a>> {
+    ) -> Result<Statement, TokenError> {
         self.next();
         match token.category() {
             Category::Comma => {
+                // flatten parameer
                 let mut lhs = match lhs {
                     Statement::Parameter(x) => x,
                     x => vec![x],
@@ -206,13 +172,9 @@ impl<'a> Lexer<'a> {
                     Statement::Parameter(mut x) => lhs.append(&mut x),
                     x => lhs.push(x),
                 };
-                // flatten parameer
                 Ok(Statement::Parameter(lhs))
             }
-            _ => Err(ParseErr {
-                reason: "Unknown postfix operator",
-                position: token.position,
-            }),
+            _ => Err(TokenError::unexpected_token(token)),
         }
     }
 }
@@ -232,6 +194,10 @@ fn infix_binding_power(guarded: Category) -> Option<(u8, u8)> {
         _ => return None,
     };
     Some(res)
+}
+
+pub fn expression(tokens: &mut Vec<Token>) -> Result<Statement, TokenError> {
+    Lexer::new(tokens).expression_bp(0)
 }
 
 #[cfg(test)]
@@ -303,19 +269,7 @@ mod test {
     macro_rules! expression {
         ($code:expr) => {{
             let mut tokens = Tokenizer::new($code).collect::<Vec<Token>>();
-            let mut parser = Lexer::new(&mut tokens);
-            match parser.expression() {
-                Ok(stmt) => stmt,
-                Err(p) => {
-                    let (start, end) = p.position;
-                    panic!(
-                        "{}: `{}` {:?}",
-                        p.reason,
-                        &$code[Range { start, end }],
-                        p.position
-                    );
-                }
-            }
+            expression(&mut tokens).unwrap()
         }};
     }
 
