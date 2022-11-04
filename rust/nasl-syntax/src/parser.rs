@@ -11,10 +11,11 @@ pub enum Statement<'a> {
     RawNumber(i32),
     Primitive(Token),
     Variable(Token),
-    Call(Token, Box<Statement<'a>>), // TODO maybe box
+    Call(Token, Box<Statement<'a>>), 
     Parameter(Vec<Statement<'a>>),
     Expanded(Box<Statement<'a>>, Box<Statement<'a>>), // e.g. on i++ it gets expanded to Statement, Assign(Variable, Operator(+, ...))
     Assign(Token, Box<Statement<'a>>),
+    AssignReturn(Token, Box<Statement<'a>>), // e.g. ++i or (i = i + 1)
 
     Operator(Category, Vec<Statement<'a>>),
 
