@@ -17,7 +17,7 @@ struct Lexer<'a> {
     append_stmts: Vec<Statement<'a>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Operator {
     Operator(token::Category), // only allowed on numbers
     AssignOperator(token::Category, token::Category, u8),
@@ -150,18 +150,17 @@ impl<'a> Lexer<'a> {
         while let Some(token) = self.peek() {
             let op = {
                 match Operator::new(token) {
-                    Some(x) => x,
+                    Some(op) => match op {
+                        Operator::Operator(_)
+                        | Operator::Grouping(_)
+                        | Operator::AssignOperator(_, _, _) => Ok(op),
+                        _ => Err(TokenError::unexpected_token(token)),
+                    },
                     None => break,
                 }
-            };
-            let guarded = match op {
-                Operator::Operator(category) => Ok(category),
-                Operator::Grouping(category) => Ok(category),
-                Operator::AssignOperator(category, _, _) => Ok(category),
-                _ => Err(TokenError::unexpected_token(token)),
             }?;
 
-            if let Some(pfbp) = postfix_binding_power(guarded) {
+            if let Some(pfbp) = postfix_binding_power(op) {
                 if pfbp < min_bp {
                     break;
                 }
@@ -170,7 +169,7 @@ impl<'a> Lexer<'a> {
                 continue;
             }
 
-            if let Some((l_bp, r_bp)) = infix_binding_power(guarded) {
+            if let Some((l_bp, r_bp)) = infix_binding_power(op) {
                 if l_bp < min_bp {
                     break;
                 }
@@ -181,7 +180,6 @@ impl<'a> Lexer<'a> {
                 }
             }
             // maybe additional abort condition when neither matches
-            
         }
 
         Ok(lhs)
@@ -238,19 +236,23 @@ impl<'a> Lexer<'a> {
     }
 }
 
-fn postfix_binding_power(category: Category) -> Option<u8> {
-    let res = match category {
-        Category::Comma => 9,
-        Category::PlusPlus | Category::MinusMinus => 9,
+fn postfix_binding_power(op: Operator) -> Option<u8> {
+    use self::Operator::*;
+    let res = match op {
+        Grouping(Category::Comma) => 9,
+        AssignOperator(_, _, _) => 9,
         _ => return None,
     };
     Some(res)
 }
 
-fn infix_binding_power(guarded: Category) -> Option<(u8, u8)> {
-    let res = match guarded {
-        Category::Plus | Category::Minus => (5, 6),
-        Category::Star | Category::Slash | Category::Percent | Category::StarStar => (7, 8),
+fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
+    use self::Operator::*;
+    let res = match op {
+        Operator(Category::Plus | Category::Minus) => (5, 6),
+        Operator(Category::Star | Category::Slash | Category::Percent | Category::StarStar) => {
+            (7, 8)
+        }
         _ => return None,
     };
     Some(res)
