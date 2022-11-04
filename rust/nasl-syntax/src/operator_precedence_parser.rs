@@ -12,9 +12,9 @@ use crate::{
 /// To simplify the interpreter later on.
 ///
 
-struct Lexer<'a> {
+struct Lexer {
     tokens: Vec<Token>,
-    append_stmts: Vec<Statement<'a>>,
+    append_stmts: Vec<Statement>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,14 +53,14 @@ impl Operator {
     }
 }
 
-fn prefix_binding_power<'a>(token: Token) -> Result<u8, TokenError> {
+fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     match token.category() {
         token::Category::Plus | token::Category::Minus => Ok(9),
         _ => Err(TokenError::unexpected_token(token)),
     }
 }
 
-impl<'a> Lexer<'a> {
+impl Lexer {
     /// Creates a new Pratt Lexer
     ///
     /// It assumes that the caller gives already a list of Tokens.
@@ -72,7 +72,7 @@ impl<'a> Lexer<'a> {
     //
     /// This Parser only intention is to order operator therefore we rely on the caller
     /// to verify if a macthing Operator is in that statement.
-    fn new(mut tokens: Vec<Token>) -> Lexer<'a> {
+    fn new(mut tokens: Vec<Token>) -> Lexer {
         tokens.reverse();
         Lexer {
             tokens,
@@ -89,7 +89,7 @@ impl<'a> Lexer<'a> {
         self.tokens.last().copied()
     }
 
-    fn parse_variable(&mut self, token: Token) -> Result<Statement<'a>, TokenError> {
+    fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError> {
         if token.category() != Category::Identifier(None) {
             return Err(TokenError::unexpected_token(token));
         }
@@ -106,7 +106,7 @@ impl<'a> Lexer<'a> {
 
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
-    fn prefix_statement(&mut self) -> Result<Statement<'a>, TokenError> {
+    fn prefix_statement(&mut self) -> Result<Statement, TokenError> {
         let token = self
             .next()
             .map(Ok)
@@ -131,21 +131,21 @@ impl<'a> Lexer<'a> {
                 let next = self
                     .next()
                     .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
-                return match self.parse_variable(next)? {
+                match self.parse_variable(next)? {
                     Statement::Variable(value) => Ok(Statement::AssignReturn(
                         value,
                         Box::new(Statement::Operator(
                             operation,
-                            vec![Statement::Variable(token), Statement::RawNumber(amount)],
+                            vec![Statement::Variable(value), Statement::RawNumber(amount)],
                         )),
                     )),
                     _ => Err(TokenError::unexpected_token(token)),
-                };
+                }
             }
         }
     }
 
-    fn expression_bp(&mut self, min_bp: u8) -> Result<Statement<'a>, TokenError> {
+    fn expression_bp(&mut self, min_bp: u8) -> Result<Statement, TokenError> {
         let mut lhs = self.prefix_statement()?;
         while let Some(token) = self.peek() {
             let op = {
@@ -185,7 +185,7 @@ impl<'a> Lexer<'a> {
         Ok(lhs)
     }
 
-    fn parse_paren(&mut self, token: Token) -> Result<Statement<'a>, TokenError> {
+    fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
         let lhs = self.expression_bp(0)?;
         if let Some(peeked) = self.peek() {
             if peeked.category() != Category::RightParen {
@@ -202,8 +202,8 @@ impl<'a> Lexer<'a> {
         &mut self,
         op: Operator,
         token: Token,
-        lhs: Statement<'a>,
-    ) -> Result<Statement<'a>, TokenError> {
+        lhs: Statement,
+    ) -> Result<Statement, TokenError> {
         self.next();
         match op {
             Operator::Grouping(Category::Comma) => {
@@ -258,7 +258,7 @@ fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
     Some(res)
 }
 
-pub fn expression<'a>(tokens: Vec<Token>) -> Result<Statement<'a>, TokenError> {
+pub fn expression(tokens: Vec<Token>) -> Result<Statement, TokenError> {
     let mut lexer = Lexer::new(tokens);
     let mut init = lexer.expression_bp(0)?;
 
@@ -275,7 +275,6 @@ mod test {
     use crate::token::Base::*;
     use crate::token::Category::*;
     use crate::token::{Token, Tokenizer};
-    use std::ops::Range;
     use Statement::*;
 
     fn string_hasher(input: &str) -> i64 {
@@ -386,9 +385,10 @@ mod test {
         calculated_test!("2 ** 4", 16);
     }
 
+
     #[test]
     fn prefix_assignment_operator() {
-        let expected = |based_on: Category, operator: Category| {
+        let expected = |operator: Category| {
             Operator(
                 Plus,
                 vec![
@@ -408,8 +408,8 @@ mod test {
                                     operator,
                                     vec![
                                         Variable(Token {
-                                            category: based_on,
-                                            position: (4, 6),
+                                            category: Identifier(None),
+                                            position: (6, 7),
                                         }),
                                         RawNumber(1),
                                     ],
@@ -424,8 +424,8 @@ mod test {
                 ],
             )
         };
-        expression_test!("1 + ++a * 1", expected(PlusPlus, Plus));
-        expression_test!("1 + --a * 1", expected(MinusMinus, Minus));
+        expression_test!("1 + ++a * 1", expected(Plus));
+        expression_test!("1 + --a * 1", expected(Minus));
     }
 
     #[test]
