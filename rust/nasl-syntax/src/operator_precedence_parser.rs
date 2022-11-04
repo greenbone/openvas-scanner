@@ -20,6 +20,7 @@ struct Lexer<'a> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Operator {
     Operator(token::Category), // only allowed on numbers
+    AssignOperator(token::Category, token::Category, u8),
     Grouping(token::Category), // grouping operator ()
     Variable(Token),           // not an operation
     Primitive(Token),          // not an operation
@@ -33,8 +34,17 @@ impl Operator {
             | Category::Slash
             | Category::Minus
             | Category::Percent
-            | Category::StarStar
-            | Category::PlusPlus => Some(Operator::Operator(token.category())),
+            | Category::StarStar => Some(Operator::Operator(token.category())),
+            Category::PlusPlus => Some(Operator::AssignOperator(
+                Category::PlusPlus,
+                Category::Plus,
+                1,
+            )),
+            Category::MinusMinus => Some(Operator::AssignOperator(
+                Category::MinusMinus,
+                Category::Minus,
+                1,
+            )),
             Category::String(_) | Category::Number(_) => Some(Operator::Primitive(token)),
             Category::LeftParen | Category::Comma => Some(Operator::Grouping(token.category())),
             Category::Identifier(_) => Some(Operator::Variable(token)),
@@ -107,21 +117,6 @@ impl<'a> Lexer<'a> {
         match op {
             Operator::Operator(kind) => {
                 // maybe move to own category
-                if kind == Category::PlusPlus {
-                    let next = self
-                        .next()
-                        .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
-                    return match self.parse_variable(next)? {
-                        Statement::Variable(value) => Ok(Statement::AssignReturn(
-                            value,
-                            Box::new(Statement::Operator(
-                                Category::Plus,
-                                vec![Statement::Variable(token), Statement::RawNumber(1)],
-                            )),
-                        )),
-                        _ => Err(TokenError::unexpected_token(token)),
-                    };
-                }
                 let bp = prefix_binding_power(token)?;
                 let rhs = self.expression_bp(bp)?;
                 Ok(Statement::Operator(kind, vec![rhs]))
@@ -132,6 +127,21 @@ impl<'a> Lexer<'a> {
                 self.parse_paren(token)
             }
             Operator::Grouping(_) => Err(TokenError::unexpected_token(token)),
+            Operator::AssignOperator(_, operation, amount) => {
+                let next = self
+                    .next()
+                    .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
+                return match self.parse_variable(next)? {
+                    Statement::Variable(value) => Ok(Statement::AssignReturn(
+                        value,
+                        Box::new(Statement::Operator(
+                            operation,
+                            vec![Statement::Variable(token), Statement::RawNumber(amount)],
+                        )),
+                    )),
+                    _ => Err(TokenError::unexpected_token(token)),
+                };
+            }
         }
     }
 
@@ -147,6 +157,7 @@ impl<'a> Lexer<'a> {
             let guarded = match op {
                 Operator::Operator(category) => Ok(category),
                 Operator::Grouping(category) => Ok(category),
+                Operator::AssignOperator(category, _, _) => Ok(category),
                 _ => Err(TokenError::unexpected_token(token)),
             }?;
 
@@ -155,7 +166,7 @@ impl<'a> Lexer<'a> {
                     break;
                 }
 
-                lhs = self.postfix_statement(token, lhs)?;
+                lhs = self.postfix_statement(op, token, lhs)?;
                 continue;
             }
 
@@ -169,6 +180,8 @@ impl<'a> Lexer<'a> {
                     Statement::Operator(token.category(), vec![lhs, rhs])
                 }
             }
+            // maybe additional abort condition when neither matches
+            
         }
 
         Ok(lhs)
@@ -189,12 +202,13 @@ impl<'a> Lexer<'a> {
 
     fn postfix_statement(
         &mut self,
+        op: Operator,
         token: Token,
         lhs: Statement<'a>,
     ) -> Result<Statement<'a>, TokenError> {
         self.next();
-        match token.category() {
-            Category::Comma => {
+        match op {
+            Operator::Grouping(Category::Comma) => {
                 // flatten parameer
                 let mut lhs = match lhs {
                     Statement::Parameter(x) => x,
@@ -206,13 +220,13 @@ impl<'a> Lexer<'a> {
                 };
                 Ok(Statement::Parameter(lhs))
             }
-            Category::PlusPlus => match lhs {
+            Operator::AssignOperator(_, operator, amount) => match lhs {
                 Statement::Variable(token) => {
                     self.append_stmts.push(Statement::Assign(
                         token,
                         Box::new(Statement::Operator(
-                            Category::Plus,
-                            vec![Statement::Variable(token), Statement::RawNumber(1)],
+                            operator,
+                            vec![Statement::Variable(token), Statement::RawNumber(amount)],
                         )),
                     ));
                     Ok(lhs)
@@ -227,7 +241,7 @@ impl<'a> Lexer<'a> {
 fn postfix_binding_power(category: Category) -> Option<u8> {
     let res = match category {
         Category::Comma => 9,
-        Category::PlusPlus => 9,
+        Category::PlusPlus | Category::MinusMinus => 9,
         _ => return None,
     };
     Some(res)
@@ -372,14 +386,13 @@ mod test {
 
     #[test]
     fn prefix_assignment_operator() {
-        expression_test!(
-            "1 + ++a * 1",
+        let expected = |based_on: Category, operator: Category| {
             Operator(
                 Plus,
                 vec![
                     Primitive(Token {
                         category: Number(Base10),
-                        position: (0, 1)
+                        position: (0, 1),
                     }),
                     Operator(
                         Star,
@@ -387,74 +400,77 @@ mod test {
                             AssignReturn(
                                 Token {
                                     category: Identifier(None),
-                                    position: (6, 7)
+                                    position: (6, 7),
                                 },
                                 Box::new(Operator(
-                                    Plus,
+                                    operator,
                                     vec![
                                         Variable(Token {
-                                            category: PlusPlus,
-                                            position: (4, 6)
+                                            category: based_on,
+                                            position: (4, 6),
                                         }),
-                                        RawNumber(1)
-                                    ]
-                                ))
+                                        RawNumber(1),
+                                    ],
+                                )),
                             ),
                             Primitive(Token {
                                 category: Number(Base10),
-                                position: (10, 11)
-                            })
-                        ]
-                    )
-                ]
+                                position: (10, 11),
+                            }),
+                        ],
+                    ),
+                ],
             )
-        );
+        };
+        expression_test!("1 + ++a * 1", expected(PlusPlus, Plus));
+        expression_test!("1 + --a * 1", expected(MinusMinus, Minus));
     }
 
     #[test]
     fn postfix_assignment_operator() {
-        expression_test!(
-            "1 + a++ * 1",
+        let expected = |operator: Category| {
             Expanded(
                 Box::new(Operator(
                     Plus,
                     vec![
                         Primitive(Token {
                             category: Number(Base10),
-                            position: (0, 1)
+                            position: (0, 1),
                         }),
                         Operator(
                             Star,
                             vec![
                                 Variable(Token {
                                     category: Identifier(None),
-                                    position: (4, 5)
+                                    position: (4, 5),
                                 }),
                                 Primitive(Token {
                                     category: Number(Base10),
-                                    position: (10, 11)
-                                })
-                            ]
-                        )
-                    ]
+                                    position: (10, 11),
+                                }),
+                            ],
+                        ),
+                    ],
                 )),
                 Box::new(Assign(
                     Token {
                         category: Identifier(None),
-                        position: (4, 5)
+                        position: (4, 5),
                     },
                     Box::new(Operator(
-                        Plus,
+                        operator,
                         vec![
                             Variable(Token {
                                 category: Identifier(None),
-                                position: (4, 5)
+                                position: (4, 5),
                             }),
-                            RawNumber(1)
-                        ]
-                    ))
-                ))
+                            RawNumber(1),
+                        ],
+                    )),
+                )),
             )
-        );
+        };
+        expression_test!("1 + a++ * 1", expected(Plus));
+        expression_test!("1 + a-- * 1", expected(Minus));
     }
 }
