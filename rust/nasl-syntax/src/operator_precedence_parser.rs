@@ -73,8 +73,25 @@ impl<'a> Lexer<'a> {
     fn next(&mut self) -> Option<Token> {
         self.tokens.pop()
     }
+    // TODO remove the need for peek so that it can directly work with Tokenizer
+    // and doesn't need reverse anymore and can be used as general parser instead of parser.rs
     fn peek(&self) -> Option<Token> {
         self.tokens.last().copied()
+    }
+
+    fn parse_variable(&mut self, token: Token) -> Result<Statement<'a>, TokenError> {
+        if token.category() != Category::Identifier(None) {
+            return Err(TokenError::unexpected_token(token));
+        }
+        match self.peek() {
+            Some(x) if x.category() == Category::LeftParen => {
+                self.next();
+                let parameter = self.parse_paren(x)?;
+                Ok(Statement::Call(token, Box::new(parameter)))
+            }
+
+            _ => Ok(Statement::Variable(token)),
+        }
     }
 
     /// Handles statements before operation statements get handled.
@@ -89,20 +106,28 @@ impl<'a> Lexer<'a> {
             .unwrap_or_else(|| Err(TokenError::unexpected_token(token)))?;
         match op {
             Operator::Operator(kind) => {
+                // maybe move to own category
+                if kind == Category::PlusPlus {
+                    let next = self
+                        .next()
+                        .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
+                    return match self.parse_variable(next)? {
+                        Statement::Variable(value) => Ok(Statement::AssignReturn(
+                            value,
+                            Box::new(Statement::Operator(
+                                Category::Plus,
+                                vec![Statement::Variable(token), Statement::RawNumber(1)],
+                            )),
+                        )),
+                        _ => Err(TokenError::unexpected_token(token)),
+                    };
+                }
                 let bp = prefix_binding_power(token)?;
                 let rhs = self.expression_bp(bp)?;
                 Ok(Statement::Operator(kind, vec![rhs]))
             }
             Operator::Primitive(token) => Ok(Statement::Primitive(token)),
-            Operator::Variable(token) => match self.peek() {
-                Some(x) if x.category() == Category::LeftParen => {
-                    self.next();
-                    let parameter = self.parse_paren(x)?;
-                    Ok(Statement::Call(token, Box::new(parameter)))
-                }
-
-                _ => Ok(Statement::Variable(token)),
-            },
+            Operator::Variable(token) => self.parse_variable(token),
             Operator::Grouping(category) if category == Category::LeftParen => {
                 self.parse_paren(token)
             }
@@ -133,6 +158,7 @@ impl<'a> Lexer<'a> {
                 lhs = self.postfix_statement(token, lhs)?;
                 continue;
             }
+
             if let Some((l_bp, r_bp)) = infix_binding_power(guarded) {
                 if l_bp < min_bp {
                     break;
@@ -182,7 +208,6 @@ impl<'a> Lexer<'a> {
             }
             Category::PlusPlus => match lhs {
                 Statement::Variable(token) => {
-                    println!("HU?>");
                     self.append_stmts.push(Statement::Assign(
                         token,
                         Box::new(Statement::Operator(
@@ -343,6 +368,47 @@ mod test {
     #[test]
     fn pow() {
         calculated_test!("2 ** 4", 16);
+    }
+
+    #[test]
+    fn prefix_assignment_operator() {
+        expression_test!(
+            "1 + ++a * 1",
+            Operator(
+                Plus,
+                vec![
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (0, 1)
+                    }),
+                    Operator(
+                        Star,
+                        vec![
+                            AssignReturn(
+                                Token {
+                                    category: Identifier(None),
+                                    position: (6, 7)
+                                },
+                                Box::new(Operator(
+                                    Plus,
+                                    vec![
+                                        Variable(Token {
+                                            category: PlusPlus,
+                                            position: (4, 6)
+                                        }),
+                                        RawNumber(1)
+                                    ]
+                                ))
+                            ),
+                            Primitive(Token {
+                                category: Number(Base10),
+                                position: (10, 11)
+                            })
+                        ]
+                    )
+                ]
+            )
+        );
     }
 
     #[test]
