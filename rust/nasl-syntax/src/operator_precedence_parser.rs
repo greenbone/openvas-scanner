@@ -21,6 +21,7 @@ struct Lexer {
 enum Operator {
     Operator(token::Category), // only allowed on numbers
     AssignOperator(token::Category, token::Category, u8),
+    Assign(token::Category),
     Grouping(token::Category), // grouping operator ()
     Variable(Token),           // not an operation
     Primitive(Token),          // not an operation
@@ -45,6 +46,7 @@ impl Operator {
                 Category::Minus,
                 1,
             )),
+            Category::Equal => Some(Operator::Assign(Category::Equal)),
             Category::String(_) | Category::Number(_) => Some(Operator::Primitive(token)),
             Category::LeftParen | Category::Comma => Some(Operator::Grouping(token.category())),
             Category::Identifier(_) => Some(Operator::Variable(token)),
@@ -116,17 +118,20 @@ impl Lexer {
             .unwrap_or_else(|| Err(TokenError::unexpected_token(token)))?;
         match op {
             Operator::Operator(kind) => {
-                // maybe move to own category
                 let bp = prefix_binding_power(token)?;
                 let rhs = self.expression_bp(bp)?;
                 Ok(Statement::Operator(kind, vec![rhs]))
             }
+            Operator::Assign(_) => Err(TokenError::unexpected_token(token)),
             Operator::Primitive(token) => Ok(Statement::Primitive(token)),
             Operator::Variable(token) => self.parse_variable(token),
-            Operator::Grouping(category) if category == Category::LeftParen => {
-                self.parse_paren(token)
+            Operator::Grouping(category) => {
+                if category == Category::LeftParen {
+                    self.parse_paren(token)
+                } else {
+                    Err(TokenError::unexpected_token(token))
+                }
             }
-            Operator::Grouping(_) => Err(TokenError::unexpected_token(token)),
             Operator::AssignOperator(_, operation, amount) => {
                 let next = self
                     .next()
@@ -152,6 +157,7 @@ impl Lexer {
                 match Operator::new(token) {
                     Some(op) => match op {
                         Operator::Operator(_)
+                        | Operator::Assign(_)
                         | Operator::Grouping(_)
                         | Operator::AssignOperator(_, _, _) => Ok(op),
                         _ => Err(TokenError::unexpected_token(token)),
@@ -176,10 +182,15 @@ impl Lexer {
                 self.next();
                 lhs = {
                     let rhs = self.expression_bp(r_bp)?;
-                    Statement::Operator(token.category(), vec![lhs, rhs])
+                    match op {
+                        Operator::Assign(_) => match lhs {
+                            Statement::Variable(token) => Statement::Assign(token, Box::new(rhs)),
+                            _ => Statement::Operator(token.category(), vec![lhs, rhs]),
+                        },
+                        _ => Statement::Operator(token.category(), vec![lhs, rhs]),
+                    }
                 }
             }
-            // maybe additional abort condition when neither matches
         }
 
         Ok(lhs)
@@ -249,6 +260,7 @@ fn postfix_binding_power(op: Operator) -> Option<u8> {
 fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
     use self::Operator::*;
     let res = match op {
+        Assign(Category::Equal) => (4, 5),
         Operator(Category::Plus | Category::Minus) => (5, 6),
         Operator(Category::Star | Category::Slash | Category::Percent | Category::StarStar) => {
             (7, 8)
@@ -385,7 +397,19 @@ mod test {
         calculated_test!("2 ** 4", 16);
     }
 
-
+    #[test]
+    fn assignment() {
+        expression_test!(
+            "a = 1",
+            Assign(
+                token(Identifier(None), 0, 1),
+                Box::new(Primitive(Token {
+                    category: Number(Base10),
+                    position: (4, 5)
+                }))
+            )
+        );
+    }
     #[test]
     fn prefix_assignment_operator() {
         let expected = |operator: Category| {
