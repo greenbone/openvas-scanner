@@ -6,20 +6,24 @@ use crate::{
     token::{Category, Keyword, Token, Tokenizer},
 };
 
+/// Is used to lookup block specific data like variables and functions.
+/// The first number is the parent while the second is the own.
+type BlockDepth = (u8, u8);
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Statement<'a> {
-    RawNumber(u8), 
+pub enum Statement {
+    RawNumber(u8),
     Primitive(Token),
     Variable(Token),
-    Call(Token, Box<Statement<'a>>), 
-    Parameter(Vec<Statement<'a>>),
-    Expanded(Box<Statement<'a>>, Box<Statement<'a>>), // e.g. on i++ it gets expanded to Statement, Assign(Variable, Operator(+, ...))
-    Assign(Token, Box<Statement<'a>>),
-    AssignReturn(Token, Box<Statement<'a>>), // e.g. ++i or (i = i + 1)
+    Call(Token, Box<Statement>),
+    Parameter(Vec<Statement>),
+    Expanded(Box<Statement>, Box<Statement>), // e.g. on i++ it gets expanded to Statement, Assign(Variable, Operator(+, ...))
+    Assign(Token, Box<Statement>),
+    AssignReturn(Token, Box<Statement>), // e.g. ++i or (i = i + 1)
 
-    Operator(Category, Vec<Statement<'a>>),
+    Operator(Category, Vec<Statement>),
 
-    If(Box<Statement<'a>>, Block<'a>, Option<Block<'a>>),
+    If(Box<Statement>, Box<Statement>, Option<Box<Statement>>),
+    Block(Vec<Statement>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,16 +34,6 @@ pub struct Variable<'a> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Functions {}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Block<'a> {
-    // TODO need to find a way to handle block trees
-    //parent: Option<&'a Block<'a>>, // all but root have a parent
-    //children: Vec<&'a Block<'a>>,
-    statements: Vec<Result<Statement<'a>, TokenError>>,
-    variables: Vec<Variable<'a>>,
-    functions: Option<Functions>, // only root can have functions
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TokenError {
@@ -116,15 +110,11 @@ impl Error for TokenError {}
 
 pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>,
-    root: Block<'a>,
+    root: BlockDepth,
 }
 
 impl<'a> Parser<'a> {
-    fn parse_keyword(
-        &mut self,
-        token: Token,
-        keyword: Keyword,
-    ) -> Result<Statement<'a>, TokenError> {
+    fn parse_keyword(&mut self, token: Token, keyword: Keyword) -> Result<Statement, TokenError> {
         match keyword {
             Keyword::If => self.parse_if(token),
             Keyword::For => Err(TokenError::unexpected_token(token)),
@@ -153,7 +143,7 @@ impl<'a> Parser<'a> {
         &mut self,
         increase_when: Category,
         reduce_when: Category,
-    ) -> Result<Statement<'a>, TokenError> {
+    ) -> Result<Statement, TokenError> {
         let mut count = 1;
         let next = self.next_token_as_result()?;
         self.parse_expression(next, |t| {
@@ -166,7 +156,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_if(&mut self, token: Token) -> Result<Statement<'a>, TokenError> {
+    fn parse_if(&mut self, token: Token) -> Result<Statement, TokenError> {
         let left_paren = self.next_token_as_result()?;
         if left_paren.category() != Category::LeftParen {
             return Err(TokenError::unexpected_token(left_paren));
@@ -178,23 +168,18 @@ impl<'a> Parser<'a> {
             if token.category() == Category::LeftCurlyBracket {
                 todo!()
             } else {
-                let dafuq = self.parse_token(token);
-                Block {
-                    statements: vec![dafuq],
-                    variables: vec![],
-                    functions: None,
-                }
+                self.parse_token(token)
             }
-        };
+        }?;
         // TODO else
-        Ok(Statement::If(Box::new(condition), body.clone(), None))
+        Ok(Statement::If(Box::new(condition), Box::new(body), None))
     }
 
     fn parse_expression(
         &mut self,
         token: Token,
         mut predicate: impl FnMut(Category) -> bool,
-    ) -> Result<Statement<'a>, TokenError> {
+    ) -> Result<Statement, TokenError> {
         let mut tokens = vec![token];
         for token in self.tokenizer.by_ref() {
             if !predicate(token.category()) {
@@ -206,7 +191,7 @@ impl<'a> Parser<'a> {
         Err(TokenError::missing_semicolon(token, tokens.last().cloned()))
     }
 
-    fn parse_token(&mut self, token: Token) -> Result<Statement<'a>, TokenError> {
+    fn parse_token(&mut self, token: Token) -> Result<Statement, TokenError> {
         match token.category() {
             Category::Identifier(Some(keyword)) => self.parse_keyword(token, keyword),
             _ => self.parse_expression(token, |c| c == Category::Semicolon),
@@ -215,7 +200,7 @@ impl<'a> Parser<'a> {
 }
 
 impl<'a> Iterator for Parser<'a> {
-    type Item = Result<Statement<'a>, TokenError>;
+    type Item = Result<Statement, TokenError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.tokenizer.next()?;
@@ -223,13 +208,9 @@ impl<'a> Iterator for Parser<'a> {
     }
 }
 
-pub fn parse<'a>(code: &'a str, variables: Vec<Variable<'a>>) -> Parser<'a> {
+pub fn parse<'a>(code: &'a str) -> Parser<'a> {
     let tokenizer = Tokenizer::new(code);
-    let root = Block {
-        statements: vec![],
-        variables,
-        functions: None,
-    };
+    let root = (0, 0);
     Parser { tokenizer, root }
 }
 
@@ -244,16 +225,8 @@ mod tests {
 
     #[test]
     fn if_statement() {
-        let description = super::Variable {
-            name: "description",
-            token: &Token {
-                category: Category::Number(Base::Base10),
-                position: (0, 0),
-            },
-        };
         let result = parse(
             "if (description)\nscript_oid(\"1.3.6.1.4.1.25623.1.0.100196\");\n",
-            vec![description],
         )
         .next()
         .unwrap()
@@ -263,20 +236,16 @@ mod tests {
                 category: Identifier(None),
                 position: (4, 15),
             })),
-            Block {
-                statements: vec![Ok(Call(
-                    Token {
-                        category: Identifier(None),
-                        position: (17, 27),
-                    },
-                    Box::new(Primitive(Token {
-                        category: String(Unquoteable),
-                        position: (29, 57),
-                    })),
-                ))],
-                variables: vec![],
-                functions: None,
-            },
+            Box::new(Call(
+                Token {
+                    category: Identifier(None),
+                    position: (17, 27),
+                },
+                Box::new(Primitive(Token {
+                    category: String(Unquoteable),
+                    position: (29, 57),
+                })),
+            )),
             None,
         );
         assert_eq!(result, expected)
