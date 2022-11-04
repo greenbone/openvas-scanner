@@ -1,5 +1,5 @@
 use crate::{
-    parser::{TokenError, Statement},
+    parser::{Statement, TokenError},
     token::{self, Category, Token},
 };
 
@@ -12,8 +12,8 @@ use crate::{
 /// To simplify the interpreter later on.
 ///
 
-struct Lexer<'a> {
-    tokens: &'a mut Vec<Token>,
+struct Lexer {
+    tokens: Vec<Token>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -48,7 +48,7 @@ fn prefix_binding_power<'a>(token: Token) -> Result<u8, TokenError> {
     }
 }
 
-impl<'a> Lexer<'a> {
+impl<'a> Lexer {
     /// Creates a new Pratt Lexer
     ///
     /// It assumes that the caller gives already a list of Tokens.
@@ -60,7 +60,7 @@ impl<'a> Lexer<'a> {
     //
     /// This Parser only intention is to order operator therefore we rely on the caller
     /// to verify if a macthing Operator is in that statement.
-    fn new(tokens: &mut Vec<Token>) -> Lexer {
+    fn new(mut tokens: Vec<Token>) -> Lexer {
         tokens.reverse();
         Lexer { tokens }
     }
@@ -74,7 +74,7 @@ impl<'a> Lexer<'a> {
 
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
-    fn prefix_statement(&mut self) -> Result<Statement, TokenError> {
+    fn prefix_statement(&mut self) -> Result<Statement<'a>, TokenError> {
         let token = self
             .next()
             .map(Ok)
@@ -105,7 +105,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn expression_bp(&mut self, min_bp: u8) -> Result<Statement, TokenError> {
+    fn expression_bp(&mut self, min_bp: u8) -> Result<Statement<'a>, TokenError> {
         let mut lhs = self.prefix_statement()?;
         while let Some(token) = self.peek() {
             let op = {
@@ -142,7 +142,7 @@ impl<'a> Lexer<'a> {
         Ok(lhs)
     }
 
-    fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
+    fn parse_paren(&mut self, token: Token) -> Result<Statement<'a>, TokenError> {
         let lhs = self.expression_bp(0)?;
         if let Some(peeked) = self.peek() {
             if peeked.category() != Category::RightParen {
@@ -158,8 +158,8 @@ impl<'a> Lexer<'a> {
     fn postfix_statement(
         &mut self,
         token: Token,
-        lhs: Statement,
-    ) -> Result<Statement, TokenError> {
+        lhs: Statement<'a>,
+    ) -> Result<Statement<'a>, TokenError> {
         self.next();
         match token.category() {
             Category::Comma => {
@@ -196,7 +196,7 @@ fn infix_binding_power(guarded: Category) -> Option<(u8, u8)> {
     Some(res)
 }
 
-pub fn expression(tokens: &mut Vec<Token>) -> Result<Statement, TokenError> {
+pub fn expression<'a>(tokens: Vec<Token>) -> Result<Statement<'a>, TokenError> {
     Lexer::new(tokens).expression_bp(0)
 }
 
@@ -220,10 +220,10 @@ mod test {
 
     // simplified resolve method to verify a calculate with a given statement
     fn resolve(variables: &[(&str, i32)], code: &str, s: Statement) -> i64 {
-        let callable = |mut stmts: Vec<Statement>, calulus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
+        let callable = |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
             let right = stmts.pop().unwrap();
             let left = stmts.pop().unwrap();
-            calulus(
+            calculus(
                 resolve(variables, code, left),
                 resolve(variables, code, right),
             )
@@ -254,8 +254,7 @@ mod test {
                 }
                 -1
             }
-            Call(_, _) => todo!(),
-            Parameter(_) => todo!(),
+            _ => todo!(),
         }
     }
 
@@ -266,28 +265,31 @@ mod test {
         }
     }
 
-    macro_rules! expression {
-        ($code:expr) => {{
-            let mut tokens = Tokenizer::new($code).collect::<Vec<Token>>();
-            expression(&mut tokens).unwrap()
+    macro_rules! expression_test {
+        ($code:expr, $expected:expr) => {{
+            let tokens = Tokenizer::new($code).collect::<Vec<Token>>();
+            let actual = expression(tokens).unwrap();
+            assert_eq!(actual, $expected);
         }};
     }
 
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
             let variables = [("a", 1)];
-            let expr = expression!($code);
+            let tokens = Tokenizer::new($code).collect::<Vec<Token>>();
+            let expr = expression(tokens).unwrap();
             assert_eq!(resolve(&variables, $code, expr), $expected);
         };
     }
     #[test]
     fn single_statement() {
-        assert_eq!(expression!("1"), Primitive(token(Number(Base10), 0, 1)));
-        assert_eq!(
-            expression!("'a'"),
+        expression_test!("1", Primitive(token(Number(Base10), 0, 1)));
+        expression_test!(
+            "'a'",
             Primitive(token(String(token::StringCategory::Quoteable), 1, 2))
         );
-        assert_eq!(expression!("a"), Variable(token(Identifier(None), 0, 1)));
+
+        expression_test!("a", Variable(token(Identifier(None), 0, 1)));
         let fn_name = token(Identifier(None), 0, 1);
         let args = Box::new(Parameter(vec![
             Primitive(token(Number(Base10), 2, 3)),
@@ -295,7 +297,7 @@ mod test {
             Primitive(token(Number(Base10), 8, 9)),
         ]));
 
-        assert_eq!(expression!("a(1, 2, 3)"), Call(fn_name, args));
+        expression_test!("a(1, 2, 3)", Call(fn_name, args));
     }
 
     #[test]
