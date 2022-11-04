@@ -12,8 +12,9 @@ use crate::{
 /// To simplify the interpreter later on.
 ///
 
-struct Lexer {
+struct Lexer<'a> {
     tokens: Vec<Token>,
+    append_stmts: Vec<Statement<'a>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,7 +33,8 @@ impl Operator {
             | Category::Slash
             | Category::Minus
             | Category::Percent
-            | Category::StarStar => Some(Operator::Operator(token.category())),
+            | Category::StarStar
+            | Category::PlusPlus => Some(Operator::Operator(token.category())),
             Category::String(_) | Category::Number(_) => Some(Operator::Primitive(token)),
             Category::LeftParen | Category::Comma => Some(Operator::Grouping(token.category())),
             Category::Identifier(_) => Some(Operator::Variable(token)),
@@ -48,7 +50,7 @@ fn prefix_binding_power<'a>(token: Token) -> Result<u8, TokenError> {
     }
 }
 
-impl<'a> Lexer {
+impl<'a> Lexer<'a> {
     /// Creates a new Pratt Lexer
     ///
     /// It assumes that the caller gives already a list of Tokens.
@@ -60,9 +62,12 @@ impl<'a> Lexer {
     //
     /// This Parser only intention is to order operator therefore we rely on the caller
     /// to verify if a macthing Operator is in that statement.
-    fn new(mut tokens: Vec<Token>) -> Lexer {
+    fn new(mut tokens: Vec<Token>) -> Lexer<'a> {
         tokens.reverse();
-        Lexer { tokens }
+        Lexer {
+            tokens,
+            append_stmts: vec![],
+        }
     }
 
     fn next(&mut self) -> Option<Token> {
@@ -139,6 +144,7 @@ impl<'a> Lexer {
                 }
             }
         }
+
         Ok(lhs)
     }
 
@@ -174,6 +180,20 @@ impl<'a> Lexer {
                 };
                 Ok(Statement::Parameter(lhs))
             }
+            Category::PlusPlus => match lhs {
+                Statement::Variable(token) => {
+                    println!("HU?>");
+                    self.append_stmts.push(Statement::Assign(
+                        token,
+                        Box::new(Statement::Operator(
+                            Category::Plus,
+                            vec![Statement::Variable(token), Statement::RawNumber(1)],
+                        )),
+                    ));
+                    Ok(lhs)
+                }
+                _ => Err(TokenError::unexpected_token(token)),
+            },
             _ => Err(TokenError::unexpected_token(token)),
         }
     }
@@ -182,6 +202,7 @@ impl<'a> Lexer {
 fn postfix_binding_power(category: Category) -> Option<u8> {
     let res = match category {
         Category::Comma => 9,
+        Category::PlusPlus => 9,
         _ => return None,
     };
     Some(res)
@@ -197,7 +218,13 @@ fn infix_binding_power(guarded: Category) -> Option<(u8, u8)> {
 }
 
 pub fn expression<'a>(tokens: Vec<Token>) -> Result<Statement<'a>, TokenError> {
-    Lexer::new(tokens).expression_bp(0)
+    let mut lexer = Lexer::new(tokens);
+    let mut init = lexer.expression_bp(0)?;
+
+    for append in lexer.append_stmts {
+        init = Statement::Expanded(Box::new(init), Box::new(append));
+    }
+    Ok(init)
 }
 
 #[cfg(test)]
@@ -316,5 +343,52 @@ mod test {
     #[test]
     fn pow() {
         calculated_test!("2 ** 4", 16);
+    }
+
+    #[test]
+    fn postfix_assignment_operator() {
+        expression_test!(
+            "1 + a++ * 1",
+            Expanded(
+                Box::new(Operator(
+                    Plus,
+                    vec![
+                        Primitive(Token {
+                            category: Number(Base10),
+                            position: (0, 1)
+                        }),
+                        Operator(
+                            Star,
+                            vec![
+                                Variable(Token {
+                                    category: Identifier(None),
+                                    position: (4, 5)
+                                }),
+                                Primitive(Token {
+                                    category: Number(Base10),
+                                    position: (10, 11)
+                                })
+                            ]
+                        )
+                    ]
+                )),
+                Box::new(Assign(
+                    Token {
+                        category: Identifier(None),
+                        position: (4, 5)
+                    },
+                    Box::new(Operator(
+                        Plus,
+                        vec![
+                            Variable(Token {
+                                category: Identifier(None),
+                                position: (4, 5)
+                            }),
+                            RawNumber(1)
+                        ]
+                    ))
+                ))
+            )
+        );
     }
 }

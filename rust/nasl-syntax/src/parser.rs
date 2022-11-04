@@ -8,10 +8,13 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement<'a> {
+    RawNumber(i32),
     Primitive(Token),
     Variable(Token),
     Call(Token, Box<Statement<'a>>), // TODO maybe box
     Parameter(Vec<Statement<'a>>),
+    Expanded(Box<Statement<'a>>, Box<Statement<'a>>), // e.g. on i++ it gets expanded to Statement, Assign(Variable, Operator(+, ...))
+    Assign(Token, Box<Statement<'a>>),
 
     Operator(Category, Vec<Statement<'a>>),
 
