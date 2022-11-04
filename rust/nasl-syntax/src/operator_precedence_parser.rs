@@ -203,7 +203,10 @@ impl Lexer {
                 return Err(TokenError::unclosed(token));
             } else {
                 self.next();
-                return Ok(lhs);
+                return match lhs {
+                    Statement::Assign(token, stmt) => Ok(Statement::AssignReturn(token, stmt)),
+                    _ => Ok(lhs),
+                };
             }
         }
         Err(TokenError::unclosed(token))
@@ -406,6 +409,16 @@ mod test {
                 Box::new(Primitive(Token {
                     category: Number(Base10),
                     position: (4, 5)
+                }))
+            )
+        );
+        expression_test!(
+            "(a = 1)",
+            AssignReturn(
+                token(Identifier(None), 1, 2),
+                Box::new(Primitive(Token {
+                    category: Number(Base10),
+                    position: (5, 6)
                 }))
             )
         );
