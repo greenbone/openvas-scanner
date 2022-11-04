@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement<'a> {
-    RawNumber(i32),
+    RawNumber(u8), 
     Primitive(Token),
     Variable(Token),
     Call(Token, Box<Statement<'a>>), 
