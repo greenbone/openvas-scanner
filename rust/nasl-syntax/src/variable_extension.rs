@@ -6,11 +6,6 @@ use crate::{
 
 pub(crate) trait Variables {
     fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError>;
-    fn flatten_parameter(
-        &mut self,
-        lhs: Statement,
-        abort: Category,
-    ) -> Result<Statement, TokenError>;
 }
 
 impl<'a> Variables for Lexer<'a> {
@@ -30,21 +25,6 @@ impl<'a> Variables for Lexer<'a> {
         Ok(Statement::Variable(token))
     }
 
-    fn flatten_parameter(
-        &mut self,
-        lhs: Statement,
-        abort: Category,
-    ) -> Result<Statement, TokenError> {
-        let mut lhs = match lhs {
-            Statement::Parameter(x) => x,
-            x => vec![x],
-        };
-        match self.expression_bp(0, abort)? {
-            Statement::Parameter(mut x) => lhs.append(&mut x),
-            x => lhs.push(x),
-        };
-        Ok(Statement::Parameter(lhs))
-    }
 }
 
 #[cfg(test)]

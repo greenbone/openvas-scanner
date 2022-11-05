@@ -2,6 +2,7 @@ use crate::{
     assign_operator_extension::AssignOperator,
     keyword_extension::Keywords,
     parser::{AssignCategory, Statement, TokenError},
+    postifx_extension::Postfix,
     token::{self, Category, Keyword, Token, Tokenizer},
     variable_extension::Variables,
 };
@@ -21,7 +22,7 @@ pub(crate) struct Lexer<'a> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Operator {
+pub(crate) enum Operator {
     Operator(token::Category),
     AssignOperator(token::Category, token::Category, u8),
     Assign(token::Category),
@@ -162,13 +163,11 @@ impl<'a> Lexer<'a> {
                 }
             }?;
 
-            if let Some(pfbp) = postfix_binding_power(op) {
-                if pfbp < min_bp {
-                    self.previous_token = Some(token);
-                    break;
-                }
-
-                lhs = self.postfix_statement(op, token, lhs, abort)?;
+            if self.needs_postfix(op) {
+                let stmt = self
+                    .postfix_statement(op, token, lhs, abort)
+                    .expect("needs postfix should have been validated before")?;
+                lhs = stmt;
                 continue;
             }
 
@@ -213,40 +212,6 @@ impl<'a> Lexer<'a> {
             }
         }
     }
-
-    fn postfix_statement(
-        &mut self,
-        op: Operator,
-        token: Token,
-        lhs: Statement,
-        abort: Category,
-    ) -> Result<Statement, TokenError> {
-        match op {
-            Operator::Grouping(Category::Comma) => self.flatten_parameter(lhs, abort),
-            Operator::AssignOperator(_, operator, amount) => match lhs {
-                Statement::Variable(token) => Ok(Statement::Assign(
-                    AssignCategory::ReturnAssign,
-                    token,
-                    Box::new(Statement::Operator(
-                        operator,
-                        vec![Statement::Variable(token), Statement::RawNumber(amount)],
-                    )),
-                )),
-                _ => Err(TokenError::unexpected_token(token)),
-            },
-            _ => Err(TokenError::unexpected_token(token)),
-        }
-    }
-}
-
-fn postfix_binding_power(op: Operator) -> Option<u8> {
-    use self::Operator::*;
-    let res = match op {
-        Grouping(Category::Comma) => 9,
-        AssignOperator(_, _, _) => 9,
-        _ => return None,
-    };
-    Some(res)
 }
 
 fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
@@ -412,4 +377,4 @@ mod test {
             )
         );
     }
-    }
+}
