@@ -16,7 +16,6 @@ pub enum Statement {
     Variable(Token),
     Call(Token, Box<Statement>),
     Parameter(Vec<Statement>),
-    Expanded(Box<Statement>, Box<Statement>), // e.g. on i++ it gets expanded to Statement, Assign(Variable, Operator(+, ...))
     Assign(Token, Box<Statement>),
     AssignReturn(Token, Box<Statement>), // e.g. ++i or (i = i + 1)
     ReturnAssign(Token, Box<Statement>), // e.g. i++
