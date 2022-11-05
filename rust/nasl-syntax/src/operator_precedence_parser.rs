@@ -1,6 +1,7 @@
 use crate::{
     parser::{Statement, TokenError},
     token::{self, Category, Keyword, Token, Tokenizer},
+    keyword_extension::Keywords,
 };
 
 /// Parses given statements containing numeric Operator to order the precedence.
@@ -12,10 +13,9 @@ use crate::{
 /// To simplify the interpreter later on.
 ///
 
-struct Lexer<'a> {
+pub(crate) struct Lexer<'a> {
     tokenizer: Tokenizer<'a>,
-    // TODO those are hacks
-    last_token: Option<Token>,
+    pub(crate) previous_token: Option<Token>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -80,11 +80,11 @@ impl<'a> Lexer<'a> {
     fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
         Lexer {
             tokenizer,
-            last_token: None,
+            previous_token: None,
         }
     }
 
-    fn next(&mut self) -> Option<Token> {
+    pub(crate) fn next(&mut self) -> Option<Token> {
         self.tokenizer.next()
     }
     fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError> {
@@ -93,9 +93,9 @@ impl<'a> Lexer<'a> {
         }
 
         if let Some(nt) = self.next() {
-            self.last_token = Some(nt);
+            self.previous_token = Some(nt);
             if nt.category() == Category::LeftParen {
-                self.last_token = None;
+                self.previous_token = None;
                 let parameter = self.parse_paren(nt)?;
                 return Ok(Statement::Call(token, Box::new(parameter)));
             }
@@ -142,9 +142,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn expression_bp(&mut self, min_bp: u8, abort: Category) -> Result<Statement, TokenError> {
+    pub(crate) fn expression_bp(&mut self, min_bp: u8, abort: Category) -> Result<Statement, TokenError> {
         let token = self
-            .last_token
+            .previous_token
             .or_else(|| self.next())
             .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
         if token.category() == abort {
@@ -154,10 +154,10 @@ impl<'a> Lexer<'a> {
         let mut lhs = self.prefix_statement(token, abort)?;
         loop {
             let token = {
-                let r = match self.last_token {
+                let r = match self.previous_token {
                     None => self.next(),
                     x => {
-                        self.last_token = None;
+                        self.previous_token = None;
                         x
                     }
                 };
@@ -167,7 +167,7 @@ impl<'a> Lexer<'a> {
                 }
             };
             if token.category() == abort {
-                self.last_token = Some(token);
+                self.previous_token = Some(token);
                 break;
             }
             let op = {
@@ -185,7 +185,7 @@ impl<'a> Lexer<'a> {
 
             if let Some(pfbp) = postfix_binding_power(op) {
                 if pfbp < min_bp {
-                    self.last_token = Some(token);
+                    self.previous_token = Some(token);
                     break;
                 }
 
@@ -195,7 +195,7 @@ impl<'a> Lexer<'a> {
 
             if let Some((l_bp, r_bp)) = infix_binding_power(op) {
                 if l_bp < min_bp {
-                    self.last_token = Some(token);
+                    self.previous_token = Some(token);
                     break;
                 }
                 lhs = {
@@ -214,13 +214,13 @@ impl<'a> Lexer<'a> {
         Ok(lhs)
     }
 
-    fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
+    pub(crate) fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
         let lhs = self.expression_bp(0, Category::RightParen)?;
-        let actual = self.last_token.map_or(Category::Equal, |t| t.category());
+        let actual = self.previous_token.map_or(Category::Equal, |t| t.category());
         if actual != Category::RightParen {
             Err(TokenError::unclosed(token))
         } else {
-            self.last_token = None;
+            self.previous_token = None;
             match lhs {
                 Statement::Assign(token, stmt) => Ok(Statement::AssignReturn(token, stmt)),
                 _ => Ok(lhs),
@@ -262,54 +262,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn parse_if(&mut self) -> Result<Statement, TokenError> {
-        let token = self
-            .next()
-            .ok_or_else(|| TokenError::unexpected_end("if parsing"))?;
-        let condition = match token.category() {
-            Category::LeftParen => self.parse_paren(token),
-            _ => Err(TokenError::unexpected_token(token)),
-        }?;
-        // TODO add block handling and error handling
-        let body = self.expression_bp(0, Category::Semicolon)?;
-        let r#else: Option<Statement> = {
-            match self.next() {
-                Some(token) => match token.category() {
-                    Category::Identifier(Some(Keyword::Else)) => {
-                        Some(self.expression_bp(0, Category::Semicolon)?)
-                    }
-                    _ => {
-                        self.last_token = Some(token);
-                        None
-                    }
-                },
-                None => None,
-            }
-        };
-        Ok(Statement::If(
-            Box::new(condition),
-            Box::new(body),
-            r#else.map(Box::new),
-        ))
-    }
 
-    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<Statement, TokenError> {
-        match keyword {
-            Keyword::For => todo!(),
-            Keyword::ForEach => todo!(),
-            Keyword::If => self.parse_if(),
-            Keyword::Else => Err(TokenError::unexpected_token(token)), // handled in if
-            Keyword::While => todo!(),
-            Keyword::Repeat => todo!(),
-            Keyword::Until => todo!(),
-            Keyword::LocalVar => todo!(),
-            Keyword::GlobalVar => todo!(),
-            Keyword::Null => todo!(),
-            Keyword::Return => todo!(),
-            Keyword::Include => todo!(),
-            Keyword::Exit => todo!(),
-        }
-    }
 }
 
 fn postfix_binding_power(op: Operator) -> Option<u8> {
@@ -335,8 +288,8 @@ fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
     Some(res)
 }
 
-fn expression(code: &str) -> Result<Statement, TokenError> {
-    let tokenizer = Tokenizer::new(code);
+pub fn expression<'a>(tokenizer: Tokenizer<'a>) -> Result<Statement, TokenError> {
+    //let tokenizer = Tokenizer::new(code);
     let mut lexer = Lexer::new(tokenizer);
     let init = lexer.expression_bp(0, Category::Semicolon)?;
     Ok(init)
@@ -409,15 +362,17 @@ mod test {
 
     macro_rules! expression_test {
         ($code:expr, $expected:expr) => {{
-            let actual = expression($code).unwrap();
+            let tokenizer = Tokenizer::new($code);
+            let actual = expression(tokenizer).unwrap();
             assert_eq!(actual, $expected);
         }};
     }
 
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
+            let tokenizer = Tokenizer::new($code);
             let variables = [("a", 1)];
-            let expr = expression($code).unwrap();
+            let expr = expression(tokenizer).unwrap();
             assert_eq!(resolve(&variables, $code, expr), $expected);
         };
     }
@@ -563,28 +518,5 @@ mod test {
         };
         expression_test!("1 + a++ * 1", expected(Plus));
         expression_test!("1 + a-- * 1", expected(Minus));
-    }
-    #[test]
-    fn if_statement() {
-        expression_test!(
-            "if (description) script_oid('1');",
-            If(
-                Box::new(Variable(Token {
-                    category: Identifier(None),
-                    position: (4, 15)
-                })),
-                Box::new(Call(
-                    Token {
-                        category: Identifier(None),
-                        position: (17, 27)
-                    },
-                    Box::new(Primitive(Token {
-                        category: String(StringCategory::Quoteable),
-                        position: (29, 30)
-                    }))
-                )),
-                None
-            )
-        );
     }
 }
