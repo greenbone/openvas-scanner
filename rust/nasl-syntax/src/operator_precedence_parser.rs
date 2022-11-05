@@ -14,7 +14,6 @@ use crate::{
 
 struct Lexer<'a> {
     tokenizer: Tokenizer<'a>,
-    append_stmts: Vec<Statement>,
     // TODO those are hacks
     last_token: Option<Token>,
 }
@@ -79,7 +78,6 @@ impl<'a> Lexer<'a> {
     fn new(code: &'a str) -> Lexer<'a> {
         Lexer {
             tokenizer: Tokenizer::new(code),
-            append_stmts: vec![],
             last_token: None,
         }
     }
@@ -292,9 +290,6 @@ pub fn expression(code: &str) -> Result<Statement, TokenError> {
     let mut lexer = Lexer::new(code);
     let mut init = lexer.expression_bp(0, Category::Semicolon)?;
 
-    for append in lexer.append_stmts {
-        init = Statement::Expanded(Box::new(init), Box::new(append));
-    }
     Ok(init)
 }
 
