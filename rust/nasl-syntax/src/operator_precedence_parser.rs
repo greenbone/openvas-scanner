@@ -1,7 +1,7 @@
 use crate::{
     parser::{Statement, TokenError},
     token::{self, Category, Keyword, Token, Tokenizer},
-    keyword_extension::Keywords,
+    keyword_extension::Keywords, variable_extension::Variables,
 };
 
 /// Parses given statements containing numeric Operator to order the precedence.
@@ -86,21 +86,6 @@ impl<'a> Lexer<'a> {
 
     pub(crate) fn next(&mut self) -> Option<Token> {
         self.tokenizer.next()
-    }
-    fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError> {
-        if token.category() != Category::Identifier(None) {
-            return Err(TokenError::unexpected_token(token));
-        }
-
-        if let Some(nt) = self.next() {
-            self.previous_token = Some(nt);
-            if nt.category() == Category::LeftParen {
-                self.previous_token = None;
-                let parameter = self.parse_paren(nt)?;
-                return Ok(Statement::Call(token, Box::new(parameter)));
-            }
-        }
-        Ok(Statement::Variable(token))
     }
 
     /// Handles statements before operation statements get handled.
@@ -236,18 +221,7 @@ impl<'a> Lexer<'a> {
         abort: Category,
     ) -> Result<Statement, TokenError> {
         match op {
-            Operator::Grouping(Category::Comma) => {
-                // flatten parameer
-                let mut lhs = match lhs {
-                    Statement::Parameter(x) => x,
-                    x => vec![x],
-                };
-                match self.expression_bp(0, abort)? {
-                    Statement::Parameter(mut x) => lhs.append(&mut x),
-                    x => lhs.push(x),
-                };
-                Ok(Statement::Parameter(lhs))
-            }
+            Operator::Grouping(Category::Comma) => self.flatten_parameter(lhs, abort),
             Operator::AssignOperator(_, operator, amount) => match lhs {
                 Statement::Variable(token) => Ok(Statement::ReturnAssign(
                     token,
