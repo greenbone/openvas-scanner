@@ -4,7 +4,7 @@ use crate::{
     parser::{AssignCategory, Statement, TokenError},
     postifx_extension::Postfix,
     token::{self, Category, Keyword, Token, Tokenizer},
-    variable_extension::Variables,
+    variable_extension::Variables, prefix_extension::Prefix,
 };
 
 /// Parses given statements containing numeric Operator to order the precedence.
@@ -30,6 +30,12 @@ pub(crate) enum Operator {
     Variable(Token),           // not an operation
     Primitive(Token),
     Keyword(Keyword), // not an operation
+}
+
+impl From<Token> for Operator {
+    fn from(token: Token) -> Self {
+        Self::new(token).expect("Unknown token")
+    }
 }
 
 impl Operator {
@@ -61,13 +67,6 @@ impl Operator {
     }
 }
 
-fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
-    match token.category() {
-        token::Category::Plus | token::Category::Minus => Ok(9),
-        _ => Err(TokenError::unexpected_token(token)),
-    }
-}
-
 impl<'a> Lexer<'a> {
     /// Creates a new Pratt Lexer
     ///
@@ -91,32 +90,6 @@ impl<'a> Lexer<'a> {
         self.tokenizer.next()
     }
 
-    /// Handles statements before operation statements get handled.
-    /// This is mostly done to detect statements that should not be weighted and executed before hand
-    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError> {
-        let op = Operator::new(token).ok_or_else(|| TokenError::unexpected_token(token))?;
-        match op {
-            Operator::Operator(kind) => {
-                let bp = prefix_binding_power(token)?;
-                let rhs = self.expression_bp(bp, abort)?;
-                Ok(Statement::Operator(kind, vec![rhs]))
-            }
-            Operator::Assign(_) => Err(TokenError::unexpected_token(token)),
-            Operator::Primitive(token) => Ok(Statement::Primitive(token)),
-            Operator::Variable(token) => self.parse_variable(token),
-            Operator::Grouping(category) => {
-                if category == Category::LeftParen {
-                    self.parse_paren(token)
-                } else {
-                    Err(TokenError::unexpected_token(token))
-                }
-            }
-            Operator::AssignOperator(_, operation, amount) => {
-                self.parse_prefix_assign_operator(token, operation, amount)
-            }
-            Operator::Keyword(keyword) => self.parse_keyword(keyword, token),
-        }
-    }
 
     pub(crate) fn expression_bp(
         &mut self,
