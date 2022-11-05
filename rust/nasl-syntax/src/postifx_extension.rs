@@ -1,13 +1,13 @@
 use crate::{
-    operator_precedence_parser::{Lexer, Operator},
+    operator_precedence_parser::{Lexer, Operation},
     parser::{AssignCategory, Statement, TokenError},
     token::{Category, Token},
 };
 pub(crate) trait Postfix {
-    fn needs_postfix(&self, op:Operator) -> bool;
+    fn needs_postfix(&self, op:Operation) -> bool;
     fn postfix_statement(
         &mut self,
-        op: Operator,
+        op: Operation,
         token: Token,
         lhs: Statement,
         abort: Category,
@@ -35,14 +35,14 @@ impl<'a> Lexer<'a> {
 impl<'a> Postfix for Lexer<'a> {
     fn postfix_statement(
         &mut self,
-        op: Operator,
+        op: Operation,
         token: Token,
         lhs: Statement,
         abort: Category,
     ) -> Option<Result<Statement, TokenError>> {
         match op {
-            Operator::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
-            Operator::AssignOperator(_, operator, amount) => match lhs {
+            Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
+            Operation::AssignOperator(_, operator, amount) => match lhs {
                 Statement::Variable(token) => Some(Ok(Statement::Assign(
                     AssignCategory::ReturnAssign,
                     token,
@@ -57,7 +57,7 @@ impl<'a> Postfix for Lexer<'a> {
         }
     }
 
-    fn needs_postfix(&self, op:Operator) -> bool {
-        matches!(op, Operator::Grouping(Category::Comma) | Operator::AssignOperator(_, _, _))
+    fn needs_postfix(&self, op:Operation) -> bool {
+        matches!(op, Operation::Grouping(Category::Comma) | Operation::AssignOperator(_, _, _))
     }
 }

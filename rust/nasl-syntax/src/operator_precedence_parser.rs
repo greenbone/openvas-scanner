@@ -1,10 +1,8 @@
 use crate::{
-    assign_operator_extension::AssignOperator,
-    keyword_extension::Keywords,
     parser::{AssignCategory, Statement, TokenError},
     postifx_extension::Postfix,
     token::{self, Category, Keyword, Token, Tokenizer},
-    variable_extension::Variables, prefix_extension::Prefix,
+    prefix_extension::Prefix,
 };
 
 /// Parses given statements containing numeric Operator to order the precedence.
@@ -22,7 +20,7 @@ pub(crate) struct Lexer<'a> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Operator {
+pub(crate) enum Operation {
     Operator(token::Category),
     AssignOperator(token::Category, token::Category, u8),
     Assign(token::Category),
@@ -32,36 +30,36 @@ pub(crate) enum Operator {
     Keyword(Keyword), // not an operation
 }
 
-impl From<Token> for Operator {
+impl From<Token> for Operation {
     fn from(token: Token) -> Self {
-        Self::new(token).expect("Unknown token")
+        Self::new(token).unwrap_or_else(|| panic!("Unknown token category {:?}", token.category()))
     }
 }
 
-impl Operator {
-    fn new(token: Token) -> Option<Operator> {
+impl Operation {
+    fn new(token: Token) -> Option<Operation> {
         match token.category() {
             Category::Plus
             | Category::Star
             | Category::Slash
             | Category::Minus
             | Category::Percent
-            | Category::StarStar => Some(Operator::Operator(token.category())),
-            Category::PlusPlus => Some(Operator::AssignOperator(
+            | Category::StarStar => Some(Operation::Operator(token.category())),
+            Category::PlusPlus => Some(Operation::AssignOperator(
                 Category::PlusPlus,
                 Category::Plus,
                 1,
             )),
-            Category::MinusMinus => Some(Operator::AssignOperator(
+            Category::MinusMinus => Some(Operation::AssignOperator(
                 Category::MinusMinus,
                 Category::Minus,
                 1,
             )),
-            Category::Equal => Some(Operator::Assign(Category::Equal)),
-            Category::String(_) | Category::Number(_) => Some(Operator::Primitive(token)),
-            Category::LeftParen | Category::Comma => Some(Operator::Grouping(token.category())),
-            Category::Identifier(None) => Some(Operator::Variable(token)),
-            Category::Identifier(Some(keyword)) => Some(Operator::Keyword(keyword)),
+            Category::Equal => Some(Operation::Assign(Category::Equal)),
+            Category::String(_) | Category::Number(_) => Some(Operation::Primitive(token)),
+            Category::LeftParen | Category::Comma => Some(Operation::Grouping(token.category())),
+            Category::Identifier(None) => Some(Operation::Variable(token)),
+            Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword)),
             _ => None,
         }
     }
@@ -123,18 +121,7 @@ impl<'a> Lexer<'a> {
                 self.previous_token = Some(token);
                 break;
             }
-            let op = {
-                match Operator::new(token) {
-                    Some(op) => match op {
-                        Operator::Operator(_)
-                        | Operator::Assign(_)
-                        | Operator::Grouping(_)
-                        | Operator::AssignOperator(_, _, _) => Ok(op),
-                        _ => Err(TokenError::unexpected_token(token)),
-                    },
-                    None => break,
-                }
-            }?;
+            let op = Operation::from(token);
 
             if self.needs_postfix(op) {
                 let stmt = self
@@ -153,7 +140,7 @@ impl<'a> Lexer<'a> {
                     let rhs = self.expression_bp(r_bp, abort)?;
                     match op {
                         // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
-                        Operator::Assign(_) => match lhs {
+                        Operation::Assign(_) => match lhs {
                             Statement::Variable(token) => {
                                 Statement::Assign(AssignCategory::Assign, token, Box::new(rhs))
                             }
@@ -187,8 +174,8 @@ impl<'a> Lexer<'a> {
     }
 }
 
-fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
-    use self::Operator::*;
+fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
+    use self::Operation::*;
     let res = match op {
         Assign(Category::Equal) => (4, 5),
         Operator(Category::Plus | Category::Minus) => (5, 6),
