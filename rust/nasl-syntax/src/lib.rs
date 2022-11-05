@@ -1,6 +1,7 @@
 mod cursor;
 mod token;
 mod keyword_extension;
+mod postifx_extension;
 mod variable_extension;
 mod assign_operator_extension;
 mod operator_precedence_parser;
