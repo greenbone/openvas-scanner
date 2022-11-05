@@ -6,6 +6,14 @@ use crate::{
     token::{Category, Keyword, Token, Tokenizer},
 };
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AssignCategory {
+    Assign,
+    AssignReturn,
+    ReturnAssign,
+
+}
+
 /// Is used to lookup block specific data like variables and functions.
 /// The first number is the parent while the second is the own.
 type BlockDepth = (u8, u8);
@@ -16,9 +24,7 @@ pub enum Statement {
     Variable(Token),
     Call(Token, Box<Statement>),
     Parameter(Vec<Statement>),
-    Assign(Token, Box<Statement>),
-    AssignReturn(Token, Box<Statement>), // e.g. ++i or (i = i + 1)
-    ReturnAssign(Token, Box<Statement>), // e.g. i++
+    Assign(AssignCategory, Token, Box<Statement>),
 
     Operator(Category, Vec<Statement>),
 

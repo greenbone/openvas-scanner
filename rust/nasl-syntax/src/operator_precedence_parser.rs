@@ -1,7 +1,9 @@
 use crate::{
-    parser::{Statement, TokenError},
+    assign_operator_extension::AssignOperator,
+    keyword_extension::Keywords,
+    parser::{AssignCategory, Statement, TokenError},
     token::{self, Category, Keyword, Token, Tokenizer},
-    keyword_extension::Keywords, variable_extension::Variables,
+    variable_extension::Variables,
 };
 
 /// Parses given statements containing numeric Operator to order the precedence.
@@ -109,25 +111,17 @@ impl<'a> Lexer<'a> {
                 }
             }
             Operator::AssignOperator(_, operation, amount) => {
-                let next = self
-                    .next()
-                    .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
-                match self.parse_variable(next)? {
-                    Statement::Variable(value) => Ok(Statement::AssignReturn(
-                        value,
-                        Box::new(Statement::Operator(
-                            operation,
-                            vec![Statement::Variable(value), Statement::RawNumber(amount)],
-                        )),
-                    )),
-                    _ => Err(TokenError::unexpected_token(token)),
-                }
+                self.parse_prefix_assign_operator(token, operation, amount)
             }
             Operator::Keyword(keyword) => self.parse_keyword(keyword, token),
         }
     }
 
-    pub(crate) fn expression_bp(&mut self, min_bp: u8, abort: Category) -> Result<Statement, TokenError> {
+    pub(crate) fn expression_bp(
+        &mut self,
+        min_bp: u8,
+        abort: Category,
+    ) -> Result<Statement, TokenError> {
         let token = self
             .previous_token
             .or_else(|| self.next())
@@ -186,8 +180,11 @@ impl<'a> Lexer<'a> {
                 lhs = {
                     let rhs = self.expression_bp(r_bp, abort)?;
                     match op {
+                        // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
                         Operator::Assign(_) => match lhs {
-                            Statement::Variable(token) => Statement::Assign(token, Box::new(rhs)),
+                            Statement::Variable(token) => {
+                                Statement::Assign(AssignCategory::Assign, token, Box::new(rhs))
+                            }
                             _ => Statement::Operator(token.category(), vec![lhs, rhs]),
                         },
                         _ => Statement::Operator(token.category(), vec![lhs, rhs]),
@@ -201,13 +198,17 @@ impl<'a> Lexer<'a> {
 
     pub(crate) fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
         let lhs = self.expression_bp(0, Category::RightParen)?;
-        let actual = self.previous_token.map_or(Category::Equal, |t| t.category());
+        let actual = self
+            .previous_token
+            .map_or(Category::Equal, |t| t.category());
         if actual != Category::RightParen {
             Err(TokenError::unclosed(token))
         } else {
             self.previous_token = None;
             match lhs {
-                Statement::Assign(token, stmt) => Ok(Statement::AssignReturn(token, stmt)),
+                Statement::Assign(_, token, stmt) => {
+                    Ok(Statement::Assign(AssignCategory::AssignReturn, token, stmt))
+                }
                 _ => Ok(lhs),
             }
         }
@@ -223,7 +224,8 @@ impl<'a> Lexer<'a> {
         match op {
             Operator::Grouping(Category::Comma) => self.flatten_parameter(lhs, abort),
             Operator::AssignOperator(_, operator, amount) => match lhs {
-                Statement::Variable(token) => Ok(Statement::ReturnAssign(
+                Statement::Variable(token) => Ok(Statement::Assign(
+                    AssignCategory::ReturnAssign,
                     token,
                     Box::new(Statement::Operator(
                         operator,
@@ -235,8 +237,6 @@ impl<'a> Lexer<'a> {
             _ => Err(TokenError::unexpected_token(token)),
         }
     }
-
-
 }
 
 fn postfix_binding_power(op: Operator) -> Option<u8> {
@@ -392,6 +392,7 @@ mod test {
         expression_test!(
             "a = 1",
             Assign(
+                AssignCategory::Assign,
                 token(Identifier(None), 0, 1),
                 Box::new(Primitive(Token {
                     category: Number(Base10),
@@ -401,7 +402,8 @@ mod test {
         );
         expression_test!(
             "(a = 1)",
-            AssignReturn(
+            Assign(
+                AssignCategory::AssignReturn,
                 token(Identifier(None), 1, 2),
                 Box::new(Primitive(Token {
                     category: Number(Base10),
@@ -410,87 +412,4 @@ mod test {
             )
         );
     }
-    #[test]
-    fn prefix_assignment_operator() {
-        let expected = |operator: Category| {
-            Operator(
-                Plus,
-                vec![
-                    Primitive(Token {
-                        category: Number(Base10),
-                        position: (0, 1),
-                    }),
-                    Operator(
-                        Star,
-                        vec![
-                            AssignReturn(
-                                Token {
-                                    category: Identifier(None),
-                                    position: (6, 7),
-                                },
-                                Box::new(Operator(
-                                    operator,
-                                    vec![
-                                        Variable(Token {
-                                            category: Identifier(None),
-                                            position: (6, 7),
-                                        }),
-                                        RawNumber(1),
-                                    ],
-                                )),
-                            ),
-                            Primitive(Token {
-                                category: Number(Base10),
-                                position: (10, 11),
-                            }),
-                        ],
-                    ),
-                ],
-            )
-        };
-        expression_test!("1 + ++a * 1", expected(Plus));
-        expression_test!("1 + --a * 1", expected(Minus));
     }
-
-    #[test]
-    fn postfix_assignment_operator() {
-        let expected = |operator: Category| {
-            Operator(
-                Plus,
-                vec![
-                    Primitive(Token {
-                        category: Number(Base10),
-                        position: (0, 1),
-                    }),
-                    Operator(
-                        Star,
-                        vec![
-                            ReturnAssign(
-                                Token {
-                                    category: Identifier(None),
-                                    position: (4, 5),
-                                },
-                                Box::new(Operator(
-                                    operator,
-                                    vec![
-                                        Variable(Token {
-                                            category: Identifier(None),
-                                            position: (4, 5),
-                                        }),
-                                        RawNumber(1),
-                                    ],
-                                )),
-                            ),
-                            Primitive(Token {
-                                category: Number(Base10),
-                                position: (10, 11),
-                            }),
-                        ],
-                    ),
-                ],
-            )
-        };
-        expression_test!("1 + a++ * 1", expected(Plus));
-        expression_test!("1 + a-- * 1", expected(Minus));
-    }
-}
