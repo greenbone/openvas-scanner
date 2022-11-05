@@ -106,9 +106,7 @@ impl<'a> Lexer<'a> {
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
     fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError> {
-        let op = Operator::new(token)
-            .map(Ok)
-            .unwrap_or_else(|| Err(TokenError::unexpected_token(token)))?;
+        let op = Operator::new(token).ok_or_else(|| TokenError::unexpected_token(token))?;
         match op {
             Operator::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
@@ -144,15 +142,10 @@ impl<'a> Lexer<'a> {
     }
 
     fn expression_bp(&mut self, min_bp: u8, abort: Category) -> Result<Statement, TokenError> {
-        let token = {
-            if let Some(lt) = self.last_token {
-                lt
-            } else {
-                self.next().map(Ok).unwrap_or_else(|| {
-                    Err(TokenError::unexpected_end("parsing prefix statements"))
-                })?
-            }
-        };
+        let token = self
+            .last_token
+            .or_else(|| self.next())
+            .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
         if token.category() == abort {
             return Ok(Statement::NoOp(Some(token)));
         }
@@ -203,8 +196,6 @@ impl<'a> Lexer<'a> {
             }
 
             if let Some((l_bp, r_bp)) = infix_binding_power(op) {
-                // we need to change here for previous token
-
                 if l_bp < min_bp {
                     self.last_token = Some(token);
                     break;
@@ -260,16 +251,13 @@ impl<'a> Lexer<'a> {
                 Ok(Statement::Parameter(lhs))
             }
             Operator::AssignOperator(_, operator, amount) => match lhs {
-                Statement::Variable(token) => {
-                    self.append_stmts.push(Statement::Assign(
-                        token,
-                        Box::new(Statement::Operator(
-                            operator,
-                            vec![Statement::Variable(token), Statement::RawNumber(amount)],
-                        )),
-                    ));
-                    Ok(lhs)
-                }
+                Statement::Variable(token) => Ok(Statement::ReturnAssign(
+                    token,
+                    Box::new(Statement::Operator(
+                        operator,
+                        vec![Statement::Variable(token), Statement::RawNumber(amount)],
+                    )),
+                )),
                 _ => Err(TokenError::unexpected_token(token)),
             },
             _ => Err(TokenError::unexpected_token(token)),
@@ -493,45 +481,39 @@ mod test {
     #[test]
     fn postfix_assignment_operator() {
         let expected = |operator: Category| {
-            Expanded(
-                Box::new(Operator(
-                    Plus,
-                    vec![
-                        Primitive(Token {
-                            category: Number(Base10),
-                            position: (0, 1),
-                        }),
-                        Operator(
-                            Star,
-                            vec![
-                                Variable(Token {
+            Operator(
+                Plus,
+                vec![
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (0, 1),
+                    }),
+                    Operator(
+                        Star,
+                        vec![
+                            ReturnAssign(
+                                Token {
                                     category: Identifier(None),
                                     position: (4, 5),
-                                }),
-                                Primitive(Token {
-                                    category: Number(Base10),
-                                    position: (10, 11),
-                                }),
-                            ],
-                        ),
-                    ],
-                )),
-                Box::new(Assign(
-                    Token {
-                        category: Identifier(None),
-                        position: (4, 5),
-                    },
-                    Box::new(Operator(
-                        operator,
-                        vec![
-                            Variable(Token {
-                                category: Identifier(None),
-                                position: (4, 5),
+                                },
+                                Box::new(Operator(
+                                    operator,
+                                    vec![
+                                        Variable(Token {
+                                            category: Identifier(None),
+                                            position: (4, 5),
+                                        }),
+                                        RawNumber(1),
+                                    ],
+                                )),
+                            ),
+                            Primitive(Token {
+                                category: Number(Base10),
+                                position: (10, 11),
                             }),
-                            RawNumber(1),
                         ],
-                    )),
-                )),
+                    ),
+                ],
             )
         };
         expression_test!("1 + a++ * 1", expected(Plus));
