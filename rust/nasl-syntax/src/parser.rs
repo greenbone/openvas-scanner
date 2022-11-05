@@ -108,4 +108,3 @@ impl fmt::Display for TokenError {
 }
 
 impl Error for TokenError {}
-

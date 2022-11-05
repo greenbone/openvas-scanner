@@ -1,6 +1,6 @@
 use crate::{
     parser::{Statement, TokenError},
-    token::{self, Category, Token, Tokenizer},
+    token::{self, Category, Keyword, Token, Tokenizer},
 };
 
 /// Parses given statements containing numeric Operator to order the precedence.
@@ -20,12 +20,13 @@ struct Lexer<'a> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Operator {
-    Operator(token::Category), // only allowed on numbers
+    Operator(token::Category),
     AssignOperator(token::Category, token::Category, u8),
     Assign(token::Category),
     Grouping(token::Category), // grouping operator ()
     Variable(Token),           // not an operation
-    Primitive(Token),          // not an operation
+    Primitive(Token),
+    Keyword(Keyword), // not an operation
 }
 
 impl Operator {
@@ -50,7 +51,8 @@ impl Operator {
             Category::Equal => Some(Operator::Assign(Category::Equal)),
             Category::String(_) | Category::Number(_) => Some(Operator::Primitive(token)),
             Category::LeftParen | Category::Comma => Some(Operator::Grouping(token.category())),
-            Category::Identifier(_) => Some(Operator::Variable(token)),
+            Category::Identifier(None) => Some(Operator::Variable(token)),
+            Category::Identifier(Some(keyword)) => Some(Operator::Keyword(keyword)),
             _ => None,
         }
     }
@@ -75,9 +77,9 @@ impl<'a> Lexer<'a> {
     //
     /// This Parser only intention is to order operator therefore we rely on the caller
     /// to verify if a macthing Operator is in that statement.
-    fn new(code: &'a str) -> Lexer<'a> {
+    fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
         Lexer {
-            tokenizer: Tokenizer::new(code),
+            tokenizer,
             last_token: None,
         }
     }
@@ -136,6 +138,7 @@ impl<'a> Lexer<'a> {
                     _ => Err(TokenError::unexpected_token(token)),
                 }
             }
+            Operator::Keyword(keyword) => self.parse_keyword(keyword, token),
         }
     }
 
@@ -148,10 +151,7 @@ impl<'a> Lexer<'a> {
             return Ok(Statement::NoOp(Some(token)));
         }
 
-        let mut lhs = match self.last_token {
-            None => self.prefix_statement(token, abort)?,
-            x => Statement::NoOp(x),
-        };
+        let mut lhs = self.prefix_statement(token, abort)?;
         loop {
             let token = {
                 let r = match self.last_token {
@@ -261,6 +261,55 @@ impl<'a> Lexer<'a> {
             _ => Err(TokenError::unexpected_token(token)),
         }
     }
+
+    fn parse_if(&mut self) -> Result<Statement, TokenError> {
+        let token = self
+            .next()
+            .ok_or_else(|| TokenError::unexpected_end("if parsing"))?;
+        let condition = match token.category() {
+            Category::LeftParen => self.parse_paren(token),
+            _ => Err(TokenError::unexpected_token(token)),
+        }?;
+        // TODO add block handling and error handling
+        let body = self.expression_bp(0, Category::Semicolon)?;
+        let r#else: Option<Statement> = {
+            match self.next() {
+                Some(token) => match token.category() {
+                    Category::Identifier(Some(Keyword::Else)) => {
+                        Some(self.expression_bp(0, Category::Semicolon)?)
+                    }
+                    _ => {
+                        self.last_token = Some(token);
+                        None
+                    }
+                },
+                None => None,
+            }
+        };
+        Ok(Statement::If(
+            Box::new(condition),
+            Box::new(body),
+            r#else.map(Box::new),
+        ))
+    }
+
+    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<Statement, TokenError> {
+        match keyword {
+            Keyword::For => todo!(),
+            Keyword::ForEach => todo!(),
+            Keyword::If => self.parse_if(),
+            Keyword::Else => Err(TokenError::unexpected_token(token)), // handled in if
+            Keyword::While => todo!(),
+            Keyword::Repeat => todo!(),
+            Keyword::Until => todo!(),
+            Keyword::LocalVar => todo!(),
+            Keyword::GlobalVar => todo!(),
+            Keyword::Null => todo!(),
+            Keyword::Return => todo!(),
+            Keyword::Include => todo!(),
+            Keyword::Exit => todo!(),
+        }
+    }
 }
 
 fn postfix_binding_power(op: Operator) -> Option<u8> {
@@ -286,10 +335,10 @@ fn infix_binding_power(op: Operator) -> Option<(u8, u8)> {
     Some(res)
 }
 
-pub fn expression(code: &str) -> Result<Statement, TokenError> {
-    let mut lexer = Lexer::new(code);
-    let mut init = lexer.expression_bp(0, Category::Semicolon)?;
-
+fn expression(code: &str) -> Result<Statement, TokenError> {
+    let tokenizer = Tokenizer::new(code);
+    let mut lexer = Lexer::new(tokenizer);
+    let init = lexer.expression_bp(0, Category::Semicolon)?;
     Ok(init)
 }
 
@@ -299,6 +348,7 @@ mod test {
     use super::*;
     use crate::token::Base::*;
     use crate::token::Category::*;
+    use crate::token::StringCategory;
     use crate::token::{Token, Tokenizer};
     use Statement::*;
 
@@ -513,5 +563,28 @@ mod test {
         };
         expression_test!("1 + a++ * 1", expected(Plus));
         expression_test!("1 + a-- * 1", expected(Minus));
+    }
+    #[test]
+    fn if_statement() {
+        expression_test!(
+            "if (description) script_oid('1');",
+            If(
+                Box::new(Variable(Token {
+                    category: Identifier(None),
+                    position: (4, 15)
+                })),
+                Box::new(Call(
+                    Token {
+                        category: Identifier(None),
+                        position: (17, 27)
+                    },
+                    Box::new(Primitive(Token {
+                        category: String(StringCategory::Quoteable),
+                        position: (29, 30)
+                    }))
+                )),
+                None
+            )
+        );
     }
 }
