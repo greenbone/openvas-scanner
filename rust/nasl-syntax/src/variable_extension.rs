@@ -1,7 +1,6 @@
 use crate::{
-    operator_precedence_parser::Lexer,
     parser::{Statement, TokenError},
-    token::{Category, Token},
+    token::{Category, Token}, grouping_extension::Grouping, lexer::Lexer,
 };
 
 pub(crate) trait Variables {
@@ -30,7 +29,7 @@ impl<'a> Variables for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        operator_precedence_parser::expression,
+        lexer::expression,
         parser::Statement,
         token::{Base, Category, Token, Tokenizer},
     };

@@ -1,11 +1,14 @@
 mod cursor;
 mod token;
+mod operation;
+mod grouping_extension;
 mod keyword_extension;
 mod prefix_extension;
 mod postifx_extension;
+mod infix_extension;
 mod variable_extension;
 mod assign_operator_extension;
-mod operator_precedence_parser;
+mod lexer;
 mod parser;
 
 

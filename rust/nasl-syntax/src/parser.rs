@@ -1,10 +1,7 @@
 use core::fmt;
 use std::{error::Error, ops::Range, usize};
 
-use crate::{
-    operator_precedence_parser,
-    token::{Category, Keyword, Token, Tokenizer},
-};
+use crate::token::{Token, Category};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AssignCategory {

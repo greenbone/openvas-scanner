@@ -1,8 +1,9 @@
-
 use crate::{
-    operator_precedence_parser::{Lexer, Operation},
-    parser::{AssignCategory, Statement, TokenError},
-    token::{Category, Token}, assign_operator_extension::AssignOperator, keyword_extension::Keywords, variable_extension::Variables,
+    grouping_extension::Grouping,
+    keyword_extension::Keywords,
+    parser::{Statement, TokenError},
+    token::{Category, Token},
+    variable_extension::Variables, lexer::Lexer, operation::Operation, assign_operator_extension::AssignOperator,
 };
 pub(crate) trait Prefix {
     fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError>;
@@ -42,7 +43,38 @@ impl<'a> Prefix for Lexer<'a> {
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
         }
     }
-
 }
 
+#[cfg(test)]
+mod test {
 
+    use crate::{
+        lexer::expression,
+        parser::Statement,
+        token::{Base, Category, StringCategory, Token, Tokenizer},
+    };
+
+    use Base::*;
+    use Category::*;
+    use Statement::*;
+
+    fn result(code: &str) -> Statement {
+        let tokenizer = Tokenizer::new(code);
+        expression(tokenizer).unwrap()
+    }
+    fn token(category: Category, start: usize, end: usize) -> Token {
+        Token {
+            category,
+            position: (start, end),
+        }
+    }
+
+    #[test]
+    fn single_statement() {
+        assert_eq!(result("1"), Primitive(token(Number(Base10), 0, 1)));
+        assert_eq!(
+            result("'a'"),
+            Primitive(token(String(StringCategory::Quoteable), 1, 2))
+        );
+    }
+}

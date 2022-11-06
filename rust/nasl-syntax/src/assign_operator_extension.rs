@@ -1,8 +1,7 @@
 use crate::{
-    operator_precedence_parser::Lexer,
     parser::{AssignCategory, Statement, TokenError},
     token::{Category, Token},
-    variable_extension::Variables,
+    variable_extension::Variables, lexer::Lexer,
 };
 
 pub(crate) trait AssignOperator {
@@ -41,9 +40,8 @@ impl<'a> AssignOperator for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        operator_precedence_parser::expression,
         parser::{Statement, AssignCategory},
-        token::{Base, Category, Token, Tokenizer},
+        token::{Base, Category, Token, Tokenizer}, lexer::expression,
     };
 
     use Base::*;
@@ -54,6 +52,7 @@ mod test {
         let tokenizer = Tokenizer::new(code);
         expression(tokenizer).unwrap()
     }
+
     #[test]
     fn prefix_assignment_operator() {
         let expected = |operator: Category| {
