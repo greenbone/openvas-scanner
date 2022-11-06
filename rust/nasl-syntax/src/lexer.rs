@@ -1,10 +1,33 @@
 use crate::{
     infix_extension::Infix,
-    parser::{AssignCategory, Statement, TokenError},
     postifx_extension::Postfix,
     prefix_extension::Prefix,
-    token::{self, Category, Keyword, Token, Tokenizer}, operation::Operation,
+    token::{Category, Token, Tokenizer}, operation::Operation, error::TokenError,
 };
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AssignCategory {
+    Assign,
+    AssignReturn,
+    ReturnAssign,
+
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Statement {
+    RawNumber(u8),
+    Primitive(Token),
+    Variable(Token),
+    Call(Token, Box<Statement>),
+    Parameter(Vec<Statement>),
+    Assign(AssignCategory, Token, Box<Statement>),
+
+    Operator(Category, Vec<Statement>),
+
+    If(Box<Statement>, Box<Statement>, Option<Box<Statement>>),
+    Block(Vec<Statement>),
+    NoOp(Option<Token>),
+}
 
 pub(crate) struct Lexer<'a> {
     tokenizer: Tokenizer<'a>,

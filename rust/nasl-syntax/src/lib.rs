@@ -1,4 +1,5 @@
 mod cursor;
+mod error;
 mod token;
 mod operation;
 mod grouping_extension;
@@ -9,7 +10,6 @@ mod infix_extension;
 mod variable_extension;
 mod assign_operator_extension;
 mod lexer;
-mod parser;
 
 
 #[cfg(test)]

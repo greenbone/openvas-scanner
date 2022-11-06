@@ -1,5 +1,6 @@
 use crate::{
-    parser::{AssignCategory, Statement, TokenError},
+    lexer::{AssignCategory, Statement},
+    error::TokenError,
     token::{Category, Token},
     variable_extension::Variables, lexer::Lexer,
 };
@@ -40,7 +41,7 @@ impl<'a> AssignOperator for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        parser::{Statement, AssignCategory},
+        lexer::{Statement, AssignCategory},
         token::{Base, Category, Token, Tokenizer}, lexer::expression,
     };
 
