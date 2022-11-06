@@ -1,7 +1,6 @@
 use crate::{
-    operator_precedence_parser::{Lexer, Operation},
     parser::{AssignCategory, Statement, TokenError},
-    token::{Category, Token},
+    token::{Category, Token}, operation::Operation, lexer::Lexer,
 };
 pub(crate) trait Postfix {
     fn needs_postfix(&self, op:Operation) -> bool;

@@ -1,7 +1,6 @@
 use crate::{
-    operator_precedence_parser::Lexer,
     parser::{Statement, TokenError},
-    token::{Category, Keyword, Token},
+    token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer,
 };
 
 pub(crate) trait Keywords {
@@ -64,9 +63,8 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        operator_precedence_parser::expression,
         parser::Statement,
-        token::{Category, StringCategory, Token, Tokenizer},
+        token::{Category, StringCategory, Token, Tokenizer}, lexer::expression,
     };
 
     use Category::*;
