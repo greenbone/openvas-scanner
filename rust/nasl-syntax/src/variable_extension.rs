@@ -1,5 +1,6 @@
 use crate::{
-    parser::{Statement, TokenError},
+    lexer::Statement,
+    error::TokenError,
     token::{Category, Token}, grouping_extension::Grouping, lexer::Lexer,
 };
 
@@ -30,7 +31,7 @@ impl<'a> Variables for Lexer<'a> {
 mod test {
     use crate::{
         lexer::expression,
-        parser::Statement,
+        lexer::Statement,
         token::{Base, Category, Token, Tokenizer},
     };
 

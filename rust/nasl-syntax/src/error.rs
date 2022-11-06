@@ -1,43 +1,7 @@
 use core::fmt;
-use std::{error::Error, ops::Range, usize};
+use std::{ops::Range, error::Error};
 
-use crate::token::{Token, Category};
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AssignCategory {
-    Assign,
-    AssignReturn,
-    ReturnAssign,
-
-}
-
-/// Is used to lookup block specific data like variables and functions.
-/// The first number is the parent while the second is the own.
-type BlockDepth = (u8, u8);
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Statement {
-    RawNumber(u8),
-    Primitive(Token),
-    Variable(Token),
-    Call(Token, Box<Statement>),
-    Parameter(Vec<Statement>),
-    Assign(AssignCategory, Token, Box<Statement>),
-
-    Operator(Category, Vec<Statement>),
-
-    If(Box<Statement>, Box<Statement>, Option<Box<Statement>>),
-    Block(Vec<Statement>),
-    NoOp(Option<Token>),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Variable<'a> {
-    name: &'a str,
-    token: &'a Token,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Functions {}
+use crate::token::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TokenError {

@@ -1,5 +1,6 @@
 use crate::{
-    parser::{Statement, TokenError},
+    lexer::Statement,
+    error::TokenError,
     token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer,
 };
 
@@ -63,7 +64,7 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        parser::Statement,
+        lexer::Statement,
         token::{Category, StringCategory, Token, Tokenizer}, lexer::expression,
     };
 

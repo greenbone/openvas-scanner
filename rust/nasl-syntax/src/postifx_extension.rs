@@ -1,5 +1,6 @@
 use crate::{
-    parser::{AssignCategory, Statement, TokenError},
+    lexer::{AssignCategory, Statement},
+    error::TokenError,
     token::{Category, Token}, operation::Operation, lexer::Lexer,
 };
 pub(crate) trait Postfix {

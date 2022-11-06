@@ -1,9 +1,13 @@
 use crate::{
+    assign_operator_extension::AssignOperator,
+    error::TokenError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
-    parser::{Statement, TokenError},
+    lexer::Lexer,
+    lexer::Statement,
+    operation::Operation,
     token::{Category, Token},
-    variable_extension::Variables, lexer::Lexer, operation::Operation, assign_operator_extension::AssignOperator,
+    variable_extension::Variables,
 };
 pub(crate) trait Prefix {
     fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError>;
@@ -50,7 +54,7 @@ mod test {
 
     use crate::{
         lexer::expression,
-        parser::Statement,
+        lexer::Statement,
         token::{Base, Category, StringCategory, Token, Tokenizer},
     };
 
