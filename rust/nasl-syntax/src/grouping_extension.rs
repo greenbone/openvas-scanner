@@ -1,7 +1,7 @@
 use crate::{
     lexer::{AssignCategory, Statement},
     error::TokenError,
-    token::{Category, Token}, lexer::Lexer,
+    token::{Category, Token}, lexer::Lexer, unclosed_token,
 };
 
 pub(crate) trait Grouping {
@@ -16,7 +16,7 @@ impl<'a> Grouping for Lexer<'a> {
             .previous_token
             .map_or(Category::Equal, |t| t.category());
         if actual != Category::RightParen {
-            Err(TokenError::unclosed(token))
+            Err(unclosed_token!(token))
         } else {
             self.previous_token = None;
             match lhs {

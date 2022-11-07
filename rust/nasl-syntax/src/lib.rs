@@ -1,15 +1,15 @@
+mod assign_operator_extension;
 mod cursor;
 mod error;
-mod token;
-mod operation;
 mod grouping_extension;
-mod keyword_extension;
-mod prefix_extension;
-mod postifx_extension;
 mod infix_extension;
-mod variable_extension;
-mod assign_operator_extension;
+mod keyword_extension;
 mod lexer;
+mod operation;
+mod postifx_extension;
+mod prefix_extension;
+mod token;
+mod variable_extension;
 
 
 #[cfg(test)]

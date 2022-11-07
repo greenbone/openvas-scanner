@@ -1,54 +1,70 @@
 use core::fmt;
-use std::{ops::Range, error::Error};
+use std::{error::Error, ops::Range};
 
 use crate::token::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TokenError {
-    reason: String,
-    token: Option<Token>,
-    position: Option<Range<usize>>,
+    pub(crate) reason: String,
+    pub(crate) token: Option<Token>,
+    pub(crate) code_location: Option<Range<usize>>,
+    pub(crate) line: u32,
+    pub(crate) file: String,
+}
+
+#[macro_export]
+macro_rules! token_error {
+    ($reason:expr) => {
+        TokenError {
+            reason: $reason,
+            token: None,
+            code_location: None,
+            line: line!(),
+            file: file!().to_string(),
+        }
+    };
+    ($token:expr, $reason:expr) => {
+        TokenError {
+            reason: $reason,
+            token: Some($token),
+            code_location: None,
+            line: line!(),
+            file: file!().to_string(),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! unexpected_token {
+    ($token:expr) => {{
+        use $crate::token_error;
+        token_error!(
+            $token,
+            format!("Unexpected Token {:?}", $token.category()).to_string()
+        )
+    }};
+}
+
+#[macro_export]
+macro_rules! unclosed_token {
+    ($token:expr) => {{
+        use $crate::token_error;
+        token_error!(
+            $token,
+            format!("Unclosed {:?}", $token.category()).to_string()
+        )
+    }};
+}
+
+#[macro_export]
+macro_rules! unexpected_end {
+    ($reason:expr) => {{
+        use $crate::token_error;
+        token_error!(format!("Unexpected end: {:?}", $reason))
+    }};
 }
 
 impl TokenError {
-    pub fn unexpected_token(token: Token) -> TokenError {
-        TokenError {
-            reason: format!("Unexpected Token {:?}", token.category()),
-            token: Some(token),
-            position: None,
-        }
-    }
-
-    pub fn unexpected_end(origin: &str) -> TokenError {
-        TokenError {
-            reason: format!("Unexpected end while {}", origin),
-            token: None,
-            position: None,
-        }
-    }
-    pub fn unclosed(token: Token) -> TokenError {
-        TokenError {
-            reason: format!("Unclosed {:?}", token.category()),
-            token: Some(token),
-            position: None,
-        }
-    }
-
-    fn missing_semicolon(token: Token, end: Option<Token>) -> TokenError {
-        let position = if let Some(et) = end {
-            Range {
-                start: token.position.0,
-                end: et.position.1,
-            }
-        } else {
-            token.range()
-        };
-        TokenError {
-            reason: format!("Missing semicolon {:?}", token.category()),
-            token: Some(token),
-            position: Some(position),
-        }
-    }
     fn position(&self) -> (usize, usize) {
         self.token.map(|t| t.position).unwrap_or((0, 0))
     }
@@ -58,7 +74,7 @@ impl TokenError {
     }
 
     pub fn range(&self) -> Range<usize> {
-        match self.position.clone() {
+        match self.code_location.clone() {
             Some(x) => x,
             None => {
                 let (start, end) = self.position();

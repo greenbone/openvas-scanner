@@ -1,7 +1,7 @@
 use crate::{
     lexer::{AssignCategory, Statement},
     error::TokenError,
-    token::{Category, Token}, operation::Operation, lexer::Lexer,
+    token::{Category, Token}, operation::Operation, lexer::Lexer, unexpected_token,
 };
 pub(crate) trait Postfix {
     fn needs_postfix(&self, op:Operation) -> bool;
@@ -51,7 +51,7 @@ impl<'a> Postfix for Lexer<'a> {
                         vec![Statement::Variable(token), Statement::RawNumber(amount)],
                     )),
                 ))),
-                _ => Some(Err(TokenError::unexpected_token(token))),
+                _ => Some(Err(unexpected_token!(token))),
             },
             _ => None,
         }

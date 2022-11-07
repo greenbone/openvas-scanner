@@ -7,7 +7,7 @@ use crate::{
     lexer::Statement,
     operation::Operation,
     token::{Category, Token},
-    variable_extension::Variables,
+    variable_extension::Variables, unexpected_token,
 };
 pub(crate) trait Prefix {
     fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError>;
@@ -16,7 +16,7 @@ pub(crate) trait Prefix {
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     match token.category() {
         Category::Plus | Category::Minus => Ok(9),
-        _ => Err(TokenError::unexpected_token(token)),
+        _ => Err(unexpected_token!(token)),
     }
 }
 
@@ -24,21 +24,21 @@ impl<'a> Prefix for Lexer<'a> {
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
     fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError> {
-        let op = Operation::from(token);
+        let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
                 let rhs = self.expression_bp(bp, abort)?;
                 Ok(Statement::Operator(kind, vec![rhs]))
             }
-            Operation::Assign(_) => Err(TokenError::unexpected_token(token)),
+            Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Primitive(token) => Ok(Statement::Primitive(token)),
             Operation::Variable(token) => self.parse_variable(token),
             Operation::Grouping(category) => {
                 if category == Category::LeftParen {
                     self.parse_paren(token)
                 } else {
-                    Err(TokenError::unexpected_token(token))
+                    Err(unexpected_token!(token))
                 }
             }
             Operation::AssignOperator(_, operation, amount) => {
