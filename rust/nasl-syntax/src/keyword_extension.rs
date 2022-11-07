@@ -1,15 +1,15 @@
 use crate::{
     lexer::Statement,
     error::TokenError,
-    token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer, unexpected_token, unexpected_end,
+    token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer, unexpected_token, unexpected_end, prefix_extension::PrefixState,
 };
 
 pub(crate) trait Keywords {
-    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<Statement, TokenError>;
+    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<(PrefixState, Statement), TokenError>;
 }
 
 impl<'a> Lexer<'a> {
-    fn parse_if(&mut self) -> Result<Statement, TokenError> {
+    fn parse_if(&mut self) -> Result<(PrefixState, Statement), TokenError> {
         let token = self
             .next()
             .ok_or_else(|| unexpected_end!("if parsing"))?;
@@ -26,23 +26,23 @@ impl<'a> Lexer<'a> {
                         Some(self.expression_bp(0, Category::Semicolon)?)
                     }
                     _ => {
-                        self.previous_token = Some(token);
+                        self.unhandled_token = Some(token);
                         None
                     }
                 },
                 None => None,
             }
         };
-        Ok(Statement::If(
+        Ok((PrefixState::Break, Statement::If(
             Box::new(condition),
             Box::new(body),
             r#else.map(Box::new),
-        ))
+        )))
     }
 }
 
 impl<'a> Keywords for Lexer<'a> {
-    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<Statement, TokenError> {
+    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<(PrefixState, Statement), TokenError> {
         match keyword {
             Keyword::For => todo!(),
             Keyword::ForEach => todo!(),

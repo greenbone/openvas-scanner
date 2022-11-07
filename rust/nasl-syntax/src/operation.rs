@@ -1,6 +1,4 @@
-use crate::token::{Category, Token, Keyword};
-
-
+use crate::token::{Category, Keyword, Token};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation {
@@ -8,7 +6,7 @@ pub(crate) enum Operation {
     AssignOperator(Category, Category, u8),
     Assign(Category),
     Grouping(Category), // grouping operator ()
-    Variable(Token),           // not an operation
+    Variable(Token),    // not an operation
     Primitive(Token),
     Keyword(Keyword), // not an operation
 }
@@ -34,7 +32,9 @@ impl Operation {
             )),
             Category::Equal => Some(Operation::Assign(Category::Equal)),
             Category::String(_) | Category::Number(_) => Some(Operation::Primitive(token)),
-            Category::LeftParen | Category::Comma => Some(Operation::Grouping(token.category())),
+            Category::LeftParen | Category::LeftCurlyBracket | Category::Comma => {
+                Some(Operation::Grouping(token.category()))
+            }
             Category::Identifier(None) => Some(Operation::Variable(token)),
             Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword)),
             _ => None,

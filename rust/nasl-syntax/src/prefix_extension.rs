@@ -10,7 +10,7 @@ use crate::{
     variable_extension::Variables, unexpected_token,
 };
 pub(crate) trait Prefix {
-    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError>;
+    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<(PrefixState, Statement), TokenError>;
 }
 
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
@@ -20,29 +20,32 @@ fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     }
 }
 
+/// Is used by prefix_statement to dertermine if the expression loop should continue or break
+/// This is needed when the complete statement parsing is done for e.g. if or block statements.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum PrefixState {
+    Continue,
+    Break,
+}
+
 impl<'a> Prefix for Lexer<'a> {
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
-    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<Statement, TokenError> {
+    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<(PrefixState, Statement), TokenError> {
+        use PrefixState::*;
         let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
                 let rhs = self.expression_bp(bp, abort)?;
-                Ok(Statement::Operator(kind, vec![rhs]))
+                Ok((Continue, Statement::Operator(kind, vec![rhs])))
             }
             Operation::Assign(_) => Err(unexpected_token!(token)),
-            Operation::Primitive(token) => Ok(Statement::Primitive(token)),
-            Operation::Variable(token) => self.parse_variable(token),
-            Operation::Grouping(category) => {
-                if category == Category::LeftParen {
-                    self.parse_paren(token)
-                } else {
-                    Err(unexpected_token!(token))
-                }
-            }
+            Operation::Primitive(token) => Ok((Continue, Statement::Primitive(token))),
+            Operation::Variable(token) => self.parse_variable(token).map(|stmt|(Continue, stmt)),
+            Operation::Grouping(category) => self.parse_grouping(token),
             Operation::AssignOperator(_, operation, amount) => {
-                self.parse_prefix_assign_operator(token, operation, amount)
+                self.parse_prefix_assign_operator(token, operation, amount).map(|stmt|(Continue, stmt))
             }
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
         }
