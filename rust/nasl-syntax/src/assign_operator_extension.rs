@@ -1,8 +1,10 @@
 use crate::{
-    lexer::{AssignCategory, Statement},
     error::TokenError,
+    lexer::Lexer,
+    lexer::{AssignCategory, Statement},
     token::{Category, Token},
-    variable_extension::Variables, lexer::Lexer,
+    unexpected_token,
+    variable_extension::Variables, unexpected_end,
 };
 
 pub(crate) trait AssignOperator {
@@ -23,7 +25,7 @@ impl<'a> AssignOperator for Lexer<'a> {
     ) -> Result<Statement, TokenError> {
         let next = self
             .next()
-            .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
+            .ok_or_else(|| unexpected_end!("parsing prefix statement"))?;
         match self.parse_variable(next)? {
             Statement::Variable(value) => Ok(Statement::Assign(
                 AssignCategory::AssignReturn,
@@ -33,7 +35,7 @@ impl<'a> AssignOperator for Lexer<'a> {
                     vec![Statement::Variable(value), Statement::RawNumber(amount)],
                 )),
             )),
-            _ => Err(TokenError::unexpected_token(token)),
+            _ => Err(unexpected_token!(token)),
         }
     }
 }
@@ -41,8 +43,9 @@ impl<'a> AssignOperator for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::{Statement, AssignCategory},
-        token::{Base, Category, Token, Tokenizer}, lexer::expression,
+        lexer::expression,
+        lexer::{AssignCategory, Statement},
+        token::{Base, Category, Token, Tokenizer},
     };
 
     use Base::*;

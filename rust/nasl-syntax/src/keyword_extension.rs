@@ -1,7 +1,7 @@
 use crate::{
     lexer::Statement,
     error::TokenError,
-    token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer,
+    token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer, unexpected_token, unexpected_end,
 };
 
 pub(crate) trait Keywords {
@@ -12,10 +12,10 @@ impl<'a> Lexer<'a> {
     fn parse_if(&mut self) -> Result<Statement, TokenError> {
         let token = self
             .next()
-            .ok_or_else(|| TokenError::unexpected_end("if parsing"))?;
+            .ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match token.category() {
             Category::LeftParen => self.parse_paren(token),
-            _ => Err(TokenError::unexpected_token(token)),
+            _ => Err(unexpected_token!(token)),
         }?;
         // TODO add block handling and error handling
         let body = self.expression_bp(0, Category::Semicolon)?;
@@ -47,7 +47,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::For => todo!(),
             Keyword::ForEach => todo!(),
             Keyword::If => self.parse_if(),
-            Keyword::Else => Err(TokenError::unexpected_token(token)), // handled in if
+            Keyword::Else => Err(unexpected_token!(token)), // handled in if
             Keyword::While => todo!(),
             Keyword::Repeat => todo!(),
             Keyword::Until => todo!(),

@@ -2,7 +2,7 @@ use crate::{
     infix_extension::Infix,
     postifx_extension::Postfix,
     prefix_extension::Prefix,
-    token::{Category, Token, Tokenizer}, operation::Operation, error::TokenError,
+    token::{Category, Token, Tokenizer}, operation::Operation, error::TokenError, unexpected_token, unexpected_end,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -55,7 +55,7 @@ impl<'a> Lexer<'a> {
         let token = self
             .previous_token
             .or_else(|| self.next())
-            .ok_or_else(|| TokenError::unexpected_end("parsing prefix statement"))?;
+            .ok_or_else(|| unexpected_end!("parsing expression"))?;
         if token.category() == abort {
             return Ok(Statement::NoOp(Some(token)));
         }
@@ -79,7 +79,7 @@ impl<'a> Lexer<'a> {
                 self.previous_token = Some(token);
                 break;
             }
-            let op = Operation::new(token).ok_or_else(|| TokenError::unexpected_token(token))?;
+            let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
 
             if self.needs_postfix(op) {
                 let stmt = self

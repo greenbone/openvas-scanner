@@ -1,7 +1,7 @@
 use crate::{
     lexer::Statement,
     error::TokenError,
-    token::{Category, Token}, grouping_extension::Grouping, lexer::Lexer,
+    token::{Category, Token}, grouping_extension::Grouping, lexer::Lexer, unexpected_token,
 };
 
 pub(crate) trait Variables {
@@ -11,7 +11,7 @@ pub(crate) trait Variables {
 impl<'a> Variables for Lexer<'a> {
     fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError> {
         if token.category() != Category::Identifier(None) {
-            return Err(TokenError::unexpected_token(token));
+            return Err(unexpected_token!(token));
         }
 
         if let Some(nt) = self.next() {

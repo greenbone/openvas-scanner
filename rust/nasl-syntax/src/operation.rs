@@ -13,12 +13,6 @@ pub(crate) enum Operation {
     Keyword(Keyword), // not an operation
 }
 
-impl From<Token> for Operation {
-    fn from(token: Token) -> Self {
-        Self::new(token).unwrap_or_else(|| panic!("Unknown token category {:?}", token.category()))
-    }
-}
-
 impl Operation {
     pub(crate) fn new(token: Token) -> Option<Operation> {
         match token.category() {
