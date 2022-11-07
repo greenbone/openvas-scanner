@@ -1,7 +1,7 @@
 use crate::{
     infix_extension::Infix,
     postifx_extension::Postfix,
-    prefix_extension::Prefix,
+    prefix_extension::{Prefix, PrefixState},
     token::{Category, Token, Tokenizer}, operation::Operation, error::TokenError, unexpected_token, unexpected_end,
 };
 
@@ -30,8 +30,8 @@ pub enum Statement {
 }
 
 pub(crate) struct Lexer<'a> {
-    tokenizer: Tokenizer<'a>,
-    pub(crate) previous_token: Option<Token>,
+    pub(crate) tokenizer: Tokenizer<'a>,
+    pub(crate) unhandled_token: Option<Token>,
 }
 
 
@@ -39,7 +39,7 @@ impl<'a> Lexer<'a> {
     fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
         Lexer {
             tokenizer,
-            previous_token: None,
+            unhandled_token: None,
         }
     }
 
@@ -53,20 +53,23 @@ impl<'a> Lexer<'a> {
         abort: Category,
     ) -> Result<Statement, TokenError> {
         let token = self
-            .previous_token
+            .unhandled_token
             .or_else(|| self.next())
             .ok_or_else(|| unexpected_end!("parsing expression"))?;
         if token.category() == abort {
             return Ok(Statement::NoOp(Some(token)));
         }
 
-        let mut lhs = self.prefix_statement(token, abort)?;
+        let (state, mut lhs) = self.prefix_statement(token, abort)?;
+        if state == PrefixState::Break {
+            return Ok(lhs);
+        }
         loop {
             let token = {
-                let r = match self.previous_token {
+                let r = match self.unhandled_token {
                     None => self.next(),
                     x => {
-                        self.previous_token = None;
+                        self.unhandled_token = None;
                         x
                     }
                 };
@@ -76,7 +79,7 @@ impl<'a> Lexer<'a> {
                 }
             };
             if token.category() == abort {
-                self.previous_token = Some(token);
+                self.unhandled_token = Some(token);
                 break;
             }
             let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
@@ -91,7 +94,7 @@ impl<'a> Lexer<'a> {
 
             if let Some(min_bp_reached) = self.handle_infix(op, min_bp) {
                 if !min_bp_reached {
-                    self.previous_token = Some(token);
+                    self.unhandled_token = Some(token);
                     break;
                 }
                 lhs = self.infix_statement(op, token, lhs, abort)?;

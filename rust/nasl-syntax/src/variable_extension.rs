@@ -15,9 +15,9 @@ impl<'a> Variables for Lexer<'a> {
         }
 
         if let Some(nt) = self.next() {
-            self.previous_token = Some(nt);
+            self.unhandled_token = Some(nt);
             if nt.category() == Category::LeftParen {
-                self.previous_token = None;
+                self.unhandled_token = None;
                 let parameter = self.parse_paren(nt)?;
                 return Ok(Statement::Call(token, Box::new(parameter)));
             }
