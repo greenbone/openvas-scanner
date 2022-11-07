@@ -141,10 +141,8 @@ pub enum Category {
     GreaterGreaterGreater,      // >>>
     GreaterGreaterEqual,        // >>=
     LessLessEqual,              // <<=
-    LessLessLess,               // <<<
     GreaterBangLess,            // >!<
     GreaterGreaterGreaterEqual, // >>>=
-    LessLessLessEqual,          // <<<=
     String(StringCategory),     // "...\", multiline
     Number(Base),
     IllegalNumber(Base),
@@ -263,9 +261,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     // we break out of the macro since < can be parsed to:
-    // <<<
     // <<=
-    // <<<=
     // most operators don't have triple or tuple variant
     #[inline(always)]
     fn tokenize_less(&mut self) -> Option<Token> {
@@ -281,19 +277,6 @@ impl<'a> Tokenizer<'a> {
                 self.cursor.advance();
                 let next = self.cursor.peek(0);
                 match next {
-                    '<' => {
-                        self.cursor.advance();
-                        if self.cursor.peek(0) == '=' {
-                            self.cursor.advance();
-                            return single_token!(
-                                LessLessLessEqual,
-                                start,
-                                self.cursor.len_consumed()
-                            );
-                        }
-
-                        single_token!(LessLessLess, start, self.cursor.len_consumed())
-                    }
                     '=' => {
                         self.cursor.advance();
                         single_token!(LessLessEqual, start, self.cursor.len_consumed())
@@ -596,12 +579,10 @@ mod tests {
         verify_tokens!(">>=", vec![(Category::GreaterGreaterEqual, 0, 3)]);
         verify_tokens!(">!<", vec![(Category::GreaterBangLess, 0, 3)]);
         verify_tokens!("<<=", vec![(Category::LessLessEqual, 0, 3)]);
-        verify_tokens!("<<<", vec![(Category::LessLessLess, 0, 3)]);
     }
 
     #[test]
     fn four_tuple_tokens() {
-        verify_tokens!("<<<=", vec![(Category::LessLessLessEqual, 0, 4)]);
         verify_tokens!(">>>=", vec![(Category::GreaterGreaterGreaterEqual, 0, 4)]);
     }
 
