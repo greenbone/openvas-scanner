@@ -19,7 +19,7 @@ pub(crate) trait Prefix {
 
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     match token.category() {
-        Category::Plus | Category::Minus => Ok(9),
+        Category::Plus | Category::Minus | Category::Tilde => Ok(9),
         _ => Err(unexpected_token!(token)),
     }
 }
@@ -113,6 +113,17 @@ mod test {
             category,
             position: (start, end),
         }
+    }
+
+    #[test]
+    fn operations() {
+        fn expected(category: Category) -> Statement {
+            Statement::Operator(category, vec![Statement::Primitive(token(Number(Base10), 1, 2))])
+        }
+
+        assert_eq!(result("-1"), expected(Category::Minus));
+        assert_eq!(result("+1"), expected(Category::Plus));
+        assert_eq!(result("~1"), expected(Category::Tilde));
     }
 
     #[test]

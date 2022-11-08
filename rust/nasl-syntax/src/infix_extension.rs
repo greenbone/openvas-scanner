@@ -91,8 +91,8 @@ mod test {
         };
         let single_callable =
             |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64) -> i64>| -> i64 {
-                let right = stmts.pop().unwrap();
-                calculus(resolve(code, right))
+                let left = stmts.pop().unwrap();
+                calculus(resolve(code, left))
             };
         match s {
             Primitive(token) => match token.category() {
@@ -102,7 +102,7 @@ mod test {
             },
             Operator(head, rest) => match head {
                 Plus => callable(rest, Box::new(|left, right| left + right)),
-                Minus if rest.len() ==  1=> single_callable(rest, Box::new(|left| -left)),
+                Minus if rest.len() == 1 => single_callable(rest, Box::new(|left| -left)),
                 Minus => callable(rest, Box::new(|left, right| left - right)),
                 Star => callable(rest, Box::new(|left, right| left * right)),
                 Slash => callable(rest, Box::new(|left, right| left / right)),

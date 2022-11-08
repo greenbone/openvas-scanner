@@ -22,6 +22,7 @@ impl Operation {
             | Category::LessLess
             | Category::GreaterGreater
             | Category::GreaterGreaterGreater
+            | Category::Tilde
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
