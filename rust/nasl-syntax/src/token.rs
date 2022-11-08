@@ -104,6 +104,7 @@ pub enum Category {
     LeftCurlyBracket,           // {
     RightCurlyBracket,          // }
     Comma,                      // ,
+    Hash,                       // #
     Dot,                        // .
     Percent,                    // %
     Semicolon,                  // ;
@@ -368,44 +369,6 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // checks if a starting slash is either an operator or a comment
-    #[inline(always)]
-    pub fn tokenize_slash(&mut self, start: usize) -> Option<Token> {
-        match self.cursor.peek(0) {
-            '=' => {
-                self.cursor.advance();
-                single_token!(Category::SlashEqual, start, self.cursor.len_consumed())
-            }
-            '/' => {
-                self.cursor.skip_while(|c| c != '\n');
-                single_token!(Category::Comment, start, self.cursor.len_consumed())
-            }
-            '*' => {
-                let mut comments = 1;
-                while comments > 0 {
-                    self.cursor.skip_while(|c| c != '*' && c != '/');
-                    self.cursor.advance();
-                    // handles nested multiline comments
-                    if let Some(c) = self.cursor.advance() {
-                        if c == '/' {
-                            comments -= 1;
-                        } else if c == '*' {
-                            comments += 1;
-                        }
-                    } else {
-                        return single_token!(
-                            Category::Unclosed(UnclosedCategory::Comment),
-                            start,
-                            self.cursor.len_consumed()
-                        );
-                    }
-                }
-                single_token!(Category::Comment, start, self.cursor.len_consumed())
-            }
-            _ => single_token!(Category::Slash, start, self.cursor.len_consumed()),
-        }
-    }
-
     // Checks if an identifier is a Keyword or not
     #[inline(always)]
     fn tokenize_identifier(&mut self, start: usize) -> Option<Token> {
@@ -458,11 +421,15 @@ impl<'a> Iterator for Tokenizer<'a> {
             '}' => single_token!(RightCurlyBracket, start, self.cursor.len_consumed()),
             ',' => single_token!(Comma, start, self.cursor.len_consumed()),
             '.' => single_token!(Dot, start, self.cursor.len_consumed()),
+            '#' => {
+                self.cursor.skip_while(|c| c != '\n');
+                single_token!(Category::Comment, start, self.cursor.len_consumed())
+            },
             '-' => double_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => double_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
             '%' => single_token!(Percent, start, self.cursor.len_consumed()),
             ';' => single_token!(Semicolon, start, self.cursor.len_consumed()),
-            '/' => self.tokenize_slash(start),
+            '/' => double_token!(self.cursor, start, Slash, '=', SlashEqual), //self.tokenize_slash(start),
             '*' => double_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
             ':' => single_token!(DoublePoint, start, self.cursor.len_consumed()),
             '~' => single_token!(Tilde, start, self.cursor.len_consumed()),
@@ -650,36 +617,8 @@ mod tests {
     fn single_line_comments() {
         use Category::*;
         verify_tokens!(
-            "// this is a comment\n;",
-            vec![(Comment, 0, 20), (Semicolon, 21, 22)]
-        );
-    }
-
-    #[test]
-    fn multi_line_comments() {
-        use Category::*;
-        verify_tokens!("/*\n\nthis\nis\na\ncomment\n\n*/", vec![(Comment, 0, 25)]);
-        let code = r"
-        /*
-         * This is very important:
-         /*
-          * Therefore I do multiple comments inside
-          /* comment blocks */
-         */
-        */
-        ";
-        verify_tokens!(code, vec![(Comment, 9, 164)]);
-        verify_tokens!(
-            r"
-        /*
-         * This is very important:
-         /*
-          * Therefore I do multiple comments inside
-          /* comment blocks but I forgot to close one
-         */
-        */
-        ",
-            vec![(Unclosed(UnclosedCategory::Comment), 9, 196)]
+            "# this is a comment\n;",
+            vec![(Comment, 0, 19), (Semicolon, 20, 21)]
         );
     }
 
