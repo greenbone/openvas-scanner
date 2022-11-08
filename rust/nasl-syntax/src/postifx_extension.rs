@@ -100,13 +100,6 @@ mod test {
         let tokenizer = Tokenizer::new(code);
         expression(tokenizer).unwrap()
     }
-    fn token(category: Category, start: usize, end: usize) -> Token {
-        Token {
-            category,
-            position: (start, end),
-        }
-    }
-
     #[test]
     fn postfix_assignment_operator() {
         let expected = |assign_operator: Category, operator: Category| {

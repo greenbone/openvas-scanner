@@ -28,6 +28,9 @@ fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
             | Category::MinusEqual
             | Category::GreaterGreater
             | Category::LessLess
+            | Category::Ampersand
+            | Category::Pipe
+            | Category::Caret
             | Category::GreaterGreaterGreater,
         ) => (5, 6),
 
@@ -101,6 +104,7 @@ mod test {
                 _ => todo!(),
             },
             Operator(head, rest) => match head {
+                Tilde => single_callable(rest, Box::new(|left| !left)),
                 Plus => callable(rest, Box::new(|left, right| left + right)),
                 Minus if rest.len() == 1 => single_callable(rest, Box::new(|left| -left)),
                 Minus => callable(rest, Box::new(|left, right| left - right)),
@@ -109,6 +113,9 @@ mod test {
                 Percent => callable(rest, Box::new(|left, right| left % right)),
                 LessLess => callable(rest, Box::new(|left, right| left << right)),
                 GreaterGreater => callable(rest, Box::new(|left, right| left >> right)),
+                Ampersand => callable(rest, Box::new(|left, right| left & right)),
+                Pipe => callable(rest, Box::new(|left, right| left | right)),
+                Caret => callable(rest, Box::new(|left, right| left ^ right)),
                 GreaterGreaterGreater => {
                     callable(
                         rest,
@@ -172,12 +179,17 @@ mod test {
     }
 
     #[test]
-    fn shifting() {
+    fn bitwise_operations() {
+        //shifting
         calculated_test!("1 << 2 * 3", 64);
         calculated_test!("3 * 12 >> 2", 9);
         calculated_test!("-5 >>> 2", 1073741822);
-    }
+        // operations
+        calculated_test!("1 & 0", 0);
+        calculated_test!("~1 | 0", -2);
+        calculated_test!("1 ^ 1", 0);
 
+    }
     #[test]
     fn operator_assignment() {
         use Category::*;
@@ -198,6 +210,7 @@ mod test {
         assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
         assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
     }
+
 
     #[test]
     fn assignment() {
