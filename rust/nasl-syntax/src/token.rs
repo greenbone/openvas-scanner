@@ -356,6 +356,8 @@ impl<'a> Tokenizer<'a> {
                 self.cursor.advance();
                 self.cursor.skip_while(base.verifier());
             }
+            // we verify that the cursor actually moved to prevent scenarious like
+            // 0b without any actual number in it
             if start == self.cursor.len_consumed() {
                 single_token!(Category::IllegalNumber(base), start, start)
             } else {
