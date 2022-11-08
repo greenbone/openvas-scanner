@@ -3,7 +3,6 @@ use crate::token::{Category, Keyword, Token};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation {
     Operator(Category),
-    AssignOperator(Category, Category, u8),
     Assign(Category),
     Grouping(Category), // grouping operator ()
     Variable(Token),    // not an operation
@@ -21,17 +20,16 @@ impl Operation {
             | Category::Minus
             | Category::Percent
             | Category::StarStar => Some(Operation::Operator(token.category())),
-            Category::PlusPlus => Some(Operation::AssignOperator(
-                Category::PlusPlus,
-                Category::Plus,
-                1,
-            )),
-            Category::MinusMinus => Some(Operation::AssignOperator(
-                Category::MinusMinus,
-                Category::Minus,
-                1,
-            )),
-            Category::Equal => Some(Operation::Assign(Category::Equal)),
+            Category::Equal
+            | Category::MinusEqual
+            | Category::PlusEqual
+            | Category::SlashEqual
+            | Category::StarEqual
+            | Category::GreaterGreaterEqual
+            | Category::LessLessEqual
+            | Category::GreaterGreaterGreaterEqual
+            | Category::PlusPlus
+            | Category::MinusMinus => Some(Operation::Assign(token.category())),
             Category::String(_) | Category::Number(_) => Some(Operation::Primitive(token)),
             Category::LeftParen | Category::LeftCurlyBracket | Category::Comma => {
                 Some(Operation::Grouping(token.category()))

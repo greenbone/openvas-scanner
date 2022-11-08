@@ -1,7 +1,7 @@
 use crate::{
     error::TokenError,
     lexer::Lexer,
-    lexer::{AssignCategory, Statement},
+    lexer::{AssignOrder, Statement},
     prefix_extension::PrefixState,
     token::{Category, Token},
     unclosed_token, unexpected_token,
@@ -24,8 +24,8 @@ impl<'a> Grouping for Lexer<'a> {
         } else {
             self.unhandled_token = None;
             match lhs {
-                Statement::Assign(_, token, stmt) => {
-                    Ok(Statement::Assign(AssignCategory::AssignReturn, token, stmt))
+                Statement::Assign(category, _, token, stmt) => {
+                    Ok(Statement::Assign(category, AssignOrder::AssignReturn, token, stmt))
                 }
                 _ => Ok(lhs),
             }
@@ -62,7 +62,7 @@ impl<'a> Grouping for Lexer<'a> {
 mod test {
     use crate::{
         lexer::Statement,
-        lexer::{expression, AssignCategory},
+        lexer::{expression, AssignOrder},
         token::{Base, Category, Token, Tokenizer},
     };
 
@@ -91,7 +91,8 @@ mod test {
             ),
             Block(vec![
                 Assign(
-                    AssignCategory::Assign,
+                    Equal,
+                    AssignOrder::Assign,
                     Token {
                         category: Identifier(None),
                         position: (31, 32)
@@ -111,7 +112,8 @@ mod test {
                     ))
                 ),
                 Assign(
-                    AssignCategory::Assign,
+                    Equal,
+                    AssignOrder::Assign,
                     Token {
                         category: Identifier(None),
                         position: (58, 59)
@@ -124,7 +126,8 @@ mod test {
                                 position: (62, 63)
                             }),
                             Assign(
-                                AssignCategory::AssignReturn,
+                                MinusMinus,
+                                AssignOrder::AssignReturn,
                                 Token {
                                     category: Identifier(None),
                                     position: (68, 69)
@@ -144,7 +147,8 @@ mod test {
                     ))
                 ),
                 Block(vec![Assign(
-                    AssignCategory::Assign,
+                    Equal,
+                    AssignOrder::Assign,
                     Token {
                         category: Identifier(None),
                         position: (108, 109)

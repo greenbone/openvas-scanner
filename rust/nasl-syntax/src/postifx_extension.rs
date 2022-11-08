@@ -1,10 +1,13 @@
 use crate::{
-    lexer::{AssignCategory, Statement},
     error::TokenError,
-    token::{Category, Token}, operation::Operation, lexer::Lexer, unexpected_token,
+    lexer::Lexer,
+    lexer::{AssignOrder, Statement},
+    operation::Operation,
+    token::{Category, Token},
+    unexpected_token,
 };
 pub(crate) trait Postfix {
-    fn needs_postfix(&self, op:Operation) -> bool;
+    fn needs_postfix(&self, op: Operation) -> bool;
     fn postfix_statement(
         &mut self,
         op: Operation,
@@ -30,6 +33,26 @@ impl<'a> Lexer<'a> {
         };
         Ok(Statement::Parameter(lhs))
     }
+
+    fn as_assign_statement(
+        lhs: Statement,
+        token: Token,
+        assign: Category,
+        operation: Category,
+    ) -> Option<Result<Statement, TokenError>> {
+        match lhs {
+            Statement::Variable(token) => Some(Ok(Statement::Assign(
+                assign,
+                AssignOrder::ReturnAssign,
+                token,
+                Box::new(Statement::Operator(
+                    operation,
+                    vec![Statement::Variable(token), Statement::RawNumber(1)],
+                )),
+            ))),
+            _ => Some(Err(unexpected_token!(token))),
+        }
+    }
 }
 
 impl<'a> Postfix for Lexer<'a> {
@@ -42,22 +65,89 @@ impl<'a> Postfix for Lexer<'a> {
     ) -> Option<Result<Statement, TokenError>> {
         match op {
             Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
-            Operation::AssignOperator(_, operator, amount) => match lhs {
-                Statement::Variable(token) => Some(Ok(Statement::Assign(
-                    AssignCategory::ReturnAssign,
-                    token,
-                    Box::new(Statement::Operator(
-                        operator,
-                        vec![Statement::Variable(token), Statement::RawNumber(amount)],
-                    )),
-                ))),
-                _ => Some(Err(unexpected_token!(token))),
-            },
+            // Assign()
+            Operation::Assign(Category::PlusPlus) => {
+                Self::as_assign_statement(lhs, token, Category::PlusPlus, Category::Plus)
+            }
+            Operation::Assign(Category::MinusMinus) => {
+                Self::as_assign_statement(lhs, token, Category::MinusMinus, Category::Minus)
+            }
             _ => None,
         }
     }
 
-    fn needs_postfix(&self, op:Operation) -> bool {
-        matches!(op, Operation::Grouping(Category::Comma) | Operation::AssignOperator(_, _, _))
+    fn needs_postfix(&self, op: Operation) -> bool {
+        matches!(
+            op,
+            Operation::Grouping(Category::Comma) | Operation::Assign(Category::MinusMinus) | Operation::Assign(Category::PlusPlus)
+        )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        lexer::Statement,
+        lexer::{expression, AssignOrder},
+        token::{Base, Category, Token, Tokenizer},
+    };
+
+    use Base::*;
+    use Category::*;
+    use Statement::*;
+
+    fn result(code: &str) -> Statement {
+        let tokenizer = Tokenizer::new(code);
+        expression(tokenizer).unwrap()
+    }
+    fn token(category: Category, start: usize, end: usize) -> Token {
+        Token {
+            category,
+            position: (start, end),
+        }
+    }
+
+    #[test]
+    fn postfix_assignment_operator() {
+        let expected = |assign_operator: Category, operator: Category| {
+            Operator(
+                Plus,
+                vec![
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (0, 1),
+                    }),
+                    Operator(
+                        Star,
+                        vec![
+                            Assign(
+                                assign_operator,
+                                AssignOrder::ReturnAssign,
+                                Token {
+                                    category: Identifier(None),
+                                    position: (4, 5),
+                                },
+                                Box::new(Operator(
+                                    operator,
+                                    vec![
+                                        Variable(Token {
+                                            category: Identifier(None),
+                                            position: (4, 5),
+                                        }),
+                                        RawNumber(1),
+                                    ],
+                                )),
+                            ),
+                            Primitive(Token {
+                                category: Number(Base10),
+                                position: (10, 11),
+                            }),
+                        ],
+                    ),
+                ],
+            )
+        };
+        assert_eq!(result("1 + a++ * 1"), expected(PlusPlus, Plus));
+        assert_eq!(result("1 + a-- * 1"), expected(MinusMinus, Minus));
     }
 }
