@@ -7,10 +7,15 @@ use crate::{
     lexer::Statement,
     operation::Operation,
     token::{Category, Token},
-    variable_extension::Variables, unexpected_token,
+    unexpected_token,
+    variable_extension::Variables,
 };
 pub(crate) trait Prefix {
-    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<(PrefixState, Statement), TokenError>;
+    fn prefix_statement(
+        &mut self,
+        token: Token,
+        abort: Category,
+    ) -> Result<(PrefixState, Statement), TokenError>;
 }
 
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
@@ -31,7 +36,11 @@ pub(crate) enum PrefixState {
 impl<'a> Prefix for Lexer<'a> {
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
-    fn prefix_statement(&mut self, token: Token, abort: Category) -> Result<(PrefixState, Statement), TokenError> {
+    fn prefix_statement(
+        &mut self,
+        token: Token,
+        abort: Category,
+    ) -> Result<(PrefixState, Statement), TokenError> {
         use PrefixState::*;
         let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
         match op {
@@ -42,12 +51,13 @@ impl<'a> Prefix for Lexer<'a> {
             }
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Primitive(token) => Ok((Continue, Statement::Primitive(token))),
-            Operation::Variable(token) => self.parse_variable(token).map(|stmt|(Continue, stmt)),
-            Operation::Grouping(category) => self.parse_grouping(token),
-            Operation::AssignOperator(_, operation, amount) => {
-                self.parse_prefix_assign_operator(token, operation, amount).map(|stmt|(Continue, stmt))
-            }
+            Operation::Variable(token) => self.parse_variable(token).map(|stmt| (Continue, stmt)),
+            Operation::Grouping(_) => self.parse_grouping(token),
+            Operation::AssignOperator(_, operation, amount) => self
+                .parse_prefix_assign_operator(token, operation, amount)
+                .map(|stmt| (Continue, stmt)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
+            Operation::NoOp(_) => Ok((Break, Statement::NoOp(Some(token)))),
         }
     }
 }
@@ -83,5 +93,10 @@ mod test {
             result("'a'"),
             Primitive(token(String(StringCategory::Quoteable), 1, 2))
         );
+    }
+
+    #[test]
+    fn comments_are_noop() {
+        assert_eq!(result("# Comment"), NoOp(Some(token(Comment, 0, 9))));
     }
 }
