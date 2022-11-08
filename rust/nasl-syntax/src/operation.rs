@@ -19,6 +19,9 @@ impl Operation {
             | Category::Slash
             | Category::Minus
             | Category::Percent
+            | Category::LessLess
+            | Category::GreaterGreater
+            | Category::GreaterGreaterGreater
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
