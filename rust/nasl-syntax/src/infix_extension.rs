@@ -21,19 +21,19 @@ fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
     let res = match op {
         Assign(_) => (4, 5),
-        Operator(Category::Plus | Category::Minus | Category::PlusEqual | Category::MinusEqual) => {
-            (5, 6)
-        }
-
         Operator(
-            Category::Star
-            | Category::Slash
-            | Category::Percent
-            | Category::StarStar
+            Category::Plus
+            | Category::Minus
+            | Category::PlusEqual
+            | Category::MinusEqual
             | Category::GreaterGreater
             | Category::LessLess
             | Category::GreaterGreaterGreater,
-        ) => (7, 8),
+        ) => (5, 6),
+
+        Operator(Category::Star | Category::Slash | Category::Percent | Category::StarStar) => {
+            (7, 8)
+        }
         _ => return None,
     };
     Some(res)
@@ -89,6 +89,11 @@ mod test {
             let left = stmts.pop().unwrap();
             calculus(resolve(code, left), resolve(code, right))
         };
+        let single_callable =
+            |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64) -> i64>| -> i64 {
+                let right = stmts.pop().unwrap();
+                calculus(resolve(code, right))
+            };
         match s {
             Primitive(token) => match token.category() {
                 Number(_) => code[token.range()].parse().unwrap(),
@@ -97,16 +102,34 @@ mod test {
             },
             Operator(head, rest) => match head {
                 Plus => callable(rest, Box::new(|left, right| left + right)),
+                Minus if rest.len() ==  1=> single_callable(rest, Box::new(|left| -left)),
+                Minus => callable(rest, Box::new(|left, right| left - right)),
                 Star => callable(rest, Box::new(|left, right| left * right)),
                 Slash => callable(rest, Box::new(|left, right| left / right)),
                 Percent => callable(rest, Box::new(|left, right| left % right)),
+                LessLess => callable(rest, Box::new(|left, right| left << right)),
+                GreaterGreater => callable(rest, Box::new(|left, right| left >> right)),
+                GreaterGreaterGreater => {
+                    callable(
+                        rest,
+                        Box::new(|left, right| {
+                            // this operator is used to drop signed bits
+                            // so the result depends heavily if it is u32, u64, ...
+                            // to have the same results as in javascript we use u32 in this example
+                            let left_casted = left as u32;
+                            (left_casted >> right) as i64
+                        }),
+                    )
+                }
                 StarStar => callable(
                     rest,
                     Box::new(|left, right| (left as u32).pow(right as u32) as i64),
                 ),
-                _ => todo!(),
+                token => {
+                    todo!("{:?}", token)
+                }
             },
-            _ => todo!(),
+            _ => todo!("operator not found"),
         }
     }
 
@@ -146,6 +169,13 @@ mod test {
     #[test]
     fn pow() {
         calculated_test!("2 ** 4", 16);
+    }
+
+    #[test]
+    fn shifting() {
+        calculated_test!("1 << 2 * 3", 64);
+        calculated_test!("3 * 12 >> 2", 9);
+        calculated_test!("-5 >>> 2", 1073741822);
     }
 
     #[test]
