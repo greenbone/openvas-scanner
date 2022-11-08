@@ -5,10 +5,14 @@ use crate::{
     token::{Category, Token, Tokenizer}, operation::Operation, error::TokenError, unexpected_token, unexpected_end,
 };
 
+/// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AssignCategory {
+pub enum AssignOrder {
+    /// Just assign don't return
     Assign,
+    /// Assign first than return
     AssignReturn,
+    /// Retutn than assign
     ReturnAssign,
 
 }
@@ -20,7 +24,7 @@ pub enum Statement {
     Variable(Token),
     Call(Token, Box<Statement>),
     Parameter(Vec<Statement>),
-    Assign(AssignCategory, Token, Box<Statement>),
+    Assign(Category, AssignOrder, Token, Box<Statement>),
 
     Operator(Category, Vec<Statement>),
 

@@ -1,7 +1,9 @@
 use crate::{
-    lexer::{AssignCategory, Statement},
     error::TokenError,
-    token::{Category, Token}, operation::Operation, lexer::Lexer,
+    lexer::Lexer,
+    lexer::{AssignOrder, Statement},
+    operation::Operation,
+    token::{Category, Token},
 };
 pub(crate) trait Infix {
     fn handle_infix(&self, op: Operation, min_bp: u8) -> Option<bool>;
@@ -18,11 +20,20 @@ pub(crate) trait Infix {
 fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
     let res = match op {
-        Assign(Category::Equal) => (4, 5),
-        Operator(Category::Plus | Category::Minus) => (5, 6),
-        Operator(Category::Star | Category::Slash | Category::Percent | Category::StarStar) => {
-            (7, 8)
+        Assign(_) => (4, 5),
+        Operator(Category::Plus | Category::Minus | Category::PlusEqual | Category::MinusEqual) => {
+            (5, 6)
         }
+
+        Operator(
+            Category::Star
+            | Category::Slash
+            | Category::Percent
+            | Category::StarStar
+            | Category::GreaterGreater
+            | Category::LessLess
+            | Category::GreaterGreaterGreater,
+        ) => (7, 8),
         _ => return None,
     };
     Some(res)
@@ -40,9 +51,9 @@ impl<'a> Infix for Lexer<'a> {
             let rhs = self.expression_bp(r_bp, abort)?;
             match op {
                 // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
-                Operation::Assign(_) => match lhs {
+                Operation::Assign(category) => match lhs {
                     Statement::Variable(token) => {
-                        Statement::Assign(AssignCategory::Assign, token, Box::new(rhs))
+                        Statement::Assign(category, AssignOrder::Assign, token, Box::new(rhs))
                     }
                     _ => Statement::Operator(token.category(), vec![lhs, rhs]),
                 },
@@ -61,12 +72,11 @@ impl<'a> Infix for Lexer<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod test {
 
-    use crate::lexer::expression;
     use super::*;
+    use crate::lexer::expression;
     use crate::token::Base::*;
     use crate::token::Category::*;
     use crate::token::{Token, Tokenizer};
@@ -77,10 +87,7 @@ mod test {
         let callable = |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
             let right = stmts.pop().unwrap();
             let left = stmts.pop().unwrap();
-            calculus(
-                resolve(code, left),
-                resolve(code, right),
-            )
+            calculus(resolve(code, left), resolve(code, right))
         };
         match s {
             Primitive(token) => match token.category() {
@@ -142,11 +149,33 @@ mod test {
     }
 
     #[test]
+    fn operator_assignment() {
+        use Category::*;
+        use Statement::*;
+        fn expected(category: Category, shift: usize) -> Statement {
+            Assign(
+                category,
+                AssignOrder::Assign,
+                token(Identifier(None), 0, 1),
+                Box::new(Primitive(token(Number(Base10), 5 + shift, 6 + shift))),
+            )
+        }
+        assert_eq!(result("a += 1"), expected(PlusEqual, 0));
+        assert_eq!(result("a -= 1"), expected(MinusEqual, 0));
+        assert_eq!(result("a /= 1"), expected(SlashEqual, 0));
+        assert_eq!(result("a *= 1"), expected(StarEqual, 0));
+        assert_eq!(result("a >>= 1"), expected(GreaterGreaterEqual, 1));
+        assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
+        assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
+    }
+
+    #[test]
     fn assignment() {
         assert_eq!(
             result("a = 1"),
             Assign(
-                AssignCategory::Assign,
+                Category::Equal,
+                AssignOrder::Assign,
                 token(Identifier(None), 0, 1),
                 Box::new(Primitive(Token {
                     category: Number(Base10),
@@ -157,7 +186,8 @@ mod test {
         assert_eq!(
             result("(a = 1)"),
             Assign(
-                AssignCategory::AssignReturn,
+                Category::Equal,
+                AssignOrder::AssignReturn,
                 token(Identifier(None), 1, 2),
                 Box::new(Primitive(Token {
                     category: Number(Base10),

@@ -1,13 +1,12 @@
 use crate::{
-    assign_operator_extension::AssignOperator,
     error::TokenError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
     lexer::Lexer,
-    lexer::Statement,
+    lexer::{AssignOrder, Statement},
     operation::Operation,
     token::{Category, Token},
-    unexpected_token,
+    unexpected_end, unexpected_token,
     variable_extension::Variables,
 };
 pub(crate) trait Prefix {
@@ -33,6 +32,32 @@ pub(crate) enum PrefixState {
     Break,
 }
 
+impl<'a> Lexer<'a> {
+    fn parse_prefix_assign_operator(
+        &mut self,
+        assign: Category,
+        token: Token,
+        operation: Category,
+        amount: u8,
+    ) -> Result<Statement, TokenError> {
+        let next = self
+            .next()
+            .ok_or_else(|| unexpected_end!("parsing prefix statement"))?;
+        match self.parse_variable(next)? {
+            Statement::Variable(value) => Ok(Statement::Assign(
+                assign,
+                AssignOrder::AssignReturn,
+                value,
+                Box::new(Statement::Operator(
+                    operation,
+                    vec![Statement::Variable(value), Statement::RawNumber(amount)],
+                )),
+            )),
+            _ => Err(unexpected_token!(token)),
+        }
+    }
+}
+
 impl<'a> Prefix for Lexer<'a> {
     /// Handles statements before operation statements get handled.
     /// This is mostly done to detect statements that should not be weighted and executed before hand
@@ -49,13 +74,17 @@ impl<'a> Prefix for Lexer<'a> {
                 let rhs = self.expression_bp(bp, abort)?;
                 Ok((Continue, Statement::Operator(kind, vec![rhs])))
             }
-            Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Primitive(token) => Ok((Continue, Statement::Primitive(token))),
             Operation::Variable(token) => self.parse_variable(token).map(|stmt| (Continue, stmt)),
             Operation::Grouping(_) => self.parse_grouping(token),
-            Operation::AssignOperator(_, operation, amount) => self
-                .parse_prefix_assign_operator(token, operation, amount)
+            // TODO change me
+            Operation::Assign(Category::MinusMinus) => self
+                .parse_prefix_assign_operator(Category::MinusMinus, token, Category::Minus, 1)
                 .map(|stmt| (Continue, stmt)),
+            Operation::Assign(Category::PlusPlus) => self
+                .parse_prefix_assign_operator(Category::PlusPlus, token, Category::Plus, 1)
+                .map(|stmt| (Continue, stmt)),
+            Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
             Operation::NoOp(_) => Ok((Break, Statement::NoOp(Some(token)))),
         }
@@ -66,8 +95,8 @@ impl<'a> Prefix for Lexer<'a> {
 mod test {
 
     use crate::{
-        lexer::expression,
         lexer::Statement,
+        lexer::{expression, AssignOrder},
         token::{Base, Category, StringCategory, Token, Tokenizer},
     };
 
@@ -98,5 +127,49 @@ mod test {
     #[test]
     fn comments_are_noop() {
         assert_eq!(result("# Comment"), NoOp(Some(token(Comment, 0, 9))));
+    }
+
+    #[test]
+    fn assignment_operator() {
+        let expected = |assign_operator: Category, operator: Category| {
+            Operator(
+                Plus,
+                vec![
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (0, 1),
+                    }),
+                    Operator(
+                        Star,
+                        vec![
+                            Assign(
+                                assign_operator,
+                                AssignOrder::AssignReturn,
+                                Token {
+                                    category: Identifier(None),
+                                    position: (6, 7),
+                                },
+                                Box::new(Operator(
+                                    operator,
+                                    vec![
+                                        Variable(Token {
+                                            category: Identifier(None),
+                                            position: (6, 7),
+                                        }),
+                                        RawNumber(1),
+                                    ],
+                                )),
+                            ),
+                            Primitive(Token {
+                                category: Number(Base10),
+                                position: (10, 11),
+                            }),
+                        ],
+                    ),
+                ],
+            )
+        };
+        assert_eq!(result("1 + ++a * 1"), expected(PlusPlus, Plus));
+        assert_eq!(result("1 + --a * 1"), expected(MinusMinus, Minus));
     }
 }
