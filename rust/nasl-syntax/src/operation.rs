@@ -5,10 +5,10 @@ pub(crate) enum Operation {
     Operator(Category),
     Assign(Category),
     Grouping(Category), // grouping operator ()
-    Variable(Token),    // not an operation
-    Primitive(Token),
+    Variable,    // not an operation
+    Primitive,
     Keyword(Keyword), // not an operation
-    NoOp(Token),
+    NoOp,
 }
 
 impl Operation {
@@ -37,13 +37,13 @@ impl Operation {
             | Category::GreaterGreaterGreaterEqual
             | Category::PlusPlus
             | Category::MinusMinus => Some(Operation::Assign(token.category())),
-            Category::String(_) | Category::Number(_) => Some(Operation::Primitive(token)),
+            Category::String(_) | Category::Number(_) => Some(Operation::Primitive),
             Category::LeftParen | Category::LeftCurlyBracket | Category::Comma => {
                 Some(Operation::Grouping(token.category()))
             }
-            Category::Identifier(None) => Some(Operation::Variable(token)),
+            Category::Identifier(None) => Some(Operation::Variable),
             Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword)),
-            Category::Comment => Some(Operation::NoOp(token)),
+            Category::Comment => Some(Operation::NoOp),
             _ => None,
         }
     }
