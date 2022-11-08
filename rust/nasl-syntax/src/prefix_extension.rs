@@ -74,8 +74,8 @@ impl<'a> Prefix for Lexer<'a> {
                 let rhs = self.expression_bp(bp, abort)?;
                 Ok((Continue, Statement::Operator(kind, vec![rhs])))
             }
-            Operation::Primitive(token) => Ok((Continue, Statement::Primitive(token))),
-            Operation::Variable(token) => self.parse_variable(token).map(|stmt| (Continue, stmt)),
+            Operation::Primitive => Ok((Continue, Statement::Primitive(token))),
+            Operation::Variable => self.parse_variable(token).map(|stmt| (Continue, stmt)),
             Operation::Grouping(_) => self.parse_grouping(token),
             // TODO change me
             Operation::Assign(Category::MinusMinus) => self
@@ -86,7 +86,7 @@ impl<'a> Prefix for Lexer<'a> {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp(_) => Ok((Break, Statement::NoOp(Some(token)))),
+            Operation::NoOp => Ok((Break, Statement::NoOp(Some(token)))),
         }
     }
 }
