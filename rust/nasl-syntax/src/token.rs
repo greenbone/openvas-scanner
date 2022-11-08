@@ -104,7 +104,6 @@ pub enum Category {
     LeftCurlyBracket,           // {
     RightCurlyBracket,          // }
     Comma,                      // ,
-    Hash,                       // #
     Dot,                        // .
     Percent,                    // %
     Semicolon,                  // ;
