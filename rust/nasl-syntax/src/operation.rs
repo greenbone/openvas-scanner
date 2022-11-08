@@ -23,6 +23,9 @@ impl Operation {
             | Category::GreaterGreater
             | Category::GreaterGreaterGreater
             | Category::Tilde
+            | Category::Ampersand
+            | Category::Pipe
+            | Category::Caret
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
