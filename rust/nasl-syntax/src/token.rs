@@ -186,7 +186,7 @@ pub struct Tokenizer<'a> {
 }
 
 // Is used to build Some(Token{ ... }) to make the match case within Iterator for Tokenizer easier to read
-macro_rules! single_token {
+macro_rules! token {
     ($category:expr, $start:expr, $end:expr) => {
         Some(Token {
             category: $category,
@@ -222,11 +222,11 @@ impl<'a> Tokenizer<'a> {
         match next {
             '=' => {
                 self.cursor.advance();
-                single_token!(GreaterEqual, start, self.cursor.len_consumed())
+                token!(GreaterEqual, start, self.cursor.len_consumed())
             }
             '<' => {
                 self.cursor.advance();
-                single_token!(GreaterLess, start, self.cursor.len_consumed())
+                token!(GreaterLess, start, self.cursor.len_consumed())
             }
             '>' => {
                 self.cursor.advance();
@@ -236,28 +236,28 @@ impl<'a> Tokenizer<'a> {
                         self.cursor.advance();
                         if self.cursor.peek(0) == '=' {
                             self.cursor.advance();
-                            return single_token!(
+                            return token!(
                                 GreaterGreaterGreaterEqual,
                                 start,
                                 self.cursor.len_consumed()
                             );
                         }
 
-                        single_token!(GreaterGreaterGreater, start, self.cursor.len_consumed())
+                        token!(GreaterGreaterGreater, start, self.cursor.len_consumed())
                     }
                     '=' => {
                         self.cursor.advance();
-                        single_token!(GreaterGreaterEqual, start, self.cursor.len_consumed())
+                        token!(GreaterGreaterEqual, start, self.cursor.len_consumed())
                     }
-                    _ => single_token!(GreaterGreater, start, self.cursor.len_consumed()),
+                    _ => token!(GreaterGreater, start, self.cursor.len_consumed()),
                 }
             }
             '!' if self.cursor.peek(1) == '<' => {
                 self.cursor.advance();
                 self.cursor.advance();
-                single_token!(GreaterBangLess, start, self.cursor.len_consumed())
+                token!(GreaterBangLess, start, self.cursor.len_consumed())
             }
-            _ => single_token!(Greater, start, self.cursor.len_consumed()),
+            _ => token!(Greater, start, self.cursor.len_consumed()),
         }
     }
 
@@ -272,7 +272,7 @@ impl<'a> Tokenizer<'a> {
         match next {
             '=' => {
                 self.cursor.advance();
-                single_token!(LessEqual, start, self.cursor.len_consumed())
+                token!(LessEqual, start, self.cursor.len_consumed())
             }
             '<' => {
                 self.cursor.advance();
@@ -280,12 +280,12 @@ impl<'a> Tokenizer<'a> {
                 match next {
                     '=' => {
                         self.cursor.advance();
-                        single_token!(LessLessEqual, start, self.cursor.len_consumed())
+                        token!(LessLessEqual, start, self.cursor.len_consumed())
                     }
-                    _ => single_token!(LessLess, start, self.cursor.len_consumed()),
+                    _ => token!(LessLess, start, self.cursor.len_consumed()),
                 }
             }
-            _ => single_token!(Less, start, self.cursor.len_consumed()),
+            _ => token!(Less, start, self.cursor.len_consumed()),
         }
     }
 
@@ -300,13 +300,13 @@ impl<'a> Tokenizer<'a> {
         let start = self.cursor.len_consumed();
         self.cursor.skip_while(predicate);
         if self.cursor.is_eof() {
-            single_token!(
+            token!(
                 Category::Unclosed(UnclosedCategory::String(string_category)),
                 start,
                 self.cursor.len_consumed()
             )
         } else {
-            let result = single_token!(
+            let result = token!(
                 Category::String(string_category),
                 start,
                 self.cursor.len_consumed()
@@ -360,12 +360,12 @@ impl<'a> Tokenizer<'a> {
             // we verify that the cursor actually moved to prevent scenarious like
             // 0b without any actual number in it
             if start == self.cursor.len_consumed() {
-                single_token!(Category::IllegalNumber(base), start, start)
+                token!(Category::IllegalNumber(base), start, start)
             } else {
-                single_token!(Category::Number(base), start, self.cursor.len_consumed())
+                token!(Category::Number(base), start, self.cursor.len_consumed())
             }
         } else {
-            single_token!(Category::UnknownBase, start, self.cursor.len_consumed())
+            token!(Category::UnknownBase, start, self.cursor.len_consumed())
         }
     }
 
@@ -378,7 +378,7 @@ impl<'a> Tokenizer<'a> {
             start,
             end: self.cursor.len_consumed(),
         }));
-        single_token!(
+        token!(
             Category::Identifier(keyword),
             start,
             self.cursor.len_consumed()
@@ -390,16 +390,16 @@ impl<'a> Tokenizer<'a> {
 // this macro can be used:
 //'+' => double_token!(self.cursor, start, '+', '+', PlusPlus, '=', PlusEqual),
 // within the Iterator implementation of Tokenizer
-macro_rules! double_token {
-    ($cursor:expr, $start:tt, $c:tt, $($l:tt, $bt:expr ), *) => {
+macro_rules! two_symbol_token {
+    ($cursor:expr, $start:tt, $single_symbol:tt, $($matching_char:tt, $two_symbol_token:expr ), *) => {
         {
             let next = $cursor.peek(0);
             match next {
-                $($l => {
+                $($matching_char => {
                   $cursor.advance();
-                  single_token!($bt, $start, $cursor.len_consumed())
+                  token!($two_symbol_token, $start, $cursor.len_consumed())
                 }, )*
-                _ => single_token!($c, $start, $cursor.len_consumed()),
+                _ => token!($single_symbol, $start, $cursor.len_consumed()),
             }
         }
     };
@@ -413,31 +413,31 @@ impl<'a> Iterator for Tokenizer<'a> {
         self.cursor.skip_while(|c| c.is_whitespace());
         let start = self.cursor.len_consumed();
         match self.cursor.advance()? {
-            '(' => single_token!(LeftParen, start, self.cursor.len_consumed()),
-            ')' => single_token!(RightParen, start, self.cursor.len_consumed()),
-            '[' => single_token!(LeftBrace, start, self.cursor.len_consumed()),
-            ']' => single_token!(RightBrace, start, self.cursor.len_consumed()),
-            '{' => single_token!(LeftCurlyBracket, start, self.cursor.len_consumed()),
-            '}' => single_token!(RightCurlyBracket, start, self.cursor.len_consumed()),
-            ',' => single_token!(Comma, start, self.cursor.len_consumed()),
-            '.' => single_token!(Dot, start, self.cursor.len_consumed()),
+            '(' => token!(LeftParen, start, self.cursor.len_consumed()),
+            ')' => token!(RightParen, start, self.cursor.len_consumed()),
+            '[' => token!(LeftBrace, start, self.cursor.len_consumed()),
+            ']' => token!(RightBrace, start, self.cursor.len_consumed()),
+            '{' => token!(LeftCurlyBracket, start, self.cursor.len_consumed()),
+            '}' => token!(RightCurlyBracket, start, self.cursor.len_consumed()),
+            ',' => token!(Comma, start, self.cursor.len_consumed()),
+            '.' => token!(Dot, start, self.cursor.len_consumed()),
             '#' => {
                 self.cursor.skip_while(|c| c != '\n');
-                single_token!(Category::Comment, start, self.cursor.len_consumed())
-            },
-            '-' => double_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
-            '+' => double_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
-            '%' => single_token!(Percent, start, self.cursor.len_consumed()),
-            ';' => single_token!(Semicolon, start, self.cursor.len_consumed()),
-            '/' => double_token!(self.cursor, start, Slash, '=', SlashEqual), //self.tokenize_slash(start),
-            '*' => double_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
-            ':' => single_token!(DoublePoint, start, self.cursor.len_consumed()),
-            '~' => single_token!(Tilde, start, self.cursor.len_consumed()),
-            '&' => double_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand),
-            '|' => double_token!(self.cursor, start, Pipe, '|', PipePipe),
-            '^' => single_token!(Caret, start, self.cursor.len_consumed()),
-            '!' => double_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde),
-            '=' => double_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
+                token!(Category::Comment, start, self.cursor.len_consumed())
+            }
+            '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
+            '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
+            '%' => token!(Percent, start, self.cursor.len_consumed()),
+            ';' => token!(Semicolon, start, self.cursor.len_consumed()),
+            '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), //self.tokenize_slash(start),
+            '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
+            ':' => token!(DoublePoint, start, self.cursor.len_consumed()),
+            '~' => token!(Tilde, start, self.cursor.len_consumed()),
+            '&' => two_symbol_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand),
+            '|' => two_symbol_token!(self.cursor, start, Pipe, '|', PipePipe),
+            '^' => token!(Caret, start, self.cursor.len_consumed()),
+            '!' => two_symbol_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde),
+            '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
             '"' => self.tokenize_string(StringCategory::Unquoteable, |c| c != '"'),
@@ -455,7 +455,7 @@ impl<'a> Iterator for Tokenizer<'a> {
 
             current if ('0'..='9').contains(&current) => self.tokenize_number(start, current),
             current if current.is_alphabetic() || current == '_' => self.tokenize_identifier(start),
-            _ => single_token!(UnknownSymbol, start, self.cursor.len_consumed()),
+            _ => token!(UnknownSymbol, start, self.cursor.len_consumed()),
         }
     }
 }
@@ -489,7 +489,7 @@ mod tests {
     }
 
     #[test]
-    fn single_token() {
+    fn single_symbol_tokens() {
         verify_tokens!("(", vec![(Category::LeftParen, 0, 1)]);
         verify_tokens!(")", vec![(Category::RightParen, 0, 1)]);
         verify_tokens!("[", vec![(Category::LeftBrace, 0, 1)]);
@@ -512,7 +512,7 @@ mod tests {
     }
 
     #[test]
-    fn double_token() {
+    fn two_symbol_tokens() {
         verify_tokens!("&", vec![(Category::Ampersand, 0, 1)]);
         verify_tokens!("&&", vec![(Category::AmpersandAmpersand, 0, 2)]);
         verify_tokens!("|", vec![(Category::Pipe, 0, 1)]);
@@ -543,7 +543,7 @@ mod tests {
     }
 
     #[test]
-    fn triple_tokens() {
+    fn three_symbol_tokens() {
         verify_tokens!(">>>", vec![(Category::GreaterGreaterGreater, 0, 3)]);
         verify_tokens!(">>=", vec![(Category::GreaterGreaterEqual, 0, 3)]);
         verify_tokens!(">!<", vec![(Category::GreaterBangLess, 0, 3)]);
@@ -551,7 +551,7 @@ mod tests {
     }
 
     #[test]
-    fn four_tuple_tokens() {
+    fn four_symbol_tokens() {
         verify_tokens!(">>>=", vec![(Category::GreaterGreaterGreaterEqual, 0, 4)]);
     }
 
