@@ -9,6 +9,7 @@ pub(crate) enum Operation {
     Variable(Token),    // not an operation
     Primitive(Token),
     Keyword(Keyword), // not an operation
+    NoOp(Token),
 }
 
 impl Operation {
@@ -37,6 +38,7 @@ impl Operation {
             }
             Category::Identifier(None) => Some(Operation::Variable(token)),
             Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword)),
+            Category::Comment => Some(Operation::NoOp(token)),
             _ => None,
         }
     }
