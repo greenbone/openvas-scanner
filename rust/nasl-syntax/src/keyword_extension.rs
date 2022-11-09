@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub(crate) trait Keywords {
+    /// Parses keywords.
     fn parse_keyword(
         &mut self,
         keyword: Keyword,
@@ -18,7 +19,7 @@ pub(crate) trait Keywords {
 
 impl<'a> Lexer<'a> {
     fn parse_if(&mut self) -> Result<(PrefixState, Statement), TokenError> {
-        let token = self.next().ok_or_else(|| unexpected_end!("if parsing"))?;
+        let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match token.category() {
             Category::LeftParen => self.parse_paren(token),
             _ => Err(unexpected_token!(token)),
@@ -26,7 +27,7 @@ impl<'a> Lexer<'a> {
         // TODO add block handling and error handling
         let body = self.expression_bp(0, Category::Semicolon)?;
         let r#else: Option<Statement> = {
-            match self.next() {
+            match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
                         Some(self.expression_bp(0, Category::Semicolon)?)
@@ -73,9 +74,8 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::expression,
         lexer::Statement,
-        token::{Category, StringCategory, Token, Tokenizer},
+        token::{Category, StringCategory, Token},
     };
 
     use Category::*;
@@ -83,8 +83,10 @@ mod test {
 
     #[test]
     fn if_statement() {
-        let tokenizer = Tokenizer::new("if (description) script_oid('1');");
-        let actual = expression(tokenizer).unwrap();
+        let actual = crate::parse("if (description) script_oid('1');")[0]
+            .as_ref()
+            .unwrap()
+            .clone();
         assert_eq!(
             actual,
             If(

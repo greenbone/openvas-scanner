@@ -1,3 +1,4 @@
+//! Handles the infix statement within Lexer
 use crate::{
     error::TokenError,
     lexer::Lexer,
@@ -6,8 +7,12 @@ use crate::{
     token::{Category, Token},
 };
 pub(crate) trait Infix {
-    fn handle_infix(&self, op: Operation, min_bp: u8) -> Option<bool>;
+    /// Returns true when an Operation needs a infix handling.
+    ///
+    /// This is separated in two methods to prevent unnecessary clones a previos statement.
+    fn needs_infix(&self, op: Operation, min_bp: u8) -> Option<bool>;
 
+    /// Is the actual handling of infix. The caller must ensure that needs_infix is called previously.
     fn infix_statement(
         &mut self,
         op: Operation,
@@ -17,6 +22,10 @@ pub(crate) trait Infix {
     ) -> Result<Statement, TokenError>;
 }
 
+/// Returns the binding power of a operation or None.
+///
+/// The binding power is used to express the order of a statement.
+/// Because the binding power of e,g. Plus is lower than Star the Star operation gets calculate before.
 fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
     let res = match op {
@@ -41,6 +50,7 @@ fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     };
     Some(res)
 }
+
 impl<'a> Infix for Lexer<'a> {
     fn infix_statement(
         &mut self,
@@ -65,7 +75,7 @@ impl<'a> Infix for Lexer<'a> {
         })
     }
 
-    fn handle_infix(&self, op: Operation, min_bp: u8) -> Option<bool> {
+    fn needs_infix(&self, op: Operation, min_bp: u8) -> Option<bool> {
         let (l_bp, _) = infix_binding_power(op)?;
         if l_bp < min_bp {
             Some(false)
@@ -79,7 +89,6 @@ impl<'a> Infix for Lexer<'a> {
 mod test {
 
     use super::*;
-    use crate::lexer::expression;
     use crate::token::Base::*;
     use crate::token::Category::*;
     use crate::token::{Token, Tokenizer};
@@ -148,14 +157,12 @@ mod test {
     }
 
     fn result(code: &str) -> Statement {
-        let tokenizer = Tokenizer::new(code);
-        expression(tokenizer).unwrap()
+        crate::parse(code)[0].as_ref().unwrap().clone()
     }
 
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
-            let tokenizer = Tokenizer::new($code);
-            let expr = expression(tokenizer).unwrap();
+            let expr = crate::parse($code)[0].as_ref().unwrap().clone();
             assert_eq!(resolve($code, expr), $expected);
         };
     }

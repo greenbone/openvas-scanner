@@ -1,3 +1,4 @@
+//! nasl_syntax is a library to parse nasl scripts to statements for further usage.
 mod cursor;
 mod error;
 mod grouping_extension;
@@ -21,8 +22,7 @@ pub use token::Token;
 /// Basic usage:
 ///
 /// ```
-/// use nasl_syntax::parse;
-/// parse("a = 23;b = 1;");
+/// nasl_syntax::parse("a = 23;b = 1;");
 /// ````
 pub fn parse(code: &str) -> Vec<Result<Statement, TokenError>> {
     use lexer::Lexer;
