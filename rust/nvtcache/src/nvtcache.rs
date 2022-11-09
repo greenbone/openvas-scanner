@@ -13,8 +13,7 @@ pub mod nvtcache {
     impl NvtCache {
         /// initialize the NVT Cache.
         pub fn init() -> Result<NvtCache> {
-            let mut rctx = RedisCtx::new()?;
-            let kbi = rctx.select_database()?;
+            let rctx = RedisCtx::new()?;
             Ok(NvtCache {
                 cache: rctx,
                 init: true,
