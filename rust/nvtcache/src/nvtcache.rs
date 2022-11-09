@@ -26,5 +26,23 @@ pub mod nvtcache {
         pub fn is_init(&mut self) -> bool {
             self.init == true
         }
+
+        /// Reset the NVT Cache and release the redis namespace
+        pub fn reset(&mut self) -> Result<()> {
+            let _ = self.cache.delete_namespace()?;
+            Ok(())
+        }
+
+        /// Set the key nvtcache
+        pub fn set_nvtcache_version(&mut self, feed_version: &str) -> Result<()> {
+            let _ = self.cache.redis_set_key("nvticache", feed_version)?;
+            Ok(())
+        }
+
+        /// Get the key nvtcache, which has the feed version
+        pub fn get_nvtcache_version(&mut self) -> Result<String> {
+            let version = self.cache.redis_get_key("nvticache")?;
+            Ok(version)
+        }
     }
 }

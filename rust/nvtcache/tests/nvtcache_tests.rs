@@ -37,7 +37,11 @@ mod test {
             Ok(_) => println!("Key {} set with {}", key, val),
             Err(e) => println!("Error:{}", e),
         }
-        println!("{}", nvtcache.cache.redis_get_key(key));
+        let res = nvtcache.cache.redis_get_key(key);
+        match res {
+            Ok(k) => println!("{}", k),
+            Err(_) => println!("Error"),
+        }
 
         key = "key string value";
         let val = "Some string";
@@ -46,8 +50,19 @@ mod test {
             Err(e) => println!("Error:{}", e),
         }
 
-        println!("{}", nvtcache.cache.redis_get_key(key));
+        let res = nvtcache.cache.redis_get_key(key);
+        match res {
+            Ok(k) => println!("{}", k),
+            Err(_) => println!("Error"),
+        }
 
-        let _ = nvtcache.cache.delete_namespace();
+        let _ = nvtcache.set_nvtcache_version("202212101125");
+        let version = nvtcache.get_nvtcache_version();
+        match version {
+            Ok(v) => assert_eq!(v, "202212101125"),
+            Err(_) => println!("Error"),
+        }
+
+        let _ = nvtcache.reset();
     }
 }

@@ -135,11 +135,9 @@ pub mod redisconnector {
             Ok(())
         }
 
-        pub fn redis_get_key(&mut self, key: &str) -> String {
-            match self.kb.get(key) {
-                Ok(x) => return x,
-                Err(e) => e.to_string(),
-            }
+        pub fn redis_get_key(&mut self, key: &str) -> Result<String> {
+            let ret = self.kb.get(key)?;
+            Ok(ret)
         }
     }
 }
