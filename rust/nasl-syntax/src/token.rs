@@ -163,7 +163,6 @@ pub struct Token {
     pub position: (usize, usize),
 }
 
-
 impl Token {
     /// Returns the Category
     pub fn category(&self) -> Category {
@@ -204,8 +203,14 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    /// Returns a reference of a substring within code at given range
     pub fn lookup(&self, range: Range<usize>) -> &'a str {
         &self.code[range]
+    }
+
+    /// Returns true when underlying cursor is eof
+    pub fn is_eof(&self) -> bool {
+        self.cursor.is_eof()
     }
 
     // we break out of the macro since > can be parsed to:

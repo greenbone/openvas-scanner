@@ -1,7 +1,10 @@
 use crate::{
-    lexer::Statement,
     error::TokenError,
-    token::{Category, Token}, grouping_extension::Grouping, lexer::Lexer, unexpected_token,
+    grouping_extension::Grouping,
+    lexer::Lexer,
+    lexer::Statement,
+    token::{Category, Token},
+    unexpected_token,
 };
 
 pub(crate) trait Variables {
@@ -24,7 +27,6 @@ impl<'a> Variables for Lexer<'a> {
         }
         Ok(Statement::Variable(token))
     }
-
 }
 
 #[cfg(test)]

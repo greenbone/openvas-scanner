@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn eof() {
         let mut cursor = Cursor::new("a = \"test\";");
-        cursor.skip_while(|c|c != ';');
+        cursor.skip_while(|c| c != ';');
         assert!(!cursor.is_eof());
         cursor.advance();
         assert!(cursor.is_eof());

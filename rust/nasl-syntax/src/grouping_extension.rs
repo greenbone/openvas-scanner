@@ -16,17 +16,18 @@ pub(crate) trait Grouping {
 impl<'a> Grouping for Lexer<'a> {
     fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
         let lhs = self.expression_bp(0, Category::RightParen)?;
-        let actual = self
-            .unhandled_token
-            .map_or(Category::Equal, |t| t.category());
+        let actual = self.end_category.unwrap_or(Category::Equal);
         if actual != Category::RightParen {
             Err(unclosed_token!(token))
         } else {
             self.unhandled_token = None;
             match lhs {
-                Statement::Assign(category, _, token, stmt) => {
-                    Ok(Statement::Assign(category, AssignOrder::AssignReturn, token, stmt))
-                }
+                Statement::Assign(category, _, token, stmt) => Ok(Statement::Assign(
+                    category,
+                    AssignOrder::AssignReturn,
+                    token,
+                    stmt,
+                )),
                 _ => Ok(lhs),
             }
         }
@@ -40,7 +41,8 @@ impl<'a> Grouping for Lexer<'a> {
                 return Ok(Statement::Block(results));
             }
             self.unhandled_token = Some(token);
-            results.push(self.expression_bp(0, Category::Semicolon)?);
+            // use min_bp 1 to skip the unhandled_token reset due to self.tokenizer.next call
+            results.push(self.expression_bp(1, Category::Semicolon)?);
         }
         Err(unclosed_token!(token))
     }
