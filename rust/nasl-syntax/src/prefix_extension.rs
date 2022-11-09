@@ -118,7 +118,10 @@ mod test {
     #[test]
     fn operations() {
         fn expected(category: Category) -> Statement {
-            Statement::Operator(category, vec![Statement::Primitive(token(Number(Base10), 1, 2))])
+            Statement::Operator(
+                category,
+                vec![Statement::Primitive(token(Number(Base10), 1, 2))],
+            )
         }
 
         assert_eq!(result("-1"), expected(Category::Minus));

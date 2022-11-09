@@ -1,18 +1,24 @@
 use crate::{
-    lexer::Statement,
     error::TokenError,
-    token::{Category, Keyword, Token}, grouping_extension::Grouping, lexer::Lexer, unexpected_token, unexpected_end, prefix_extension::PrefixState,
+    grouping_extension::Grouping,
+    lexer::Lexer,
+    lexer::Statement,
+    prefix_extension::PrefixState,
+    token::{Category, Keyword, Token},
+    unexpected_end, unexpected_token,
 };
 
 pub(crate) trait Keywords {
-    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<(PrefixState, Statement), TokenError>;
+    fn parse_keyword(
+        &mut self,
+        keyword: Keyword,
+        token: Token,
+    ) -> Result<(PrefixState, Statement), TokenError>;
 }
 
 impl<'a> Lexer<'a> {
     fn parse_if(&mut self) -> Result<(PrefixState, Statement), TokenError> {
-        let token = self
-            .next()
-            .ok_or_else(|| unexpected_end!("if parsing"))?;
+        let token = self.next().ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match token.category() {
             Category::LeftParen => self.parse_paren(token),
             _ => Err(unexpected_token!(token)),
@@ -33,16 +39,19 @@ impl<'a> Lexer<'a> {
                 None => None,
             }
         };
-        Ok((PrefixState::Break, Statement::If(
-            Box::new(condition),
-            Box::new(body),
-            r#else.map(Box::new),
-        )))
+        Ok((
+            PrefixState::Break,
+            Statement::If(Box::new(condition), Box::new(body), r#else.map(Box::new)),
+        ))
     }
 }
 
 impl<'a> Keywords for Lexer<'a> {
-    fn parse_keyword(&mut self, keyword: Keyword, token: Token) -> Result<(PrefixState, Statement), TokenError> {
+    fn parse_keyword(
+        &mut self,
+        keyword: Keyword,
+        token: Token,
+    ) -> Result<(PrefixState, Statement), TokenError> {
         match keyword {
             Keyword::For => todo!(),
             Keyword::ForEach => todo!(),
@@ -64,8 +73,9 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
+        lexer::expression,
         lexer::Statement,
-        token::{Category, StringCategory, Token, Tokenizer}, lexer::expression,
+        token::{Category, StringCategory, Token, Tokenizer},
     };
 
     use Category::*;

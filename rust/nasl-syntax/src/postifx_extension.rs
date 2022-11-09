@@ -79,7 +79,9 @@ impl<'a> Postfix for Lexer<'a> {
     fn needs_postfix(&self, op: Operation) -> bool {
         matches!(
             op,
-            Operation::Grouping(Category::Comma) | Operation::Assign(Category::MinusMinus) | Operation::Assign(Category::PlusPlus)
+            Operation::Grouping(Category::Comma)
+                | Operation::Assign(Category::MinusMinus)
+                | Operation::Assign(Category::PlusPlus)
         )
     }
 }

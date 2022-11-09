@@ -5,7 +5,7 @@ pub(crate) enum Operation {
     Operator(Category),
     Assign(Category),
     Grouping(Category), // grouping operator ()
-    Variable,    // not an operation
+    Variable,           // not an operation
     Primitive,
     Keyword(Keyword), // not an operation
     NoOp,

@@ -10,9 +10,35 @@ mod prefix_extension;
 mod token;
 mod variable_extension;
 
-pub use token::Token;
 pub use error::TokenError;
+pub use lexer::Statement;
 pub use token::Category as TokenCategory;
+pub use token::Token;
+
+/// Parses given code and returns all found Statements and Errors
+///
+/// # Examples
+/// Basic usage:
+///
+/// ```
+/// use nasl_syntax::parse;
+/// parse("a = 23;b = 1;");
+/// ````
+pub fn parse(code: &str) -> Vec<Result<Statement, TokenError>> {
+    use lexer::Lexer;
+    use token::Tokenizer;
+    let tokenizer = Tokenizer::new(code);
+    let mut lexer = Lexer::new(tokenizer);
+    let mut results = vec![];
+    loop {
+        let result = lexer.expression_bp(0, TokenCategory::Semicolon);
+        if result == Ok(Statement::EoF) {
+            break;
+        }
+        results.push(result);
+    }
+    results
+}
 
 #[cfg(test)]
 mod tests {

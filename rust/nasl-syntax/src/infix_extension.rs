@@ -188,7 +188,6 @@ mod test {
         calculated_test!("1 & 0", 0);
         calculated_test!("~1 | 0", -2);
         calculated_test!("1 ^ 1", 0);
-
     }
     #[test]
     fn operator_assignment() {
@@ -210,7 +209,6 @@ mod test {
         assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
         assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
     }
-
 
     #[test]
     fn assignment() {
