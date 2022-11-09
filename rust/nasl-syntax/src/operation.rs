@@ -1,17 +1,31 @@
+//! Defines Operations used in Lexer to be transformed to Statements.
 use crate::token::{Category, Keyword, Token};
 
+/// Is defining different OPerations to control the infix, postfix or infix handling.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation {
+    /// Operator are mostly used in infix.
+    ///
+    /// To add a new Operator it must most likely define a binding power in infix_extension.
     Operator(Category),
+    /// Although Assign is actually a Operator it is defined extra to make postfix handling easier.
+    ///
+    /// For a new Assign operation you most most likely define it in prefix binding power like an Operator.
     Assign(Category),
-    Grouping(Category), // grouping operator ()
-    Variable,           // not an operation
+    /// Groupings are handled mostly in prefix and maybe postfix.
+    Grouping(Category),
+    /// Is handled in prefix.
+    Variable,
+    /// Is handled in prefix.
     Primitive,
-    Keyword(Keyword), // not an operation
+    /// Is handled in prefix.
+    Keyword(Keyword),
+    /// Empty statement
     NoOp,
 }
 
 impl Operation {
+    /// May create a new Operation based on given token. It returns None when the token.category is unknown.
     pub(crate) fn new(token: Token) -> Option<Operation> {
         match token.category() {
             Category::Plus

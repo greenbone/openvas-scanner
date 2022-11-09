@@ -8,8 +8,11 @@ use crate::{
 };
 
 pub(crate) trait Grouping {
+    /// Parses (...)
     fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError>;
+    /// Parses {...}
     fn parse_block(&mut self, token: Token) -> Result<Statement, TokenError>;
+    /// General Grouping parsing. Is called within prefix_extension.
     fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), TokenError>;
 }
 
@@ -63,9 +66,9 @@ impl<'a> Grouping for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::Statement,
-        lexer::{expression, AssignOrder},
-        token::{Base, Category, Token, Tokenizer},
+        lexer::{AssignOrder, Statement},
+        parse,
+        token::{Base, Category, Token},
     };
 
     use Base::*;
@@ -73,8 +76,7 @@ mod test {
     use Statement::*;
 
     fn result(code: &str) -> Statement {
-        let tokenizer = Tokenizer::new(code);
-        expression(tokenizer).unwrap()
+        parse(code)[0].as_mut().unwrap().clone()
     }
 
     #[test]

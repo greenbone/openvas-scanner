@@ -1,3 +1,4 @@
+//! Handles the prefix statement within Lexer
 use crate::{
     error::TokenError,
     grouping_extension::Grouping,
@@ -10,6 +11,9 @@ use crate::{
     variable_extension::Variables,
 };
 pub(crate) trait Prefix {
+    /// Handles statements before operation statements get handled.
+    ///
+    /// This must be called before handling postifx or infix operations to parse the initial statement.
     fn prefix_statement(
         &mut self,
         token: Token,
@@ -17,6 +21,7 @@ pub(crate) trait Prefix {
     ) -> Result<(PrefixState, Statement), TokenError>;
 }
 
+/// Is used to verify operations.
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     match token.category() {
         Category::Plus | Category::Minus | Category::Tilde => Ok(9),
@@ -28,11 +33,14 @@ fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
 /// This is needed when the complete statement parsing is done for e.g. if or block statements.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum PrefixState {
+    /// Continue the loop to calculate postfix and infix based on the returned initial Statement
     Continue,
+    /// The initial Statement is done and postfix and infix parsing must not be done.
     Break,
 }
 
 impl<'a> Lexer<'a> {
+    /// Parses Operations that have an prefix (e.g. -1)
     fn parse_prefix_assign_operator(
         &mut self,
         assign: Category,
@@ -41,7 +49,7 @@ impl<'a> Lexer<'a> {
         amount: u8,
     ) -> Result<Statement, TokenError> {
         let next = self
-            .next()
+            .token()
             .ok_or_else(|| unexpected_end!("parsing prefix statement"))?;
         match self.parse_variable(next)? {
             Statement::Variable(value) => Ok(Statement::Assign(
@@ -59,8 +67,6 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Prefix for Lexer<'a> {
-    /// Handles statements before operation statements get handled.
-    /// This is mostly done to detect statements that should not be weighted and executed before hand
     fn prefix_statement(
         &mut self,
         token: Token,
@@ -95,9 +101,10 @@ impl<'a> Prefix for Lexer<'a> {
 mod test {
 
     use crate::{
+        lexer::AssignOrder,
         lexer::Statement,
-        lexer::{expression, AssignOrder},
-        token::{Base, Category, StringCategory, Token, Tokenizer},
+        parse,
+        token::{Base, Category, StringCategory, Token},
     };
 
     use Base::*;
@@ -105,8 +112,7 @@ mod test {
     use Statement::*;
 
     fn result(code: &str) -> Statement {
-        let tokenizer = Tokenizer::new(code);
-        expression(tokenizer).unwrap()
+        parse(code)[0].as_ref().unwrap().clone()
     }
     fn token(category: Category, start: usize, end: usize) -> Token {
         Token {

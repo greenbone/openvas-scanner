@@ -1,3 +1,4 @@
+//! Handles the postfix statement within Lexer
 use crate::{
     error::TokenError,
     lexer::Lexer,
@@ -6,8 +7,14 @@ use crate::{
     token::{Category, Token},
     unexpected_token,
 };
+
+/// Is a trait to handle postfix statements.
 pub(crate) trait Postfix {
+    /// Returns true when an Operation needs a postfix handling.
+    ///
+    /// This is separated in two methods to prevent unnecessary clones a previos statement.
     fn needs_postfix(&self, op: Operation) -> bool;
+    /// Is the actual handling of postfix. The caller must ensure that needs_postfix is called previously.
     fn postfix_statement(
         &mut self,
         op: Operation,
@@ -89,9 +96,10 @@ impl<'a> Postfix for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
+        lexer::AssignOrder,
         lexer::Statement,
-        lexer::{expression, AssignOrder},
-        token::{Base, Category, Token, Tokenizer},
+        parse,
+        token::{Base, Category, Token},
     };
 
     use Base::*;
@@ -99,9 +107,9 @@ mod test {
     use Statement::*;
 
     fn result(code: &str) -> Statement {
-        let tokenizer = Tokenizer::new(code);
-        expression(tokenizer).unwrap()
+        parse(code)[0].as_ref().unwrap().clone()
     }
+
     #[test]
     fn postfix_assignment_operator() {
         let expected = |assign_operator: Category, operator: Category| {

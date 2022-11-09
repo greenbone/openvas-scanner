@@ -1,3 +1,4 @@
+//! Lexer is used to parse a single statement based on token::Tokenizer.
 use crate::{
     error::TokenError,
     infix_extension::Infix,
@@ -19,6 +20,7 @@ pub enum AssignOrder {
     ReturnAssign,
 }
 
+/// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
     RawNumber(u8),
@@ -36,6 +38,7 @@ pub enum Statement {
     EoF,
 }
 
+/// Is used to parse Token to Statement
 pub(crate) struct Lexer<'a> {
     pub(crate) tokenizer: Tokenizer<'a>,
     pub(crate) unhandled_token: Option<Token>,
@@ -43,6 +46,7 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    /// Creates a Lexer
     pub fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
         Lexer {
             tokenizer,
@@ -51,12 +55,22 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub(crate) fn next(&mut self) -> Option<Token> {
+    /// Returns next token of tokenizer
+    pub(crate) fn token(&mut self) -> Option<Token> {
         self.unhandled_token
             .take()
             .or_else(|| self.tokenizer.next())
     }
 
+    /// Returns the next expression.
+    ///
+    /// It uses a prefix_extension to verify if a token is prefix relevant and if parsing should continue
+    /// or stop. This is crucial for keyword handling.
+    ///
+    /// Afterwards it verifies via the postifx_extension if a token is postfix relevant.
+    ///
+    /// Last but not least it verifies if a token is infix relevant if the binding power of infix token
+    /// is lower than the given min_bp it aborts. This is done to handle the correct operation order.
     pub(crate) fn expression_bp(
         &mut self,
         min_bp: u8,
@@ -67,7 +81,7 @@ impl<'a> Lexer<'a> {
             self.unhandled_token = None;
         }
         let (state, mut lhs) = self
-            .next()
+            .token()
             .map(|token| {
                 if token.category() == abort {
                     return Ok((PrefixState::Break, Statement::NoOp(Some(token))));
@@ -81,7 +95,7 @@ impl<'a> Lexer<'a> {
         }
         loop {
             let token = {
-                match self.next() {
+                match self.token() {
                     Some(x) => x,
                     None => break,
                 }
@@ -103,7 +117,7 @@ impl<'a> Lexer<'a> {
                 continue;
             }
 
-            if let Some(min_bp_reached) = self.handle_infix(op, min_bp) {
+            if let Some(min_bp_reached) = self.needs_infix(op, min_bp) {
                 if !min_bp_reached {
                     self.unhandled_token = Some(token);
                     break;
@@ -114,11 +128,4 @@ impl<'a> Lexer<'a> {
 
         Ok(lhs)
     }
-}
-
-pub fn expression(tokenizer: Tokenizer<'_>) -> Result<Statement, TokenError> {
-    //let tokenizer = Tokenizer::new(code);
-    let mut lexer = Lexer::new(tokenizer);
-    let init = lexer.expression_bp(0, Category::Semicolon)?;
-    Ok(init)
 }

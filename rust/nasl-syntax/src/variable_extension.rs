@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub(crate) trait Variables {
+    /// Parsed variables, function calls.
     fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError>;
 }
 
@@ -17,7 +18,7 @@ impl<'a> Variables for Lexer<'a> {
             return Err(unexpected_token!(token));
         }
 
-        if let Some(nt) = self.next() {
+        if let Some(nt) = self.token() {
             self.unhandled_token = Some(nt);
             if nt.category() == Category::LeftParen {
                 self.unhandled_token = None;
@@ -32,9 +33,9 @@ impl<'a> Variables for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::expression,
         lexer::Statement,
-        token::{Base, Category, Token, Tokenizer},
+        parse,
+        token::{Base, Category, Token},
     };
 
     use Base::*;
@@ -49,8 +50,7 @@ mod test {
     }
 
     fn result(code: &str) -> Statement {
-        let tokenizer = Tokenizer::new(code);
-        expression(tokenizer).unwrap()
+        parse(code)[0].as_ref().unwrap().clone()
     }
 
     #[test]
