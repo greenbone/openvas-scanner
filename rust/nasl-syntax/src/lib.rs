@@ -10,6 +10,9 @@ mod prefix_extension;
 mod token;
 mod variable_extension;
 
+pub use token::Token;
+pub use error::TokenError;
+pub use token::Category as TokenCategory;
 
 #[cfg(test)]
 mod tests {
