@@ -5,6 +5,8 @@ const REDIS_DEFAULT_PATH: &str = "unix:///run/redis/redis-server.sock";
 const NVTCACHE: &str = "nvticache";
 
 pub mod redisconnector {
+    use std::result;
+
     use super::*;
     use crate::dberror::dberror::DbError;
     use crate::dberror::dberror::Result;
@@ -71,52 +73,41 @@ pub mod redisconnector {
             Ok(db)
         }
         pub fn set_namespace(&mut self, db_index: u32) -> Result<String> {
-            let s = Cmd::new()
+            if db_index <= 0 {
+                return Err(DbError::CustomErr(String::from(
+                    "Invalid selected db index {db_index}. It must be greater than ",
+                )));
+            }
+            Cmd::new()
                 .arg("SELECT")
                 .arg(db_index.to_string())
-                .query(&mut self.kb);
+                .query(&mut self.kb)?;
 
-            match s {
-                Ok(ok) => {
-                    self.db = db_index;
-                    return Ok(ok);
-                }
-                Err(_) => {
-                    return Err(DbError::CustomErr(String::from(
-                        "Not possible to set a namespace.",
-                    )))
-                }
-            }
+            self.db = db_index;
+            return Ok(String::from("ok"));
         }
 
         pub fn try_database(&mut self, dbi: u32) -> Result<u32> {
-            let kbi = self.kb.hset_nx(GLOBAL_DBINDEX_NAME, dbi, 1)?;
-            Ok(kbi)
+            let ret = self.kb.hset_nx(GLOBAL_DBINDEX_NAME, dbi, 1)?;
+            Ok(ret)
         }
 
         pub fn select_database(&mut self) -> Result<u32> {
             let maxdb: u32 = self.max_db_index()?;
-
-            if self.db == 0 {
-                for i in 1..maxdb {
-                    match self.try_database(i) {
-                        Ok(selected_db) => {
-                            self.db = selected_db;
-                            match self.set_namespace(i) {
-                                Ok(_) => (),
-                                Err(e) => {
-                                    println!("Error: {}", e);
-                                    break;
-                                }
-                            }
-                            return Ok(self.db);
-                        }
-                        Err(_) => continue,
-                    }
+            let mut selected_db: u32 = 0;
+            for i in 1..maxdb {
+                let ret = self.try_database(i)?;
+                if ret == 1 {
+                    selected_db = i;
+                    break;
                 }
             }
+            if selected_db > 0 {
+                self.set_namespace(selected_db)?;
+                return Ok(self.db);
+            }
             return Err(DbError::CustomErr(String::from(
-                "Not possible to select a free database.",
+                "Not possible to select a free db",
             )));
         }
 
