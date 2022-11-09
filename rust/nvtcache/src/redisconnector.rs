@@ -19,11 +19,13 @@ pub mod redisconnector {
         pub fn new() -> Result<RedisCtx> {
             let client = redis::Client::open(REDIS_DEFAULT_PATH)?;
             let kb = client.get_connection()?;
-            Ok(RedisCtx {
+            let mut redisctx = RedisCtx {
                 kb,
                 db: 0,
                 maxdb: 0,
-            })
+            };
+            let _kbi = redisctx.select_database()?;
+            Ok(redisctx)
         }
 
         pub fn max_db_index(&mut self) -> Result<u32> {
@@ -88,7 +90,8 @@ pub mod redisconnector {
         }
 
         pub fn try_database(&mut self, dbi: u32) -> Result<u32> {
-            return Ok(1);
+            let kbi = self.kb.hset_nx(GLOBAL_DBINDEX_NAME, dbi, 1)?;
+            Ok(kbi)
         }
 
         pub fn select_database(&mut self) -> Result<u32> {
