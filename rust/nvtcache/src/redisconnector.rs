@@ -77,11 +77,6 @@ pub mod redisconnector {
         }
 
         fn set_namespace(&mut self, db_index: u32) -> Result<String> {
-            if db_index <= 0 {
-                return Err(DbError::CustomErr(String::from(
-                    "Invalid selected db index {db_index}. It must be greater than ",
-                )));
-            }
             Cmd::new()
                 .arg("SELECT")
                 .arg(db_index.to_string())
@@ -99,6 +94,9 @@ pub mod redisconnector {
         fn select_database(&mut self) -> Result<u32> {
             let maxdb: u32 = self.max_db_index()?;
             let mut selected_db: u32 = 0;
+
+            // Start always from 1. Namespace 0 is reserved
+            //format GLOBAL_DBINDEX_NAME
             for i in 1..maxdb {
                 let ret = self.try_database(i)?;
                 if ret == 1 {
@@ -115,6 +113,22 @@ pub mod redisconnector {
             )));
         }
 
+        /// Delete an entry from the in-use namespace's list
+        fn release_namespace(&mut self) -> Result<()> {
+            // Get firstthe current db index, the one to be released
+            let dbi = self.get_namespace()?;
+            // Remove the entry from the hash list
+            self.set_namespace(0)?;
+            self.kb.hdel(GLOBAL_DBINDEX_NAME, dbi)?;
+            Ok(())
+        }
+
+        /// Delete all keys in the namespace and relase the it
+        pub fn delete_namespace(&mut self) -> Result<()> {
+            Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
+            self.release_namespace()?;
+            Ok(())
+        }
         //Wrapper function to avoid accessing kb member directly.
         pub fn redis_set_key<T: ToRedisArgs>(&mut self, key: &str, val: T) -> Result<()> {
             let _: () = self.kb.set(key, val)?;
