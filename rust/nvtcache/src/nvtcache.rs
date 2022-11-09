@@ -1,6 +1,8 @@
+const NVTCACHE: &str = "nvticache";
+
 pub mod nvtcache {
 
-    //    use super::*;
+    use super::*;
     use crate::dberror::dberror::Result;
     use crate::redisconnector::redisconnector::*;
 
@@ -11,7 +13,7 @@ pub mod nvtcache {
 
     /// NvtCache implementation.
     impl NvtCache {
-        /// initialize the NVT Cache.
+        /// Initialize and return an NVT Cache Object
         pub fn init() -> Result<NvtCache> {
             let rctx = RedisCtx::new()?;
             Ok(NvtCache {
@@ -20,6 +22,7 @@ pub mod nvtcache {
             })
         }
 
+        /// Return a bool telling if the NVT Cache is initialized
         pub fn is_init(&mut self) -> bool {
             self.init == true
         }

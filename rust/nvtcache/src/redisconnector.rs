@@ -2,7 +2,6 @@ use redis::*;
 
 const GLOBAL_DBINDEX_NAME: &str = "GVM.__GlobalDBIndex";
 const REDIS_DEFAULT_PATH: &str = "unix:///run/redis/redis-server.sock";
-const NVTCACHE: &str = "nvticache";
 
 pub mod redisconnector {
     use std::result;
@@ -12,12 +11,13 @@ pub mod redisconnector {
     use crate::dberror::dberror::Result;
 
     pub struct RedisCtx {
-        pub kb: Connection, //a redis connection
-        db: u32,            // the name space
-        maxdb: u32,         // max db index
+        kb: Connection, //a redis connection
+        db: u32,        // the name space
+        maxdb: u32,     // max db index
     }
 
     impl RedisCtx {
+        /// Connect to the redis server and return a redis context object
         pub fn new() -> Result<RedisCtx> {
             let client = redis::Client::open(REDIS_DEFAULT_PATH)?;
             let kb = client.get_connection()?;
@@ -30,7 +30,8 @@ pub mod redisconnector {
             Ok(redisctx)
         }
 
-        pub fn max_db_index(&mut self) -> Result<u32> {
+        /// Get the max db index configured for the redis server instance
+        fn max_db_index(&mut self) -> Result<u32> {
             if self.maxdb > 0 {
                 return Ok(self.maxdb);
             }
@@ -53,7 +54,9 @@ pub mod redisconnector {
                     )))
                 }
             }
-
+            /// Redis always replies about config with a vector
+            /// of 2 string ["databases", "Number"]
+            /// Therefore we convert the "Number" to uint32
             fn max_db_index_to_uint(res: Vec<String>) -> u32 {
                 if res.len() == 2 {
                     match res[1].to_string().parse::<u32>() {
@@ -72,7 +75,8 @@ pub mod redisconnector {
             let db: u32 = self.db;
             Ok(db)
         }
-        pub fn set_namespace(&mut self, db_index: u32) -> Result<String> {
+
+        fn set_namespace(&mut self, db_index: u32) -> Result<String> {
             if db_index <= 0 {
                 return Err(DbError::CustomErr(String::from(
                     "Invalid selected db index {db_index}. It must be greater than ",
@@ -87,12 +91,12 @@ pub mod redisconnector {
             return Ok(String::from("ok"));
         }
 
-        pub fn try_database(&mut self, dbi: u32) -> Result<u32> {
+        fn try_database(&mut self, dbi: u32) -> Result<u32> {
             let ret = self.kb.hset_nx(GLOBAL_DBINDEX_NAME, dbi, 1)?;
             Ok(ret)
         }
 
-        pub fn select_database(&mut self) -> Result<u32> {
+        fn select_database(&mut self) -> Result<u32> {
             let maxdb: u32 = self.max_db_index()?;
             let mut selected_db: u32 = 0;
             for i in 1..maxdb {
@@ -111,12 +115,13 @@ pub mod redisconnector {
             )));
         }
 
-        pub fn redis_set_key_int(&mut self, key: &str, val: i32) -> Result<()> {
+        //Wrapper function to avoid accessing kb member directly.
+        pub fn redis_set_key<T: ToRedisArgs>(&mut self, key: &str, val: T) -> Result<()> {
             let _: () = self.kb.set(key, val)?;
             Ok(())
         }
 
-        pub fn redis_get_int(&mut self, key: &str) -> String {
+        pub fn redis_get_key(&mut self, key: &str) -> String {
             match self.kb.get(key) {
                 Ok(x) => return x,
                 Err(e) => e.to_string(),
