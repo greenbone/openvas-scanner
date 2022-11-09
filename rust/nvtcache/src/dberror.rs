@@ -17,7 +17,7 @@ pub mod dberror {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match &*self {
                 DbError::RedisErr(..) => write!(f, "Redis Error"),
-                DbError::CustomErr(e) => write!(f, "Error: String Message {}", e),
+                DbError::CustomErr(e) => write!(f, "Error: {}", e),
             }
         }
     }

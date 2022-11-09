@@ -47,5 +47,7 @@ mod test {
         }
 
         println!("{}", nvtcache.cache.redis_get_key(key));
+
+        let _ = nvtcache.cache.delete_namespace();
     }
 }
