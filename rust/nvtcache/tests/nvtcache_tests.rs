@@ -21,30 +21,31 @@ mod test {
                 panic!("Error")
             }
         }
-        match nvtcache.cache.max_db_index() {
-            Ok(n) => println!("MAX: {}", n),
-            Err(e) => println!("Error:{}", e),
-        }
 
         if nvtcache.is_init() {
             println!("Is initialized");
         }
 
-        match nvtcache.cache.set_namespace(1) {
-            Ok(ok) => println!("Select 1 {}", ok),
-            Err(e) => println!("Error:{}", e),
-        }
         match nvtcache.cache.get_namespace() {
             Ok(ok) => println!("The namespace: {}", ok),
             Err(e) => println!("Error:{}", e),
         }
 
-        let key = "key";
-        let val = 42;
-        match nvtcache.cache.redis_set_key_int(key, 42) {
+        let mut key = "key int value";
+        let val: u64 = 42;
+        match nvtcache.cache.redis_set_key(key, val) {
             Ok(_) => println!("Key {} set with {}", key, val),
             Err(e) => println!("Error:{}", e),
         }
-        println!("{}", nvtcache.cache.redis_get_int(key))
+        println!("{}", nvtcache.cache.redis_get_key(key));
+
+        key = "key string value";
+        let val = "Some string";
+        match nvtcache.cache.redis_set_key(key, val) {
+            Ok(_) => println!("Key {} set with {}", key, val),
+            Err(e) => println!("Error:{}", e),
+        }
+
+        println!("{}", nvtcache.cache.redis_get_key(key));
     }
 }
