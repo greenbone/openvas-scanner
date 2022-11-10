@@ -9,13 +9,21 @@ make_entry() {
     link=$entry
     link=${link//manual/html}
     link=${link//.md/.html}
+    link=${link#"$root_dir_prefix"}
     
-    toc="$toc<a href=$link>$title</a>"
+    toc="$toc<a href=%ROOT%$link>$title</a>"
 
     toc="$toc</li>"
 }
 
 recursive_toc() {
+    if [ $first == 0 ]; then
+        first=1
+        toc="$toc<ul class=\"collapsible\">" 
+        entry="$search_dir"/index.md
+        make_entry
+        toc="$toc</ul>"
+    fi
     for entry in "$search_dir"/*
     do
         toc="$toc<ul class=\"collapsible\">"     
@@ -52,9 +60,10 @@ make_html() {
 
     html=$template
     html=${html//\%TITLE\%/${head_name}}
-    html=${html//\%CSS\%/${css_path}}
-    html=${html//\%JS\%/${js_path}}
-    html=${html//\%TOC\%/${toc}}
+    html=${html//\%CSS\%/${root_dir}${css_path}}
+    html=${html//\%JS\%/${root_dir}${js_path}}
+    toc_relative=${toc//\%ROOT\%/${root_dir}}
+    html=${html//\%TOC\%/${toc_relative}}
     html=${html//\%CONTENT\%/${content}}
     
     file=$entry
@@ -71,30 +80,32 @@ recursive_html() {
         if [[ -d $entry ]]; then
             create_html_dict
             search_dir="$entry"
-            entry="$entry"/index.md
-            make_html
-            entry=${entry//\/index.md/""}
+            root_dir="$root_dir../"
             recursive_html
+            root_dir=${root_dir%"../"}
         # Else make an entry for the file
         elif [[ -f $entry ]]; then
             filename="$(basename -- $entry)"
-            if [ $filename != index.md ]; then
-                make_html
-            fi
+            make_html
         fi
     done
 }
 
 rm -rf html
 mkdir html
+mkdir html/css
+mkdir html/js
 
+first=0
 base_dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )/
 template=$(<templates/template.html)
+root_dir=""
+root_dir_prefix="$base_dir"html/
 
-cp templates/template.css html/
-css_path="$base_dir"html/template.css
-cp templates/template.js html/
-js_path="$base_dir"html/template.js
+cp templates/style.css html/css/
+css_path=css/style.css
+cp templates/script.js html/js/
+js_path=js/script.js
 
 toc=""
 
