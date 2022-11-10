@@ -41,12 +41,14 @@ impl Operation {
             | Category::Pipe
             | Category::Caret
             | Category::Bang
+            | Category::EqualTilde
+            | Category::BangTilde
+            | Category::GreaterLess
+            | Category::GreaterBangLess
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
-            | Category::EqualTilde
             | Category::BangEqual
-            | Category::BangTilde
             | Category::PlusEqual
             | Category::SlashEqual
             | Category::StarEqual
