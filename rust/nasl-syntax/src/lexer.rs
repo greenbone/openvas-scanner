@@ -39,7 +39,7 @@ pub enum Statement {
 }
 
 /// Is used to parse Token to Statement
-pub(crate) struct Lexer<'a> {
+pub struct Lexer<'a> {
     pub(crate) tokenizer: Tokenizer<'a>,
     pub(crate) unhandled_token: Option<Token>,
     pub(crate) end_category: Option<Category>,
@@ -127,5 +127,18 @@ impl<'a> Lexer<'a> {
         }
 
         Ok(lhs)
+    }
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result<Statement, TokenError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.expression_bp(0, Category::Semicolon);
+        if result == Ok(Statement::EoF) {
+            None
+        } else {
+            Some(result)
+        }
     }
 }
