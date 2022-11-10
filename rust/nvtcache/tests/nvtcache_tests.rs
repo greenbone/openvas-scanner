@@ -56,10 +56,13 @@ mod test {
             Err(_) => println!("Error"),
         }
 
-        let _ = nvtcache.set_nvtcache_version("202212101125");
-        let version = nvtcache.get_nvtcache_version();
-        match version {
-            Ok(v) => assert_eq!(v, "202212101125"),
+        let _ = nvtcache.set_version("202212101125");
+        let updated = nvtcache.check_feed("202212101125");
+        match updated {
+            Ok(ret) => {
+                assert_eq!(ret, true);
+                println!("Feed up-to-date");
+            }
             Err(_) => println!("Error"),
         }
 
