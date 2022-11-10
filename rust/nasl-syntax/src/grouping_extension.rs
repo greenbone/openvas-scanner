@@ -69,7 +69,7 @@ mod test {
     use crate::{
         lexer::{AssignOrder, Statement},
         parse,
-        token::{Base, Category, Token}
+        token::{Base, Category, Token},
     };
 
     use Base::*;

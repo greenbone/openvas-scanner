@@ -92,7 +92,7 @@ mod test {
     use crate::token::Base::*;
     use crate::token::Category::*;
     use crate::token::StringCategory;
-    use crate::token::{Token, Tokenizer};
+    use crate::token::Token;
     use Statement::*;
 
     // simplified resolve method to verify a calculate with a given statement

@@ -51,7 +51,6 @@ impl Base {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnclosedCategory {
     String(StringCategory),
-    Comment,
 }
 
 /// Are reserved words that cannot be reused otherwise.
@@ -103,69 +102,125 @@ impl Keyword {
 /// Is used to identify a Token
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Category {
-    LeftParen,                  // (
-    RightParen,                 // )
-    LeftBrace,                  // [
-    RightBrace,                 // ]
-    LeftCurlyBracket,           // {
-    RightCurlyBracket,          // }
-    Comma,                      // ,
-    Dot,                        // .
-    Percent,                    // %
-    Semicolon,                  // ;
-    DoublePoint,                // :
-    Tilde,                      // ~
-    Caret,                      // ^
-    Ampersand,                  // &
-    AmpersandAmpersand,         // &&
-    Pipe,                       // |
-    PipePipe,                   // ||
-    Bang,                       // !
-    BangEqual,                  // !=
-    BangTilde,                  // !~
-    Equal,                      // =
-    EqualEqual,                 // ==
-    EqualTilde,                 // =~
-    Greater,                    // >
-    GreaterGreater,             // >>
-    GreaterEqual,               // >=
-    GreaterLess,                // ><
-    Less,                       // <
-    LessLess,                   // <<
-    LessEqual,                  // <=
-    Minus,                      // -
-    MinusMinus,                 // --
-    MinusEqual,                 // -=
-    Plus,                       // +
-    PlusEqual,                  // +=
-    PlusPlus,                   // ++
-    Slash,                      // /
-    SlashEqual,                 // /=
-    Star,                       // *
-    StarStar,                   // **
-    StarEqual,                  // *=
-    GreaterGreaterGreater,      // >>>
-    GreaterGreaterEqual,        // >>=
-    LessLessEqual,              // <<=
-    GreaterBangLess,            // >!<
-    GreaterGreaterGreaterEqual, // >>>=
-    String(StringCategory),     // "...\", multiline
+    /// `(`
+    LeftParen,
+    /// `)`
+    RightParen,
+    /// `[`
+    LeftBrace,
+    /// `]`
+    RightBrace,
+    /// `{`
+    LeftCurlyBracket,
+    /// `}`
+    RightCurlyBracket,
+    /// `,`
+    Comma,
+    /// `.`
+    Dot,
+    /// `%`
+    Percent,
+    /// `;`
+    Semicolon,
+    /// `:`
+    DoublePoint,
+    /// `~`
+    Tilde,
+    /// `^`
+    Caret,
+    /// `&`
+    Ampersand,
+    /// `&&`
+    AmpersandAmpersand,
+    /// `|`
+    Pipe,
+    /// `||`
+    PipePipe,
+    /// `!`
+    Bang,
+    /// `!=`
+    BangEqual,
+    /// `!~`
+    BangTilde,
+    /// `=`
+    Equal,
+    /// `==`
+    EqualEqual,
+    /// `=~`
+    EqualTilde,
+    /// `>`
+    Greater,
+    /// `>>`
+    GreaterGreater,
+    /// `>=`
+    GreaterEqual,
+    /// `><`
+    GreaterLess,
+    /// `<`
+    Less,
+    /// `<<`
+    LessLess,
+    /// `<=`
+    LessEqual,
+    /// `-`
+    Minus,
+    /// `--`
+    MinusMinus,
+    /// `-=`
+    MinusEqual,
+    /// `+`
+    Plus,
+    /// `+=`
+    PlusEqual,
+    /// `++`
+    PlusPlus,
+    /// `/`
+    Slash,
+    /// `/=`
+    SlashEqual,
+    /// `*`
+    Star,
+    /// `**`
+    StarStar,
+    /// `*=`
+    StarEqual,
+    /// `>>>`
+    GreaterGreaterGreater,
+    /// `>>=`
+    GreaterGreaterEqual,
+    /// `<<=`
+    LessLessEqual,
+    /// `>!<`
+    GreaterBangLess,
+    /// `>>>=`
+    GreaterGreaterGreaterEqual,
+    /// A String can be either Quoteable (') or Unquoteable (") both can be multiline
+    String(StringCategory),
+    /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(Base),
+    /// An illegal Number e.g. 0b2
     IllegalNumber(Base),
+    /// A comment starts with # and should be ignored
     Comment,
+    /// Identifier are literals that are not strings and don't start with a number
     Identifier(Option<Keyword>),
+    /// Either unclosed string literals or comment
     Unclosed(UnclosedCategory),
+    /// Number starts with an unidentifieable base
     UnknownBase,
-    UnknownSymbol, // used when the symbol is unknown
+    /// used when the symbol is unknown
+    UnknownSymbol,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// Contains the TokenType as well as the position in form of Range<usize>
 pub struct Token {
+    /// The category or kind of a token
     pub category: Category,
     // using a tuple in favor of Range to have the possibility
     // to easily copy tokens rather than clone; to create a range for lookups
     // call range()
+    /// The byte position within the given source code
     pub position: (usize, usize),
 }
 

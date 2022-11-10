@@ -1,4 +1,5 @@
 //! nasl_syntax is a library to parse nasl scripts to statements for further usage.
+#![warn(missing_docs)]
 mod cursor;
 mod error;
 mod grouping_extension;
