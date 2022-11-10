@@ -45,6 +45,8 @@ impl Operation {
             | Category::BangTilde
             | Category::GreaterLess
             | Category::GreaterBangLess
+            | Category::AmpersandAmpersand
+            | Category::PipePipe
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
