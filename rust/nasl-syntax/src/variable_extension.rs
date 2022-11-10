@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub(crate) trait Variables {
-    /// Parsed variables, function calls.
+    /// Parses variables, function calls.
     fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError>;
 }
 

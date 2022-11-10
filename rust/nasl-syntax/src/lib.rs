@@ -22,7 +22,7 @@ pub use token::Token;
 /// Basic usage:
 ///
 /// ```
-/// nasl_syntax::parse("a = 23;b = 1;");
+/// let statements = nasl_syntax::parse("a = 23;b = 1;");
 /// ````
 pub fn parse(code: &str) -> Vec<Result<Statement, TokenError>> {
     use lexer::Lexer;
