@@ -215,6 +215,8 @@ mod test {
         assert_eq!(result("a >>= 1"), expected(GreaterGreaterEqual, 1));
         assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
         assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
+        assert_eq!(result("a != 1"), expected(BangEqual, 0));
+        assert_eq!(result("a !~ 1"), expected(BangTilde, 0));
     }
 
     #[test]

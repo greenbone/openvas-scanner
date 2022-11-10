@@ -24,7 +24,7 @@ pub(crate) trait Prefix {
 /// Is used to verify operations.
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     match token.category() {
-        Category::Plus | Category::Minus | Category::Tilde => Ok(9),
+        Category::Plus | Category::Minus | Category::Tilde | Category::Bang => Ok(9),
         _ => Err(unexpected_token!(token)),
     }
 }
@@ -133,6 +133,7 @@ mod test {
         assert_eq!(result("-1"), expected(Category::Minus));
         assert_eq!(result("+1"), expected(Category::Plus));
         assert_eq!(result("~1"), expected(Category::Tilde));
+        assert_eq!(result("!1"), expected(Category::Bang));
     }
 
     #[test]
