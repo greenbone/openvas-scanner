@@ -20,6 +20,16 @@ pub enum AssignOrder {
     ReturnAssign,
 }
 
+/// Specifies the scope of a declaration
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DeclareScope {
+    /// Variable is globally reachable
+    Global,
+    /// Variable is locally reachable
+    Local,
+}
+
+
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
@@ -27,6 +37,7 @@ pub enum Statement {
     Primitive(Token),
     Variable(Token),
     Call(Token, Box<Statement>),
+    Declare(DeclareScope, Vec<Statement>),
     Parameter(Vec<Statement>),
     Assign(Category, AssignOrder, Token, Box<Statement>),
 
@@ -79,6 +90,7 @@ impl<'a> Lexer<'a> {
         // reset unhandled_token when min_bp is 0
         if min_bp == 0 {
             self.unhandled_token = None;
+            self.end_category = None;
         }
         let (state, mut lhs) = self
             .token()
