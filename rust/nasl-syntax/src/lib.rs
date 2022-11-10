@@ -13,12 +13,11 @@ mod token;
 mod variable_extension;
 
 pub use error::TokenError;
-pub use lexer::Lexer;
 pub use lexer::Statement;
 pub use token::Category as TokenCategory;
 pub use token::Token;
 
-/// Parses given code and returns all found Statements and Errors
+/// Parses given code and returns found Statements and Errors
 ///
 /// # Examples
 /// Basic usage:
@@ -27,7 +26,8 @@ pub use token::Token;
 /// use nasl_syntax::{Statement, TokenError};
 /// let statements = nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, TokenError>>>();
 /// ````
-pub fn parse(code: &str) -> Lexer {
+pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, TokenError>> + '_ {
+    use lexer::Lexer;
     use token::Tokenizer;
     let tokenizer = Tokenizer::new(code);
     Lexer::new(tokenizer)
