@@ -28,13 +28,23 @@ pub(crate) trait Infix {
 /// Because the binding power of e,g. Plus is lower than Star the Star operation gets calculate before.
 fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
+    use Category::*;
     let res = match op {
-        Assign(_) => (4, 5),
-
-        Operator(Category::Star | Category::Slash | Category::Percent | Category::StarStar) => {
-            (7, 8)
-        }
-        Operator(_) => (5, 6),
+        Operator(Category::StarStar) => (22, 23),
+        Operator(Category::Star | Category::Slash | Category::Percent) => (20, 21),
+        Operator(Plus | Minus) => (18, 19),
+        Operator(LessLess | GreaterGreater | GreaterGreaterGreater) => (16, 17),
+        Operator(Ampersand) => (14, 15),
+        Operator(Caret) => (12, 13),
+        Operator(Pipe) => (10, 11),
+        Operator(
+            Less | LessEqual | Greater | GreaterEqual | EqualEqual | BangEqual | GreaterLess
+            | GreaterBangLess | EqualTilde | BangTilde,
+        ) => (8, 9),
+        Operator(AmpersandAmpersand) => (6, 7),
+        Operator(PipePipe) => (4, 5),
+        // two is lowest since on block we can start with 1
+        Assign(_) => (2, 3),
         _ => return None,
     };
     Some(res)

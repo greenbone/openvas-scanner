@@ -24,7 +24,7 @@ pub(crate) trait Prefix {
 /// Is used to verify operations.
 fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
     match token.category() {
-        Category::Plus | Category::Minus | Category::Tilde | Category::Bang => Ok(9),
+        Category::Plus | Category::Minus | Category::Tilde | Category::Bang => Ok(21),
         _ => Err(unexpected_token!(token)),
     }
 }
