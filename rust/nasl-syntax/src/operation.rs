@@ -40,9 +40,12 @@ impl Operation {
             | Category::Ampersand
             | Category::Pipe
             | Category::Caret
+            | Category::Bang
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
+            | Category::BangEqual
+            | Category::BangTilde
             | Category::PlusEqual
             | Category::SlashEqual
             | Category::StarEqual
