@@ -6,23 +6,19 @@ use std::error::Error;
 use crate::{token::Token, Statement};
 
 /// Is used to express errors while parsing.
-///
-/// It contains:
-/// - a string representation as a reason,
-/// - maybe an Token if the error occured while expecting or while parsing a Token,
-/// - the line number within the rust code it occurs
-/// - the filename of the rust code it occurs
-/// It should not be initialized directly but used via the defined macros.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TokenError {
-    pub(crate) reason: String,
-    pub(crate) token: Option<Token>,
-    pub(crate) statement: Option<Statement>,
+pub struct SyntaxError {
+    /// A human readable reason why this error is returned
+    pub reason: String,
+    /// Set when it is an error based on a Token
+    pub token: Option<Token>,
+    /// Set when it is an error based on a Statement
+    pub statement: Option<Statement>,
     pub(crate) line: u32,
     pub(crate) file: String,
 }
 
-/// Creates an TokenError.
+/// Creates an SyntaxError.
 ///
 /// # Examples
 ///
@@ -41,8 +37,8 @@ pub struct TokenError {
 #[macro_export]
 macro_rules! token_error {
     ($reason:expr) => {{
-        use $crate::TokenError;
-        TokenError::new(
+        use $crate::SyntaxError;
+        SyntaxError::new(
             $reason.to_string(),
             None,
             None,
@@ -51,8 +47,8 @@ macro_rules! token_error {
         )
     }};
     ($token:expr, $reason:expr) => {{
-        use $crate::TokenError;
-        TokenError::new(
+        use $crate::SyntaxError;
+        SyntaxError::new(
             $reason.to_string(),
             Some($token),
             None,
@@ -74,8 +70,8 @@ macro_rules! token_error {
 #[macro_export]
 macro_rules! statement_error {
     ($statement:expr, $reason:expr) => {{
-        use $crate::TokenError;
-        TokenError::new(
+        use $crate::SyntaxError;
+        SyntaxError::new(
             $reason.to_string(),
             None,
             Some($statement),
@@ -165,14 +161,14 @@ macro_rules! unexpected_end {
     }};
 }
 
-impl fmt::Display for TokenError {
+impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.reason)
     }
 }
 
-impl TokenError {
-    /// Creates a new TokenError.
+impl SyntaxError {
+    /// Creates a new SyntaxError.
     pub fn new(
         reason: String,
         token: Option<Token>,
@@ -190,4 +186,4 @@ impl TokenError {
     }
 }
 
-impl Error for TokenError {}
+impl Error for SyntaxError {}

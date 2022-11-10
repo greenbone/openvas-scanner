@@ -1,6 +1,6 @@
 //! Handles the prefix statement within Lexer
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
     lexer::Lexer,
@@ -18,11 +18,11 @@ pub(crate) trait Prefix {
         &mut self,
         token: Token,
         abort: Category,
-    ) -> Result<(PrefixState, Statement), TokenError>;
+    ) -> Result<(PrefixState, Statement), SyntaxError>;
 }
 
 /// Is used to verify operations.
-fn prefix_binding_power(token: Token) -> Result<u8, TokenError> {
+fn prefix_binding_power(token: Token) -> Result<u8, SyntaxError> {
     match token.category() {
         Category::Plus | Category::Minus | Category::Tilde | Category::Bang => Ok(21),
         _ => Err(unexpected_token!(token)),
@@ -47,7 +47,7 @@ impl<'a> Lexer<'a> {
         token: Token,
         operation: Category,
         amount: u8,
-    ) -> Result<Statement, TokenError> {
+    ) -> Result<Statement, SyntaxError> {
         let next = self
             .token()
             .ok_or_else(|| unexpected_end!("parsing prefix statement"))?;
@@ -71,7 +71,7 @@ impl<'a> Prefix for Lexer<'a> {
         &mut self,
         token: Token,
         abort: Category,
-    ) -> Result<(PrefixState, Statement), TokenError> {
+    ) -> Result<(PrefixState, Statement), SyntaxError> {
         use PrefixState::*;
         let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
         match op {

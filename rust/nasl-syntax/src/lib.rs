@@ -12,7 +12,7 @@ mod prefix_extension;
 mod token;
 mod variable_extension;
 
-pub use error::TokenError;
+pub use error::SyntaxError;
 pub use lexer::Statement;
 pub use token::Category as TokenCategory;
 pub use token::Token;
@@ -23,10 +23,10 @@ pub use token::Token;
 /// Basic usage:
 ///
 /// ```
-/// use nasl_syntax::{Statement, TokenError};
-/// let statements = nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, TokenError>>>();
+/// use nasl_syntax::{Statement, SyntaxError};
+/// let statements = nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
 /// ````
-pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, TokenError>> + '_ {
+pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>> + '_ {
     use lexer::Lexer;
     use token::Tokenizer;
     let tokenizer = Tokenizer::new(code);
@@ -39,7 +39,7 @@ mod tests {
         cursor::Cursor,
         lexer::AssignOrder,
         token::{Base, Category, Keyword, StringCategory, Token, Tokenizer},
-        Statement, TokenError,
+        Statement, SyntaxError,
     };
 
     #[test]
@@ -85,7 +85,7 @@ mod tests {
         use Category::*;
         use Statement::*;
         let statements =
-            super::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, TokenError>>>();
+            super::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
         assert_eq!(
             statements,
             vec![

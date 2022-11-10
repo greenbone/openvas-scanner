@@ -1,5 +1,5 @@
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     lexer::Lexer,
     lexer::{AssignOrder, Statement},
     prefix_extension::PrefixState,
@@ -9,15 +9,15 @@ use crate::{
 
 pub(crate) trait Grouping {
     /// Parses (...)
-    fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError>;
+    fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError>;
     /// Parses {...}
-    fn parse_block(&mut self, token: Token) -> Result<Statement, TokenError>;
+    fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError>;
     /// General Grouping parsing. Is called within prefix_extension.
-    fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), TokenError>;
+    fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError>;
 }
 
 impl<'a> Grouping for Lexer<'a> {
-    fn parse_paren(&mut self, token: Token) -> Result<Statement, TokenError> {
+    fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let lhs = self.expression_bp(0, Category::RightParen)?;
         let actual = self.end_category.unwrap_or(Category::Equal);
         if actual != Category::RightParen {
@@ -36,7 +36,7 @@ impl<'a> Grouping for Lexer<'a> {
         }
     }
 
-    fn parse_block(&mut self, token: Token) -> Result<Statement, TokenError> {
+    fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
         while let Some(token) = self.tokenizer.next() {
             if token.category() == Category::RightCurlyBracket {
@@ -51,7 +51,7 @@ impl<'a> Grouping for Lexer<'a> {
         Err(unclosed_token!(token))
     }
 
-    fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), TokenError> {
+    fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         match token.category() {
             Category::LeftParen => self
                 .parse_paren(token)

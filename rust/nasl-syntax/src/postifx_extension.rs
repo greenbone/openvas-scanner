@@ -1,6 +1,6 @@
 //! Handles the postfix statement within Lexer
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     lexer::Lexer,
     lexer::{AssignOrder, Statement},
     operation::Operation,
@@ -21,7 +21,7 @@ pub(crate) trait Postfix {
         token: Token,
         lhs: Statement,
         abort: Category,
-    ) -> Option<Result<Statement, TokenError>>;
+    ) -> Option<Result<Statement, SyntaxError>>;
 }
 
 impl<'a> Lexer<'a> {
@@ -29,7 +29,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         lhs: Statement,
         abort: Category,
-    ) -> Result<Statement, TokenError> {
+    ) -> Result<Statement, SyntaxError> {
         let mut lhs = match lhs {
             Statement::Parameter(x) => x,
             x => vec![x],
@@ -46,7 +46,7 @@ impl<'a> Lexer<'a> {
         token: Token,
         assign: Category,
         operation: Category,
-    ) -> Option<Result<Statement, TokenError>> {
+    ) -> Option<Result<Statement, SyntaxError>> {
         match lhs {
             Statement::Variable(token) => Some(Ok(Statement::Assign(
                 assign,
@@ -69,7 +69,7 @@ impl<'a> Postfix for Lexer<'a> {
         token: Token,
         lhs: Statement,
         abort: Category,
-    ) -> Option<Result<Statement, TokenError>> {
+    ) -> Option<Result<Statement, SyntaxError>> {
         match op {
             Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
             // Assign()

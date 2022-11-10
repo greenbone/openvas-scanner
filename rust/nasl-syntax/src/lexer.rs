@@ -1,6 +1,6 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     infix_extension::Infix,
     operation::Operation,
     postifx_extension::Postfix,
@@ -95,7 +95,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         min_bp: u8,
         abort: Category,
-    ) -> Result<Statement, TokenError> {
+    ) -> Result<Statement, SyntaxError> {
         // reset unhandled_token when min_bp is 0
         if min_bp == 0 {
             self.unhandled_token = None;
@@ -152,7 +152,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Statement, TokenError>;
+    type Item = Result<Statement, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.expression_bp(0, Category::Semicolon);

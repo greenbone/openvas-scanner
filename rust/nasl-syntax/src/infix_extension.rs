@@ -1,6 +1,6 @@
 //! Handles the infix statement within Lexer
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     lexer::Lexer,
     lexer::{AssignOrder, Statement},
     operation::Operation,
@@ -19,7 +19,7 @@ pub(crate) trait Infix {
         token: Token,
         lhs: Statement,
         abort: Category,
-    ) -> Result<Statement, TokenError>;
+    ) -> Result<Statement, SyntaxError>;
 }
 
 /// Returns the binding power of a operation or None.
@@ -57,7 +57,7 @@ impl<'a> Infix for Lexer<'a> {
         token: Token,
         lhs: Statement,
         abort: Category,
-    ) -> Result<Statement, TokenError> {
+    ) -> Result<Statement, SyntaxError> {
         let (_, r_bp) = infix_binding_power(op).expect("handle_infix should be called first");
         Ok({
             let rhs = self.expression_bp(r_bp, abort)?;
