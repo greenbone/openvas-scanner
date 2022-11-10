@@ -26,7 +26,7 @@ recursive_functions () {
         # Else make an entry for the file
         elif [[ -f $entry ]]; then
             filename="$(basename -- $entry)"
-            if [ $filename != index.md && $filename ]; then
+            if [ $filename != index.md ] && [ $filename ]; then
                 make_man
             fi
         fi
