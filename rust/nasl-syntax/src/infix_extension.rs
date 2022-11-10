@@ -30,22 +30,11 @@ fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
     let res = match op {
         Assign(_) => (4, 5),
-        Operator(
-            Category::Plus
-            | Category::Minus
-            | Category::PlusEqual
-            | Category::MinusEqual
-            | Category::GreaterGreater
-            | Category::LessLess
-            | Category::Ampersand
-            | Category::Pipe
-            | Category::Caret
-            | Category::GreaterGreaterGreater,
-        ) => (5, 6),
 
         Operator(Category::Star | Category::Slash | Category::Percent | Category::StarStar) => {
             (7, 8)
         }
+        Operator(_) => (5, 6),
         _ => return None,
     };
     Some(res)
@@ -91,6 +80,7 @@ mod test {
     use super::*;
     use crate::token::Base::*;
     use crate::token::Category::*;
+    use crate::token::StringCategory;
     use crate::token::{Token, Tokenizer};
     use Statement::*;
 
@@ -216,8 +206,31 @@ mod test {
         assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
         assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
         assert_eq!(result("a != 1"), expected(BangEqual, 0));
-        assert_eq!(result("a !~ 1"), expected(BangTilde, 0));
-        assert_eq!(result("a =~ 1"), expected(EqualTilde, 0));
+    }
+
+    #[test]
+    fn string_operator() {
+        use Category::*;
+        use Statement::*;
+        fn expected(category: Category, shift: usize) -> Statement {
+            Operator(
+                category,
+                vec![
+                    Variable(Token {
+                        category: Identifier(None),
+                        position: (0, 1),
+                    }),
+                    Primitive(Token {
+                        category: String(StringCategory::Quoteable),
+                        position: (6 + shift, 7 + shift),
+                    }),
+                ],
+            )
+        }
+        assert_eq!(result("a !~ '1'"), expected(BangTilde, 0));
+        assert_eq!(result("a =~ '1'"), expected(EqualTilde, 0));
+        assert_eq!(result("a >< '1'"), expected(GreaterLess, 0));
+        assert_eq!(result("a >!< '1'"), expected(GreaterBangLess, 1));
     }
 
     #[test]
