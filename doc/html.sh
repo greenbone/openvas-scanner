@@ -7,7 +7,7 @@ make_entry() {
     title=${line:2}
 
     link=$entry
-    link=${link//md/html}
+    link=${link//manual/html}
     link=${link//.md/.html}
     
     toc="$toc<a href=$link>$title</a>"
