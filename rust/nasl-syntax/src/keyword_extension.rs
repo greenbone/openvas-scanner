@@ -1,11 +1,11 @@
 use crate::{
     error::TokenError,
     grouping_extension::Grouping,
-    lexer::Lexer,
     lexer::Statement,
+    lexer::{DeclareScope, Lexer},
     prefix_extension::PrefixState,
     token::{Category, Keyword, Token},
-    unexpected_end, unexpected_token,
+    unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
 };
 
 pub(crate) trait Keywords {
@@ -18,6 +18,31 @@ pub(crate) trait Keywords {
 }
 
 impl<'a> Lexer<'a> {
+    fn parse_declaration(&mut self, scope: DeclareScope) -> Result<(PrefixState, Statement), TokenError> {
+        let result = match self.expression_bp(0, Category::Semicolon)? {
+            Statement::Variable(var) => Ok((
+                PrefixState::Break,
+                Statement::Declare(scope, vec![Statement::Variable(var)]),
+            )),
+            Statement::Parameter(params) => {
+                for p in params.clone() {
+                    if let Statement::Variable(_) = p {
+                        continue;
+                    }
+                    return Err(unexpected_statement!(p));
+                }
+                Ok((
+                    PrefixState::Break,
+                    Statement::Declare(scope, params),
+                ))
+            }
+            stmt => Err(unexpected_statement!(stmt)),
+        }?;
+        match self.end_category {
+            Some(Category::Semicolon) => Ok(result),
+            _ => Err(unexpected_end!("parsing local_var")),
+        }
+    }
     fn parse_if(&mut self) -> Result<(PrefixState, Statement), TokenError> {
         let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match token.category() {
@@ -25,8 +50,15 @@ impl<'a> Lexer<'a> {
             _ => Err(unexpected_token!(token)),
         }?;
         let body = self.expression_bp(0, Category::Semicolon)?;
+        if !self
+            .end_category
+            .map(|ec| ec == Category::Semicolon || ec == Category::RightCurlyBracket)
+            .unwrap_or(false)
+        {
+            return Err(unclosed_token!(token));
+        }
         let r#else: Option<Statement> = {
-            match self.token() {
+            match self.tokenizer.next() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
                         Some(self.expression_bp(0, Category::Semicolon)?)
@@ -60,8 +92,8 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::While => todo!(),
             Keyword::Repeat => todo!(),
             Keyword::Until => todo!(),
-            Keyword::LocalVar => todo!(),
-            Keyword::GlobalVar => todo!(),
+            Keyword::LocalVar => self.parse_declaration(DeclareScope::Local),
+            Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
             Keyword::Null => todo!(),
             Keyword::Return => todo!(),
             Keyword::Include => todo!(),
@@ -76,8 +108,9 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::Statement,
+        lexer::{DeclareScope, Statement},
         token::{Category, StringCategory, Token},
+        TokenError,
     };
 
     use Category::*;
@@ -85,7 +118,7 @@ mod test {
 
     #[test]
     fn if_statement() {
-        let actual = crate::parse("if (description) script_oid('1');")
+        let actual = crate::parse("if (description) script_oid('1'); else display('hi');")
             .next()
             .unwrap()
             .unwrap();
@@ -106,8 +139,74 @@ mod test {
                         position: (29, 30)
                     }))
                 )),
+                Some(Box::new(Call(
+                    Token {
+                        category: Identifier(None),
+                        position: (39, 46)
+                    },
+                    Box::new(Primitive(Token {
+                        category: String(StringCategory::Quoteable),
+                        position: (48, 50)
+                    }))
+                )))
+            )
+        );
+    }
+
+    #[test]
+    fn if_block() {
+        let actual = crate::parse("if (description) { ; }")
+            .next()
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            actual,
+            If(
+                Box::new(Variable(Token {
+                    category: Identifier(None),
+                    position: (4, 15)
+                })),
+                Box::new(Block(vec![NoOp(Some(Token {
+                    category: Semicolon,
+                    position: (19, 20)
+                }))])),
                 None
             )
         );
+    }
+
+    #[test]
+    fn local_var() -> Result<(), TokenError> {
+        let exspected = |scope: DeclareScope, offset: usize| {
+            Declare(
+                scope,
+                vec![
+                    Variable(Token {
+                        category: Identifier(None),
+                        position: (10 + offset, 11 + offset),
+                    }),
+                    Variable(Token {
+                        category: Identifier(None),
+                        position: (13 + offset, 14 + offset),
+                    }),
+                    Variable(Token {
+                        category: Identifier(None),
+                        position: (16 + offset, 17 + offset),
+                    }),
+                ],
+            )
+        };
+        assert_eq!(crate::parse("local_var a, b, c;").next().unwrap().unwrap(), exspected(DeclareScope::Local, 0));
+        assert_eq!(crate::parse("global_var a, b, c;").next().unwrap().unwrap(), exspected(DeclareScope::Global, 1));
+        Ok(())
+    }
+
+    #[test]
+    fn unclosed() {
+        assert!(crate::parse("local_var a, b, c").next().unwrap().is_err());
+        assert!(crate::parse("local_var a, 1, c;").next().unwrap().is_err());
+        assert!(crate::parse("local_var 1;").next().unwrap().is_err());
+        assert!(crate::parse("if (description) { ; ").next().unwrap().is_err());
+        assert!(crate::parse("if (description) display(1)").next().unwrap().is_err());
     }
 }

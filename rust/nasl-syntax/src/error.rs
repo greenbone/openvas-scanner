@@ -3,7 +3,7 @@
 use core::fmt;
 use std::error::Error;
 
-use crate::token::Token;
+use crate::{token::Token, Statement};
 
 /// Is used to express errors while parsing.
 ///
@@ -17,6 +17,7 @@ use crate::token::Token;
 pub struct TokenError {
     pub(crate) reason: String,
     pub(crate) token: Option<Token>,
+    pub(crate) statement: Option<Statement>,
     pub(crate) line: u32,
     pub(crate) file: String,
 }
@@ -41,13 +42,43 @@ pub struct TokenError {
 macro_rules! token_error {
     ($reason:expr) => {{
         use $crate::TokenError;
-        TokenError::new($reason.to_string(), None, line!(), file!().to_string())
+        TokenError::new(
+            $reason.to_string(),
+            None,
+            None,
+            line!(),
+            file!().to_string(),
+        )
     }};
     ($token:expr, $reason:expr) => {{
         use $crate::TokenError;
         TokenError::new(
             $reason.to_string(),
             Some($token),
+            None,
+            line!(),
+            file!().to_string(),
+        )
+    }};
+}
+
+/// Creates an StatementError.
+///
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
+/// use nasl_syntax::{statement_error, Statement};
+/// statement_error!(Statement::EoF, "unexpected end");
+/// ```
+#[macro_export]
+macro_rules! statement_error {
+    ($statement:expr, $reason:expr) => {{
+        use $crate::TokenError;
+        TokenError::new(
+            $reason.to_string(),
+            None,
+            Some($statement),
             line!(),
             file!().to_string(),
         )
@@ -74,6 +105,23 @@ macro_rules! unexpected_token {
             $token,
             format!("Unexpected Token {:?}", $token.category()).to_string()
         )
+    }};
+}
+
+/// Creates an unexpected statement error.
+///
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
+/// use nasl_syntax::{unexpected_statement, Statement};
+/// unexpected_statement!(Statement::EoF);
+/// ```
+#[macro_export]
+macro_rules! unexpected_statement {
+    ($statement:expr) => {{
+        use $crate::statement_error;
+        statement_error!($statement, format!("Unexpected statement {:?}", $statement))
     }};
 }
 
@@ -125,10 +173,17 @@ impl fmt::Display for TokenError {
 
 impl TokenError {
     /// Creates a new TokenError.
-    pub fn new(reason: String, token: Option<Token>, line: u32, file: String) -> Self {
+    pub fn new(
+        reason: String,
+        token: Option<Token>,
+        statement: Option<Statement>,
+        line: u32,
+        file: String,
+    ) -> Self {
         Self {
             reason,
             token,
+            statement,
             line,
             file,
         }

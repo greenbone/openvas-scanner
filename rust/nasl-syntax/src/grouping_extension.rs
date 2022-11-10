@@ -41,6 +41,7 @@ impl<'a> Grouping for Lexer<'a> {
         while let Some(token) = self.tokenizer.next() {
             if token.category() == Category::RightCurlyBracket {
                 self.unhandled_token = None;
+                self.end_category = Some(Category::RightCurlyBracket);
                 return Ok(Statement::Block(results));
             }
             self.unhandled_token = Some(token);
