@@ -78,6 +78,7 @@ impl<'a> Infix for Lexer<'a> {
 mod test {
 
     use super::*;
+    use crate::token::Base;
     use crate::token::Base::*;
     use crate::token::Category::*;
     use crate::token::StringCategory;
@@ -231,6 +232,27 @@ mod test {
         assert_eq!(result("a =~ '1'"), expected(EqualTilde, 0));
         assert_eq!(result("a >< '1'"), expected(GreaterLess, 0));
         assert_eq!(result("a >!< '1'"), expected(GreaterBangLess, 1));
+    }
+
+    #[test]
+    fn locical_operator() {
+        fn expected(category: Category, shift: usize) -> Statement {
+            Operator(
+                category,
+                vec![
+                    Variable(Token {
+                        category: Identifier(None),
+                        position: (0, 1),
+                    }),
+                    Primitive(Token {
+                        category: Number(Base::Base10),
+                        position: (5 + shift, 6 + shift),
+                    }),
+                ],
+            )
+        }
+        assert_eq!(result("a && 1"), expected(AmpersandAmpersand, 0));
+        assert_eq!(result("a || 1"), expected(PipePipe, 0));
     }
 
     #[test]
