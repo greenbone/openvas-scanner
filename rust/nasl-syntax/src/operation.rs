@@ -47,10 +47,15 @@ impl Operation {
             | Category::GreaterBangLess
             | Category::AmpersandAmpersand
             | Category::PipePipe
+            | Category::EqualEqual
+            | Category::BangEqual
+            | Category::Greater
+            | Category::Less
+            | Category::GreaterEqual
+            | Category::LessEqual
             | Category::StarStar => Some(Operation::Operator(token.category())),
             Category::Equal
             | Category::MinusEqual
-            | Category::BangEqual
             | Category::PlusEqual
             | Category::SlashEqual
             | Category::StarEqual

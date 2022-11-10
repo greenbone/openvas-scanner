@@ -206,14 +206,13 @@ mod test {
         assert_eq!(result("a >>= 1"), expected(GreaterGreaterEqual, 1));
         assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
         assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
-        assert_eq!(result("a != 1"), expected(BangEqual, 0));
     }
 
     #[test]
-    fn string_operator() {
+    fn compare_operator() {
         use Category::*;
         use Statement::*;
-        fn expected(category: Category, shift: usize) -> Statement {
+        fn expected(category: Category, shift: i32) -> Statement {
             Operator(
                 category,
                 vec![
@@ -223,7 +222,7 @@ mod test {
                     }),
                     Primitive(Token {
                         category: String(StringCategory::Quoteable),
-                        position: (6 + shift, 7 + shift),
+                        position: ((6 + shift) as usize, (7 + shift) as usize),
                     }),
                 ],
             )
@@ -232,6 +231,12 @@ mod test {
         assert_eq!(result("a =~ '1'"), expected(EqualTilde, 0));
         assert_eq!(result("a >< '1'"), expected(GreaterLess, 0));
         assert_eq!(result("a >!< '1'"), expected(GreaterBangLess, 1));
+        assert_eq!(result("a == '1'"), expected(EqualEqual, 0));
+        assert_eq!(result("a != '1'"), expected(BangEqual, 0));
+        assert_eq!(result("a > '1'"), expected(Greater, -1));
+        assert_eq!(result("a < '1'"), expected(Less, -1));
+        assert_eq!(result("a >= '1'"), expected(GreaterEqual, 0));
+        assert_eq!(result("a <= '1'"), expected(LessEqual, 0));
     }
 
     #[test]
