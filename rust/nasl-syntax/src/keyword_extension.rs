@@ -66,6 +66,9 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::Return => todo!(),
             Keyword::Include => todo!(),
             Keyword::Exit => todo!(),
+            Keyword::FCTAnonArgs => todo!(),
+            Keyword::True => todo!(),
+            Keyword::False => todo!(),
         }
     }
 }
