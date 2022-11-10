@@ -44,5 +44,17 @@ pub mod nvtcache {
             let version = self.cache.redis_get_key("nvticache")?;
             Ok(version)
         }
+
+        /// Check if the nvtcache is uptodate, comparing the feed version
+        /// in the filesystem (in plugin_feed_info.inc) and compare it
+        /// with the version in the cache
+        /// Return True if it is updated, False if outdated, Error otherwise.
+        pub fn check_feed(&mut self, current: &str) -> Result<bool> {
+            let cached = self.cache.redis_get_key("nvticache")?;
+            if cached == current {
+                return Ok(true);
+            }
+            Ok(false)
+        }
     }
 }
