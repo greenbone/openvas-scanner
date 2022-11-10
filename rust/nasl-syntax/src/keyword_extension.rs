@@ -18,7 +18,10 @@ pub(crate) trait Keywords {
 }
 
 impl<'a> Lexer<'a> {
-    fn parse_declaration(&mut self, scope: DeclareScope) -> Result<(PrefixState, Statement), TokenError> {
+    fn parse_declaration(
+        &mut self,
+        scope: DeclareScope,
+    ) -> Result<(PrefixState, Statement), TokenError> {
         let result = match self.expression_bp(0, Category::Semicolon)? {
             Statement::Variable(var) => Ok((
                 PrefixState::Break,
@@ -31,10 +34,7 @@ impl<'a> Lexer<'a> {
                     }
                     return Err(unexpected_statement!(p));
                 }
-                Ok((
-                    PrefixState::Break,
-                    Statement::Declare(scope, params),
-                ))
+                Ok((PrefixState::Break, Statement::Declare(scope, params)))
             }
             stmt => Err(unexpected_statement!(stmt)),
         }?;
@@ -196,8 +196,14 @@ mod test {
                 ],
             )
         };
-        assert_eq!(crate::parse("local_var a, b, c;").next().unwrap().unwrap(), exspected(DeclareScope::Local, 0));
-        assert_eq!(crate::parse("global_var a, b, c;").next().unwrap().unwrap(), exspected(DeclareScope::Global, 1));
+        assert_eq!(
+            crate::parse("local_var a, b, c;").next().unwrap().unwrap(),
+            exspected(DeclareScope::Local, 0)
+        );
+        assert_eq!(
+            crate::parse("global_var a, b, c;").next().unwrap().unwrap(),
+            exspected(DeclareScope::Global, 1)
+        );
         Ok(())
     }
 
@@ -206,7 +212,13 @@ mod test {
         assert!(crate::parse("local_var a, b, c").next().unwrap().is_err());
         assert!(crate::parse("local_var a, 1, c;").next().unwrap().is_err());
         assert!(crate::parse("local_var 1;").next().unwrap().is_err());
-        assert!(crate::parse("if (description) { ; ").next().unwrap().is_err());
-        assert!(crate::parse("if (description) display(1)").next().unwrap().is_err());
+        assert!(crate::parse("if (description) { ; ")
+            .next()
+            .unwrap()
+            .is_err());
+        assert!(crate::parse("if (description) display(1)")
+            .next()
+            .unwrap()
+            .is_err());
     }
 }

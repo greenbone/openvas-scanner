@@ -29,23 +29,32 @@ pub enum DeclareScope {
     Local,
 }
 
-
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
+    /// Represents a Number that is not directly in the source code but calculated (e.g. on i++)
     RawNumber(u8),
+    /// Either a Number or a String
     Primitive(Token),
+    /// Is a variable
     Variable(Token),
+    /// Is a call of a function
     Call(Token, Box<Statement>),
+    /// Declares a new variable in either global or local scope
     Declare(DeclareScope, Vec<Statement>),
+    /// Parameter within a function
     Parameter(Vec<Statement>),
+    /// Assignment to a variable
     Assign(Category, AssignOrder, Token, Box<Statement>),
-
+    /// An Operator (e.g. +, -, *)
     Operator(Category, Vec<Statement>),
-
+    /// If statement, containing a condition, expression to be executed when the condition is true and an optional else expression
     If(Box<Statement>, Box<Statement>, Option<Box<Statement>>),
+    /// A set of expression within { ... }
     Block(Vec<Statement>),
+    /// An empty operation, e.g. ;
     NoOp(Option<Token>),
+    /// End of File
     EoF,
 }
 
