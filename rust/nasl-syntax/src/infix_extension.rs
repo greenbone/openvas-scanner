@@ -9,7 +9,7 @@ use crate::{
 pub(crate) trait Infix {
     /// Returns true when an Operation needs a infix handling.
     ///
-    /// This is separated in two methods to prevent unnecessary clones a previos statement.
+    /// This is separated in two methods to prevent unnecessary clones of a previos statement.
     fn needs_infix(&self, op: Operation, min_bp: u8) -> Option<bool>;
 
     /// Is the actual handling of infix. The caller must ensure that needs_infix is called previously.

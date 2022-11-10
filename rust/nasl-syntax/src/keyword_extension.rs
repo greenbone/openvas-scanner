@@ -24,7 +24,6 @@ impl<'a> Lexer<'a> {
             Category::LeftParen => self.parse_paren(token),
             _ => Err(unexpected_token!(token)),
         }?;
-        // TODO add block handling and error handling
         let body = self.expression_bp(0, Category::Semicolon)?;
         let r#else: Option<Statement> = {
             match self.token() {
