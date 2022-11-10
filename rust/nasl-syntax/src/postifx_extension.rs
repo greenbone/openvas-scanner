@@ -107,7 +107,7 @@ mod test {
     use Statement::*;
 
     fn result(code: &str) -> Statement {
-        parse(code)[0].as_ref().unwrap().clone()
+        parse(code).next().unwrap().unwrap()
     }
 
     #[test]

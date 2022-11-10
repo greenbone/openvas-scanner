@@ -82,10 +82,10 @@ mod test {
 
     #[test]
     fn if_statement() {
-        let actual = crate::parse("if (description) script_oid('1');")[0]
-            .as_ref()
+        let actual = crate::parse("if (description) script_oid('1');")
+            .next()
             .unwrap()
-            .clone();
+            .unwrap();
         assert_eq!(
             actual,
             If(

@@ -68,7 +68,7 @@ mod test {
     use crate::{
         lexer::{AssignOrder, Statement},
         parse,
-        token::{Base, Category, Token},
+        token::{Base, Category, Token}
     };
 
     use Base::*;
@@ -76,7 +76,7 @@ mod test {
     use Statement::*;
 
     fn result(code: &str) -> Statement {
-        parse(code)[0].as_mut().unwrap().clone()
+        parse(code).next().unwrap().unwrap()
     }
 
     #[test]

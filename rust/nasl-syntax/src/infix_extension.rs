@@ -157,12 +157,12 @@ mod test {
     }
 
     fn result(code: &str) -> Statement {
-        crate::parse(code)[0].as_ref().unwrap().clone()
+        crate::parse(code).next().unwrap().unwrap()
     }
 
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
-            let expr = crate::parse($code)[0].as_ref().unwrap().clone();
+            let expr = crate::parse($code).next().unwrap().unwrap();
             assert_eq!(resolve($code, expr), $expected);
         };
     }

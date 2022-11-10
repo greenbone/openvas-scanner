@@ -12,6 +12,7 @@ mod token;
 mod variable_extension;
 
 pub use error::TokenError;
+pub use lexer::Lexer;
 pub use lexer::Statement;
 pub use token::Category as TokenCategory;
 pub use token::Token;
@@ -22,29 +23,22 @@ pub use token::Token;
 /// Basic usage:
 ///
 /// ```
-/// let statements = nasl_syntax::parse("a = 23;b = 1;");
+/// use nasl_syntax::{Statement, TokenError};
+/// let statements = nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, TokenError>>>();
 /// ````
-pub fn parse(code: &str) -> Vec<Result<Statement, TokenError>> {
-    use lexer::Lexer;
+pub fn parse(code: &str) -> Lexer {
     use token::Tokenizer;
     let tokenizer = Tokenizer::new(code);
-    let mut lexer = Lexer::new(tokenizer);
-    let mut results = vec![];
-    loop {
-        let result = lexer.expression_bp(0, TokenCategory::Semicolon);
-        if result == Ok(Statement::EoF) {
-            break;
-        }
-        results.push(result);
-    }
-    results
+    Lexer::new(tokenizer)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         cursor::Cursor,
-        token::{Category, Keyword, StringCategory, Token, Tokenizer},
+        lexer::AssignOrder,
+        token::{Base, Category, Keyword, StringCategory, Token, Tokenizer},
+        Statement, TokenError,
     };
 
     #[test]
@@ -81,6 +75,43 @@ mod tests {
                     category: Category::Semicolon,
                     position: (26, 27)
                 }
+            ]
+        );
+    }
+
+    #[test]
+    fn use_parser() {
+        use Category::*;
+        use Statement::*;
+        let statements =
+            super::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, TokenError>>>();
+        assert_eq!(
+            statements,
+            vec![
+                Ok(Assign(
+                    Equal,
+                    AssignOrder::Assign,
+                    Token {
+                        category: Identifier(None),
+                        position: (0, 1)
+                    },
+                    Box::new(Primitive(Token {
+                        category: Number(Base::Base10),
+                        position: (4, 6)
+                    }))
+                )),
+                Ok(Assign(
+                    Equal,
+                    AssignOrder::Assign,
+                    Token {
+                        category: Identifier(None),
+                        position: (7, 8)
+                    },
+                    Box::new(Primitive(Token {
+                        category: Number(Base::Base10),
+                        position: (11, 12)
+                    }))
+                ))
             ]
         );
     }
