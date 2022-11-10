@@ -1,5 +1,5 @@
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     grouping_extension::Grouping,
     lexer::Statement,
     lexer::{DeclareScope, Lexer},
@@ -14,14 +14,14 @@ pub(crate) trait Keywords {
         &mut self,
         keyword: Keyword,
         token: Token,
-    ) -> Result<(PrefixState, Statement), TokenError>;
+    ) -> Result<(PrefixState, Statement), SyntaxError>;
 }
 
 impl<'a> Lexer<'a> {
     fn parse_declaration(
         &mut self,
         scope: DeclareScope,
-    ) -> Result<(PrefixState, Statement), TokenError> {
+    ) -> Result<(PrefixState, Statement), SyntaxError> {
         let result = match self.expression_bp(0, Category::Semicolon)? {
             Statement::Variable(var) => Ok((
                 PrefixState::Break,
@@ -43,7 +43,7 @@ impl<'a> Lexer<'a> {
             _ => Err(unexpected_end!("parsing local_var")),
         }
     }
-    fn parse_if(&mut self) -> Result<(PrefixState, Statement), TokenError> {
+    fn parse_if(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match token.category() {
             Category::LeftParen => self.parse_paren(token),
@@ -83,7 +83,7 @@ impl<'a> Keywords for Lexer<'a> {
         &mut self,
         keyword: Keyword,
         token: Token,
-    ) -> Result<(PrefixState, Statement), TokenError> {
+    ) -> Result<(PrefixState, Statement), SyntaxError> {
         match keyword {
             Keyword::For => todo!(),
             Keyword::ForEach => todo!(),
@@ -110,7 +110,7 @@ mod test {
     use crate::{
         lexer::{DeclareScope, Statement},
         token::{Category, StringCategory, Token},
-        TokenError,
+        SyntaxError,
     };
 
     use Category::*;
@@ -176,7 +176,7 @@ mod test {
     }
 
     #[test]
-    fn local_var() -> Result<(), TokenError> {
+    fn local_var() -> Result<(), SyntaxError> {
         let exspected = |scope: DeclareScope, offset: usize| {
             Declare(
                 scope,

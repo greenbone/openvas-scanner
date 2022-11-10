@@ -1,5 +1,5 @@
 use crate::{
-    error::TokenError,
+    error::SyntaxError,
     grouping_extension::Grouping,
     lexer::Lexer,
     lexer::Statement,
@@ -9,11 +9,11 @@ use crate::{
 
 pub(crate) trait Variables {
     /// Parses variables, function calls.
-    fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError>;
+    fn parse_variable(&mut self, token: Token) -> Result<Statement, SyntaxError>;
 }
 
 impl<'a> Variables for Lexer<'a> {
-    fn parse_variable(&mut self, token: Token) -> Result<Statement, TokenError> {
+    fn parse_variable(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         if token.category() != Category::Identifier(None) {
             return Err(unexpected_token!(token));
         }
