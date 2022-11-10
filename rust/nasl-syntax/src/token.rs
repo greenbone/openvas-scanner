@@ -57,25 +57,31 @@ pub enum UnclosedCategory {
 /// Are reserved words that cannot be reused otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Keyword {
-    For,       // for
-    ForEach,   // foreach
-    If,        // if
-    Else,      // else
-    While,     //while
-    Repeat,    //repeat
-    Until,     // until
-    LocalVar,  // local_var
-    GlobalVar, // global_var
-    Null,      // NULL
-    Return,    // return
-    Include,   // include (is not a buildin if overridden NASL cannot work )
-    Exit,      // exit (is not a buildin function of overridden NASL detail run cannot work)
+    FCTAnonArgs, // _FCT_ANON_ARGS
+    True,        // TRUE
+    False,       // FALSE
+    For,         // for
+    ForEach,     // foreach
+    If,          // if
+    Else,        // else
+    While,       //while
+    Repeat,      //repeat
+    Until,       // until
+    LocalVar,    // local_var
+    GlobalVar,   // global_var
+    Null,        // NULL
+    Return,      // return
+    Include,     // include (is not a buildin if overridden NASL cannot work )
+    Exit,        // exit (is not a buildin function of overridden NASL detail run cannot work)
 }
 
 impl Keyword {
     /// Parses given keyword and returns Keyword enum or None
     pub fn new(keyword: &str) -> Option<Self> {
         match keyword {
+            "_FCT_ANON_ARGS" => Some(Keyword::FCTAnonArgs),
+            "TRUE" => Some(Keyword::True),
+            "FALSE" => Some(Keyword::False),
             "for" => Some(Keyword::For),
             "foreach" => Some(Keyword::ForEach),
             "if" => Some(Keyword::If),
