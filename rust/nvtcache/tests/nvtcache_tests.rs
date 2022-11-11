@@ -8,8 +8,8 @@ mod test {
 
     #[test]
     fn test_nvtcache() {
-        let mut nvtcache: nvtcache::nvtcache::NvtCache;
-        let n = nvtcache::nvtcache::NvtCache::init();
+        let mut nvtcache: nvtcache::NvtCache;
+        let n = nvtcache::NvtCache::init();
         match n {
             Ok(nc) => nvtcache = nc,
             Err(e) => {
