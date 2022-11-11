@@ -16,6 +16,23 @@ pub mod redisconnector {
         maxdb: u32,     // max db index
     }
 
+    #[derive(Debug, PartialEq)]
+    pub struct RedisValueHandler {
+        v: String,
+    }
+
+    impl FromRedisValue for RedisValueHandler {
+        fn from_redis_value(v: &Value) -> RedisResult<RedisValueHandler> {
+            match v {
+                Value::Nil => Ok(RedisValueHandler { v: String::new() }),
+                _ => {
+                    let new_var: String = from_redis_value(v).unwrap_or("".to_string());
+                    Ok(RedisValueHandler { v: new_var })
+                }
+            }
+        }
+    }
+
     impl RedisCtx {
         /// Connect to the redis server and return a redis context object
         pub fn new() -> Result<RedisCtx> {
