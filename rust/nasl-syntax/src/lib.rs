@@ -24,7 +24,8 @@ pub use token::Token;
 ///
 /// ```
 /// use nasl_syntax::{Statement, SyntaxError};
-/// let statements = nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
+/// let statements =
+///     nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
 /// ````
 pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>> + '_ {
     use lexer::Lexer;

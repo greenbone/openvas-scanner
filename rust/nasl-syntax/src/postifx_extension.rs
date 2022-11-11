@@ -34,7 +34,7 @@ impl<'a> Lexer<'a> {
             Statement::Parameter(x) => x,
             x => vec![x],
         };
-        match self.expression_bp(0, abort)? {
+        match self.statement(0, abort)? {
             Statement::Parameter(mut x) => lhs.append(&mut x),
             x => lhs.push(x),
         };
@@ -72,7 +72,6 @@ impl<'a> Postfix for Lexer<'a> {
     ) -> Option<Result<Statement, SyntaxError>> {
         match op {
             Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
-            // Assign()
             Operation::Assign(Category::PlusPlus) => {
                 Self::as_assign_statement(lhs, token, Category::PlusPlus, Category::Plus)
             }

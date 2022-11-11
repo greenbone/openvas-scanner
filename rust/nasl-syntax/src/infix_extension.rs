@@ -26,6 +26,7 @@ pub(crate) trait Infix {
 ///
 /// The binding power is used to express the order of a statement.
 /// Because the binding power of e,g. Plus is lower than Star the Star operation gets calculate before.
+/// The first number represents the left hand, the second number the right hand binding power
 fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
     use Category::*;
@@ -58,9 +59,11 @@ impl<'a> Infix for Lexer<'a> {
         lhs: Statement,
         abort: Category,
     ) -> Result<Statement, SyntaxError> {
-        let (_, r_bp) = infix_binding_power(op).expect("handle_infix should be called first");
         Ok({
-            let rhs = self.expression_bp(r_bp, abort)?;
+            // binding power of the right side
+            let (_, right_bp) =
+                infix_binding_power(op).expect("handle_infix should be called first");
+            let rhs = self.statement(right_bp, abort)?;
             match op {
                 // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
                 Operation::Assign(category) => match lhs {

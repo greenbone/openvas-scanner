@@ -91,17 +91,17 @@ impl<'a> Lexer<'a> {
     ///
     /// Last but not least it verifies if a token is infix relevant if the binding power of infix token
     /// is lower than the given min_bp it aborts. This is done to handle the correct operation order.
-    pub(crate) fn expression_bp(
+    pub(crate) fn statement(
         &mut self,
-        min_bp: u8,
+        min_binding_power: u8,
         abort: Category,
     ) -> Result<Statement, SyntaxError> {
         // reset unhandled_token when min_bp is 0
-        if min_bp == 0 {
+        if min_binding_power == 0 {
             self.unhandled_token = None;
             self.end_category = None;
         }
-        let (state, mut lhs) = self
+        let (state, mut left) = self
             .token()
             .map(|token| {
                 if token.category() == abort {
@@ -112,7 +112,7 @@ impl<'a> Lexer<'a> {
             .unwrap_or(Ok((PrefixState::Break, Statement::EoF)))?;
 
         if state == PrefixState::Break {
-            return Ok(lhs);
+            return Ok(left);
         }
         loop {
             let token = {
@@ -132,22 +132,22 @@ impl<'a> Lexer<'a> {
 
             if self.needs_postfix(op) {
                 let stmt = self
-                    .postfix_statement(op, token, lhs, abort)
+                    .postfix_statement(op, token, left, abort)
                     .expect("needs postfix should have been validated before")?;
-                lhs = stmt;
+                left = stmt;
                 continue;
             }
 
-            if let Some(min_bp_reached) = self.needs_infix(op, min_bp) {
+            if let Some(min_bp_reached) = self.needs_infix(op, min_binding_power) {
                 if !min_bp_reached {
                     self.unhandled_token = Some(token);
                     break;
                 }
-                lhs = self.infix_statement(op, token, lhs, abort)?;
+                left = self.infix_statement(op, token, left, abort)?;
             }
         }
 
-        Ok(lhs)
+        Ok(left)
     }
 }
 
@@ -155,7 +155,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Statement, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.expression_bp(0, Category::Semicolon);
+        let result = self.statement(0, Category::Semicolon);
         if result == Ok(Statement::EoF) {
             None
         } else {
