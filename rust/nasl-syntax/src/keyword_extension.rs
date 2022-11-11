@@ -1,7 +1,7 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::Statement,
+    lexer::{AssignOrder, Statement},
     lexer::{DeclareScope, Lexer},
     prefix_extension::PrefixState,
     token::{Category, Keyword, Token},
@@ -76,6 +76,37 @@ impl<'a> Lexer<'a> {
             Statement::If(Box::new(condition), Box::new(body), r#else.map(Box::new)),
         ))
     }
+    pub(crate) fn parse_exit(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        let token = self.token().ok_or_else(|| unexpected_end!("exit."))?;
+        if token.category() != Category::LeftParen {
+            return Err(unexpected_token!(token));
+        }
+        let mayparam = self.statement(0, &|cat| cat == Category::RightParen)?;
+        let parameter = match mayparam {
+            Statement::RawNumber(_) => mayparam,
+            Statement::Primitive(x)
+                if matches!(
+                    x.category(),
+                    Category::Number(_)
+                        | Category::Identifier(Some(Keyword::True | Keyword::False))
+                ) =>
+            {
+                mayparam
+            }
+            Statement::Variable(_) => mayparam,
+            Statement::Call(_, _) => mayparam,
+            Statement::Assign(_, AssignOrder::AssignReturn | AssignOrder::ReturnAssign, _, _) => {
+                mayparam
+            }
+            Statement::Operator(_, _) => mayparam,
+            _ => return Err(unexpected_statement!(mayparam)),
+        };
+        if self.end_category.is_some() {
+            Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
+        } else {
+            Err(unexpected_end!("exit"))
+        }
+    }
 }
 
 impl<'a> Keywords for Lexer<'a> {
@@ -94,13 +125,13 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::Until => todo!(),
             Keyword::LocalVar => self.parse_declaration(DeclareScope::Local),
             Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
-            Keyword::Null => todo!(),
+            Keyword::Null => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::Return => todo!(),
             Keyword::Include => todo!(),
-            Keyword::Exit => todo!(),
+            Keyword::Exit => self.parse_exit(),
             Keyword::FCTAnonArgs => todo!(),
-            Keyword::True => todo!(),
-            Keyword::False => todo!(),
+            Keyword::True => Ok((PrefixState::Continue, Statement::Primitive(token))),
+            Keyword::False => Ok((PrefixState::Continue, Statement::Primitive(token))),
         }
     }
 }
@@ -109,7 +140,8 @@ impl<'a> Keywords for Lexer<'a> {
 mod test {
     use crate::{
         lexer::{DeclareScope, Statement},
-        token::{Category, StringCategory, Token},
+        parse,
+        token::{Category, Keyword, StringCategory, Token},
         SyntaxError,
     };
 
@@ -118,7 +150,7 @@ mod test {
 
     #[test]
     fn if_statement() {
-        let actual = crate::parse("if (description) script_oid('1'); else display('hi');")
+        let actual = parse("if (description) script_oid('1'); else display('hi');")
             .next()
             .unwrap()
             .unwrap();
@@ -155,10 +187,7 @@ mod test {
 
     #[test]
     fn if_block() {
-        let actual = crate::parse("if (description) { ; }")
-            .next()
-            .unwrap()
-            .unwrap();
+        let actual = parse("if (description) { ; }").next().unwrap().unwrap();
         assert_eq!(
             actual,
             If(
@@ -197,26 +226,72 @@ mod test {
             )
         };
         assert_eq!(
-            crate::parse("local_var a, b, c;").next().unwrap().unwrap(),
+            parse("local_var a, b, c;").next().unwrap().unwrap(),
             exspected(DeclareScope::Local, 0)
         );
         assert_eq!(
-            crate::parse("global_var a, b, c;").next().unwrap().unwrap(),
+            parse("global_var a, b, c;").next().unwrap().unwrap(),
             exspected(DeclareScope::Global, 1)
         );
         Ok(())
     }
 
     #[test]
+    fn null() {
+        assert_eq!(
+            parse("NULL;").next().unwrap().unwrap(),
+            Statement::Primitive(Token {
+                category: Identifier(Some(Keyword::Null)),
+                position: (0, 4)
+            })
+        );
+    }
+
+    #[test]
+    fn boolean() {
+        assert_eq!(
+            parse("TRUE;").next().unwrap().unwrap(),
+            Statement::Primitive(Token {
+                category: Identifier(Some(Keyword::True)),
+                position: (0, 4)
+            })
+        );
+        assert_eq!(
+            parse("FALSE;").next().unwrap().unwrap(),
+            Statement::Primitive(Token {
+                category: Identifier(Some(Keyword::False)),
+                position: (0, 5)
+            })
+        );
+    }
+    #[test]
+    fn exit() {
+        let test_cases = [
+            "exit(1)",
+            "exit(a)",
+            "exit(a(b))",
+            "exit(23 + 5)",
+            "exit((4 * 5))",
+        ];
+        for call in test_cases {
+            assert!(
+                matches!(
+                    parse(&format!("{};", call)).next().unwrap().unwrap(),
+                    Statement::Exit(_),
+                ),
+                "{}",
+                call
+            );
+        }
+    }
+
+    #[test]
     fn unclosed() {
-        assert!(crate::parse("local_var a, b, c").next().unwrap().is_err());
-        assert!(crate::parse("local_var a, 1, c;").next().unwrap().is_err());
-        assert!(crate::parse("local_var 1;").next().unwrap().is_err());
-        assert!(crate::parse("if (description) { ; ")
-            .next()
-            .unwrap()
-            .is_err());
-        assert!(crate::parse("if (description) display(1)")
+        assert!(parse("local_var a, b, c").next().unwrap().is_err());
+        assert!(parse("local_var a, 1, c;").next().unwrap().is_err());
+        assert!(parse("local_var 1;").next().unwrap().is_err());
+        assert!(parse("if (description) { ; ").next().unwrap().is_err());
+        assert!(parse("if (description) display(1)")
             .next()
             .unwrap()
             .is_err());

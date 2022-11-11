@@ -34,12 +34,16 @@ pub enum DeclareScope {
 pub enum Statement {
     /// Represents a Number that is not directly in the source code but calculated (e.g. on i++)
     RawNumber(u8),
-    /// Either a Number or a String
+    /// Either a Number, String, Boolean or Null 
     Primitive(Token),
     /// Is a variable
     Variable(Token),
     /// Is a call of a function
     Call(Token, Box<Statement>),
+    /// Special exit call
+    Exit(Box<Statement>),
+    /// Special include call
+    Include(Vec<Statement>),
     /// Declares a new variable in either global or local scope
     Declare(DeclareScope, Vec<Statement>),
     /// Parameter within a function
@@ -151,6 +155,7 @@ impl<'a> Lexer<'a> {
 
         Ok(left)
     }
+
 }
 
 impl<'a> Iterator for Lexer<'a> {
