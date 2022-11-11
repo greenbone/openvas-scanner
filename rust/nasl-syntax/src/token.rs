@@ -495,7 +495,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
             '%' => token!(Percent, start, self.cursor.len_consumed()),
             ';' => token!(Semicolon, start, self.cursor.len_consumed()),
-            '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), //self.tokenize_slash(start),
+            '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
             '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
             ':' => token!(DoublePoint, start, self.cursor.len_consumed()),
             '~' => token!(Tilde, start, self.cursor.len_consumed()),

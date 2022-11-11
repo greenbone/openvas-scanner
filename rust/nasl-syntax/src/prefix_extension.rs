@@ -77,13 +77,12 @@ impl<'a> Prefix for Lexer<'a> {
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
-                let rhs = self.expression_bp(bp, abort)?;
-                Ok((Continue, Statement::Operator(kind, vec![rhs])))
+                let right = self.statement(bp, abort)?;
+                Ok((Continue, Statement::Operator(kind, vec![right])))
             }
             Operation::Primitive => Ok((Continue, Statement::Primitive(token))),
             Operation::Variable => self.parse_variable(token).map(|stmt| (Continue, stmt)),
             Operation::Grouping(_) => self.parse_grouping(token),
-            // TODO change me
             Operation::Assign(Category::MinusMinus) => self
                 .parse_prefix_assign_operator(Category::MinusMinus, token, Category::Minus, 1)
                 .map(|stmt| (Continue, stmt)),

@@ -22,7 +22,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         scope: DeclareScope,
     ) -> Result<(PrefixState, Statement), SyntaxError> {
-        let result = match self.expression_bp(0, Category::Semicolon)? {
+        let result = match self.statement(0, Category::Semicolon)? {
             Statement::Variable(var) => Ok((
                 PrefixState::Break,
                 Statement::Declare(scope, vec![Statement::Variable(var)]),
@@ -49,7 +49,7 @@ impl<'a> Lexer<'a> {
             Category::LeftParen => self.parse_paren(token),
             _ => Err(unexpected_token!(token)),
         }?;
-        let body = self.expression_bp(0, Category::Semicolon)?;
+        let body = self.statement(0, Category::Semicolon)?;
         if !self
             .end_category
             .map(|ec| ec == Category::Semicolon || ec == Category::RightCurlyBracket)
@@ -61,7 +61,7 @@ impl<'a> Lexer<'a> {
             match self.tokenizer.next() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
-                        Some(self.expression_bp(0, Category::Semicolon)?)
+                        Some(self.statement(0, Category::Semicolon)?)
                     }
                     _ => {
                         self.unhandled_token = Some(token);
