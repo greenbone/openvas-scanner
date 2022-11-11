@@ -20,7 +20,7 @@ pub(crate) trait Postfix {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Option<Result<Statement, SyntaxError>>;
 }
 
@@ -28,7 +28,7 @@ impl<'a> Lexer<'a> {
     fn flatten_parameter(
         &mut self,
         lhs: Statement,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Result<Statement, SyntaxError> {
         let mut lhs = match lhs {
             Statement::Parameter(x) => x,
@@ -68,7 +68,7 @@ impl<'a> Postfix for Lexer<'a> {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Option<Result<Statement, SyntaxError>> {
         match op {
             Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
