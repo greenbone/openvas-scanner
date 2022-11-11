@@ -76,33 +76,29 @@ impl<'a> Lexer<'a> {
             Statement::If(Box::new(condition), Box::new(body), r#else.map(Box::new)),
         ))
     }
-    pub(crate) fn parse_exit(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+
+    fn parse_exit(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let token = self.token().ok_or_else(|| unexpected_end!("exit."))?;
         if token.category() != Category::LeftParen {
             return Err(unexpected_token!(token));
         }
-        let mayparam = self.statement(0, &|cat| cat == Category::RightParen)?;
-        let parameter = match mayparam {
-            Statement::RawNumber(_) => mayparam,
-            Statement::Primitive(x)
-                if matches!(
-                    x.category(),
-                    Category::Number(_)
-                        | Category::Identifier(Some(Keyword::True | Keyword::False))
-                ) =>
-            {
-                mayparam
-            }
-            Statement::Variable(_) => mayparam,
-            Statement::Call(_, _) => mayparam,
-            Statement::Assign(_, AssignOrder::AssignReturn | AssignOrder::ReturnAssign, _, _) => {
-                mayparam
-            }
-            Statement::Operator(_, _) => mayparam,
-            _ => return Err(unexpected_statement!(mayparam)),
-        };
+        let parameter = self
+            .statement(0, &|cat| cat == Category::RightParen)?
+            .as_returnable_or_err()?;
         if self.end_category.is_some() {
             Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
+        } else {
+            Err(unexpected_end!("exit"))
+        }
+    }
+
+
+    fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        let parameter = self
+            .statement(0, &|cat| cat == Category::Semicolon)?
+            .as_returnable_or_err()?;
+        if self.end_category.is_some() {
+            Ok((PrefixState::Break, Statement::Return(Box::new(parameter))))
         } else {
             Err(unexpected_end!("exit"))
         }
@@ -126,7 +122,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::LocalVar => self.parse_declaration(DeclareScope::Local),
             Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
             Keyword::Null => Ok((PrefixState::Continue, Statement::Primitive(token))),
-            Keyword::Return => todo!(),
+            Keyword::Return => self.parse_return(),
             Keyword::Include => todo!(),
             Keyword::Exit => self.parse_exit(),
             Keyword::FCTAnonArgs => todo!(),
@@ -285,6 +281,26 @@ mod test {
         }
     }
 
+    #[test]
+    fn r#return() {
+        let test_cases = [
+            "return 1",
+            "return a",
+            "return a(b)",
+            "return 23 + 5",
+            "return (4 * 5)",
+        ];
+        for call in test_cases {
+            assert!(
+                matches!(
+                    parse(&format!("{};", call)).next().unwrap().unwrap(),
+                    Statement::Return(_),
+                ),
+                "{}",
+                call
+            );
+        }
+    }
     #[test]
     fn unclosed() {
         assert!(parse("local_var a, b, c").next().unwrap().is_err());

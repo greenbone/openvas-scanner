@@ -6,7 +6,7 @@ use crate::{
     postifx_extension::Postfix,
     prefix_extension::{Prefix, PrefixState},
     token::{Category, Token, Tokenizer},
-    unexpected_end, unexpected_token,
+    unexpected_end, unexpected_statement, unexpected_token,
 };
 
 /// Specifies the order of assignment
@@ -34,7 +34,7 @@ pub enum DeclareScope {
 pub enum Statement {
     /// Represents a Number that is not directly in the source code but calculated (e.g. on i++)
     RawNumber(u8),
-    /// Either a Number, String, Boolean or Null 
+    /// Either a Number, String, Boolean or Null
     Primitive(Token),
     /// Is a variable
     Variable(Token),
@@ -42,6 +42,8 @@ pub enum Statement {
     Call(Token, Box<Statement>),
     /// Special exit call
     Exit(Box<Statement>),
+    /// Special Return statement
+    Return(Box<Statement>),
     /// Special include call
     Include(Vec<Statement>),
     /// Declares a new variable in either global or local scope
@@ -62,6 +64,39 @@ pub enum Statement {
     NoOp(Option<Token>),
     /// End of File
     EoF,
+}
+
+impl Statement {
+    /// Returns true when Statement may returns something
+    ///
+    /// Since nasl is a dynamic, typeless language there is no guarantue.
+    /// In uncertain things like a function it returns true.
+    pub fn is_returnable(&self) -> bool {
+        matches!(
+            self,
+            Statement::RawNumber(_)
+                | Statement::Primitive(_)
+                | Statement::Variable(_)
+                | Statement::Call(_, _)
+                | Statement::Return(_)
+                | Statement::Assign(
+                    _,
+                    AssignOrder::AssignReturn | AssignOrder::ReturnAssign,
+                    _,
+                    _
+                )
+                | Statement::Operator(_, _)
+        )
+    }
+
+    /// Returns Self when it is returnable otherwise a unexpected statement error
+    pub fn as_returnable_or_err(self) -> Result<Self, SyntaxError> {
+        if self.is_returnable() {
+            Ok(self)
+        } else {
+            Err(unexpected_statement!(self))
+        }
+    }
 }
 
 /// Is used to parse Token to Statement
@@ -155,7 +190,6 @@ impl<'a> Lexer<'a> {
 
         Ok(left)
     }
-
 }
 
 impl<'a> Iterator for Lexer<'a> {
