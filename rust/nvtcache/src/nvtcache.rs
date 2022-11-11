@@ -1,10 +1,13 @@
 const NVTCACHE: &str = "nvticache";
+const PLUGIN_PATH: &str = "/home/jnicola/install/var/lib/openvas/plugins/";
 
 pub mod nvtcache {
 
     use super::*;
     use crate::dberror::dberror::Result;
+    use crate::nvt::nvt::*;
     use crate::redisconnector::redisconnector::*;
+    use std::path::Path;
 
     pub struct NvtCache {
         pub cache: RedisCtx,
@@ -55,6 +58,42 @@ pub mod nvtcache {
                 return Ok(true);
             }
             Ok(false)
+        }
+
+        pub fn get_nvt_filename(&mut self, oid: &String) -> Result<String> {
+            let mut key: String = "nvt:".to_owned();
+            key.push_str(oid);
+            let filename = self.cache.redis_get_item(key, KbNvtPos::NvtFilenamePos)?;
+            Ok(filename)
+        }
+
+        pub fn add_ntv(&mut self, nvt: &mut Nvt, filename: String) -> Result<()> {
+            let oid: &String = nvt.get_oid()?;
+            let cached_nvt: String = self.get_nvt_filename(&oid)?;
+
+            // First check if there is a duplicate OID
+            // If it is in the cache, and are not the same filename
+            // we check if it is still in the filesystem.
+            if !cached_nvt.is_empty() && cached_nvt != filename {
+                let mut src_path: String = PLUGIN_PATH.to_owned();
+                src_path.push_str(&cached_nvt);
+
+                // If still exists, the oid is duplicated
+                if Path::new(&src_path).exists() {
+                    println!(
+                        "NVT {src_path} with duplicate OID {oid} \
+                             will be replaced with {filename}"
+                    );
+                }
+            }
+
+            if !cached_nvt.is_empty() {
+                let mut key: String = "nvt:".to_owned();
+                key.push_str(oid);
+                let _ = self.cache.redis_del_key(key)?;
+            }
+
+            Ok(())
         }
     }
 }
