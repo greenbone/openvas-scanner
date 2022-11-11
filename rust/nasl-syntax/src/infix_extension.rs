@@ -18,7 +18,7 @@ pub(crate) trait Infix {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Result<Statement, SyntaxError>;
 }
 
@@ -57,7 +57,7 @@ impl<'a> Infix for Lexer<'a> {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Result<Statement, SyntaxError> {
         Ok({
             // binding power of the right side

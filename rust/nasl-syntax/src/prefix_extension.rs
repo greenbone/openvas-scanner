@@ -17,7 +17,7 @@ pub(crate) trait Prefix {
     fn prefix_statement(
         &mut self,
         token: Token,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Result<(PrefixState, Statement), SyntaxError>;
 }
 
@@ -70,7 +70,7 @@ impl<'a> Prefix for Lexer<'a> {
     fn prefix_statement(
         &mut self,
         token: Token,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Result<(PrefixState, Statement), SyntaxError> {
         use PrefixState::*;
         let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;

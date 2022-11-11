@@ -6,7 +6,7 @@ use crate::{
     postifx_extension::Postfix,
     prefix_extension::{Prefix, PrefixState},
     token::{Category, Token, Tokenizer},
-    unexpected_token,
+    unexpected_end, unexpected_token,
 };
 
 /// Specifies the order of assignment
@@ -44,6 +44,8 @@ pub enum Statement {
     Declare(DeclareScope, Vec<Statement>),
     /// Parameter within a function
     Parameter(Vec<Statement>),
+    /// Named parameter on a function
+    NamedParameter(Token, Box<Statement>),
     /// Assignment to a variable
     Assign(Category, AssignOrder, Token, Box<Statement>),
     /// An Operator (e.g. +, -, *)
@@ -94,7 +96,7 @@ impl<'a> Lexer<'a> {
     pub(crate) fn statement(
         &mut self,
         min_binding_power: u8,
-        abort: Category,
+        abort: &impl Fn(Category) -> bool,
     ) -> Result<Statement, SyntaxError> {
         // reset unhandled_token when min_bp is 0
         if min_binding_power == 0 {
@@ -104,7 +106,7 @@ impl<'a> Lexer<'a> {
         let (state, mut left) = self
             .token()
             .map(|token| {
-                if token.category() == abort {
+                if abort(token.category()) {
                     return Ok((PrefixState::Break, Statement::NoOp(Some(token))));
                 }
                 self.prefix_statement(token, abort)
@@ -121,9 +123,9 @@ impl<'a> Lexer<'a> {
                     None => break,
                 }
             };
-            if token.category() == abort {
+            if abort(token.category()) {
                 // to be able to verify abort condition.
-                self.end_category = Some(abort);
+                self.end_category = Some(token.category());
                 // set unhandled_token to skip one next call
                 self.unhandled_token = Some(token);
                 break;
@@ -155,7 +157,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Statement, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.statement(0, Category::Semicolon);
+        let result = self.statement(0, &|cat| cat == Category::Semicolon);
         if result == Ok(Statement::EoF) {
             None
         } else {
