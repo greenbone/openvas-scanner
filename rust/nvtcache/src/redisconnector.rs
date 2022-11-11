@@ -4,11 +4,29 @@ const GLOBAL_DBINDEX_NAME: &str = "GVM.__GlobalDBIndex";
 const REDIS_DEFAULT_PATH: &str = "unix:///run/redis/redis-server.sock";
 
 pub mod redisconnector {
-    use std::result;
 
     use super::*;
     use crate::dberror::dberror::DbError;
     use crate::dberror::dberror::Result;
+
+    pub enum KbNvtPos {
+        NvtFilenamePos,
+        NvtRequiredKeysPos,
+        NvtMandatoryKeysPos,
+        NvtExcludedKeysPos,
+        NvtRequiredUDPPortsPos,
+        NvtRequiredPortsPos,
+        NvtDependenciesPos,
+        NvtTagsPos,
+        NvtCvesPos,
+        NvtBidsPos,
+        NvtXrefsPos,
+        NvtCategoryPos,
+        NvtFamilyPos,
+        NvtNamePos,
+        NvtTimestampPos,
+        NvtOIDPos,
+    }
 
     pub struct RedisCtx {
         kb: Connection, //a redis connection
@@ -152,9 +170,25 @@ pub mod redisconnector {
             Ok(())
         }
 
+        pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: String, val: T) -> Result<String> {
+            let ret: RedisValueHandler = self.kb.lpush(key, val)?;
+            Ok(ret.v)
+        }
+
         pub fn redis_get_key(&mut self, key: &str) -> Result<String> {
-            let ret = self.kb.get(key)?;
-            Ok(ret)
+            let ret: RedisValueHandler = self.kb.get(key)?;
+            Ok(ret.v)
+        }
+
+        pub fn redis_get_item(&mut self, key: String, index: KbNvtPos) -> Result<String> {
+            let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
+
+            Ok(ret.v)
+        }
+
+        pub fn redis_del_key(&mut self, key: String) -> Result<String> {
+            let ret: RedisValueHandler = self.kb.del(key)?;
+            Ok(ret.v)
         }
     }
 }
