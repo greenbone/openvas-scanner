@@ -1,6 +1,5 @@
 use crate::dberror::DbError;
 use crate::dberror::Result;
-use crate::nvt::Category;
 use crate::nvt::Nvt;
 use redis::*;
 use std::collections::LinkedList;
@@ -182,7 +181,6 @@ impl RedisCtx {
 
     pub fn redis_get_item(&mut self, key: String, index: KbNvtPos) -> Result<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
-
         Ok(ret.v)
     }
 
@@ -212,7 +210,7 @@ impl RedisCtx {
         let mut key_name: String = "nvt:".to_owned();
         key_name = key_name + oid.as_ref();
         Cmd::new()
-            .arg("LPUSH")
+            .arg("RPUSH")
             .arg(key_name)
             .arg(filename)
             .arg(required_keys)
