@@ -1,3 +1,6 @@
+use ::nvtcache::dberror::Result;
+use ::nvtcache::nvt::Nvt;
+use ::nvtcache::redisconnector::KbNvtPos;
 use nvtcache::nvtcache;
 use std::error::Error;
 
@@ -7,7 +10,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_nvtcache() {
+    fn test_nvtcache() -> Result<()> {
         let mut nvtcache: nvtcache::NvtCache;
         let n = nvtcache::NvtCache::init();
         match n {
@@ -66,6 +69,37 @@ mod test {
             Err(_) => println!("Error"),
         }
 
+        let mut fake_nvt: Nvt;
+        let res = Nvt::new();
+        match res {
+            Ok(ok) => fake_nvt = ok,
+            Err(_) => panic!("No Nvt"),
+        }
+
+        let oid = "1234".to_owned();
+        match fake_nvt.set_oid(oid) {
+            Ok(_) => (),
+            Err(_) => println!("Error"),
+        }
+        match fake_nvt.set_name("Custom Script for the vulnerability 1".to_owned()) {
+            Ok(_) => (),
+            Err(_) => println!("Error"),
+        }
+        let filename = "custom.nasl".to_owned();
+        match nvtcache.add_nvt(fake_nvt, filename) {
+            Ok(_) => println!("Nvt successfully added"),
+            Err(_) => println!("Error"),
+        }
+
+        let mut item = nvtcache.get_nvt_field("1234".to_owned(), KbNvtPos::NvtFilenamePos)?;
+        assert_eq!(item, "custom.nasl");
+        println!("The filename was fetch successfully: {}", item);
+
+        item = nvtcache.get_nvt_field("1234".to_owned(), KbNvtPos::NvtNamePos)?;
+        assert_eq!(item, "Custom Script for the vulnerability 1");
+
         let _ = nvtcache.reset();
+
+        return Ok(());
     }
 }
