@@ -386,122 +386,120 @@ impl Nvt {
     //   GET FUNCTIONS
 
     /// Get the NVT OID
-    pub fn get_oid(&mut self) -> Result<&String> {
-        Ok(&self.oid)
+    pub fn get_oid(&mut self) -> Result<String> {
+        Ok(self.oid.clone())
     }
 
     /// Get the NVT name
-    pub fn get_name(&mut self) -> Result<&String> {
-        Ok(&self.name)
+    pub fn get_name(&mut self) -> Result<String> {
+        Ok(self.name.clone())
     }
 
     /// Get the NVT summary
-    pub fn get_summary(&mut self) -> Result<&String> {
-        Ok(&self.summary)
+    pub fn get_summary(&mut self) -> Result<String> {
+        Ok(self.summary.clone())
     }
 
     /// Get the NVT insight
-    pub fn get_insight(&mut self) -> Result<&String> {
-        Ok(&self.insight)
+    pub fn get_insight(&mut self) -> Result<String> {
+        Ok(self.insight.clone())
     }
 
     /// Get the NVT affected
-    pub fn get_affected(&mut self) -> Result<&String> {
-        Ok(&self.affected)
+    pub fn get_affected(&mut self) -> Result<String> {
+        Ok(self.affected.clone())
     }
 
     /// Get the NVT impact
-    pub fn get_impact(&mut self) -> Result<&String> {
-        Ok(&self.impact)
+    pub fn get_impact(&mut self) -> Result<String> {
+        Ok(self.impact.clone())
     }
 
     /// Get the NVT creation_time
-    pub fn get_creation_time(&mut self) -> Result<&TimeT> {
-        Ok(&self.creation_time)
+    pub fn get_creation_time(&mut self) -> Result<TimeT> {
+        Ok(self.creation_time.clone())
     }
 
     /// Get the NVT modification_time
-    pub fn get_modification_time(&mut self) -> Result<&TimeT> {
-        Ok(&self.modification_time)
+    pub fn get_modification_time(&mut self) -> Result<TimeT> {
+        Ok(self.modification_time.clone())
     }
     /// Get the NVT solution
-    pub fn get_solution(&mut self) -> Result<&String> {
-        Ok(&self.solution)
+    pub fn get_solution(&mut self) -> Result<String> {
+        Ok(self.solution.clone())
     }
 
     /// Get the NVT solution_type
-    pub fn get_solution_type(&mut self) -> Result<&String> {
-        Ok(&self.solution_type)
+    pub fn get_solution_type(&mut self) -> Result<String> {
+        Ok(self.solution_type.clone())
     }
 
     /// Get the NVT solution method
-    pub fn get_solution_method(&mut self) -> Result<&String> {
-        Ok(&self.solution_method)
+    pub fn get_solution_method(&mut self) -> Result<String> {
+        Ok(self.solution_method.clone())
     }
 
     /// Get the NVT tag
-    pub fn get_tag(&mut self) -> Result<&String> {
-        Ok(&self.tag)
+    pub fn get_tag(&mut self) -> Result<String> {
+        Ok(self.tag.clone())
     }
 
     /// Get the NVT CVSS base
-    pub fn get_cvss_base(&mut self) -> Result<&String> {
-        Ok(&self.cvss_base)
+    pub fn get_cvss_base(&mut self) -> Result<String> {
+        Ok(self.cvss_base.clone())
     }
     /// Get the NVT dependencies
-    pub fn get_dependencies(&mut self) -> Result<&String> {
-        Ok(&self.dependencies)
+    pub fn get_dependencies(&mut self) -> Result<String> {
+        Ok(self.dependencies.clone())
     }
 
     /// Get the NVT required keys
-    pub fn get_required_keys(&mut self) -> Result<&String> {
-        Ok(&self.required_keys)
+    pub fn get_required_keys(&mut self) -> Result<String> {
+        Ok(self.required_keys.clone())
     }
 
     /// Get the NVT mandatory keys
-    pub fn get_mandatory_keys(&mut self) -> Result<&String> {
-        Ok(&self.mandatory_keys)
+    pub fn get_mandatory_keys(&mut self) -> Result<String> {
+        Ok(self.mandatory_keys.clone())
     }
 
     /// Get the NVT excluded keys
-    pub fn get_excluded_keys(&mut self) -> Result<&String> {
-        Ok(&self.excluded_keys)
+    pub fn get_excluded_keys(&mut self) -> Result<String> {
+        Ok(self.excluded_keys.clone())
     }
 
     /// Get the NVT required ports
-    pub fn get_required_ports(&mut self) -> Result<&String> {
-        Ok(&self.required_ports)
+    pub fn get_required_ports(&mut self) -> Result<String> {
+        Ok(self.required_ports.clone())
     }
 
     /// Get the NVT required udp ports
-    pub fn get_required_udp_ports(&mut self) -> Result<&String> {
-        Ok(&self.required_udp_ports)
+    pub fn get_required_udp_ports(&mut self) -> Result<String> {
+        Ok(self.required_udp_ports.clone())
     }
 
     /// Get the NVT detection
-    pub fn get_detection(&mut self) -> Result<&String> {
-        Ok(&self.detection)
+    pub fn get_detection(&mut self) -> Result<String> {
+        Ok(self.detection.clone())
     }
 
     /// Get the NVT QoD Type
-    pub fn get_qod_type(&mut self) -> Result<&String> {
-        Ok(&self.qod_type)
+    pub fn get_qod_type(&mut self) -> Result<String> {
+        Ok(self.qod_type.clone())
     }
 
     /// Get the NVT QoD (Quality of Detection)
-    pub fn get_qod(&mut self) -> Result<&String> {
-        Ok(&self.qod)
+    pub fn get_qod(&mut self) -> Result<String> {
+        Ok(self.qod.clone())
     }
 
-    // ^ TODO: write fn for refs, severities, prefs, which are LinkedLists
-
     /// Get the NVT category. Check that category is a valid Category
-    pub fn get_category(&mut self) -> Result<&Category> {
-        Ok(&self.category)
+    pub fn get_category(&mut self) -> Result<i32> {
+        Ok(self.category as i32)
     }
 
     /// Get the NVT family
-    pub fn get_family(&mut self) -> Result<&String> {
-        Ok(&self.family)
+    pub fn get_family(&mut self) -> Result<String> {
+        Ok(self.family.clone())
     }
 }
