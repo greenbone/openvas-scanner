@@ -128,6 +128,10 @@ pub struct Nvt {
     family: String,
 }
 
+pub trait Default {
+    fn default() -> Nvt;
+}
+
 impl Default for Nvt {
     fn default() -> Nvt {
         Nvt {
@@ -165,7 +169,7 @@ impl Default for Nvt {
 impl Nvt {
     /// Nvt constructor
     pub fn new() -> Result<Nvt> {
-        Ok(Nvt::default())
+        return Ok(Nvt::default());
     }
 
     pub fn destroy(self) {}
@@ -348,7 +352,14 @@ impl Nvt {
         if self.tag.is_empty() {
             self.tag = [name, "=".to_string(), new_value].concat();
         } else {
-            self.tag = [current_tag.to_string(), "|".to_string(), name, "=".to_string(), new_value].concat();
+            self.tag = [
+                current_tag.to_string(),
+                "|".to_string(),
+                name,
+                "=".to_string(),
+                new_value,
+            ]
+            .concat();
         }
 
         return Ok(());
