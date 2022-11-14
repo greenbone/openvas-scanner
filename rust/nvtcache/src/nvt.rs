@@ -2,6 +2,7 @@ use crate::dberror::DbError;
 use crate::dberror::Result;
 use std::collections::LinkedList;
 
+///Alias for time stamps
 type TimeT = i64;
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -19,8 +20,9 @@ pub enum Category {
     ActEnd,
 }
 
+/// Structure to store NVT preferences
 #[derive(Debug)]
-struct NvtPref {
+pub struct NvtPref {
     /// Preference ID
     pref_id: i32,
     /// Preference type
@@ -31,8 +33,9 @@ struct NvtPref {
     default: String,
 }
 
+/// Structure to store NVT References
 #[derive(Debug)]
-struct NvtRef {
+pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
     ref_type: String,
     /// Actual reference ID ("CVE-2018-1234", etc)
@@ -41,8 +44,9 @@ struct NvtRef {
     ref_text: String,
 }
 
+/// Structure to store NVT Severities
 #[derive(Debug)]
-struct NvtSeverity {
+pub struct NvtSeverity {
     /// Severity type ("cvss_base_v2", ...)
     severity_type: String,
     /// Optional: Where does the severity come from
@@ -126,10 +130,6 @@ pub struct Nvt {
     prefs: LinkedList<NvtPref>,
     category: Category,
     family: String,
-}
-
-pub trait Default {
-    fn default() -> Nvt;
 }
 
 impl Default for Nvt {
