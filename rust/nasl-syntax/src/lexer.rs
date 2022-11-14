@@ -37,6 +37,7 @@ pub enum Statement {
     /// Either a Number, String, Boolean or Null
     Primitive(Token),
     /// Is a variable
+    // TODO extend with array type
     Variable(Token),
     /// Is a call of a function
     Call(Token, Box<Statement>),
@@ -65,6 +66,10 @@ pub enum Statement {
     While(Box<Statement>, Box<Statement>),
     /// repeat statement, containing a block and a condition
     Repeat(Box<Statement>, Box<Statement>),
+    /// foreach statement, containing a variable in array and a block
+    ForEach(Token, Box<Statement>, Box<Statement>),
+    /// FCT_ANON_ARGS is a special array used in NASL to gather anonymous arguments within functions
+    FCTAnonArgs(Option<Box<Statement>>),
     /// A set of expression within { ... }
     Block(Vec<Statement>),
     /// An empty operation, e.g. ;

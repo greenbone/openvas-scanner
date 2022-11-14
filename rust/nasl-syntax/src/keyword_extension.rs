@@ -171,6 +171,58 @@ impl<'a> Lexer<'a> {
             Statement::Repeat(Box::new(body), Box::new(until)),
         ))
     }
+
+    fn parse_foreach(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        let variable: Token = {
+            match self.tokenizer.next() {
+                Some(token) => match token.category() {
+                    Category::Identifier(None) => Ok(token),
+                    _ => Err(unexpected_token!(token)),
+                },
+                None => Err(unexpected_end!("in foreach")),
+            }?
+        };
+        let r#in: Statement = {
+            let token = self
+                .tokenizer
+                .next()
+                .ok_or_else(|| unexpected_end!("in foreach"))?;
+            match token.category() {
+                Category::LeftParen => self.parse_paren(token),
+                _ => Err(unexpected_token!(token)),
+            }?
+        };
+        let block = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        Ok((
+            PrefixState::Break,
+            Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
+        ))
+    }
+    fn parse_fct_anon_args(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        match self.tokenizer.next() {
+            Some(token) => match token.category() {
+                Category::LeftBrace => {
+                    let lookup = self
+                        .statement(0, &|c| c == Category::RightBrace)?
+                        .as_returnable_or_err()?;
+                    if !matches!(self.end_category, Some(Category::RightBrace)) {
+                        Err(unclosed_token!(token))
+                    } else {
+                        self.unhandled_token = None;
+                        Ok((
+                            PrefixState::Continue,
+                            Statement::FCTAnonArgs(Some(Box::new(lookup))),
+                        ))
+                    }
+                }
+                _ => {
+                    self.unhandled_token = Some(token);
+                    Ok((PrefixState::Continue, Statement::FCTAnonArgs(None)))
+                }
+            },
+            None => Err(unexpected_end!("in fct_anon_args")),
+        }
+    }
 }
 
 impl<'a> Keywords for Lexer<'a> {
@@ -181,7 +233,7 @@ impl<'a> Keywords for Lexer<'a> {
     ) -> Result<(PrefixState, Statement), SyntaxError> {
         match keyword {
             Keyword::For => self.parse_for(),
-            Keyword::ForEach => todo!(),
+            Keyword::ForEach => self.parse_foreach(),
             Keyword::If => self.parse_if(),
             Keyword::Else => Err(unexpected_token!(token)), // handled in if
             Keyword::While => self.parse_while(),
@@ -193,7 +245,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::Return => self.parse_return(),
             Keyword::Include => todo!(),
             Keyword::Exit => self.parse_exit(),
-            Keyword::FCTAnonArgs => todo!(),
+            Keyword::FCTAnonArgs => self.parse_fct_anon_args(),
             Keyword::True => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((PrefixState::Continue, Statement::Primitive(token))),
         }
@@ -203,9 +255,9 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::{DeclareScope, Statement},
+        lexer::{AssignOrder, DeclareScope, Statement},
         parse,
-        token::{Category, Keyword, StringCategory, Token},
+        token::{Base, Category, Keyword, StringCategory, Token},
         SyntaxError,
     };
 
@@ -388,7 +440,6 @@ mod test {
         ))
     }
 
-
     #[test]
     fn repeat_loop() {
         let code = "repeat ; until 1 == 1";
@@ -398,6 +449,56 @@ mod test {
         ))
     }
 
+    #[test]
+    fn foreach() {
+        let test_cases = [
+            "foreach info(list) { display(info); }",
+            "foreach info( make_list('a', 'b')) { display(info); }",
+        ];
+        for call in test_cases {
+            assert!(
+                matches!(
+                    parse(&format!("{};", call)).next().unwrap().unwrap(),
+                    Statement::ForEach(_, _, _),
+                ),
+                "{}",
+                call
+            );
+        }
+    }
+
+    #[test]
+    fn fct_anon_args() {
+        assert_eq!(
+            parse("arg1 = _FCT_ANON_ARGS[0];").next().unwrap(),
+            Ok(Statement::Assign(
+                Category::Equal,
+                AssignOrder::Assign,
+                Token {
+                    category: Category::Identifier(None),
+                    position: (0, 4)
+                },
+                Box::new(Statement::FCTAnonArgs(Some(Box::new(
+                    Statement::Primitive(Token {
+                        category: Category::Number(Base::Base10),
+                        position: (22, 23)
+                    })
+                ))))
+            ))
+        );
+        assert_eq!(
+            parse("arg1 = _FCT_ANON_ARGS;").next().unwrap(),
+            Ok(Statement::Assign(
+                Category::Equal,
+                AssignOrder::Assign,
+                Token {
+                    category: Category::Identifier(None),
+                    position: (0, 4)
+                },
+                Box::new(Statement::FCTAnonArgs(None))
+            ))
+        );
+    }
     #[test]
     fn unclosed() {
         assert!(parse("local_var a, b, c").next().unwrap().is_err());
