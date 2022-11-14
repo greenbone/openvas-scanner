@@ -58,6 +58,9 @@ pub enum Statement {
     Operator(Category, Vec<Statement>),
     /// If statement, containing a condition, expression to be executed when the condition is true and an optional else expression
     If(Box<Statement>, Box<Statement>, Option<Box<Statement>>),
+    /// For statement, containing a declaration/assignment, a condition, a execution per round before body execution, body execution
+    /// e.g. `for (i = 0; i < 10; i++) display("hi");`
+    For(Box<Statement>, Box<Statement>, Box<Statement>, Box<Statement>),
     /// A set of expression within { ... }
     Block(Vec<Statement>),
     /// An empty operation, e.g. ;
