@@ -21,38 +21,38 @@ pub enum Category {
 
 #[derive(Debug)]
 struct NvtPref {
-    ///< Preference ID
+    /// Preference ID
     pref_id: i32,
-    ///< Preference type
+    /// Preference type
     pref_type: String,
-    ///< Name of the preference
+    /// Name of the preference
     name: String,
-    ///< Default value of the preference
+    /// Default value of the preference
     default: String,
 }
 
 #[derive(Debug)]
 struct NvtRef {
-    ///< Reference type ("cve", "bid", ...)
+    /// Reference type ("cve", "bid", ...)
     ref_type: String,
-    ///< Actual reference ID ("CVE-2018-1234", etc)
+    /// Actual reference ID ("CVE-2018-1234", etc)
     ref_id: String,
-    ///< Optional additional text
+    /// Optional additional text
     ref_text: String,
 }
 
 #[derive(Debug)]
 struct NvtSeverity {
-    ///< Severity type ("cvss_base_v2", ...)
+    /// Severity type ("cvss_base_v2", ...)
     severity_type: String,
-    ///< Optional: Where does the severity come from
-    ///< ("CVE-2018-1234", "Greenbone Research")
+    /// Optional: Where does the severity come from
+    /// ("CVE-2018-1234", "Greenbone Research")
     origin: String,
-    ///< Timestamp in seconds since epoch, defaults to VT creation date.
+    /// Timestamp in seconds since epoch, defaults to VT creation date.
     date: i32,
-    ///< The score derived from the value in range [0.0-10.0]
+    /// The score derived from the value in range [0.0-10.0]
     score: f32,
-    ///< The value which corresponds to the type.
+    /// The value which corresponds to the type.
     value: String,
 }
 
@@ -97,6 +97,7 @@ impl NvtSeverity {
 
 #[allow(dead_code)]
 #[derive(Debug)]
+/// Structure to hold a NVT
 pub struct Nvt {
     oid: String,
     name: String,
