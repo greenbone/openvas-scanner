@@ -64,8 +64,8 @@ impl NvtCache {
         Ok(filename)
     }
 
-    pub fn add_ntv(&mut self, nvt: &mut Nvt, filename: String) -> Result<()> {
-        let oid: &String = nvt.get_oid()?;
+    pub fn add_ntv(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
+        let oid = nvt.get_oid()?;
         let cached_nvt: String = self.get_nvt_filename(&oid)?;
 
         // First check if there is a duplicate OID
@@ -86,7 +86,7 @@ impl NvtCache {
 
         if !cached_nvt.is_empty() {
             let mut key: String = "nvt:".to_owned();
-            key.push_str(oid);
+            key.push_str(oid.as_ref());
             let _ = self.cache.redis_del_key(key)?;
         }
 
