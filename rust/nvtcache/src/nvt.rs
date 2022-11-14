@@ -72,12 +72,25 @@ impl NvtPref {
 }
 
 impl NvtRef {
+    /// Return a new NvtRef object with the passed values
     pub fn new(ref_type: String, ref_id: String, ref_text: String) -> Result<NvtRef> {
         Ok(NvtRef {
             ref_type,
             ref_id,
             ref_text,
         })
+    }
+    /// Return the type of the NvtRef
+    pub fn get_type(&mut self) -> String {
+        return self.ref_type;
+    }
+    /// Return the id of the NvtRef
+    pub fn get_id(&mut self) -> String {
+        return self.ref_id;
+    }
+    /// Return the text of the NvtRef
+    pub fn get_text(&mut self) -> String {
+        return self.ref_text;
     }
 }
 
