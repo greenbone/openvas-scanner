@@ -1,14 +1,18 @@
-# Redis Data Model for OpenVAS <!-- omit in toc -->
+# Redis Data Model for OpenVAS
 
-- [DB 0: In-Use List](#db-0-in-use-list)
-- [DB 1: NVTI Cache](#db-1-nvti-cache)
-- [DB 2 .. DB N: Each a temporary KB for a single scanned host](#db-2--db-n-each-a-temporary-kb-for-a-single-scanned-host)
-- [Data Content Examples](#data-content-examples)
-  - [After Initialization of OpenVAS](#after-initialization-of-openvas)
-  - [During One Scan With One Host](#during-one-scan-with-one-host)
-  - [During One Scan With Two Hosts](#during-one-scan-with-two-hosts)
-  - [During Two Scans With Each One Hosts](#during-two-scans-with-each-one-hosts)
-  - [During Two Scans With Each Two Hosts](#during-two-scans-with-each-two-hosts)
+- [Redis Data Model for OpenVAS](#redis-data-model-for-openvas)
+  - [DB 0: In-Use List](#db-0-in-use-list)
+  - [DB 1: NVTI Cache](#db-1-nvti-cache)
+  - [DB 2 .. DB N: Temporary KB for tasks and single scanned host](#db-2--db-n-temporary-kb-for-tasks-and-single-scanned-host)
+    - [Temporary KB for task](#temporary-kb-for-task)
+    - [Temporary KB for a single host](#temporary-kb-for-a-single-host)
+  - [Data Content Examples](#data-content-examples)
+    - [Before starting a task](#before-starting-a-task)
+    - [After loading the data to start a scan](#after-loading-the-data-to-start-a-scan)
+    - [After starting OpenVAS, during One Scan With One Host](#after-starting-openvas-during-one-scan-with-one-host)
+    - [During One Scan With Two Hosts](#during-one-scan-with-two-hosts)
+    - [During Two Scans With Each One Hosts](#during-two-scans-with-each-one-hosts)
+    - [During Two Scans With Each Two Hosts](#during-two-scans-with-each-two-hosts)
 
 This document explains the current Redis structures as used by OpenVAS.
 

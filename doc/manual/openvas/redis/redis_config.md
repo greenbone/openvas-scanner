@@ -1,11 +1,12 @@
-# Redis KB server <!-- omit in toc -->
+# Redis KB server
 
-- [Presentation](#presentation)
-- [Connection](#connection)
-- [Database number](#database-number)
-- [Clients numbers](#clients-numbers)
-- [Volatile keys](#volatile-keys)
-- [Debugging and monitoring a scan via redis](#debugging-and-monitoring-a-scan-via-redis)
+- [Redis KB server](#redis-kb-server)
+  - [Presentation](#presentation)
+  - [Connection](#connection)
+  - [Database number](#database-number)
+  - [Clients numbers](#clients-numbers)
+  - [Volatile keys](#volatile-keys)
+  - [Debugging and monitoring a scan via redis](#debugging-and-monitoring-a-scan-via-redis)
 
 ## Presentation
 

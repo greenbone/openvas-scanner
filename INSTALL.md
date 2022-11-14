@@ -29,7 +29,7 @@ Prerequisites:
 
 Prerequisites for building documentation:
 * Doxygen
-* xmltoman (optional, for building man page)
+* pandoc (optional, for building manual and man pages for NASL built-in functions)
 
 Prerequisites for building tests:
 * Cgreen (optional, for building tests)
@@ -83,18 +83,21 @@ This only needs to be done once.
 
 Other cmake variables need to be adjusted as well if you want to have all files in CMAKE_INSTALL_PREFIX or in the default installation path `/usr/local`. They can be added to the `cmake` call with `-D<var_name>=<install_prefix><default_value>`.
 
-| Variable               | Default                              |
-| ---------------------- |:-------------------------------------|
-| SYSCONFDIR             |  `/etc`                              |
-| LOCALSTATEDIR          |  `/var`                              |
-| OPENVAS_FEED_LOCK_PATH |  `/var/lib/openvas/feed-update.lock` |
-| OPENVAS_RUN_DIR        |  `/run/ospd`                         |
+| Variable               | Default                             |
+| ---------------------- | :---------------------------------- |
+| SYSCONFDIR             | `/etc`                              |
+| LOCALSTATEDIR          | `/var`                              |
+| OPENVAS_FEED_LOCK_PATH | `/var/lib/openvas/feed-update.lock` |
+| OPENVAS_RUN_DIR        | `/run/ospd`                         |
 
 Thereafter, the following commands are useful:
 
     make                # build the scanner
-    make doc            # build the documentation
-    make doc-full       # build more developer-oriented documentation
+    make doxygen        # build the documentation
+    make doxygen-full   # build more developer-oriented documentation
+    make doxygen-xml    # build the documentation (XML)
+    make manual         # build a HTML manual
+    make nasl-man       # build man pages for NASL built-in functions
     make tests          # build tests
     make install        # install the build
     make rebuild_cache  # rebuild the cmake cache
