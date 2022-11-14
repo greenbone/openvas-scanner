@@ -1,4 +1,4 @@
-const NVTCACHE: &str = "nvticache";
+const NVTICACHE: &str = "nvticache";
 const PLUGIN_PATH: &str = "/home/jnicola/install/var/lib/openvas/plugins/";
 
 use crate::dberror::Result;
@@ -35,13 +35,13 @@ impl NvtCache {
 
     /// Set the key nvtcache
     pub fn set_version(&mut self, feed_version: &str) -> Result<()> {
-        let _ = self.cache.redis_set_key("nvticache", feed_version)?;
+        let _ = self.cache.redis_set_key(NVTICACHE, feed_version)?;
         Ok(())
     }
 
     /// Get the key nvtcache, which has the feed version
     pub fn get_version(&mut self) -> Result<String> {
-        let version = self.cache.redis_get_key("nvticache")?;
+        let version = self.cache.redis_get_key(NVTICACHE)?;
         Ok(version)
     }
 
@@ -50,7 +50,7 @@ impl NvtCache {
     /// with the version in the cache
     /// Return True if it is updated, False if outdated, Error otherwise.
     pub fn check_feed(&mut self, current: &str) -> Result<bool> {
-        let cached = self.cache.redis_get_key("nvticache")?;
+        let cached = self.cache.redis_get_key(NVTICACHE)?;
         if cached == current {
             return Ok(true);
         }
