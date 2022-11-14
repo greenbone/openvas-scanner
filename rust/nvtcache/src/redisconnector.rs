@@ -1,10 +1,12 @@
+use crate::dberror::DbError;
+use crate::dberror::Result;
+use crate::nvt::Category;
+use crate::nvt::Nvt;
 use redis::*;
+use std::collections::LinkedList;
 
 const GLOBAL_DBINDEX_NAME: &str = "GVM.__GlobalDBIndex";
 const REDIS_DEFAULT_PATH: &str = "unix:///run/redis/redis-server.sock";
-
-use crate::dberror::DbError;
-use crate::dberror::Result;
 
 pub enum KbNvtPos {
     NvtFilenamePos,
@@ -21,6 +23,7 @@ pub enum KbNvtPos {
     NvtCategoryPos,
     NvtFamilyPos,
     NvtNamePos,
+    //The last two members aren't stored.
     NvtTimestampPos,
     NvtOIDPos,
 }
@@ -186,5 +189,51 @@ impl RedisCtx {
     pub fn redis_del_key(&mut self, key: String) -> Result<String> {
         let ret: RedisValueHandler = self.kb.del(key)?;
         Ok(ret.v)
+    }
+
+    pub fn redis_add_nvt(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
+        let oid = nvt.get_oid()?;
+        let name = nvt.get_name()?;
+        let required_keys = nvt.get_required_keys()?;
+        let mandatory_keys = nvt.get_mandatory_keys()?;
+        let excluded_keys = nvt.get_excluded_keys()?;
+        let required_udp_ports = nvt.get_required_udp_ports()?;
+        let required_ports = nvt.get_required_ports()?;
+        let dependencies = nvt.get_dependencies()?;
+        let tags = nvt.get_tag()?;
+        // TODO: add functions to get the refs
+        let xrefs = String::new();
+        let bids = String::new();
+        let cves = String::new();
+        //---------------------------------------
+        let category = nvt.get_category()?;
+        let family = nvt.get_family()?;
+
+        let mut key_name: String = "nvt:".to_owned();
+        key_name = key_name + oid.as_ref();
+        Cmd::new()
+            .arg("LPUSH")
+            .arg(key_name)
+            .arg(filename)
+            .arg(required_keys)
+            .arg(mandatory_keys)
+            .arg(excluded_keys)
+            .arg(required_udp_ports)
+            .arg(required_ports)
+            .arg(dependencies)
+            .arg(tags)
+            .arg(cves)
+            .arg(bids)
+            .arg(xrefs)
+            .arg(category)
+            .arg(family)
+            .arg(name)
+            .query(&mut self.kb)?;
+
+        //TODO: Add preferences
+
+        nvt.destroy();
+
+        return Ok(());
     }
 }
