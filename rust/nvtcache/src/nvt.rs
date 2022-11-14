@@ -365,7 +365,25 @@ impl Nvt {
         return Ok(());
     }
 
-    ///   GET FUNCTIONS
+    /// Function to add a new preference to the Nvt
+    pub fn add_pref(&mut self, pref: NvtPref) -> Result<()> {
+        self.prefs.push_back(pref);
+        return Ok(());
+    }
+
+    /// Function to add a new reference to the Nvt
+    pub fn add_ref(&mut self, nvtref: NvtRef) -> Result<()> {
+        self.refs.push_back(nvtref);
+        return Ok(());
+    }
+
+    /// Function to add a new severity to the Nvt
+    pub fn add_severity(&mut self, severity: NvtSeverity) -> Result<()> {
+        self.severities.push_back(severity);
+        return Ok(());
+    }
+
+    //   GET FUNCTIONS
 
     /// Get the NVT OID
     pub fn get_oid(&mut self) -> Result<&String> {
