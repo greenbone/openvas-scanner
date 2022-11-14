@@ -319,6 +319,41 @@ impl Nvt {
         return Ok(());
     }
 
+    /// Add a tag to the NVT tags.
+    /// The tag names "severity_date", "last_modification" and
+    /// "creation_date" are treated special: The value is expected
+    /// to be a timestamp  and it is being converted to seconds
+    /// since epoch before added as a tag value.
+    /// The tag name "cvss_base" will be ignored and not added.
+    pub fn add_tag(&mut self, name: String, value: String) -> Result<()> {
+        let mut new_value = value;
+        let current_tag = &self.tag;
+
+        match name.as_str() {
+            "last_modification" => {
+                //TODO: convert the value to seconds since epoch
+                new_value = 1234.to_string();
+            }
+            "creation_date" => {
+                //TODO: convert the value to seconds since epoch
+                new_value = 1234.to_string();
+            }
+            "severity_date" => {
+                //TODO: convert the value to seconds since epoch
+                new_value = 1234.to_string();
+            }
+            "cvss_base" => return Ok(()),
+            _ => (),
+        }
+        if self.tag.is_empty() {
+            self.tag = [name, "=".to_string(), new_value].concat();
+        } else {
+            self.tag = [current_tag.to_string(), "|".to_string(), name, "=".to_string(), new_value].concat();
+        }
+
+        return Ok(());
+    }
+
     ///   GET FUNCTIONS
 
     /// Get the NVT OID
