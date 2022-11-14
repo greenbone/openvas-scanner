@@ -139,6 +139,38 @@ impl<'a> Lexer<'a> {
             ),
         ))
     }
+
+    fn parse_while(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        self.paren_base()?;
+        let condition = self
+            .statement(0, &|c| c == Category::RightParen)?
+            .as_returnable_or_err()?;
+        let body = self.statement(0, &|c| c == Category::Semicolon)?;
+        Ok((
+            PrefixState::Break,
+            Statement::While(Box::new(condition), Box::new(body)),
+        ))
+    }
+    fn parse_repeat(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        let body = self.statement(0, &|c| c == Category::Semicolon)?;
+
+        let until: Statement = {
+            match self.tokenizer.next() {
+                Some(token) => match token.category() {
+                    Category::Identifier(Some(Keyword::Until)) => {
+                        self.statement(0, &|cat| cat == Category::Semicolon)
+                    }
+                    _ => Err(unexpected_token!(token)),
+                },
+                None => Err(unexpected_end!("in repeat")),
+            }?
+            .as_returnable_or_err()?
+        };
+        Ok((
+            PrefixState::Break,
+            Statement::Repeat(Box::new(body), Box::new(until)),
+        ))
+    }
 }
 
 impl<'a> Keywords for Lexer<'a> {
@@ -152,9 +184,9 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::ForEach => todo!(),
             Keyword::If => self.parse_if(),
             Keyword::Else => Err(unexpected_token!(token)), // handled in if
-            Keyword::While => todo!(),
-            Keyword::Repeat => todo!(),
-            Keyword::Until => todo!(),
+            Keyword::While => self.parse_while(),
+            Keyword::Repeat => self.parse_repeat(),
+            Keyword::Until => Err(unexpected_token!(token)), // handled in repeat
             Keyword::LocalVar => self.parse_declaration(DeclareScope::Local),
             Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
             Keyword::Null => Ok((PrefixState::Continue, Statement::Primitive(token))),
@@ -344,6 +376,25 @@ mod test {
         assert!(matches!(
             parse(code).next().unwrap().unwrap(),
             Statement::For(_, _, _, _)
+        ))
+    }
+
+    #[test]
+    fn while_loop() {
+        let code = "while (TRUE) ;";
+        assert!(matches!(
+            parse(code).next().unwrap().unwrap(),
+            Statement::While(_, _)
+        ))
+    }
+
+
+    #[test]
+    fn repeat_loop() {
+        let code = "repeat ; until 1 == 1";
+        assert!(matches!(
+            parse(code).next().unwrap().unwrap(),
+            Statement::Repeat(_, _)
         ))
     }
 

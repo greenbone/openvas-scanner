@@ -61,6 +61,10 @@ pub enum Statement {
     /// For statement, containing a declaration/assignment, a condition, a execution per round before body execution, body execution
     /// e.g. `for (i = 0; i < 10; i++) display("hi");`
     For(Box<Statement>, Box<Statement>, Box<Statement>, Box<Statement>),
+    /// While statement, containing a condition and a block
+    While(Box<Statement>, Box<Statement>),
+    /// repeat statement, containing a block and a condition
+    Repeat(Box<Statement>, Box<Statement>),
     /// A set of expression within { ... }
     Block(Vec<Statement>),
     /// An empty operation, e.g. ;
