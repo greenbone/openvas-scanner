@@ -121,6 +121,25 @@ macro_rules! unexpected_statement {
     }};
 }
 
+
+/// Creates an unexpected statement error.
+///
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
+/// use nasl_syntax::{unexpected_statement, Statement};
+/// unexpected_statement!(Statement::EoF);
+/// ```
+#[macro_export]
+macro_rules! unclosed_statement{
+    ($statement:expr) => {{
+        use $crate::statement_error;
+        statement_error!($statement, format!("Unclosed statement {:?}", $statement))
+    }};
+}
+
+
 /// Creates an unclosed Token error.
 ///
 /// # Examples

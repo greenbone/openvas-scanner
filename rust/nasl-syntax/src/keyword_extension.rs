@@ -1,11 +1,11 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::{AssignOrder, Statement},
+    lexer::Statement,
     lexer::{DeclareScope, Lexer},
     prefix_extension::PrefixState,
     token::{Category, Keyword, Token},
-    unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
+    unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
 };
 
 pub(crate) trait Keywords {
@@ -48,7 +48,8 @@ impl<'a> Lexer<'a> {
         let condition = match token.category() {
             Category::LeftParen => self.parse_paren(token),
             _ => Err(unexpected_token!(token)),
-        }?;
+        }?
+        .as_returnable_or_err()?;
         let body = self.statement(0, &|cat| cat == Category::Semicolon)?;
         if !self
             .end_category
@@ -77,11 +78,19 @@ impl<'a> Lexer<'a> {
         ))
     }
 
-    fn parse_exit(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
-        let token = self.token().ok_or_else(|| unexpected_end!("exit."))?;
+    fn paren_base(&mut self) -> Result<(), SyntaxError> {
+        let token = self
+            .token()
+            .ok_or_else(|| unexpected_end!("expected paren."))?;
         if token.category() != Category::LeftParen {
-            return Err(unexpected_token!(token));
+            Err(unexpected_token!(token))
+        } else {
+            Ok(())
         }
+    }
+
+    fn parse_exit(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        self.paren_base()?;
         let parameter = self
             .statement(0, &|cat| cat == Category::RightParen)?
             .as_returnable_or_err()?;
@@ -91,7 +100,6 @@ impl<'a> Lexer<'a> {
             Err(unexpected_end!("exit"))
         }
     }
-
 
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let parameter = self
@@ -103,6 +111,34 @@ impl<'a> Lexer<'a> {
             Err(unexpected_end!("exit"))
         }
     }
+    fn parse_for(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        self.paren_base()?;
+        let assignment = self.statement(0, &|c| c == Category::Semicolon)?;
+        if !matches!(assignment, Statement::Assign(_, _, _, _)) {
+            return Err(unexpected_statement!(assignment));
+        }
+        if self.end_category.is_none() {
+            return Err(unclosed_statement!(assignment));
+        }
+        // `for (i = 0; i < 10; i++) display("hi");`
+        let condition = self
+            .statement(0, &|c| c == Category::Semicolon)?
+            .as_returnable_or_err()?;
+        let pre_body = self.statement(0, &|c| c == Category::RightParen)?;
+        if self.end_category.is_none() {
+            return Err(unclosed_statement!(pre_body));
+        }
+        let body = self.statement(0, &|c| c == Category::Semicolon)?;
+        Ok((
+            PrefixState::Break,
+            Statement::For(
+                Box::new(assignment),
+                Box::new(condition),
+                Box::new(pre_body),
+                Box::new(body),
+            ),
+        ))
+    }
 }
 
 impl<'a> Keywords for Lexer<'a> {
@@ -112,7 +148,7 @@ impl<'a> Keywords for Lexer<'a> {
         token: Token,
     ) -> Result<(PrefixState, Statement), SyntaxError> {
         match keyword {
-            Keyword::For => todo!(),
+            Keyword::For => self.parse_for(),
             Keyword::ForEach => todo!(),
             Keyword::If => self.parse_if(),
             Keyword::Else => Err(unexpected_token!(token)), // handled in if
@@ -301,6 +337,16 @@ mod test {
             );
         }
     }
+
+    #[test]
+    fn for_loop() {
+        let code = "for (i = 0; i < 10; i++) display('hi');";
+        assert!(matches!(
+            parse(code).next().unwrap().unwrap(),
+            Statement::For(_, _, _, _)
+        ))
+    }
+
     #[test]
     fn unclosed() {
         assert!(parse("local_var a, b, c").next().unwrap().is_err());
