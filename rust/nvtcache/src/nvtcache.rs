@@ -57,6 +57,13 @@ impl NvtCache {
         Ok(false)
     }
 
+    pub fn get_nvt_field(&mut self, oid: String, field: KbNvtPos) -> Result<String> {
+        let mut key: String = "nvt:".to_owned();
+        key.push_str(oid.as_str());
+        let value = self.cache.redis_get_item(key, field)?;
+        Ok(value)
+    }
+
     pub fn get_nvt_filename(&mut self, oid: &String) -> Result<String> {
         let mut key: String = "nvt:".to_owned();
         key.push_str(oid);
@@ -64,7 +71,7 @@ impl NvtCache {
         Ok(filename)
     }
 
-    pub fn add_ntv(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
+    pub fn add_nvt(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
         let oid = nvt.get_oid()?;
         let cached_nvt: String = self.get_nvt_filename(&oid)?;
 
@@ -90,6 +97,7 @@ impl NvtCache {
             let _ = self.cache.redis_del_key(key)?;
         }
 
+        self.cache.redis_add_nvt(nvt, filename)?;
         Ok(())
     }
 }
