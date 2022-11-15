@@ -29,7 +29,6 @@ pub enum DeclareScope {
     Local,
 }
 
-
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
@@ -63,7 +62,12 @@ pub enum Statement {
     If(Box<Statement>, Box<Statement>, Option<Box<Statement>>),
     /// For statement, containing a declaration/assignment, a condition, a execution per round before body execution, body execution
     /// e.g. `for (i = 0; i < 10; i++) display("hi");`
-    For(Box<Statement>, Box<Statement>, Box<Statement>, Box<Statement>),
+    For(
+        Box<Statement>,
+        Box<Statement>,
+        Box<Statement>,
+        Box<Statement>,
+    ),
     /// While statement, containing a condition and a block
     While(Box<Statement>, Box<Statement>),
     /// repeat statement, containing a block and a condition
@@ -74,6 +78,8 @@ pub enum Statement {
     FCTAnonArgs(Option<Box<Statement>>),
     /// A set of expression within { ... }
     Block(Vec<Statement>),
+    /// Function declaration; contains an identifier token, parameter statement and a block statement
+    FunctionDeclaration(Token, Vec<Statement>, Box<Statement>),
     /// An empty operation, e.g. ;
     NoOp(Option<Token>),
     /// End of File
@@ -160,6 +166,7 @@ impl<'a> Lexer<'a> {
             .token()
             .map(|token| {
                 if abort(token.category()) {
+                    self.end_category = Some(token.category());
                     return Ok((PrefixState::Break, Statement::NoOp(Some(token))));
                 }
                 self.prefix_statement(token, abort)

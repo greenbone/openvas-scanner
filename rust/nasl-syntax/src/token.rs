@@ -56,6 +56,7 @@ pub enum UnclosedCategory {
 /// Are reserved words that cannot be reused otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Keyword {
+    Function,    // function declaration
     FCTAnonArgs, // _FCT_ANON_ARGS
     True,        // TRUE
     False,       // FALSE
@@ -78,6 +79,7 @@ impl Keyword {
     /// Parses given keyword and returns Keyword enum or None
     pub fn new(keyword: &str) -> Option<Self> {
         match keyword {
+            "function" => Some(Keyword::Function),
             "_FCT_ANON_ARGS" => Some(Keyword::FCTAnonArgs),
             "TRUE" => Some(Keyword::True),
             "FALSE" => Some(Keyword::False),
