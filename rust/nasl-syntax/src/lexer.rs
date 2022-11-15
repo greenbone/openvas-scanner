@@ -6,7 +6,7 @@ use crate::{
     postifx_extension::Postfix,
     prefix_extension::{Prefix, PrefixState},
     token::{Category, Token, Tokenizer},
-    unexpected_end, unexpected_statement, unexpected_token,
+    unexpected_statement, unexpected_token,
 };
 
 /// Specifies the order of assignment
@@ -121,9 +121,8 @@ impl Statement {
 
 /// Is used to parse Token to Statement
 pub struct Lexer<'a> {
-    pub(crate) tokenizer: Tokenizer<'a>,
+    tokenizer: Tokenizer<'a>,
     pub(crate) unhandled_token: Option<Token>,
-    pub(crate) end_category: Option<Category>,
 }
 
 impl<'a> Lexer<'a> {
@@ -132,7 +131,6 @@ impl<'a> Lexer<'a> {
         Lexer {
             tokenizer,
             unhandled_token: None,
-            end_category: None,
         }
     }
 
@@ -156,17 +154,15 @@ impl<'a> Lexer<'a> {
         &mut self,
         min_binding_power: u8,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<Statement, SyntaxError> {
+    ) -> Result<(bool, Statement), SyntaxError> {
         // reset unhandled_token when min_bp is 0
         if min_binding_power == 0 {
             self.unhandled_token = None;
-            self.end_category = None;
         }
         let (state, mut left) = self
             .token()
             .map(|token| {
                 if abort(token.category()) {
-                    self.end_category = Some(token.category());
                     return Ok((PrefixState::Break, Statement::NoOp(Some(token))));
                 }
                 self.prefix_statement(token, abort)
@@ -174,8 +170,10 @@ impl<'a> Lexer<'a> {
             .unwrap_or(Ok((PrefixState::Break, Statement::EoF)))?;
 
         if state == PrefixState::Break {
-            return Ok(left);
+            // on break the other function needs to verify if it ended
+            return Ok((true, left));
         }
+        let mut end_statement = false;
         loop {
             let token = {
                 match self.token() {
@@ -185,7 +183,8 @@ impl<'a> Lexer<'a> {
             };
             if abort(token.category()) {
                 // to be able to verify abort condition.
-                self.end_category = Some(token.category());
+                end_statement = true;
+
                 // set unhandled_token to skip one next call
                 self.unhandled_token = Some(token);
                 break;
@@ -209,7 +208,7 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Ok(left)
+        Ok((end_statement, left))
     }
 }
 
@@ -218,10 +217,11 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.statement(0, &|cat| cat == Category::Semicolon);
-        if result == Ok(Statement::EoF) {
-            None
-        } else {
-            Some(result)
+        match result {
+            Ok((true, Statement::EoF)) => None,
+            Ok((true, stmt)) => Some(Ok(stmt)),
+            Ok((false, stmt)) => Some(Err(unexpected_statement!(stmt))),
+            Err(x) => Some(Err(x)),
         }
     }
 }

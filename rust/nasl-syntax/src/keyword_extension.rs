@@ -22,7 +22,11 @@ impl<'a> Lexer<'a> {
         &mut self,
         scope: DeclareScope,
     ) -> Result<(PrefixState, Statement), SyntaxError> {
-        let result = match self.statement(0, &|cat| cat == Category::Semicolon)? {
+        let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        if !end {
+            return Err(unexpected_end!("expected a finished statement."));
+        }
+        let result = match stmt {
             Statement::Variable(var) => Ok((
                 PrefixState::Break,
                 Statement::Declare(scope, vec![Statement::Variable(var)]),
@@ -38,10 +42,7 @@ impl<'a> Lexer<'a> {
             }
             stmt => Err(unexpected_statement!(stmt)),
         }?;
-        match self.end_category {
-            Some(Category::Semicolon) => Ok(result),
-            _ => Err(unexpected_end!("parsing local_var")),
-        }
+        Ok(result)
     }
     fn parse_if(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
@@ -51,22 +52,23 @@ impl<'a> Lexer<'a> {
         }?
         .as_returnable_or_err()?;
         self.unhandled_token = None;
-        let body = self.statement(0, &|cat| cat == Category::Semicolon)?;
-        if !matches!(
-            self.end_category,
-            Some(Category::Semicolon | Category::RightCurlyBracket)
-        ) {
+        let (end, body) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        if !end {
             return Err(unclosed_token!(token));
         }
+        self.unhandled_token = None;
         let r#else: Option<Statement> = {
-            match self.tokenizer.next() {
+            match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
-                        Some(self.statement(0, &|cat| cat == Category::Semicolon)?)
+                        let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+                        if !end {
+                            return Err(unexpected_statement!(stmt));
+                        }
+                        Some(stmt)
                     }
                     _ => {
                         self.unhandled_token = Some(token);
-                        self.end_category = Some(token.category);
                         None
                     }
                 },
@@ -92,10 +94,10 @@ impl<'a> Lexer<'a> {
 
     fn parse_exit(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         self.paren_base()?;
-        let parameter = self
-            .statement(0, &|cat| cat == Category::RightParen)?
-            .as_returnable_or_err()?;
-        if self.end_category.is_some() {
+        let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
+        let parameter = parameter.as_returnable_or_err()?;
+        if end {
+            // TODO parse to to ;
             Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
         } else {
             Err(unexpected_end!("exit"))
@@ -104,12 +106,12 @@ impl<'a> Lexer<'a> {
 
     fn parse_include(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         self.paren_base()?;
-        let parameter = self
-            .statement(0, &|cat| cat == Category::RightParen)?
-            .as_returnable_or_err()?;
-        if self.end_category.is_some() {
+        let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
+        let parameter = parameter.as_returnable_or_err()?;
+        if end {
             match parameter {
                 Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => {
+                    // TODO parse to end!
                     Ok((PrefixState::Break, Statement::Include(Box::new(parameter))))
                 }
                 _ => Err(unexpected_statement!(parameter)),
@@ -121,15 +123,13 @@ impl<'a> Lexer<'a> {
 
     fn parse_function(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let id = self
-            .tokenizer
-            .next()
+            .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
         if !matches!(id.category(), Category::Identifier(None)) {
             return Err(unexpected_token!(id));
         }
         let paren = self
-            .tokenizer
-            .next()
+            .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
         if !matches!(paren.category(), Category::LeftParen) {
             return Err(unexpected_token!(paren));
@@ -141,8 +141,7 @@ impl<'a> Lexer<'a> {
             stmt => return Err(unexpected_statement!(stmt)),
         };
         let block = self
-            .tokenizer
-            .next()
+            .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
         if !matches!(block.category(), Category::LeftCurlyBracket) {
             return Err(unexpected_token!(block));
@@ -155,10 +154,10 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
-        let parameter = self
-            .statement(0, &|cat| cat == Category::Semicolon)?
-            .as_returnable_or_err()?;
-        if self.end_category.is_some() {
+        let (end, parameter) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let parameter = parameter.as_returnable_or_err()?;
+        if end {
+            // TODO parse to end
             Ok((PrefixState::Break, Statement::Return(Box::new(parameter))))
         } else {
             Err(unexpected_end!("exit"))
@@ -166,22 +165,27 @@ impl<'a> Lexer<'a> {
     }
     fn parse_for(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         self.paren_base()?;
-        let assignment = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, assignment) = self.statement(0, &|c| c == Category::Semicolon)?;
         if !matches!(assignment, Statement::Assign(_, _, _, _)) {
             return Err(unexpected_statement!(assignment));
         }
-        if self.end_category.is_none() {
+        if !end {
             return Err(unclosed_statement!(assignment));
         }
         // `for (i = 0; i < 10; i++) display("hi");`
-        let condition = self
-            .statement(0, &|c| c == Category::Semicolon)?
-            .as_returnable_or_err()?;
-        let pre_body = self.statement(0, &|c| c == Category::RightParen)?;
-        if self.end_category.is_none() {
+        let (end, condition) = self.statement(0, &|c| c == Category::Semicolon)?;
+        let condition = condition.as_returnable_or_err()?;
+        if !end {
+            return Err(unclosed_statement!(condition));
+        }
+        let (end, pre_body) = self.statement(0, &|c| c == Category::RightParen)?;
+        if !end {
             return Err(unclosed_statement!(pre_body));
         }
-        let body = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
+        if !end {
+            return Err(unclosed_statement!(body));
+        }
         Ok((
             PrefixState::Break,
             Statement::For(
@@ -195,23 +199,23 @@ impl<'a> Lexer<'a> {
 
     fn parse_while(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         self.paren_base()?;
-        let condition = self
-            .statement(0, &|c| c == Category::RightParen)?
-            .as_returnable_or_err()?;
-        let body = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, condition) = self.statement(0, &|c| c == Category::RightParen)?;
+        let condition = condition.as_returnable_or_err()?;
+        let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
         Ok((
             PrefixState::Break,
             Statement::While(Box::new(condition), Box::new(body)),
         ))
     }
     fn parse_repeat(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
-        let body = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
 
         let until: Statement = {
-            match self.tokenizer.next() {
+            match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Until)) => {
-                        self.statement(0, &|cat| cat == Category::Semicolon)
+                        let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+                        Ok(stmt)
                     }
                     _ => Err(unexpected_token!(token)),
                 },
@@ -227,7 +231,7 @@ impl<'a> Lexer<'a> {
 
     fn parse_foreach(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let variable: Token = {
-            match self.tokenizer.next() {
+            match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(None) => Ok(token),
                     _ => Err(unexpected_token!(token)),
@@ -236,29 +240,27 @@ impl<'a> Lexer<'a> {
             }?
         };
         let r#in: Statement = {
-            let token = self
-                .tokenizer
-                .next()
-                .ok_or_else(|| unexpected_end!("in foreach"))?;
+            let token = self.token().ok_or_else(|| unexpected_end!("in foreach"))?;
             match token.category() {
                 Category::LeftParen => self.parse_paren(token),
                 _ => Err(unexpected_token!(token)),
             }?
         };
-        let block = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let (end, block) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         Ok((
             PrefixState::Break,
             Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
         ))
     }
     fn parse_fct_anon_args(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
-        match self.tokenizer.next() {
+        match self.token() {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
-                    let lookup = self
-                        .statement(0, &|c| c == Category::RightBrace)?
+                    let (end, lookup) = self
+                        .statement(0, &|c| c == Category::RightBrace)?;
+                    let lookup = lookup
                         .as_returnable_or_err()?;
-                    if !matches!(self.end_category, Some(Category::RightBrace)) {
+                    if !end {
                         Err(unclosed_token!(token))
                     } else {
                         self.unhandled_token = None;
@@ -365,10 +367,7 @@ mod test {
                     category: Identifier(None),
                     position: (4, 15)
                 })),
-                Box::new(Block(vec![NoOp(Some(Token {
-                    category: Semicolon,
-                    position: (19, 20)
-                }))])),
+                Box::new(Block(vec![])),
                 None
             )
         );
@@ -570,7 +569,6 @@ mod test {
             )
         );
     }
-
 
     #[test]
     fn fct_anon_args() {

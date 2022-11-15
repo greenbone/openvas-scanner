@@ -35,8 +35,8 @@ impl<'a> Lexer<'a> {
             x => vec![x],
         };
         match self.statement(0, abort)? {
-            Statement::Parameter(mut x) => lhs.append(&mut x),
-            x => lhs.push(x),
+            (_, Statement::Parameter(mut x)) => lhs.append(&mut x),
+            (_, x) => lhs.push(x),
         };
         Ok(Statement::Parameter(lhs))
     }
@@ -152,7 +152,7 @@ mod test {
                 ],
             )
         };
-        assert_eq!(result("1 + a++ * 1"), expected(PlusPlus, Plus));
-        assert_eq!(result("1 + a-- * 1"), expected(MinusMinus, Minus));
+        assert_eq!(result("1 + a++ * 1;"), expected(PlusPlus, Plus));
+        assert_eq!(result("1 + a-- * 1;"), expected(MinusMinus, Minus));
     }
 }
