@@ -198,38 +198,37 @@ impl RedisCtx {
         let required_ports = nvt.get_required_ports()?;
         let dependencies = nvt.get_dependencies()?;
         let tags = nvt.get_tag()?;
-        let category = nvt.get_category()?;
+        let category = nvt.get_category();
         let family = nvt.get_family()?;
 
         // Get the references
         let (cves, bids, xrefs) = nvt.get_refs();
 
         let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
-        Cmd::new()
-            .arg("RPUSH")
-            .arg(key_name)
-            .arg(filename)
-            .arg(required_keys)
-            .arg(mandatory_keys)
-            .arg(excluded_keys)
-            .arg(required_udp_ports)
-            .arg(required_ports)
-            .arg(dependencies)
-            .arg(tags)
-            .arg(cves)
-            .arg(bids)
-            .arg(xrefs)
-            .arg(category)
-            .arg(family)
-            .arg(name)
-            .query(&mut self.kb)?;
+        let values: Vec<String> = [
+            filename,
+            required_keys,
+            mandatory_keys,
+            excluded_keys,
+            required_udp_ports,
+            required_ports,
+            dependencies,
+            tags,
+            cves,
+            bids,
+            xrefs,
+            category.to_string(),
+            family,
+            name,
+        ]
+        .to_vec();
 
-        //TODO: Add preferences
-        //let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
-        //let prefs = nvt.get_prefs()?;
-        //for pref in prefs.iter_mut() {
-        //
-        //}
+        self.kb.rpush(key_name, values)?;
+
+        // Add preferences
+        let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
+        let prefs = nvt.get_prefs();
+        self.kb.lpush(key_name, prefs)?;
 
         Ok(())
     }
