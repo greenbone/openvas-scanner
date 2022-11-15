@@ -69,6 +69,22 @@ impl NvtPref {
             default,
         })
     }
+    /// Return the id of the NvtPref
+    pub fn get_id(&mut self) -> String {
+        return self.pref_id.to_string();
+    }
+    /// Return the type of the NvtPref
+    pub fn get_type(&mut self) -> String {
+        return self.pref_type.clone();
+    }
+    /// Return the name of the NvtPref
+    pub fn get_name(&mut self) -> String {
+        return self.name.clone();
+    }
+    /// Return the default value of the NvtPref
+    pub fn get_default(&mut self) -> String {
+        return self.default.clone();
+    }
 }
 
 impl NvtRef {
@@ -559,5 +575,24 @@ impl Nvt {
             }
         }
         return Ok((cve.to_string(), bid.to_string(), xrefs.to_string()));
+    }
+
+    pub fn get_prefs(&mut self) -> Result<Vec<String>> {
+        let mut prefs: Vec<String> = Vec::new();
+
+        for pref in self.prefs.iter_mut() {
+            let pref_str = [
+                pref.get_id(),
+                pref.get_name(),
+                pref.get_id(),
+                pref.get_default(),
+            ]
+            .join(":")
+            .to_string();
+
+            prefs.push(pref_str);
+        }
+
+        return Ok(prefs);
     }
 }
