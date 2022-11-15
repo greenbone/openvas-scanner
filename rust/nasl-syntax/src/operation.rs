@@ -65,7 +65,7 @@ impl Operation {
             | Category::PlusPlus
             | Category::MinusMinus => Some(Operation::Assign(token.category())),
             Category::String(_) | Category::Number(_) => Some(Operation::Primitive),
-            Category::LeftParen | Category::LeftCurlyBracket | Category::Comma => {
+            Category::LeftParen | Category::LeftBrace | Category::LeftCurlyBracket | Category::Comma => {
                 Some(Operation::Grouping(token.category()))
             }
             Category::Identifier(None) => Some(Operation::Variable),

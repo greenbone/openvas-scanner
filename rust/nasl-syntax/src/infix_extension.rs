@@ -51,6 +51,8 @@ fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     Some(res)
 }
 
+impl<'a> Lexer<'a> {}
+
 impl<'a> Infix for Lexer<'a> {
     fn infix_statement(
         &mut self,
@@ -67,9 +69,27 @@ impl<'a> Infix for Lexer<'a> {
             match op {
                 // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
                 Operation::Assign(category) => match lhs {
-                    Statement::Variable(token) => {
-                        Statement::Assign(category, AssignOrder::Assign, token, Box::new(rhs))
+                    Statement::Variable(var) => {
+                        // when the right side is a parameter list than it is an array
+                        let lhs = {
+                            match rhs {
+                                Statement::Parameter(_) => Statement::Array(var, None),
+                                _ => lhs,
+                            }
+                        };
+                        Statement::Assign(
+                            category,
+                            AssignOrder::Assign,
+                            Box::new(lhs),
+                            Box::new(rhs),
+                        )
                     }
+                    Statement::Array(_, _) => Statement::Assign(
+                        category,
+                        AssignOrder::Assign,
+                        Box::new(lhs),
+                        Box::new(rhs),
+                    ),
                     _ => Statement::Operator(token.category(), vec![lhs, rhs]),
                 },
                 _ => Statement::Operator(token.category(), vec![lhs, rhs]),
@@ -208,7 +228,7 @@ mod test {
             Assign(
                 category,
                 AssignOrder::Assign,
-                token(Identifier(None), 0, 1),
+                Box::new(Variable(token(Identifier(None), 0, 1))),
                 Box::new(Primitive(token(Number(Base10), 5 + shift, 6 + shift))),
             )
         }
@@ -280,7 +300,7 @@ mod test {
             Assign(
                 Category::Equal,
                 AssignOrder::Assign,
-                token(Identifier(None), 0, 1),
+                Box::new(Variable(token(Identifier(None), 0, 1))),
                 Box::new(Primitive(Token {
                     category: Number(Base10),
                     position: (4, 5)
@@ -292,7 +312,7 @@ mod test {
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
-                token(Identifier(None), 1, 2),
+                Box::new(Variable(token(Identifier(None), 1, 2))),
                 Box::new(Primitive(Token {
                     category: Number(Base10),
                     position: (5, 6)

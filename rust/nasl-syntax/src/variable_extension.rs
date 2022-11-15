@@ -4,7 +4,7 @@ use crate::{
     lexer::Lexer,
     lexer::Statement,
     token::{Category, Token},
-    unexpected_end, unexpected_token,
+    unclosed_token, unexpected_end, unexpected_token,
 };
 
 pub(crate) trait Variables {
@@ -23,6 +23,17 @@ impl<'a> Variables for Lexer<'a> {
                 Category::LeftParen => {
                     let parameter = self.parse_paren(nt)?;
                     return Ok(Statement::Call(token, Box::new(parameter)));
+                }
+                Category::LeftBrace => {
+                    let lookup = self
+                        .statement(0, &|c| c == Category::RightBrace)?
+                        .as_returnable_or_err()?;
+                    if !matches!(self.end_category, Some(Category::RightBrace)) {
+                        return Err(unclosed_token!(token));
+                    } else {
+                        self.unhandled_token = None;
+                        return Ok(Statement::Array(token, Some(Box::new(lookup))));
+                    }
                 }
                 Category::DoublePoint => {
                     let either_comma_rightparen =
@@ -49,7 +60,7 @@ impl<'a> Variables for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::Statement,
+        lexer::{AssignOrder, Statement},
         parse,
         token::{Base, Category, StringCategory, Token},
     };
@@ -72,6 +83,78 @@ mod test {
     #[test]
     fn variables() {
         assert_eq!(result("a"), Variable(token(Identifier(None), 0, 1)));
+    }
+
+    #[test]
+    fn arrays() {
+        assert_eq!(
+            result("a[0];"),
+            Array(
+                token(Identifier(None), 0, 1),
+                Some(Box::new(Primitive(token(Number(Base10), 2, 3))))
+            )
+        );
+
+        assert_eq!(
+            result("a = [1, 2, 3];"),
+            Assign(
+                Equal,
+                AssignOrder::Assign,
+                Box::new(Array(
+                    Token {
+                        category: Identifier(None),
+                        position: (0, 1)
+                    },
+                    None
+                )),
+                Box::new(Parameter(vec![
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (5, 6)
+                    }),
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (8, 9)
+                    }),
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (11, 12)
+                    })
+                ]))
+            )
+        );
+
+        assert_eq!(
+            result("a[0] = [1, 2, 3];"),
+            Assign(
+                Equal,
+                AssignOrder::Assign,
+                Box::new(Array(
+                    Token {
+                        category: Identifier(None),
+                        position: (0, 1)
+                    },
+                    Some(Box::new(Primitive(Token {
+                        category: Number(Base10),
+                        position: (2, 3)
+                    })))
+                )),
+                Box::new(Parameter(vec![
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (8, 9)
+                    }),
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (11, 12)
+                    }),
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (14, 15)
+                    })
+                ]))
+            )
+        );
     }
 
     #[test]
