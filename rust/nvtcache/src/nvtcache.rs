@@ -1,24 +1,34 @@
-const NVTICACHE: &str = "nvticache";
-const PLUGIN_PATH: &str = "/home/jnicola/install/var/lib/openvas/plugins/";
-
 use crate::dberror::Result;
 use crate::nvt::*;
 use crate::redisconnector::*;
+use std::env;
 use std::path::Path;
 
 pub struct NvtCache {
     pub cache: RedisCtx,
     pub init: bool,
+    cache_key: String,
+    plugin_path: String,
 }
 
 /// NvtCache implementation.
 impl NvtCache {
     /// Initialize and return an NVT Cache Object
     pub fn init() -> Result<NvtCache> {
-        let rctx = RedisCtx::new()?;
+        let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
+        let redis_socket = env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket);
+        let rctx = RedisCtx::new(redis_socket.to_string())?;
+
+        let default_plugin_path = |_| "/var/lib/openvas/plugins/".to_string();
+        let plugin_path = env::var("PLUGIN_PATH").unwrap_or_else(default_plugin_path);
+
+        let cache_key = "nvticache".to_string();
+
         Ok(NvtCache {
             cache: rctx,
             init: true,
+            cache_key,
+            plugin_path,
         })
     }
 
@@ -35,13 +45,13 @@ impl NvtCache {
 
     /// Set the key nvtcache
     pub fn set_version(&mut self, feed_version: &str) -> Result<()> {
-        let _ = self.cache.redis_set_key(NVTICACHE, feed_version)?;
+        let _ = self.cache.redis_set_key(&self.cache_key, feed_version)?;
         Ok(())
     }
 
     /// Get the key nvtcache, which has the feed version
     pub fn get_version(&mut self) -> Result<String> {
-        let version = self.cache.redis_get_key(NVTICACHE)?;
+        let version = self.cache.redis_get_key(&self.cache_key)?;
         Ok(version)
     }
 
@@ -50,7 +60,7 @@ impl NvtCache {
     /// with the version in the cache
     /// Return True if it is updated, False if outdated, Error otherwise.
     pub fn check_feed(&mut self, current: &str) -> Result<bool> {
-        let cached = self.cache.redis_get_key(NVTICACHE)?;
+        let cached = self.cache.redis_get_key(&self.cache_key)?;
         if cached == current {
             return Ok(true);
         }
@@ -79,7 +89,7 @@ impl NvtCache {
         // If it is in the cache, and are not the same filename
         // we check if it is still in the filesystem.
         if !cached_nvt.is_empty() && cached_nvt != filename {
-            let mut src_path: String = PLUGIN_PATH.to_owned();
+            let mut src_path: String = self.plugin_path.to_owned();
             src_path.push_str(&cached_nvt);
 
             // If still exists, the oid is duplicated

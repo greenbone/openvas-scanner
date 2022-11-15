@@ -2,10 +2,6 @@ use crate::dberror::DbError;
 use crate::dberror::Result;
 use crate::nvt::Nvt;
 use redis::*;
-use std::collections::LinkedList;
-
-const GLOBAL_DBINDEX_NAME: &str = "GVM.__GlobalDBIndex";
-const REDIS_DEFAULT_PATH: &str = "unix:///run/redis/redis-server.sock";
 
 pub enum KbNvtPos {
     NvtFilenamePos,
@@ -31,6 +27,7 @@ pub struct RedisCtx {
     kb: Connection, //a redis connection
     db: u32,        // the name space
     maxdb: u32,     // max db index
+    global_db_index: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -52,13 +49,15 @@ impl FromRedisValue for RedisValueHandler {
 
 impl RedisCtx {
     /// Connect to the redis server and return a redis context object
-    pub fn new() -> Result<RedisCtx> {
-        let client = redis::Client::open(REDIS_DEFAULT_PATH)?;
+    pub fn new(redis_socket: String) -> Result<RedisCtx> {
+        let client = redis::Client::open(redis_socket)?;
         let kb = client.get_connection()?;
+        let global_db_index = "GVM.__GlobalDBIndex".to_string();
         let mut redisctx = RedisCtx {
             kb,
             db: 0,
             maxdb: 0,
+            global_db_index,
         };
         let _kbi = redisctx.select_database()?;
         Ok(redisctx)
@@ -121,7 +120,7 @@ impl RedisCtx {
     }
 
     fn try_database(&mut self, dbi: u32) -> Result<u32> {
-        let ret = self.kb.hset_nx(GLOBAL_DBINDEX_NAME, dbi, 1)?;
+        let ret = self.kb.hset_nx(&self.global_db_index, dbi, 1)?;
         Ok(ret)
     }
 
@@ -130,7 +129,7 @@ impl RedisCtx {
         let mut selected_db: u32 = 0;
 
         // Start always from 1. Namespace 0 is reserved
-        //format GLOBAL_DBINDEX_NAME
+        //format self.global_db_index
         for i in 1..maxdb {
             let ret = self.try_database(i)?;
             if ret == 1 {
@@ -153,7 +152,7 @@ impl RedisCtx {
         let dbi = self.get_namespace()?;
         // Remove the entry from the hash list
         self.set_namespace(0)?;
-        self.kb.hdel(GLOBAL_DBINDEX_NAME, dbi)?;
+        self.kb.hdel(&self.global_db_index, dbi)?;
         Ok(())
     }
 
@@ -205,7 +204,7 @@ impl RedisCtx {
         // Get the references
         let (cves, bids, xrefs) = nvt.get_refs();
 
-        let key_name = ["nvt:".to_owned(), oid].join("");
+        let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
         Cmd::new()
             .arg("RPUSH")
             .arg(key_name)
@@ -226,6 +225,11 @@ impl RedisCtx {
             .query(&mut self.kb)?;
 
         //TODO: Add preferences
+        //let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
+        //let prefs = nvt.get_prefs()?;
+        //for pref in prefs.iter_mut() {
+        //
+        //}
 
         nvt.destroy();
 
