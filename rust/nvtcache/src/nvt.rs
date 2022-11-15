@@ -82,15 +82,15 @@ impl NvtRef {
     }
     /// Return the type of the NvtRef
     pub fn get_type(&mut self) -> String {
-        return self.ref_type;
+        return self.ref_type.clone();
     }
     /// Return the id of the NvtRef
     pub fn get_id(&mut self) -> String {
-        return self.ref_id;
+        return self.ref_id.clone();
     }
     /// Return the text of the NvtRef
     pub fn get_text(&mut self) -> String {
-        return self.ref_text;
+        return self.ref_text.clone();
     }
 }
 
@@ -514,5 +514,50 @@ impl Nvt {
     /// Get the NVT family
     pub fn get_family(&mut self) -> Result<String> {
         Ok(self.family.clone())
+    }
+
+    /// Get References. It returns a tuple of three strings
+    /// Each string is a references type, and each string
+    /// can contain a list of references of the same type.
+    /// The string contains in the following types:
+    /// (cve_types, bid_types, other_types)
+    /// cve and bid strings are CSC strings containing only
+    /// "id, id, ...", while other custom types includes the type
+    /// and the string is in the format "type:id, type:id, ..."
+    pub fn get_refs(&mut self) -> Result<(String, String, String)> {
+        let mut bid = String::new();
+        let mut cve = String::new();
+        let mut xrefs = String::new();
+
+        for r in self.refs.iter_mut() {
+            let single_ref = r;
+            let reftype = single_ref.get_type();
+
+            let id = single_ref.get_id();
+            match reftype.as_str() {
+                "bid" => {
+                    if !bid.is_empty() {
+                        bid = [bid.as_str(), ", ", id.as_str()].join("");
+                    } else {
+                        bid = [id.as_str()].join("");
+                    }
+                }
+                "cve" => {
+                    if !cve.is_empty() {
+                        cve = [cve.as_str(), ", ", id.as_str()].join("");
+                    } else {
+                        cve = [id.as_str()].join("");
+                    }
+                }
+                _ => {
+                    if !xrefs.is_empty() {
+                        xrefs = [xrefs.as_str(), ", ", reftype.as_str(), ":", id.as_str()].join("");
+                    } else {
+                        xrefs = [reftype.as_str(), ":", id.as_str()].join("");
+                    }
+                }
+            }
+        }
+        return Ok((cve.to_string(), bid.to_string(), xrefs.to_string()));
     }
 }
