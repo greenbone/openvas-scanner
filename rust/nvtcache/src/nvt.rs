@@ -201,8 +201,6 @@ impl Nvt {
         return Ok(Nvt::default());
     }
 
-    pub fn destroy(self) {}
-
     /// Set the NVT OID
     pub fn set_oid(&mut self, oid: String) -> Result<()> {
         self.oid = oid;

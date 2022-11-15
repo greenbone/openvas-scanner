@@ -231,8 +231,6 @@ impl RedisCtx {
         //
         //}
 
-        nvt.destroy();
-
         Ok(())
     }
 }
