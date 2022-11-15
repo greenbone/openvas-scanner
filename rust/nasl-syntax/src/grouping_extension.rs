@@ -18,8 +18,8 @@ pub(crate) trait Grouping {
 
 impl<'a> Lexer<'a> {
     fn parse_brace(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let right = self.statement(0, &|cat| cat == Category::RightBrace)?;
-        if !matches!(self.end_category, Some(Category::RightBrace)) {
+        let (end, right) = self.statement(0, &|cat| cat == Category::RightBrace)?;
+        if !end {
             Err(unclosed_token!(token))
         } else {
             self.unhandled_token = None;
@@ -30,8 +30,8 @@ impl<'a> Lexer<'a> {
 
 impl<'a> Grouping for Lexer<'a> {
     fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let right = self.statement(0, &|cat| cat == Category::RightParen)?;
-        if !matches!(self.end_category, Some(Category::RightParen)) {
+        let (end, right) = self.statement(0, &|cat| cat == Category::RightParen)?;
+        if !end {
             Err(unclosed_token!(token))
         } else {
             self.unhandled_token = None;
@@ -49,15 +49,18 @@ impl<'a> Grouping for Lexer<'a> {
 
     fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
-        while let Some(token) = self.tokenizer.next() {
+        while let Some(token) = self.token() {
             if token.category() == Category::RightCurlyBracket {
                 self.unhandled_token = None;
-                self.end_category = Some(Category::RightCurlyBracket);
                 return Ok(Statement::Block(results));
             }
             self.unhandled_token = Some(token);
             // use min_bp 1 to skip the unhandled_token reset due to self.tokenizer.next call
-            results.push(self.statement(1, &|cat| cat == Category::Semicolon)?);
+            let (end, stmt) = self.statement(1, &|cat| cat == Category::Semicolon)?;
+            if end && !matches!(stmt, Statement::NoOp(_)) {
+                results.push(stmt);
+            }
+            // else error
         }
         Err(unclosed_token!(token))
     }

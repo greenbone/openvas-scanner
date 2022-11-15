@@ -80,7 +80,7 @@ impl<'a> Prefix for Lexer<'a> {
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
-                let right = self.statement(bp, abort)?;
+                let (_, right) = self.statement(bp, abort)?;
                 Ok((Continue, Statement::Operator(kind, vec![right])))
             }
             Operation::Primitive => Ok((Continue, Statement::Primitive(token))),
@@ -132,17 +132,17 @@ mod test {
             )
         }
 
-        assert_eq!(result("-1"), expected(Category::Minus));
-        assert_eq!(result("+1"), expected(Category::Plus));
-        assert_eq!(result("~1"), expected(Category::Tilde));
-        assert_eq!(result("!1"), expected(Category::Bang));
+        assert_eq!(result("-1;"), expected(Category::Minus));
+        assert_eq!(result("+1;"), expected(Category::Plus));
+        assert_eq!(result("~1;"), expected(Category::Tilde));
+        assert_eq!(result("!1;"), expected(Category::Bang));
     }
 
     #[test]
     fn single_statement() {
-        assert_eq!(result("1"), Primitive(token(Number(Base10), 0, 1)));
+        assert_eq!(result("1;"), Primitive(token(Number(Base10), 0, 1)));
         assert_eq!(
-            result("'a'"),
+            result("'a';"),
             Primitive(token(String(StringCategory::Quoteable), 1, 2))
         );
     }
@@ -192,7 +192,7 @@ mod test {
                 ],
             )
         };
-        assert_eq!(result("1 + ++a * 1"), expected(PlusPlus, Plus));
-        assert_eq!(result("1 + --a * 1"), expected(MinusMinus, Minus));
+        assert_eq!(result("1 + ++a * 1;"), expected(PlusPlus, Plus));
+        assert_eq!(result("1 + --a * 1;"), expected(MinusMinus, Minus));
     }
 }

@@ -25,10 +25,9 @@ impl<'a> Variables for Lexer<'a> {
                     return Ok(Statement::Call(token, Box::new(parameter)));
                 }
                 Category::LeftBrace => {
-                    let lookup = self
-                        .statement(0, &|c| c == Category::RightBrace)?
-                        .as_returnable_or_err()?;
-                    if !matches!(self.end_category, Some(Category::RightBrace)) {
+                    let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
+                    let lookup = lookup.as_returnable_or_err()?;
+                    if !end {
                         return Err(unclosed_token!(token));
                     } else {
                         self.unhandled_token = None;
@@ -38,14 +37,10 @@ impl<'a> Variables for Lexer<'a> {
                 Category::DoublePoint => {
                     let either_comma_rightparen =
                         |cat| matches!(cat, Category::RightParen | Category::Comma);
-                    let expr = self.statement(0, &either_comma_rightparen)?;
+                    let (end, expr) = self.statement(0, &either_comma_rightparen)?;
                     // maybe it makes sense to move that check to the statement method?
-                    if let Some(end) = self.end_category {
-                        if either_comma_rightparen(end) {
-                            return Ok(Statement::NamedParameter(token, Box::new(expr)));
-                        } else {
-                            return Err(unexpected_token!(self.unhandled_token.unwrap()));
-                        }
+                    if end {
+                        return Ok(Statement::NamedParameter(token, Box::new(expr)));
                     } else {
                         return Err(unexpected_end!("parsing named variable"));
                     }
@@ -82,7 +77,7 @@ mod test {
 
     #[test]
     fn variables() {
-        assert_eq!(result("a"), Variable(token(Identifier(None), 0, 1)));
+        assert_eq!(result("a;"), Variable(token(Identifier(None), 0, 1)));
     }
 
     #[test]
@@ -166,7 +161,7 @@ mod test {
             Primitive(token(Number(Base10), 8, 9)),
         ]));
 
-        assert_eq!(result("a(1, 2, 3)"), Call(fn_name, args));
+        assert_eq!(result("a(1, 2, 3);"), Call(fn_name, args));
     }
 
     #[test]

@@ -65,7 +65,7 @@ impl<'a> Infix for Lexer<'a> {
             // binding power of the right side
             let (_, right_bp) =
                 infix_binding_power(op).expect("handle_infix should be called first");
-            let rhs = self.statement(right_bp, abort)?;
+            let (_, rhs) = self.statement(right_bp, abort)?;
             match op {
                 // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
                 Operation::Assign(category) => match lhs {
@@ -193,32 +193,32 @@ mod test {
 
     #[test]
     fn ordering() {
-        calculated_test!("1 + 5 * 6", 31);
-        calculated_test!("3 * 10 + 10 / 5", 32);
-        calculated_test!("3 * 10 / 5", 6);
-        calculated_test!("3 * 10 / 5 % 4", 2);
+        calculated_test!("1 + 5 * 6;", 31);
+        calculated_test!("3 * 10 + 10 / 5;", 32);
+        calculated_test!("3 * 10 / 5;", 6);
+        calculated_test!("3 * 10 / 5 % 4;", 2);
     }
 
     #[test]
     fn grouping() {
-        calculated_test!("(2 + 5) * 2", 14);
+        calculated_test!("(2 + 5) * 2;", 14);
     }
 
     #[test]
     fn pow() {
-        calculated_test!("2 ** 4", 16);
+        calculated_test!("2 ** 4;", 16);
     }
 
     #[test]
     fn bitwise_operations() {
         //shifting
-        calculated_test!("1 << 2 * 3", 64);
-        calculated_test!("3 * 12 >> 2", 9);
-        calculated_test!("-5 >>> 2", 1073741822);
+        calculated_test!("1 << 2 * 3;", 64);
+        calculated_test!("3 * 12 >> 2;", 9);
+        calculated_test!("-5 >>> 2;", 1073741822);
         // operations
-        calculated_test!("1 & 0", 0);
-        calculated_test!("~1 | 0", -2);
-        calculated_test!("1 ^ 1", 0);
+        calculated_test!("1 & 0;", 0);
+        calculated_test!("~1 | 0;", -2);
+        calculated_test!("1 ^ 1;", 0);
     }
     #[test]
     fn operator_assignment() {
@@ -232,13 +232,13 @@ mod test {
                 Box::new(Primitive(token(Number(Base10), 5 + shift, 6 + shift))),
             )
         }
-        assert_eq!(result("a += 1"), expected(PlusEqual, 0));
-        assert_eq!(result("a -= 1"), expected(MinusEqual, 0));
-        assert_eq!(result("a /= 1"), expected(SlashEqual, 0));
-        assert_eq!(result("a *= 1"), expected(StarEqual, 0));
-        assert_eq!(result("a >>= 1"), expected(GreaterGreaterEqual, 1));
-        assert_eq!(result("a <<= 1"), expected(LessLessEqual, 1));
-        assert_eq!(result("a >>>= 1"), expected(GreaterGreaterGreaterEqual, 2));
+        assert_eq!(result("a += 1;"), expected(PlusEqual, 0));
+        assert_eq!(result("a -= 1;"), expected(MinusEqual, 0));
+        assert_eq!(result("a /= 1;"), expected(SlashEqual, 0));
+        assert_eq!(result("a *= 1;"), expected(StarEqual, 0));
+        assert_eq!(result("a >>= 1;"), expected(GreaterGreaterEqual, 1));
+        assert_eq!(result("a <<= 1;"), expected(LessLessEqual, 1));
+        assert_eq!(result("a >>>= 1;"), expected(GreaterGreaterGreaterEqual, 2));
     }
 
     #[test]
@@ -260,16 +260,16 @@ mod test {
                 ],
             )
         }
-        assert_eq!(result("a !~ '1'"), expected(BangTilde, 0));
-        assert_eq!(result("a =~ '1'"), expected(EqualTilde, 0));
-        assert_eq!(result("a >< '1'"), expected(GreaterLess, 0));
-        assert_eq!(result("a >!< '1'"), expected(GreaterBangLess, 1));
-        assert_eq!(result("a == '1'"), expected(EqualEqual, 0));
-        assert_eq!(result("a != '1'"), expected(BangEqual, 0));
-        assert_eq!(result("a > '1'"), expected(Greater, -1));
-        assert_eq!(result("a < '1'"), expected(Less, -1));
-        assert_eq!(result("a >= '1'"), expected(GreaterEqual, 0));
-        assert_eq!(result("a <= '1'"), expected(LessEqual, 0));
+        assert_eq!(result("a !~ '1';"), expected(BangTilde, 0));
+        assert_eq!(result("a =~ '1';"), expected(EqualTilde, 0));
+        assert_eq!(result("a >< '1';"), expected(GreaterLess, 0));
+        assert_eq!(result("a >!< '1';"), expected(GreaterBangLess, 1));
+        assert_eq!(result("a == '1';"), expected(EqualEqual, 0));
+        assert_eq!(result("a != '1';"), expected(BangEqual, 0));
+        assert_eq!(result("a > '1';"), expected(Greater, -1));
+        assert_eq!(result("a < '1';"), expected(Less, -1));
+        assert_eq!(result("a >= '1';"), expected(GreaterEqual, 0));
+        assert_eq!(result("a <= '1';"), expected(LessEqual, 0));
     }
 
     #[test]
@@ -289,14 +289,14 @@ mod test {
                 ],
             )
         }
-        assert_eq!(result("a && 1"), expected(AmpersandAmpersand, 0));
-        assert_eq!(result("a || 1"), expected(PipePipe, 0));
+        assert_eq!(result("a && 1;"), expected(AmpersandAmpersand, 0));
+        assert_eq!(result("a || 1;"), expected(PipePipe, 0));
     }
 
     #[test]
     fn assignment() {
         assert_eq!(
-            result("a = 1"),
+            result("a = 1;"),
             Assign(
                 Category::Equal,
                 AssignOrder::Assign,
@@ -308,7 +308,7 @@ mod test {
             )
         );
         assert_eq!(
-            result("(a = 1)"),
+            result("(a = 1);"),
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
