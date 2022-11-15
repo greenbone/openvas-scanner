@@ -101,6 +101,22 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn parse_include(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        self.paren_base()?;
+        let parameter = self
+            .statement(0, &|cat| cat == Category::RightParen)?
+            .as_returnable_or_err()?;
+        if self.end_category.is_some() {
+            match parameter {
+                Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => {
+                    Ok((PrefixState::Break, Statement::Include(Box::new(parameter))))
+                }
+                _ => Err(unexpected_statement!(parameter)),
+            }
+        } else {
+            Err(unexpected_end!("exit"))
+        }
+    }
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let parameter = self
             .statement(0, &|cat| cat == Category::Semicolon)?
@@ -243,7 +259,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
             Keyword::Null => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::Return => self.parse_return(),
-            Keyword::Include => todo!(),
+            Keyword::Include => self.parse_include(),
             Keyword::Exit => self.parse_exit(),
             Keyword::FCTAnonArgs => self.parse_fct_anon_args(),
             Keyword::True => Ok((PrefixState::Continue, Statement::Primitive(token))),
@@ -255,7 +271,7 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::{AssignOrder, DeclareScope, Statement, },
+        lexer::{AssignOrder, DeclareScope, Statement},
         parse,
         token::{Base, Category, Keyword, StringCategory, Token},
         SyntaxError,
@@ -465,6 +481,14 @@ mod test {
                 call
             );
         }
+    }
+
+    #[test]
+    fn include() {
+        assert!(matches!(
+            parse("include('test.inc');").next().unwrap().unwrap(),
+            Statement::Include(_)
+        ))
     }
 
     #[test]
