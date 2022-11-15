@@ -55,10 +55,13 @@ impl<'a> Lexer<'a> {
             Statement::Variable(value) => Ok(Statement::Assign(
                 assign,
                 AssignOrder::AssignReturn,
-                value,
+                Box::new(Statement::Variable(value)),
                 Box::new(Statement::Operator(
                     operation,
-                    vec![Statement::Variable(value), Statement::RawNumber(amount)],
+                    vec![
+                        Statement::Variable(value),
+                        Statement::RawNumber(amount),
+                    ],
                 )),
             )),
             _ => Err(unexpected_token!(token)),
@@ -165,10 +168,10 @@ mod test {
                             Assign(
                                 assign_operator,
                                 AssignOrder::AssignReturn,
-                                Token {
+                                Box::new(Variable(Token {
                                     category: Identifier(None),
                                     position: (6, 7),
-                                },
+                                })),
                                 Box::new(Operator(
                                     operator,
                                     vec![

@@ -93,10 +93,10 @@ mod tests {
                 Ok(Assign(
                     Equal,
                     AssignOrder::Assign,
-                    Token {
+                    Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (0, 1)
-                    },
+                    },)),
                     Box::new(Primitive(Token {
                         category: Number(Base::Base10),
                         position: (4, 6)
@@ -105,10 +105,10 @@ mod tests {
                 Ok(Assign(
                     Equal,
                     AssignOrder::Assign,
-                    Token {
+                    Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (7, 8)
-                    },
+                    },)),
                     Box::new(Primitive(Token {
                         category: Number(Base::Base10),
                         position: (11, 12)

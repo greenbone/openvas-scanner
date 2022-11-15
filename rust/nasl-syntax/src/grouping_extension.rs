@@ -16,22 +16,33 @@ pub(crate) trait Grouping {
     fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError>;
 }
 
-impl<'a> Grouping for Lexer<'a> {
-    fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let left = self.statement(0, &|cat| cat == Category::RightParen)?;
-        let end = self.end_category.unwrap_or(Category::Equal);
-        if end != Category::RightParen {
+impl<'a> Lexer<'a> {
+    fn parse_brace(&mut self, token: Token) -> Result<Statement, SyntaxError> {
+        let right = self.statement(0, &|cat| cat == Category::RightBrace)?;
+        if !matches!(self.end_category, Some(Category::RightBrace)) {
             Err(unclosed_token!(token))
         } else {
             self.unhandled_token = None;
-            match left {
-                Statement::Assign(category, _, token, stmt) => Ok(Statement::Assign(
+            Ok(right)
+        }
+    }
+}
+
+impl<'a> Grouping for Lexer<'a> {
+    fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
+        let right = self.statement(0, &|cat| cat == Category::RightParen)?;
+        if !matches!(self.end_category, Some(Category::RightParen)) {
+            Err(unclosed_token!(token))
+        } else {
+            self.unhandled_token = None;
+            match right {
+                Statement::Assign(category, _, variable, stmt) => Ok(Statement::Assign(
                     category,
                     AssignOrder::AssignReturn,
-                    token,
+                    variable,
                     stmt,
                 )),
-                _ => Ok(left),
+                _ => Ok(right),
             }
         }
     }
@@ -58,6 +69,9 @@ impl<'a> Grouping for Lexer<'a> {
                 .map(|stmt| (PrefixState::Continue, stmt)),
             Category::LeftCurlyBracket => self
                 .parse_block(token)
+                .map(|stmt| (PrefixState::Break, stmt)),
+            Category::LeftBrace => self
+                .parse_brace(token)
                 .map(|stmt| (PrefixState::Break, stmt)),
             _ => Err(unexpected_token!(token)),
         }
@@ -98,10 +112,10 @@ mod test {
                 Assign(
                     Equal,
                     AssignOrder::Assign,
-                    Token {
+                    Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (31, 32)
-                    },
+                    })),
                     Box::new(Operator(
                         Plus,
                         vec![
@@ -119,10 +133,10 @@ mod test {
                 Assign(
                     Equal,
                     AssignOrder::Assign,
-                    Token {
+                    Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (58, 59)
-                    },
+                    },)),
                     Box::new(Operator(
                         Minus,
                         vec![
@@ -133,10 +147,10 @@ mod test {
                             Assign(
                                 MinusMinus,
                                 AssignOrder::AssignReturn,
-                                Token {
+                                Box::new(Variable(Token {
                                     category: Identifier(None),
                                     position: (68, 69)
-                                },
+                                },)),
                                 Box::new(Operator(
                                     Minus,
                                     vec![
@@ -154,10 +168,10 @@ mod test {
                 Block(vec![Assign(
                     Equal,
                     AssignOrder::Assign,
-                    Token {
+                    Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (108, 109)
-                    },
+                    },)),
                     Box::new(Primitive(Token {
                         category: Number(Base10),
                         position: (112, 114)

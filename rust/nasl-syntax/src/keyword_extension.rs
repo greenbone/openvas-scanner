@@ -255,7 +255,7 @@ impl<'a> Keywords for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::{AssignOrder, DeclareScope, Statement},
+        lexer::{AssignOrder, DeclareScope, Statement, },
         parse,
         token::{Base, Category, Keyword, StringCategory, Token},
         SyntaxError,
@@ -474,10 +474,10 @@ mod test {
             Ok(Statement::Assign(
                 Category::Equal,
                 AssignOrder::Assign,
-                Token {
+                Box::new(Variable(Token {
                     category: Category::Identifier(None),
                     position: (0, 4)
-                },
+                },)),
                 Box::new(Statement::FCTAnonArgs(Some(Box::new(
                     Statement::Primitive(Token {
                         category: Category::Number(Base::Base10),
@@ -491,10 +491,10 @@ mod test {
             Ok(Statement::Assign(
                 Category::Equal,
                 AssignOrder::Assign,
-                Token {
+                Box::new(Variable(Token {
                     category: Category::Identifier(None),
                     position: (0, 4)
-                },
+                },)),
                 Box::new(Statement::FCTAnonArgs(None))
             ))
         );

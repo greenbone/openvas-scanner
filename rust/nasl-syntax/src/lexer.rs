@@ -29,6 +29,7 @@ pub enum DeclareScope {
     Local,
 }
 
+
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
@@ -37,8 +38,9 @@ pub enum Statement {
     /// Either a Number, String, Boolean or Null
     Primitive(Token),
     /// Is a variable
-    // TODO extend with array type
     Variable(Token),
+    /// Is a array variable, it contains the lookup token as well as an optional lookup statement
+    Array(Token, Option<Box<Statement>>),
     /// Is a call of a function
     Call(Token, Box<Statement>),
     /// Special exit call
@@ -54,7 +56,7 @@ pub enum Statement {
     /// Named parameter on a function
     NamedParameter(Token, Box<Statement>),
     /// Assignment to a variable
-    Assign(Category, AssignOrder, Token, Box<Statement>),
+    Assign(Category, AssignOrder, Box<Statement>, Box<Statement>),
     /// An Operator (e.g. +, -, *)
     Operator(Category, Vec<Statement>),
     /// If statement, containing a condition, expression to be executed when the condition is true and an optional else expression
