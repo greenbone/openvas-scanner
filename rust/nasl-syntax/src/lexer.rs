@@ -48,7 +48,7 @@ pub enum Statement {
     /// Special Return statement
     Return(Box<Statement>),
     /// Special include call
-    Include(Vec<Statement>),
+    Include(Box<Statement>),
     /// Declares a new variable in either global or local scope
     Declare(DeclareScope, Vec<Statement>),
     /// Parameter within a function
