@@ -7,6 +7,8 @@ use std::error::Error;
 //test
 #[cfg(test)]
 mod test {
+    use ::nvtcache::nvt::NvtPref;
+
     use super::*;
 
     #[test]
@@ -81,10 +83,16 @@ mod test {
             Ok(_) => (),
             Err(_) => println!("Error"),
         }
-        match fake_nvt.set_name("Custom Script for the vulnerability 1".to_owned()) {
-            Ok(_) => (),
-            Err(_) => println!("Error"),
-        }
+        fake_nvt.set_name("Custom Script for the vulnerability 1".to_owned())?;
+
+        let pref = NvtPref::new(
+            0,
+            "entry".to_string(),
+            "Timeout".to_string(),
+            "320".to_string(),
+        )?;
+        fake_nvt.add_pref(pref)?;
+
         let filename = "custom.nasl".to_owned();
         match nvtcache.add_nvt(fake_nvt, filename) {
             Ok(_) => println!("Nvt successfully added"),

@@ -334,14 +334,8 @@ impl Nvt {
     // ^ TODO: write fn for refs, severities, prefs, which are LinkedLists
 
     /// Set the NVT category. Check that category is a valid Category
-    pub fn set_category(&mut self, category: Category) -> Result<()> {
-        if category >= Category::ActInit && category <= Category::ActEnd {
-            self.category = category;
-            return Ok(());
-        }
-        return Err(DbError::CustomErr(
-            "Invalid category for an NVT".to_string(),
-        ));
+    pub fn set_category(&mut self, category: Category) {
+        self.category = category;
     }
 
     /// Set the NVT family
@@ -520,9 +514,9 @@ impl Nvt {
         Ok(self.qod.clone())
     }
 
-    /// Get the NVT category. Check that category is a valid Category
-    pub fn get_category(&mut self) -> Result<i32> {
-        Ok(self.category as i32)
+    /// Get the NVT category.
+    pub fn get_category(&mut self) -> i32 {
+        self.category as i32
     }
 
     /// Get the NVT family
@@ -563,7 +557,11 @@ impl Nvt {
                 });
 
         // TODO is the white space really necessary as indicated by the tests?
-        return (cves.iter().as_ref().join(", "), bids.iter().as_ref().join(", "), xrefs.iter().as_ref().join(", "));
+        return (
+            cves.iter().as_ref().join(", "),
+            bids.iter().as_ref().join(", "),
+            xrefs.iter().as_ref().join(", "),
+        );
     }
 
     /// Transforms prefs to string representatiosn {id}:{name}:{id}:{default} so that it can be stored into redis
@@ -575,7 +573,7 @@ impl Nvt {
                     "{}:{}:{}:{}",
                     pref.get_id(),
                     pref.get_name(),
-                    pref.get_id(),
+                    pref.get_type(),
                     pref.get_default()
                 )
             })
