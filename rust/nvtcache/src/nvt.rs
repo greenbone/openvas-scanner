@@ -45,7 +45,10 @@ pub struct NvtRef {
 }
 
 /// Structure to store NVT Severities
+// Severities are stored in redis under the Tag item
+// Currently not used
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct NvtSeverity {
     /// Severity type ("cvss_base_v2", ...)
     severity_type: String,
@@ -110,6 +113,7 @@ impl NvtRef {
     }
 }
 
+// Currently not used
 impl NvtSeverity {
     pub fn new(
         severity_type: String,
@@ -128,34 +132,33 @@ impl NvtSeverity {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 /// Structure to hold a NVT
 pub struct Nvt {
     oid: String,
     name: String,
-    summary: String,
-    insight: String,
-    affected: String,
-    impact: String,
-    creation_time: TimeT,
-    modification_time: TimeT,
-    solution: String,
-    solution_type: String,
-    solution_method: String,
+    summary: String,          //Stored in redis under Tag item. Not in use.
+    insight: String,          //Stored in redis under Tag item. Not in use.
+    affected: String,         //Stored in redis under Tag item. Not in use.
+    impact: String,           //Stored in redis under Tag item. Not in use.
+    creation_time: TimeT,     //Stored in redis under Tag item. Not in use.
+    modification_time: TimeT, //Stored in redis under Tag item. Not in use.
+    solution: String,         //Stored in redis under Tag item. Not in use.
+    solution_type: String,    //Stored in redis under Tag item. Not in use.
+    solution_method: String,  //Stored in redis under Tag item. Not in use.
     tag: String,
-    cvss_base: String,
+    cvss_base: String, //Stored in redis under Tag item. Not in use.
     dependencies: String,
     required_keys: String,
     mandatory_keys: String,
     excluded_keys: String,
     required_ports: String,
     required_udp_ports: String,
-    detection: String,
-    qod_type: String,
-    qod: String,
+    detection: String, //Stored in redis under Tag item. Not in use.
+    qod_type: String,  //Stored in redis under Tag item. Not in use.
+    qod: String,       //Stored in redis under Tag item. Not in use.
     refs: LinkedList<NvtRef>,
-    severities: LinkedList<NvtSeverity>,
+    severities: LinkedList<NvtSeverity>, //Stored in redis under Tag item. Not in use.
     prefs: LinkedList<NvtPref>,
     category: Category,
     family: String,
@@ -214,53 +217,62 @@ impl Nvt {
     }
 
     /// Set the NVT summary
+    // Not used during plugin upload.
     pub fn set_summary(&mut self, summary: String) -> Result<()> {
         self.summary = summary;
         return Ok(());
     }
 
     /// Set the NVT insight
+    // Not used during plugin upload.
     pub fn set_insight(&mut self, insight: String) -> Result<()> {
         self.insight = insight;
         return Ok(());
     }
 
     /// Set the NVT affected
+    // Not used during plugin upload.
     pub fn set_affected(&mut self, affected: String) -> Result<()> {
         self.affected = affected;
         return Ok(());
     }
 
     /// Set the NVT impact
+    // Not used during plugin upload.
     pub fn set_impact(&mut self, impact: String) -> Result<()> {
         self.impact = impact;
         return Ok(());
     }
 
     /// Set the NVT creation_time
+    // Not used during plugin upload.
     pub fn set_creation_time(&mut self, creation_time: TimeT) -> Result<()> {
         self.creation_time = creation_time;
         return Ok(());
     }
 
     /// Set the NVT modification_time
+    // Not used during plugin upload.
     pub fn set_modification_time(&mut self, modification_time: TimeT) -> Result<()> {
         self.modification_time = modification_time;
         return Ok(());
     }
     /// Set the NVT solution
+    // Not used during plugin upload.
     pub fn set_solution(&mut self, solution: String) -> Result<()> {
         self.solution = solution;
         return Ok(());
     }
 
     /// Set the NVT solution_type
+    // Not used during plugin upload.
     pub fn set_solution_type(&mut self, solution_type: String) -> Result<()> {
         self.solution_type = solution_type;
         return Ok(());
     }
 
     /// Set the NVT solution method
+    // Not used during plugin upload.
     pub fn set_solution_method(&mut self, solution_method: String) -> Result<()> {
         self.solution_method = solution_method;
         return Ok(());
@@ -273,6 +285,7 @@ impl Nvt {
     }
 
     /// Set the NVT CVSS base
+    // Not used during plugin upload.
     pub fn set_cvss_base(&mut self, cvss_base: String) -> Result<()> {
         self.cvss_base = cvss_base;
         return Ok(());
@@ -314,24 +327,25 @@ impl Nvt {
     }
 
     /// Set the NVT detection
+    // Not used during plugin upload.
     pub fn set_detection(&mut self, detection: String) -> Result<()> {
         self.detection = detection;
         return Ok(());
     }
 
     /// Set the NVT QoD Type
+    // Not used during plugin upload.
     pub fn set_qod_type(&mut self, qod_type: String) -> Result<()> {
         self.qod_type = qod_type;
         return Ok(());
     }
 
     /// Set the NVT QoD (Quality of Detection)
+    // Not used during plugin upload.
     pub fn set_qod(&mut self, qod: String) -> Result<()> {
         self.qod = qod;
         return Ok(());
     }
-
-    // ^ TODO: write fn for refs, severities, prefs, which are LinkedLists
 
     /// Set the NVT category. Check that category is a valid Category
     pub fn set_category(&mut self, category: Category) {
@@ -399,6 +413,7 @@ impl Nvt {
     }
 
     /// Function to add a new severity to the Nvt
+    // Not used during plugin upload.
     pub fn add_severity(&mut self, severity: NvtSeverity) -> Result<()> {
         self.severities.push_back(severity);
         return Ok(());
@@ -417,45 +432,54 @@ impl Nvt {
     }
 
     /// Get the NVT summary
+    // Not used during plugin upload.
     pub fn get_summary(&mut self) -> Result<String> {
         Ok(self.summary.clone())
     }
 
     /// Get the NVT insight
+    // Not used during plugin upload.
     pub fn get_insight(&mut self) -> Result<String> {
         Ok(self.insight.clone())
     }
 
     /// Get the NVT affected
+    // Not used during plugin upload.
     pub fn get_affected(&mut self) -> Result<String> {
         Ok(self.affected.clone())
     }
 
     /// Get the NVT impact
+    // Not used during plugin upload.
     pub fn get_impact(&mut self) -> Result<String> {
         Ok(self.impact.clone())
     }
 
     /// Get the NVT creation_time
+    // Not used during plugin upload.
     pub fn get_creation_time(&mut self) -> Result<TimeT> {
         Ok(self.creation_time.clone())
     }
 
     /// Get the NVT modification_time
+    // Not used during plugin upload.
     pub fn get_modification_time(&mut self) -> Result<TimeT> {
         Ok(self.modification_time.clone())
     }
     /// Get the NVT solution
+    // Not used during plugin upload.
     pub fn get_solution(&mut self) -> Result<String> {
         Ok(self.solution.clone())
     }
 
     /// Get the NVT solution_type
+    // Not used during plugin upload.
     pub fn get_solution_type(&mut self) -> Result<String> {
         Ok(self.solution_type.clone())
     }
 
     /// Get the NVT solution method
+    // Not used during plugin upload.
     pub fn get_solution_method(&mut self) -> Result<String> {
         Ok(self.solution_method.clone())
     }
@@ -466,6 +490,7 @@ impl Nvt {
     }
 
     /// Get the NVT CVSS base
+    // Not used during plugin upload.
     pub fn get_cvss_base(&mut self) -> Result<String> {
         Ok(self.cvss_base.clone())
     }
@@ -500,16 +525,19 @@ impl Nvt {
     }
 
     /// Get the NVT detection
+    // Not used during plugin upload.
     pub fn get_detection(&mut self) -> Result<String> {
         Ok(self.detection.clone())
     }
 
     /// Get the NVT QoD Type
+    // Not used during plugin upload.
     pub fn get_qod_type(&mut self) -> Result<String> {
         Ok(self.qod_type.clone())
     }
 
     /// Get the NVT QoD (Quality of Detection)
+    // Not used during plugin upload.
     pub fn get_qod(&mut self) -> Result<String> {
         Ok(self.qod.clone())
     }
@@ -556,7 +584,9 @@ impl Nvt {
                     }
                 });
 
-        // TODO is the white space really necessary as indicated by the tests?
+        // Some references include a comma. Therefore the refs separator is ", ".
+        // The string ", " is not accepted as reference value, since it will misunderstood
+        // as ref separator.
         return (
             cves.iter().as_ref().join(", "),
             bids.iter().as_ref().join(", "),
