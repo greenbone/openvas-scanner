@@ -199,13 +199,14 @@ impl RedisCtx {
         let required_ports = nvt.get_required_ports()?;
         let dependencies = nvt.get_dependencies()?;
         let tags = nvt.get_tag()?;
-        // TODO: add functions to get the refs
-        let xrefs = String::new();
-        let bids = String::new();
-        let cves = String::new();
-        //---------------------------------------
         let category = nvt.get_category()?;
         let family = nvt.get_family()?;
+
+        // Get the references
+        let xrefs;
+        let bids;
+        let cves;
+        (cves, bids, xrefs) = nvt.get_refs()?;
 
         let mut key_name: String = "nvt:".to_owned();
         key_name = key_name + oid.as_ref();
