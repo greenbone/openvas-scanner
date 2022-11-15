@@ -208,8 +208,7 @@ impl RedisCtx {
         let cves;
         (cves, bids, xrefs) = nvt.get_refs()?;
 
-        let mut key_name: String = "nvt:".to_owned();
-        key_name = key_name + oid.as_ref();
+        let key_name = ["nvt:".to_owned(), oid].join("");
         Cmd::new()
             .arg("RPUSH")
             .arg(key_name)
