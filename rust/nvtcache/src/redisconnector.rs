@@ -49,7 +49,7 @@ impl FromRedisValue for RedisValueHandler {
 
 impl RedisCtx {
     /// Connect to the redis server and return a redis context object
-    pub fn new(redis_socket: String) -> Result<RedisCtx> {
+    pub fn new(redis_socket: &str) -> Result<RedisCtx> {
         let client = redis::Client::open(redis_socket)?;
         let kb = client.get_connection()?;
         let global_db_index = "GVM.__GlobalDBIndex".to_string();

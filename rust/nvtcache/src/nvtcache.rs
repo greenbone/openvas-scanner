@@ -19,8 +19,7 @@ impl<'a> NvtCache<'a> {
     /// While the plugin_path is given without the protocol infix.
     /// The reason is that while redis can be configured to use tcp the plugins must be available within the filesystem.
     pub fn init(redis_url: &'a str, plugin_path: &'a str) -> Result<NvtCache<'a>> {
-        // TODO change RedisCtx to accept references
-        let rctx = RedisCtx::new(redis_url.to_string())?;
+        let rctx = RedisCtx::new(redis_url)?;
 
         let cache_key = "nvticache";
 
