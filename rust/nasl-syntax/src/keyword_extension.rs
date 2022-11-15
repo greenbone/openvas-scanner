@@ -50,12 +50,12 @@ impl<'a> Lexer<'a> {
             _ => Err(unexpected_token!(token)),
         }?
         .as_returnable_or_err()?;
+        self.unhandled_token = None;
         let body = self.statement(0, &|cat| cat == Category::Semicolon)?;
-        if !self
-            .end_category
-            .map(|ec| ec == Category::Semicolon || ec == Category::RightCurlyBracket)
-            .unwrap_or(false)
-        {
+        if !matches!(
+            self.end_category,
+            Some(Category::Semicolon | Category::RightCurlyBracket)
+        ) {
             return Err(unclosed_token!(token));
         }
         let r#else: Option<Statement> = {
@@ -66,6 +66,7 @@ impl<'a> Lexer<'a> {
                     }
                     _ => {
                         self.unhandled_token = Some(token);
+                        self.end_category = Some(token.category);
                         None
                     }
                 },
@@ -117,6 +118,42 @@ impl<'a> Lexer<'a> {
             Err(unexpected_end!("exit"))
         }
     }
+
+    fn parse_function(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        let id = self
+            .tokenizer
+            .next()
+            .ok_or_else(|| unexpected_end!("parse_function"))?;
+        if !matches!(id.category(), Category::Identifier(None)) {
+            return Err(unexpected_token!(id));
+        }
+        let paren = self
+            .tokenizer
+            .next()
+            .ok_or_else(|| unexpected_end!("parse_function"))?;
+        if !matches!(paren.category(), Category::LeftParen) {
+            return Err(unexpected_token!(paren));
+        }
+        let parameter = match self.parse_paren(id)? {
+            Statement::Variable(x) => vec![Statement::Variable(x)],
+            Statement::Parameter(x) => x,
+            Statement::NoOp(_) => vec![],
+            stmt => return Err(unexpected_statement!(stmt)),
+        };
+        let block = self
+            .tokenizer
+            .next()
+            .ok_or_else(|| unexpected_end!("parse_function"))?;
+        if !matches!(block.category(), Category::LeftCurlyBracket) {
+            return Err(unexpected_token!(block));
+        }
+        let block = self.parse_block(block)?;
+        Ok((
+            PrefixState::Break,
+            Statement::FunctionDeclaration(id, parameter, Box::new(block)),
+        ))
+    }
+
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let parameter = self
             .statement(0, &|cat| cat == Category::Semicolon)?
@@ -264,6 +301,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::FCTAnonArgs => self.parse_fct_anon_args(),
             Keyword::True => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((PrefixState::Continue, Statement::Primitive(token))),
+            Keyword::Function => self.parse_function(),
         }
     }
 }
@@ -490,6 +528,49 @@ mod test {
             Statement::Include(_)
         ))
     }
+
+    #[test]
+    fn function() {
+        use Statement::*;
+        assert_eq!(
+            parse("function register_packages( buf ) { return 1; }")
+                .next()
+                .unwrap()
+                .unwrap(),
+            FunctionDeclaration(
+                Token {
+                    category: Identifier(None),
+                    position: (9, 26)
+                },
+                vec![Variable(Token {
+                    category: Identifier(None),
+                    position: (28, 31)
+                })],
+                Box::new(Block(vec![Return(Box::new(Primitive(Token {
+                    category: Number(Base::Base10),
+                    position: (43, 44)
+                })))]))
+            )
+        );
+        assert_eq!(
+            parse("function register_packages( ) { return 1; }")
+                .next()
+                .unwrap()
+                .unwrap(),
+            FunctionDeclaration(
+                Token {
+                    category: Identifier(None),
+                    position: (9, 26)
+                },
+                vec![],
+                Box::new(Block(vec![Return(Box::new(Primitive(Token {
+                    category: Number(Base::Base10),
+                    position: (39, 40)
+                })))]))
+            )
+        );
+    }
+
 
     #[test]
     fn fct_anon_args() {
