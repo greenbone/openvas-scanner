@@ -1,28 +1,28 @@
 use crate::dberror::Result;
 use crate::nvt::*;
 use crate::redisconnector::*;
-use std::env;
 use std::path::Path;
 
-pub struct NvtCache {
+pub struct NvtCache<'a> {
     pub cache: RedisCtx,
     pub init: bool,
-    cache_key: String,
-    plugin_path: String,
+    cache_key: &'a str,
+    plugin_path: &'a str,
 }
 
 /// NvtCache implementation.
-impl NvtCache {
+impl<'a> NvtCache<'a> {
     /// Initialize and return an NVT Cache Object
-    pub fn init() -> Result<NvtCache> {
-        let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
-        let redis_socket = env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket);
-        let rctx = RedisCtx::new(redis_socket.to_string())?;
+    ///
+    /// The redis_url must be a complete url including the used protocol e.g.:
+    /// `"unix:///run/redis/redis-server.sock"`.
+    /// While the plugin_path is given without the protocol infix.
+    /// The reason is that while redis can be configured to use tcp the plugins must be available within the filesystem.
+    pub fn init(redis_url: &'a str, plugin_path: &'a str) -> Result<NvtCache<'a>> {
+        // TODO change RedisCtx to accept references
+        let rctx = RedisCtx::new(redis_url.to_string())?;
 
-        let default_plugin_path = |_| "/var/lib/openvas/plugins/".to_string();
-        let plugin_path = env::var("PLUGIN_PATH").unwrap_or_else(default_plugin_path);
-
-        let cache_key = "nvticache".to_string();
+        let cache_key = "nvticache";
 
         Ok(NvtCache {
             cache: rctx,
@@ -34,25 +34,22 @@ impl NvtCache {
 
     /// Return a bool telling if the NVT Cache is initialized
     pub fn is_init(&mut self) -> bool {
-        self.init == true
+        self.init
     }
 
     /// Reset the NVT Cache and release the redis namespace
     pub fn reset(&mut self) -> Result<()> {
-        let _ = self.cache.delete_namespace()?;
-        Ok(())
+        self.cache.delete_namespace()
     }
 
     /// Set the key nvtcache
     pub fn set_version(&mut self, feed_version: &str) -> Result<()> {
-        let _ = self.cache.redis_set_key(&self.cache_key, feed_version)?;
-        Ok(())
+        self.cache.redis_set_key(self.cache_key, feed_version)
     }
 
     /// Get the key nvtcache, which has the feed version
     pub fn get_version(&mut self) -> Result<String> {
-        let version = self.cache.redis_get_key(&self.cache_key)?;
-        Ok(version)
+        self.cache.redis_get_key(self.cache_key)
     }
 
     /// Check if the nvtcache is uptodate, comparing the feed version
@@ -60,7 +57,7 @@ impl NvtCache {
     /// with the version in the cache
     /// Return True if it is updated, False if outdated, Error otherwise.
     pub fn check_feed(&mut self, current: &str) -> Result<bool> {
-        let cached = self.cache.redis_get_key(&self.cache_key)?;
+        let cached = self.cache.redis_get_key(self.cache_key)?;
         if cached == current {
             return Ok(true);
         }
@@ -74,7 +71,7 @@ impl NvtCache {
         Ok(value)
     }
 
-    pub fn get_nvt_filename(&mut self, oid: &String) -> Result<String> {
+    pub fn get_nvt_filename(&mut self, oid: &str) -> Result<String> {
         let mut key: String = "nvt:".to_owned();
         key.push_str(oid);
         let filename = self.cache.redis_get_item(key, KbNvtPos::NvtFilenamePos)?;

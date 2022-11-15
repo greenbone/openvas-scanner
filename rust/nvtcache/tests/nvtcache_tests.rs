@@ -7,6 +7,8 @@ use std::error::Error;
 //test
 #[cfg(test)]
 mod test {
+    use std::env;
+
     use ::nvtcache::nvt::NvtPref;
 
     use super::*;
@@ -14,7 +16,13 @@ mod test {
     #[test]
     fn test_nvtcache() -> Result<()> {
         let mut nvtcache: nvtcache::NvtCache;
-        let n = nvtcache::NvtCache::init();
+
+
+        let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
+        let redis_socket = env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket);
+        let default_plugin_path = |_| "/var/lib/openvas/plugins/".to_string();
+        let plugin_path = env::var("PLUGIN_PATH").unwrap_or_else(default_plugin_path);
+        let n = nvtcache::NvtCache::init(&redis_socket, &plugin_path);
         match n {
             Ok(nc) => nvtcache = nc,
             Err(e) => {
