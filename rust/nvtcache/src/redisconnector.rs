@@ -203,10 +203,7 @@ impl RedisCtx {
         let family = nvt.get_family()?;
 
         // Get the references
-        let xrefs;
-        let bids;
-        let cves;
-        (cves, bids, xrefs) = nvt.get_refs()?;
+        let (cves, bids, xrefs) = nvt.get_refs();
 
         let key_name = ["nvt:".to_owned(), oid].join("");
         Cmd::new()
@@ -232,6 +229,6 @@ impl RedisCtx {
 
         nvt.destroy();
 
-        return Ok(());
+        Ok(())
     }
 }

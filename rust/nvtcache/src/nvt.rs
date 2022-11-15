@@ -70,20 +70,20 @@ impl NvtPref {
         })
     }
     /// Return the id of the NvtPref
-    pub fn get_id(&mut self) -> String {
-        return self.pref_id.to_string();
+    pub fn get_id(&self) -> i32 {
+        self.pref_id
     }
     /// Return the type of the NvtPref
-    pub fn get_type(&mut self) -> String {
-        return self.pref_type.clone();
+    pub fn get_type(&self) -> &str {
+        &self.pref_type
     }
     /// Return the name of the NvtPref
-    pub fn get_name(&mut self) -> String {
-        return self.name.clone();
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
     /// Return the default value of the NvtPref
-    pub fn get_default(&mut self) -> String {
-        return self.default.clone();
+    pub fn get_default(&self) -> &str {
+        &self.default
     }
 }
 
@@ -97,16 +97,16 @@ impl NvtRef {
         })
     }
     /// Return the type of the NvtRef
-    pub fn get_type(&mut self) -> String {
-        return self.ref_type.clone();
+    pub fn get_type(&self) -> &str {
+        &self.ref_type
     }
     /// Return the id of the NvtRef
-    pub fn get_id(&mut self) -> String {
-        return self.ref_id.clone();
+    pub fn get_id(&self) -> &str {
+        &self.ref_id
     }
     /// Return the text of the NvtRef
-    pub fn get_text(&mut self) -> String {
-        return self.ref_text.clone();
+    pub fn get_text(&self) -> &str {
+        &self.ref_text
     }
 }
 
@@ -540,59 +540,47 @@ impl Nvt {
     /// cve and bid strings are CSC strings containing only
     /// "id, id, ...", while other custom types includes the type
     /// and the string is in the format "type:id, type:id, ..."
-    pub fn get_refs(&mut self) -> Result<(String, String, String)> {
-        let mut bid = String::new();
-        let mut cve = String::new();
-        let mut xrefs = String::new();
+    pub fn get_refs(&mut self) -> (String, String, String) {
+        let (bids, cves, xrefs): (Vec<String>, Vec<String>, Vec<String>) =
+            self.refs
+                .iter()
+                .fold((vec![], vec![], vec![]), |(bids, cves, xrefs), b| {
+                    match b.get_type() {
+                        "bid" => {
+                            let mut new_bids = bids;
+                            new_bids.push(b.get_id().to_string());
+                            (new_bids, cves, xrefs)
+                        }
+                        "cve" => {
+                            let mut new_cves = cves;
+                            new_cves.push(b.get_id().to_string());
+                            (bids, new_cves, xrefs)
+                        }
+                        _ => {
+                            let mut new_xref: Vec<String> = xrefs;
+                            new_xref.push(format!("{}:{}", b.get_type(), b.get_id()));
+                            (bids, cves, new_xref)
+                        }
+                    }
+                });
 
-        for r in self.refs.iter_mut() {
-            let single_ref = r;
-            let reftype = single_ref.get_type();
-
-            let id = single_ref.get_id();
-            match reftype.as_str() {
-                "bid" => {
-                    if !bid.is_empty() {
-                        bid = [bid.as_str(), ", ", id.as_str()].join("");
-                    } else {
-                        bid = [id.as_str()].join("");
-                    }
-                }
-                "cve" => {
-                    if !cve.is_empty() {
-                        cve = [cve.as_str(), ", ", id.as_str()].join("");
-                    } else {
-                        cve = [id.as_str()].join("");
-                    }
-                }
-                _ => {
-                    if !xrefs.is_empty() {
-                        xrefs = [xrefs.as_str(), ", ", reftype.as_str(), ":", id.as_str()].join("");
-                    } else {
-                        xrefs = [reftype.as_str(), ":", id.as_str()].join("");
-                    }
-                }
-            }
-        }
-        return Ok((cve.to_string(), bid.to_string(), xrefs.to_string()));
+        // TODO is the white space really necessary as indicated by the tests?
+        return (cves.iter().as_ref().join(", "), bids.iter().as_ref().join(", "), xrefs.iter().as_ref().join(", "));
     }
 
-    pub fn get_prefs(&mut self) -> Result<Vec<String>> {
-        let mut prefs: Vec<String> = Vec::new();
-
-        for pref in self.prefs.iter_mut() {
-            let pref_str = [
-                pref.get_id(),
-                pref.get_name(),
-                pref.get_id(),
-                pref.get_default(),
-            ]
-            .join(":")
-            .to_string();
-
-            prefs.push(pref_str);
-        }
-
-        return Ok(prefs);
+    /// Transforms prefs to string representatiosn {id}:{name}:{id}:{default} so that it can be stored into redis
+    pub fn get_prefs(&self) -> Vec<String> {
+        self.prefs
+            .iter()
+            .map(|pref| {
+                format!(
+                    "{}:{}:{}:{}",
+                    pref.get_id(),
+                    pref.get_name(),
+                    pref.get_id(),
+                    pref.get_default()
+                )
+            })
+            .collect()
     }
 }
