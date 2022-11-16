@@ -1,4 +1,6 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
+use std::ops::Range;
+
 use crate::{
     error::SyntaxError,
     infix_extension::Infix,
@@ -156,9 +158,6 @@ impl<'a> Lexer<'a> {
         abort: &impl Fn(Category) -> bool,
     ) -> Result<(bool, Statement), SyntaxError> {
         // reset unhandled_token when min_bp is 0
-        if min_binding_power == 0 {
-            self.unhandled_token = None;
-        }
         let (state, mut left) = self
             .token()
             .map(|token| {
@@ -182,20 +181,20 @@ impl<'a> Lexer<'a> {
                 }
             };
             if abort(token.category()) {
-                // to be able to verify abort condition.
                 end_statement = true;
-
-                // set unhandled_token to skip one next call
-                self.unhandled_token = Some(token);
                 break;
             }
             let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
 
             if self.needs_postfix(op) {
-                let stmt = self
+                let (end, stmt) = self
                     .postfix_statement(op, token, left, abort)
                     .expect("needs postfix should have been validated before")?;
                 left = stmt;
+                if end {
+                    end_statement = true;
+                    break;
+                }
                 continue;
             }
 
@@ -204,7 +203,12 @@ impl<'a> Lexer<'a> {
                     self.unhandled_token = Some(token);
                     break;
                 }
-                left = self.infix_statement(op, token, left, abort)?;
+                let (end, nl) = self.infix_statement(op, token, left, abort)?;
+                left = nl;
+                if end {
+                    end_statement = true;
+                    break;
+                }
             }
         }
 

@@ -4,25 +4,26 @@ use crate::{
     lexer::Lexer,
     lexer::Statement,
     token::{Category, Token},
-    unclosed_token, unexpected_end, unexpected_token,
+    unclosed_token, unexpected_end, unexpected_token, prefix_extension::PrefixState,
 };
 
 pub(crate) trait Variables {
     /// Parses variables, function calls.
-    fn parse_variable(&mut self, token: Token) -> Result<Statement, SyntaxError>;
+    fn parse_variable(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError>;
 }
 
 impl<'a> Variables for Lexer<'a> {
-    fn parse_variable(&mut self, token: Token) -> Result<Statement, SyntaxError> {
+    fn parse_variable(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         if token.category() != Category::Identifier(None) {
             return Err(unexpected_token!(token));
         }
+        use PrefixState::*;
 
         if let Some(nt) = self.token() {
             match nt.category() {
                 Category::LeftParen => {
                     let parameter = self.parse_paren(nt)?;
-                    return Ok(Statement::Call(token, Box::new(parameter)));
+                    return Ok((Continue, Statement::Call(token, Box::new(parameter))));
                 }
                 Category::LeftBrace => {
                     let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
@@ -31,24 +32,13 @@ impl<'a> Variables for Lexer<'a> {
                         return Err(unclosed_token!(token));
                     } else {
                         self.unhandled_token = None;
-                        return Ok(Statement::Array(token, Some(Box::new(lookup))));
-                    }
-                }
-                Category::DoublePoint => {
-                    let either_comma_rightparen =
-                        |cat| matches!(cat, Category::RightParen | Category::Comma);
-                    let (end, expr) = self.statement(0, &either_comma_rightparen)?;
-                    // maybe it makes sense to move that check to the statement method?
-                    if end {
-                        return Ok(Statement::NamedParameter(token, Box::new(expr)));
-                    } else {
-                        return Err(unexpected_end!("parsing named variable"));
+                        return Ok((Continue, Statement::Array(token, Some(Box::new(lookup)))));
                     }
                 }
                 _ => self.unhandled_token = Some(nt),
             }
         }
-        Ok(Statement::Variable(token))
+        Ok((Continue, Statement::Variable(token)))
     }
 }
 

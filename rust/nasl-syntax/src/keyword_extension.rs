@@ -97,8 +97,13 @@ impl<'a> Lexer<'a> {
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
         if end {
+            let (_, should_be_semicolon) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+            if matches!(should_be_semicolon, Statement::NoOp(_)) {
+                Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
+            } else {
+                Err(unexpected_statement!(should_be_semicolon))
+            }
             // TODO parse to to ;
-            Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
         } else {
             Err(unexpected_end!("exit"))
         }
@@ -256,10 +261,8 @@ impl<'a> Lexer<'a> {
         match self.token() {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
-                    let (end, lookup) = self
-                        .statement(0, &|c| c == Category::RightBrace)?;
-                    let lookup = lookup
-                        .as_returnable_or_err()?;
+                    let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
+                    let lookup = lookup.as_returnable_or_err()?;
                     if !end {
                         Err(unclosed_token!(token))
                     } else {

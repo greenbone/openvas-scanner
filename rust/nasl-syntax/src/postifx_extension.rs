@@ -21,7 +21,7 @@ pub(crate) trait Postfix {
         token: Token,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Option<Result<Statement, SyntaxError>>;
+    ) -> Option<Result<(bool, Statement), SyntaxError>>;
 }
 
 impl<'a> Lexer<'a> {
@@ -29,16 +29,17 @@ impl<'a> Lexer<'a> {
         &mut self,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<Statement, SyntaxError> {
+    ) -> Result<(bool, Statement), SyntaxError> {
         let mut lhs = match lhs {
             Statement::Parameter(x) => x,
             x => vec![x],
         };
-        match self.statement(0, abort)? {
-            (_, Statement::Parameter(mut x)) => lhs.append(&mut x),
-            (_, x) => lhs.push(x),
+        let (end, stmt) = self.statement(0, abort)?;
+        match stmt {
+            Statement::Parameter(mut x) => lhs.append(&mut x),
+            x => lhs.push(x),
         };
-        Ok(Statement::Parameter(lhs))
+        Ok((end, Statement::Parameter(lhs)))
     }
 
     fn as_assign_statement(
@@ -46,19 +47,19 @@ impl<'a> Lexer<'a> {
         token: Token,
         assign: Category,
         operation: Category,
-    ) -> Option<Result<Statement, SyntaxError>> {
+    ) -> Option<Result<(bool, Statement), SyntaxError>> {
         match lhs {
-            Statement::Variable(token) => Some(Ok(Statement::Assign(
-                assign,
-                AssignOrder::ReturnAssign,
-                Box::new(Statement::Variable(token)),
-                Box::new(Statement::Operator(
-                    operation,
-                    vec![
-                        Statement::Variable(token),
-                        Statement::RawNumber(1),
-                    ],
-                )),
+            Statement::Variable(token) => Some(Ok((
+                false,
+                Statement::Assign(
+                    assign,
+                    AssignOrder::ReturnAssign,
+                    Box::new(Statement::Variable(token)),
+                    Box::new(Statement::Operator(
+                        operation,
+                        vec![Statement::Variable(token), Statement::RawNumber(1)],
+                    )),
+                ),
             ))),
             _ => Some(Err(unexpected_token!(token))),
         }
@@ -72,7 +73,7 @@ impl<'a> Postfix for Lexer<'a> {
         token: Token,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Option<Result<Statement, SyntaxError>> {
+    ) -> Option<Result<(bool, Statement), SyntaxError>> {
         match op {
             Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
             Operation::Assign(Category::PlusPlus) => {
