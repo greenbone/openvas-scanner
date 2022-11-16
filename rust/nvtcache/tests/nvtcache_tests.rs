@@ -17,7 +17,6 @@ mod test {
     fn test_nvtcache() -> Result<()> {
         let mut nvtcache: nvtcache::NvtCache;
 
-
         let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
         let redis_socket = env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket);
         let default_plugin_path = |_| "/var/lib/openvas/plugins/".to_string();
@@ -91,7 +90,7 @@ mod test {
             Ok(_) => (),
             Err(_) => println!("Error"),
         }
-        fake_nvt.set_name("Custom Script for the vulnerability 1".to_owned())?;
+        fake_nvt.set_name("Custom Script for the vulnerability 1".to_owned());
 
         let pref = NvtPref::new(
             0,
@@ -99,7 +98,7 @@ mod test {
             "Timeout".to_string(),
             "320".to_string(),
         )?;
-        fake_nvt.add_pref(pref)?;
+        fake_nvt.add_pref(pref);
 
         let filename = "custom.nasl".to_owned();
         match nvtcache.add_nvt(fake_nvt, filename) {

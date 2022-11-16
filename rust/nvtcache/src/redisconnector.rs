@@ -188,25 +188,25 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
-    pub fn redis_add_nvt(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
-        let oid = nvt.get_oid()?;
-        let name = nvt.get_name()?;
-        let required_keys = nvt.get_required_keys()?;
-        let mandatory_keys = nvt.get_mandatory_keys()?;
-        let excluded_keys = nvt.get_excluded_keys()?;
-        let required_udp_ports = nvt.get_required_udp_ports()?;
-        let required_ports = nvt.get_required_ports()?;
-        let dependencies = nvt.get_dependencies()?;
-        let tags = nvt.get_tag()?;
-        let category = nvt.get_category();
-        let family = nvt.get_family()?;
+    pub fn redis_add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
+        let oid = nvt.get_oid();
+        let name = nvt.get_name();
+        let required_keys = nvt.get_required_keys();
+        let mandatory_keys = nvt.get_mandatory_keys();
+        let excluded_keys = nvt.get_excluded_keys();
+        let required_udp_ports = nvt.get_required_udp_ports();
+        let required_ports = nvt.get_required_ports();
+        let dependencies = nvt.get_dependencies();
+        let tags = nvt.get_tag();
+        let category = nvt.get_category().to_string();
+        let family = nvt.get_family();
 
         // Get the references
         let (cves, bids, xrefs) = nvt.get_refs();
 
         let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
-        let values: Vec<String> = [
-            filename,
+        let values: Vec<&str> = [
+            &filename,
             required_keys,
             mandatory_keys,
             excluded_keys,
@@ -214,10 +214,10 @@ impl RedisCtx {
             required_ports,
             dependencies,
             tags,
-            cves,
-            bids,
-            xrefs,
-            category.to_string(),
+            &cves,
+            &bids,
+            &xrefs,
+            &category,
             family,
             name,
         ]
