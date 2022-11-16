@@ -1,6 +1,6 @@
-use crate::dberror::DbError;
 use crate::dberror::Result;
 use std::collections::LinkedList;
+use std::fmt;
 
 ///Alias for time stamps
 type TimeT = i64;
@@ -18,6 +18,24 @@ pub enum Category {
     ActKillHost,
     ActFlood,
     ActEnd,
+}
+
+impl fmt::Display for Category {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Category::ActInit => write!(f, "0"),
+            Category::ActScanner => write!(f, "1"),
+            Category::ActSettings => write!(f, "2"),
+            Category::ActGatherInfo => write!(f, "3"),
+            Category::ActAttack => write!(f, "4"),
+            Category::ActMixedAttack => write!(f, "5"),
+            Category::ActDestructiveAttack => write!(f, "6"),
+            Category::ActDenial => write!(f, "7"),
+            Category::ActKillHost => write!(f, "8"),
+            Category::ActFlood => write!(f, "9"),
+            Category::ActEnd => write!(f, "10"),
+        }
+    }
 }
 
 /// Structure to store NVT preferences

@@ -1,5 +1,5 @@
 use nvtcache::dberror::Result;
-use nvtcache::nvt::{Nvt, NvtRef};
+use nvtcache::nvt::{Category, Nvt, NvtRef};
 
 #[cfg(test)]
 mod test {
@@ -104,5 +104,12 @@ mod test {
         assert_eq!(xrefs, "URL:http://greenbone.net, URL:http://openvas.net");
 
         Ok(())
+    }
+
+    #[test]
+    fn test_category_from_trait() {
+        let cat = Category::ActEnd;
+
+        assert_eq!(cat.to_string(), "10");
     }
 }
