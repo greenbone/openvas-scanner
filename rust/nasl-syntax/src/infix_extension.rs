@@ -72,20 +72,23 @@ impl<'a> Infix for Lexer<'a> {
                 // DoublePoint operation needs to be changed to NamedParameter statement
                 Operation::Assign(Category::DoublePoint) => match lhs {
                     Statement::Variable(left) => {
-                        // if the right side is a parameter we need to transform the NamedParameter 
+                        // if the right side is a parameter we need to transform the NamedParameter
                         // from the atomar params and assign the first one to the NamedParameter instead
                         // of Statement::Parameter and put it upfront
                         match rhs {
-                            Statement::Parameter(mut params) => {
-                                params.reverse();
-                                let value = params.pop().ok_or_else(|| unexpected_end!("while getting value of named parameter"))?;
-                                let np = Statement::NamedParameter(left, Box::new(value));
-                                params.push(np);
-                                params.reverse();
-                                Statement::Parameter(params)
-                            }
+                            Statement::Parameter(params) => sort_params(params, left)?,
 
                             _ => Statement::NamedParameter(left, Box::new(rhs)),
+                        }
+                    }
+                    Statement::Parameter(mut params) => match rhs {
+                        Statement::Parameter(right_params) => {
+                            params.extend_from_slice(&right_params);
+                            Statement::Parameter(params)
+                        }
+                        _ => {
+                            params.push(rhs);
+                            Statement::Parameter(params)
                         }
                     },
                     _ => return Err(unexpected_statement!(lhs)),
@@ -129,6 +132,17 @@ impl<'a> Infix for Lexer<'a> {
             Some(true)
         }
     }
+}
+
+fn sort_params(mut params: Vec<Statement>, left: Token) -> Result<Statement, SyntaxError> {
+    params.reverse();
+    let value = params
+        .pop()
+        .ok_or_else(|| unexpected_end!("while getting value of named parameter"))?;
+    let np = Statement::NamedParameter(left, Box::new(value));
+    params.push(np);
+    params.reverse();
+    Ok(Statement::Parameter(params))
 }
 
 #[cfg(test)]
