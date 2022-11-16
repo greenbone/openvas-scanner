@@ -1,5 +1,4 @@
 use crate::dberror::Result;
-use std::collections::LinkedList;
 use std::fmt;
 
 ///Alias for time stamps
@@ -175,9 +174,9 @@ pub struct Nvt {
     detection: String, //Stored in redis under Tag item. Not in use.
     qod_type: String,  //Stored in redis under Tag item. Not in use.
     qod: String,       //Stored in redis under Tag item. Not in use.
-    refs: LinkedList<NvtRef>,
-    severities: LinkedList<NvtSeverity>, //Stored in redis under Tag item. Not in use.
-    prefs: LinkedList<NvtPref>,
+    refs: Vec<NvtRef>,
+    severities: Vec<NvtSeverity>, //Stored in redis under Tag item. Not in use.
+    prefs: Vec<NvtPref>,
     category: Category,
     family: String,
 }
@@ -207,9 +206,9 @@ impl Default for Nvt {
             detection: String::new(),
             qod_type: String::new(),
             qod: String::new(),
-            refs: LinkedList::new(),
-            severities: LinkedList::new(),
-            prefs: LinkedList::new(),
+            refs: vec![],
+            severities: vec![],
+            prefs: vec![],
             category: Category::ActEnd,
             family: String::new(),
         }
@@ -396,18 +395,18 @@ impl Nvt {
 
     /// Function to add a new preference to the Nvt
     pub fn add_pref(&mut self, pref: NvtPref) {
-        self.prefs.push_back(pref);
+        self.prefs.push(pref);
     }
 
     /// Function to add a new reference to the Nvt
     pub fn add_ref(&mut self, nvtref: NvtRef) {
-        self.refs.push_back(nvtref);
+        self.refs.push(nvtref);
     }
 
     /// Function to add a new severity to the Nvt
     // Not used during plugin upload.
     pub fn add_severity(&mut self, severity: NvtSeverity) {
-        self.severities.push_back(severity);
+        self.severities.push(severity);
     }
 
     //   GET FUNCTIONS
