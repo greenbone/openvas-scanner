@@ -3,8 +3,9 @@ use crate::{
     grouping_extension::Grouping,
     lexer::Lexer,
     lexer::Statement,
+    prefix_extension::PrefixState,
     token::{Category, Token},
-    unclosed_token, unexpected_end, unexpected_token, prefix_extension::PrefixState,
+    unclosed_token, unexpected_end, unexpected_token,
 };
 
 pub(crate) trait Variables {
@@ -225,6 +226,16 @@ mod test {
                     }))
                 ))
             )
+        );
+    }
+
+    #[test]
+    fn closing_paren() {
+        result(
+            r###"ip_packet =
+        forge_ip_packet( ip_off : IP_DF,        # DON'T FRAGMENT flag
+                        ip_src : this_host());
+        "###,
         );
     }
 }

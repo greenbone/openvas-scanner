@@ -168,11 +168,12 @@ impl<'a> Lexer<'a> {
                 self.prefix_statement(token, abort)
             })
             .unwrap_or(Ok((PrefixState::Break, Statement::EoF)))?;
-
-        if state == PrefixState::Break {
-            // on break the other function needs to verify if it ended
-            return Ok((true, left));
+        match state {
+            PrefixState::Continue => {}
+            PrefixState::OpenEnd => return Ok((false, left)),
+            PrefixState::Break => return Ok((true, left)),
         }
+
         let mut end_statement = false;
         loop {
             let token = {
@@ -225,7 +226,13 @@ impl<'a> Iterator for Lexer<'a> {
         match result {
             Ok((true, Statement::EoF)) => None,
             Ok((true, stmt)) => Some(Ok(stmt)),
-            Ok((false, stmt)) => Some(Err(unexpected_statement!(stmt))),
+            Ok((false, stmt)) => {
+                if matches!(stmt, Statement::NoOp(_)) {
+                    Some(Ok(stmt))
+                } else {
+                    Some(Err(unexpected_statement!(stmt)))
+                }
+            }
             Err(x) => Some(Err(x)),
         }
     }
