@@ -139,9 +139,17 @@ impl<'a> Lexer<'a> {
 
     /// Returns next token of tokenizer
     pub(crate) fn token(&mut self) -> Option<Token> {
-        self.unhandled_token
+        while let Some(token) = self
+            .unhandled_token
             .take()
             .or_else(|| self.tokenizer.next())
+        {
+            if token.category() == Category::Comment {
+                continue;
+            }
+            return Some(token);
+        }
+        None
     }
 
     /// Returns the next expression.
