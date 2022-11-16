@@ -77,7 +77,7 @@ impl<'a> NvtCache<'a> {
         Ok(filename)
     }
 
-    pub fn add_nvt(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
+    pub fn add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
         let oid = nvt.get_oid();
         let cached_nvt: String = self.get_nvt_filename(&oid)?;
 
