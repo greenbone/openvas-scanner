@@ -107,6 +107,7 @@ impl Statement {
                     _,
                     _
                 )
+                | Statement::Array(_, _)
                 | Statement::Operator(_, _)
         )
     }
