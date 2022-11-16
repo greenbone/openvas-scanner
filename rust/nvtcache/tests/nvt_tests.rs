@@ -16,27 +16,14 @@ mod test {
             Err(_) => panic!("No Nvt"),
         }
         //Add first tag
-        match nvt.add_tag("Tag Name".to_string(), "Tag Value".to_string()) {
-            Ok(_) => (),
-            Err(e) => println!("Error:{}", e),
-        }
-        match nvt.get_tag() {
-            Ok(tag) => {
-                assert_eq!(tag, "Tag Name=Tag Value");
-            }
-            Err(e) => println!("Error:{}", e),
-        }
+        nvt.add_tag("Tag Name".to_string(), "Tag Value".to_string());
+        let tag = nvt.get_tag();
+        assert_eq!(tag, "Tag Name=Tag Value");
+
         //Add second tag
-        match nvt.add_tag("Tag Name1".to_string(), "Tag Value1".to_string()) {
-            Ok(_) => (),
-            Err(e) => println!("Error:{}", e),
-        }
-        match nvt.get_tag() {
-            Ok(tag) => {
-                assert_eq!(tag, "Tag Name=Tag Value|Tag Name1=Tag Value1");
-            }
-            Err(e) => println!("Error:{}", e),
-        }
+        nvt.add_tag("Tag Name1".to_string(), "Tag Value1".to_string());
+        let tag = nvt.get_tag();
+        assert_eq!(tag, "Tag Name=Tag Value|Tag Name1=Tag Value1");
     }
 
     #[test]
@@ -53,8 +40,8 @@ mod test {
             "BID-text".to_owned(),
         )?;
 
-        nvt.add_ref(bid_refs1)?;
-        nvt.add_ref(bid_refs2)?;
+        nvt.add_ref(bid_refs1);
+        nvt.add_ref(bid_refs2);
         let bid;
         (_, bid, _) = nvt.get_refs();
 
@@ -75,8 +62,8 @@ mod test {
             "cve_ID1".to_owned(),
             "CVE-text".to_owned(),
         )?;
-        nvt.add_ref(cve_refs1)?;
-        nvt.add_ref(cve_refs2)?;
+        nvt.add_ref(cve_refs1);
+        nvt.add_ref(cve_refs2);
         let cve;
         (cve, _, _) = nvt.get_refs();
         assert_eq!(cve, "cve_ID1, cve_ID1");
@@ -97,8 +84,8 @@ mod test {
             "some text".to_owned(),
         )?;
 
-        nvt.add_ref(xrefs1)?;
-        nvt.add_ref(xrefs2)?;
+        nvt.add_ref(xrefs1);
+        nvt.add_ref(xrefs2);
         let xrefs;
         (_, _, xrefs) = nvt.get_refs();
         assert_eq!(xrefs, "URL:http://greenbone.net, URL:http://openvas.net");

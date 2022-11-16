@@ -78,7 +78,7 @@ impl<'a> NvtCache<'a> {
     }
 
     pub fn add_nvt(&mut self, mut nvt: Nvt, filename: String) -> Result<()> {
-        let oid = nvt.get_oid()?;
+        let oid = nvt.get_oid();
         let cached_nvt: String = self.get_nvt_filename(&oid)?;
 
         // First check if there is a duplicate OID

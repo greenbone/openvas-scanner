@@ -229,140 +229,119 @@ impl Nvt {
     }
 
     /// Set the NVT name
-    pub fn set_name(&mut self, name: String) -> Result<()> {
+    pub fn set_name(&mut self, name: String) {
         self.name = name;
-        return Ok(());
     }
 
     /// Set the NVT summary
     // Not used during plugin upload.
-    pub fn set_summary(&mut self, summary: String) -> Result<()> {
+    pub fn set_summary(&mut self, summary: String) {
         self.summary = summary;
-        return Ok(());
     }
 
     /// Set the NVT insight
     // Not used during plugin upload.
-    pub fn set_insight(&mut self, insight: String) -> Result<()> {
+    pub fn set_insight(&mut self, insight: String) {
         self.insight = insight;
-        return Ok(());
     }
 
     /// Set the NVT affected
     // Not used during plugin upload.
-    pub fn set_affected(&mut self, affected: String) -> Result<()> {
+    pub fn set_affected(&mut self, affected: String) {
         self.affected = affected;
-        return Ok(());
     }
 
     /// Set the NVT impact
     // Not used during plugin upload.
-    pub fn set_impact(&mut self, impact: String) -> Result<()> {
+    pub fn set_impact(&mut self, impact: String) {
         self.impact = impact;
-        return Ok(());
     }
 
     /// Set the NVT creation_time
     // Not used during plugin upload.
-    pub fn set_creation_time(&mut self, creation_time: TimeT) -> Result<()> {
+    pub fn set_creation_time(&mut self, creation_time: TimeT) {
         self.creation_time = creation_time;
-        return Ok(());
     }
 
     /// Set the NVT modification_time
     // Not used during plugin upload.
-    pub fn set_modification_time(&mut self, modification_time: TimeT) -> Result<()> {
+    pub fn set_modification_time(&mut self, modification_time: TimeT) {
         self.modification_time = modification_time;
-        return Ok(());
     }
     /// Set the NVT solution
     // Not used during plugin upload.
-    pub fn set_solution(&mut self, solution: String) -> Result<()> {
+    pub fn set_solution(&mut self, solution: String) {
         self.solution = solution;
-        return Ok(());
     }
 
     /// Set the NVT solution_type
     // Not used during plugin upload.
-    pub fn set_solution_type(&mut self, solution_type: String) -> Result<()> {
+    pub fn set_solution_type(&mut self, solution_type: String) {
         self.solution_type = solution_type;
-        return Ok(());
     }
 
     /// Set the NVT solution method
     // Not used during plugin upload.
-    pub fn set_solution_method(&mut self, solution_method: String) -> Result<()> {
+    pub fn set_solution_method(&mut self, solution_method: String) {
         self.solution_method = solution_method;
-        return Ok(());
     }
 
     /// Set the NVT tag
-    pub fn set_tag(&mut self, tag: String) -> Result<()> {
+    pub fn set_tag(&mut self, tag: String) {
         self.tag = tag;
-        return Ok(());
     }
 
     /// Set the NVT CVSS base
     // Not used during plugin upload.
-    pub fn set_cvss_base(&mut self, cvss_base: String) -> Result<()> {
+    pub fn set_cvss_base(&mut self, cvss_base: String) {
         self.cvss_base = cvss_base;
-        return Ok(());
     }
     /// Set the NVT dependencies
-    pub fn set_dependencies(&mut self, dependencies: String) -> Result<()> {
+    pub fn set_dependencies(&mut self, dependencies: String) {
         self.dependencies = dependencies;
-        return Ok(());
     }
 
     /// Set the NVT required keys
-    pub fn set_required_keys(&mut self, required_keys: String) -> Result<()> {
+    pub fn set_required_keys(&mut self, required_keys: String) {
         self.required_keys = required_keys;
-        return Ok(());
     }
 
     /// Set the NVT mandatory keys
-    pub fn set_mandatory_keys(&mut self, mandatory_keys: String) -> Result<()> {
+    pub fn set_mandatory_keys(&mut self, mandatory_keys: String) {
         self.mandatory_keys = mandatory_keys;
-        return Ok(());
     }
 
     /// Set the NVT excluded keys
-    pub fn set_excluded_keys(&mut self, excluded_keys: String) -> Result<()> {
+    pub fn set_excluded_keys(&mut self, excluded_keys: String) {
         self.excluded_keys = excluded_keys;
-        return Ok(());
     }
 
     /// Set the NVT required ports
-    pub fn set_required_ports(&mut self, required_ports: String) -> Result<()> {
+    pub fn set_required_ports(&mut self, required_ports: String) {
         self.required_ports = required_ports;
-        return Ok(());
     }
 
     /// Set the NVT required udp ports
-    pub fn set_required_udp_ports(&mut self, required_udp_ports: String) -> Result<()> {
+    pub fn set_required_udp_ports(&mut self, required_udp_ports: String) {
         self.required_udp_ports = required_udp_ports;
-        return Ok(());
     }
 
     /// Set the NVT detection
     // Not used during plugin upload.
-    pub fn set_detection(&mut self, detection: String) -> Result<()> {
+    pub fn set_detection(&mut self, detection: String) {
         self.detection = detection;
-        return Ok(());
     }
 
     /// Set the NVT QoD Type
     // Not used during plugin upload.
-    pub fn set_qod_type(&mut self, qod_type: String) -> Result<()> {
+    pub fn set_qod_type(&mut self, qod_type: String) {
         self.qod_type = qod_type;
-        return Ok(());
     }
 
     /// Set the NVT QoD (Quality of Detection)
     // Not used during plugin upload.
-    pub fn set_qod(&mut self, qod: String) -> Result<()> {
+    pub fn set_qod(&mut self, qod: String) {
         self.qod = qod;
-        return Ok(());
     }
 
     /// Set the NVT category. Check that category is a valid Category
@@ -371,9 +350,8 @@ impl Nvt {
     }
 
     /// Set the NVT family
-    pub fn set_family(&mut self, family: String) -> Result<()> {
+    pub fn set_family(&mut self, family: String) {
         self.family = family;
-        return Ok(());
     }
 
     /// Add a tag to the NVT tags.
@@ -382,7 +360,7 @@ impl Nvt {
     /// to be a timestamp  and it is being converted to seconds
     /// since epoch before added as a tag value.
     /// The tag name "cvss_base" will be ignored and not added.
-    pub fn add_tag(&mut self, name: String, value: String) -> Result<()> {
+    pub fn add_tag(&mut self, name: String, value: String) {
         let mut new_value = value;
         let current_tag = &self.tag;
 
@@ -399,7 +377,7 @@ impl Nvt {
                 //TODO: convert the value to seconds since epoch
                 new_value = 1234.to_string();
             }
-            "cvss_base" => return Ok(()),
+            "cvss_base" => return,
             _ => (),
         }
         if self.tag.is_empty() {
@@ -414,63 +392,58 @@ impl Nvt {
             ]
             .concat();
         }
-
-        return Ok(());
     }
 
     /// Function to add a new preference to the Nvt
-    pub fn add_pref(&mut self, pref: NvtPref) -> Result<()> {
+    pub fn add_pref(&mut self, pref: NvtPref) {
         self.prefs.push_back(pref);
-        return Ok(());
     }
 
     /// Function to add a new reference to the Nvt
-    pub fn add_ref(&mut self, nvtref: NvtRef) -> Result<()> {
+    pub fn add_ref(&mut self, nvtref: NvtRef) {
         self.refs.push_back(nvtref);
-        return Ok(());
     }
 
     /// Function to add a new severity to the Nvt
     // Not used during plugin upload.
-    pub fn add_severity(&mut self, severity: NvtSeverity) -> Result<()> {
+    pub fn add_severity(&mut self, severity: NvtSeverity) {
         self.severities.push_back(severity);
-        return Ok(());
     }
 
     //   GET FUNCTIONS
 
     /// Get the NVT OID
-    pub fn get_oid(&mut self) -> Result<String> {
-        Ok(self.oid.clone())
+    pub fn get_oid(&self) -> &str {
+        &self.oid
     }
 
     /// Get the NVT name
-    pub fn get_name(&mut self) -> Result<String> {
-        Ok(self.name.clone())
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     /// Get the NVT summary
     // Not used during plugin upload.
-    pub fn get_summary(&mut self) -> Result<String> {
-        Ok(self.summary.clone())
+    pub fn get_summary(&self) -> &str {
+        &self.summary
     }
 
     /// Get the NVT insight
     // Not used during plugin upload.
-    pub fn get_insight(&mut self) -> Result<String> {
-        Ok(self.insight.clone())
+    pub fn get_insight(&self) -> &str {
+        &self.insight
     }
 
     /// Get the NVT affected
     // Not used during plugin upload.
-    pub fn get_affected(&mut self) -> Result<String> {
-        Ok(self.affected.clone())
+    pub fn get_affected(&self) -> &str {
+        &self.affected
     }
 
     /// Get the NVT impact
     // Not used during plugin upload.
-    pub fn get_impact(&mut self) -> Result<String> {
-        Ok(self.impact.clone())
+    pub fn get_impact(&self) -> &str {
+        &self.impact
     }
 
     /// Get the NVT creation_time
@@ -486,88 +459,88 @@ impl Nvt {
     }
     /// Get the NVT solution
     // Not used during plugin upload.
-    pub fn get_solution(&mut self) -> Result<String> {
-        Ok(self.solution.clone())
+    pub fn get_solution(&self) -> &str {
+        &self.solution
     }
 
     /// Get the NVT solution_type
     // Not used during plugin upload.
-    pub fn get_solution_type(&mut self) -> Result<String> {
-        Ok(self.solution_type.clone())
+    pub fn get_solution_type(&self) -> &str {
+        &self.solution_type
     }
 
     /// Get the NVT solution method
     // Not used during plugin upload.
-    pub fn get_solution_method(&mut self) -> Result<String> {
-        Ok(self.solution_method.clone())
+    pub fn get_solution_method(&self) -> &str {
+        &self.solution_method
     }
 
     /// Get the NVT tag
-    pub fn get_tag(&mut self) -> Result<String> {
-        Ok(self.tag.clone())
+    pub fn get_tag(&self) -> &str {
+        &self.tag
     }
 
     /// Get the NVT CVSS base
     // Not used during plugin upload.
-    pub fn get_cvss_base(&mut self) -> Result<String> {
-        Ok(self.cvss_base.clone())
+    pub fn get_cvss_base(&self) -> &str {
+        &self.cvss_base
     }
     /// Get the NVT dependencies
-    pub fn get_dependencies(&mut self) -> Result<String> {
-        Ok(self.dependencies.clone())
+    pub fn get_dependencies(&self) -> &str {
+        &self.dependencies
     }
 
     /// Get the NVT required keys
-    pub fn get_required_keys(&mut self) -> Result<String> {
-        Ok(self.required_keys.clone())
+    pub fn get_required_keys(&self) -> &str {
+        &self.required_keys
     }
 
     /// Get the NVT mandatory keys
-    pub fn get_mandatory_keys(&mut self) -> Result<String> {
-        Ok(self.mandatory_keys.clone())
+    pub fn get_mandatory_keys(&self) -> &str {
+        &self.mandatory_keys
     }
 
     /// Get the NVT excluded keys
-    pub fn get_excluded_keys(&mut self) -> Result<String> {
-        Ok(self.excluded_keys.clone())
+    pub fn get_excluded_keys(&self) -> &str {
+        &self.excluded_keys
     }
 
     /// Get the NVT required ports
-    pub fn get_required_ports(&mut self) -> Result<String> {
-        Ok(self.required_ports.clone())
+    pub fn get_required_ports(&self) -> &str {
+        &self.required_ports
     }
 
     /// Get the NVT required udp ports
-    pub fn get_required_udp_ports(&mut self) -> Result<String> {
-        Ok(self.required_udp_ports.clone())
+    pub fn get_required_udp_ports(&self) -> &str {
+        &self.required_udp_ports
     }
 
     /// Get the NVT detection
     // Not used during plugin upload.
-    pub fn get_detection(&mut self) -> Result<String> {
-        Ok(self.detection.clone())
+    pub fn get_detection(&self) -> &str {
+        &self.detection
     }
 
     /// Get the NVT QoD Type
     // Not used during plugin upload.
-    pub fn get_qod_type(&mut self) -> Result<String> {
-        Ok(self.qod_type.clone())
+    pub fn get_qod_type(&self) -> &str {
+        &self.qod_type
     }
 
     /// Get the NVT QoD (Quality of Detection)
     // Not used during plugin upload.
-    pub fn get_qod(&mut self) -> Result<String> {
-        Ok(self.qod.clone())
+    pub fn get_qod(&self) -> &str {
+        &self.qod
     }
 
     /// Get the NVT category.
-    pub fn get_category(&mut self) -> i32 {
+    pub fn get_category(&self) -> i32 {
         self.category as i32
     }
 
     /// Get the NVT family
-    pub fn get_family(&mut self) -> Result<String> {
-        Ok(self.family.clone())
+    pub fn get_family(&self) -> &str {
+        &self.family
     }
 
     /// Get References. It returns a tuple of three strings
@@ -578,7 +551,7 @@ impl Nvt {
     /// cve and bid strings are CSC strings containing only
     /// "id, id, ...", while other custom types includes the type
     /// and the string is in the format "type:id, type:id, ..."
-    pub fn get_refs(&mut self) -> (String, String, String) {
+    pub fn get_refs(&self) -> (String, String, String) {
         let (bids, cves, xrefs): (Vec<String>, Vec<String>, Vec<String>) =
             self.refs
                 .iter()
