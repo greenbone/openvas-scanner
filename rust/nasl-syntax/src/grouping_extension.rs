@@ -34,7 +34,6 @@ impl<'a> Grouping for Lexer<'a> {
         if !end {
             Err(unclosed_token!(token))
         } else {
-            self.unhandled_token = None;
             match right {
                 Statement::Assign(category, _, variable, stmt) => Ok(Statement::Assign(
                     category,

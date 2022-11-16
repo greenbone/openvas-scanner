@@ -63,11 +63,14 @@ impl Operation {
             | Category::LessLessEqual
             | Category::GreaterGreaterGreaterEqual
             | Category::PlusPlus
+            | Category::Semicolon
+            | Category::DoublePoint
             | Category::MinusMinus => Some(Operation::Assign(token.category())),
             Category::String(_) | Category::Number(_) => Some(Operation::Primitive),
-            Category::LeftParen | Category::LeftBrace | Category::LeftCurlyBracket | Category::Comma => {
-                Some(Operation::Grouping(token.category()))
-            }
+            Category::LeftParen
+            | Category::LeftBrace
+            | Category::LeftCurlyBracket
+            | Category::Comma => Some(Operation::Grouping(token.category())),
             Category::Identifier(None) => Some(Operation::Variable),
             Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword)),
             Category::Comment => Some(Operation::NoOp),

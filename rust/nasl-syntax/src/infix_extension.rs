@@ -1,10 +1,12 @@
 //! Handles the infix statement within Lexer
+
 use crate::{
     error::SyntaxError,
     lexer::Lexer,
     lexer::{AssignOrder, Statement},
     operation::Operation,
     token::{Category, Token},
+    unexpected_end, unexpected_statement,
 };
 pub(crate) trait Infix {
     /// Returns true when an Operation needs a infix handling.
@@ -19,7 +21,7 @@ pub(crate) trait Infix {
         token: Token,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<Statement, SyntaxError>;
+    ) -> Result<(bool, Statement), SyntaxError>;
 }
 
 /// Returns the binding power of a operation or None.
@@ -60,13 +62,34 @@ impl<'a> Infix for Lexer<'a> {
         token: Token,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<Statement, SyntaxError> {
+    ) -> Result<(bool, Statement), SyntaxError> {
         Ok({
             // binding power of the right side
             let (_, right_bp) =
                 infix_binding_power(op).expect("handle_infix should be called first");
-            let (_, rhs) = self.statement(right_bp, abort)?;
-            match op {
+            let (end, rhs) = self.statement(right_bp, abort)?;
+            let stmt = match op {
+                // DoublePoint operation needs to be changed to NamedParameter statement
+                Operation::Assign(Category::DoublePoint) => match lhs {
+                    Statement::Variable(left) => {
+                        // if the right side is a parameter we need to transform the NamedParameter 
+                        // from the atomar params and assign the first one to the NamedParameter instead
+                        // of Statement::Parameter and put it upfront
+                        match rhs {
+                            Statement::Parameter(mut params) => {
+                                params.reverse();
+                                let value = params.pop().ok_or_else(|| unexpected_end!("while getting value of named parameter"))?;
+                                let np = Statement::NamedParameter(left, Box::new(value));
+                                params.push(np);
+                                params.reverse();
+                                Statement::Parameter(params)
+                            }
+
+                            _ => Statement::NamedParameter(left, Box::new(rhs)),
+                        }
+                    },
+                    _ => return Err(unexpected_statement!(lhs)),
+                },
                 // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
                 Operation::Assign(category) => match lhs {
                     Statement::Variable(var) => {
@@ -93,7 +116,8 @@ impl<'a> Infix for Lexer<'a> {
                     _ => Statement::Operator(token.category(), vec![lhs, rhs]),
                 },
                 _ => Statement::Operator(token.category(), vec![lhs, rhs]),
-            }
+            };
+            (end, stmt)
         })
     }
 
