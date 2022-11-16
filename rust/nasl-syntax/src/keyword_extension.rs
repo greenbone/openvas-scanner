@@ -358,6 +358,7 @@ mod test {
                 )))
             )
         );
+        parse("if( version[1] ) report += '\nVersion: ' + version[1];").next().unwrap().unwrap();
     }
 
     #[test]
@@ -605,6 +606,7 @@ mod test {
             ))
         );
     }
+
     #[test]
     fn unclosed() {
         assert!(parse("local_var a, b, c").next().unwrap().is_err());
