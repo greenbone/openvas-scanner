@@ -210,6 +210,17 @@ soc = open_sock_tcp(port);
         }
     }
 
+
+    #[test]
+    fn unexpected_plusplus() {
+        let code = r###"
+        cookie_jar[this_cookie]++;
+        "###;
+        for x in parse(code) {
+            x.unwrap();
+        }
+    }
+
     fn parse_or_panic(entry: walkdir::DirEntry) {
         let ext = {
             if let Some(ext) = entry.path().extension() {
