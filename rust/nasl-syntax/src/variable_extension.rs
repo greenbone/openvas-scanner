@@ -105,7 +105,7 @@ mod test {
             result("a = [1, 2, 3];"),
             Assign(
                 Equal,
-                AssignOrder::Assign,
+                AssignOrder::AssignReturn,
                 Box::new(Array(
                     Token {
                         category: Identifier(None),
@@ -134,7 +134,7 @@ mod test {
             result("a[0] = [1, 2, 3];"),
             Assign(
                 Equal,
-                AssignOrder::Assign,
+                AssignOrder::AssignReturn,
                 Box::new(Array(
                     Token {
                         category: Identifier(None),

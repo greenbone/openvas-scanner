@@ -14,8 +14,6 @@ use crate::{
 /// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AssignOrder {
-    /// Just assign don't return
-    Assign,
     /// Assign first than return
     AssignReturn,
     /// Retutn than assign

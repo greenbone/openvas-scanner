@@ -92,7 +92,7 @@ mod tests {
             vec![
                 Ok(Assign(
                     Equal,
-                    AssignOrder::Assign,
+                    AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (0, 1)
@@ -104,7 +104,7 @@ mod tests {
                 )),
                 Ok(Assign(
                     Equal,
-                    AssignOrder::Assign,
+                    AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (7, 8)

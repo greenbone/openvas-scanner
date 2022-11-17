@@ -515,7 +515,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                     if !back_slash && c == '\'' {
                         false
                     } else {
-                        back_slash = c == '\\';
+                        back_slash = !back_slash && c == '\\';
                         true
                     }
                 })
@@ -719,6 +719,13 @@ mod tests {
         verify_tokens!("return", vec![(Identifier(Some(Return)), 0, 6)]);
         verify_tokens!("include", vec![(Identifier(Some(Include)), 0, 7)]);
         verify_tokens!("exit", vec![(Identifier(Some(Exit)), 0, 4)]);
+    }
+
+    #[test]
+    fn string_quoting() {
+        use Category::*;
+        use StringCategory::*;
+        verify_tokens!(r###"'webapps\\appliance\\'"###, vec![(String(Quoteable), 1, 21)]);
     }
 
     #[test]
