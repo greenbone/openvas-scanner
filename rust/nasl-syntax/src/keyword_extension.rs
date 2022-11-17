@@ -222,24 +222,36 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn parse_while(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_while(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         self.paren_base()?;
         let (end, condition) = self.statement(0, &|c| c == Category::RightParen)?;
+        if !end {
+            return Err(unclosed_token!(token));
+        }
         let condition = condition.as_returnable_or_err()?;
         let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
+        if !end {
+            return Err(unclosed_token!(token));
+        }
         Ok((
             PrefixState::Break(Category::Semicolon),
             Statement::While(Box::new(condition), Box::new(body)),
         ))
     }
-    fn parse_repeat(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_repeat(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
 
+        if !end {
+            return Err(unclosed_token!(token));
+        }
         let until: Statement = {
             match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Until)) => {
                         let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+                        if !end {
+                            return Err(unclosed_token!(token));
+                        }
                         Ok(stmt)
                     }
                     _ => Err(unexpected_token!(token)),
@@ -254,7 +266,7 @@ impl<'a> Lexer<'a> {
         ))
     }
 
-    fn parse_foreach(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_foreach(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         let variable: Token = {
             match self.token() {
                 Some(token) => match token.category() {
@@ -272,12 +284,19 @@ impl<'a> Lexer<'a> {
             }?
         };
         let (end, block) = self.statement(0, &|cat| cat == Category::Semicolon)?;
-        Ok((
-            PrefixState::Break(Category::Semicolon),
-            Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
-        ))
+        if !end {
+            Err(unclosed_token!(token))
+        } else {
+            Ok((
+                PrefixState::Break(Category::Semicolon),
+                Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
+            ))
+        }
     }
-    fn parse_fct_anon_args(&mut self, keyword: Token) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_fct_anon_args(
+        &mut self,
+        keyword: Token,
+    ) -> Result<(PrefixState, Statement), SyntaxError> {
         match self.token() {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
@@ -311,11 +330,11 @@ impl<'a> Keywords for Lexer<'a> {
     ) -> Result<(PrefixState, Statement), SyntaxError> {
         match keyword {
             Keyword::For => self.parse_for(),
-            Keyword::ForEach => self.parse_foreach(),
+            Keyword::ForEach => self.parse_foreach(token),
             Keyword::If => self.parse_if(),
             Keyword::Else => Err(unexpected_token!(token)), // handled in if
-            Keyword::While => self.parse_while(),
-            Keyword::Repeat => self.parse_repeat(),
+            Keyword::While => self.parse_while(token),
+            Keyword::Repeat => self.parse_repeat(token),
             Keyword::Until => Err(unexpected_token!(token)), // handled in repeat
             Keyword::LocalVar => self.parse_declaration(DeclareScope::Local),
             Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
@@ -523,7 +542,7 @@ mod test {
 
     #[test]
     fn repeat_loop() {
-        let code = "repeat ; until 1 == 1";
+        let code = "repeat ; until 1 == 1;";
         assert!(matches!(
             parse(code).next().unwrap().unwrap(),
             Statement::Repeat(_, _)
@@ -609,15 +628,16 @@ mod test {
                     category: Category::Identifier(None),
                     position: (0, 4)
                 },)),
-                Box::new(Statement::Array(Token{
-                    category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
-                    position: (7, 21),
-                }, Some(Box::new(
-                    Statement::Primitive(Token {
+                Box::new(Statement::Array(
+                    Token {
+                        category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
+                        position: (7, 21),
+                    },
+                    Some(Box::new(Statement::Primitive(Token {
                         category: Category::Number(Base::Base10),
                         position: (22, 23)
-                    })
-                ))))
+                    })))
+                ))
             ))
         );
         assert_eq!(
@@ -629,10 +649,13 @@ mod test {
                     category: Category::Identifier(None),
                     position: (0, 4)
                 },)),
-                Box::new(Statement::Array(Token{
-                    category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
-                    position: (7, 21),
-                }, None))
+                Box::new(Statement::Array(
+                    Token {
+                        category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
+                        position: (7, 21),
+                    },
+                    None
+                ))
             ))
         );
     }
