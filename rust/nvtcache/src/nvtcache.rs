@@ -1,3 +1,4 @@
+use crate::dberror::DbError;
 use crate::dberror::Result;
 use crate::nvt::*;
 use crate::redisconnector::*;
@@ -22,6 +23,12 @@ impl<'a> NvtCache<'a> {
         let rctx = RedisCtx::new(redis_url)?;
 
         let cache_key = "nvticache";
+
+        if !Path::new(plugin_path).exists() {
+            return Err(DbError::PluginDirErr {
+                path: plugin_path.to_string(),
+            });
+        }
 
         Ok(NvtCache {
             cache: rctx,

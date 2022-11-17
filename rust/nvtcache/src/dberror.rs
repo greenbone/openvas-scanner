@@ -12,6 +12,9 @@ pub enum DbError {
     },
     MaxDbErr(String),
     NoAvailDbErr(String),
+    PluginDirErr {
+        path: String,
+    },
     CustomErr(String),
 }
 
@@ -25,6 +28,7 @@ impl fmt::Display for DbError {
             } => write!(f, "Redis Error. {kind}: {source}. {detail}"),
             DbError::MaxDbErr(e) => write!(f, "Error: {}", e),
             DbError::NoAvailDbErr(e) => write!(f, "Error: {}", e),
+            DbError::PluginDirErr { path } => write!(f, "Invalid plugin path: {}", path),
             DbError::CustomErr(e) => write!(f, "Error: {}", e),
         }
     }
