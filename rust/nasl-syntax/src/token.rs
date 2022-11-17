@@ -200,6 +200,10 @@ pub enum Category {
     String(StringCategory),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(Base),
+    /// We currently just suport 127.0.0.1 notation
+    IPv4Address,
+    /// Wrongfullt identified as IpV4
+    IllegalIPv4Address,
     /// An illegal Number e.g. 0b2
     IllegalNumber(Base),
     /// A comment starts with # and should be ignored
@@ -425,6 +429,36 @@ impl<'a> Tokenizer<'a> {
                 self.cursor.advance();
                 self.cursor.skip_while(base.verifier());
             }
+            // verify it may be an IPv4Address
+            // if the next one is a dot we are at
+            // 127.0
+            // and need to parse .0
+
+            if self.cursor.peek(0) == '.' {
+                if self.cursor.peek(1).is_numeric() {
+                    self.cursor.advance();
+                    self.cursor.skip_while(base.verifier());
+                } else {
+                    return token!(
+                        Category::IllegalIPv4Address,
+                        start,
+                        self.cursor.len_consumed()
+                    );
+                }
+
+                if self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
+                    self.cursor.advance();
+                    self.cursor.skip_while(base.verifier());
+                } else {
+                    return token!(
+                        Category::IllegalIPv4Address,
+                        start,
+                        self.cursor.len_consumed()
+                    );
+                }
+                return token!(Category::IPv4Address, start, self.cursor.len_consumed());
+            }
+
             // we verify that the cursor actually moved to prevent scenarious like
             // 0b without any actual number in it
             if start == self.cursor.len_consumed() {
@@ -725,7 +759,16 @@ mod tests {
     fn string_quoting() {
         use Category::*;
         use StringCategory::*;
-        verify_tokens!(r###"'webapps\\appliance\\'"###, vec![(String(Quoteable), 1, 21)]);
+        verify_tokens!(
+            r###"'webapps\\appliance\\'"###,
+            vec![(String(Quoteable), 1, 21)]
+        );
+    }
+
+    #[test]
+    fn simplified_ipv4_address() {
+        use Category::*;
+        verify_tokens!("10.187.76.12", vec![(IPv4Address, 0, 12)]);
     }
 
     #[test]
