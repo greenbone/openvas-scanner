@@ -191,12 +191,12 @@ impl RedisCtx {
     pub fn redis_add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
         let oid = nvt.get_oid();
         let name = nvt.get_name();
-        let required_keys = nvt.get_required_keys();
-        let mandatory_keys = nvt.get_mandatory_keys();
-        let excluded_keys = nvt.get_excluded_keys();
-        let required_udp_ports = nvt.get_required_udp_ports();
-        let required_ports = nvt.get_required_ports();
-        let dependencies = nvt.get_dependencies();
+        let required_keys = nvt.get_required_keys().concat();
+        let mandatory_keys = nvt.get_mandatory_keys().concat();
+        let excluded_keys = nvt.get_excluded_keys().concat();
+        let required_udp_ports = nvt.get_required_udp_ports().concat();
+        let required_ports = nvt.get_required_ports().concat();
+        let dependencies = nvt.get_dependencies().concat();
         let tags = nvt.get_tag();
         let category = nvt.get_category().to_string();
         let family = nvt.get_family();
@@ -207,12 +207,12 @@ impl RedisCtx {
         let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
         let values: Vec<&str> = [
             &filename,
-            required_keys,
-            mandatory_keys,
-            excluded_keys,
-            required_udp_ports,
-            required_ports,
-            dependencies,
+            &required_keys,
+            &mandatory_keys,
+            &excluded_keys,
+            &required_udp_ports,
+            &required_ports,
+            &dependencies,
             tags,
             &cves,
             &bids,
