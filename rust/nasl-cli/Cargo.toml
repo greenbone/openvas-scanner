@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 clap = { version = "~4", features = ["derive"] }
 nasl-syntax = { path = "../nasl-syntax" }
+walkdir = "2"
+

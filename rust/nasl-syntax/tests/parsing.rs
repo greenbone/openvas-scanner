@@ -1,54 +1,8 @@
 #[cfg(test)]
 mod test {
 
-    use core::panic;
-    use std::{
-        env,
-        fs::{self, DirEntry},
-        io,
-        ops::Range,
-        path::{Path, PathBuf},
-        str::FromStr,
-        thread,
-        time::Duration,
-    };
-
-    use nasl_syntax::{parse, Statement, SyntaxError};
-    use walkdir::WalkDir;
-
-    fn get_range(err: &SyntaxError) -> Option<Range<usize>> {
-        if let Some(token) = err.token {
-            Some(token.range())
-        } else if let Some(stmt) = err.clone().statement {
-            let token = {
-                match stmt {
-                    Statement::Primitive(token) => token,
-                    Statement::Array(token, _) => token,
-                    _ => return None,
-                }
-            };
-            Some(token.range())
-        } else {
-            None
-        }
-    }
-    fn to_line(code: &str, err: SyntaxError) -> Option<(usize, String)> {
-        if let Some(range) = get_range(&err) {
-            let character = code[range.clone()].to_owned();
-            let line = code[Range {
-                start: 0,
-                end: range.end,
-            }]
-            .as_bytes()
-            .iter()
-            .filter(|&&c| c == b'\n')
-            .count();
-            // we start at 0 but editors start 1
-            Some((line + 1, character))
-        } else {
-            None
-        }
-    }
+    
+    use nasl_syntax::parse;
 
     #[test]
     fn stack_overflow() {
@@ -161,7 +115,6 @@ req = raw_string(0x00, 0x00, 0x03, 0x14, 0x08, 0x14, 0xff, 0x9f,
 
     #[test]
     fn jsp_example() {
-
         let code = r###"
   gms_path = gms_path + 'webapps\\appliance\\';
 jsp = '<% out.println( "' + jsp_print  + '" ); %>';
@@ -169,7 +122,6 @@ jsp = '<% out.println( "' + jsp_print  + '" ); %>';
         for x in parse(code) {
             x.unwrap();
         }
-
     }
 
     #[test]
@@ -210,7 +162,6 @@ soc = open_sock_tcp(port);
         }
     }
 
-
     #[test]
     fn unexpected_plusplus() {
         let code = r###"
@@ -219,52 +170,5 @@ soc = open_sock_tcp(port);
         for x in parse(code) {
             x.unwrap();
         }
-    }
-
-    fn parse_or_panic(entry: walkdir::DirEntry) {
-        let ext = {
-            if let Some(ext) = entry.path().extension() {
-                ext.to_str().unwrap().to_owned()
-            } else {
-                "".to_owned()
-            }
-        };
-        if !matches!(ext.as_str(), "nasl" | "inc") {
-            println!("SKIPPING: {:?}", entry.path());
-            return;
-        }
-        println!("PARSING {:?}", entry.path());
-        let code: String = fs::read(entry.path())
-            .map(|bs| bs.iter().map(|&b| b as char).collect())
-            .unwrap();
-        if let Some(x) = parse(&code).find(|s| s.is_err()) {
-            match x {
-                Ok(_) => todo!(),
-                Err(err) => {
-                    if let Some((line, character)) = to_line(&code, err.clone()) {
-                        panic!(
-                            "{} unexpected character {} in {:?}",
-                            line, character, entry.path(),
-                        );
-                    } else {
-                        panic!("{}", err);
-                    }
-
-                },
-            }
-        };
-    }
-
-    #[ignore]
-    #[test]
-    fn skimp_all() {
-        let wd =
-            PathBuf::from_str("/Users/philippeder/src/greenbone/vulnerability-tests/nasl/common/")
-                .unwrap();
-
-        for entry in WalkDir::new(wd).into_iter().filter_map(|e| e.ok()) {
-            parse_or_panic(entry);
-        }
-        panic!("hum");
     }
 }
