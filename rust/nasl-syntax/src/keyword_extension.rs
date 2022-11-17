@@ -168,6 +168,16 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+        let token = self.token();
+        if let Some(token) = token {
+            if matches!(token.category(), Category::Semicolon) {
+                return Ok((
+                    PrefixState::Break(Category::Semicolon),
+                    Statement::Return(Box::new(Statement::NoOp(Some(token)))),
+                ));
+            }
+        }
+        self.unhandled_token = token;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
         if let End::Done(cat) = end {
