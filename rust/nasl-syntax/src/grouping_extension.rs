@@ -1,6 +1,6 @@
 use crate::{
     error::SyntaxError,
-    lexer::Lexer,
+    lexer::{Lexer, End},
     lexer::{AssignOrder, Statement},
     prefix_extension::PrefixState,
     token::{Category, Token},
@@ -56,7 +56,7 @@ impl<'a> Grouping for Lexer<'a> {
             self.unhandled_token = Some(token);
             // use min_bp 1 to skip the unhandled_token reset due to self.tokenizer.next call
             let (end, stmt) = self.statement(1, &|cat| cat == Category::Semicolon)?;
-            if end && !matches!(stmt, Statement::NoOp(_)) {
+            if end == End::Done && !matches!(stmt, Statement::NoOp(_)) {
                 results.push(stmt);
             }
             // else error

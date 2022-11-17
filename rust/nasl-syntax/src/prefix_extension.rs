@@ -4,7 +4,7 @@ use crate::{
     grouping_extension::Grouping,
     keyword_extension::Keywords,
     lexer::Lexer,
-    lexer::{AssignOrder, Statement},
+    lexer::{AssignOrder, Statement, End},
     operation::Operation,
     token::{Category, Token},
     unexpected_end, unexpected_token,
@@ -80,7 +80,7 @@ impl<'a> Prefix for Lexer<'a> {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
                 let (end, right) = self.statement(bp, abort)?;
-                if end {
+                if end == End::Done {
                     Ok((Break, Statement::Operator(kind, vec![right])))
                 } else {
                     Ok((Continue, Statement::Operator(kind, vec![right])))
