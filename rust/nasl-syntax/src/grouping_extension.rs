@@ -1,6 +1,6 @@
 use crate::{
     error::SyntaxError,
-    lexer::{Lexer, End},
+    lexer::{Lexer},
     lexer::{AssignOrder, Statement},
     prefix_extension::PrefixState,
     token::{Category, Token},
@@ -18,6 +18,7 @@ pub(crate) trait Grouping {
 
 impl<'a> Lexer<'a> {
     fn parse_brace(&mut self, token: Token) -> Result<Statement, SyntaxError> {
+        // TODO make iterative
         let (end, right) = self.statement(0, &|cat| cat == Category::RightBrace)?;
         if !end {
             Err(unclosed_token!(token))
@@ -56,7 +57,7 @@ impl<'a> Grouping for Lexer<'a> {
             self.unhandled_token = Some(token);
             // use min_bp 1 to skip the unhandled_token reset due to self.tokenizer.next call
             let (end, stmt) = self.statement(1, &|cat| cat == Category::Semicolon)?;
-            if end == End::Done && !matches!(stmt, Statement::NoOp(_)) {
+            if end.is_done() && !matches!(stmt, Statement::NoOp(_)) {
                 results.push(stmt);
             }
             // else error
@@ -71,10 +72,10 @@ impl<'a> Grouping for Lexer<'a> {
                 .map(|stmt| (PrefixState::Continue, stmt)),
             Category::LeftCurlyBracket => self
                 .parse_block(token)
-                .map(|stmt| (PrefixState::Break, stmt)),
+                .map(|stmt| (PrefixState::Break(token.category()), stmt)),
             Category::LeftBrace => self
                 .parse_brace(token)
-                .map(|stmt| (PrefixState::Break, stmt)),
+                .map(|stmt| (PrefixState::Break(token.category()), stmt)),
             _ => Err(unexpected_token!(token)),
         }
     }

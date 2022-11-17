@@ -1,8 +1,8 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::{Statement, End},
     lexer::{DeclareScope, Lexer},
+    lexer::{End, Statement},
     prefix_extension::PrefixState,
     token::{Category, Keyword, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
@@ -28,7 +28,7 @@ impl<'a> Lexer<'a> {
         }
         let result = match stmt {
             Statement::Variable(var) => Ok((
-                PrefixState::Break,
+                PrefixState::Break(Category::Semicolon),
                 Statement::Declare(scope, vec![Statement::Variable(var)]),
             )),
             Statement::Parameter(params) => {
@@ -38,7 +38,10 @@ impl<'a> Lexer<'a> {
                     }
                     return Err(unexpected_statement!(p));
                 }
-                Ok((PrefixState::Break, Statement::Declare(scope, params)))
+                Ok((
+                    PrefixState::Break(Category::Semicolon),
+                    Statement::Declare(scope, params),
+                ))
             }
             stmt => Err(unexpected_statement!(stmt)),
         }?;
@@ -76,7 +79,7 @@ impl<'a> Lexer<'a> {
             }
         };
         Ok((
-            PrefixState::Break,
+            PrefixState::Break(Category::Semicolon),
             Statement::If(Box::new(condition), Box::new(body), r#else.map(Box::new)),
         ))
     }
@@ -96,10 +99,13 @@ impl<'a> Lexer<'a> {
         self.paren_base()?;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end == End::Done {
+        if end.is_done() {
             let (_, should_be_semicolon) = self.statement(0, &|cat| cat == Category::Semicolon)?;
             if matches!(should_be_semicolon, Statement::NoOp(_)) {
-                Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
+                Ok((
+                    PrefixState::Break(Category::Semicolon),
+                    Statement::Exit(Box::new(parameter)),
+                ))
             } else {
                 Err(unexpected_statement!(should_be_semicolon))
             }
@@ -113,11 +119,14 @@ impl<'a> Lexer<'a> {
         self.paren_base()?;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end == End::Done {
+        if end.is_done() {
             match parameter {
                 Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => {
                     // TODO parse to end!
-                    Ok((PrefixState::Break, Statement::Include(Box::new(parameter))))
+                    Ok((
+                        PrefixState::Break(Category::RightParen),
+                        Statement::Include(Box::new(parameter)),
+                    ))
                 }
                 _ => Err(unexpected_statement!(parameter)),
             }
@@ -153,7 +162,7 @@ impl<'a> Lexer<'a> {
         }
         let block = self.parse_block(block)?;
         Ok((
-            PrefixState::Break,
+            PrefixState::Break(Category::RightCurlyBracket),
             Statement::FunctionDeclaration(id, parameter, Box::new(block)),
         ))
     }
@@ -161,9 +170,12 @@ impl<'a> Lexer<'a> {
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let (end, parameter) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end == End::Done {
+        if let End::Done(cat) = end {
             // TODO parse to end
-            Ok((PrefixState::Break, Statement::Return(Box::new(parameter))))
+            Ok((
+                PrefixState::Break(cat),
+                Statement::Return(Box::new(parameter)),
+            ))
         } else {
             Err(unexpected_end!("exit"))
         }
@@ -188,18 +200,18 @@ impl<'a> Lexer<'a> {
             return Err(unclosed_statement!(pre_body));
         }
         let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
-        if end == End::Continue {
-            return Err(unclosed_statement!(body));
+        match end {
+            End::Done(cat) => Ok((
+                PrefixState::Break(cat),
+                Statement::For(
+                    Box::new(assignment),
+                    Box::new(condition),
+                    Box::new(pre_body),
+                    Box::new(body),
+                ),
+            )),
+            End::Continue => Err(unclosed_statement!(body)),
         }
-        Ok((
-            PrefixState::Break,
-            Statement::For(
-                Box::new(assignment),
-                Box::new(condition),
-                Box::new(pre_body),
-                Box::new(body),
-            ),
-        ))
     }
 
     fn parse_while(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
@@ -208,7 +220,7 @@ impl<'a> Lexer<'a> {
         let condition = condition.as_returnable_or_err()?;
         let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
         Ok((
-            PrefixState::Break,
+            PrefixState::Break(Category::Semicolon),
             Statement::While(Box::new(condition), Box::new(body)),
         ))
     }
@@ -229,7 +241,7 @@ impl<'a> Lexer<'a> {
             .as_returnable_or_err()?
         };
         Ok((
-            PrefixState::Break,
+            PrefixState::Break(Category::Semicolon),
             Statement::Repeat(Box::new(body), Box::new(until)),
         ))
     }
@@ -253,7 +265,7 @@ impl<'a> Lexer<'a> {
         };
         let (end, block) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         Ok((
-            PrefixState::Break,
+            PrefixState::Break(Category::Semicolon),
             Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
         ))
     }
@@ -341,24 +353,27 @@ mod test {
                         category: Identifier(None),
                         position: (17, 27)
                     },
-                    Box::new(Primitive(Token {
+                    Box::new(Parameter(vec![Primitive(Token {
                         category: String(StringCategory::Quoteable),
                         position: (29, 30)
-                    }))
+                    })]))
                 )),
                 Some(Box::new(Call(
                     Token {
                         category: Identifier(None),
                         position: (39, 46)
                     },
-                    Box::new(Primitive(Token {
+                    Box::new(Parameter(vec![Primitive(Token {
                         category: String(StringCategory::Quoteable),
                         position: (48, 50)
-                    }))
+                    })]))
                 )))
             )
         );
-        parse("if( version[1] ) report += '\nVersion: ' + version[1];").next().unwrap().unwrap();
+        parse("if( version[1] ) report += '\nVersion: ' + version[1];")
+            .next()
+            .unwrap()
+            .unwrap();
     }
 
     #[test]

@@ -21,7 +21,7 @@ pub(crate) trait Infix {
         token: Token,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<(bool, Statement), SyntaxError>;
+    ) -> Result<(End, Statement), SyntaxError>;
 }
 
 /// Returns the binding power of a operation or None.
@@ -62,7 +62,7 @@ impl<'a> Infix for Lexer<'a> {
         token: Token,
         lhs: Statement,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<(bool, Statement), SyntaxError> {
+    ) -> Result<(End, Statement), SyntaxError> {
         Ok({
             // binding power of the right side
             let (_, right_bp) =
@@ -120,7 +120,7 @@ impl<'a> Infix for Lexer<'a> {
                 },
                 _ => Statement::Operator(token.category(), vec![lhs, rhs]),
             };
-            (end == End::Done, stmt)
+            (end, stmt)
         })
     }
 
