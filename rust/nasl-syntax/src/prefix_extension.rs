@@ -63,6 +63,18 @@ impl<'a> Lexer<'a> {
                     vec![Statement::Variable(value), Statement::RawNumber(amount)],
                 )),
             )),
+            (_, Statement::Array(token, resolver)) => Ok(Statement::Assign(
+                assign,
+                AssignOrder::AssignReturn,
+                Box::new(Statement::Array(token, resolver.clone())),
+                Box::new(Statement::Operator(
+                    operation,
+                    vec![
+                        Statement::Array(token, resolver),
+                        Statement::RawNumber(amount),
+                    ],
+                )),
+            )),
             _ => Err(unexpected_token!(token)),
         }
     }
@@ -205,5 +217,43 @@ mod test {
         };
         assert_eq!(result("1 + ++a * 1;"), expected(PlusPlus, Plus));
         assert_eq!(result("1 + --a * 1;"), expected(MinusMinus, Minus));
+    }
+    #[test]
+    fn assignment_array_operator() {
+        use AssignOrder::*;
+        let expected = |assign_operator: Category, operator: Category| {
+            Assign(
+                assign_operator,
+                AssignReturn,
+                Box::new(Array(
+                    Token {
+                        category: Identifier(None),
+                        position: (2, 3),
+                    },
+                    Some(Box::new(Primitive(Token {
+                        category: Number(Base10),
+                        position: (4, 5),
+                    }))),
+                )),
+                Box::new(Operator(
+                    operator,
+                    vec![
+                        Array(
+                            Token {
+                                category: Identifier(None),
+                                position: (2, 3),
+                            },
+                            Some(Box::new(Primitive(Token {
+                                category: Number(Base10),
+                                position: (4, 5),
+                            }))),
+                        ),
+                        RawNumber(1),
+                    ],
+                )),
+            )
+        };
+        assert_eq!(result("++a[0];"), expected(PlusPlus, Plus));
+        assert_eq!(result("--a[0];"), expected(MinusMinus, Minus));
     }
 }

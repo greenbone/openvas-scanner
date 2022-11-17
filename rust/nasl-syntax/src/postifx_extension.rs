@@ -1,8 +1,8 @@
 //! Handles the postfix statement within Lexer
 use crate::{
     error::SyntaxError,
-    lexer::{Lexer, End},
     lexer::{AssignOrder, Statement},
+    lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
     unexpected_token,
@@ -25,6 +25,7 @@ pub(crate) trait Postfix {
 }
 
 impl<'a> Lexer<'a> {
+    // TODO this can be remvoed once the grouping part is done within function (declation, call)
     fn flatten_parameter(
         &mut self,
         lhs: Statement,
@@ -58,6 +59,18 @@ impl<'a> Lexer<'a> {
                     Box::new(Statement::Operator(
                         operation,
                         vec![Statement::Variable(token), Statement::RawNumber(1)],
+                    )),
+                ),
+            ))),
+            Statement::Array(token, resolver) => Some(Ok((
+                End::Continue,
+                Statement::Assign(
+                    assign,
+                    AssignOrder::ReturnAssign,
+                    Box::new(Statement::Array(token, resolver.clone())),
+                    Box::new(Statement::Operator(
+                        operation,
+                        vec![Statement::Array(token, resolver), Statement::RawNumber(1)],
                     )),
                 ),
             ))),
@@ -114,7 +127,7 @@ mod test {
     }
 
     #[test]
-    fn postfix_assignment_operator() {
+    fn postfix_variable_assignment_operator() {
         let expected = |assign_operator: Category, operator: Category| {
             Operator(
                 Plus,
@@ -155,5 +168,44 @@ mod test {
         };
         assert_eq!(result("1 + a++ * 1;"), expected(PlusPlus, Plus));
         assert_eq!(result("1 + a-- * 1;"), expected(MinusMinus, Minus));
+    }
+
+    #[test]
+    fn postfix_array_assignment_operator() {
+        use AssignOrder::*;
+        let expected = |assign_operator: Category, operator: Category| {
+            Assign(
+                assign_operator,
+                ReturnAssign,
+                Box::new(Array(
+                    Token {
+                        category: Identifier(None),
+                        position: (0, 1),
+                    },
+                    Some(Box::new(Primitive(Token {
+                        category: Number(Base10),
+                        position: (2, 3),
+                    }))),
+                )),
+                Box::new(Operator(
+                    operator,
+                    vec![
+                        Array(
+                            Token {
+                                category: Identifier(None),
+                                position: (0, 1),
+                            },
+                            Some(Box::new(Primitive(Token {
+                                category: Number(Base10),
+                                position: (2, 3),
+                            }))),
+                        ),
+                        RawNumber(1),
+                    ],
+                )),
+            )
+        };
+        assert_eq!(result("a[1]++;"), expected(PlusPlus, Plus));
+        assert_eq!(result("a[1]--;"), expected(MinusMinus, Minus));
     }
 }
