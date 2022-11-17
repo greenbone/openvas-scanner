@@ -194,6 +194,22 @@ while(y = recv(socket:soc, length:1024)) {
         }
     }
 
+    #[test]
+    fn unexpected_equal_operator() {
+        let code = r###"
+# Message Server runs on ports 36xx or 39xx
+if (port < 3600 || port >= 3700)
+  if (port < 3900 || port >= 4000)
+    exit(0);
+
+soc = open_sock_tcp(port);
+
+        "###;
+        for x in parse(code) {
+            x.unwrap();
+        }
+    }
+
     fn parse_or_panic(entry: walkdir::DirEntry) {
         let ext = {
             if let Some(ext) = entry.path().extension() {
@@ -228,8 +244,8 @@ while(y = recv(socket:soc, length:1024)) {
         };
     }
 
-    #[test]
     #[ignore]
+    #[test]
     fn skimp_all() {
         let wd =
             PathBuf::from_str("/Users/philippeder/src/greenbone/vulnerability-tests/nasl/common/")
