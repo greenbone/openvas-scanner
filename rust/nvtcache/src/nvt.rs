@@ -153,12 +153,12 @@ pub struct Nvt {
     solution_method: String,  //Stored in redis under Tag item. Not in use.
     tag: String,
     cvss_base: String, //Stored in redis under Tag item. Not in use.
-    dependencies: String,
-    required_keys: String,
-    mandatory_keys: String,
-    excluded_keys: String,
-    required_ports: String,
-    required_udp_ports: String,
+    dependencies: Vec<String>,
+    required_keys: Vec<String>,
+    mandatory_keys: Vec<String>,
+    excluded_keys: Vec<String>,
+    required_ports: Vec<String>,
+    required_udp_ports: Vec<String>,
     detection: String, //Stored in redis under Tag item. Not in use.
     qod_type: String,  //Stored in redis under Tag item. Not in use.
     qod: String,       //Stored in redis under Tag item. Not in use.
@@ -185,12 +185,12 @@ impl Default for Nvt {
             solution_method: String::new(),
             tag: String::new(),
             cvss_base: String::new(),
-            dependencies: String::new(),
-            required_keys: String::new(),
-            mandatory_keys: String::new(),
-            excluded_keys: String::new(),
-            required_ports: String::new(),
-            required_udp_ports: String::new(),
+            dependencies: vec![],
+            required_keys: vec![],
+            mandatory_keys: vec![],
+            excluded_keys: vec![],
+            required_ports: vec![],
+            required_udp_ports: vec![],
             detection: String::new(),
             qod_type: String::new(),
             qod: String::new(),
@@ -283,34 +283,41 @@ impl Nvt {
     pub fn set_cvss_base(&mut self, cvss_base: String) {
         self.cvss_base = cvss_base;
     }
+
+    fn vec_of_str(&self, deps: &String) -> Vec<String> {
+        let list: Vec<&str> = deps.split(",").collect();
+        let deps = list.iter().map(|&d| d.to_string()).collect();
+        deps
+    }
+    
     /// Set the NVT dependencies
     pub fn set_dependencies(&mut self, dependencies: String) {
-        self.dependencies = dependencies;
+        self.dependencies = self.vec_of_str(&dependencies);
     }
 
     /// Set the NVT required keys
     pub fn set_required_keys(&mut self, required_keys: String) {
-        self.required_keys = required_keys;
+        self.required_keys = self.vec_of_str(&required_keys);
     }
 
     /// Set the NVT mandatory keys
     pub fn set_mandatory_keys(&mut self, mandatory_keys: String) {
-        self.mandatory_keys = mandatory_keys;
+        self.mandatory_keys = self.vec_of_str(&mandatory_keys);
     }
 
     /// Set the NVT excluded keys
     pub fn set_excluded_keys(&mut self, excluded_keys: String) {
-        self.excluded_keys = excluded_keys;
+        self.excluded_keys = self.vec_of_str(&excluded_keys);
     }
 
     /// Set the NVT required ports
     pub fn set_required_ports(&mut self, required_ports: String) {
-        self.required_ports = required_ports;
+        self.required_ports = self.vec_of_str(&required_ports);
     }
 
     /// Set the NVT required udp ports
     pub fn set_required_udp_ports(&mut self, required_udp_ports: String) {
-        self.required_udp_ports = required_udp_ports;
+        self.required_udp_ports = self.vec_of_str(&required_udp_ports);
     }
 
     /// Set the NVT detection
@@ -473,32 +480,32 @@ impl Nvt {
         &self.cvss_base
     }
     /// Get the NVT dependencies
-    pub fn get_dependencies(&self) -> &str {
+    pub fn get_dependencies(&self) -> &Vec<String> {
         &self.dependencies
     }
 
     /// Get the NVT required keys
-    pub fn get_required_keys(&self) -> &str {
+    pub fn get_required_keys(&self) -> &Vec<String> {
         &self.required_keys
     }
 
     /// Get the NVT mandatory keys
-    pub fn get_mandatory_keys(&self) -> &str {
+    pub fn get_mandatory_keys(&self) -> &Vec<String> {
         &self.mandatory_keys
     }
 
     /// Get the NVT excluded keys
-    pub fn get_excluded_keys(&self) -> &str {
+    pub fn get_excluded_keys(&self) -> &Vec<String> {
         &self.excluded_keys
     }
 
     /// Get the NVT required ports
-    pub fn get_required_ports(&self) -> &str {
+    pub fn get_required_ports(&self) -> &Vec<String> {
         &self.required_ports
     }
 
     /// Get the NVT required udp ports
-    pub fn get_required_udp_ports(&self) -> &str {
+    pub fn get_required_udp_ports(&self) -> &Vec<String> {
         &self.required_udp_ports
     }
 
