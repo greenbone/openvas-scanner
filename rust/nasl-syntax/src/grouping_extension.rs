@@ -114,7 +114,7 @@ mod test {
             Block(vec![
                 Assign(
                     Equal,
-                    AssignOrder::Assign,
+                    AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (31, 32)
@@ -135,7 +135,7 @@ mod test {
                 ),
                 Assign(
                     Equal,
-                    AssignOrder::Assign,
+                    AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (58, 59)
@@ -170,7 +170,7 @@ mod test {
                 ),
                 Block(vec![Assign(
                     Equal,
-                    AssignOrder::Assign,
+                    AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(None),
                         position: (108, 109)

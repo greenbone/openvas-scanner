@@ -105,14 +105,14 @@ impl<'a> Infix for Lexer<'a> {
                         };
                         Statement::Assign(
                             category,
-                            AssignOrder::Assign,
+                            AssignOrder::AssignReturn,
                             Box::new(lhs),
                             Box::new(rhs),
                         )
                     }
                     Statement::Array(_, _) => Statement::Assign(
                         category,
-                        AssignOrder::Assign,
+                        AssignOrder::AssignReturn,
                         Box::new(lhs),
                         Box::new(rhs),
                     ),
@@ -265,7 +265,7 @@ mod test {
         fn expected(category: Category, shift: usize) -> Statement {
             Assign(
                 category,
-                AssignOrder::Assign,
+                AssignOrder::AssignReturn,
                 Box::new(Variable(token(Identifier(None), 0, 1))),
                 Box::new(Primitive(token(Number(Base10), 5 + shift, 6 + shift))),
             )
@@ -337,7 +337,7 @@ mod test {
             result("a = 1;"),
             Assign(
                 Category::Equal,
-                AssignOrder::Assign,
+                AssignOrder::AssignReturn,
                 Box::new(Variable(token(Identifier(None), 0, 1))),
                 Box::new(Primitive(Token {
                     category: Number(Base10),

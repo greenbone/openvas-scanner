@@ -159,6 +159,31 @@ req = raw_string(0x00, 0x00, 0x03, 0x14, 0x08, 0x14, 0xff, 0x9f,
         parse(code).next();
     }
 
+    #[test]
+    fn jsp_example() {
+
+        let code = r###"
+  gms_path = gms_path + 'webapps\\appliance\\';
+jsp = '<% out.println( "' + jsp_print  + '" ); %>';
+        "###;
+        for x in parse(code) {
+            x.unwrap();
+        }
+
+    }
+
+    #[test]
+    fn unexpected_assign() {
+        let code = r###"
+while(y = recv(socket:soc, length:1024)) {
+  buf1 += y;
+}
+        "###;
+        for x in parse(code) {
+            x.unwrap();
+        }
+    }
+
     #[ignore]
     #[test]
     fn edge_cases() {
@@ -201,12 +226,25 @@ req = raw_string(0x00, 0x00, 0x03, 0x14, 0x08, 0x14, 0xff, 0x9f,
             .map(|bs| bs.iter().map(|&b| b as char).collect())
             .unwrap();
         if let Some(x) = parse(&code).find(|s| s.is_err()) {
-            x.unwrap();
+            match x {
+                Ok(_) => todo!(),
+                Err(err) => {
+                    if let Some((line, character)) = to_line(&code, err.clone()) {
+                        panic!(
+                            "{} unexpected character {} in {:?}",
+                            line, character, entry.path(),
+                        );
+                    } else {
+                        panic!("{}", err);
+                    }
+
+                },
+            }
         };
     }
 
-    #[ignore]
     #[test]
+    #[ignore]
     fn skimp_all() {
         let wd =
             PathBuf::from_str("/Users/philippeder/src/greenbone/vulnerability-tests/nasl/common/")

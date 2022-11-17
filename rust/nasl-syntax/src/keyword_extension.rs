@@ -595,7 +595,7 @@ mod test {
             parse("arg1 = _FCT_ANON_ARGS[0];").next().unwrap(),
             Ok(Statement::Assign(
                 Category::Equal,
-                AssignOrder::Assign,
+                AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
                     category: Category::Identifier(None),
                     position: (0, 4)
@@ -612,7 +612,7 @@ mod test {
             parse("arg1 = _FCT_ANON_ARGS;").next().unwrap(),
             Ok(Statement::Assign(
                 Category::Equal,
-                AssignOrder::Assign,
+                AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
                     category: Category::Identifier(None),
                     position: (0, 4)
