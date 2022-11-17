@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
-use crate::{cursor::Cursor, Statement};
+use crate::cursor::Cursor;
 
 /// Identifies if a string is quoteable or unquoteable
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -238,6 +238,18 @@ impl Token {
         self.category
     }
 
+    /// Returns true when an Token is faulty
+    pub fn is_faulty(&self) -> bool {
+        matches!(
+            self.category(),
+            Category::IllegalIPv4Address
+                | Category::IllegalNumber(_)
+                | Category::Unclosed(_)
+                | Category::UnknownBase
+                | Category::UnknownSymbol
+        )
+    }
+
     /// Returns the byte Range within original input
     pub fn range(&self) -> Range<usize> {
         let (start, end) = self.position;
@@ -275,11 +287,6 @@ impl<'a> Tokenizer<'a> {
     /// Returns a reference of a substring within code at given range
     pub fn lookup(&self, range: Range<usize>) -> &'a str {
         &self.code[range]
-    }
-
-    /// Returns true when underlying cursor is eof
-    pub fn is_eof(&self) -> bool {
-        self.cursor.is_eof()
     }
 
     // we break out of the macro since > can be parsed to:
@@ -531,7 +538,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
             '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
-            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),// token!(Percent, start, self.cursor.len_consumed()),
+            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual), // token!(Percent, start, self.cursor.len_consumed()),
             ';' => token!(Semicolon, start, self.cursor.len_consumed()),
             '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
             '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
@@ -563,7 +570,6 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

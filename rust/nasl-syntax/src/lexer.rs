@@ -1,5 +1,5 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
-use std::ops::{Not, Range};
+use std::ops::Not;
 
 use crate::{
     error::SyntaxError,
@@ -169,7 +169,7 @@ pub enum End {
 }
 
 impl End {
-    pub fn is_done(self) -> bool {
+    pub fn is_done(&self) -> bool {
         match self {
             End::Done(_) => true,
             End::Continue => false,
@@ -227,6 +227,9 @@ impl<'a> Lexer<'a> {
         let (state, mut left) = self
             .token()
             .map(|token| {
+                if token.is_faulty() {
+                    return Err(unexpected_token!(token));
+                }
                 if abort(token.category()) {
                     return Ok((
                         PrefixState::Break(Category::UnknownSymbol),
