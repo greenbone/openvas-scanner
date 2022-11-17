@@ -2,7 +2,6 @@ use ::nvtcache::dberror::Result;
 use ::nvtcache::nvt::Nvt;
 use ::nvtcache::redisconnector::KbNvtPos;
 use nvtcache::nvtcache;
-use std::error::Error;
 
 //test
 #[cfg(test)]
@@ -26,10 +25,6 @@ mod test {
             Ok(nc) => nvtcache = nc,
             Err(e) => {
                 println!("{}", e);
-                if let Some(source) = e.source() {
-                    println!("{}", source);
-                }
-
                 panic!("Error")
             }
         }

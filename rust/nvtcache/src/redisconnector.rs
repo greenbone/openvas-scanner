@@ -82,8 +82,8 @@ impl RedisCtx {
                 return Ok(self.maxdb);
             }
             Err(_) => {
-                return Err(DbError::CustomErr(String::from(
-                    "Not possible to select a free database.",
+                return Err(DbError::MaxDbErr(String::from(
+                    "Not possible to get the Max. database index.",
                 )))
             }
         }
@@ -109,14 +109,14 @@ impl RedisCtx {
         Ok(db)
     }
 
-    fn set_namespace(&mut self, db_index: u32) -> Result<String> {
+    fn set_namespace(&mut self, db_index: u32) -> Result<()> {
         Cmd::new()
             .arg("SELECT")
             .arg(db_index.to_string())
             .query(&mut self.kb)?;
 
         self.db = db_index;
-        return Ok(String::from("ok"));
+        Ok(())
     }
 
     fn try_database(&mut self, dbi: u32) -> Result<u32> {
@@ -141,7 +141,7 @@ impl RedisCtx {
             self.set_namespace(selected_db)?;
             return Ok(self.db);
         }
-        return Err(DbError::CustomErr(String::from(
+        return Err(DbError::NoAvailDbErr(String::from(
             "Not possible to select a free db",
         )));
     }
