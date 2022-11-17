@@ -1,8 +1,8 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::{Lexer, End},
     lexer::Statement,
+    lexer::{End, Lexer},
     prefix_extension::PrefixState,
     token::{Category, Token},
     unclosed_token, unexpected_end, unexpected_token,
@@ -23,8 +23,28 @@ impl<'a> Variables for Lexer<'a> {
         if let Some(nt) = self.token() {
             match nt.category() {
                 Category::LeftParen => {
-                    let parameter = self.parse_paren(nt)?;
-                    return Ok((Continue, Statement::Call(token, Box::new(parameter))));
+                    let mut params = vec![];
+                    while let Some(token) = self.token() {
+                        if token.category() == Category::RightParen {
+                            break;
+                        }
+                        self.unhandled_token = Some(token);
+                        let (end, param) = self.statement(0, &|c| {
+                            matches!(c, Category::RightParen | Category::Comma)
+                        })?;
+                        match param {
+                            Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
+                            param => params.push(param),
+                        }
+                        if let End::Done(Category::RightParen) = end {
+                            break;
+                        }
+                    }
+
+                    return Ok((
+                        Continue,
+                        Statement::Call(token, Box::new(Statement::Parameter(params))),
+                    ));
                 }
                 Category::LeftBrace => {
                     let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
@@ -215,7 +235,7 @@ mod test {
                     category: Identifier(None),
                     position: (0, 10)
                 },
-                Box::new(NamedParameter(
+                Box::new(Parameter(vec![NamedParameter(
                     Token {
                         category: Identifier(None),
                         position: (11, 15)
@@ -224,7 +244,7 @@ mod test {
                         category: Number(Base10),
                         position: (17, 18)
                     }))
-                ))
+                )]))
             )
         );
     }

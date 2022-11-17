@@ -4,7 +4,7 @@ use crate::{
     grouping_extension::Grouping,
     keyword_extension::Keywords,
     lexer::Lexer,
-    lexer::{AssignOrder, Statement, End},
+    lexer::{AssignOrder, End, Statement},
     operation::Operation,
     token::{Category, Token},
     unexpected_end, unexpected_token,
@@ -38,7 +38,7 @@ pub(crate) enum PrefixState {
     /// Continue the loop to calculate postfix and infix based on the returned initial Statement
     OpenEnd,
     /// The initial Statement is done and postfix and infix parsing must not be done.
-    Break,
+    Break(Category),
 }
 
 impl<'a> Lexer<'a> {
@@ -80,11 +80,11 @@ impl<'a> Prefix for Lexer<'a> {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
                 let (end, right) = self.statement(bp, abort)?;
-                if end == End::Done {
-                    Ok((Break, Statement::Operator(kind, vec![right])))
-                } else {
-                    Ok((Continue, Statement::Operator(kind, vec![right])))
-                }
+                let prefix_end = match end {
+                    End::Done(cat) => Break(cat),
+                    End::Continue => Continue,
+                };
+                Ok((prefix_end, Statement::Operator(kind, vec![right])))
             }
             Operation::Primitive => Ok((Continue, Statement::Primitive(token))),
             Operation::Variable => self.parse_variable(token),
@@ -99,13 +99,11 @@ impl<'a> Prefix for Lexer<'a> {
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
             Operation::NoOp => {
                 if matches!(token.category(), Category::Comment) {
-
-                Ok((OpenEnd, Statement::NoOp(Some(token))))
+                    Ok((OpenEnd, Statement::NoOp(Some(token))))
                 } else {
-
-                Ok((Break, Statement::NoOp(Some(token))))
+                    Ok((Break(token.category()), Statement::NoOp(Some(token))))
                 }
-            },
+            }
         }
     }
 }
