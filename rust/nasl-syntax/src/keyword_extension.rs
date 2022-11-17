@@ -54,12 +54,10 @@ impl<'a> Lexer<'a> {
             _ => Err(unexpected_token!(token)),
         }?
         .as_returnable_or_err()?;
-        self.unhandled_token = None;
         let (end, body) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         if end == End::Continue {
             return Err(unclosed_token!(token));
         }
-        self.unhandled_token = None;
         let r#else: Option<Statement> = {
             match self.token() {
                 Some(token) => match token.category() {
