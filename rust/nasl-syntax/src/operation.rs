@@ -65,6 +65,7 @@ impl Operation {
             | Category::PlusPlus
             | Category::Semicolon
             | Category::DoublePoint
+            | Category::PercentEqual
             | Category::MinusMinus => Some(Operation::Assign(token.category())),
             Category::String(_) | Category::Number(_) | Category::IPv4Address => Some(Operation::Primitive),
             Category::LeftParen

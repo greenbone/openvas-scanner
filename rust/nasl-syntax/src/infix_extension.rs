@@ -274,6 +274,7 @@ mod test {
         assert_eq!(result("a -= 1;"), expected(MinusEqual, 0));
         assert_eq!(result("a /= 1;"), expected(SlashEqual, 0));
         assert_eq!(result("a *= 1;"), expected(StarEqual, 0));
+        assert_eq!(result("a %= 1;"), expected(PercentEqual, 0));
         assert_eq!(result("a >>= 1;"), expected(GreaterGreaterEqual, 1));
         assert_eq!(result("a <<= 1;"), expected(LessLessEqual, 1));
         assert_eq!(result("a >>>= 1;"), expected(GreaterGreaterGreaterEqual, 2));

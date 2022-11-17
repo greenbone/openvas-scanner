@@ -122,6 +122,8 @@ pub enum Category {
     Dot,
     /// `%`
     Percent,
+    /// `%=`
+    PercentEqual,
     /// `;`
     Semicolon,
     /// `:`
@@ -529,7 +531,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
             '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
-            '%' => token!(Percent, start, self.cursor.len_consumed()),
+            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),// token!(Percent, start, self.cursor.len_consumed()),
             ';' => token!(Semicolon, start, self.cursor.len_consumed()),
             '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
             '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
