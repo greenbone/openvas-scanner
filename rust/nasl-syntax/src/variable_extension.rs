@@ -1,7 +1,7 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::Lexer,
+    lexer::{Lexer, End},
     lexer::Statement,
     prefix_extension::PrefixState,
     token::{Category, Token},
@@ -29,7 +29,7 @@ impl<'a> Variables for Lexer<'a> {
                 Category::LeftBrace => {
                     let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
-                    if !end {
+                    if end == End::Continue {
                         return Err(unclosed_token!(token));
                     } else {
                         self.unhandled_token = None;

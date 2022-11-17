@@ -1,5 +1,5 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
-use std::ops::Range;
+use std::ops::{Range, Not};
 
 use crate::{
     error::SyntaxError,
@@ -128,6 +128,20 @@ pub struct Lexer<'a> {
     pub(crate) unhandled_token: Option<Token>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum End {
+    Done,
+    Continue,
+}
+
+impl Not for End {
+    type Output = bool;
+
+    fn not(self) -> Self::Output {
+        matches!(self, End::Continue)
+    }
+}
+
 impl<'a> Lexer<'a> {
     /// Creates a Lexer
     pub fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
@@ -165,7 +179,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         min_binding_power: u8,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<(bool, Statement), SyntaxError> {
+    ) -> Result<(End, Statement), SyntaxError> {
         // reset unhandled_token when min_bp is 0
         let (state, mut left) = self
             .token()
@@ -178,11 +192,11 @@ impl<'a> Lexer<'a> {
             .unwrap_or(Ok((PrefixState::Break, Statement::EoF)))?;
         match state {
             PrefixState::Continue => {}
-            PrefixState::OpenEnd => return Ok((false, left)),
-            PrefixState::Break => return Ok((true, left)),
+            PrefixState::OpenEnd => return Ok((End::Continue, left)),
+            PrefixState::Break => return Ok((End::Done, left)),
         }
 
-        let mut end_statement = false;
+        let mut end_statement = End::Continue;
         loop {
             let token = {
                 match self.token() {
@@ -191,7 +205,7 @@ impl<'a> Lexer<'a> {
                 }
             };
             if abort(token.category()) {
-                end_statement = true;
+                end_statement = End::Done;
                 break;
             }
             let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
@@ -201,8 +215,8 @@ impl<'a> Lexer<'a> {
                     .postfix_statement(op, token, left, abort)
                     .expect("needs postfix should have been validated before")?;
                 left = stmt;
-                if end {
-                    end_statement = true;
+                if end == End::Done {
+                    end_statement = End::Done;
                     break;
                 }
                 continue;
@@ -216,7 +230,7 @@ impl<'a> Lexer<'a> {
                 let (end, nl) = self.infix_statement(op, token, left, abort)?;
                 left = nl;
                 if end {
-                    end_statement = true;
+                    end_statement = End::Done;
                     break;
                 }
             }
@@ -232,9 +246,9 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.statement(0, &|cat| cat == Category::Semicolon);
         match result {
-            Ok((true, Statement::EoF)) => None,
-            Ok((true, stmt)) => Some(Ok(stmt)),
-            Ok((false, stmt)) => {
+            Ok((_, Statement::EoF)) => None,
+            Ok((End::Done, stmt)) => Some(Ok(stmt)),
+            Ok((End::Continue, stmt)) => {
                 if matches!(stmt, Statement::NoOp(_)) {
                     Some(Ok(stmt))
                 } else {

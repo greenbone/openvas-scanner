@@ -1,7 +1,7 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::Statement,
+    lexer::{Statement, End},
     lexer::{DeclareScope, Lexer},
     prefix_extension::PrefixState,
     token::{Category, Keyword, Token},
@@ -23,7 +23,7 @@ impl<'a> Lexer<'a> {
         scope: DeclareScope,
     ) -> Result<(PrefixState, Statement), SyntaxError> {
         let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
-        if !end {
+        if end == End::Continue {
             return Err(unexpected_end!("expected a finished statement."));
         }
         let result = match stmt {
@@ -53,7 +53,7 @@ impl<'a> Lexer<'a> {
         .as_returnable_or_err()?;
         self.unhandled_token = None;
         let (end, body) = self.statement(0, &|cat| cat == Category::Semicolon)?;
-        if !end {
+        if end == End::Continue {
             return Err(unclosed_token!(token));
         }
         self.unhandled_token = None;
@@ -62,7 +62,7 @@ impl<'a> Lexer<'a> {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
                         let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
-                        if !end {
+                        if end == End::Continue {
                             return Err(unexpected_statement!(stmt));
                         }
                         Some(stmt)
@@ -96,7 +96,7 @@ impl<'a> Lexer<'a> {
         self.paren_base()?;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end {
+        if end == End::Done {
             let (_, should_be_semicolon) = self.statement(0, &|cat| cat == Category::Semicolon)?;
             if matches!(should_be_semicolon, Statement::NoOp(_)) {
                 Ok((PrefixState::Break, Statement::Exit(Box::new(parameter))))
@@ -113,7 +113,7 @@ impl<'a> Lexer<'a> {
         self.paren_base()?;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end {
+        if end == End::Done {
             match parameter {
                 Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => {
                     // TODO parse to end!
@@ -161,7 +161,7 @@ impl<'a> Lexer<'a> {
     fn parse_return(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let (end, parameter) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end {
+        if end == End::Done {
             // TODO parse to end
             Ok((PrefixState::Break, Statement::Return(Box::new(parameter))))
         } else {
@@ -174,21 +174,21 @@ impl<'a> Lexer<'a> {
         if !matches!(assignment, Statement::Assign(_, _, _, _)) {
             return Err(unexpected_statement!(assignment));
         }
-        if !end {
+        if end == End::Continue {
             return Err(unclosed_statement!(assignment));
         }
         // `for (i = 0; i < 10; i++) display("hi");`
         let (end, condition) = self.statement(0, &|c| c == Category::Semicolon)?;
         let condition = condition.as_returnable_or_err()?;
-        if !end {
+        if end == End::Continue {
             return Err(unclosed_statement!(condition));
         }
         let (end, pre_body) = self.statement(0, &|c| c == Category::RightParen)?;
-        if !end {
+        if end == End::Continue {
             return Err(unclosed_statement!(pre_body));
         }
         let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
-        if !end {
+        if end == End::Continue {
             return Err(unclosed_statement!(body));
         }
         Ok((
@@ -263,7 +263,7 @@ impl<'a> Lexer<'a> {
                 Category::LeftBrace => {
                     let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
-                    if !end {
+                    if end == End::Continue {
                         Err(unclosed_token!(token))
                     } else {
                         self.unhandled_token = None;

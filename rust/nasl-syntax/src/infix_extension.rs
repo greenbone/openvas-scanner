@@ -2,7 +2,7 @@
 
 use crate::{
     error::SyntaxError,
-    lexer::Lexer,
+    lexer::{Lexer, End},
     lexer::{AssignOrder, Statement},
     operation::Operation,
     token::{Category, Token},
@@ -120,7 +120,7 @@ impl<'a> Infix for Lexer<'a> {
                 },
                 _ => Statement::Operator(token.category(), vec![lhs, rhs]),
             };
-            (end, stmt)
+            (end == End::Done, stmt)
         })
     }
 
