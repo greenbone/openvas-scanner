@@ -4,7 +4,7 @@ use crate::{
     lexer::{AssignOrder, Statement},
     prefix_extension::PrefixState,
     token::{Category, Token},
-    unclosed_token, unexpected_token,
+    unclosed_token, unexpected_token, variable_extension::CommaGroup,
 };
 
 pub(crate) trait Grouping {
@@ -18,13 +18,12 @@ pub(crate) trait Grouping {
 
 impl<'a> Lexer<'a> {
     fn parse_brace(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        // TODO make iterative
-        let (end, right) = self.statement(0, &|cat| cat == Category::RightBrace)?;
+        let (end, right) = self.parse_comma_group(Category::RightBrace)?;
         if !end {
             Err(unclosed_token!(token))
         } else {
             self.unhandled_token = None;
-            Ok(right)
+            Ok(Statement::Parameter(right))
         }
     }
 }

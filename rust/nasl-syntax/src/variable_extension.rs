@@ -1,16 +1,54 @@
 use crate::{
     error::SyntaxError,
-    grouping_extension::Grouping,
     lexer::Statement,
     lexer::{End, Lexer},
     prefix_extension::PrefixState,
     token::{Category, Token},
-    unclosed_token, unexpected_end, unexpected_token,
+    unclosed_token, unexpected_token,
 };
 
 pub(crate) trait Variables {
     /// Parses variables, function calls.
     fn parse_variable(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError>;
+}
+
+pub(crate) trait CommaGroup {
+    fn parse_comma_group(
+        &mut self,
+        category: Category,
+    ) -> Result<(End, Vec<Statement>), SyntaxError>;
+}
+
+impl<'a> CommaGroup for Lexer<'a> {
+    fn parse_comma_group(
+        &mut self,
+        category: Category,
+    ) -> Result<(End, Vec<Statement>), SyntaxError> {
+        let mut params = vec![];
+        let mut end = End::Continue;
+        while let Some(token) = self.token() {
+            if token.category() == category {
+                end = End::Done(category);
+                break;
+            }
+            self.unhandled_token = Some(token);
+            let (stmtend, param) = self.statement(0, &|c| c == category || c == Category::Comma)?;
+            match param {
+                Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
+                param => params.push(param),
+            }
+            match stmtend {
+                End::Done(endcat) => {
+                    if endcat == category {
+                        end = End::Done(category);
+                        break;
+                    }
+                }
+                End::Continue => {}
+            };
+        }
+        Ok((end, params))
+    }
 }
 
 impl<'a> Variables for Lexer<'a> {
@@ -23,24 +61,10 @@ impl<'a> Variables for Lexer<'a> {
         if let Some(nt) = self.token() {
             match nt.category() {
                 Category::LeftParen => {
-                    let mut params = vec![];
-                    while let Some(token) = self.token() {
-                        if token.category() == Category::RightParen {
-                            break;
-                        }
-                        self.unhandled_token = Some(token);
-                        let (end, param) = self.statement(0, &|c| {
-                            matches!(c, Category::RightParen | Category::Comma)
-                        })?;
-                        match param {
-                            Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
-                            param => params.push(param),
-                        }
-                        if let End::Done(Category::RightParen) = end {
-                            break;
-                        }
+                    let (end, params) = self.parse_comma_group(Category::RightParen)?;
+                    if end == End::Continue {
+                        return Err(unclosed_token!(token));
                     }
-
                     return Ok((
                         Continue,
                         Statement::Call(token, Box::new(Statement::Parameter(params))),
@@ -131,7 +155,7 @@ mod test {
         );
 
         assert_eq!(
-            result("a[0] = [1, 2, 3];"),
+            result("a[0] = [1, 2, 4];"),
             Assign(
                 Equal,
                 AssignOrder::AssignReturn,
