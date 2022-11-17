@@ -277,7 +277,7 @@ impl<'a> Lexer<'a> {
             Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
         ))
     }
-    fn parse_fct_anon_args(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_fct_anon_args(&mut self, keyword: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         match self.token() {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
@@ -289,13 +289,13 @@ impl<'a> Lexer<'a> {
                         self.unhandled_token = None;
                         Ok((
                             PrefixState::Continue,
-                            Statement::FCTAnonArgs(Some(Box::new(lookup))),
+                            Statement::Array(keyword, Some(Box::new(lookup))),
                         ))
                     }
                 }
                 _ => {
                     self.unhandled_token = Some(token);
-                    Ok((PrefixState::Continue, Statement::FCTAnonArgs(None)))
+                    Ok((PrefixState::Continue, Statement::Array(keyword, None)))
                 }
             },
             None => Err(unexpected_end!("in fct_anon_args")),
@@ -323,7 +323,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::Return => self.parse_return(),
             Keyword::Include => self.parse_include(),
             Keyword::Exit => self.parse_exit(),
-            Keyword::FCTAnonArgs => self.parse_fct_anon_args(),
+            Keyword::FCTAnonArgs => self.parse_fct_anon_args(token),
             Keyword::True => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::Function => self.parse_function(),
@@ -333,6 +333,7 @@ impl<'a> Keywords for Lexer<'a> {
 
 #[cfg(test)]
 mod test {
+
     use crate::{
         lexer::{AssignOrder, DeclareScope, Statement},
         parse,
@@ -608,7 +609,10 @@ mod test {
                     category: Category::Identifier(None),
                     position: (0, 4)
                 },)),
-                Box::new(Statement::FCTAnonArgs(Some(Box::new(
+                Box::new(Statement::Array(Token{
+                    category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
+                    position: (7, 21),
+                }, Some(Box::new(
                     Statement::Primitive(Token {
                         category: Category::Number(Base::Base10),
                         position: (22, 23)
@@ -625,7 +629,10 @@ mod test {
                     category: Category::Identifier(None),
                     position: (0, 4)
                 },)),
-                Box::new(Statement::FCTAnonArgs(None))
+                Box::new(Statement::Array(Token{
+                    category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
+                    position: (7, 21),
+                }, None))
             ))
         );
     }

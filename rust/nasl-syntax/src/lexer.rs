@@ -74,8 +74,6 @@ pub enum Statement {
     Repeat(Box<Statement>, Box<Statement>),
     /// foreach statement, containing a variable in array and a block
     ForEach(Token, Box<Statement>, Box<Statement>),
-    /// FCT_ANON_ARGS is a special array used in NASL to gather anonymous arguments within functions
-    FCTAnonArgs(Option<Box<Statement>>),
     /// A set of expression within { ... }
     Block(Vec<Statement>),
     /// Function declaration; contains an identifier token, parameter statement and a block statement
