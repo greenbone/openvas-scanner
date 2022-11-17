@@ -12,7 +12,7 @@ mod prefix_extension;
 mod token;
 mod variable_extension;
 
-pub use error::SyntaxError;
+pub use error::{SyntaxError, ErrorKind};
 pub use lexer::Statement;
 pub use token::Category as TokenCategory;
 pub use token::Token;

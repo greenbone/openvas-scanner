@@ -1,19 +1,32 @@
 //! Defines TokenErroor and its companion macros.
 
 use core::fmt;
-use std::error::Error;
+use std::{error::Error, io};
 
 use crate::{token::Token, Statement};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// A list specifying general categories of Syntax error.
+pub enum ErrorKind {
+    /// An unexpected token occured
+    UnexpectedToken(Token),
+    /// An token is unclosed
+    UnclosedToken(Token),
+    /// An unexpected statement occured
+    UnexpectedStatement(Statement),
+    /// An token is unclosed
+    UnclosedStatement(Statement),
+    /// The cursor is already at the end but that's not as expected
+    EoF,
+    /// An IO Error occured while loading a NASL file
+    IOError(io::ErrorKind),
+}
 
 /// Is used to express errors while parsing.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SyntaxError {
     /// A human readable reason why this error is returned
-    pub reason: String,
-    /// Set when it is an error based on a Token
-    pub token: Option<Token>,
-    /// Set when it is an error based on a Statement
-    pub statement: Option<Statement>,
+    kind: ErrorKind,
     pub(crate) line: u32,
     pub(crate) file: String,
 }
@@ -24,60 +37,19 @@ pub struct SyntaxError {
 ///
 /// Basic usage:
 /// ```rust
-/// use nasl_syntax::{token_error, Token, TokenCategory};
-/// token_error!("without a token");
-/// token_error!(
-///     Token {
+/// use nasl_syntax::{syntax_error, ErrorKind, Token, TokenCategory};
+/// syntax_error!(
+///     ErrorKind::UnexpectedToken(Token {
 ///         category: TokenCategory::UnknownSymbol,
 ///         position: (42, 42),
-///     },
-///     "with a token"
+///     })
 /// );
 /// ```
 #[macro_export]
-macro_rules! token_error {
-    ($reason:expr) => {{
+macro_rules! syntax_error {
+    ($kind:expr) => {{
         use $crate::SyntaxError;
-        SyntaxError::new(
-            $reason.to_string(),
-            None,
-            None,
-            line!(),
-            file!().to_string(),
-        )
-    }};
-    ($token:expr, $reason:expr) => {{
-        use $crate::SyntaxError;
-        SyntaxError::new(
-            $reason.to_string(),
-            Some($token),
-            None,
-            line!(),
-            file!().to_string(),
-        )
-    }};
-}
-
-/// Creates an StatementError.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use nasl_syntax::{statement_error, Statement};
-/// statement_error!(Statement::EoF, "unexpected end");
-/// ```
-#[macro_export]
-macro_rules! statement_error {
-    ($statement:expr, $reason:expr) => {{
-        use $crate::SyntaxError;
-        SyntaxError::new(
-            $reason.to_string(),
-            None,
-            Some($statement),
-            line!(),
-            file!().to_string(),
-        )
+        SyntaxError::new($kind, line!(), file!().to_string())
     }};
 }
 
@@ -96,11 +68,9 @@ macro_rules! statement_error {
 #[macro_export]
 macro_rules! unexpected_token {
     ($token:expr) => {{
-        use $crate::token_error;
-        token_error!(
-            $token,
-            format!("Unexpected Token {:?}", $token.category()).to_string()
-        )
+        use $crate::syntax_error;
+        use $crate::ErrorKind;
+        syntax_error!(ErrorKind::UnexpectedToken($token))
     }};
 }
 
@@ -116,11 +86,12 @@ macro_rules! unexpected_token {
 #[macro_export]
 macro_rules! unexpected_statement {
     ($statement:expr) => {{
-        use $crate::statement_error;
-        statement_error!($statement, format!("Unexpected statement {:?}", $statement))
+        use $crate::syntax_error;
+        use $crate::ErrorKind;
+
+        syntax_error!(ErrorKind::UnexpectedStatement($statement))
     }};
 }
-
 
 /// Creates an unexpected statement error.
 ///
@@ -132,13 +103,14 @@ macro_rules! unexpected_statement {
 /// unexpected_statement!(Statement::EoF);
 /// ```
 #[macro_export]
-macro_rules! unclosed_statement{
+macro_rules! unclosed_statement {
     ($statement:expr) => {{
-        use $crate::statement_error;
-        statement_error!($statement, format!("Unclosed statement {:?}", $statement))
+        use $crate::syntax_error;
+        use $crate::ErrorKind;
+
+        syntax_error!(ErrorKind::UnclosedStatement($statement))
     }};
 }
-
 
 /// Creates an unclosed Token error.
 ///
@@ -155,11 +127,10 @@ macro_rules! unclosed_statement{
 #[macro_export]
 macro_rules! unclosed_token {
     ($token:expr) => {{
-        use $crate::token_error;
-        token_error!(
-            $token,
-            format!("Unclosed {:?}", $token.category()).to_string()
-        )
+        use $crate::syntax_error;
+        use $crate::ErrorKind;
+
+        syntax_error!(ErrorKind::UnclosedToken($token))
     }};
 }
 
@@ -175,34 +146,51 @@ macro_rules! unclosed_token {
 #[macro_export]
 macro_rules! unexpected_end {
     ($reason:expr) => {{
-        use $crate::token_error;
-        token_error!(format!("Unexpected end: {:?}", $reason))
+        use $crate::syntax_error;
+        use $crate::ErrorKind;
+        syntax_error!(ErrorKind::EoF)
     }};
 }
 
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.reason)
+        write!(f, "{}", self.kind)
+    }
+}
+
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {:?}", token),
+            ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {:?}", token),
+            ErrorKind::UnexpectedStatement(stmt) => write!(f, "unexpected statement: {:?}", stmt),
+            ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {:?}", stmt),
+            ErrorKind::EoF => write!(f, "end of file."),
+            ErrorKind::IOError(kind) => write!(f, "IOError: {}", kind),
+        }
     }
 }
 
 impl SyntaxError {
     /// Creates a new SyntaxError.
-    pub fn new(
-        reason: String,
-        token: Option<Token>,
-        statement: Option<Statement>,
-        line: u32,
-        file: String,
-    ) -> Self {
-        Self {
-            reason,
-            token,
-            statement,
-            line,
-            file,
-        }
+    pub fn new(kind: ErrorKind, line: u32, file: String) -> Self {
+        Self { kind, line, file }
+    }
+
+    /// Returns the ErrorKind of SyntaxError
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
     }
 }
 
 impl Error for SyntaxError {}
+
+impl From<io::Error> for SyntaxError {
+    fn from(initial: io::Error) -> Self {
+        SyntaxError::new(
+            ErrorKind::IOError(initial.kind()),
+            line!(),
+            file!().to_owned(),
+        )
+    }
+}

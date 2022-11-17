@@ -1,5 +1,5 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
-use std::ops::{Range, Not};
+use std::ops::{Not, Range};
 
 use crate::{
     error::SyntaxError,
@@ -116,6 +116,44 @@ impl Statement {
             Err(unexpected_statement!(self))
         }
     }
+
+    fn first_stmts_token(stmts: &[Statement]) -> Option<&Token> {
+        match stmts.first() {
+            Some(stmt) => stmt.as_token(),
+            None => None,
+        }
+    }
+
+    /// Retrieves the stored token in a Statement.
+    ///
+    /// If a Statement contains multiple Statements (e.g. Declare) than just the first one is returned.
+    /// Returns None on RawNumber, EoF or when a slice of vectors is empty.
+    pub fn as_token(&self) -> Option<&Token> {
+        match self {
+            Statement::RawNumber(_) => None,
+            Statement::Primitive(token) => Some(token),
+            Statement::Variable(token) => Some(token),
+            Statement::Array(token, _) => Some(token),
+            Statement::Call(token, _) => Some(token),
+            Statement::Exit(stmt) => stmt.as_token(),
+            Statement::Return(stmt) => stmt.as_token(),
+            Statement::Include(stmt) => stmt.as_token(),
+            Statement::Declare(_, stmts) => Statement::first_stmts_token(stmts),
+            Statement::Parameter(stmts) => Statement::first_stmts_token(stmts),
+            Statement::NamedParameter(token, _) => Some(token),
+            Statement::Assign(_, _, stmt, _) => stmt.as_token(),
+            Statement::Operator(_, stmts) => Statement::first_stmts_token(stmts),
+            Statement::If(stmt, _, _) => stmt.as_token(),
+            Statement::For(stmt, _, _, _) => stmt.as_token(),
+            Statement::While(stmt, _) => stmt.as_token(),
+            Statement::Repeat(_, stmt) => stmt.as_token(),
+            Statement::ForEach(token, _, _) => Some(token),
+            Statement::Block(stmts) => Statement::first_stmts_token(stmts),
+            Statement::FunctionDeclaration(token, _, _) => Some(token),
+            Statement::NoOp(token) => token.as_ref(),
+            Statement::EoF => None,
+        }
+    }
 }
 
 /// Is used to parse Token to Statement
@@ -190,11 +228,17 @@ impl<'a> Lexer<'a> {
             .token()
             .map(|token| {
                 if abort(token.category()) {
-                    return Ok((PrefixState::Break(Category::UnknownSymbol), Statement::NoOp(Some(token))));
+                    return Ok((
+                        PrefixState::Break(Category::UnknownSymbol),
+                        Statement::NoOp(Some(token)),
+                    ));
                 }
                 self.prefix_statement(token, abort)
             })
-            .unwrap_or(Ok((PrefixState::Break(Category::UnknownSymbol), Statement::EoF)))?;
+            .unwrap_or(Ok((
+                PrefixState::Break(Category::UnknownSymbol),
+                Statement::EoF,
+            )))?;
         match state {
             PrefixState::Continue => {}
             PrefixState::OpenEnd => return Ok((End::Continue, left)),

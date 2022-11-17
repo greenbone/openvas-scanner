@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
-use crate::cursor::Cursor;
+use crate::{cursor::Cursor, Statement};
 
 /// Identifies if a string is quoteable or unquoteable
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -563,6 +563,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {

@@ -83,14 +83,12 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "nasl-syntax",
+ "walkdir",
 ]
 
 [[package]]
 name = "nasl-syntax"
 version = "0.1.0"
-dependencies = [
- "walkdir",
-]
 
 [[package]]
 name = "once_cell"

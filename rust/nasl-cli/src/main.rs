@@ -1,7 +1,11 @@
-use std::{fs, io, ops::Range, path::PathBuf};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 use clap::{Parser, Subcommand};
 use nasl_syntax::{Statement, SyntaxError};
+use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -19,53 +23,102 @@ enum Command {
         /// The path for the file or dir to parse
         #[arg(short, long)]
         path: PathBuf,
-        /// If given path should it be read recursively
+        /// prints the parsed statements
         #[arg(short, long, default_value_t = false)]
-        recursive: bool,
+        verbose: bool,
     },
 }
 
-fn get_range(err: &SyntaxError) -> Option<Range<usize>> {
-    if let Some(token) = err.token {
-        Some(token.range())
-    } else if let Some(Statement::Primitive(token)) = err.statement {
-        Some(token.range())
-    } else {
-        None
-    }
-}
+// fn get_range(err: &SyntaxError) -> Option<Range<usize>> {
+//     match err.kind() {
+//         ErrorKind::UnexpectedToken(token) => Some(token.range()),
+//         ErrorKind::UnclosedToken(token) => Some(token.range()),
+//         ErrorKind::UnexpectedStatement(stmt) => stmt.as_token().map(|t| t.range()),
+//         ErrorKind::UnclosedStatement(stmt) => stmt.as_token().map(|t| t.range()),
+//         ErrorKind::EoF => None,
+//         ErrorKind::IOError(_) => None,
+//     }
+// }
 
-fn report_error(code: &str, err: SyntaxError) {
-    if let Some(range) = get_range(&err) {
-        let character = code[range.clone()].to_owned();
-        let line = code[Range{ start: 0, end: range.end}].as_bytes().iter().filter(|&&c| c == b'\n').count();
-        eprintln!("error at line {}: {}", line, character)
-    }
-    eprintln!("Unknown error: {:?}", err);
-}
-
-fn read_file(path: PathBuf) -> Result<(), io::Error> {
+fn load_file<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
     // unfortunately NASL is not UTF-8 so we need to map it manually
-    let code: String = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect())?;
-    nasl_syntax::parse(&code).for_each(|x| match x {
-        Ok(x) => println!("{:?}", x),
-        Err(x) => report_error(&code, x),
-    });
-    Ok(())
+    fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect())
 }
 
-fn synatx(path: PathBuf, _recursive: bool) {
+fn read_errors<P: AsRef<Path>>(path: P) -> Result<Vec<SyntaxError>, SyntaxError> {
+    let code = load_file(path)?;
+    Ok(nasl_syntax::parse(&code)
+        .filter_map(|r| match r {
+            Ok(_) => None,
+            Err(err) => Some(err),
+        })
+        .collect())
+}
+
+fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, SyntaxError> {
+    let code = load_file(path)?;
+    Ok(nasl_syntax::parse(&code).collect())
+}
+
+fn syntax_check(path: PathBuf, verbose: bool) {
+    let mut parsed: usize = 0;
+    let mut skipped: usize = 0;
+    let mut errors: usize = 0;
+    println!("verifiying NASL syntax in {:?}.", path);
     if path.as_path().is_dir() {
-        todo!("Reading a path is not yet supported.")
+        for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+                print!("\rparsing {}th file", parsed);
+            let ext = {
+                if let Some(ext) = entry.path().extension() {
+                    ext.to_str().unwrap().to_owned()
+                } else {
+                    "".to_owned()
+                }
+            };
+            if !matches!(ext.as_str(), "nasl" | "inc") {
+                skipped += 1;
+            } else {
+                if verbose {
+                    println!("# {:?}", entry.path());
+                    let results = read(entry.path()).unwrap();
+                    for r in results {
+                        match r {
+                            Ok(stmt) => println!("{:?}", stmt),
+                            Err(err) => eprintln!("{}", err),
+                        }
+                    }
+                } else {
+                    let err = read_errors(entry.path()).unwrap();
+                    if !err.is_empty() {
+                        eprintln!("# Error in {:?}", entry.path());
+                    }
+                    errors += err.len();
+                    err.iter().for_each(|r| eprintln!("{}", r));
+                }
+                parsed += 1;
+            }
+        }
+        println!();
     } else {
-        read_file(path).unwrap()
+        println!("# {:?}", path);
+        let results = read(path).unwrap();
+        for r in results {
+            match r {
+                Ok(stmt) => println!("{:?}", stmt),
+                Err(err) => eprintln!("{}", err),
+            }
+        }
     }
+    println!(
+        "skipped: {} files; parsed: {} files; errors: {}",
+        skipped, parsed, errors
+    );
 }
 
 fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Command::Syntax { path, recursive } => synatx(path, recursive),
+        Command::Syntax { path, verbose } => syntax_check(path, verbose),
     }
 
     //       let code: String = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect())?;
