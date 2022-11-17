@@ -184,28 +184,13 @@ while(y = recv(socket:soc, length:1024)) {
         }
     }
 
-    #[ignore]
     #[test]
-    fn edge_cases() {
-        let mut current = env::current_dir().unwrap();
-        current.push("tests/stack_overflow.nasl");
-        let code: String = fs::read(current.clone())
-            .map(|bs| bs.iter().map(|&b| b as char).collect())
-            .unwrap();
-        for i in parse(&code) {
-            match i {
-                Ok(_) => {}
-                Err(err) => {
-                    if let Some((line, character)) = to_line(&code, err.clone()) {
-                        panic!(
-                            "{} unexpected character {} in {:?}",
-                            line, character, current,
-                        );
-                    } else {
-                        panic!("{}", err);
-                    }
-                }
-            }
+    fn unexpected_noop() {
+        let code = r###"
+  if( ! version || version == '' ) return;
+        "###;
+        for x in parse(code) {
+            x.unwrap();
         }
     }
 
