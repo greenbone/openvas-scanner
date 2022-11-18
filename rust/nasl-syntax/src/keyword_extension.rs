@@ -6,6 +6,7 @@ use crate::{
     prefix_extension::PrefixState,
     token::{Category, Keyword, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
+    variable_extension::CommaGroup,
 };
 
 pub(crate) trait Keywords {
@@ -22,30 +23,18 @@ impl<'a> Lexer<'a> {
         &mut self,
         scope: DeclareScope,
     ) -> Result<(PrefixState, Statement), SyntaxError> {
-        let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let (end, params) = self.parse_comma_group(Category::Semicolon)?;
         if end == End::Continue {
             return Err(unexpected_end!("expected a finished statement."));
         }
-        let result = match stmt {
-            Statement::Variable(var) => Ok((
-                PrefixState::Break(Category::Semicolon),
-                Statement::Declare(scope, vec![Statement::Variable(var)]),
-            )),
-            Statement::Parameter(params) => {
-                for p in params.clone() {
-                    if let Statement::Variable(_) = p {
-                        continue;
-                    }
-                    return Err(unexpected_statement!(p));
-                }
-                Ok((
-                    PrefixState::Break(Category::Semicolon),
-                    Statement::Declare(scope, params),
-                ))
-            }
-            stmt => Err(unexpected_statement!(stmt)),
-        }?;
-        Ok(result)
+        if let Some(errstmt) = params
+            .iter()
+            .find(|stmt| !matches!(stmt, Statement::Variable(_)))
+        {
+            return Err(unexpected_statement!(errstmt.clone()));
+        }
+        let result = Statement::Declare(scope, params);
+        Ok((PrefixState::Break(Category::Semicolon), result))
     }
     fn parse_if(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
         let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
@@ -133,7 +122,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn parse_function(&mut self) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_function(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
         let id = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
@@ -146,12 +135,11 @@ impl<'a> Lexer<'a> {
         if !matches!(paren.category(), Category::LeftParen) {
             return Err(unexpected_token!(paren));
         }
-        let parameter = match self.parse_paren(id)? {
-            Statement::Variable(x) => vec![Statement::Variable(x)],
-            Statement::Parameter(x) => x,
-            Statement::NoOp(_) => vec![],
-            stmt => return Err(unexpected_statement!(stmt)),
-        };
+        let (end, parameter) = self.parse_comma_group(Category::RightParen)?;
+        if !end {
+            return Err(unclosed_token!(token));
+        }
+        
         let block = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
@@ -345,7 +333,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::FCTAnonArgs => self.parse_fct_anon_args(token),
             Keyword::True => Ok((PrefixState::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((PrefixState::Continue, Statement::Primitive(token))),
-            Keyword::Function => self.parse_function(),
+            Keyword::Function => self.parse_function(token),
         }
     }
 }

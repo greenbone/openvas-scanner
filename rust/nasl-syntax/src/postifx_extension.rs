@@ -20,29 +20,10 @@ pub(crate) trait Postfix {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: &impl Fn(Category) -> bool,
     ) -> Option<Result<(End, Statement), SyntaxError>>;
 }
 
 impl<'a> Lexer<'a> {
-    // TODO this can be remvoed once the grouping part is done within function (declation, call)
-    fn flatten_parameter(
-        &mut self,
-        lhs: Statement,
-        abort: &impl Fn(Category) -> bool,
-    ) -> Result<(End, Statement), SyntaxError> {
-        let mut lhs = match lhs {
-            Statement::Parameter(x) => x,
-            x => vec![x],
-        };
-        let (end, stmt) = self.statement(0, abort)?;
-        match stmt {
-            Statement::Parameter(mut x) => lhs.append(&mut x),
-            x => lhs.push(x),
-        };
-        Ok((end, Statement::Parameter(lhs)))
-    }
-
     fn as_assign_statement(
         lhs: Statement,
         token: Token,
@@ -85,10 +66,8 @@ impl<'a> Postfix for Lexer<'a> {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: &impl Fn(Category) -> bool,
     ) -> Option<Result<(End, Statement), SyntaxError>> {
         match op {
-            Operation::Grouping(Category::Comma) => Some(self.flatten_parameter(lhs, abort)),
             Operation::Assign(Category::PlusPlus) => {
                 Self::as_assign_statement(lhs, token, Category::PlusPlus, Category::Plus)
             }
