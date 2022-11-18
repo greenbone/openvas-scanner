@@ -32,8 +32,6 @@ pub enum DeclareScope {
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
-    /// Represents a Number that is not directly in the source code but calculated (e.g. on i++)
-    RawNumber(u8),
     /// Either a Number, String, Boolean or Null
     Primitive(Token),
     /// Is a variable
@@ -92,8 +90,7 @@ impl Statement {
     pub fn is_returnable(&self) -> bool {
         matches!(
             self,
-            Statement::RawNumber(_)
-                | Statement::Primitive(_)
+                Statement::Primitive(_)
                 | Statement::Variable(_)
                 | Statement::Call(_, _)
                 | Statement::Return(_)
@@ -130,7 +127,6 @@ impl Statement {
     /// Returns None on RawNumber, EoF or when a slice of vectors is empty.
     pub fn as_token(&self) -> Option<&Token> {
         match self {
-            Statement::RawNumber(_) => None,
             Statement::Primitive(token) => Some(token),
             Statement::Variable(token) => Some(token),
             Statement::Array(token, _) => Some(token),
