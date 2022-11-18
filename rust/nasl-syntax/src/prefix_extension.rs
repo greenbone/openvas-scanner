@@ -168,13 +168,6 @@ mod test {
         );
     }
 
-    // comments are probable not NoOp anymore
-    #[ignore]
-    #[test]
-    fn comments_are_noop() {
-        assert_eq!(result("# Comment\n;"), NoOp(Some(token(Comment, 0, 9))));
-    }
-
     #[test]
     fn assignment_operator() {
         let expected = |assign_operator: Category, operator: Category| {

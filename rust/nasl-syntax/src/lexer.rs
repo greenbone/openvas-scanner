@@ -264,7 +264,7 @@ impl<'a> Lexer<'a> {
 
             if self.needs_postfix(op) {
                 let (end, stmt) = self
-                    .postfix_statement(op, token, left, abort)
+                    .postfix_statement(op, token, left)
                     .expect("needs postfix should have been validated before")?;
                 left = stmt;
                 if let End::Done(cat) = end {
