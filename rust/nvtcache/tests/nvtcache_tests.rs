@@ -95,6 +95,18 @@ mod test {
         )?;
         fake_nvt.add_pref(pref);
 
+        //Add first tag
+        fake_nvt.add_tag("Tag Name".to_string(), "Tag Value".to_string());
+        let tag = fake_nvt.get_tag();
+        let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
+        assert_eq!(tag, &expected);
+
+        //Add second tag cvss_base, which is ignored
+        fake_nvt.add_tag("cvss_base".to_string(), "Tag Value1".to_string());
+        let tag = fake_nvt.get_tag();
+        let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
+        assert_eq!(tag, &expected);
+
         let filename = "custom.nasl".to_owned();
         match nvtcache.add_nvt(fake_nvt, filename) {
             Ok(_) => println!("Nvt successfully added"),
@@ -107,6 +119,9 @@ mod test {
 
         item = nvtcache.get_nvt_field("1234".to_owned(), KbNvtPos::NvtNamePos)?;
         assert_eq!(item, "Custom Script for the vulnerability 1");
+
+        item = nvtcache.get_nvt_field("1234".to_owned(), KbNvtPos::NvtTagsPos)?;
+        assert_eq!(item, "Tag Name=Tag Value");
 
         let _ = nvtcache.reset();
 
