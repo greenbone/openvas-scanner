@@ -20,6 +20,7 @@ pub(crate) trait CommaGroup {
 }
 
 impl<'a> CommaGroup for Lexer<'a> {
+    #[inline(always)]
     fn parse_comma_group(
         &mut self,
         category: Category,
