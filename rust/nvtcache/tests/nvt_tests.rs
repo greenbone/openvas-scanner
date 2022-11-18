@@ -1,5 +1,5 @@
 use nvtcache::dberror::Result;
-use nvtcache::nvt::{Category, Nvt, NvtRef};
+use nvtcache::nvt::{parse_nvt_timestamp, Category, Nvt, NvtRef};
 
 #[cfg(test)]
 mod test {
@@ -7,7 +7,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_nvt() {
+    fn test_tags() {
         let mut nvt;
         let res = Nvt::new();
 
@@ -21,12 +21,28 @@ mod test {
         let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
         assert_eq!(tag, &expected);
 
-        //Add second tag
+        //Add second tag cvss_base which is ignored
         nvt.add_tag("cvss_base".to_string(), "Tag Value1".to_string());
         let tag = nvt.get_tag();
         let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
 
         assert_eq!(tag, &expected);
+    }
+
+    #[test]
+    fn test_timestamp_converter() {
+        let t = "2011-08-09 08:20:34 +0200 (Tue, 09 Aug 2011)";
+        assert_eq!(parse_nvt_timestamp(&t), 1312870834);
+
+        let t = "$Date: 2012-02-17 16:05:26 +0100 (Fr, 17. Feb 2012) $";
+        assert_eq!(parse_nvt_timestamp(&t), 1329491126);
+
+        let t = "$Date: Fri, 11 Nov 2011 14:42:28 +0100 $";
+        assert_eq!(parse_nvt_timestamp(&t), 1321018948);
+
+        //Space left at the end. Fails and 0
+        let t = "$Date: Fri, 11 Nov 2011 14:42:28 +0100 ";
+        assert_eq!(parse_nvt_timestamp(&t), 0);
     }
 
     #[test]
