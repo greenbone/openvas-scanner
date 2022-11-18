@@ -153,16 +153,7 @@ mod test {
                                     category: Identifier(None),
                                     position: (68, 69)
                                 },)),
-                                Box::new(Operator(
-                                    Minus,
-                                    vec![
-                                        Variable(Token {
-                                            category: Identifier(None),
-                                            position: (68, 69)
-                                        }),
-                                        RawNumber(1)
-                                    ]
-                                ))
+                                Box::new(NoOp(None))
                             )
                         ]
                     ))
