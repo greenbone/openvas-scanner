@@ -18,21 +18,9 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     netdiag \
     pnscan \
     rsync \
-<<<<<<< HEAD
-=======
     # net-tools is required by some nasl plugins.
     # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
     net-tools \
-    # for openvas-smb support
-    python3-impacket \
-    libgnutls30 \
-    libgssapi3-heimdal \
-    libkrb5-26-heimdal \
-    libasn1-8-heimdal \
-    libroken18-heimdal \
-    libhdb9-heimdal \
-    libpopt0 \
->>>>>>> 4e6ff767 (Fix: missing NASL dependency netstat)
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /install/ /
 RUN ldconfig
