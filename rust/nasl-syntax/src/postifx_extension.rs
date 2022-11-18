@@ -28,7 +28,6 @@ impl<'a> Lexer<'a> {
         lhs: Statement,
         token: Token,
         assign: Category,
-        operation: Category,
     ) -> Option<Result<(End, Statement), SyntaxError>> {
         match lhs {
             Statement::Variable(token) => Some(Ok((
@@ -37,10 +36,7 @@ impl<'a> Lexer<'a> {
                     assign,
                     AssignOrder::ReturnAssign,
                     Box::new(Statement::Variable(token)),
-                    Box::new(Statement::Operator(
-                        operation,
-                        vec![Statement::Variable(token), Statement::RawNumber(1)],
-                    )),
+                    Box::new(Statement::NoOp(None)),
                 ),
             ))),
             Statement::Array(token, resolver) => Some(Ok((
@@ -48,11 +44,8 @@ impl<'a> Lexer<'a> {
                 Statement::Assign(
                     assign,
                     AssignOrder::ReturnAssign,
-                    Box::new(Statement::Array(token, resolver.clone())),
-                    Box::new(Statement::Operator(
-                        operation,
-                        vec![Statement::Array(token, resolver), Statement::RawNumber(1)],
-                    )),
+                    Box::new(Statement::Array(token, resolver)),
+                    Box::new(Statement::NoOp(None)),
                 ),
             ))),
             _ => Some(Err(unexpected_token!(token))),
@@ -69,10 +62,10 @@ impl<'a> Postfix for Lexer<'a> {
     ) -> Option<Result<(End, Statement), SyntaxError>> {
         match op {
             Operation::Assign(Category::PlusPlus) => {
-                Self::as_assign_statement(lhs, token, Category::PlusPlus, Category::Plus)
+                Self::as_assign_statement(lhs, token, Category::PlusPlus)
             }
             Operation::Assign(Category::MinusMinus) => {
-                Self::as_assign_statement(lhs, token, Category::MinusMinus, Category::Minus)
+                Self::as_assign_statement(lhs, token, Category::MinusMinus)
             }
             _ => None,
         }
@@ -107,7 +100,7 @@ mod test {
 
     #[test]
     fn postfix_variable_assignment_operator() {
-        let expected = |assign_operator: Category, operator: Category| {
+        let expected = |assign_operator: Category| {
             Operator(
                 Plus,
                 vec![
@@ -125,16 +118,7 @@ mod test {
                                     category: Identifier(None),
                                     position: (4, 5),
                                 })),
-                                Box::new(Operator(
-                                    operator,
-                                    vec![
-                                        Variable(Token {
-                                            category: Identifier(None),
-                                            position: (4, 5),
-                                        }),
-                                        RawNumber(1),
-                                    ],
-                                )),
+                                Box::new(NoOp(None)),
                             ),
                             Primitive(Token {
                                 category: Number(Base10),
@@ -145,14 +129,14 @@ mod test {
                 ],
             )
         };
-        assert_eq!(result("1 + a++ * 1;"), expected(PlusPlus, Plus));
-        assert_eq!(result("1 + a-- * 1;"), expected(MinusMinus, Minus));
+        assert_eq!(result("1 + a++ * 1;"), expected(PlusPlus));
+        assert_eq!(result("1 + a-- * 1;"), expected(MinusMinus));
     }
 
     #[test]
     fn postfix_array_assignment_operator() {
         use AssignOrder::*;
-        let expected = |assign_operator: Category, operator: Category| {
+        let expected = |assign_operator: Category| {
             Assign(
                 assign_operator,
                 ReturnAssign,
@@ -166,25 +150,10 @@ mod test {
                         position: (2, 3),
                     }))),
                 )),
-                Box::new(Operator(
-                    operator,
-                    vec![
-                        Array(
-                            Token {
-                                category: Identifier(None),
-                                position: (0, 1),
-                            },
-                            Some(Box::new(Primitive(Token {
-                                category: Number(Base10),
-                                position: (2, 3),
-                            }))),
-                        ),
-                        RawNumber(1),
-                    ],
-                )),
+                Box::new(NoOp(None)),
             )
         };
-        assert_eq!(result("a[1]++;"), expected(PlusPlus, Plus));
-        assert_eq!(result("a[1]--;"), expected(MinusMinus, Minus));
+        assert_eq!(result("a[1]++;"), expected(PlusPlus));
+        assert_eq!(result("a[1]--;"), expected(MinusMinus));
     }
 }
