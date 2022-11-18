@@ -1,8 +1,65 @@
 use crate::dberror::Result;
+use chrono::prelude::*;
 use std::fmt;
 
 ///Alias for time stamps
 type TimeT = i64;
+
+/// Enum of timestamp string pattern
+enum NvtTimeFormat {
+    SupportedFormatA,
+    SupportedFormatB,
+    SupportedFormatC,
+    SupportedFormatD,
+    SupportedFormatE,
+}
+
+/// Implementation of NvtTimeFormat
+impl NvtTimeFormat {
+    /// Convert the enum to a timestamp string pattern  which is supported by Nasl
+    fn as_str(&self) -> String {
+        match self {
+            NvtTimeFormat::SupportedFormatA => "%F %T %z".to_string(),
+            NvtTimeFormat::SupportedFormatB => "$Date: %F %T %z".to_string(),
+            NvtTimeFormat::SupportedFormatC => "%a %b %d %T %Y %z".to_string(),
+            NvtTimeFormat::SupportedFormatD => "$Date: %a, %d %b %Y %T %z".to_string(),
+            NvtTimeFormat::SupportedFormatE => "$Date: %a %b %d %T %Y %z".to_string(),
+        }
+    }
+}
+
+/// Convert an Nvt Timestamp string to a time since epoch.
+/// If it fails the conversion, return 0
+pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
+    // Remove the ending $
+    let timestamp: Vec<&str> = str_time.split(" $").collect();
+    // Remove the date in parenthesis
+    let timestamp: Vec<&str> = timestamp[0].split(" (").collect();
+
+    match DateTime::parse_from_str(timestamp[0], &NvtTimeFormat::SupportedFormatA.as_str())
+        .or(DateTime::parse_from_str(
+            timestamp[0],
+            &NvtTimeFormat::SupportedFormatB.as_str(),
+        ))
+        .or(DateTime::parse_from_str(
+            timestamp[0],
+            &NvtTimeFormat::SupportedFormatC.as_str(),
+        ))
+        .or(DateTime::parse_from_str(
+            timestamp[0],
+            &NvtTimeFormat::SupportedFormatD.as_str(),
+        ))
+        .or(DateTime::parse_from_str(
+            timestamp[0],
+            &NvtTimeFormat::SupportedFormatE.as_str(),
+        )) {
+        Ok(ok) => ok.timestamp(),
+        Err(e) => {
+            println!("{}", e);
+            0
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, PartialOrd)]
 pub enum Category {
@@ -357,16 +414,16 @@ impl Nvt {
     pub fn add_tag(&mut self, name: String, value: String) {
         match name.as_str() {
             "last_modification" => {
-                //TODO: convert the value to seconds since epoch
-                self.tag.push((name, value));
+                self.tag
+                    .push((name, parse_nvt_timestamp(&value).to_string()));
             }
             "creation_date" => {
-                //TODO: convert the value to seconds since epoch
-                self.tag.push((name, value));
+                self.tag
+                    .push((name, parse_nvt_timestamp(&value).to_string()));
             }
             "severity_date" => {
-                //TODO: convert the value to seconds since epoch
-                self.tag.push((name, value));
+                self.tag
+                    .push((name, parse_nvt_timestamp(&value).to_string()));
             }
             // cvss_base is just ignored
             "cvss_base" => (),
