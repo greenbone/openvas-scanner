@@ -151,7 +151,7 @@ pub struct Nvt {
     solution: String,         //Stored in redis under Tag item. Not in use.
     solution_type: String,    //Stored in redis under Tag item. Not in use.
     solution_method: String,  //Stored in redis under Tag item. Not in use.
-    tag: String,
+    tag: Vec<(String, String)>,
     cvss_base: String, //Stored in redis under Tag item. Not in use.
     dependencies: Vec<String>,
     required_keys: Vec<String>,
@@ -183,7 +183,7 @@ impl Default for Nvt {
             solution: String::new(),
             solution_type: String::new(),
             solution_method: String::new(),
-            tag: String::new(),
+            tag: vec![],
             cvss_base: String::new(),
             dependencies: vec![],
             required_keys: vec![],
@@ -274,7 +274,7 @@ impl Nvt {
     }
 
     /// Set the NVT tag
-    pub fn set_tag(&mut self, tag: String) {
+    pub fn set_tag(&mut self, tag: Vec<(String, String)>) {
         self.tag = tag;
     }
 
@@ -289,7 +289,7 @@ impl Nvt {
         let deps = list.iter().map(|&d| d.to_string()).collect();
         deps
     }
-    
+
     /// Set the NVT dependencies
     pub fn set_dependencies(&mut self, dependencies: String) {
         self.dependencies = self.vec_of_str(&dependencies);
@@ -355,36 +355,24 @@ impl Nvt {
     /// since epoch before added as a tag value.
     /// The tag name "cvss_base" will be ignored and not added.
     pub fn add_tag(&mut self, name: String, value: String) {
-        let mut new_value = value;
-        let current_tag = &self.tag;
-
         match name.as_str() {
             "last_modification" => {
                 //TODO: convert the value to seconds since epoch
-                new_value = 1234.to_string();
+                self.tag.push((name, value));
             }
             "creation_date" => {
                 //TODO: convert the value to seconds since epoch
-                new_value = 1234.to_string();
+                self.tag.push((name, value));
             }
             "severity_date" => {
                 //TODO: convert the value to seconds since epoch
-                new_value = 1234.to_string();
+                self.tag.push((name, value));
             }
-            "cvss_base" => return,
-            _ => (),
-        }
-        if self.tag.is_empty() {
-            self.tag = [name, "=".to_string(), new_value].concat();
-        } else {
-            self.tag = [
-                current_tag.to_string(),
-                "|".to_string(),
-                name,
-                "=".to_string(),
-                new_value,
-            ]
-            .concat();
+            // cvss_base is just ignored
+            "cvss_base" => (),
+            _ => {
+                self.tag.push((name, value));
+            }
         }
     }
 
@@ -470,7 +458,7 @@ impl Nvt {
     }
 
     /// Get the NVT tag
-    pub fn get_tag(&self) -> &str {
+    pub fn get_tag(&self) -> &Vec<(String, String)> {
         &self.tag
     }
 

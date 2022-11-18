@@ -18,12 +18,15 @@ mod test {
         //Add first tag
         nvt.add_tag("Tag Name".to_string(), "Tag Value".to_string());
         let tag = nvt.get_tag();
-        assert_eq!(tag, "Tag Name=Tag Value");
+        let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
+        assert_eq!(tag, &expected);
 
         //Add second tag
-        nvt.add_tag("Tag Name1".to_string(), "Tag Value1".to_string());
+        nvt.add_tag("cvss_base".to_string(), "Tag Value1".to_string());
         let tag = nvt.get_tag();
-        assert_eq!(tag, "Tag Name=Tag Value|Tag Name1=Tag Value1");
+        let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
+
+        assert_eq!(tag, &expected);
     }
 
     #[test]

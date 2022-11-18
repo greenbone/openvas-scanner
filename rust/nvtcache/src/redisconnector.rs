@@ -188,6 +188,15 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
+    fn tags_as_single_string(&self, tags: &Vec<(String, String)>) -> String {
+        let tag: Vec<String> = tags
+            .iter()
+            .map(|(key, val)| format!("{}={}", key, val).to_string())
+            .collect();
+
+        tag.iter().as_ref().join("|")
+    }
+
     pub fn redis_add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
         let oid = nvt.get_oid();
         let name = nvt.get_name();
@@ -197,7 +206,7 @@ impl RedisCtx {
         let required_udp_ports = nvt.get_required_udp_ports().concat();
         let required_ports = nvt.get_required_ports().concat();
         let dependencies = nvt.get_dependencies().concat();
-        let tags = nvt.get_tag();
+        let tags = self.tags_as_single_string(nvt.get_tag());
         let category = nvt.get_category().to_string();
         let family = nvt.get_family();
 
@@ -213,7 +222,7 @@ impl RedisCtx {
             &required_udp_ports,
             &required_ports,
             &dependencies,
-            tags,
+            &tags,
             &cves,
             &bids,
             &xrefs,
