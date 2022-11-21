@@ -22,6 +22,6 @@ All those functions but script_get_preference are only used in the "description 
 **script_require_ports** - sets the list of TCP ports that must be open to run this script in “optimize mode”.
 **script_require_udp_ports** - sets the list of UDP ports that must be open to run this script in “optimize mode”.
 **script_timeout** - sets the default timeout of the plugin.
-**script_version** - sets the “version” of the plugin.
+**script_version** - Deprecated. sets the “version” of the plugin.
 **script_xref** - URLs related to the script.
 **script_tag** - sets additional information.
