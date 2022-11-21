@@ -35,8 +35,6 @@ fn prefix_binding_power(token: Token) -> Result<u8, SyntaxError> {
 pub(crate) enum PrefixState {
     /// Continue the loop to calculate postfix and infix based on the returned initial Statement
     Continue,
-    /// Continue the loop to calculate postfix and infix based on the returned initial Statement
-    OpenEnd,
     /// The initial Statement is done and postfix and infix parsing must not be done.
     Break(Category),
 }
@@ -98,13 +96,7 @@ impl<'a> Prefix for Lexer<'a> {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp => {
-                if matches!(token.category(), Category::Comment) {
-                    Ok((OpenEnd, Statement::NoOp(Some(token))))
-                } else {
-                    Ok((Break(token.category()), Statement::NoOp(Some(token))))
-                }
-            }
+            Operation::NoOp => Ok((Break(token.category()), Statement::NoOp(Some(token)))),
         }
     }
 }

@@ -240,7 +240,6 @@ impl<'a> Lexer<'a> {
             )))?;
         match state {
             PrefixState::Continue => {}
-            PrefixState::OpenEnd => return Ok((End::Continue, left)),
             PrefixState::Break(cat) => return Ok((End::Done(cat), left)),
         }
 
