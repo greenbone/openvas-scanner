@@ -6,7 +6,7 @@ use crate::{
     infix_extension::Infix,
     operation::Operation,
     postifx_extension::Postfix,
-    prefix_extension::{Prefix, PrefixState},
+    prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
     unexpected_statement, unexpected_token,
 };
@@ -228,19 +228,19 @@ impl<'a> Lexer<'a> {
                 }
                 if abort(token.category()) {
                     return Ok((
-                        PrefixState::Break(Category::UnknownSymbol),
+                        End::Done(Category::UnknownSymbol),
                         Statement::NoOp(Some(token)),
                     ));
                 }
                 self.prefix_statement(token, abort)
             })
             .unwrap_or(Ok((
-                PrefixState::Break(Category::UnknownSymbol),
+                End::Done(Category::UnknownSymbol),
                 Statement::EoF,
             )))?;
         match state {
-            PrefixState::Continue => {}
-            PrefixState::Break(cat) => return Ok((End::Done(cat), left)),
+            End::Continue => {}
+            end => return Ok((end, left)),
         }
 
         let mut end_statement = End::Continue;

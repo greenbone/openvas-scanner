@@ -1,8 +1,7 @@
 use crate::{
     error::SyntaxError,
-    lexer::{Lexer},
+    lexer::{Lexer, End},
     lexer::{AssignOrder, Statement},
-    prefix_extension::PrefixState,
     token::{Category, Token},
     unclosed_token, unexpected_token, variable_extension::CommaGroup,
 };
@@ -13,7 +12,7 @@ pub(crate) trait Grouping {
     /// Parses {...}
     fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError>;
     /// General Grouping parsing. Is called within prefix_extension.
-    fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError>;
+    fn parse_grouping(&mut self, token: Token) -> Result<(End, Statement), SyntaxError>;
 }
 
 impl<'a> Lexer<'a> {
@@ -64,17 +63,17 @@ impl<'a> Grouping for Lexer<'a> {
         Err(unclosed_token!(token))
     }
 
-    fn parse_grouping(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_grouping(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         match token.category() {
             Category::LeftParen => self
                 .parse_paren(token)
-                .map(|stmt| (PrefixState::Continue, stmt)),
+                .map(|stmt| (End::Continue, stmt)),
             Category::LeftCurlyBracket => self
                 .parse_block(token)
-                .map(|stmt| (PrefixState::Break(token.category()), stmt)),
+                .map(|stmt| (End::Done(token.category()), stmt)),
             Category::LeftBrace => self
                 .parse_brace(token)
-                .map(|stmt| (PrefixState::Break(token.category()), stmt)),
+                .map(|stmt| (End::Done(token.category()), stmt)),
             _ => Err(unexpected_token!(token)),
         }
     }
