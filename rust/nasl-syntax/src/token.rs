@@ -50,6 +50,7 @@ impl Base {
 /// Is used to identify which Category type is unclosed
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnclosedCategory {
+    /// Is a unclosed String.
     String(StringCategory),
 }
 
@@ -212,7 +213,7 @@ pub enum Category {
     Comment,
     /// Identifier are literals that are not strings and don't start with a number
     Identifier(Option<Keyword>),
-    /// Either unclosed string literals or comment
+    /// Unclosed token. This can happen on e.g. string literals
     Unclosed(UnclosedCategory),
     /// Number starts with an unidentifieable base
     UnknownBase,

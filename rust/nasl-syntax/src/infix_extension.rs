@@ -2,8 +2,8 @@
 
 use crate::{
     error::SyntaxError,
-    lexer::{Lexer, End},
     lexer::{AssignOrder, Statement},
+    lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
     unexpected_end, unexpected_statement,
@@ -76,7 +76,7 @@ impl<'a> Infix for Lexer<'a> {
                         // from the atomar params and assign the first one to the NamedParameter instead
                         // of Statement::Parameter and put it upfront
                         match rhs {
-                            Statement::Parameter(params) => sort_params(params, left)?,
+                            Statement::Parameter(params) => first_element_as_named_parameter(params, left)?,
 
                             _ => Statement::NamedParameter(left, Box::new(rhs)),
                         }
@@ -134,7 +134,10 @@ impl<'a> Infix for Lexer<'a> {
     }
 }
 
-fn sort_params(mut params: Vec<Statement>, left: Token) -> Result<Statement, SyntaxError> {
+// if the right side is a parameter we need to transform the NamedParameter
+// from the atomar params and assign the first one to the NamedParameter instead
+// of Statement::Parameter and put it upfront
+fn first_element_as_named_parameter(mut params: Vec<Statement>, left: Token) -> Result<Statement, SyntaxError> {
     params.reverse();
     let value = params
         .pop()
