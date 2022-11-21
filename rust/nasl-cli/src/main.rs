@@ -29,17 +29,6 @@ enum Command {
     },
 }
 
-// fn get_range(err: &SyntaxError) -> Option<Range<usize>> {
-//     match err.kind() {
-//         ErrorKind::UnexpectedToken(token) => Some(token.range()),
-//         ErrorKind::UnclosedToken(token) => Some(token.range()),
-//         ErrorKind::UnexpectedStatement(stmt) => stmt.as_token().map(|t| t.range()),
-//         ErrorKind::UnclosedStatement(stmt) => stmt.as_token().map(|t| t.range()),
-//         ErrorKind::EoF => None,
-//         ErrorKind::IOError(_) => None,
-//     }
-// }
-
 fn load_file<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
     // unfortunately NASL is not UTF-8 so we need to map it manually
     fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect())

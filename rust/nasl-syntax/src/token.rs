@@ -239,6 +239,13 @@ impl Token {
     }
 
     /// Returns true when an Token is faulty
+    ///
+    /// A Token is faulyt when it is a syntactical error like
+    /// - [Category::IllegalIPv4Address]
+    /// - [Category::Unclosed]
+    /// - [Category::UnknownBase]
+    /// - [Category::UnknownSymbol]
+    /// - [Category::IllegalNumber]
     pub fn is_faulty(&self) -> bool {
         matches!(
             self.category(),

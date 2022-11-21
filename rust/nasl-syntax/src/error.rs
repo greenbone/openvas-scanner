@@ -10,13 +10,15 @@ use crate::{token::Token, Statement};
 pub enum ErrorKind {
     /// An unexpected token occured
     UnexpectedToken(Token),
-    /// An token is unclosed
+    /// A token is unclosed
+    ///
+    /// Could happen on string literals.
     UnclosedToken(Token),
     /// An unexpected statement occured
     UnexpectedStatement(Statement),
     /// An token is unclosed
     UnclosedStatement(Statement),
-    /// The cursor is already at the end but that's not as expected
+    /// The cursor is already at the end but that is not expected
     EoF,
     /// An IO Error occured while loading a NASL file
     IOError(io::ErrorKind),
