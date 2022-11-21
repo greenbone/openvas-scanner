@@ -6,7 +6,7 @@
 
 ## SYNOPSIS
 
-*any* **script_category**(: *string*);
+*any* **script_category**(*string*);
 
 **script category** It takes one unnamed value.
 
