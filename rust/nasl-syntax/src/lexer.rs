@@ -124,7 +124,7 @@ impl Statement {
     /// Retrieves the stored token in a Statement.
     ///
     /// If a Statement contains multiple Statements (e.g. Declare) than just the first one is returned.
-    /// Returns None on RawNumber, EoF or when a slice of vectors is empty.
+    /// Returns None on EoF or when a slice of vectors is empty.
     pub fn as_token(&self) -> Option<&Token> {
         match self {
             Statement::Primitive(token) => Some(token),

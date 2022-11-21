@@ -274,13 +274,4 @@ mod test {
         );
     }
 
-    #[test]
-    fn closing_paren() {
-        result(
-            r###"ip_packet =
-        forge_ip_packet( ip_off : IP_DF,        # DON'T FRAGMENT flag
-                        ip_src : this_host());
-        "###,
-        );
-    }
 }
