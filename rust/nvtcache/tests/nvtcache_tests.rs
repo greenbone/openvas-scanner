@@ -13,6 +13,7 @@ mod test {
     use super::*;
 
     #[test]
+    #[cfg(feature = "redis_test")]
     fn test_nvtcache() -> Result<()> {
         let mut nvtcache: nvtcache::NvtCache;
 
