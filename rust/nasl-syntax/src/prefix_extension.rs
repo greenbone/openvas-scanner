@@ -18,7 +18,7 @@ pub(crate) trait Prefix {
         &mut self,
         token: Token,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<(PrefixState, Statement), SyntaxError>;
+    ) -> Result<(End, Statement), SyntaxError>;
 }
 
 /// Is used to verify operations.
@@ -29,15 +29,6 @@ fn prefix_binding_power(token: Token) -> Result<u8, SyntaxError> {
     }
 }
 
-/// Is used by prefix_statement to dertermine if the expression loop should continue or break
-/// This is needed when the complete statement parsing is done for e.g. if or block statements.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum PrefixState {
-    /// Continue the loop to calculate postfix and infix based on the returned initial Statement
-    Continue,
-    /// The initial Statement is done and postfix and infix parsing must not be done.
-    Break(Category),
-}
 
 impl<'a> Lexer<'a> {
     /// Parses Operations that have an prefix (e.g. -1)
@@ -72,18 +63,14 @@ impl<'a> Prefix for Lexer<'a> {
         &mut self,
         token: Token,
         abort: &impl Fn(Category) -> bool,
-    ) -> Result<(PrefixState, Statement), SyntaxError> {
-        use PrefixState::*;
+    ) -> Result<(End, Statement), SyntaxError> {
+        use End::*;
         let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
                 let (end, right) = self.statement(bp, abort)?;
-                let prefix_end = match end {
-                    End::Done(cat) => Break(cat),
-                    End::Continue => Continue,
-                };
-                Ok((prefix_end, Statement::Operator(kind, vec![right])))
+                Ok((end, Statement::Operator(kind, vec![right])))
             }
             Operation::Primitive => Ok((Continue, Statement::Primitive(token))),
             Operation::Variable => self.parse_variable(token),
@@ -96,7 +83,7 @@ impl<'a> Prefix for Lexer<'a> {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp => Ok((Break(token.category()), Statement::NoOp(Some(token)))),
+            Operation::NoOp => Ok((Done(token.category()), Statement::NoOp(Some(token)))),
         }
     }
 }

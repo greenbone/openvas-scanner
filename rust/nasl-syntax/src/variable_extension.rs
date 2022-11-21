@@ -2,14 +2,13 @@ use crate::{
     error::SyntaxError,
     lexer::Statement,
     lexer::{End, Lexer},
-    prefix_extension::PrefixState,
     token::{Category, Token},
     unclosed_token, unexpected_token,
 };
 
 pub(crate) trait Variables {
     /// Parses variables, function calls.
-    fn parse_variable(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError>;
+    fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError>;
 }
 
 pub(crate) trait CommaGroup {
@@ -53,11 +52,11 @@ impl<'a> CommaGroup for Lexer<'a> {
 }
 
 impl<'a> Variables for Lexer<'a> {
-    fn parse_variable(&mut self, token: Token) -> Result<(PrefixState, Statement), SyntaxError> {
+    fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         if token.category() != Category::Identifier(None) {
             return Err(unexpected_token!(token));
         }
-        use PrefixState::*;
+        use End::*;
 
         if let Some(nt) = self.token() {
             match nt.category() {
