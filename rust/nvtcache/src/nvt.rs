@@ -6,24 +6,21 @@ use std::fmt;
 type TimeT = i64;
 
 /// Enum of timestamp string pattern
-enum NvtTimeFormat {
-    SupportedFormatA,
-    SupportedFormatB,
-    SupportedFormatC,
-    SupportedFormatD,
-    SupportedFormatE,
+struct NvtTimeFormat {
+    supported_format: Vec<String>,
 }
 
 /// Implementation of NvtTimeFormat
-impl NvtTimeFormat {
-    /// Convert the enum to a timestamp string pattern  which is supported by Nasl
-    fn as_str(&self) -> String {
-        match self {
-            NvtTimeFormat::SupportedFormatA => "%F %T %z".to_string(),
-            NvtTimeFormat::SupportedFormatB => "$Date: %F %T %z".to_string(),
-            NvtTimeFormat::SupportedFormatC => "%a %b %d %T %Y %z".to_string(),
-            NvtTimeFormat::SupportedFormatD => "$Date: %a, %d %b %Y %T %z".to_string(),
-            NvtTimeFormat::SupportedFormatE => "$Date: %a %b %d %T %Y %z".to_string(),
+impl Default for NvtTimeFormat {
+    fn default() -> NvtTimeFormat {
+        NvtTimeFormat {
+            supported_format: vec![
+                "%F %T %z".to_string(),
+                "$Date: %F %T %z".to_string(),
+                "%a %b %d %T %Y %z".to_string(),
+                "$Date: %a, %d %b %Y %T %z".to_string(),
+                "$Date: %a %b %d %T %Y %z".to_string(),
+            ],
         }
     }
 }
@@ -36,29 +33,19 @@ pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
     // Remove the date in parenthesis
     let timestamp: Vec<&str> = timestamp[0].split(" (").collect();
 
-    match DateTime::parse_from_str(timestamp[0], &NvtTimeFormat::SupportedFormatA.as_str())
-        .or(DateTime::parse_from_str(
-            timestamp[0],
-            &NvtTimeFormat::SupportedFormatB.as_str(),
-        ))
-        .or(DateTime::parse_from_str(
-            timestamp[0],
-            &NvtTimeFormat::SupportedFormatC.as_str(),
-        ))
-        .or(DateTime::parse_from_str(
-            timestamp[0],
-            &NvtTimeFormat::SupportedFormatD.as_str(),
-        ))
-        .or(DateTime::parse_from_str(
-            timestamp[0],
-            &NvtTimeFormat::SupportedFormatE.as_str(),
-        )) {
-        Ok(ok) => ok.timestamp(),
-        Err(e) => {
-            println!("{}", e);
-            0
+    let formats = NvtTimeFormat::default();
+    let mut ret = 0;
+    for f in formats.supported_format.iter() {
+        let res = DateTime::parse_from_str(timestamp[0], f.as_str());
+        match res {
+            Ok(ok) => {
+                ret = ok.timestamp();
+                break;
+            }
+            Err(_) => continue,
         }
     }
+    return ret;
 }
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -134,6 +121,7 @@ impl NvtPref {
             default,
         })
     }
+
     /// Return the id of the NvtPref
     pub fn get_id(&self) -> i32 {
         self.pref_id
