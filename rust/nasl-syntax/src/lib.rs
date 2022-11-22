@@ -17,6 +17,9 @@ pub use error::{SyntaxError, ErrorKind};
 pub use statement::*;
 pub use token::Category as TokenCategory;
 pub use token::Token;
+pub use token::StringCategory;
+pub use token::Base as NumberBase;
+pub use token::Keyword;
 
 
 /// Parses given code and returns found Statements and Errors
