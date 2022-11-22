@@ -5,25 +5,13 @@ use std::fmt;
 ///Alias for time stamps
 type TimeT = i64;
 
-/// Enum of timestamp string pattern
-struct NvtTimeFormat {
-    supported_format: Vec<String>,
-}
-
-/// Implementation of NvtTimeFormat
-impl Default for NvtTimeFormat {
-    fn default() -> NvtTimeFormat {
-        NvtTimeFormat {
-            supported_format: vec![
-                "%F %T %z".to_string(),
-                "$Date: %F %T %z".to_string(),
-                "%a %b %d %T %Y %z".to_string(),
-                "$Date: %a, %d %b %Y %T %z".to_string(),
-                "$Date: %a %b %d %T %Y %z".to_string(),
-            ],
-        }
-    }
-}
+const SUPPORTED_FORMATS: &[&str] = &[
+    "%F %T %z",
+    "$Date: %F %T %z",
+    "%a %b %d %T %Y %z",
+    "$Date: %a, %d %b %Y %T %z",
+    "$Date: %a %b %d %T %Y %z",
+];
 
 /// Convert an Nvt Timestamp string to a time since epoch.
 /// If it fails the conversion, return 0
@@ -33,10 +21,9 @@ pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
     // Remove the date in parenthesis
     let timestamp: Vec<&str> = timestamp[0].split(" (").collect();
 
-    let formats = NvtTimeFormat::default();
     let mut ret = 0;
-    for f in formats.supported_format.iter() {
-        let res = DateTime::parse_from_str(timestamp[0], f.as_str());
+    for f in SUPPORTED_FORMATS {
+        let res = DateTime::parse_from_str(timestamp[0], f);
         match res {
             Ok(ok) => {
                 ret = ok.timestamp();
@@ -45,10 +32,10 @@ pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
             Err(_) => continue,
         }
     }
-    return ret;
+    ret
 }
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, PartialOrd)]
 pub enum Category {
     ActInit = 0,
     ActScanner,
@@ -65,7 +52,7 @@ pub enum Category {
 
 impl fmt::Display for Category {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", (*self as i32).to_string())
+        write!(f, "{}", (*self as i32))
     }
 }
 
