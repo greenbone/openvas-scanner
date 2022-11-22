@@ -1,2 +1,2 @@
 [workspace]
-members = ["nasl-syntax", "nasl-interpreter", "nasl-cli", "nvtcace,"]
+members = ["nasl-syntax", "nasl-interpreter", "nasl-cli", "nvtcache",]
