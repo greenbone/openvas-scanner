@@ -481,6 +481,12 @@ dependencies = [
  "clap 4.0.26",
  "nasl-syntax",
  "walkdir",
+
+[[package]]
+name = "nasl-interpreter"
+version = "0.1.0"
+dependencies = [
+ "nasl-syntax",
 ]
 
 [[package]]
