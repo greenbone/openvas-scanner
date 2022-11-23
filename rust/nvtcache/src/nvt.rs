@@ -242,9 +242,8 @@ impl Nvt {
     }
 
     /// Set the NVT OID
-    pub fn set_oid(&mut self, oid: String) -> Result<()> {
+    pub fn set_oid(&mut self, oid: String) {
         self.oid = oid;
-        return Ok(());
     }
 
     /// Set the NVT name
