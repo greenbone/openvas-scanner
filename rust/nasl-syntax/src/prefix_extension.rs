@@ -3,8 +3,8 @@ use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
-    lexer::Lexer,
-    lexer::{AssignOrder, End, Statement},
+    lexer::{Lexer, End},
+    {AssignOrder, Statement},
     operation::Operation,
     token::{Category, Token},
     unexpected_end, unexpected_token,
@@ -92,8 +92,8 @@ impl<'a> Prefix for Lexer<'a> {
 mod test {
 
     use crate::{
-        lexer::AssignOrder,
-        lexer::Statement,
+        AssignOrder,
+        Statement,
         parse,
         token::{Base, Category, StringCategory, Token},
     };

@@ -11,11 +11,13 @@ mod postifx_extension;
 mod prefix_extension;
 mod token;
 mod variable_extension;
+mod statement;
 
 pub use error::{SyntaxError, ErrorKind};
-pub use lexer::Statement;
+pub use statement::*;
 pub use token::Category as TokenCategory;
 pub use token::Token;
+
 
 /// Parses given code and returns found Statements and Errors
 ///
@@ -38,9 +40,8 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::{
         cursor::Cursor,
-        lexer::AssignOrder,
         token::{Base, Category, Keyword, StringCategory, Token, Tokenizer},
-        Statement, SyntaxError,
+        Statement, SyntaxError, AssignOrder,
     };
 
     #[test]
