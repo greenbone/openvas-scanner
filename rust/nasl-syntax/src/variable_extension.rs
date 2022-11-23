@@ -1,9 +1,8 @@
 use crate::{
     error::SyntaxError,
-    lexer::Statement,
     lexer::{End, Lexer},
     token::{Category, Token},
-    unclosed_token, unexpected_token,
+    unclosed_token, unexpected_token, Statement,
 };
 
 pub(crate) trait Variables {
@@ -90,7 +89,7 @@ impl<'a> Variables for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::{AssignOrder, Statement},
+        {AssignOrder, Statement},
         parse,
         token::{Base, Category, StringCategory, Token},
     };

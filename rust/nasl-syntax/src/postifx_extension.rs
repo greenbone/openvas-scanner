@@ -1,11 +1,10 @@
 //! Handles the postfix statement within Lexer
 use crate::{
     error::SyntaxError,
-    lexer::{AssignOrder, Statement},
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
-    unexpected_token,
+    unexpected_token, Statement, AssignOrder,
 };
 
 /// Is a trait to handle postfix statements.
@@ -84,15 +83,13 @@ impl<'a> Postfix for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::AssignOrder,
-        lexer::Statement,
         parse,
-        token::{Base, Category, Token},
+        token::{Base, Category, Token}, Statement, AssignOrder,
     };
 
     use Base::*;
     use Category::*;
-    use Statement::*;
+    use crate::Statement::*;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()

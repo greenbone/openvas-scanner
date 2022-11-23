@@ -2,7 +2,7 @@
 
 use crate::{
     error::SyntaxError,
-    lexer::{AssignOrder, Statement},
+    {AssignOrder, Statement},
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
