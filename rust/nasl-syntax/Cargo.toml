@@ -7,3 +7,9 @@ edition = "2021"
 
 [dependencies]
 
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "parse"
+harness = false
