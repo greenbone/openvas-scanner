@@ -25,7 +25,7 @@ impl<'a> CommaGroup for Lexer<'a> {
     ) -> Result<(End, Vec<Statement>), SyntaxError> {
         let mut params = vec![];
         let mut end = End::Continue;
-        while let Some(token) = self.peek(0) {
+        while let Some(token) = self.peek() {
             if token.category() == category {
                 self.token();
                 end = End::Done(category);
@@ -57,7 +57,7 @@ impl<'a> Variables for Lexer<'a> {
         }
         use End::*;
 
-        if let Some(nt) = self.peek(0) {
+        if let Some(nt) = self.peek() {
             match nt.category() {
                 Category::LeftParen => {
                     self.token();
