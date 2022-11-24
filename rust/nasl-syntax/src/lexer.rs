@@ -144,8 +144,13 @@ impl<'a> Lexer<'a> {
                 if let End::Done(cat) = end {
                     end_statement = End::Done(cat);
                     break;
+                } else {
+                    // jump to the next without handling it as an error
+                    continue;
                 }
             }
+            // Due to peeking it can end up in and endlessloop
+            return Err(unexpected_token!(token));
         }
 
         Ok((end_statement, left))
