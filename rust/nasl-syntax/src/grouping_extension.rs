@@ -20,7 +20,6 @@ impl<'a> Lexer<'a> {
         if !end {
             Err(unclosed_token!(token))
         } else {
-            self.unhandled_token = None;
             Ok(Statement::Parameter(right))
         }
     }
@@ -46,18 +45,15 @@ impl<'a> Grouping for Lexer<'a> {
 
     fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
-        while let Some(token) = self.token() {
+        while let Some(token) = self.peek(0) {
             if token.category() == Category::RightCurlyBracket {
-                self.unhandled_token = None;
+                self.token();
                 return Ok(Statement::Block(results));
             }
-            self.unhandled_token = Some(token);
-            // use min_bp 1 to skip the unhandled_token reset due to self.tokenizer.next call
-            let (end, stmt) = self.statement(1, &|cat| cat == Category::Semicolon)?;
+            let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
             if end.is_done() && !matches!(stmt, Statement::NoOp(_)) {
                 results.push(stmt);
             }
-            // else error
         }
         Err(unclosed_token!(token))
     }
