@@ -199,6 +199,8 @@ pub enum Category {
     GreaterBangLess,
     /// `>>>=`
     GreaterGreaterGreaterEqual,
+    /// `x` is a special functionality to redo a function call n times.E.g. `send_packet( udp, pcap_active:FALSE ) x 200;`
+    X,
     /// A String can be either Quoteable (') or Unquoteable (") both can be multiline
     String(StringCategory),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
@@ -493,15 +495,22 @@ impl<'a> Tokenizer<'a> {
     fn tokenize_identifier(&mut self, start: usize) -> Option<Token> {
         self.cursor
             .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
-        let keyword = Keyword::new(self.lookup(Range {
-            start,
-            end: self.cursor.len_consumed(),
-        }));
-        token!(
-            Category::Identifier(keyword),
-            start,
-            self.cursor.len_consumed()
-        )
+        let end = self.cursor.len_consumed();
+        let lookup = self.lookup(Range { start, end });
+        let cat = {
+            if lookup != "x" {
+                let keyword = Keyword::new(lookup);
+                Category::Identifier(keyword)
+            } else {
+                self.cursor.skip_while(|c| c.is_whitespace());
+                if self.cursor.peek(0).is_numeric() {
+                    Category::X
+                } else {
+                    Category::Identifier(None)
+                }
+            }
+        };
+        token!(cat, start, end)
     }
 }
 
@@ -786,6 +795,22 @@ mod tests {
     fn simplified_ipv4_address() {
         use Category::*;
         verify_tokens!("10.187.76.12", vec![(IPv4Address, 0, 12)]);
+    }
+
+    #[test]
+    fn repeat_x_times() {
+        use Category::*;
+        verify_tokens!(
+            "x() x 10;",
+            vec![
+                (Identifier(None), 0, 1),
+                (LeftParen, 1, 2),
+                (RightParen, 2, 3),
+                (X, 4, 5),
+                (Number(Base::Base10), 6, 8),
+                (Semicolon, 8, 9),
+            ]
+        );
     }
 
     #[test]

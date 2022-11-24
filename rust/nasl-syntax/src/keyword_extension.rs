@@ -45,9 +45,10 @@ impl<'a> Lexer<'a> {
             return Err(unclosed_token!(token));
         }
         let r#else: Option<Statement> = {
-            match self.token() {
+            match self.peek(0) {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
+                        self.token();
                         let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
                         if end == End::Continue {
                             return Err(unexpected_statement!(stmt));
@@ -55,7 +56,6 @@ impl<'a> Lexer<'a> {
                         Some(stmt)
                     }
                     _ => {
-                        self.unhandled_token = Some(token);
                         None
                     }
                 },
@@ -146,20 +146,19 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_return(&mut self) -> Result<(End, Statement), SyntaxError> {
-        let token = self.token();
+        let token = self.peek(0);
         if let Some(token) = token {
             if matches!(token.category(), Category::Semicolon) {
+                self.token();
                 return Ok((
                     End::Done(Category::Semicolon),
                     Statement::Return(Box::new(Statement::NoOp(Some(token)))),
                 ));
             }
         }
-        self.unhandled_token = token;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
         if let End::Done(cat) = end {
-            // TODO parse to end
             Ok((
                 End::Done(cat),
                 Statement::Return(Box::new(parameter)),
@@ -277,15 +276,16 @@ impl<'a> Lexer<'a> {
         &mut self,
         keyword: Token,
     ) -> Result<(End, Statement), SyntaxError> {
-        match self.token() {
+        match self.peek(0) {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
+                    self.token();
                     let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
                     if end == End::Continue {
                         Err(unclosed_token!(token))
                     } else {
-                        self.unhandled_token = None;
+
                         Ok((
                             End::Continue,
                             Statement::Array(keyword, Some(Box::new(lookup))),
@@ -293,7 +293,6 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 _ => {
-                    self.unhandled_token = Some(token);
                     Ok((End::Continue, Statement::Array(keyword, None)))
                 }
             },

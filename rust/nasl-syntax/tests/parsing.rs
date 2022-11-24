@@ -5,6 +5,16 @@ mod test {
     use nasl_syntax::parse;
 
     #[test]
+    fn change_to_peek() {
+        let code = r###"
+send_packet( udp, pcap_active:FALSE ) x 200;
+        "###;
+        for stmt in parse(code) {
+            stmt.unwrap();
+        }
+    }
+
+    #[test]
     fn stack_overflow() {
         let code = r###"
 req = raw_string(0x00, 0x00, 0x03, 0x14, 0x08, 0x14, 0xff, 0x9f,

@@ -12,11 +12,9 @@ use crate::{
 };
 
 
-
 /// Is used to parse Token to Statement
 pub struct Lexer<'a> {
     tokenizer: Tokenizer<'a>,
-    pub(crate) unhandled_token: Option<Token>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,19 +43,12 @@ impl Not for End {
 impl<'a> Lexer<'a> {
     /// Creates a Lexer
     pub fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
-        Lexer {
-            tokenizer,
-            unhandled_token: None,
-        }
+        Lexer { tokenizer }
     }
 
     /// Returns next token of tokenizer
     pub(crate) fn token(&mut self) -> Option<Token> {
-        while let Some(token) = self
-            .unhandled_token
-            .take()
-            .or_else(|| self.tokenizer.next())
-        {
+        for token in self.tokenizer.by_ref() {
             if token.category() == Category::Comment {
                 continue;
             }
@@ -66,6 +57,26 @@ impl<'a> Lexer<'a> {
         None
     }
 
+    /// Returns next token of tokenizer
+    pub(crate) fn peek(&mut self, n: usize) -> Option<Token> {
+        let mut peeker = self.tokenizer.clone();
+        for _ in 0..n {
+            for token in peeker.by_ref() {
+                if token.category() == Category::Comment {
+                    continue;
+                }
+                break;
+            }
+        }
+
+        for token in peeker {
+            if token.category() == Category::Comment {
+                continue;
+            }
+            return Some(token);
+        }
+        None
+    }
     /// Returns the next expression.
     ///
     /// It uses a prefix_extension to verify if a token is prefix relevant and if parsing should continue
@@ -95,24 +106,16 @@ impl<'a> Lexer<'a> {
                 }
                 self.prefix_statement(token, abort)
             })
-            .unwrap_or(Ok((
-                End::Done(Category::UnknownSymbol),
-                Statement::EoF,
-            )))?;
+            .unwrap_or(Ok((End::Done(Category::UnknownSymbol), Statement::EoF)))?;
         match state {
             End::Continue => {}
             end => return Ok((end, left)),
         }
 
         let mut end_statement = End::Continue;
-        loop {
-            let token = {
-                match self.token() {
-                    Some(x) => x,
-                    None => break,
-                }
-            };
+        while let Some(token) = self.peek(0){
             if abort(token.category()) {
+                self.token();
                 end_statement = End::Done(token.category());
                 break;
             }
@@ -122,6 +125,7 @@ impl<'a> Lexer<'a> {
                 let (end, stmt) = self
                     .postfix_statement(op, token, left)
                     .expect("needs postfix should have been validated before")?;
+                self.token();
                 left = stmt;
                 if let End::Done(cat) = end {
                     end_statement = End::Done(cat);
@@ -132,9 +136,9 @@ impl<'a> Lexer<'a> {
 
             if let Some(min_bp_reached) = self.needs_infix(op, min_binding_power) {
                 if !min_bp_reached {
-                    self.unhandled_token = Some(token);
                     break;
                 }
+                self.token();
                 let (end, nl) = self.infix_statement(op, token, left, abort)?;
                 left = nl;
                 if let End::Done(cat) = end {

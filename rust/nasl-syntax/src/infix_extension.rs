@@ -2,11 +2,10 @@
 
 use crate::{
     error::SyntaxError,
-    {AssignOrder, Statement},
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
-    unexpected_end, unexpected_statement,
+    unexpected_end, unexpected_statement, {AssignOrder, Statement},
 };
 pub(crate) trait Infix {
     /// Returns true when an Operation needs a infix handling.
@@ -47,7 +46,8 @@ fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
         Operator(AmpersandAmpersand) => (6, 7),
         Operator(PipePipe) => (4, 5),
         // two is lowest since on block we can start with 1
-        Assign(_) => (2, 3),
+        Assign(_) | Operator(X) => (2, 3),
+
         _ => return None,
     };
     Some(res)
@@ -76,7 +76,9 @@ impl<'a> Infix for Lexer<'a> {
                         // from the atomar params and assign the first one to the NamedParameter instead
                         // of Statement::Parameter and put it upfront
                         match rhs {
-                            Statement::Parameter(params) => first_element_as_named_parameter(params, left)?,
+                            Statement::Parameter(params) => {
+                                first_element_as_named_parameter(params, left)?
+                            }
 
                             _ => Statement::NamedParameter(left, Box::new(rhs)),
                         }
@@ -137,7 +139,10 @@ impl<'a> Infix for Lexer<'a> {
 // if the right side is a parameter we need to transform the NamedParameter
 // from the atomar params and assign the first one to the NamedParameter instead
 // of Statement::Parameter and put it upfront
-fn first_element_as_named_parameter(mut params: Vec<Statement>, left: Token) -> Result<Statement, SyntaxError> {
+fn first_element_as_named_parameter(
+    mut params: Vec<Statement>,
+    left: Token,
+) -> Result<Statement, SyntaxError> {
     params.reverse();
     let value = params
         .pop()
@@ -359,6 +364,29 @@ mod test {
                     category: Number(Base10),
                     position: (5, 6)
                 }))
+            )
+        );
+    }
+
+    #[test]
+    fn repeat_call() {
+        assert_eq!(
+            result("lol() x 2;"),
+            Operator(
+                X,
+                vec![
+                    Call(
+                        Token {
+                            category: Identifier(None),
+                            position: (0, 3)
+                        },
+                        Box::new(Parameter(vec![]))
+                    ),
+                    Primitive(Token {
+                        category: Number(Base10),
+                        position: (8, 9)
+                    })
+                ]
             )
         );
     }

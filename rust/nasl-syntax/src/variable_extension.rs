@@ -25,12 +25,12 @@ impl<'a> CommaGroup for Lexer<'a> {
     ) -> Result<(End, Vec<Statement>), SyntaxError> {
         let mut params = vec![];
         let mut end = End::Continue;
-        while let Some(token) = self.token() {
+        while let Some(token) = self.peek(0) {
             if token.category() == category {
+                self.token();
                 end = End::Done(category);
                 break;
             }
-            self.unhandled_token = Some(token);
             let (stmtend, param) = self.statement(0, &|c| c == category || c == Category::Comma)?;
             match param {
                 Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
@@ -57,9 +57,10 @@ impl<'a> Variables for Lexer<'a> {
         }
         use End::*;
 
-        if let Some(nt) = self.token() {
+        if let Some(nt) = self.peek(0) {
             match nt.category() {
                 Category::LeftParen => {
+                    self.token();
                     let (end, params) = self.parse_comma_group(Category::RightParen)?;
                     if end == End::Continue {
                         return Err(unclosed_token!(token));
@@ -70,16 +71,16 @@ impl<'a> Variables for Lexer<'a> {
                     ));
                 }
                 Category::LeftBrace => {
+                    self.token();
                     let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
                     if end == End::Continue {
                         return Err(unclosed_token!(token));
                     } else {
-                        self.unhandled_token = None;
                         return Ok((Continue, Statement::Array(token, Some(Box::new(lookup)))));
                     }
                 }
-                _ => self.unhandled_token = Some(nt),
+                _ => {},
             }
         }
         Ok((Continue, Statement::Variable(token)))
