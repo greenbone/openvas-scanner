@@ -45,7 +45,7 @@ impl<'a> Grouping for Lexer<'a> {
 
     fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
-        while let Some(token) = self.peek(0) {
+        while let Some(token) = self.peek() {
             if token.category() == Category::RightCurlyBracket {
                 self.token();
                 return Ok(Statement::Block(results));

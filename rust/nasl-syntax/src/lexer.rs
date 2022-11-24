@@ -57,19 +57,9 @@ impl<'a> Lexer<'a> {
         None
     }
 
-    /// Returns next token of tokenizer
-    pub(crate) fn peek(&mut self, n: usize) -> Option<Token> {
-        let mut peeker = self.tokenizer.clone();
-        for _ in 0..n {
-            for token in peeker.by_ref() {
-                if token.category() == Category::Comment {
-                    continue;
-                }
-                break;
-            }
-        }
-
-        for token in peeker {
+    /// Returns peeks token of tokenizer
+    pub(crate) fn peek(&mut self) -> Option<Token> {
+        for token in self.tokenizer.clone(){
             if token.category() == Category::Comment {
                 continue;
             }
@@ -113,7 +103,7 @@ impl<'a> Lexer<'a> {
         }
 
         let mut end_statement = End::Continue;
-        while let Some(token) = self.peek(0){
+        while let Some(token) = self.peek(){
             if abort(token.category()) {
                 self.token();
                 end_statement = End::Done(token.category());

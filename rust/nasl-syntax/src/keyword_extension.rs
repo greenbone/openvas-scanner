@@ -45,7 +45,7 @@ impl<'a> Lexer<'a> {
             return Err(unclosed_token!(token));
         }
         let r#else: Option<Statement> = {
-            match self.peek(0) {
+            match self.peek() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
                         self.token();
@@ -146,7 +146,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_return(&mut self) -> Result<(End, Statement), SyntaxError> {
-        let token = self.peek(0);
+        let token = self.peek();
         if let Some(token) = token {
             if matches!(token.category(), Category::Semicolon) {
                 self.token();
@@ -276,7 +276,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         keyword: Token,
     ) -> Result<(End, Statement), SyntaxError> {
-        match self.peek(0) {
+        match self.peek() {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
                     self.token();
