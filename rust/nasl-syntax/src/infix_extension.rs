@@ -156,6 +156,8 @@ fn first_element_as_named_parameter(
 #[cfg(test)]
 mod test {
 
+    use std::ops::Range;
+
     use super::*;
     use crate::token::Base;
     use crate::token::Base::*;
@@ -178,7 +180,7 @@ mod test {
             };
         match s {
             Primitive(token) => match token.category() {
-                Number(_) => code[token.range()].parse().unwrap(),
+                Number(_) => code[Range::from(token)].parse().unwrap(),
                 String(_) => todo!(),
                 _ => todo!(),
             },

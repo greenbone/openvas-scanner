@@ -1,15 +1,16 @@
-use nasl_syntax::{Statement,Statement::*,TokenCategory, Token, StringCategory, NumberBase};
+use std::ops::Range;
 
-use crate::{error::{InterpetError}, lookup};
+use nasl_syntax::{NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory};
 
+use crate::{error::InterpetError, lookup};
 
 // TODO Allow multiple value types
 /// Persistant storage, which is used to communicate between NASL Scripts
 pub trait Storage {
     /// Put a value into the storage
-    fn write(&mut self, key:&str, value:&str);
+    fn write(&mut self, key: &str, value: &str);
     /// Read a value from the storage
-    fn read(&self, key:&str) -> Option<&str>;
+    fn read(&self, key: &str) -> Option<&str>;
 }
 
 /// Represents a Value within the NaslContext
@@ -17,7 +18,7 @@ pub enum ContextType {
     /// Represents a Function definition
     Function(Statement),
     /// Represents a Variable or Parameter
-    Value(NaslValue)
+    Value(NaslValue),
 }
 
 /// The context represents a temporary storage, which can contain local variables, global variables or defined functions
@@ -55,36 +56,43 @@ pub enum NaslValue {
 pub struct Interpreter<'a> {
     code: &'a str,
     context: &'a mut dyn NaslContext,
-    storage: &'a mut dyn Storage
+    storage: &'a mut dyn Storage,
 }
 
-impl<'a> Interpreter<'a> {
-    /// Creates a new Interpreter.
-    pub fn new(code: &'a str, context: &'a mut dyn NaslContext, storage: &'a mut dyn Storage) -> Self {
-        Interpreter{code: code, context: context, storage: storage}
-    }
+trait Resolver<T> {
+    fn resolve(&self, code: &str, range: Range<usize>) -> T;
+}
 
-    /// Resolves a Token into a String
-    fn resolve_string(code: &str, token: Token) -> String {
-        match token.category {
-            TokenCategory::String(string_category) => match string_category {
+impl Resolver<String> for StringCategory {
+    /// Resolves a range into a String based on code
+    fn resolve(&self, code: &str, range: Range<usize>) -> String {
+        match self {
+            StringCategory::Quoteable => code[range].to_owned(),
             StringCategory::Unquoteable => {
-                let mut string = code[token.range()].to_string();
-                
+                let mut string = code[range].to_string();
                 string = string.replace(r#"\n"#, "\n");
                 string = string.replace(r#"\\"#, "\\");
                 string = string.replace(r#"\""#, "\"");
                 string = string.replace(r#"\'"#, "'");
                 string = string.replace(r#"\r"#, "\r");
                 string = string.replace(r#"\t"#, "\t");
-
                 string
-            },
-            StringCategory::Quoteable => {
-                code[token.range()].to_string()
             }
-        },
-        _ => "".to_string()
+        }
+    }
+}
+
+impl<'a> Interpreter<'a> {
+    /// Creates a new Interpreter.
+    pub fn new(
+        code: &'a str,
+        context: &'a mut dyn NaslContext,
+        storage: &'a mut dyn Storage,
+    ) -> Self {
+        Interpreter {
+            code,
+            context,
+            storage,
         }
     }
 
@@ -92,17 +100,17 @@ impl<'a> Interpreter<'a> {
     fn resolve_number(code: &str, token: Token) -> i32 {
         match token.category {
             TokenCategory::Number(base) => {
-                let base_number: u32;
-                match base {
-                    NumberBase::Binary => base_number = 2,
-                    NumberBase::Octal => base_number = 8,
-                    NumberBase::Base10 => base_number = 10,
-                    NumberBase::Hex => base_number = 16,
+                let base_number: u32 = match base {
+                    NumberBase::Binary => 2,
+                    NumberBase::Octal => 8,
+                    NumberBase::Base10 => 10,
+                    NumberBase::Hex => 16,
                 };
-                i32::from_str_radix(&code[token.range()], base_number).unwrap().into()
-
+                i32::from_str_radix(&code[Range::from(token)], base_number)
+                    .unwrap()
+                    .into()
             }
-            _ => 0
+            _ => 0,
         }
     }
 
@@ -120,34 +128,42 @@ impl<'a> Interpreter<'a> {
     /// Interpetes a Statement
     pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpetError> {
         match statement {
-            Array(_,_ ) => Ok(NaslValue::Null),
+            Array(_, _) => Ok(NaslValue::Null),
             Exit(_) => Ok(NaslValue::Null),
             Return(_) => Ok(NaslValue::Null),
             Include(_) => Ok(NaslValue::Null),
-            NamedParameter(_,_ ) => Ok(NaslValue::Null),
-            For(_,_ ,_ ,_ ) => Ok(NaslValue::Null),
-            While(_,_ ) => Ok(NaslValue::Null),
-            Repeat(_,_ ) => Ok(NaslValue::Null),
-            ForEach(_,_ ,_ ) => Ok(NaslValue::Null),
-            FunctionDeclaration(_,_ ,_ ) => Ok(NaslValue::Null),
-            Primitive(token) => {
-                match token.category {
-                    TokenCategory::String(_) => Ok(NaslValue::String(Self::resolve_string(self.code, token))),
-                    TokenCategory::Number(_) => Ok(NaslValue::Number(Self::resolve_number(self.code, token))),
-                    _ => Err(InterpetError { reason: "invalid primitive".to_string() })
+            NamedParameter(_, _) => Ok(NaslValue::Null),
+            For(_, _, _, _) => Ok(NaslValue::Null),
+            While(_, _) => Ok(NaslValue::Null),
+            Repeat(_, _) => Ok(NaslValue::Null),
+            ForEach(_, _, _) => Ok(NaslValue::Null),
+            FunctionDeclaration(_, _, _) => Ok(NaslValue::Null),
+            Primitive(token) => match token.category {
+                TokenCategory::String(category) => Ok(NaslValue::String(
+                    category.resolve(self.code, Range::from(token)),
+                )),
+                TokenCategory::Number(_) => {
+                    Ok(NaslValue::Number(Self::resolve_number(self.code, token)))
                 }
+                _ => Err(InterpetError {
+                    reason: "invalid primitive".to_string(),
+                }),
             },
             Variable(_) => Ok(NaslValue::Null),
             Call(function_name, parameters) => {
                 // Get the function, if it exists
-                let name = &self.code[function_name.range()];
-                match lookup(name){
+                let name = &self.code[Range::from(function_name)];
+                match lookup(name) {
                     // Built-In Function
                     Some(function) => {
                         let mut function_context = self.context.globals_copy();
                         let params = match *parameters {
                             Parameter(params) => params,
-                            _ => return Err(InterpetError::new("invalid statement type for function parameters".to_string())),
+                            _ => {
+                                return Err(InterpetError::new(
+                                    "invalid statement type for function parameters".to_string(),
+                                ))
+                            }
                         };
                         for param in params {
                             match param {
@@ -155,60 +171,73 @@ impl<'a> Interpreter<'a> {
                                     // Resolve parameter value
                                     let value_option = self.resolve(*parameter_value);
                                     match value_option {
-                                        Ok(value) => function_context.add_named(&self.code[parameter_name.range()], ContextType::Value(value)),
+                                        Ok(value) => function_context.add_named(
+                                            &self.code[Range::from(parameter_name)],
+                                            ContextType::Value(value),
+                                        ),
                                         Err(err) => return Err(err),
                                     }
-                                },
+                                }
                                 _ => {
                                     let value_option = self.resolve(param);
                                     match value_option {
-                                        Ok(value) => function_context.add_postitional(ContextType::Value(value)),
+                                        Ok(value) => function_context
+                                            .add_postitional(ContextType::Value(value)),
                                         Err(err) => return Err(err),
                                     }
-                                },
+                                }
                             };
                         }
                         match function(function_context.as_mut(), self.storage) {
                             Ok(value) => return Ok(value),
-                            Err(_) => return Err(InterpetError::new(format!("unable to call function {}", name).to_string())),
+                            Err(_) => {
+                                return Err(InterpetError::new(
+                                    format!("unable to call function {}", name).to_string(),
+                                ))
+                            }
                         };
-                    },
+                    }
                     // Check for user defined function
                     None => match self.context.get_named(name) {
                         Some(t) => match t {
                             ContextType::Function(_) => {
                                 // Call function
                                 todo!();
-                            },
+                            }
                             // Found value is not a function
-                            _ => return Err(InterpetError::new(format!("{} is not a fucntion", name).to_string())),
-                        }
+                            _ => {
+                                return Err(InterpetError::new(
+                                    format!("{} is not a fucntion", name).to_string(),
+                                ))
+                            }
+                        },
                         // No function Found
-                        None => return Err(InterpetError::new(format!("{} is not defined", name).to_string())),
-                    }
-                };               
-                
-            },
+                        None => {
+                            return Err(InterpetError::new(
+                                format!("{} is not defined", name).to_string(),
+                            ))
+                        }
+                    },
+                };
+            }
             Declare(_, _) => Ok(NaslValue::Null),
             Parameter(_) => Ok(NaslValue::Null),
             Assign(_, _, _, _) => Ok(NaslValue::Null),
-            Operator(_, _)=> Ok(NaslValue::Null),
-            If(condition, if_block, else_block) => {
-                match self.resolve(*condition) {
-                    Ok(value) => {
-                        if Self::to_bool(value) {
-                            return self.resolve(*if_block);
-                        } else if else_block.is_some() {
-                            return self.resolve(*else_block.unwrap());
-                        }
-                        return Ok(NaslValue::Null);
-                    },
-                    Err(err) => return Err(err),
+            Operator(_, _) => Ok(NaslValue::Null),
+            If(condition, if_block, else_block) => match self.resolve(*condition) {
+                Ok(value) => {
+                    if Self::to_bool(value) {
+                        return self.resolve(*if_block);
+                    } else if else_block.is_some() {
+                        return self.resolve(*else_block.unwrap());
+                    }
+                    return Ok(NaslValue::Null);
                 }
+                Err(err) => return Err(err),
             },
-            Block(_)=> Ok(NaslValue::Null),
-            NoOp(_)=> Ok(NaslValue::Null),
-            EoF=> Ok(NaslValue::Null),
+            Block(_) => Ok(NaslValue::Null),
+            NoOp(_) => Ok(NaslValue::Null),
+            EoF => Ok(NaslValue::Null),
         }
     }
 }
@@ -217,19 +246,21 @@ impl<'a> Interpreter<'a> {
 mod test {
     use std::collections::HashMap;
 
-    use nasl_syntax::{Statement, TokenCategory, StringCategory};
+    use nasl_syntax::{Statement, StringCategory, TokenCategory};
 
     use crate::interpreter::NaslValue;
 
-    use super::{Storage, ContextType, NaslContext, Interpreter};
+    use super::{ContextType, Interpreter, NaslContext, Storage};
 
     struct MockStrorage {
-        map: HashMap<String, String>
+        map: HashMap<String, String>,
     }
 
     impl MockStrorage {
         fn new() -> Self {
-            MockStrorage { map: HashMap::new() }
+            MockStrorage {
+                map: HashMap::new(),
+            }
         }
     }
 
@@ -247,12 +278,15 @@ mod test {
 
     struct MockContext {
         named: HashMap<String, ContextType>,
-        positional: Vec<ContextType>
+        positional: Vec<ContextType>,
     }
 
     impl MockContext {
         fn new() -> Self {
-            MockContext { named: HashMap::new(), positional: vec![] }
+            MockContext {
+                named: HashMap::new(),
+                positional: vec![],
+            }
         }
     }
 
@@ -263,8 +297,7 @@ mod test {
         fn add_postitional(&mut self, value: ContextType) {
             self.positional.push(value);
         }
-        fn add_global(&mut self, _: &str, _: ContextType) {
-        }
+        fn add_global(&mut self, _: &str, _: ContextType) {}
         fn get_named(&self, name: &str) -> Option<&ContextType> {
             self.named.get(name)
         }
@@ -281,17 +314,15 @@ mod test {
         let code = "script_name(\"test_script\");";
         let statement = Statement::Call(
             nasl_syntax::Token {
-                 category: TokenCategory::Identifier(None),
-                 position: (0, 11)
+                category: TokenCategory::Identifier(None),
+                position: (0, 11),
+            },
+            Box::new(Statement::Parameter(vec![Statement::Primitive(
+                nasl_syntax::Token {
+                    category: nasl_syntax::TokenCategory::String(StringCategory::Unquoteable),
+                    position: (13, 24),
                 },
-            Box::new(
-                Statement::Parameter(
-                    vec![Statement::Primitive(nasl_syntax::Token {
-                        category: nasl_syntax::TokenCategory::String(StringCategory::Unquoteable),
-                        position: (13, 24)
-                    })]
-                )
-            )
+            )])),
         );
         let mut storage = MockStrorage::new();
         let mut context = MockContext::new();
@@ -303,3 +334,4 @@ mod test {
         assert_eq!(storage.map.get("name").unwrap().as_str(), "test_script");
     }
 }
+

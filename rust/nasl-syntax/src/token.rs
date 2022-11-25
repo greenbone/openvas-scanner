@@ -6,17 +6,27 @@ use crate::cursor::Cursor;
 /// Identifies if a string is quoteable or unquoteable
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StringCategory {
-    Quoteable,   // '..\''
+    /// Defines a string as capable of quoting
+    ///
+    /// Quoteable strings will interpret \n\t...
+    Quoteable, // '..\''
+    /// Defines a string as uncapable of quoting
+    ///
+    /// Unquoteable strings will use escaped characters as is instead of interpreting them.
     Unquoteable, // "..\"
 }
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Base {
-    Binary, // 0b010101
-    Octal,  // 0123456780
-    Base10, // 1234567890
-    Hex,    //0x123456789ABCDEF0
+    /// Base 2: contains 01 is defined by 0b e.g.: `0b010101`
+    Binary,
+    /// Base 8: contains 0-8 is defined by a starting 0 e.g.: `0123456780`
+    Octal,
+    /// Base 10: contains 0-9 is the default e.g.: `1234567890`
+    Base10,
+    /// Base 16: contains 0-9A-F is defined by a starting 0x e.g.: `0x123456789ABCDEF0`
+    Hex,
 }
 
 impl Base {
@@ -44,6 +54,17 @@ impl Base {
             Self::Base10 => Self::verify_base10,
             Self::Hex => Self::verify_hex,
         }
+    }
+
+    /// Returns the radix
+    pub fn radix(&self) -> usize {
+        match self {
+            Base::Binary => 2,
+            Base::Octal => 8,
+            Base::Base10 => 10,
+            Base::Hex => 16,
+        }
+
     }
 }
 
@@ -74,6 +95,13 @@ pub enum Keyword {
     Return,      // return
     Include,     // include (is not a buildin if overridden NASL cannot work )
     Exit,        // exit (is not a buildin function of overridden NASL detail run cannot work)
+}
+
+impl From<Token> for Range<usize> {
+    fn from(token: Token) -> Self {
+        let (start, end) = token.position;
+        Range { start, end }
+    }
 }
 
 impl Keyword {
@@ -260,11 +288,6 @@ impl Token {
         )
     }
 
-    /// Returns the byte Range within original input
-    pub fn range(&self) -> Range<usize> {
-        let (start, end) = self.position;
-        Range { start, end }
-    }
 }
 
 /// Tokenizer uses a cursor to create tokens
@@ -690,7 +713,7 @@ mod tests {
         let (tokenizer, result) =
             verify_tokens!(code, vec![(Category::String(Unquoteable), 1, 28)]);
         assert_eq!(
-            tokenizer.lookup(result[0].range()),
+            tokenizer.lookup(Range::from(result[0])),
             "hello I am a closed string\\"
         );
         let code = "\"hello I am a unclosed string\\";
@@ -709,7 +732,7 @@ mod tests {
         use StringCategory::*;
         let code = "'Hello \\'you\\'!'";
         let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quoteable), 1, 15)]);
-        assert_eq!(tokenizer.lookup(result[0].range()), "Hello \\'you\\'!");
+        assert_eq!(tokenizer.lookup(Range::from(result[0])), "Hello \\'you\\'!");
 
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
