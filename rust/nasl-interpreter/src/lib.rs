@@ -1,4 +1,7 @@
-use built_in_functions::{description::*, NaslFunction};
+use built_in_functions::description::*;
+use context::{NaslContext, Register};
+use error::FunctionError;
+use interpreter::{NaslValue, Storage};
 
 
 mod context;
@@ -7,6 +10,8 @@ pub mod interpreter;
 pub mod built_in_functions;
 
 
+
+pub type NaslFunction = fn(&mut dyn Storage, &mut Register) -> Result<NaslValue, FunctionError>;
 pub fn lookup(function_name: &str) -> Option<NaslFunction> {
     match function_name {
         "script_name" => Some(nasl_script_name),

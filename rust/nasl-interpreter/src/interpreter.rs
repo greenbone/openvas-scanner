@@ -1,8 +1,12 @@
 use std::ops::Range;
 
-use nasl_syntax::{NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory};
+use nasl_syntax::{NumberBase, Statement, Statement::*, StringCategory, TokenCategory};
 
-use crate::{error::InterpetError, lookup, context::{NaslContext, ContextType}};
+use crate::{
+    context::{Register, CtxType, ContextType, NaslContext},
+    error::InterpetError,
+    lookup,
+};
 
 // TODO Allow multiple value types
 /// Persistant storage, which is used to communicate between NASL Scripts
@@ -14,7 +18,7 @@ pub trait Storage {
 }
 
 /// Represents a valid Value of NASL
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NaslValue {
     /// String value
     String(String),
@@ -31,7 +35,7 @@ pub enum NaslValue {
 /// Used to interprete a Statement
 pub struct Interpreter<'a> {
     code: &'a str,
-    context: &'a mut dyn NaslContext,
+    registrat: Register,
     storage: &'a mut dyn Storage,
 }
 
@@ -81,13 +85,15 @@ impl From<NaslValue> for bool {
 impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
     pub fn new(
-        code: &'a str,
-        context: &'a mut dyn NaslContext,
         storage: &'a mut dyn Storage,
+        initial: Vec<(String, ContextType)>,
+        code: &'a str,
     ) -> Self {
+        let mut registrat = Register::default();
+        registrat.create_root(initial);
         Interpreter {
             code,
-            context,
+            registrat,
             storage,
         }
     }
@@ -95,16 +101,16 @@ impl<'a> Interpreter<'a> {
     /// Interpetes a Statement
     pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpetError> {
         match statement {
-            Array(_, _) => Ok(NaslValue::Null),
-            Exit(_) => Ok(NaslValue::Null),
-            Return(_) => Ok(NaslValue::Null),
-            Include(_) => Ok(NaslValue::Null),
-            NamedParameter(_, _) => Ok(NaslValue::Null),
-            For(_, _, _, _) => Ok(NaslValue::Null),
-            While(_, _) => Ok(NaslValue::Null),
-            Repeat(_, _) => Ok(NaslValue::Null),
-            ForEach(_, _, _) => Ok(NaslValue::Null),
-            FunctionDeclaration(_, _, _) => Ok(NaslValue::Null),
+            Array(_, _) => todo!(),
+            Exit(_) => todo!(),
+            Return(_) => todo!(),
+            Include(_) => todo!(),
+            NamedParameter(_, _) => todo!(),
+            For(_, _, _, _) => todo!(),
+            While(_, _) => todo!(),
+            Repeat(_, _) => todo!(),
+            ForEach(_, _, _) => todo!(),
+            FunctionDeclaration(_, _, _) => todo!(),
             Primitive(token) => match token.category {
                 TokenCategory::String(category) => Ok(NaslValue::String(
                     category.resolve(self.code, Range::from(token)),
@@ -116,80 +122,57 @@ impl<'a> Interpreter<'a> {
                     reason: "invalid primitive".to_string(),
                 }),
             },
-            Variable(_) => Ok(NaslValue::Null),
+            Variable(_) => todo!(),
             Call(function_name, parameters) => {
-                // Get the function, if it exists
                 let name = &self.code[Range::from(function_name)];
-                match lookup(name) {
-                    // Built-In Function
-                    Some(function) => {
-                        let mut function_context = self.context.globals_copy();
-                        let params = match *parameters {
-                            Parameter(params) => params,
-                            _ => {
-                                return Err(InterpetError::new(
-                                    "invalid statement type for function parameters".to_string(),
-                                ))
+                // get the context
+                let mut named = vec![];
+                let mut position = vec![];
+                match *parameters {
+                    Parameter(params) => {
+                        for p in params {
+                            match p {
+                                NamedParameter(token, val) => {
+                                    let val = self.resolve(*val)?;
+                                    let name = self.code[Range::from(token)].to_owned();
+                                    named.push((name, ContextType::Value(val)))
+                                }
+                                val => {
+                                    let val = self.resolve(val)?;
+                                    position.push(ContextType::Value(val));
+                                }
                             }
-                        };
-                        for param in params {
-                            match param {
-                                NamedParameter(parameter_name, parameter_value) => {
-                                    // Resolve parameter value
-                                    let value_option = self.resolve(*parameter_value);
-                                    match value_option {
-                                        Ok(value) => function_context.add_named(
-                                            &self.code[Range::from(parameter_name)],
-                                            ContextType::Value(value),
-                                        ),
-                                        Err(err) => return Err(err),
-                                    }
-                                }
-                                _ => {
-                                    let value_option = self.resolve(param);
-                                    match value_option {
-                                        Ok(value) => function_context
-                                            .add_postitional(ContextType::Value(value)),
-                                        Err(err) => return Err(err),
-                                    }
-                                }
-                            };
                         }
-                        return match function(function_context.as_mut(), self.storage) {
-                            Ok(value) => Ok(value),
-                            Err(_) => Err(InterpetError::new(format!(
-                                "unable to call function {}",
-                                name
-                            ))),
-                        };
                     }
-                    // Check for user defined function
-                    None => match self.context.get_named(name) {
-                        Some(t) => match t {
-                            ContextType::Function(_) => {
-                                // Call function
-                                todo!();
-                            }
-                            // Found value is not a function
-                            _ => {
-                                return Err(InterpetError::new(
-                                    format!("{} is not a fucntion", name).to_string(),
-                                ))
-                            }
-                        },
-                        // No function Found
-                        None => {
-                            return Err(InterpetError::new(
-                                format!("{} is not defined", name).to_string(),
-                            ))
-                        }
-                    },
+                    _ => {
+                        return Err(InterpetError::new(
+                            "invalid statement type for function parameters".to_string(),
+                        ))
+                    }
                 };
+
+                self.registrat
+                    .create_root_child(CtxType::Function(named, position));
+                // TODO change to use root context to lookup both
+                let result = match lookup(name) {
+                    // Built-In Function
+                    Some(function) => match function(self.storage, &mut self.registrat) {
+                        Ok(value) => Ok(value),
+                        Err(_) => Err(InterpetError::new(format!(
+                            "unable to call function {}",
+                            name
+                        ))),
+                    },
+                    // Check for user defined function
+                    None => todo!(),
+                };
+                self.registrat.drop_last();
+                result
             }
-            Declare(_, _) => Ok(NaslValue::Null),
-            Parameter(_) => Ok(NaslValue::Null),
-            Assign(_, _, _, _) => Ok(NaslValue::Null),
-            Operator(_, _) => Ok(NaslValue::Null),
+            Declare(_, _) => todo!(),
+            Parameter(_) => todo!(),
+            Assign(_, _, _, _) => todo!(),
+            Operator(_, _) => todo!(),
             If(condition, if_block, else_block) => match self.resolve(*condition) {
                 Ok(value) => {
                     if bool::from(value) {
@@ -197,13 +180,13 @@ impl<'a> Interpreter<'a> {
                     } else if else_block.is_some() {
                         return self.resolve(*else_block.unwrap());
                     }
-                    return Ok(NaslValue::Null);
+                    Ok(NaslValue::Null)
                 }
-                Err(err) => return Err(err),
+                Err(err) => Err(err),
             },
-            Block(_) => Ok(NaslValue::Null),
-            NoOp(_) => Ok(NaslValue::Null),
-            EoF => Ok(NaslValue::Null),
+            Block(_) => todo!(),
+            NoOp(_) => todo!(),
+            EoF => todo!(),
         }
     }
 }
@@ -216,7 +199,7 @@ mod test {
 
     use crate::interpreter::NaslValue;
 
-    use super::{ContextType, Interpreter, NaslContext, Storage};
+    use super::{Interpreter, Storage};
 
     struct MockStrorage {
         map: HashMap<String, String>,
@@ -230,7 +213,7 @@ mod test {
         }
     }
 
-    impl<'a> Storage for MockStrorage {
+    impl Storage for MockStrorage {
         fn write(&mut self, key: &str, value: &str) {
             self.map.insert(key.to_string(), value.to_string());
         }
@@ -239,39 +222,6 @@ mod test {
                 return Some(self.map[key].as_str());
             }
             None
-        }
-    }
-
-    struct MockContext {
-        named: HashMap<String, ContextType>,
-        positional: Vec<ContextType>,
-    }
-
-    impl MockContext {
-        fn new() -> Self {
-            MockContext {
-                named: HashMap::new(),
-                positional: vec![],
-            }
-        }
-    }
-
-    impl NaslContext for MockContext {
-        fn add_named(&mut self, name: &str, value: ContextType) {
-            self.named.insert(name.to_string(), value);
-        }
-        fn add_postitional(&mut self, value: ContextType) {
-            self.positional.push(value);
-        }
-        fn add_global(&mut self, _: &str, _: ContextType) {}
-        fn get_named(&self, name: &str) -> Option<&ContextType> {
-            self.named.get(name)
-        }
-        fn get_positional(&self, pos: usize) -> Option<&ContextType> {
-            self.positional.get(pos)
-        }
-        fn globals_copy(&self) -> Box<dyn NaslContext> {
-            Box::new(MockContext::new())
         }
     }
 
@@ -291,13 +241,11 @@ mod test {
             )])),
         );
         let mut storage = MockStrorage::new();
-        let mut context = MockContext::new();
 
-        let mut interpreter = Interpreter::new(code, &mut context, &mut storage);
+        let mut interpreter = Interpreter::new(&mut storage, vec![], code);
 
         assert_eq!(interpreter.resolve(statement), Ok(NaslValue::Null));
         assert!(storage.map.contains_key("name"));
         assert_eq!(storage.map.get("name").unwrap().as_str(), "test_script");
     }
 }
-

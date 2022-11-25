@@ -1,80 +1,96 @@
-use crate::{error::FunctionError, interpreter::{Storage, NaslValue}, context::{NaslContext, ContextType}};
+use crate::{
+    context::{ContextType, NaslContext, Register},
+    error::FunctionError,
+    interpreter::{NaslValue, Storage},
+};
 
-
-
-pub fn nasl_script_name( ctx: & dyn NaslContext, storage: &mut dyn Storage) -> Result<NaslValue, FunctionError> {
-    match ctx.get_positional(0) {
-        None => return Err(FunctionError::new("expected at least one possitional argument, 0 were given.".to_string())),
-        Some(ct) => match ct {
-            ContextType::Value(value_type) => match value_type {
-                NaslValue::String(value) => {
-                    storage.write("name", value.as_str());
-                    Ok(NaslValue::Null)
+macro_rules! decl_store_first_unnamed_param_fn {
+    ($($name:ident=> $key:ident),*) => {
+        $(
+        /// Stores the first positional value as
+        #[doc = concat!(stringify!($key))]
+        /// into the storage.
+        pub fn $name(
+            storage: &mut dyn Storage,
+            registrat: &mut Register,
+        ) -> Result<NaslValue, FunctionError> {
+            match registrat.last().positional(registrat, 0) {
+                None => {
+                    return Err(FunctionError::new(
+                        "expected at least one possitional argument, 0 were given.".to_string(),
+                    ))
+                }
+                Some(ct) => match ct {
+                    ContextType::Value(value_type) => match value_type {
+                        NaslValue::String(value) => {
+                            storage.write(stringify!($key), value.as_str());
+                            Ok(NaslValue::Null)
+                        }
+                        _ => {
+                            return Err(FunctionError::new(
+                                "argument is of the wrong type, string was expected".to_string(),
+                            ))
+                        }
+                    },
+                    _ => {
+                        return Err(FunctionError::new(
+                            "argument is a function, string was expected".to_string(),
+                        ))
+                    }
                 },
-                _ => return Err(FunctionError::new("argument is of the wrong type, string was expected".to_string())),
-            },
-            _ => return Err(FunctionError::new("argument is a function, string was expected".to_string())),
+            }
         }
-    }
-}
-
-pub fn nasl_script_timeout( ctx: & dyn NaslContext, storage: &mut dyn Storage) -> Result<NaslValue, FunctionError>{
-    match ctx.get_positional(0) {
-        None => return Err(FunctionError::new("expected at least one possitional argument, 0 were given.".to_string())),
-        Some(ct) => match ct {
-            ContextType::Value(value_type) => match value_type {
-                NaslValue::String(value) => {
-                    storage.write("timeout", value.as_str());
-                    Ok(NaslValue::Null)
-                },
-                _ => return Err(FunctionError::new("argument is of the wrong type, string was expected".to_string())),
-            },
-            _ => return Err(FunctionError::new("argument is a function, string was expected".to_string())),
-        }
-    }
-}
-
-pub fn nasl_script_category( ctx: & dyn NaslContext , storage: &mut dyn Storage) -> Result<NaslValue, FunctionError> {
-    match ctx.get_positional(0) {
-        None => return Err(FunctionError::new("expected at least one possitional argument, 0 were given.".to_string())),
-        Some(ct) => match ct {
-            ContextType::Value(value_type) => match value_type {
-                NaslValue::Number(value) => {
-                    storage.write("name", value.to_string().as_str());
-                    Ok(NaslValue::Null)
-                },
-                _ => return Err(FunctionError::new("argument is of the wrong type, number was expected".to_string())),
-            },
-            _ => return Err(FunctionError::new("argument is a function, number was expected".to_string())),
-        }
-    }
-}
-
-pub fn nasl_script_tag( ctx: & dyn NaslContext, storage: &mut dyn Storage) -> Result<NaslValue, FunctionError> {
-    let key = match ctx.get_named("name") {
-        None => return Err(FunctionError::new("expected at least one possitional argument, 0 were given.".to_string())),
-        Some(ct) => match ct {
-            ContextType::Value(value_type) => match value_type {
-                NaslValue::String(value) => value,
-                _ => return Err(FunctionError::new("argument is of the wrong type, string was expected".to_string()))
-            },
-            _ => return Err(FunctionError::new("argument is a function, string was expected".to_string())),
-        }
+    )*
     };
-
-    let value = match ctx.get_named("value") {
-        None => return Err(FunctionError::new("expected at least one possitional argument, 0 were given.".to_string())),
-        Some(ct) => match ct {
-            ContextType::Value(value_type) => match value_type {
-                NaslValue::String(value) => value,
-                _ => return Err(FunctionError::new("argument is of the wrong type, string was expected".to_string()))
-            },
-            _ => return Err(FunctionError::new("argument is a function, string was expected".to_string())),
-        }
-    };
-
-
-    storage.write(key.as_str(), value.as_str());
-    Ok(NaslValue::Null)
 }
 
+decl_store_first_unnamed_param_fn! {
+  nasl_script_timeout => timeout,
+  nasl_script_category => category,
+  nasl_script_name => name
+}
+
+fn get_named_parameter<'a>(
+    registrat: &'a Register,
+    ctx: &'a NaslContext,
+    key: &'a str,
+) -> Result<&str, FunctionError> {
+    match ctx.named(registrat, key) {
+        None => Err(FunctionError::new(format!("expected {} to be set.", key))),
+        Some(ct) => match ct {
+            ContextType::Value(NaslValue::String(value)) => Ok(&value),
+            _ => Err(FunctionError::new(format!(
+                "expected {} to be a string.",
+                key
+            ))),
+        },
+    }
+}
+
+macro_rules! decl_store_named_key_and_val_param_fn {
+    ($($name:ident=> ($key:ident,$value:ident)),*) => {
+    $(
+        /// Stores the named
+        #[doc = concat!(stringify!($value))]
+        /// parameter as the given
+        #[doc = concat!(stringify!($key))]
+        /// into the storage.
+        pub fn $name(
+            storage: &mut dyn Storage,
+            registrat: &mut Register,
+        ) -> Result<NaslValue, FunctionError> {
+            let ctx = registrat.last();
+            let key = get_named_parameter(registrat, ctx, stringify!($key))?;
+            let value = get_named_parameter(registrat, ctx, stringify!($value))?;
+
+            storage.write(key, value);
+            Ok(NaslValue::Null)
+
+        }
+    )*
+    };
+}
+
+decl_store_named_key_and_val_param_fn! {
+    nasl_script_tag => (name, value)
+}
