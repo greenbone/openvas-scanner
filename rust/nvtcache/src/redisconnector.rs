@@ -257,9 +257,12 @@ impl RedisCtx {
         self.kb.rpush(key_name, values)?;
 
         // Add preferences
-        let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
         let prefs = nvt.get_prefs();
-        self.kb.lpush(key_name, prefs)?;
+        if !prefs.is_empty() {
+            let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
+            self.kb.del(&key_name)?;
+            self.kb.lpush(&key_name, prefs)?;
+        }
 
         Ok(())
     }
