@@ -82,6 +82,13 @@ impl Resolver<String> for StringCategory {
     }
 }
 
+impl Resolver<i32> for NumberBase {
+    /// Resolves a range into number based on code
+    fn resolve(&self, code: &str, range: Range<usize>) -> i32 {
+        i32::from_str_radix(&code[range], self.radix()).unwrap()
+    }
+}
+
 impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
     pub fn new(
@@ -96,28 +103,10 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    /// Resolves a Token into a number
-    fn resolve_number(code: &str, token: Token) -> i32 {
-        match token.category {
-            TokenCategory::Number(base) => {
-                let base_number: u32 = match base {
-                    NumberBase::Binary => 2,
-                    NumberBase::Octal => 8,
-                    NumberBase::Base10 => 10,
-                    NumberBase::Hex => 16,
-                };
-                i32::from_str_radix(&code[Range::from(token)], base_number)
-                    .unwrap()
-                    .into()
-            }
-            _ => 0,
-        }
-    }
-
     /// Transforms a NaslValue into a bool
     fn to_bool(value: NaslValue) -> bool {
         match value {
-            NaslValue::String(string) => string != "" && string != "0",
+            NaslValue::String(string) => !string.is_empty() && string != "0",
             NaslValue::Array(_) => true,
             NaslValue::Boolean(boolean) => boolean,
             NaslValue::Null => false,
@@ -142,9 +131,9 @@ impl<'a> Interpreter<'a> {
                 TokenCategory::String(category) => Ok(NaslValue::String(
                     category.resolve(self.code, Range::from(token)),
                 )),
-                TokenCategory::Number(_) => {
-                    Ok(NaslValue::Number(Self::resolve_number(self.code, token)))
-                }
+                TokenCategory::Number(base) => Ok(NaslValue::Number(
+                    base.resolve(self.code, Range::from(token)),
+                )),
                 _ => Err(InterpetError {
                     reason: "invalid primitive".to_string(),
                 }),

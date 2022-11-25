@@ -57,14 +57,13 @@ impl Base {
     }
 
     /// Returns the radix
-    pub fn radix(&self) -> usize {
+    pub fn radix(&self) -> u32 {
         match self {
             Base::Binary => 2,
             Base::Octal => 8,
             Base::Base10 => 10,
             Base::Hex => 16,
         }
-
     }
 }
 
@@ -287,7 +286,6 @@ impl Token {
                 | Category::UnknownSymbol
         )
     }
-
 }
 
 /// Tokenizer uses a cursor to create tokens
