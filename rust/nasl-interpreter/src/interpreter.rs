@@ -59,11 +59,11 @@ pub struct Interpreter<'a> {
     storage: &'a mut dyn Storage,
 }
 
-trait Resolver<T> {
+trait PrimitiveResolver<T> {
     fn resolve(&self, code: &str, range: Range<usize>) -> T;
 }
 
-impl Resolver<String> for StringCategory {
+impl PrimitiveResolver<String> for StringCategory {
     /// Resolves a range into a String based on code
     fn resolve(&self, code: &str, range: Range<usize>) -> String {
         match self {
@@ -82,7 +82,20 @@ impl Resolver<String> for StringCategory {
     }
 }
 
-impl Resolver<i32> for NumberBase {
+impl From<NaslValue> for bool {
+    /// Transforms a NaslValue into a bool
+    fn from(value: NaslValue) -> Self {
+        match value {
+            NaslValue::String(string) => !string.is_empty() && string != "0",
+            NaslValue::Array(_) => true,
+            NaslValue::Boolean(boolean) => boolean,
+            NaslValue::Null => false,
+            NaslValue::Number(number) => number != 0,
+        }
+    }
+}
+
+impl PrimitiveResolver<i32> for NumberBase {
     /// Resolves a range into number based on code
     fn resolve(&self, code: &str, range: Range<usize>) -> i32 {
         i32::from_str_radix(&code[range], self.radix()).unwrap()
@@ -100,17 +113,6 @@ impl<'a> Interpreter<'a> {
             code,
             context,
             storage,
-        }
-    }
-
-    /// Transforms a NaslValue into a bool
-    fn to_bool(value: NaslValue) -> bool {
-        match value {
-            NaslValue::String(string) => !string.is_empty() && string != "0",
-            NaslValue::Array(_) => true,
-            NaslValue::Boolean(boolean) => boolean,
-            NaslValue::Null => false,
-            NaslValue::Number(number) => number != 0,
         }
     }
 
@@ -215,7 +217,7 @@ impl<'a> Interpreter<'a> {
             Operator(_, _) => Ok(NaslValue::Null),
             If(condition, if_block, else_block) => match self.resolve(*condition) {
                 Ok(value) => {
-                    if Self::to_bool(value) {
+                    if bool::from(value) {
                         return self.resolve(*if_block);
                     } else if else_block.is_some() {
                         return self.resolve(*else_block.unwrap());
