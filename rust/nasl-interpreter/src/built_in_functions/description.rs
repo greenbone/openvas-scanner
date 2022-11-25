@@ -1,4 +1,4 @@
-use crate::{error::FunctionError, interpreter::{Storage, ContextType, NaslContext, NaslValue}};
+use crate::{error::FunctionError, interpreter::{Storage, NaslValue}, context::{NaslContext, ContextType}};
 
 
 

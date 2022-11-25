@@ -1,4 +1,4 @@
-use crate::{interpreter::{NaslContext, Storage, NaslValue}, error::FunctionError};
+use crate::{interpreter::{Storage, NaslValue}, error::FunctionError, context::NaslContext};
 
 pub mod description;
 

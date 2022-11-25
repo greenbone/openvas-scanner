@@ -1,6 +1,7 @@
 use built_in_functions::{description::*, NaslFunction};
 
 
+mod context;
 pub mod error;
 pub mod interpreter;
 pub mod built_in_functions;

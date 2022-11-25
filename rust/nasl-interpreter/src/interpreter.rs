@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use nasl_syntax::{NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory};
 
-use crate::{error::InterpetError, lookup};
+use crate::{error::InterpetError, lookup, context::{NaslContext, ContextType}};
 
 // TODO Allow multiple value types
 /// Persistant storage, which is used to communicate between NASL Scripts
@@ -11,30 +11,6 @@ pub trait Storage {
     fn write(&mut self, key: &str, value: &str);
     /// Read a value from the storage
     fn read(&self, key: &str) -> Option<&str>;
-}
-
-/// Represents a Value within the NaslContext
-pub enum ContextType {
-    /// Represents a Function definition
-    Function(Statement),
-    /// Represents a Variable or Parameter
-    Value(NaslValue),
-}
-
-/// The context represents a temporary storage, which can contain local variables, global variables or defined functions
-pub trait NaslContext {
-    /// Adds a named value to the Context. This is used for local variables, function parameters and defined functions
-    fn add_named(&mut self, name: &str, value: ContextType);
-    /// Adds a global variable to the context
-    fn add_global(&mut self, name: &str, value: ContextType);
-    /// Adds a positional function parameter to the context
-    fn add_postitional(&mut self, value: ContextType);
-    /// Returns the value of a named parameter/variable or None if it does not exist
-    fn get_named(&self, name: &str) -> Option<&ContextType>;
-    /// Returns the value of a positional parameter or None if it does not exist
-    fn get_positional(&self, pos: usize) -> Option<&ContextType>;
-    /// Return a new Context, which contains the global variables of the current Context
-    fn globals_copy(&self) -> Box<dyn NaslContext>;
 }
 
 /// Represents a valid Value of NASL
@@ -82,6 +58,13 @@ impl PrimitiveResolver<String> for StringCategory {
     }
 }
 
+impl PrimitiveResolver<i32> for NumberBase {
+    /// Resolves a range into number based on code
+    fn resolve(&self, code: &str, range: Range<usize>) -> i32 {
+        i32::from_str_radix(&code[range], self.radix()).unwrap()
+    }
+}
+
 impl From<NaslValue> for bool {
     /// Transforms a NaslValue into a bool
     fn from(value: NaslValue) -> Self {
@@ -92,13 +75,6 @@ impl From<NaslValue> for bool {
             NaslValue::Null => false,
             NaslValue::Number(number) => number != 0,
         }
-    }
-}
-
-impl PrimitiveResolver<i32> for NumberBase {
-    /// Resolves a range into number based on code
-    fn resolve(&self, code: &str, range: Range<usize>) -> i32 {
-        i32::from_str_radix(&code[range], self.radix()).unwrap()
     }
 }
 
@@ -179,13 +155,12 @@ impl<'a> Interpreter<'a> {
                                 }
                             };
                         }
-                        match function(function_context.as_mut(), self.storage) {
-                            Ok(value) => return Ok(value),
-                            Err(_) => {
-                                return Err(InterpetError::new(
-                                    format!("unable to call function {}", name).to_string(),
-                                ))
-                            }
+                        return match function(function_context.as_mut(), self.storage) {
+                            Ok(value) => Ok(value),
+                            Err(_) => Err(InterpetError::new(format!(
+                                "unable to call function {}",
+                                name
+                            ))),
                         };
                     }
                     // Check for user defined function
