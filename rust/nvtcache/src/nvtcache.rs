@@ -86,13 +86,10 @@ impl<'a> NvtCache<'a> {
         Ok(filename)
     }
 
-    pub fn add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
-        let oid = nvt.get_oid();
-        let cached_nvt: String = self.get_nvt_filename(&oid)?;
-
-        // First check if there is a duplicate OID
-        // If it is in the cache, and are not the same filename
-        // we check if it is still in the filesystem.
+    /// First check if there is a duplicate OID
+    /// If it is in the cache, and are not the same filename
+    /// we check if it is still in the filesystem.
+    fn check_nvt_duplication(&self, oid: &str, cached_nvt: &String, filename: &String) {
         if !cached_nvt.is_empty() && cached_nvt != filename {
             let mut src_path: String = self.plugin_path.to_owned();
             src_path.push_str(&cached_nvt);
@@ -105,6 +102,14 @@ impl<'a> NvtCache<'a> {
                 );
             }
         }
+    }
+
+    /// Add an NVT.
+    pub fn add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
+        let oid = nvt.get_oid();
+        let cached_nvt: String = self.get_nvt_filename(&oid)?;
+
+        self.check_nvt_duplication(&oid, &cached_nvt, &filename);
 
         // Remove the present NVT metadata
         if !cached_nvt.is_empty() {
