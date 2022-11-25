@@ -70,6 +70,7 @@ impl<'a> NvtCache<'a> {
         Ok(false)
     }
 
+    /// Get an item from a key given by the KbNvtPos Enum position
     pub fn get_nvt_field(&mut self, oid: String, field: KbNvtPos) -> Result<String> {
         let mut key: String = "nvt:".to_owned();
         key.push_str(oid.as_str());
@@ -77,6 +78,7 @@ impl<'a> NvtCache<'a> {
         Ok(value)
     }
 
+    /// Get the filename from a key given by the KbNvtPos:NvtFilenamePos Enum position
     pub fn get_nvt_filename(&mut self, oid: &str) -> Result<String> {
         let mut key: String = "nvt:".to_owned();
         key.push_str(oid);
@@ -104,6 +106,7 @@ impl<'a> NvtCache<'a> {
             }
         }
 
+        // Remove the present NVT metadata
         if !cached_nvt.is_empty() {
             let mut key: String = "nvt:".to_owned();
             key.push_str(oid.as_ref());

@@ -23,10 +23,16 @@ pub enum KbNvtPos {
     NvtOIDPos,
 }
 
+/// Redis context structure which holds a stablished redis connection
+/// and information necessary for handling the Nvt Cache and KBs.
 pub struct RedisCtx {
-    kb: Connection, //a redis connection
-    db: u32,        // the name space
-    maxdb: u32,     // max db index
+    //a redis connection
+    kb: Connection,
+    // the name space
+    db: u32,
+    // max db index
+    maxdb: u32,
+    // the key name for the in-use list in the namespace 0
     global_db_index: String,
 }
 
@@ -109,6 +115,9 @@ impl RedisCtx {
         Ok(db)
     }
 
+    /// A custom command to change the namespace.
+    /// WARNING: This change is not reflected in the kb object.
+    /// Always check for the self.db for the current db index
     fn set_namespace(&mut self, db_index: u32) -> Result<()> {
         Cmd::new()
             .arg("SELECT")
@@ -119,11 +128,14 @@ impl RedisCtx {
         Ok(())
     }
 
+    /// Try to set a namespace index as in use in the in-use list
     fn try_database(&mut self, dbi: u32) -> Result<u32> {
         let ret = self.kb.hset_nx(&self.global_db_index, dbi, 1)?;
         Ok(ret)
     }
 
+    /// Try to adquire ownership on a free namespace.
+    /// On success, it returns the namespace index.
     fn select_database(&mut self) -> Result<u32> {
         let maxdb: u32 = self.max_db_index()?;
         let mut selected_db: u32 = 0;
@@ -156,38 +168,43 @@ impl RedisCtx {
         Ok(())
     }
 
-    /// Delete all keys in the namespace and relase the it
+    /// Delete all keys in the namespace and relase it
     pub fn delete_namespace(&mut self) -> Result<()> {
         Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
         self.release_namespace()?;
         Ok(())
     }
-    //Wrapper function to avoid accessing kb member directly.
+    /// Set a key as redis string type
     pub fn redis_set_key<T: ToRedisArgs>(&mut self, key: &str, val: T) -> Result<()> {
         let _: () = self.kb.set(key, val)?;
         Ok(())
     }
 
+    /// Prepend a new item to the given key, which is a redis list type
     pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: &String, val: T) -> Result<String> {
         let ret: RedisValueHandler = self.kb.lpush(key, val)?;
         Ok(ret.v)
     }
 
+    /// Get the content of the given key string type from the current namespace
     pub fn redis_get_key(&mut self, key: &str) -> Result<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
 
+    /// Get and item from the key redis list type
     pub fn redis_get_item(&mut self, key: String, index: KbNvtPos) -> Result<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
         Ok(ret.v)
     }
 
+    /// Remove the given key and its content from current namespace
     pub fn redis_del_key(&mut self, key: &String) -> Result<String> {
         let ret: RedisValueHandler = self.kb.del(&key)?;
         Ok(ret.v)
     }
 
+    /// All tag tuples in the vector are returned as a pipe separated string.
     fn tags_as_single_string(&self, tags: &Vec<(String, String)>) -> String {
         let tag: Vec<String> = tags
             .iter()
@@ -197,6 +214,11 @@ impl RedisCtx {
         tag.iter().as_ref().join("|")
     }
 
+    /// Add an NVT in the redis cache.
+    /// The NVT metadata is stored in two different keys:
+    /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
+    /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
+    ///   (which is especial and uses preferences id 0)
     pub fn redis_add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
         let oid = nvt.get_oid();
         let name = nvt.get_name();
