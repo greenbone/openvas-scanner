@@ -1,11 +1,9 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
-    lexer::{DeclareScope, Lexer},
-    lexer::{End, Statement},
     token::{Category, Keyword, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
-    variable_extension::CommaGroup,
+    variable_extension::CommaGroup, lexer::{End, Lexer}, Statement, DeclareScope,
 };
 
 pub(crate) trait Keywords {
@@ -336,14 +334,13 @@ impl<'a> Keywords for Lexer<'a> {
 mod test {
 
     use crate::{
-        lexer::{AssignOrder, DeclareScope, Statement},
         parse,
         token::{Base, Category, Keyword, StringCategory, Token},
-        SyntaxError,
+        SyntaxError, DeclareScope, AssignOrder,
     };
 
-    use Category::*;
-    use Statement::*;
+    use crate::TokenCategory::*;
+    use crate::Statement::*;
 
     #[test]
     fn if_statement() {
@@ -438,7 +435,7 @@ mod test {
     fn null() {
         assert_eq!(
             parse("NULL;").next().unwrap().unwrap(),
-            Statement::Primitive(Token {
+            Primitive(Token {
                 category: Identifier(Some(Keyword::Null)),
                 position: (0, 4)
             })
@@ -449,14 +446,14 @@ mod test {
     fn boolean() {
         assert_eq!(
             parse("TRUE;").next().unwrap().unwrap(),
-            Statement::Primitive(Token {
+            Primitive(Token {
                 category: Identifier(Some(Keyword::True)),
                 position: (0, 4)
             })
         );
         assert_eq!(
             parse("FALSE;").next().unwrap().unwrap(),
-            Statement::Primitive(Token {
+            Primitive(Token {
                 category: Identifier(Some(Keyword::False)),
                 position: (0, 5)
             })
@@ -475,7 +472,7 @@ mod test {
             assert!(
                 matches!(
                     parse(&format!("{};", call)).next().unwrap().unwrap(),
-                    Statement::Exit(_),
+                    Exit(_),
                 ),
                 "{}",
                 call
@@ -496,7 +493,7 @@ mod test {
             assert!(
                 matches!(
                     parse(&format!("{};", call)).next().unwrap().unwrap(),
-                    Statement::Return(_),
+                    Return(_),
                 ),
                 "{}",
                 call
@@ -509,7 +506,7 @@ mod test {
         let code = "for (i = 0; i < 10; i++) display('hi');";
         assert!(matches!(
             parse(code).next().unwrap().unwrap(),
-            Statement::For(_, _, _, _)
+            For(_, _, _, _)
         ))
     }
 
@@ -518,7 +515,7 @@ mod test {
         let code = "while (TRUE) ;";
         assert!(matches!(
             parse(code).next().unwrap().unwrap(),
-            Statement::While(_, _)
+            While(_, _)
         ))
     }
 
@@ -527,7 +524,7 @@ mod test {
         let code = "repeat ; until 1 == 1;";
         assert!(matches!(
             parse(code).next().unwrap().unwrap(),
-            Statement::Repeat(_, _)
+            Repeat(_, _)
         ))
     }
 
@@ -541,7 +538,7 @@ mod test {
             assert!(
                 matches!(
                     parse(&format!("{};", call)).next().unwrap().unwrap(),
-                    Statement::ForEach(_, _, _),
+                    ForEach(_, _, _),
                 ),
                 "{}",
                 call
@@ -553,13 +550,12 @@ mod test {
     fn include() {
         assert!(matches!(
             parse("include('test.inc');").next().unwrap().unwrap(),
-            Statement::Include(_)
+            Include(_)
         ))
     }
 
     #[test]
     fn function() {
-        use Statement::*;
         assert_eq!(
             parse("function register_packages( buf ) { return 1; }")
                 .next()
@@ -603,19 +599,19 @@ mod test {
     fn fct_anon_args() {
         assert_eq!(
             parse("arg1 = _FCT_ANON_ARGS[0];").next().unwrap(),
-            Ok(Statement::Assign(
+            Ok(Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
                     category: Category::Identifier(None),
                     position: (0, 4)
                 },)),
-                Box::new(Statement::Array(
+                Box::new(Array(
                     Token {
                         category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
                         position: (7, 21),
                     },
-                    Some(Box::new(Statement::Primitive(Token {
+                    Some(Box::new(Primitive(Token {
                         category: Category::Number(Base::Base10),
                         position: (22, 23)
                     })))
@@ -624,14 +620,14 @@ mod test {
         );
         assert_eq!(
             parse("arg1 = _FCT_ANON_ARGS;").next().unwrap(),
-            Ok(Statement::Assign(
+            Ok(Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
                     category: Category::Identifier(None),
                     position: (0, 4)
                 },)),
-                Box::new(Statement::Array(
+                Box::new(Array(
                     Token {
                         category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
                         position: (7, 21),

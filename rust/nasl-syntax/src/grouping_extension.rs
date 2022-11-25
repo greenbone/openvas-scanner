@@ -1,9 +1,8 @@
 use crate::{
     error::SyntaxError,
     lexer::{Lexer, End},
-    lexer::{AssignOrder, Statement},
     token::{Category, Token},
-    unclosed_token, unexpected_token, variable_extension::CommaGroup,
+    unclosed_token, unexpected_token, variable_extension::CommaGroup, Statement, AssignOrder,
 };
 
 pub(crate) trait Grouping {
@@ -82,7 +81,7 @@ impl<'a> Grouping for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        lexer::{AssignOrder, Statement},
+        {AssignOrder, Statement},
         parse,
         token::{Base, Category, Token},
     };
