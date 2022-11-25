@@ -168,7 +168,7 @@ impl RedisCtx {
         Ok(())
     }
 
-    pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: String, val: T) -> Result<String> {
+    pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: &String, val: T) -> Result<String> {
         let ret: RedisValueHandler = self.kb.lpush(key, val)?;
         Ok(ret.v)
     }
@@ -183,8 +183,8 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
-    pub fn redis_del_key(&mut self, key: String) -> Result<String> {
-        let ret: RedisValueHandler = self.kb.del(key)?;
+    pub fn redis_del_key(&mut self, key: &String) -> Result<String> {
+        let ret: RedisValueHandler = self.kb.del(&key)?;
         Ok(ret.v)
     }
 

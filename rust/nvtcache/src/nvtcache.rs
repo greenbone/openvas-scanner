@@ -107,7 +107,7 @@ impl<'a> NvtCache<'a> {
         if !cached_nvt.is_empty() {
             let mut key: String = "nvt:".to_owned();
             key.push_str(oid.as_ref());
-            let _ = self.cache.redis_del_key(key)?;
+            let _ = self.cache.redis_del_key(&key)?;
         }
 
         self.cache.redis_add_nvt(nvt, filename)?;
