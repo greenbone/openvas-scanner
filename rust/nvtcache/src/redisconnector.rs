@@ -254,16 +254,19 @@ impl RedisCtx {
         ]
         .to_vec();
 
-        self.kb.rpush(key_name, values)?;
+        // Use a pipeline for sending a command batch to redis in one single shot
+        let mut pipeline = pipe();
+        pipeline.rpush(key_name, values);
 
         // Add preferences
         let prefs = nvt.get_prefs();
         if !prefs.is_empty() {
             let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
-            self.kb.del(&key_name)?;
-            self.kb.lpush(&key_name, prefs)?;
+            pipeline.del(&key_name);
+            pipeline.lpush(&key_name, prefs);
         }
 
+        pipeline.query(&mut self.kb)?;
         Ok(())
     }
 }
