@@ -5,7 +5,7 @@ use crate::{
     error::SyntaxError,
     infix_extension::Infix,
     operation::Operation,
-    postifx_extension::Postfix,
+    postfix_extension::Postfix,
     prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
     unexpected_statement, unexpected_token, Statement,

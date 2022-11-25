@@ -7,7 +7,7 @@ mod infix_extension;
 mod keyword_extension;
 mod lexer;
 mod operation;
-mod postifx_extension;
+mod postfix_extension;
 mod prefix_extension;
 mod token;
 mod variable_extension;
