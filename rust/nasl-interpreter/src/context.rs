@@ -180,14 +180,14 @@ impl NaslContext {
         }
     }
 
-    /// Retrieves a positional parameter
-    pub fn positional<'a>(&'a self, registrat: &'a Register, pos: usize) -> Option<&ContextType> {
+    /// Retrieves positional parameter
+    pub fn positional<'a>(&'a self, registrat: &'a Register) -> &[ContextType] {
         match self.find_first_function(registrat) {
             Some(id) => match &registrat.blocks[id].class {
                 CtxType::Execution(_) => panic!("this should not happen"),
-                CtxType::Function(_, positional) => Some(&positional[pos]),
+                CtxType::Function(_, positional) => positional,
             },
-            None => None,
+            None => &[],
         }
     }
 }

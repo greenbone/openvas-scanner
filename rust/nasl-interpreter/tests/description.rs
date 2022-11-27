@@ -48,10 +48,10 @@ if(description)
   script_copyright("Copyright (C) 2022 Greenbone Networks GmbH");
   script_family("Denial of Service");
 # script_dependencies can have multiple entries
-#  script_dependencies("ssh_detect.nasl");
-#  script_require_ports("Services/ssh", 22);
+  script_dependencies("ssh_detect.nasl", "ssh2.nasl");
+  script_require_ports("Services/ssh", 22);
 # same as script_dependencies
-#  script_mandatory_keys("ssh/blubb/detected");
+  script_mandatory_keys("ssh/blubb/detected");
 
   script_tag(name:"impact", value:"Successful exploitation will allow remote attackers to destroy the world. Lets sing the doom song now.");
 

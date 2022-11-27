@@ -5,61 +5,67 @@ use crate::{
     NaslFunction,
 };
 
-macro_rules! declare_lookup {
-    ($($name:ident=> $key:ident),*) => {
-        pub fn lookup(key: &str) -> Option<NaslFunction> {
-            match key {
-                $(
-                   stringify!($key) => Some($name),
-                )*
-                _ => None,
-            }
-        }
-    }
-}
-
-macro_rules! decl_store_first_unnamed_param_fn {
-    ($($name:ident=> $key:ident),*) => {
+/// Makes a storage function base on a very small DSL.
+///
+/// The DSL is defined as
+/// function_name => [positional_key: expected_amount_pos_args] (key_named_parameter:value_named_parameter)
+/// although the positional block as well as the named_parameter block are optional wen both are ommited a warning 
+/// that the storage is unused will pop up informing the developer that this created method is useless.
+macro_rules! make_storage_function {
+    ($($name:ident=> $([$key:ident : $len:expr])? $(($nkey:ident:$value:ident)),* ),+) => {
         $(
-        /// Stores the first positional value as
+        $(
+        /// Stores the positional value as
         #[doc = concat!(stringify!($key))]
         /// into the storage.
+        )?
+        $(
+        /// Stores 
+        #[doc = concat!(stringify!($value))]
+        /// as value of key defined in
+        #[doc = concat!(stringify!($nkey))]
+        )*
+        ///
+        /// Returns Ok(NaslValue::Null) on success.
+
         pub fn $name(
             storage: &mut dyn Storage,
             registrat: &mut Register,
         ) -> Result<NaslValue, FunctionError> {
-            match registrat.last().positional(registrat, 0) {
-                None => {
-                    return Err(FunctionError::new(
-                        "expected at least one possitional argument, 0 were given.".to_string(),
-                    ))
-                }
-                Some(ct) => match ct {
-                    ContextType::Value(value_type) => match value_type {
-                        NaslValue::String(value) => {
-                            storage.write(stringify!($key), value.as_str());
-                            Ok(NaslValue::Null)
-                        }
-                        _ => {
-                            return Err(FunctionError::new(
-                                "argument is of the wrong type, string was expected".to_string(),
-                            ))
-                        }
+            let ctx = registrat.last();
+            $(
+            let positional = ctx.positional(registrat);
+            if $len > 0 && positional.len() != $len{
+                return Err(FunctionError::new(
+                    format!("expected {} possitional arguments but {} were given.", $len, positional.len()),
+                ));
+            }
+            for p in positional {
+                match p {
+                    ContextType::Value(value) => {
+                        storage.write(stringify!($key), &value.to_string());
                     },
                     _ => {
                         return Err(FunctionError::new(
                             "argument is a function, string was expected".to_string(),
                         ))
                     }
-                },
-            }
-        }
+                }
+
+                }
+        )?
+            $(
+            let key = get_named_parameter(registrat, ctx, stringify!($nkey))?;
+            let value = get_named_parameter(registrat, ctx, stringify!($value))?;
+
+            storage.write(key, value);
+            )*
+                    Ok(NaslValue::Null)
+
+                    }
     )*
-        // TODO although I think it is better than manually add it in lib.rs we need to find a way
-        // to get rid of the repetion of this lookup_unnamed, lookup_named ...
-        // maybe we could use: https://doc.rust-lang.org/reference/procedural-macros.html#function-like-procedural-macros
-        // to create an overall macro to either define single unnamed, list unnamed, named ... functions?
-        fn lookup_unnamed(key: &str) -> Option<NaslFunction> {
+        /// Returns found function for key or None when not found
+        pub fn lookup(key: &str) -> Option<NaslFunction> {
             match key {
                 $(
                    stringify!($name) => Some($name),
@@ -68,16 +74,6 @@ macro_rules! decl_store_first_unnamed_param_fn {
             }
         }
     };
-}
-
-decl_store_first_unnamed_param_fn! {
-  script_timeout => timeout,
-  script_category => category,
-  script_name => name,
-  script_version => version,
-  script_copyright => copyright,
-  script_family => family,
-  script_oid => oid
 }
 
 fn get_named_parameter<'a>(
@@ -97,47 +93,17 @@ fn get_named_parameter<'a>(
     }
 }
 
-macro_rules! decl_store_named_key_and_val_param_fn {
-    ($($name:ident=> ($key:ident,$value:ident)),*) => {
-    $(
-        /// Stores the named
-        #[doc = concat!(stringify!($value))]
-        /// parameter as the given
-        #[doc = concat!(stringify!($key))]
-        /// into the storage.
-        pub fn $name(
-            storage: &mut dyn Storage,
-            registrat: &mut Register,
-        ) -> Result<NaslValue, FunctionError> {
-            let ctx = registrat.last();
-            let key = get_named_parameter(registrat, ctx, stringify!($key))?;
-            let value = get_named_parameter(registrat, ctx, stringify!($value))?;
-
-            storage.write(key, value);
-            Ok(NaslValue::Null)
-
-        }
-    )*
-
-        // TODO although I think it is better than manually add it in lib.rs we need to find a way
-        // to get rid of the repetion of this lookup_unnamed, lookup_named ...
-        // maybe we could use: https://doc.rust-lang.org/reference/procedural-macros.html#function-like-procedural-macros
-        // to create an overall macro to either define single unnamed, list unnamed, named ... functions?
-        fn lookup_named(key: &str) -> Option<NaslFunction> {
-            match key {
-                $(
-                   stringify!($name) => Some($name),
-                )*
-                _ => None,
-            }
-        }
-    };
-}
-
-decl_store_named_key_and_val_param_fn! {
-    script_tag => (name, value)
-}
-
-pub fn lookup(name: &str) -> Option<NaslFunction> {
-    lookup_unnamed(name).or_else(|| lookup_named(name))
+// creates the actual description functions
+make_storage_function! {
+  script_timeout => [timeout :1],
+  script_category => [category :1],
+  script_name => [name :1],
+  script_version => [version :1],
+  script_copyright => [copyright :1],
+  script_family => [family :1],
+  script_oid => [oid :1],
+  script_dependencies => [dependencies :0],
+  script_mandatory_keys => [mandatory_keys: 0],
+  script_require_ports => [required_ports: 2],
+  script_tag => (name: value)
 }
