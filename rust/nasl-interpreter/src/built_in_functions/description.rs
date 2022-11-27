@@ -15,19 +15,20 @@ macro_rules! make_storage_function {
     ($($name:ident=> $([$key:ident : $len:expr])? $(($nkey:ident:$value:ident)),* ),+) => {
         $(
         $(
-        /// Stores the positional value as
-        #[doc = concat!(stringify!($key))]
-        /// into the storage.
+        /// Stores 
+        /// positional values
+        #[doc = concat!("(", stringify!($len), ")")]
+        /// as
+        #[doc = concat!("`", stringify!($key), "`.")]
         )?
         $(
-        /// Stores 
-        #[doc = concat!(stringify!($value))]
-        /// as value of key defined in
-        #[doc = concat!(stringify!($nkey))]
+        /// Stores value defined in named_parameter 
+        #[doc = concat!("`", stringify!($value), "`")]
+        /// as key defined in 
+        #[doc = concat!("`", stringify!($nkey), "`.")]
         )*
         ///
-        /// Returns Ok(NaslValue::Null) on success.
-
+        /// Returns NaslValue::Null on success.
         pub fn $name(
             storage: &mut dyn Storage,
             registrat: &mut Register,
@@ -51,24 +52,22 @@ macro_rules! make_storage_function {
                         ))
                     }
                 }
-
-                }
-        )?
+            }
+            )?
             $(
             let key = get_named_parameter(registrat, ctx, stringify!($nkey))?;
             let value = get_named_parameter(registrat, ctx, stringify!($value))?;
 
             storage.write(key, value);
             )*
-                    Ok(NaslValue::Null)
-
-                    }
-    )*
+            Ok(NaslValue::Null)
+        }
+        )*
         /// Returns found function for key or None when not found
         pub fn lookup(key: &str) -> Option<NaslFunction> {
             match key {
                 $(
-                   stringify!($name) => Some($name),
+                stringify!($name) => Some($name),
                 )*
                 _ => None,
             }
