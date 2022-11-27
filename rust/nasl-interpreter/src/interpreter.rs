@@ -1,9 +1,11 @@
 use std::ops::Range;
 
-use nasl_syntax::{NumberBase, Statement, Statement::*, StringCategory, TokenCategory};
+use nasl_syntax::{
+    NumberBase, Statement, Statement::*, StringCategory, SyntaxError, Token, TokenCategory,
+};
 
 use crate::{
-    context::{Register, CtxType, ContextType, NaslContext},
+    context::{ContextType, CtxType, NaslContext, Register},
     error::InterpetError,
     lookup,
 };
@@ -30,6 +32,25 @@ pub enum NaslValue {
     Boolean(bool),
     /// Null value
     Null,
+    /// Exit value of the script
+    Exit(i32),
+}
+
+impl ToString for NaslValue {
+    fn to_string(&self) -> String {
+        match self {
+            NaslValue::String(x) => x.to_owned(),
+            NaslValue::Number(x) => x.to_string(),
+            NaslValue::Array(x) => x
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(","),
+            NaslValue::Boolean(x) => x.to_string(),
+            NaslValue::Null => "\0".to_owned(),
+            NaslValue::Exit(rc) => format!("exit({})", rc),
+        }
+    }
 }
 
 /// Used to interprete a Statement
@@ -70,7 +91,6 @@ impl PrimitiveResolver<i32> for NumberBase {
 }
 
 impl From<NaslValue> for bool {
-    /// Transforms a NaslValue into a bool
     fn from(value: NaslValue) -> Self {
         match value {
             NaslValue::String(string) => !string.is_empty() && string != "0",
@@ -78,6 +98,29 @@ impl From<NaslValue> for bool {
             NaslValue::Boolean(boolean) => boolean,
             NaslValue::Null => false,
             NaslValue::Number(number) => number != 0,
+            NaslValue::Exit(number) => number != 0,
+        }
+    }
+}
+
+impl TryFrom<(&str, Token)> for NaslValue {
+    type Error = InterpetError;
+
+    fn try_from(value: (&str, Token)) -> Result<Self, Self::Error> {
+        let (code, token) = value;
+        match token.category {
+            TokenCategory::String(category) => Ok(NaslValue::String(
+                category.resolve(code, Range::from(token)),
+            )),
+            TokenCategory::Identifier(None) => Ok(NaslValue::String(
+                StringCategory::Unquoteable.resolve(code, Range::from(token)),
+            )),
+            TokenCategory::Number(base) => {
+                Ok(NaslValue::Number(base.resolve(code, Range::from(token))))
+            }
+            _ => Err(InterpetError {
+                reason: format!("invalid primitive {:?}", token.category()),
+            }),
         }
     }
 }
@@ -102,7 +145,13 @@ impl<'a> Interpreter<'a> {
     pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpetError> {
         match statement {
             Array(_, _) => todo!(),
-            Exit(_) => todo!(),
+            Exit(stmt) => {
+                let rc = self.resolve(*stmt)?;
+                match rc {
+                    NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
+                    _ => Err(InterpetError::new("expected numeric value".to_string())),
+                }
+            }
             Return(_) => todo!(),
             Include(_) => todo!(),
             NamedParameter(_, _) => todo!(),
@@ -111,18 +160,16 @@ impl<'a> Interpreter<'a> {
             Repeat(_, _) => todo!(),
             ForEach(_, _, _) => todo!(),
             FunctionDeclaration(_, _, _) => todo!(),
-            Primitive(token) => match token.category {
-                TokenCategory::String(category) => Ok(NaslValue::String(
-                    category.resolve(self.code, Range::from(token)),
-                )),
-                TokenCategory::Number(base) => Ok(NaslValue::Number(
-                    base.resolve(self.code, Range::from(token)),
-                )),
-                _ => Err(InterpetError {
-                    reason: "invalid primitive".to_string(),
-                }),
-            },
-            Variable(_) => todo!(),
+            Primitive(token) => TryFrom::try_from((self.code, token)),
+            Variable(token) => {
+                let name: NaslValue = TryFrom::try_from((self.code, token))?;
+                match self.registrat.named(&name.to_string()).ok_or_else(|| {
+                    InterpetError::new(format!("variable {} not found", name.to_string()))
+                })? {
+                    ContextType::Function(_) => todo!(),
+                    ContextType::Value(result) => Ok(result.clone()),
+                }
+            }
             Call(function_name, parameters) => {
                 let name = &self.code[Range::from(function_name)];
                 // get the context
@@ -164,7 +211,10 @@ impl<'a> Interpreter<'a> {
                         ))),
                     },
                     // Check for user defined function
-                    None => todo!(),
+                    None => todo!(
+                        "{} not a built-in function and user function are not yet implemented",
+                        name.to_string()
+                    ),
                 };
                 self.registrat.drop_last();
                 result
@@ -184,7 +234,15 @@ impl<'a> Interpreter<'a> {
                 }
                 Err(err) => Err(err),
             },
-            Block(_) => todo!(),
+            Block(blocks) => {
+                for stmt in blocks {
+                    if let NaslValue::Exit(rc) = self.resolve(stmt)? {
+                        return Ok(NaslValue::Exit(rc))
+                    }
+                }
+                // currently blocks don't return something
+                Ok(NaslValue::Null)
+            }
             NoOp(_) => todo!(),
             EoF => todo!(),
         }

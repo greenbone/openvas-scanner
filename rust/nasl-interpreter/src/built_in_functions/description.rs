@@ -2,7 +2,21 @@ use crate::{
     context::{ContextType, NaslContext, Register},
     error::FunctionError,
     interpreter::{NaslValue, Storage},
+    NaslFunction,
 };
+
+macro_rules! declare_lookup {
+    ($($name:ident=> $key:ident),*) => {
+        pub fn lookup(key: &str) -> Option<NaslFunction> {
+            match key {
+                $(
+                   stringify!($key) => Some($name),
+                )*
+                _ => None,
+            }
+        }
+    }
+}
 
 macro_rules! decl_store_first_unnamed_param_fn {
     ($($name:ident=> $key:ident),*) => {
@@ -41,13 +55,29 @@ macro_rules! decl_store_first_unnamed_param_fn {
             }
         }
     )*
+        // TODO although I think it is better than manually add it in lib.rs we need to find a way
+        // to get rid of the repetion of this lookup_unnamed, lookup_named ...
+        // maybe we could use: https://doc.rust-lang.org/reference/procedural-macros.html#function-like-procedural-macros
+        // to create an overall macro to either define single unnamed, list unnamed, named ... functions?
+        fn lookup_unnamed(key: &str) -> Option<NaslFunction> {
+            match key {
+                $(
+                   stringify!($name) => Some($name),
+                )*
+                _ => None,
+            }
+        }
     };
 }
 
 decl_store_first_unnamed_param_fn! {
-  nasl_script_timeout => timeout,
-  nasl_script_category => category,
-  nasl_script_name => name
+  script_timeout => timeout,
+  script_category => category,
+  script_name => name,
+  script_version => version,
+  script_copyright => copyright,
+  script_family => family,
+  script_oid => oid
 }
 
 fn get_named_parameter<'a>(
@@ -58,7 +88,7 @@ fn get_named_parameter<'a>(
     match ctx.named(registrat, key) {
         None => Err(FunctionError::new(format!("expected {} to be set.", key))),
         Some(ct) => match ct {
-            ContextType::Value(NaslValue::String(value)) => Ok(&value),
+            ContextType::Value(NaslValue::String(value)) => Ok(value),
             _ => Err(FunctionError::new(format!(
                 "expected {} to be a string.",
                 key
@@ -88,9 +118,26 @@ macro_rules! decl_store_named_key_and_val_param_fn {
 
         }
     )*
+
+        // TODO although I think it is better than manually add it in lib.rs we need to find a way
+        // to get rid of the repetion of this lookup_unnamed, lookup_named ...
+        // maybe we could use: https://doc.rust-lang.org/reference/procedural-macros.html#function-like-procedural-macros
+        // to create an overall macro to either define single unnamed, list unnamed, named ... functions?
+        fn lookup_named(key: &str) -> Option<NaslFunction> {
+            match key {
+                $(
+                   stringify!($name) => Some($name),
+                )*
+                _ => None,
+            }
+        }
     };
 }
 
 decl_store_named_key_and_val_param_fn! {
-    nasl_script_tag => (name, value)
+    script_tag => (name, value)
+}
+
+pub fn lookup(name: &str) -> Option<NaslFunction> {
+    lookup_unnamed(name).or_else(|| lookup_named(name))
 }

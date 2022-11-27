@@ -78,6 +78,12 @@ impl Register {
         last.unwrap()
     }
 
+
+    /// Finds a named ContextType within last.
+    pub fn named<'a>(&'a self, name: &'a str) -> Option<&ContextType> {
+        self.last().named(self, name)
+    }
+
     /// Returns a mutable reference of the current context
     pub fn last_mut(&mut self) -> &mut NaslContext {
         let last = self.blocks.last_mut();
