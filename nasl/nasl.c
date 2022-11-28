@@ -387,7 +387,7 @@ main (int argc, char **argv)
                                *kb_values_aux);
                       exit (1);
                     }
-                  kb_check_add_str_unique (kb, splits[0], splits[1], 0, pos);
+                  kb_item_add_str_unique (kb, splits[0], splits[1], 0, pos);
                   kb_values_aux++;
                   g_strfreev (splits);
                 }
