@@ -67,7 +67,7 @@ impl<'a> Lexer<'a> {
         ))
     }
 
-    fn jump_to_left_parenthis(&mut self) -> Result<(), SyntaxError> {
+    fn jump_to_left_parenthesis(&mut self) -> Result<(), SyntaxError> {
         let token = self
             .token()
             .ok_or_else(|| unexpected_end!("expected paren."))?;
@@ -79,7 +79,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_call_return_params(&mut self) -> Result<Statement, SyntaxError> {
-        self.jump_to_left_parenthis()?;
+        self.jump_to_left_parenthesis()?;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
         if end.is_done() {
@@ -167,7 +167,7 @@ impl<'a> Lexer<'a> {
         }
     }
     fn parse_for(&mut self) -> Result<(End, Statement), SyntaxError> {
-        self.jump_to_left_parenthis()?;
+        self.jump_to_left_parenthesis()?;
         let (end, assignment) = self.statement(0, &|c| c == Category::Semicolon)?;
         if !matches!(assignment, Statement::Assign(_, _, _, _)) {
             return Err(unexpected_statement!(assignment));
@@ -201,7 +201,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_while(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        self.jump_to_left_parenthis()?;
+        self.jump_to_left_parenthesis()?;
         let (end, condition) = self.statement(0, &|c| c == Category::RightParen)?;
         if !end {
             return Err(unclosed_token!(token));
@@ -360,7 +360,7 @@ mod test {
                         position: (17, 27)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
-                        category: String(StringCategory::Quoteable),
+                        category: String(StringCategory::Quotable),
                         position: (29, 30)
                     })]))
                 )),
@@ -370,7 +370,7 @@ mod test {
                         position: (39, 46)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
-                        category: String(StringCategory::Quoteable),
+                        category: String(StringCategory::Quotable),
                         position: (48, 50)
                     })]))
                 )))
@@ -400,7 +400,7 @@ mod test {
 
     #[test]
     fn local_var() -> Result<(), SyntaxError> {
-        let exspected = |scope: DeclareScope, offset: usize| {
+        let expected = |scope: DeclareScope, offset: usize| {
             Declare(
                 scope,
                 vec![
@@ -421,11 +421,11 @@ mod test {
         };
         assert_eq!(
             parse("local_var a, b, c;").next().unwrap().unwrap(),
-            exspected(DeclareScope::Local, 0)
+            expected(DeclareScope::Local, 0)
         );
         assert_eq!(
             parse("global_var a, b, c;").next().unwrap().unwrap(),
-            exspected(DeclareScope::Global, 1)
+            expected(DeclareScope::Global, 1)
         );
         Ok(())
     }

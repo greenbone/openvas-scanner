@@ -6,12 +6,12 @@ use nasl_syntax::{
 
 use crate::{
     context::{ContextType, CtxType, Register},
-    error::InterpetError,
+    error::InterpretError,
     lookup,
 };
 
 // TODO Allow multiple value types
-/// Persistant storage, which is used to communicate between NASL Scripts
+/// Persistent storage, which is used to communicate between NASL Scripts
 pub trait Storage {
     /// Put a value into the storage
     fn write(&mut self, key: &str, value: &str);
@@ -56,7 +56,7 @@ impl ToString for NaslValue {
     }
 }
 
-/// Used to interprete a Statement
+/// Used to interpret a Statement
 pub struct Interpreter<'a> {
     code: &'a str,
     registrat: Register,
@@ -71,8 +71,8 @@ impl PrimitiveResolver<String> for StringCategory {
     /// Resolves a range into a String based on code
     fn resolve(&self, code: &str, range: Range<usize>) -> String {
         match self {
-            StringCategory::Quoteable => code[range].to_owned(),
-            StringCategory::Unquoteable => {
+            StringCategory::Quotable => code[range].to_owned(),
+            StringCategory::Unquotable => {
                 let mut string = code[range].to_string();
                 string = string.replace(r#"\n"#, "\n");
                 string = string.replace(r#"\\"#, "\\");
@@ -108,7 +108,7 @@ impl From<NaslValue> for bool {
 }
 
 impl TryFrom<(&str, Token)> for NaslValue {
-    type Error = InterpetError;
+    type Error = InterpretError;
 
     fn try_from(value: (&str, Token)) -> Result<Self, Self::Error> {
         let (code, token) = value;
@@ -117,12 +117,12 @@ impl TryFrom<(&str, Token)> for NaslValue {
                 category.resolve(code, Range::from(token)),
             )),
             TokenCategory::Identifier(None) => Ok(NaslValue::String(
-                StringCategory::Unquoteable.resolve(code, Range::from(token)),
+                StringCategory::Unquotable.resolve(code, Range::from(token)),
             )),
             TokenCategory::Number(base) => {
                 Ok(NaslValue::Number(base.resolve(code, Range::from(token))))
             }
-            _ => Err(InterpetError {
+            _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),
             }),
         }
@@ -145,15 +145,15 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    /// Interpetes a Statement
-    pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpetError> {
+    /// Interprets a Statement
+    pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpretError> {
         match statement {
             Array(_, _) => todo!(),
             Exit(stmt) => {
                 let rc = self.resolve(*stmt)?;
                 match rc {
                     NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
-                    _ => Err(InterpetError::new("expected numeric value".to_string())),
+                    _ => Err(InterpretError::new("expected numeric value".to_string())),
                 }
             }
             Return(_) => todo!(),
@@ -168,7 +168,7 @@ impl<'a> Interpreter<'a> {
             Variable(token) => {
                 let name: NaslValue = TryFrom::try_from((self.code, token))?;
                 match self.registrat.named(&name.to_string()).ok_or_else(|| {
-                    InterpetError::new(format!("variable {} not found", name.to_string()))
+                    InterpretError::new(format!("variable {} not found", name.to_string()))
                 })? {
                     ContextType::Function(_) => todo!(),
                     ContextType::Value(result) => Ok(result.clone()),
@@ -196,7 +196,7 @@ impl<'a> Interpreter<'a> {
                         }
                     }
                     _ => {
-                        return Err(InterpetError::new(
+                        return Err(InterpretError::new(
                             "invalid statement type for function parameters".to_string(),
                         ))
                     }
@@ -209,7 +209,7 @@ impl<'a> Interpreter<'a> {
                     // Built-In Function
                     Some(function) => match function(self.storage, &mut self.registrat) {
                         Ok(value) => Ok(value),
-                        Err(_) => Err(InterpetError::new(format!(
+                        Err(_) => Err(InterpretError::new(format!(
                             "unable to call function {}",
                             name
                         ))),
@@ -264,19 +264,19 @@ mod test {
 
     use super::{Interpreter, Storage};
 
-    struct MockStrorage {
+    struct MockStorage {
         map: HashMap<String, String>,
     }
 
-    impl MockStrorage {
+    impl MockStorage {
         fn new() -> Self {
-            MockStrorage {
+            MockStorage {
                 map: HashMap::new(),
             }
         }
     }
 
-    impl Storage for MockStrorage {
+    impl Storage for MockStorage {
         fn write(&mut self, key: &str, value: &str) {
             self.map.insert(key.to_string(), value.to_string());
         }
@@ -298,12 +298,12 @@ mod test {
             },
             Box::new(Statement::Parameter(vec![Statement::Primitive(
                 nasl_syntax::Token {
-                    category: nasl_syntax::TokenCategory::String(StringCategory::Unquoteable),
+                    category: nasl_syntax::TokenCategory::String(StringCategory::Unquotable),
                     position: (13, 24),
                 },
             )])),
         );
-        let mut storage = MockStrorage::new();
+        let mut storage = MockStorage::new();
 
         let mut interpreter = Interpreter::new(&mut storage, vec![], code);
 

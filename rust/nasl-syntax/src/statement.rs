@@ -5,7 +5,7 @@ use crate::{unexpected_statement, SyntaxError, Token, TokenCategory, token::ACT}
 pub enum AssignOrder {
     /// Assign first than return
     AssignReturn,
-    /// Retutn than assign
+    /// Return than assign
     ReturnAssign,
 }
 
@@ -76,7 +76,7 @@ pub enum Statement {
 impl Statement {
     /// Returns true when Statement may returns something
     ///
-    /// Since nasl is a dynamic, typeless language there is no guarantue.
+    /// Since nasl is a dynamic, typeless language there is no guarantee.
     /// In uncertain things like a function it returns true.
     #[inline(always)]
     pub fn is_returnable(&self) -> bool {

@@ -75,7 +75,7 @@ mod tests {
                     position: (16, 17)
                 },
                 Token {
-                    category: Category::String(StringCategory::Quoteable),
+                    category: Category::String(StringCategory::Quotable),
                     position: (19, 25)
                 },
                 Token {

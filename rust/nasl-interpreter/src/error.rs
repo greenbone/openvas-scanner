@@ -12,19 +12,19 @@ impl FunctionError {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct InterpetError {
+pub struct InterpretError {
     pub reason: String,
 }
 
-impl InterpetError {
+impl InterpretError {
     pub fn new(reason: String) -> Self {
         Self { reason }
     }
 }
 
-impl From<SyntaxError> for InterpetError {
+impl From<SyntaxError> for InterpretError {
     fn from(err: SyntaxError) -> Self {
-        InterpetError {
+        InterpretError {
             reason: err.to_string(),
         }
     }

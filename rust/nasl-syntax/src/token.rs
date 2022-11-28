@@ -3,17 +3,17 @@ use std::ops::Range;
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
 
-/// Identifies if a string is quoteable or unquoteable
+/// Identifies if a string is quotable or unquotable
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StringCategory {
     /// Defines a string as capable of quoting
     ///
-    /// Quoteable strings will interpret \n\t...
-    Quoteable, // '..\''
-    /// Defines a string as uncapable of quoting
+    /// Quotable strings will interpret \n\t...
+    Quotable, // '..\''
+    /// Defines a string as incapable of quoting
     ///
-    /// Unquoteable strings will use escaped characters as is instead of interpreting them.
-    Unquoteable, // "..\"
+    /// Unquotable strings will use escaped characters as is instead of interpreting them.
+    Unquotable, // "..\"
 }
 
 /// Identifies if number is base10, base 8, hex or binary
@@ -315,9 +315,9 @@ pub enum Category {
     String(StringCategory),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(Base),
-    /// We currently just suport 127.0.0.1 notation
+    /// We currently just support 127.0.0.1 notation
     IPv4Address,
-    /// Wrongfullt identified as IpV4
+    /// Wrongfully identified as IpV4
     IllegalIPv4Address,
     /// An illegal Number e.g. 0b2
     IllegalNumber(Base),
@@ -327,7 +327,7 @@ pub enum Category {
     Identifier(Option<Keyword>),
     /// Unclosed token. This can happen on e.g. string literals
     Unclosed(UnclosedCategory),
-    /// Number starts with an unidentifieable base
+    /// Number starts with an unidentifiable base
     UnknownBase,
     /// used when the symbol is unknown
     UnknownSymbol,
@@ -353,7 +353,7 @@ impl Token {
 
     /// Returns true when an Token is faulty
     ///
-    /// A Token is faulyt when it is a syntactical error like
+    /// A Token is faulty when it is a syntactical error like
     /// - [Category::IllegalIPv4Address]
     /// - [Category::Unclosed]
     /// - [Category::UnknownBase]
@@ -484,7 +484,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Skips initital and ending string identifier ' || " and verifies that a string is closed
+    // Skips initial and ending string identifier ' || " and verifies that a string is closed
     #[inline(always)]
     fn tokenize_string(
         &mut self,
@@ -582,7 +582,7 @@ impl<'a> Tokenizer<'a> {
                 return token!(Category::IPv4Address, start, self.cursor.len_consumed());
             }
 
-            // we verify that the cursor actually moved to prevent scenarious like
+            // we verify that the cursor actually moved to prevent scenarios like
             // 0b without any actual number in it
             if start == self.cursor.len_consumed() {
                 token!(Category::IllegalNumber(base), start, start)
@@ -672,10 +672,10 @@ impl<'a> Iterator for Tokenizer<'a> {
             '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
-            '"' => self.tokenize_string(StringCategory::Unquoteable, |c| c != '"'),
+            '"' => self.tokenize_string(StringCategory::Unquotable, |c| c != '"'),
             '\'' => {
                 let mut back_slash = false;
-                self.tokenize_string(StringCategory::Quoteable, |c| {
+                self.tokenize_string(StringCategory::Quotable, |c| {
                     if !back_slash && c == '\'' {
                         false
                     } else {
@@ -788,11 +788,11 @@ mod tests {
     }
 
     #[test]
-    fn unquoteable_string() {
+    fn unquotable_string() {
         use StringCategory::*;
         let code = "\"hello I am a closed string\\\"";
         let (tokenizer, result) =
-            verify_tokens!(code, vec![(Category::String(Unquoteable), 1, 28)]);
+            verify_tokens!(code, vec![(Category::String(Unquotable), 1, 28)]);
         assert_eq!(
             tokenizer.lookup(Range::from(result[0])),
             "hello I am a closed string\\"
@@ -801,7 +801,7 @@ mod tests {
         verify_tokens!(
             code,
             vec![(
-                Category::Unclosed(UnclosedCategory::String(Unquoteable)),
+                Category::Unclosed(UnclosedCategory::String(Unquotable)),
                 1,
                 30
             )]
@@ -809,17 +809,17 @@ mod tests {
     }
 
     #[test]
-    fn quoteable_string() {
+    fn quotable_string() {
         use StringCategory::*;
         let code = "'Hello \\'you\\'!'";
-        let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quoteable), 1, 15)]);
+        let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quotable), 1, 15)]);
         assert_eq!(tokenizer.lookup(Range::from(result[0])), "Hello \\'you\\'!");
 
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
             code,
             vec![(
-                Category::Unclosed(UnclosedCategory::String(Quoteable)),
+                Category::Unclosed(UnclosedCategory::String(Quotable)),
                 1,
                 17
             )]
@@ -891,7 +891,7 @@ mod tests {
         use StringCategory::*;
         verify_tokens!(
             r###"'webapps\\appliance\\'"###,
-            vec![(String(Quoteable), 1, 21)]
+            vec![(String(Quotable), 1, 21)]
         );
     }
 
@@ -946,7 +946,7 @@ exit(1);
                 (LeftCurlyBracket, 17, 18),           // start execution block
                 (Identifier(None), 21, 31),           // lookup function script_oid
                 (LeftParen, 31, 32),                  // start parameter expression block
-                (String(Unquoteable), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
+                (String(Unquotable), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
                 (RightParen, 61, 62),          // end expression block
                 (Semicolon, 62, 63),           // finish execution
                 (Identifier(Some(Exit)), 66, 70), // lookup keyword exit

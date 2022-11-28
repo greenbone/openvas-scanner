@@ -13,7 +13,7 @@ use crate::{
 pub(crate) trait Prefix {
     /// Handles statements before operation statements get handled.
     ///
-    /// This must be called before handling postifx or infix operations to parse the initial statement.
+    /// This must be called before handling postfix or infix operations to parse the initial statement.
     fn prefix_statement(
         &mut self,
         token: Token,
@@ -132,7 +132,7 @@ mod test {
         assert_eq!(result("1;"), Primitive(token(Number(Base10), 0, 1)));
         assert_eq!(
             result("'a';"),
-            Primitive(token(String(StringCategory::Quoteable), 1, 2))
+            Primitive(token(String(StringCategory::Quotable), 1, 2))
         );
     }
 

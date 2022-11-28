@@ -2,21 +2,21 @@
 mod tests {
     use std::collections::HashMap;
 
-    use nasl_interpreter::{Storage, Interpreter, ContextType, NaslValue, error::InterpetError};
+    use nasl_interpreter::{Storage, Interpreter, ContextType, NaslValue, error::InterpretError};
     use nasl_syntax::parse;
 
-    struct MockStrorage {
+    struct MockStorage {
         map: HashMap<String, String>,
     }
 
-    impl MockStrorage {
+    impl MockStorage {
         fn new() -> Self {
-            MockStrorage {
+            MockStorage {
                 map: HashMap::new(),
             }
         }
     }
-    impl Storage for MockStrorage {
+    impl Storage for MockStorage {
         fn write(&mut self, key: &str, value: &str) {
             self.map.insert(key.to_string(), value.to_string());
         }
@@ -30,7 +30,7 @@ mod tests {
 
 
     #[test]
-    fn description() -> Result<(), InterpetError>{
+    fn description() -> Result<(), InterpretError>{
         let code = r###"
 if(description)
 {
@@ -53,7 +53,7 @@ if(description)
   exit(0);
 }
         "###;
-        let mut storage= MockStrorage::new();
+        let mut storage= MockStorage::new();
         let initial = vec![("description".to_owned(), ContextType::Value(NaslValue::Number(1)))];
         let mut interpret = Interpreter::new(&mut storage, initial, code);
         for stmt in parse(code) {

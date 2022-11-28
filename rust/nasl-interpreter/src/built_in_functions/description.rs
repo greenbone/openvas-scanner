@@ -9,7 +9,7 @@ use crate::{
 ///
 /// The DSL is defined as
 /// function_name => [positional_key: expected_amount_pos_args] (key_named_parameter:value_named_parameter)
-/// although the positional block as well as the named_parameter block are optional wen both are ommited a warning 
+/// although the positional block as well as the named_parameter block are optional wen both are omitted a warning 
 /// that the storage is unused will pop up informing the developer that this created method is useless.
 macro_rules! make_storage_function {
     ($($name:ident=> $([$key:ident : $len:expr])? $(($nkey:ident:$value:ident)),* ),+) => {
@@ -38,7 +38,7 @@ macro_rules! make_storage_function {
             let positional = ctx.positional(registrat);
             if $len > 0 && positional.len() != $len{
                 return Err(FunctionError::new(
-                    format!("expected {} possitional arguments but {} were given.", $len, positional.len()),
+                    format!("expected {} positional arguments but {} were given.", $len, positional.len()),
                 ));
             }
             for p in positional {

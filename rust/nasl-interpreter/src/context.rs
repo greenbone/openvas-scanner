@@ -2,7 +2,7 @@ use nasl_syntax::Statement;
 
 use crate::interpreter::NaslValue;
 
-/// Contexts are responbile to locate, add and delete everything that is declared within a NASL plugin
+/// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
 /// Represents a Value within the NaslContext
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -16,7 +16,7 @@ pub enum ContextType {
 /// Registers all NaslContext
 ///
 /// When creating a new context call a corresponding create method.
-/// Warning sicne those will be stored within a vector each context must be manually
+/// Warning since those will be stored within a vector each context must be manually
 /// deleted by calling drop_last when the context runs out of scope.
 pub struct Register {
     blocks: Vec<NaslContext>,
@@ -156,7 +156,7 @@ impl NaslContext {
     }
 
     /// Adds a parameter as the last position
-    pub fn add_postitional(&mut self, value: ContextType) {
+    pub fn add_positional(&mut self, value: ContextType) {
         match &mut self.class {
             CtxType::Function(_, position) => position.push(value),
             _ => todo!("Error handling"),

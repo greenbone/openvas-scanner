@@ -1,4 +1,4 @@
-//! Defines TokenErroor and its companion macros.
+//! Defines TokenError and its companion macros.
 
 use core::fmt;
 use std::{error::Error, io};
@@ -8,19 +8,19 @@ use crate::{token::Token, Statement};
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// A list specifying general categories of Syntax error.
 pub enum ErrorKind {
-    /// An unexpected token occured
+    /// An unexpected token occurred
     UnexpectedToken(Token),
     /// A token is unclosed
     ///
     /// Could happen on string literals.
     UnclosedToken(Token),
-    /// An unexpected statement occured
+    /// An unexpected statement occurred
     UnexpectedStatement(Statement),
     /// An token is unclosed
     UnclosedStatement(Statement),
     /// The cursor is already at the end but that is not expected
     EoF,
-    /// An IO Error occured while loading a NASL file
+    /// An IO Error occurred while loading a NASL file
     IOError(io::ErrorKind),
 }
 

@@ -23,7 +23,7 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    /// Peeks the nth next characher or returns EOF_CHAR when unreachable
+    /// Peeks the nth next character or returns EOF_CHAR when unreachable
     pub fn peek(&self, n: usize) -> char {
         let mut iter = self.chars.clone();
         for _ in 0..n {
@@ -92,7 +92,7 @@ mod tests {
         cursor.skip_while(|c| c != '"');
         // jump over "
         cursor.advance();
-        // remember previosuly consumed
+        // remember previously consumed
         let pconsumed = cursor.len_consumed();
         cursor.skip_while(|c| c != '"');
         // get string within the range
