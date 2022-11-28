@@ -690,7 +690,7 @@ load_checksums (kb_t kb)
       else
         g_snprintf (buffer, sizeof (buffer), "%s:%s/%s", prefix, base,
                     splits[1]);
-      kb_check_set_str (kb, buffer, splits[0], 0);
+      kb_item_set_str (kb, buffer, splits[0], 0);
       g_strfreev (splits);
     }
   fclose (file);
@@ -841,7 +841,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
       else
         {
           kb_del_items (pc->kb, key_path);
-          kb_check_add_int (pc->kb, key_path, time (NULL));
+          kb_item_add_int (pc->kb, key_path, time (NULL));
         }
 
       g_free (full_name);
