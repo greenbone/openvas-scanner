@@ -46,7 +46,8 @@ if(description)
   script_mandatory_keys("ssh/blubb/detected");
   script_xref(name:"URL", value:"http://freshmeat.sourceforge.net/projects/eventh/");
   script_exclude_keys("Settings/disable_cgi_scanning", "bla/bla");
-
+  #script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
+  script_require_udp_ports("Services/udp/unknown", 17);
   exit(0);
 }
         "###;

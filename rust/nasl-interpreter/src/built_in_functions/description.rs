@@ -102,9 +102,10 @@ make_storage_function! {
   script_family => [family :1],
   script_oid => [oid :1],
   script_dependencies => [dependencies :0],
-  script_exclude_keys => [dependencies :0],
+  script_exclude_keys => [exclude_keys :0],
   script_mandatory_keys => [mandatory_keys: 0],
   script_require_ports => [required_ports: 2],
   script_tag => (name: value),
+  script_require_udp_ports => [require_udp_ports: 0],
   script_xref => (name: value)
 }
