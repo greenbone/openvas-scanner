@@ -43,7 +43,7 @@ if(description)
   script_name("that is a very long and descriptive name");
 
 # script_category values should be a keyword
-#  script_category(ACT_DENIAL);
+  script_category(ACT_DENIAL);
   script_tag(name:"qod_type", value:"remote_vul");
   script_copyright("Copyright (C) 2022 Greenbone Networks GmbH");
   script_family("Denial of Service");

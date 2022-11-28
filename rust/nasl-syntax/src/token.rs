@@ -74,26 +74,104 @@ pub enum UnclosedCategory {
     String(StringCategory),
 }
 
+/// Attack Category either set by script_category or on a scan to reflect the state the scan is in
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ACT {
+    /// Defines a initializer
+    Init = 0,
+    /// Defines a port scanner
+    Scanner,
+    /// Defines a settings configurator
+    Settings,
+    /// Gathers information about the environment the scan runs in
+    GatherInfo,
+    /// Executes actual attacks
+    Attack,
+    /// Same as attack left for downwards Compatibility
+    MixedAttack,
+    /// Exhausting attack should not be considered safe to execute
+    DestructiveAttack,
+    /// Exhausting attack should not be considered safe to execute
+    Denial,
+    /// Exhausting attack should not be considered safe to execute
+    KillHost,
+    /// Exhausting attack should not be considered safe to execute
+    Flood,
+    /// Should be executed at the end
+    End,
+}
+
+macro_rules! make_keyword_matcher {
+    ($($matcher:ident : $define:expr),+) => {
+
+impl Keyword {
+    /// Creates a new keyword based on a string identifier
+    pub fn new(keyword: &str) -> Option<Self> {
+        match keyword {
+           $(
+           stringify!($matcher) => Some($define),
+           )*
+            _ => None
+        }
+
+    }
+
+}
+
+impl ToString for Keyword {
+    fn to_string(&self) -> String {
+            $(
+                // cannot use match here because define is an expression
+        if self == &$define {
+           return stringify!($matcher).to_owned();
+        }
+            )*
+                return "".to_owned();
+
+    }
+}
+    };
+}
+
 /// Are reserved words that cannot be reused otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Keyword {
-    Function,    // function declaration
-    FCTAnonArgs, // _FCT_ANON_ARGS
-    True,        // TRUE
-    False,       // FALSE
-    For,         // for
-    ForEach,     // foreach
-    If,          // if
-    Else,        // else
-    While,       //while
-    Repeat,      //repeat
-    Until,       // until
-    LocalVar,    // local_var
-    GlobalVar,   // global_var
-    Null,        // NULL
-    Return,      // return
-    Include,     // include (is not a buildin if overridden NASL cannot work )
-    Exit,        // exit (is not a buildin function of overridden NASL detail run cannot work)
+    /// function declaration
+    Function,
+    /// _FCT_ANON_ARGS
+    FCTAnonArgs,
+    /// TRUE
+    True,
+    /// FALSE
+    False,
+    /// for
+    For,
+    /// foreach
+    ForEach,
+    /// if
+    If,
+    /// else
+    Else,
+    /// while
+    While,
+    /// repeat
+    Repeat,
+    /// until
+    Until,
+    /// local_var
+    LocalVar,
+    /// global_var
+    GlobalVar,
+    /// NULL
+    Null,
+    /// return
+    Return,
+    /// include
+    Include,
+    /// Scanning phases; can be set by category in the description block
+    ACT(ACT),
+    /// exit
+    Exit,
 }
 
 impl From<Token> for Range<usize> {
@@ -103,30 +181,35 @@ impl From<Token> for Range<usize> {
     }
 }
 
-impl Keyword {
-    /// Parses given keyword and returns Keyword enum or None
-    pub fn new(keyword: &str) -> Option<Self> {
-        match keyword {
-            "function" => Some(Keyword::Function),
-            "_FCT_ANON_ARGS" => Some(Keyword::FCTAnonArgs),
-            "TRUE" => Some(Keyword::True),
-            "FALSE" => Some(Keyword::False),
-            "for" => Some(Keyword::For),
-            "foreach" => Some(Keyword::ForEach),
-            "if" => Some(Keyword::If),
-            "else" => Some(Keyword::Else),
-            "while" => Some(Keyword::While),
-            "repeat" => Some(Keyword::Repeat),
-            "until" => Some(Keyword::Until),
-            "local_var" => Some(Keyword::LocalVar),
-            "global_var" => Some(Keyword::GlobalVar),
-            "NULL" => Some(Keyword::Null),
-            "return" => Some(Keyword::Return),
-            "include" => Some(Keyword::Include),
-            "exit" => Some(Keyword::Exit),
-            _ => None,
-        }
-    }
+make_keyword_matcher! {
+    function: Keyword::Function,
+    _FCT_ANON_ARGS: Keyword::FCTAnonArgs,
+    TRUE: Keyword::True,
+    FALSE: Keyword::False,
+    for: Keyword::For,
+    foreach: Keyword::ForEach,
+    if: Keyword::If,
+    else: Keyword::Else,
+    while: Keyword::While,
+    repeat: Keyword::Repeat,
+    until: Keyword::Until,
+    local_var: Keyword::LocalVar,
+    global_var: Keyword::GlobalVar,
+    NULL: Keyword::Null,
+    return: Keyword::Return,
+    include: Keyword::Include,
+    exit: Keyword::Exit,
+    ACT_ATTACK: Keyword::ACT(ACT::Attack),
+    ACT_DENIAL: Keyword::ACT(ACT::Denial),
+    ACT_DESTRUCTIVE_ATTACK: Keyword::ACT(ACT::DestructiveAttack),
+    ACT_END: Keyword::ACT(ACT::End),
+    ACT_FLOOD: Keyword::ACT(ACT::Flood),
+    ACT_GATHER_INFO: Keyword::ACT(ACT::GatherInfo),
+    ACT_INIT: Keyword::ACT(ACT::Init),
+    ACT_KILL_HOST: Keyword::ACT(ACT::KillHost),
+    ACT_MIXED_ATTACK: Keyword::ACT(ACT::MixedAttack),
+    ACT_SCANNER: Keyword::ACT(ACT::Scanner),
+    ACT_SETTINGS: Keyword::ACT(ACT::Settings)
 }
 
 /// Is used to identify a Token
@@ -576,7 +659,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
             '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
-            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual), // token!(Percent, start, self.cursor.len_consumed()),
+            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),
             ';' => token!(Semicolon, start, self.cursor.len_consumed()),
             '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
             '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),

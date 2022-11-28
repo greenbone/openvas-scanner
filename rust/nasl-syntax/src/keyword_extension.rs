@@ -1,9 +1,11 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
+    lexer::{End, Lexer},
     token::{Category, Keyword, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
-    variable_extension::CommaGroup, lexer::{End, Lexer}, Statement, DeclareScope,
+    variable_extension::CommaGroup,
+    DeclareScope, Statement,
 };
 
 pub(crate) trait Keywords {
@@ -16,10 +18,7 @@ pub(crate) trait Keywords {
 }
 
 impl<'a> Lexer<'a> {
-    fn parse_declaration(
-        &mut self,
-        scope: DeclareScope,
-    ) -> Result<(End, Statement), SyntaxError> {
+    fn parse_declaration(&mut self, scope: DeclareScope) -> Result<(End, Statement), SyntaxError> {
         let (end, params) = self.parse_comma_group(Category::Semicolon)?;
         if end == End::Continue {
             return Err(unexpected_end!("expected a finished statement."));
@@ -325,6 +324,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::True => Ok((End::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((End::Continue, Statement::Primitive(token))),
             Keyword::Function => self.parse_function(token),
+            Keyword::ACT(Category) => Ok((End::Continue, Statement::AttackCategory(Category))),
         }
     }
 }
@@ -335,11 +335,11 @@ mod test {
     use crate::{
         parse,
         token::{Base, Category, Keyword, StringCategory, Token},
-        SyntaxError, DeclareScope, AssignOrder,
+        AssignOrder, DeclareScope, SyntaxError,
     };
 
-    use crate::TokenCategory::*;
     use crate::Statement::*;
+    use crate::TokenCategory::*;
 
     #[test]
     fn if_statement() {
@@ -512,19 +512,13 @@ mod test {
     #[test]
     fn while_loop() {
         let code = "while (TRUE) ;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap(),
-            While(_, _)
-        ))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), While(_, _)))
     }
 
     #[test]
     fn repeat_loop() {
         let code = "repeat ; until 1 == 1;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap(),
-            Repeat(_, _)
-        ))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), Repeat(_, _)))
     }
 
     #[test]

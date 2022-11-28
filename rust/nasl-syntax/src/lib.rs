@@ -20,6 +20,7 @@ pub use token::Token;
 pub use token::StringCategory;
 pub use token::Base as NumberBase;
 pub use token::Keyword;
+pub use token::ACT as ACT;
 
 
 /// Parses given code and returns found Statements and Errors

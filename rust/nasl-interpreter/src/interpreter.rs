@@ -1,11 +1,11 @@
 use std::ops::Range;
 
 use nasl_syntax::{
-    NumberBase, Statement, Statement::*, StringCategory, SyntaxError, Token, TokenCategory,
+    NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT, Keyword,
 };
 
 use crate::{
-    context::{ContextType, CtxType, NaslContext, Register},
+    context::{ContextType, CtxType, Register},
     error::InterpetError,
     lookup,
 };
@@ -30,6 +30,8 @@ pub enum NaslValue {
     Array(Vec<NaslValue>),
     /// Boolean value
     Boolean(bool),
+    /// Attack category keyword
+    AttackCategory(ACT),
     /// Null value
     Null,
     /// Exit value of the script
@@ -49,6 +51,7 @@ impl ToString for NaslValue {
             NaslValue::Boolean(x) => x.to_string(),
             NaslValue::Null => "\0".to_owned(),
             NaslValue::Exit(rc) => format!("exit({})", rc),
+            NaslValue::AttackCategory(category) => Keyword::ACT(*category).to_string(),
         }
     }
 }
@@ -99,6 +102,7 @@ impl From<NaslValue> for bool {
             NaslValue::Null => false,
             NaslValue::Number(number) => number != 0,
             NaslValue::Exit(number) => number != 0,
+            NaslValue::AttackCategory(_) => true,
         }
     }
 }
@@ -245,6 +249,7 @@ impl<'a> Interpreter<'a> {
             }
             NoOp(_) => todo!(),
             EoF => todo!(),
+            AttackCategory(_) => todo!(),
         }
     }
 }
