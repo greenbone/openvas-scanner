@@ -48,6 +48,7 @@ if(description)
   script_exclude_keys("Settings/disable_cgi_scanning", "bla/bla");
   #script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
   script_require_udp_ports("Services/udp/unknown", 17);
+  script_cve_id("CVE-1999-0524");
   exit(0);
 }
         "###;
