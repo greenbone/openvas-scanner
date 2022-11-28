@@ -94,7 +94,7 @@ host_set_time (kb_t kb, char *ip, char *type)
             timestr);
   g_free (timestr);
 
-  kb_check_push_str (kb, "internal/results", log_msg);
+  kb_item_push_str_with_main_kb_check (kb, "internal/results", log_msg);
 }
 
 static void

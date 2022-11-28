@@ -153,22 +153,23 @@ kb_t
 get_main_kb (void);
 
 int
-kb_check_push_str (kb_t, const char *, const char *);
+kb_item_push_str_with_main_kb_check (kb_t, const char *, const char *);
 
 int
-kb_check_set_str (kb_t, const char *, const char *, size_t);
+kb_item_set_str_with_main_kb_check (kb_t, const char *, const char *, size_t);
 
 int
-kb_check_add_str_unique (kb_t, const char *, const char *, size_t, int);
+kb_item_add_str_unique_with_main_kb_check (kb_t, const char *, const char *,
+                                           size_t, int);
 
 int
-kb_check_set_int (kb_t, const char *, int);
+kb_item_set_int_with_main_kb_check (kb_t, const char *, int);
 
 int
-kb_check_add_int (kb_t, const char *, int);
+kb_item_add_int_with_main_kb_check (kb_t, const char *, int);
 
 int
-kb_check_add_int_unique (kb_t, const char *, int);
+kb_item_add_int_unique_with_main_kb_check (kb_t, const char *, int);
 
 void
 plug_set_key (struct script_infos *, char *, int, const void *);
