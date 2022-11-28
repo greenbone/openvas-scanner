@@ -249,7 +249,7 @@ impl<'a> Interpreter<'a> {
             }
             NoOp(_) => todo!(),
             EoF => todo!(),
-            AttackCategory(_) => todo!(),
+            AttackCategory(cat) => Ok(NaslValue::AttackCategory(cat)),
         }
     }
 }

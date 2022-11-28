@@ -104,5 +104,6 @@ make_storage_function! {
   script_dependencies => [dependencies :0],
   script_mandatory_keys => [mandatory_keys: 0],
   script_require_ports => [required_ports: 2],
-  script_tag => (name: value)
+  script_tag => (name: value),
+  script_xref => (name: value)
 }
