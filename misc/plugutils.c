@@ -385,6 +385,8 @@ msg_type_to_str (msg_t type)
  *        original scan main kb.
  * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
@@ -458,12 +460,11 @@ get_main_kb (void)
 
  * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
- *
- * @param main_kb Current main kb.
- * @param name key name to be used in the kb
  *
  * @return 0 on success, -1 on inconsistency.
  */
@@ -507,18 +508,21 @@ check_kb_inconsistency_log (void)
  *        original scanid, if it matches it kb_item_push_str.
  * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param kb Current main kb.
+ * @param kb Kb where to store the item into.
  * @param name key for the given value.
  * @param value to store under key within kb.
  *
  * @return 0 on success, -1 on inconsistency.
  */
 int
-kb_check_push_str (kb_t kb, const char *name, const char *value)
+kb_item_push_str_with_main_kb_check (kb_t kb, const char *name,
+                                     const char *value)
 {
   int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_push_str (kb, name, value) : -1;
@@ -529,18 +533,21 @@ kb_check_push_str (kb_t kb, const char *name, const char *value)
  *        original scanid, if it matches it call kb_item_set_str.
  * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param kb Current main kb.
+ * @param kb Kb where to store the item into.
  * @param name key for the given value.
  * @param value to store under key within kb.
  *
  * @return 0 on success, -1 on inconsistency.
  */
 int
-kb_check_set_str (kb_t kb, const char *name, const char *value, size_t len)
+kb_item_set_str_with_main_kb_check (kb_t kb, const char *name,
+                                    const char *value, size_t len)
 {
   int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_set_str (kb, name, value, len) : -1;
@@ -551,19 +558,22 @@ kb_check_set_str (kb_t kb, const char *name, const char *value, size_t len)
  *        original scanid, if it matches it call kb_item_add_str_unique.
  * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param kb Current main kb.
+ * @param kb Kb where to store the item into.
  * @param name key for the given value.
  * @param value to store under key within kb.
  *
  * @return 0 on success, -1 on inconsistency.
  */
 int
-kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
-                         size_t len, int pos)
+kb_item_add_str_unique_with_main_kb_check (kb_t kb, const char *name,
+                                           const char *value, size_t len,
+                                           int pos)
 {
   int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_add_str_unique (kb, name, value, len, pos) : -1;
@@ -574,18 +584,20 @@ kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
  *        original scanid, if it matches it call kb_item_set_int.
  * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param kb Current main kb.
+ * @param kb Kb where to store the item into.
  * @param name key for the given value.
  * @param value to store under key within kb.
  *
  * @return 0 on success, -1 on inconsistency.
  */
 int
-kb_check_set_int (kb_t kb, const char *name, int value)
+kb_item_set_int_with_main_kb_check (kb_t kb, const char *name, int value)
 {
   int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_set_int (kb, name, value) : -1;
@@ -596,18 +608,20 @@ kb_check_set_int (kb_t kb, const char *name, int value)
  *        original scanid, if it matches it call kb_item_add_int.
  * @description Compares the scan id in get_scan_id, add at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param kb Current main kb.
+ * @param kb Kb where to store the item into.
  * @param name key for the given value.
  * @param value to store under key within kb.
  *
  * @return 0 on success, -1 on inconsistency.
  */
 int
-kb_check_add_int (kb_t kb, const char *name, int value)
+kb_item_add_int_with_main_kb_check (kb_t kb, const char *name, int value)
 {
   int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_add_int (kb, name, value) : -1;
@@ -618,18 +632,20 @@ kb_check_add_int (kb_t kb, const char *name, int value)
  *        original scanid, if it matches it call kb_item_add_int_unique.
  * @description Compares the scan id in get_scan_id, add at the beginning
  *              of the scan, with the one found in the main kb.
+ *              Therefore it is mandatory that the global main_kb
+ *              variable to be set.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param kb Current main kb.
+ * @param kb Kb where to store the item into.
  * @param name key for the given value.
  * @param value to store under key within kb.
  *
  * @return 0 on success, -1 on inconsistency.
  */
 int
-kb_check_add_int_unique (kb_t kb, const char *name, int value)
+kb_item_add_int_unique_with_main_kb_check (kb_t kb, const char *name, int value)
 {
   int result = check_kb_inconsistency_log ();
   return result == 0 ? kb_item_add_int_unique (kb, name, value) : -1;
@@ -694,7 +710,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     }
 
   kb = plug_get_results_kb (desc);
-  kb_check_push_str (kb, "internal/results", data);
+  kb_item_push_str_with_main_kb_check (kb, "internal/results", data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
@@ -1057,7 +1073,7 @@ plug_replace_key_len (struct script_infos *args, char *name, int type,
     return;
 
   if (type == ARG_STRING)
-    kb_check_set_str (kb, name, value, len);
+    kb_item_set_str (kb, name, value, len);
   else if (type == ARG_INT)
     kb_item_set_int (kb, name, GPOINTER_TO_SIZE (value));
   if (global_nasl_debug == 1)
