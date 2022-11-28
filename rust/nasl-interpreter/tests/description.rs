@@ -44,7 +44,8 @@ if(description)
   script_dependencies("ssh_detect.nasl", "ssh2.nasl");
   script_require_ports("Services/ssh", 22);
   script_mandatory_keys("ssh/blubb/detected");
-script_xref(name:"URL", value:"http://freshmeat.sourceforge.net/projects/eventh/");
+  script_xref(name:"URL", value:"http://freshmeat.sourceforge.net/projects/eventh/");
+  script_exclude_keys("Settings/disable_cgi_scanning", "bla/bla");
 
   exit(0);
 }
