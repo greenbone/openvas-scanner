@@ -79,7 +79,7 @@ fn get_named_parameter<'a>(
     registrat: &'a Register,
     ctx: &'a NaslContext,
     key: &'a str,
-) -> Result<&str, FunctionError> {
+) -> Result<&'a str, FunctionError> {
     match ctx.named(registrat, key) {
         None => Err(FunctionError::new(format!("expected {} to be set.", key))),
         Some(ct) => match ct {
