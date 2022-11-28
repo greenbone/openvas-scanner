@@ -122,6 +122,9 @@ connect_main_kb (kb_t *main_kb)
 /**
  * @brief Add the Host KB index to the list of readable KBs
  * used by ospd-openvas.
+ *
+ * @param host_kb_index The Kb index used for the host, to be stored
+ *        in a list key in the main_kb.
  */
 static void
 set_kb_readable (int host_kb_index)
@@ -129,7 +132,8 @@ set_kb_readable (int host_kb_index)
   kb_t main_kb = NULL;
 
   connect_main_kb (&main_kb);
-  kb_check_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
+  kb_item_add_int_unique_with_main_kb_check (main_kb, "internal/dbindex",
+                                             host_kb_index);
   kb_lnk_reset (main_kb);
 }
 
@@ -155,7 +159,7 @@ set_scan_status (char *status)
     }
   scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
   snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
-  kb_check_set_str (main_kb, buffer, status, 0);
+  kb_item_set_str_with_main_kb_check (main_kb, buffer, status, 0);
   kb_lnk_reset (main_kb);
   g_free (scan_id);
 }
@@ -187,7 +191,7 @@ comm_send_status_host_dead (kb_t main_kb, char *ip_str)
   if (strlen (ip_str) > 1998)
     return -1;
   status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
-  kb_check_push_str (main_kb, topic, status);
+  kb_item_push_str_with_main_kb_check (main_kb, topic, status);
   g_free (status);
 
   return 0;
@@ -221,7 +225,7 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
     return -1;
 
   snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
-  kb_check_push_str (main_kb, "internal/status", status_buf);
+  kb_item_push_str_with_main_kb_check (main_kb, "internal/status", status_buf);
   kb_lnk_reset (main_kb);
 
   return 0;
@@ -236,7 +240,7 @@ message_to_client (kb_t kb, const char *msg, const char *ip_str,
   buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type,
                          ip_str ? ip_str : "", ip_str ? ip_str : "",
                          port ? port : " ", msg ? msg : "No error.");
-  kb_check_push_str (kb, "internal/results", buf);
+  kb_item_push_str_with_main_kb_check (kb, "internal/results", buf);
   g_free (buf);
 }
 
@@ -683,7 +687,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
-                  kb_check_push_str (args->main_kb, "internal/results", buffer);
+                  kb_item_push_str_with_main_kb_check (
+                    args->main_kb, "internal/results", buffer);
 
                   comm_send_status_host_dead (args->main_kb, ip_str);
                   goto host_died;
@@ -749,7 +754,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
             buffer, sizeof (buffer),
             "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
             ip_str);
-          kb_check_push_str (args->main_kb, "internal/results", buffer);
+          kb_item_push_str_with_main_kb_check (args->main_kb,
+                                               "internal/results", buffer);
           g_warning ("%s: Unable to launch table driven LSC", __func__);
         }
     }
@@ -916,7 +922,8 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
   kb_lnk_reset (main_kb);
   gettimeofday (&then, NULL);
 
-  kb_check_set_str (kb, "internal/scan_id", globals->scan_id, 0);
+  kb_item_set_str_with_main_kb_check (kb, "internal/scan_id", globals->scan_id,
+                                      0);
   set_kb_readable (kb_get_kb_index (kb));
 
   /* The reverse lookup is delayed to this step in order to not slow down the
@@ -937,7 +944,7 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
         message_to_client (kb, "Host access denied (system-wide restriction.)",
                            ip_str, NULL, "ERRMSG");
 
-      kb_check_set_str (kb, "internal/host_deny", "True", 0);
+      kb_item_set_str_with_main_kb_check (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
       return;
     }

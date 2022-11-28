@@ -266,8 +266,8 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
     }
   kb_del_items (kb, key);
   snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-  kb_check_set_str (kb, key, "ready", 0);
-  kb_check_set_int (kb, "internal/ovas_pid", getpid ());
+  kb_item_set_str_with_main_kb_check (kb, key, "ready", 0);
+  kb_item_set_int_with_main_kb_check (kb, "internal/ovas_pid", getpid ());
   kb_lnk_reset (kb);
 
   g_debug ("End loading scan preferences.");
@@ -401,11 +401,12 @@ send_message_to_client_and_finish_scan (const char *msg)
   char key[1024];
   kb_t kb;
 
+  // We get the main kb. It is still not set as global at this point.
   snprintf (key, sizeof (key), "internal/%s/scanprefs", get_scan_id ());
   kb = kb_find (prefs_get ("db_address"), key);
-  kb_check_push_str (kb, "internal/results", msg);
+  kb_item_push_str (kb, "internal/results", msg);
   snprintf (key, sizeof (key), "internal/%s", get_scan_id ());
-  kb_check_set_str (kb, key, "finished", 0);
+  kb_item_set_str (kb, key, "finished", 0);
   kb_lnk_reset (kb);
 }
 
