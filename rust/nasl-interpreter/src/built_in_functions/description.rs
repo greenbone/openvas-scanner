@@ -107,6 +107,7 @@ make_storage_function! {
   script_require_ports => [required_ports: 2],
   script_tag => (name: value),
   script_require_udp_ports => [require_udp_ports: 0],
+  script_require_keys => [require_keys: 0],
   script_cve_id => [cve_ids: 0],
   script_xref => (name: value)
 }
