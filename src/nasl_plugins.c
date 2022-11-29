@@ -23,6 +23,7 @@
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 
+#include "../misc/kb_cache.h" /* for get_main_kb */
 #include "../misc/network.h"
 #include "../misc/plugutils.h" /* for plug_set_launch */
 #include "../nasl/nasl.h"
@@ -211,6 +212,7 @@ nasl_thread (struct ipc_context *ipcc, struct script_infos *args)
   nvticache_reset ();
   kb = args->key;
   kb_lnk_reset (kb);
+  kb_lnk_reset (get_main_kb ());
   addr6_to_str (args->ip, ip_str);
   // TODO extend sript_infos here
   setproctitle ("openvas: testing %s (%s)", ip_str, args->name);
