@@ -371,7 +371,7 @@ mod test {
     #[test]
     fn repeat_call() {
         assert_eq!(
-            result("lol() x 2;"),
+            result("x() x 2;"),
             Operator(
                 X,
                 vec![
