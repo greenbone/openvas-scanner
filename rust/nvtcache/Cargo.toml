@@ -8,8 +8,11 @@ edition = "2021"
 [dependencies]
 redis = "0.22.1"
 chrono = "0.4.23"
+sink = { path = "../sink" }
+
 
 [features]
+#default = ["redis_test"]
 # uses a redis instance when enabled 
 # to enable it for testing run 
 # cargo test --features=redis_test 

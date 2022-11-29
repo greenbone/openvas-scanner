@@ -1,9 +1,19 @@
 use crate::{
     context::{ContextType, NaslContext, Register},
     error::FunctionError,
-    interpreter::{NaslValue, Storage},
+    interpreter::NaslValue,
     NaslFunction,
 };
+
+use sink::{NVTKey, NvtPreference, PreferenceType, Sink, SinkError, TagKey};
+
+impl From<SinkError> for FunctionError {
+    fn from(_: SinkError) -> Self {
+        Self {
+            reason: "something went horrible wrong on a db".to_owned(),
+        }
+    }
+}
 
 /// Makes a storage function base on a very small DSL.
 ///
@@ -12,28 +22,30 @@ use crate::{
 /// although the positional block as well as the named_parameter block are optional wen both are omitted a warning 
 /// that the storage is unused will pop up informing the developer that this created method is useless.
 macro_rules! make_storage_function {
-    ($($name:ident=> $([$key:ident : $len:expr])? $(($nkey:ident:$value:ident)),* ),+) => {
+    ($($name:ident $transform:expr => $([$key:ident : $len:expr])? $(($($value:ident):+))? ),+) => {
         $(
         $(
-        /// Stores 
+        /// Stores
         /// positional values
         #[doc = concat!("(", stringify!($len), ")")]
         /// as
         #[doc = concat!("`", stringify!($key), "`.")]
         )?
         $(
-        /// Stores value defined in named_parameter 
+        /// Stores value defined in named_parameter
+            $(
         #[doc = concat!("`", stringify!($value), "`")]
-        /// as key defined in 
-        #[doc = concat!("`", stringify!($nkey), "`.")]
+            )+
         )*
         ///
         /// Returns NaslValue::Null on success.
         pub fn $name(
-            storage: &mut dyn Storage,
-            registrat: &mut Register,
+            key: &str,
+            storage: &dyn Sink,
+            registrat: &Register,
         ) -> Result<NaslValue, FunctionError> {
             let ctx = registrat.last();
+            let mut variables = vec![];
             $(
             let positional = ctx.positional(registrat);
             if $len > 0 && positional.len() != $len{
@@ -44,7 +56,7 @@ macro_rules! make_storage_function {
             for p in positional {
                 match p {
                     ContextType::Value(value) => {
-                        storage.write(stringify!($key), &value.to_string());
+                        variables.push(value);
                     },
                     _ => {
                         return Err(FunctionError::new(
@@ -55,11 +67,13 @@ macro_rules! make_storage_function {
             }
             )?
             $(
-            let key = get_named_parameter(registrat, ctx, stringify!($nkey))?;
+            $(
             let value = get_named_parameter(registrat, ctx, stringify!($value))?;
-
-            storage.write(key, value);
-            )*
+            variables.push(value);
+            )+
+            )?
+            let db_arg = $transform(&variables)?;
+            storage.store(key, sink::Scope::NVT(db_arg))?;
             Ok(NaslValue::Null)
         }
         )*
@@ -79,11 +93,11 @@ fn get_named_parameter<'a>(
     registrat: &'a Register,
     ctx: &'a NaslContext,
     key: &'a str,
-) -> Result<&'a str, FunctionError> {
+) -> Result<&NaslValue, FunctionError> {
     match ctx.named(registrat, key) {
         None => Err(FunctionError::new(format!("expected {} to be set.", key))),
         Some(ct) => match ct {
-            ContextType::Value(NaslValue::String(value)) => Ok(value),
+            ContextType::Value(value) => Ok(value),
             _ => Err(FunctionError::new(format!(
                 "expected {} to be a string.",
                 key
@@ -92,22 +106,115 @@ fn get_named_parameter<'a>(
     }
 }
 
+fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    Ok(NVTKey::Preference(NvtPreference {
+        id: 0,
+        name: "timeout".to_owned(),
+        class: PreferenceType::Entry,
+        default: arguments[0].to_string(),
+    }))
+}
+
+fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    match arguments[0] {
+        NaslValue::AttackCategory(cat) => Ok(NVTKey::Category(*cat)),
+        _ => Err(FunctionError {
+            reason: "unexpected type for category.".to_owned(),
+        }),
+    }
+}
+
+fn as_name_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    Ok(NVTKey::Name(arguments[0].to_string()))
+}
+
+fn as_oid_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    Ok(NVTKey::Oid(arguments[0].to_string()))
+}
+
+fn as_family_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    Ok(NVTKey::Family(arguments[0].to_string()))
+}
+
+fn as_noop(_arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    Ok(NVTKey::NoOp)
+}
+
+fn as_dependencies_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
+    Ok(NVTKey::Dependencies(values))
+}
+
+fn as_exclude_keys_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
+    Ok(NVTKey::ExcludedKeys(values))
+}
+
+fn as_mandatory_keys_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
+    Ok(NVTKey::MandatoryKeys(values))
+}
+
+fn as_require_ports_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
+    Ok(NVTKey::RequiredPorts(values))
+}
+
+fn as_require_udp_ports_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
+    Ok(NVTKey::RequiredUdpPorts(values))
+}
+
+fn as_require_keys_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
+    Ok(NVTKey::RequiredKeys(values))
+}
+
+fn as_cve_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    Ok(NVTKey::Reference(sink::NvtRef {
+        class: "cve".to_owned(),
+        id: arguments[0].to_string(),
+        text: None,
+    }))
+}
+
+fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    let key = TagKey::new(&arguments[0].to_string()).ok_or_else(|| FunctionError {
+        reason: "invalid tagkey".to_owned(),
+    })?;
+    Ok(NVTKey::Tag(key, arguments[1].to_string()))
+}
+
+fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+    if arguments.len() != 2 {
+        return Err(FunctionError {
+            reason: "expected either name or csv to be set".to_owned(),
+        });
+    }
+    // TODO handle csv correctly
+    Ok(NVTKey::Reference(sink::NvtRef {
+        class: arguments[1].to_string(),
+        id: arguments[0].to_string(),
+        text: None,
+    }))
+}
+
 // creates the actual description functions
 make_storage_function! {
-  script_timeout => [timeout :1],
-  script_category => [category :1],
-  script_name => [name :1],
-  script_version => [version :1],
-  script_copyright => [copyright :1],
-  script_family => [family :1],
-  script_oid => [oid :1],
-  script_dependencies => [dependencies :0],
-  script_exclude_keys => [exclude_keys :0],
-  script_mandatory_keys => [mandatory_keys: 0],
-  script_require_ports => [required_ports: 2],
-  script_tag => (name: value),
-  script_require_udp_ports => [require_udp_ports: 0],
-  script_require_keys => [require_keys: 0],
-  script_cve_id => [cve_ids: 0],
-  script_xref => (name: value)
+  script_timeout as_timeout_field => [timeout :1],
+  script_category as_category_field => [category :1],
+  script_name as_name_field => [name :1],
+  script_version as_noop => [version :1],
+  script_copyright as_noop => [copyright :1],
+  script_family as_family_field => [family :1],
+  script_oid as_oid_field => [oid :1],
+  script_dependencies as_dependencies_field => [dependencies :0],
+  script_exclude_keys as_exclude_keys_field => [exclude_keys :0],
+  script_mandatory_keys as_mandatory_keys_field => [mandatory_keys: 0],
+  script_require_ports as_require_ports_field => [required_ports: 0],
+  script_require_udp_ports as_require_udp_ports_field => [require_udp_ports: 0],
+  script_require_keys as_require_keys_field => [require_keys: 0],
+  script_cve_id as_cve_field => [cve_ids: 0],
+  script_tag as_tag_field => (name: value),
+  script_xref as_xref_field => (name: value)
 }

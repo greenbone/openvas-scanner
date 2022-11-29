@@ -1,6 +1,7 @@
 use nasl_syntax::SyntaxError;
 
 // TODO refactor error handling
+#[derive(Debug)]
 pub struct FunctionError {
     pub reason: String,
 }
