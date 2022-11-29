@@ -63,7 +63,7 @@ plug_current_vhost (void)
   return current_vhost->value;
 }
 
-static int plug_fork_child (kb_t, kb_t);
+static int plug_fork_child (kb_t);
 
 void
 plug_set_dep (struct script_infos *args, const char *depname)
@@ -266,7 +266,7 @@ plug_get_host_fqdn (struct script_infos *args)
     return g_strdup (current_vhost->value);
   while (vhosts)
     {
-      int ret = plug_fork_child (get_main_kb (), args->key);
+      int ret = plug_fork_child (args->key);
 
       if (ret == 0)
         {
@@ -676,8 +676,8 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
       return;
     }
 
-
-  kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results", data);
+  kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
+                                       data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
@@ -1099,7 +1099,7 @@ sig_n (int signo, void (*fnc) (int))
  * failure
  */
 static int
-plug_fork_child (kb_t main, kb_t kb)
+plug_fork_child (kb_t kb)
 {
   pid_t pid;
 
@@ -1109,7 +1109,7 @@ plug_fork_child (kb_t main, kb_t kb)
       sig_n (SIGTERM, _exit);
       mqtt_reset ();
       kb_lnk_reset (kb);
-      kb_lnk_reset (main);
+      kb_lnk_reset (get_main_kb ());
       nvticache_reset ();
       srand48 (getpid () + getppid () + time (NULL));
       return 0;
@@ -1189,7 +1189,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   res_list = res;
   while (res)
     {
-      int pret = plug_fork_child (get_main_kb (), kb);
+      int pret = plug_fork_child (kb);
 
       if (pret == 0)
         {
