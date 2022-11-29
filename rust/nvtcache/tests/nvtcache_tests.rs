@@ -1,4 +1,4 @@
-use ::nvtcache::dberror::Result;
+use ::nvtcache::dberror::RedisResult;
 use ::nvtcache::nvt::Nvt;
 use ::nvtcache::redisconnector::KbNvtPos;
 use nvtcache::nvtcache;
@@ -8,7 +8,6 @@ use nvtcache::nvtcache;
 mod test {
     use std::env;
 
-    use ::nvtcache::nvt::NvtPref;
 
     use super::*;
 
@@ -17,14 +16,14 @@ mod test {
     // Use cargo test --features=redis_test.
     // Also, set the environment variables REDIS_SOCKET and PLUGIN_PATH with valid paths
     #[cfg(feature = "redis_test")]
-    fn integration_test_nvtcache() -> Result<()> {
-        let mut nvtcache: nvtcache::NvtCache;
+    fn integration_test_nvtcache() -> RedisResult<()> {
+        let mut nvtcache: nvtcache::RedisNvtCache;
 
         let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
         let redis_socket = env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket);
         let default_plugin_path = |_| "/var/lib/openvas/plugins/".to_string();
         let plugin_path = env::var("PLUGIN_PATH").unwrap_or_else(default_plugin_path);
-        nvtcache = nvtcache::NvtCache::init(&redis_socket, &plugin_path)?;
+        nvtcache = nvtcache::RedisNvtCache::init(&redis_socket, &plugin_path)?;
         assert_eq!(nvtcache.is_init(), true);
 
         // Test get_namespace()

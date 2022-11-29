@@ -1,8 +1,10 @@
-use nvtcache::dberror::Result;
-use nvtcache::nvt::{parse_nvt_timestamp, Category, Nvt, NvtRef};
+use nvtcache::dberror::RedisResult;
+use nvtcache::nvt::{parse_nvt_timestamp, Nvt};
 
 #[cfg(test)]
 mod test {
+
+    use sink::{NvtRef, ACT};
 
     use super::*;
 
@@ -46,18 +48,18 @@ mod test {
     }
 
     #[test]
-    fn test_bid_refs() -> Result<()> {
+    fn test_bid_refs() -> RedisResult<()> {
         let mut nvt = Nvt::new()?;
         let bid_refs1 = NvtRef::new(
             "bid".to_owned(),
             "BID_ID1".to_owned(),
-            "BID-text".to_owned(),
-        )?;
+            Some("BID-text".to_owned()),
+        );
         let bid_refs2 = NvtRef::new(
             "bid".to_owned(),
             "BID_ID2".to_owned(),
-            "BID-text".to_owned(),
-        )?;
+            Some("BID-text".to_owned()),
+        );
 
         nvt.add_ref(bid_refs1);
         nvt.add_ref(bid_refs2);
@@ -69,18 +71,18 @@ mod test {
         Ok(())
     }
     #[test]
-    fn test_cve_refs() -> Result<()> {
+    fn test_cve_refs() -> RedisResult<()> {
         let mut nvt = Nvt::new()?;
         let cve_refs1 = NvtRef::new(
             "cve".to_owned(),
             "cve_ID1".to_owned(),
-            "CVE-text".to_owned(),
-        )?;
+            Some("CVE-text".to_owned()),
+        );
         let cve_refs2 = NvtRef::new(
             "cve".to_owned(),
             "cve_ID1".to_owned(),
-            "CVE-text".to_owned(),
-        )?;
+            Some("CVE-text".to_owned()),
+        );
         nvt.add_ref(cve_refs1);
         nvt.add_ref(cve_refs2);
         let cve;
@@ -90,18 +92,18 @@ mod test {
         Ok(())
     }
     #[test]
-    fn test_xrefs() -> Result<()> {
+    fn test_xrefs() -> RedisResult<()> {
         let mut nvt = Nvt::new()?;
         let xrefs1 = NvtRef::new(
             "URL".to_owned(),
             "http://greenbone.net".to_owned(),
-            "some text".to_owned(),
-        )?;
+            Some("some text".to_owned()),
+        );
         let xrefs2 = NvtRef::new(
             "URL".to_owned(),
             "http://openvas.net".to_owned(),
-            "some text".to_owned(),
-        )?;
+            Some("some text".to_owned()),
+        );
 
         nvt.add_ref(xrefs1);
         nvt.add_ref(xrefs2);
@@ -114,8 +116,8 @@ mod test {
 
     #[test]
     fn test_category_from_trait() {
-        let cat = Category::ActEnd;
+        let cat = ACT::End;
 
-        assert_eq!(cat.to_string(), "10");
+        assert_eq!(cat as i32, 10);
     }
 }

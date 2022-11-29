@@ -1,4 +1,6 @@
-use crate::{unexpected_statement, SyntaxError, Token, TokenCategory, token::ACT};
+use crate::ACT;
+
+use crate::{unexpected_statement, SyntaxError, Token, TokenCategory};
 
 /// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]

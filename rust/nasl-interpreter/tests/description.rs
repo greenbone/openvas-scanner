@@ -1,36 +1,19 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
-    use nasl_interpreter::{Storage, Interpreter, ContextType, NaslValue, error::InterpretError};
-    use nasl_syntax::parse;
-
-    struct MockStorage {
-        map: HashMap<String, String>,
-    }
-
-    impl MockStorage {
-        fn new() -> Self {
-            MockStorage {
-                map: HashMap::new(),
-            }
-        }
-    }
-    impl Storage for MockStorage {
-        fn write(&mut self, key: &str, value: &str) {
-            self.map.insert(key.to_string(), value.to_string());
-        }
-        fn read(&self, key: &str) -> Option<&str> {
-            if self.map.contains_key(key) {
-                return Some(self.map[key].as_str());
-            }
-            None
-        }
-    }
-
+    use nasl_interpreter::{interpret, Mode};
+    use nasl_interpreter::NaslValue;
+    
+    use sink::DefaultSink;
+    use sink::NVTKey::*;
+    use sink::NvtRef;
+    use sink::Scope::NVT;
+    use sink::Sink;
+    use sink::TagKey::*;
+    use sink::ACT::*;
 
     #[test]
-    fn description() -> Result<(), InterpretError>{
+    fn description() {
         let code = r###"
 if(description)
 {
@@ -38,10 +21,7 @@ if(description)
   script_version("2022-11-14T13:47:12+0000");
   script_tag(name:"creation_date", value:"2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)");
   script_name("that is a very long and descriptive name");
-
-# script_category values should be a keyword
   script_category(ACT_DENIAL);
-  script_tag(name:"qod_type", value:"remote_vul");
   script_copyright("Copyright (C) 2022 Greenbone Networks GmbH");
   script_family("Denial of Service");
   script_dependencies("ssh_detect.nasl", "ssh2.nasl");
@@ -56,16 +36,52 @@ if(description)
   exit(0);
 }
         "###;
-        let mut storage= MockStorage::new();
-        let initial = vec![("description".to_owned(), ContextType::Value(NaslValue::Number(1)))];
-        let mut interpret = Interpreter::new(&mut storage, initial, code);
-        for stmt in parse(code) {
-            let stmt = stmt?;
-            assert_eq!(interpret.resolve(stmt)?, NaslValue::Exit(0));
-        }
-        assert_eq!(storage.read("oid"), Some("0.0.0.0.0.0.0.0.0.1"));
-        // TODO same for the others
-        Ok(())
+        let storage = DefaultSink::new(true);
+        let results = interpret(&storage, Mode::Description("test.nasl"), code);
+        assert_eq!(results, vec![Ok(NaslValue::Exit(0))]);
+        assert_eq!(
+            &storage.get("test.nasl").unwrap(),
+            &vec![
+                NVT(FileName("test.nasl".to_owned())),
+                NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
+                NVT(NoOp),
+                NVT(Tag(
+                    CreationDate,
+                    "2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)".to_owned()
+                )),
+                NVT(Name("that is a very long and descriptive name".to_owned())),
+                NVT(Category(Denial)),
+                NVT(NoOp),
+                NVT(Family("Denial of Service".to_owned())),
+                NVT(Dependencies(vec![
+                    "ssh_detect.nasl".to_owned(),
+                    "ssh2.nasl".to_owned()
+                ])),
+                NVT(RequiredPorts(vec![
+                    "Services/ssh".to_owned(),
+                    "22".to_owned()
+                ])),
+                NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()])),
+                NVT(Reference(NvtRef {
+                    class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
+                    id: "URL".to_owned(),
+                    text: None
+                })),
+                NVT(ExcludedKeys(vec![
+                    "Settings/disable_cgi_scanning".to_owned(),
+                    "bla/bla".to_owned()
+                ])),
+                NVT(RequiredUdpPorts(vec![
+                    "Services/udp/unknown".to_owned(),
+                    "17".to_owned()
+                ])),
+                NVT(Reference(NvtRef {
+                    class: "cve".to_owned(),
+                    id: "CVE-1999-0524".to_owned(),
+                    text: None
+                })),
+                NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()]))
+            ]
+        );
     }
-
 }

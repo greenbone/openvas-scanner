@@ -546,6 +546,7 @@ name = "nasl-interpreter"
 version = "0.1.0"
 dependencies = [
  "nasl-syntax",
+ "sink",
 ]
 
 [[package]]
@@ -553,6 +554,7 @@ name = "nasl-syntax"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "sink",
 ]
 
 [[package]]
@@ -590,6 +592,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "redis",
+ "sink",
 ]
 
 [[package]]
@@ -815,6 +818,10 @@ name = "sha1_smol"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae1a47186c03a32177042e55dbc5fd5aee900b8e0069a8d70fba96a9375cd012"
+
+[[package]]
+name = "sink"
+version = "0.1.0"
 
 [[package]]
 name = "strsim"

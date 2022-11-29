@@ -380,13 +380,13 @@ mod test {
                     Call(
                         Token {
                             category: Identifier(None),
-                            position: (0, 3)
+                            position: (0, 1)
                         },
                         Box::new(Parameter(vec![]))
                     ),
                     Primitive(Token {
                         category: Number(Base10),
-                        position: (8, 9)
+                        position: (6, 7)
                     })
                 ]
             )

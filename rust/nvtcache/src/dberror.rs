@@ -1,7 +1,7 @@
 use redis::*;
 use std::fmt;
 
-pub type Result<T> = std::result::Result<T, DbError>;
+pub type RedisResult<T> = std::result::Result<T, DbError>;
 
 #[derive(Debug)]
 pub enum DbError {

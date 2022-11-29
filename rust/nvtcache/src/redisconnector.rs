@@ -1,5 +1,5 @@
 use crate::dberror::DbError;
-use crate::dberror::Result;
+use crate::dberror::RedisResult;
 use crate::nvt::Nvt;
 use redis::*;
 
@@ -23,16 +23,10 @@ pub enum KbNvtPos {
     NvtOIDPos,
 }
 
-/// Redis context structure which holds a stablished redis connection
-/// and information necessary for handling the Nvt Cache and KBs.
 pub struct RedisCtx {
-    //a redis connection
-    kb: Connection,
-    // the name space
-    db: u32,
-    // max db index
-    maxdb: u32,
-    // the key name for the in-use list in the namespace 0
+    kb: Connection, //a redis connection
+    db: u32,        // the name space
+    maxdb: u32,     // max db index
     global_db_index: String,
 }
 
@@ -42,11 +36,11 @@ pub struct RedisValueHandler {
 }
 
 impl FromRedisValue for RedisValueHandler {
-    fn from_redis_value(v: &Value) -> RedisResult<RedisValueHandler> {
+    fn from_redis_value(v: &Value) -> redis::RedisResult<RedisValueHandler> {
         match v {
             Value::Nil => Ok(RedisValueHandler { v: String::new() }),
             _ => {
-                let new_var: String = from_redis_value(v).unwrap_or("".to_string());
+                let new_var: String = from_redis_value(v).unwrap_or_default();
                 Ok(RedisValueHandler { v: new_var })
             }
         }
@@ -55,7 +49,7 @@ impl FromRedisValue for RedisValueHandler {
 
 impl RedisCtx {
     /// Connect to the redis server and return a redis context object
-    pub fn new(redis_socket: &str) -> Result<RedisCtx> {
+    pub fn new(redis_socket: &str) -> RedisResult<RedisCtx> {
         let client = redis::Client::open(redis_socket)?;
         let kb = client.get_connection()?;
         let global_db_index = "GVM.__GlobalDBIndex".to_string();
@@ -70,7 +64,7 @@ impl RedisCtx {
     }
 
     /// Get the max db index configured for the redis server instance
-    fn max_db_index(&mut self) -> Result<u32> {
+    fn max_db_index(&mut self) -> RedisResult<u32> {
         if self.maxdb > 0 {
             return Ok(self.maxdb);
         }
@@ -102,23 +96,20 @@ impl RedisCtx {
                     Ok(m) => return m,
                     Err(e) => {
                         println!("{}", e);
-                        return 0 as u32;
+                        return 0_u32;
                     }
                 }
             }
-            return 0 as u32;
+            0_u32
         }
     }
 
-    pub fn get_namespace(&mut self) -> Result<u32> {
+    pub fn get_namespace(&mut self) -> RedisResult<u32> {
         let db: u32 = self.db;
         Ok(db)
     }
 
-    /// A custom command to change the namespace.
-    /// WARNING: This change is not reflected in the kb object.
-    /// Always check for the self.db for the current db index
-    fn set_namespace(&mut self, db_index: u32) -> Result<()> {
+    fn set_namespace(&mut self, db_index: u32) -> RedisResult<()> {
         Cmd::new()
             .arg("SELECT")
             .arg(db_index.to_string())
@@ -128,15 +119,12 @@ impl RedisCtx {
         Ok(())
     }
 
-    /// Try to set a namespace index as in use in the in-use list
-    fn try_database(&mut self, dbi: u32) -> Result<u32> {
+    fn try_database(&mut self, dbi: u32) -> RedisResult<u32> {
         let ret = self.kb.hset_nx(&self.global_db_index, dbi, 1)?;
         Ok(ret)
     }
 
-    /// Try to adquire ownership on a free namespace.
-    /// On success, it returns the namespace index.
-    fn select_database(&mut self) -> Result<u32> {
+    fn select_database(&mut self) -> RedisResult<u32> {
         let maxdb: u32 = self.max_db_index()?;
         let mut selected_db: u32 = 0;
 
@@ -153,13 +141,13 @@ impl RedisCtx {
             self.set_namespace(selected_db)?;
             return Ok(self.db);
         }
-        return Err(DbError::NoAvailDbErr(String::from(
+        Err(DbError::NoAvailDbErr(String::from(
             "Not possible to select a free db",
-        )));
+        )))
     }
 
     /// Delete an entry from the in-use namespace's list
-    fn release_namespace(&mut self) -> Result<()> {
+    fn release_namespace(&mut self) -> RedisResult<()> {
         // Get firstthe current db index, the one to be released
         let dbi = self.get_namespace()?;
         // Remove the entry from the hash list
@@ -168,58 +156,48 @@ impl RedisCtx {
         Ok(())
     }
 
-    /// Delete all keys in the namespace and relase it
-    pub fn delete_namespace(&mut self) -> Result<()> {
+    /// Delete all keys in the namespace and relase the it
+    pub fn delete_namespace(&mut self) -> RedisResult<()> {
         Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
         self.release_namespace()?;
         Ok(())
     }
-    /// Set a key as redis string type
-    pub fn redis_set_key<T: ToRedisArgs>(&mut self, key: &str, val: T) -> Result<()> {
-        let _: () = self.kb.set(key, val)?;
+    //Wrapper function to avoid accessing kb member directly.
+    pub fn redis_set_key<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisResult<()> {
+        self.kb.set(key, val)?;
         Ok(())
     }
 
-    /// Prepend a new item to the given key, which is a redis list type
-    pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: &String, val: T) -> Result<String> {
+    pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: String, val: T) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.lpush(key, val)?;
         Ok(ret.v)
     }
 
-    /// Get the content of the given key string type from the current namespace
-    pub fn redis_get_key(&mut self, key: &str) -> Result<String> {
+    pub fn redis_get_key(&mut self, key: &str) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
 
-    /// Get and item from the key redis list type
-    pub fn redis_get_item(&mut self, key: String, index: KbNvtPos) -> Result<String> {
+    pub fn redis_get_item(&mut self, key: String, index: KbNvtPos) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
         Ok(ret.v)
     }
 
-    /// Remove the given key and its content from current namespace
-    pub fn redis_del_key(&mut self, key: &String) -> Result<String> {
-        let ret: RedisValueHandler = self.kb.del(&key)?;
+    pub fn redis_del_key(&mut self, key: String) -> RedisResult<String> {
+        let ret: RedisValueHandler = self.kb.del(key)?;
         Ok(ret.v)
     }
 
-    /// All tag tuples in the vector are returned as a pipe separated string.
     fn tags_as_single_string(&self, tags: &Vec<(String, String)>) -> String {
         let tag: Vec<String> = tags
             .iter()
-            .map(|(key, val)| format!("{}={}", key, val).to_string())
+            .map(|(key, val)| format!("{}={}", key, val))
             .collect();
 
         tag.iter().as_ref().join("|")
     }
 
-    /// Add an NVT in the redis cache.
-    /// The NVT metadata is stored in two different keys:
-    /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
-    /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
-    ///   (which is especial and uses preferences id 0)
-    pub fn redis_add_nvt(&mut self, nvt: Nvt, filename: String) -> Result<()> {
+    pub fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisResult<()> {
         let oid = nvt.get_oid();
         let name = nvt.get_name();
         let required_keys = nvt.get_required_keys().concat();
@@ -237,7 +215,7 @@ impl RedisCtx {
 
         let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
         let values: Vec<&str> = [
-            &filename,
+            nvt.filename(),
             &required_keys,
             &mandatory_keys,
             &excluded_keys,
@@ -254,19 +232,13 @@ impl RedisCtx {
         ]
         .to_vec();
 
-        // Use a pipeline for sending a command batch to redis in one single shot
-        let mut pipeline = pipe();
-        pipeline.rpush(key_name, values);
+        self.kb.rpush(key_name, values)?;
 
         // Add preferences
+        let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
         let prefs = nvt.get_prefs();
-        if !prefs.is_empty() {
-            let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
-            pipeline.del(&key_name);
-            pipeline.lpush(&key_name, prefs);
-        }
+        self.kb.lpush(key_name, prefs)?;
 
-        pipeline.query(&mut self.kb)?;
         Ok(())
     }
 }
