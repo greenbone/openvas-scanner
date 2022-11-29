@@ -139,7 +139,7 @@ impl<'a> Lexer<'a> {
                     continue;
                 }
             }
-            // Due to peeking it can end up in and endlessloop
+            // Due to peeking it can end up in an endless loop
             return Err(unexpected_token!(token));
         }
 
