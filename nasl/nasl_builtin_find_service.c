@@ -19,6 +19,7 @@
 
 #define SMART_TCP_RW
 
+#include "../misc/kb_cache.h"  /* for get_main_kb */
 #include "../misc/network.h"   /* for get_encaps_through */
 #include "../misc/plugutils.h" /* for OPENVAS_ENCAPS_IP */
 #include "nasl_builtin_plugins.h"
@@ -2583,8 +2584,10 @@ plugin_run_find_service (lex_ctxt *lexic)
           if (sons[i] == 0)
             {
               kb_lnk_reset (kb);
+              kb_lnk_reset (get_main_kb ());
               mqtt_reset ();
               nvticache_reset ();
+
               signal (SIGTERM, _exit);
               plugin_do_run (desc, sons_args[i], test_ssl);
               _exit (0);
