@@ -102,6 +102,7 @@ Ensure (attack, comm_send_status_sends_correct_text)
   kb_ops_struct.kb_lnk_reset = __wrap_redis_lnk_reset;
   kb->kb_ops = &kb_ops_struct;
 
+  set_main_kb (kb);
   expect (__wrap_redis_push_str);
   expect (__wrap_redis_lnk_reset);
   assert_that (comm_send_status (kb, "127.0.0.1", 11, 67), is_equal_to (0));
