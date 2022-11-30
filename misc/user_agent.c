@@ -44,7 +44,7 @@ send_user_agent_via_ipc (struct ipc_context *ipc_context)
 
   ua = ipc_data_type_from_user_agent (user_agent, strlen (user_agent));
   json = ipc_data_to_json (ua);
-  ipc_data_destroy (ua);
+  ipc_data_destroy (&ua);
   if (ipc_send (ipc_context, IPC_MAIN, json, strlen (json)) < 0)
     g_warning ("Unable to send %s to host process", user_agent);
 }
