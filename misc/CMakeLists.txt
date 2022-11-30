@@ -141,11 +141,18 @@ install (DIRECTORY
 
 enable_testing ()
 
+set (LINK_LIBS_FOR_TESTS cgreen
+                       ${LIBGVM_BASE_LDFLAGS}
+                       ${GLIB_LDFLAGS}
+                       ${PCAP_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
+                       ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
+
 set (ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS
-     "-Wl,-wrap,socket,-wrap,setsockopt")
-add_executable (pcap-test
-                EXCLUDE_FROM_ALL
-                pcap_tests.c)
+  "-Wl,-wrap,socket,-wrap,setsockopt")
+
+# pcap-tests
+add_executable (pcap-test EXCLUDE_FROM_ALL pcap_tests.c)
 add_test (pcap-test pcap-test)
 target_include_directories (pcap-test PRIVATE ${CGREEN_INCLUDE_DIRS})
 target_link_libraries (pcap-test cgreen
@@ -156,5 +163,17 @@ target_link_libraries (pcap-test cgreen
                        ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
 add_custom_target (tests-pcap
                   DEPENDS pcap-test)
+
+# ipc-openvas-tests
+add_executable (ipc-openvas-test EXCLUDE_FROM_ALL ipc_openvas_tests.c)
+add_test (ipc-openvas-test ipc-openvas-test)
+target_include_directories (ipc-openvas-test PRIVATE ${CGREEN_INCLUDE_DIRS})
+target_link_libraries (ipc-openvas-test cgreen
+                       ${GLIB_LDFLAGS}
+                       ${GLIB_JSON_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS})
+
+add_custom_target (tests-ipc-openvas
+                  DEPENDS ipc-openvas-test)
 
 ## End
