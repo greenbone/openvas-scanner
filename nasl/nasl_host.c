@@ -140,7 +140,7 @@ add_hostname (lex_ctxt *lexic)
   hn = ipc_data_type_from_hostname (source, strlen (source), lower,
                                     strlen (lower));
   json = ipc_data_to_json (hn);
-  ipc_data_destroy (hn);
+  ipc_data_destroy (&hn);
   if (plug_add_host_fqdn (lexic->script_infos, lower, source))
     goto end_add_hostname;
 
