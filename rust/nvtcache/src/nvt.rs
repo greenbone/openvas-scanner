@@ -449,7 +449,6 @@ impl Nvt {
     /// "id, id, ...", while other custom types includes the type
     /// and the string is in the format "type:id, type:id, ..."
     pub fn get_refs(&self) -> (String, String, String) {
-        println!("checking {:?}", self.refs);
         let (bids, cves, xrefs): (Vec<String>, Vec<String>, Vec<String>) =
             self.refs
                 .iter()

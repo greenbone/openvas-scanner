@@ -1,6 +1,8 @@
-use sink::Scope;
+use sink::GetType;
+use sink::NVTKey;
 use sink::Sink;
 use sink::SinkError;
+use sink::StoreType;
 
 use crate::dberror::DbError;
 use crate::dberror::RedisResult;
@@ -10,7 +12,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 pub struct RedisNvtCache {
-    pub cache: Arc<Mutex<RedisCtx>>,
+    cache: Arc<Mutex<RedisCtx>>,
     // The current redis implementation needs a complete NVT object to work with
     // due to the defined ordering.
     // Therefore it caches it until on exit is called.
@@ -43,6 +45,8 @@ impl RedisNvtCache {
         cache.delete_namespace()
     }
 
+    // TODO move that out of here
+
     /// Set the key nvtcache
     pub fn set_version(&self, feed_version: &str) -> RedisResult<()> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
@@ -67,12 +71,13 @@ impl RedisNvtCache {
         }
         Ok(false)
     }
+    // END TODO
 
     pub fn get_nvt_field(&self, oid: String, field: KbNvtPos) -> RedisResult<String> {
         let mut key: String = "nvt:".to_owned();
         key.push_str(oid.as_str());
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let value = cache.redis_get_item(key, field)?;
+        let value = cache.lindex(key, field)?;
         Ok(value)
     }
 
@@ -80,90 +85,96 @@ impl RedisNvtCache {
         let mut key: String = "nvt:".to_owned();
         key.push_str(oid);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let filename = cache.redis_get_item(key, KbNvtPos::NvtFilenamePos)?;
+        let filename = cache.lindex(key, KbNvtPos::Filename)?;
         Ok(filename)
     }
 
+
+
+
     pub fn store_nvt(&self) -> RedisResult<()> {
-            let nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
-        let oid = nvtc.get_oid();
-        let filename = nvtc.filename();
-        let cached_nvt: String = self.get_nvt_filename(oid)?;
-
-        // First check if there is a duplicate OID
-        // If it is in the cache, and are not the same filename
-        // we check if it is still in the filesystem.
-        if !cached_nvt.is_empty() && cached_nvt != filename {
-            // TODO
-            //let mut src_path: String = self.plugin_path.to_owned();
-            //src_path.push_str(&cached_nvt);
-
-            // If still exists, the oid is duplicated
-            // if Path::new(&src_path).exists() {
-            //     println!(
-            //         "NVT {src_path} with duplicate OID {oid} \
-            //          will be replaced with {filename}"
-            //     );
-            // }
-        }
-
-        if !cached_nvt.is_empty() {
-            let mut key: String = "nvt:".to_owned();
-            key.push_str(oid.as_ref());
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-            let _ = cache.redis_del_key(key)?;
-        }
+        let nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
+        // TODO add oid duplicate check on interpreter
 
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        cache.redis_add_nvt(nvtc.clone())?;
-        
+        cache.redis_add_nvt(nvtc.clone()).unwrap();
+
         Ok(())
     }
 }
 
 impl From<DbError> for SinkError {
     fn from(_: DbError) -> Self {
-        Self {  }
+        Self {}
     }
 }
 
 impl Sink for RedisNvtCache {
-    fn store(&self, _key: &str, scope: sink::Scope) -> Result<(), sink::SinkError> {
+    fn store(&self, _key: &str, scope: sink::StoreType) -> Result<(), sink::SinkError> {
         match scope {
-            Scope::NVT(field) => {
+            StoreType::NVT(field) => {
                 let mut nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
                 match field {
-                    sink::NVTKey::Oid(oid) => nvtc.set_oid(oid),
-                    sink::NVTKey::FileName(name) => nvtc.set_filename(name),
-                    sink::NVTKey::Name(name) => nvtc.set_name(name),
-                    sink::NVTKey::Tag(key, value) => nvtc.add_tag(key.as_str().to_owned(), value),
-                    sink::NVTKey::Dependencies(dependencies) => nvtc.set_dependencies(dependencies),
-                    sink::NVTKey::RequiredKeys(rk) => nvtc.set_required_keys(rk),
-                    sink::NVTKey::MandatoryKeys(mk) => nvtc.set_mandatory_keys(mk),
-                    sink::NVTKey::ExcludedKeys(ek) => nvtc.set_excluded_keys(ek),
-                    sink::NVTKey::RequiredPorts(rp) => nvtc.set_required_ports(rp),
-                    sink::NVTKey::RequiredUdpPorts(rup) => nvtc.set_required_udp_ports(rup),
-                    sink::NVTKey::Preference(pref) => nvtc.add_pref(pref),
-                    sink::NVTKey::Category(cat) => nvtc.set_category(cat),
-                    sink::NVTKey::Family(family) => nvtc.set_family(family),
-                    sink::NVTKey::Reference(x) => nvtc.add_ref(x),
-                    sink::NVTKey::NoOp => {
+                    sink::NVTField::Oid(oid) => nvtc.set_oid(oid),
+                    sink::NVTField::FileName(name) => nvtc.set_filename(name),
+                    sink::NVTField::Name(name) => nvtc.set_name(name),
+                    sink::NVTField::Tag(key, value) => nvtc.add_tag(key.as_str().to_owned(), value),
+                    sink::NVTField::Dependencies(dependencies) => {
+                        nvtc.set_dependencies(dependencies)
+                    }
+                    sink::NVTField::RequiredKeys(rk) => nvtc.set_required_keys(rk),
+                    sink::NVTField::MandatoryKeys(mk) => nvtc.set_mandatory_keys(mk),
+                    sink::NVTField::ExcludedKeys(ek) => nvtc.set_excluded_keys(ek),
+                    sink::NVTField::RequiredPorts(rp) => nvtc.set_required_ports(rp),
+                    sink::NVTField::RequiredUdpPorts(rup) => nvtc.set_required_udp_ports(rup),
+                    sink::NVTField::Preference(pref) => nvtc.add_pref(pref),
+                    sink::NVTField::Category(cat) => nvtc.set_category(cat),
+                    sink::NVTField::Family(family) => nvtc.set_family(family),
+                    sink::NVTField::Reference(x) => nvtc.add_ref(x),
+                    sink::NVTField::NoOp => {
                         // script_version
                         // script_copyright
                         // are getting ignored. Although they're still being in NASL they have no functionality
-                    },
+                    }
                 }
                 Ok(())
             }
         }
     }
 
-    fn get(&self, _key: &str) -> Result<Vec<sink::Scope>, sink::SinkError> {
-        todo!()
-    }
-
     fn on_exit(&self) -> Result<(), sink::SinkError> {
         self.store_nvt()?;
         Ok(())
+    }
+
+    fn get(&self, key: &str, scope: sink::GetType) -> Result<Vec<StoreType>, SinkError> {
+        let rkey = format!("nvt:{}", key);
+        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+        match scope {
+            GetType::NVT(nvt) => match nvt {
+                Some(x) => match x {
+                    NVTKey::Oid => Ok(vec![StoreType::NVT(sink::NVTField::Oid(key.to_owned()))]),
+                    NVTKey::FileName => {
+                        let pos = KbNvtPos::try_from(x)?;
+                        let strresult = cache.lindex(rkey, pos)?;
+                        Ok(vec![StoreType::NVT(sink::NVTField::FileName(strresult))])
+                    }
+                    NVTKey::Name => todo!(),
+                    NVTKey::Tag => todo!(),
+                    NVTKey::Dependencies => todo!(),
+                    NVTKey::RequiredKeys => todo!(),
+                    NVTKey::MandatoryKeys => todo!(),
+                    NVTKey::ExcludedKeys => todo!(),
+                    NVTKey::RequiredPorts => todo!(),
+                    NVTKey::RequiredUdpPorts => todo!(),
+                    NVTKey::Preference => todo!(),
+                    NVTKey::Reference => todo!(),
+                    NVTKey::Category => todo!(),
+                    NVTKey::Family => todo!(),
+                    NVTKey::NoOp => todo!(),
+                },
+                None => todo!(),
+            },
+        }
     }
 }
