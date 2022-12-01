@@ -105,60 +105,76 @@ make_str_lookup_enum! {
     }
 }
 
-/// NVTKeys are keys that represent a NVT
-///
-/// Since nasl is a iterative script language this allows the fields to be stored
-/// separately and doesn't enforce a caching mechanism that may not be fitting the storage solution.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum NVTKey {
-    /// Is an identifying field
-    ///
-    /// Although OID is required to find a NVT it is not required to call it first within
-    /// a description block.
-    /// This means that a storage implementation is required to cache everything until an OID is provided
-    /// and just afterwards store the actual data
-    Oid(String),
-    /// The filename of the NASL Plugin
-    FileName(String),
-    /// The name of the NASL Plugin
-    Name(String),
-    /// Tags of the NASL plugin
-    Tag(TagKey, String),
-    /// Dependencies
-    Dependencies(Vec<String>),
-    /// Required keys
-    ///
-    /// Those keys must be set to run this script. Otherwise it will be skipped.
-    RequiredKeys(Vec<String>),
-    /// Mandatory keys
-    ///
-    /// Those keys must be set to run this script. Otherwise it will be skipped.
-    MandatoryKeys(Vec<String>),
-    /// Excluded keys
-    ///
-    /// Those keys must not be set to run this script. Otherwise it will be skipped.
-    ExcludedKeys(Vec<String>),
-    /// Required TCP ports
-    ///
-    /// Those ports must be found and open. Otherwise it will be skipped.
-    RequiredPorts(Vec<String>),
-    /// Required UDP ports
-    ///
-    /// Those ports must be found and open. Otherwise it will be skipped.
-    RequiredUdpPorts(Vec<String>),
-    /// Preferences that can be set by a User
-    Preference(NvtPreference),
-    /// Reference either cve, bid, ...
-    Reference(NvtRef),
-    /// Category of a plugin
-    ///
-    /// Category will be used to identify the type of the NASL plugin.
-    Category(ACT),
-    /// Family
-    Family(String),
-    /// For deprecated functions
-    NoOp,
+macro_rules! make_fields {
+
+    ($field_name:ident $key_name:ident $enum_doc:expr => { $($doc:expr => $name:ident $( ($($value:ident$(<$st:ident>)?),*) )?),* }) => {
+        /// Fields are used to contain the value for the field
+        #[doc = $enum_doc]
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub enum $field_name {
+            $(
+             $name $( ($( $value$(<$st>)? ),*) )?
+             ),*
+        }
+
+        /// Key are the keys to get the field
+        #[doc = $enum_doc]
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub enum $key_name {
+           $(
+             $name
+           ),*
+        }
+    };
 }
+
+make_fields! {NVTField NVTKey  r###"
+Represents a NVT.
+
+NVTs are complex metadata about a plugin.
+This metadata is gathered and stored by a special `description` run parsing through NASL plugins and executing special `script_*` functions.
+
+These functions are described in the description crate within builtin crate.
+"### => {
+    "Is an identifying field" => Oid(String),
+    "The filename of the NASL Plugin" => FileName(String),
+    "Name of a plugin" => Name(String),
+    "Tags of a plugin" => Tag(TagKey, String),
+        "Dependencies of other scripts that must be run upfront" => Dependencies(Vec<String>),
+    r###"Required keys
+    
+    Those keys must be set to run this script. Otherwise it will be skipped."### =>
+    RequiredKeys(Vec<String>),
+    r###"Mandatory keys
+    
+    Those keys must be set to run this script. Otherwise it will be skipped."### =>
+    MandatoryKeys(Vec<String>),
+    r###"Excluded keys
+    
+    Those keys must not be set to run this script. Otherwise it will be skipped."### =>
+    ExcludedKeys(Vec<String>),
+    r###"Required TCP ports
+    
+    Those ports must be found and open. Otherwise it will be skipped."### =>
+    RequiredPorts(Vec<String>),
+    r###"Required UDP ports
+
+    Those ports must be found and open. Otherwise it will be skipped."### =>
+    RequiredUdpPorts(Vec<String>),
+    r###"Preferences that can be set by a User"### =>
+    Preference(NvtPreference),
+    r###"Reference either cve, bid, ..."### =>
+    Reference(NvtRef),
+    r###"Category of a plugin
+    
+    Category will be used to identify the type of the NASL plugin."### =>
+    Category(ACT),
+    r###"Family"### =>
+    Family(String),
+    r###"For deprecated functions"### =>
+    NoOp
+}}
+
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Preferences that can be overridden by a user.
@@ -183,6 +199,7 @@ pub struct NvtRef {
     pub text: Option<String>,
 }
 
+// TODO remove getter and constructor
 impl NvtRef {
     pub fn new(class: String, id: String, text: Option<String>) -> Self {
         Self { class, id, text }
@@ -218,15 +235,9 @@ impl NvtPreference {
     }
 }
 
-/// Scope defines the scope of the storage to be used
-///
-/// NASL knows 3 types of storage:
-/// - NVT - for caching metadata of NVTs
-/// - Log - for distributing / storing results or messages
-/// - KB - knowledge base to be shared between NASL plugins
-/// - Internal - information for the scanner application
+/// TBD
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Scope {
+pub enum StoreType {
     /// Metadata of the NASL script.
     ///
     /// Each NASL script within the feed must provide at least
@@ -234,7 +245,13 @@ pub enum Scope {
     /// - filename
     /// - family
     /// - category
-    NVT(NVTKey),
+    NVT(NVTField),
+}
+
+#[derive(Clone, Debug, PartialEq,Eq)]
+pub enum GetType {
+    NVT(Option<NVTKey>),
+    
 }
 
 /// TBD errors
@@ -246,11 +263,11 @@ pub trait Sink {
     /// Stores given scope to key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn store(&self, key: &str, scope: Scope) -> Result<(), SinkError>;
+    fn store(&self, key: &str, scope: StoreType) -> Result<(), SinkError>;
     /// Get scopes found by key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn get(&self, key: &str) -> Result<Vec<Scope>, SinkError>;
+    fn get(&self, key: &str, scope: GetType) -> Result<Vec<StoreType>, SinkError>;
 
     /// On exit is called when a script exit
     ///
@@ -261,7 +278,7 @@ pub trait Sink {
 /// Contains a Vector of all stored items.
 ///
 /// The first String statement is the used key while the Vector of Scope are the values.
-type StoreItem = Vec<(String, Vec<Scope>)>;
+type StoreItem = Vec<(String, Vec<StoreType>)>;
 
 /// Is a inmemory sink that behaves like a Storage.
 #[derive(Default)]
@@ -292,10 +309,8 @@ impl DefaultSink {
 }
 
 impl Sink for DefaultSink {
-    fn store(&self, key: &str, scope: Scope) -> Result<(), SinkError> {
+    fn store(&self, key: &str, scope: StoreType) -> Result<(), SinkError> {
         let mut data = Arc::as_ref(&self.data).lock().unwrap();
-        println!("storing {} => {:?}", key, scope);
-
         match data.iter_mut().find(|(k, _)| k.as_str() == key) {
             Some((_, v)) => v.push(scope),
             None => data.push((key.to_owned(), vec![scope])),
@@ -303,7 +318,7 @@ impl Sink for DefaultSink {
         Ok(())
     }
 
-    fn get(&self, key: &str) -> Result<Vec<Scope>, SinkError> {
+    fn get(&self, key: &str, scope: GetType) -> Result<Vec<StoreType>, SinkError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
@@ -368,10 +383,10 @@ mod tests {
     #[test]
     pub fn default_storage() -> Result<(), SinkError> {
         let storage = DefaultSink::default();
-        use NVTKey::*;
-        use Scope::*;
+        use StoreType::*;
+        use NVTField::*;
         storage.store("moep", NVT(Oid("moep".to_owned())))?;
-        assert_eq!(storage.get("moep")?, vec![NVT(Oid("moep".to_owned()))]);
+        assert_eq!(storage.get("moep", GetType::NVT(None))?, vec![NVT(Oid("moep".to_owned()))]);
         Ok(())
     }
 }

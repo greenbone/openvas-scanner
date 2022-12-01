@@ -2,25 +2,54 @@ use crate::dberror::DbError;
 use crate::dberror::RedisResult;
 use crate::nvt::Nvt;
 use redis::*;
+use sink::GetType;
+use sink::NVTKey;
 
 pub enum KbNvtPos {
-    NvtFilenamePos,
-    NvtRequiredKeysPos,
-    NvtMandatoryKeysPos,
-    NvtExcludedKeysPos,
-    NvtRequiredUDPPortsPos,
-    NvtRequiredPortsPos,
-    NvtDependenciesPos,
-    NvtTagsPos,
-    NvtCvesPos,
-    NvtBidsPos,
-    NvtXrefsPos,
-    NvtCategoryPos,
-    NvtFamilyPos,
-    NvtNamePos,
+    Filename,
+    RequiredKeys,
+    MandatoryKeys,
+    ExcludedKeys,
+    RequiredUDPPorts,
+    RequiredPorts,
+    Dependencies,
+    Tags,
+    Cves,
+    Bids,
+    Xrefs,
+    Category,
+    Family,
+    Name,
     //The last two members aren't stored.
-    NvtTimestampPos,
-    NvtOIDPos,
+    Timestamp,
+    OID,
+}
+
+impl TryFrom<NVTKey> for KbNvtPos {
+    type Error = DbError;
+
+    fn try_from(value: NVTKey) -> Result<Self, Self::Error> {
+        Ok(match value {
+            NVTKey::Oid => Self::OID,
+            NVTKey::FileName => Self::Filename,
+            NVTKey::Name => Self::Name,
+            NVTKey::Dependencies => Self::Dependencies,
+            NVTKey::RequiredKeys => Self::RequiredKeys,
+            NVTKey::MandatoryKeys => Self::MandatoryKeys,
+            NVTKey::ExcludedKeys => Self::ExcludedKeys,
+            NVTKey::RequiredPorts => Self::RequiredPorts,
+            NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
+            NVTKey::Category => Self::Category,
+            NVTKey::Family => Self::Family,
+            // tags must also be handled manually due to differenciation
+            _ => {
+                return Err(DbError::CustomErr(format!(
+                    "{:?} is not a redis position and must be handled differently",
+                    value
+                )))
+            }
+        })
+    }
 }
 
 pub struct RedisCtx {
@@ -168,17 +197,21 @@ impl RedisCtx {
         Ok(())
     }
 
-    pub fn redis_add_item<T: ToRedisArgs>(&mut self, key: String, val: T) -> RedisResult<String> {
+    pub fn lpush<T: ToRedisArgs>(&mut self, key: String, val: T) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.lpush(key, val)?;
         Ok(ret.v)
     }
 
+    pub fn rpush<T: ToRedisArgs>(&mut self, key: String, val: T) -> RedisResult<String> {
+        let ret: RedisValueHandler = self.kb.rpush(key, val)?;
+        Ok(ret.v)
+    }
     pub fn redis_get_key(&mut self, key: &str) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
 
-    pub fn redis_get_item(&mut self, key: String, index: KbNvtPos) -> RedisResult<String> {
+    pub fn lindex(&mut self, key: String, index: KbNvtPos) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
         Ok(ret.v)
     }
@@ -188,7 +221,7 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
-    fn tags_as_single_string(&self, tags: &Vec<(String, String)>) -> String {
+    fn tags_as_single_string(&self, tags: &[(String, String)]) -> String {
         let tag: Vec<String> = tags
             .iter()
             .map(|(key, val)| format!("{}={}", key, val))
@@ -198,6 +231,7 @@ impl RedisCtx {
     }
 
     pub fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisResult<()> {
+        // TODO remove here
         let oid = nvt.get_oid();
         let name = nvt.get_name();
         let required_keys = nvt.get_required_keys().concat();
@@ -214,7 +248,7 @@ impl RedisCtx {
         let (cves, bids, xrefs) = nvt.get_refs();
 
         let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
-        let values: Vec<&str> = [
+        let values = [
             nvt.filename(),
             &required_keys,
             &mandatory_keys,
@@ -229,15 +263,16 @@ impl RedisCtx {
             &category,
             family,
             name,
-        ]
-        .to_vec();
+        ];
 
-        self.kb.rpush(key_name, values)?;
+        self.kb.rpush(key_name, &values)?;
 
         // Add preferences
-        let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
         let prefs = nvt.get_prefs();
-        self.kb.lpush(key_name, prefs)?;
+        if !prefs.is_empty() {
+            let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
+            self.kb.lpush(key_name, prefs)?;
+        }
 
         Ok(())
     }

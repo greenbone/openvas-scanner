@@ -5,7 +5,7 @@ use crate::{
     NaslFunction,
 };
 
-use sink::{NVTKey, NvtPreference, PreferenceType, Sink, SinkError, TagKey};
+use sink::{NVTField, NvtPreference, PreferenceType, Sink, SinkError, TagKey};
 
 impl From<SinkError> for FunctionError {
     fn from(_: SinkError) -> Self {
@@ -73,7 +73,7 @@ macro_rules! make_storage_function {
             )+
             )?
             let db_arg = $transform(&variables)?;
-            storage.store(key, sink::Scope::NVT(db_arg))?;
+            storage.store(key, sink::StoreType::NVT(db_arg))?;
             Ok(NaslValue::Null)
         }
         )*
@@ -106,8 +106,8 @@ fn get_named_parameter<'a>(
     }
 }
 
-fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
-    Ok(NVTKey::Preference(NvtPreference {
+fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    Ok(NVTField::Preference(NvtPreference {
         id: 0,
         name: "timeout".to_owned(),
         class: PreferenceType::Entry,
@@ -115,84 +115,84 @@ fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
     }))
 }
 
-fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     match arguments[0] {
-        NaslValue::AttackCategory(cat) => Ok(NVTKey::Category(*cat)),
+        NaslValue::AttackCategory(cat) => Ok(NVTField::Category(*cat)),
         _ => Err(FunctionError {
             reason: "unexpected type for category.".to_owned(),
         }),
     }
 }
 
-fn as_name_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
-    Ok(NVTKey::Name(arguments[0].to_string()))
+fn as_name_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    Ok(NVTField::Name(arguments[0].to_string()))
 }
 
-fn as_oid_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
-    Ok(NVTKey::Oid(arguments[0].to_string()))
+fn as_oid_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    Ok(NVTField::Oid(arguments[0].to_string()))
 }
 
-fn as_family_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
-    Ok(NVTKey::Family(arguments[0].to_string()))
+fn as_family_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    Ok(NVTField::Family(arguments[0].to_string()))
 }
 
-fn as_noop(_arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
-    Ok(NVTKey::NoOp)
+fn as_noop(_arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    Ok(NVTField::NoOp)
 }
 
-fn as_dependencies_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_dependencies_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTKey::Dependencies(values))
+    Ok(NVTField::Dependencies(values))
 }
 
-fn as_exclude_keys_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_exclude_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTKey::ExcludedKeys(values))
+    Ok(NVTField::ExcludedKeys(values))
 }
 
-fn as_mandatory_keys_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_mandatory_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTKey::MandatoryKeys(values))
+    Ok(NVTField::MandatoryKeys(values))
 }
 
-fn as_require_ports_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_require_ports_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTKey::RequiredPorts(values))
+    Ok(NVTField::RequiredPorts(values))
 }
 
-fn as_require_udp_ports_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_require_udp_ports_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTKey::RequiredUdpPorts(values))
+    Ok(NVTField::RequiredUdpPorts(values))
 }
 
-fn as_require_keys_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_require_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTKey::RequiredKeys(values))
+    Ok(NVTField::RequiredKeys(values))
 }
 
-fn as_cve_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
-    Ok(NVTKey::Reference(sink::NvtRef {
+fn as_cve_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    Ok(NVTField::Reference(sink::NvtRef {
         class: "cve".to_owned(),
         id: arguments[0].to_string(),
         text: None,
     }))
 }
 
-fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     let key = TagKey::new(&arguments[0].to_string()).ok_or_else(|| FunctionError {
         reason: "invalid tagkey".to_owned(),
     })?;
-    Ok(NVTKey::Tag(key, arguments[1].to_string()))
+    Ok(NVTField::Tag(key, arguments[1].to_string()))
 }
 
-fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTKey, FunctionError> {
+fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     if arguments.len() != 2 {
         return Err(FunctionError {
             reason: "expected either name or csv to be set".to_owned(),
         });
     }
     // TODO handle csv correctly
-    Ok(NVTKey::Reference(sink::NvtRef {
+    Ok(NVTField::Reference(sink::NvtRef {
         class: arguments[1].to_string(),
         id: arguments[0].to_string(),
         text: None,
