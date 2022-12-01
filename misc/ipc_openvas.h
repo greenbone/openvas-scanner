@@ -37,7 +37,7 @@ ipc_data_t *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len);
 
 void
-ipc_data_destroy (ipc_data_t *data);
+ipc_data_destroy (ipc_data_t **data);
 
 const char *
 ipc_data_to_json (ipc_data_t *data);

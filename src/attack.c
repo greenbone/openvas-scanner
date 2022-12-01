@@ -501,7 +501,7 @@ read_ipc (struct ipc_context *ctx)
                 }
               break;
             }
-          ipc_data_destroy (idata);
+          ipc_data_destroy (&idata);
         }
     }
 }

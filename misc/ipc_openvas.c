@@ -235,22 +235,23 @@ ipc_user_agent_destroy (ipc_user_agent_t *data)
  *
  */
 void
-ipc_data_destroy (struct ipc_data *data)
+ipc_data_destroy (ipc_data_t **data)
 {
-  if (data == NULL)
+  if (*data == NULL)
     return;
-  switch (data->type)
+  switch ((*data)->type)
     {
     case IPC_DT_HOSTNAME:
-      ipc_hostname_destroy (data->ipc_hostname);
+      ipc_hostname_destroy ((*data)->ipc_hostname);
       break;
     case IPC_DT_USER_AGENT:
-      ipc_user_agent_destroy (data->ipc_user_agent);
+      ipc_user_agent_destroy ((*data)->ipc_user_agent);
       break;
     case IPC_DT_ERROR:
-      return;
+      break;
     }
-  g_free (data);
+  g_free (*data);
+  *data = NULL;
 }
 
 /**
@@ -335,14 +336,17 @@ ipc_data_from_json (const char *json, size_t len)
   JsonReader *reader = NULL;
 
   GError *err = NULL;
-  struct ipc_data *ret = NULL;
+  ipc_data_t *ret = NULL;
   ipc_user_agent_t *ua;
   ipc_hostname_t *hn;
-
   enum ipc_data_type type = IPC_DT_ERROR;
 
   if ((ret = calloc (1, sizeof (*ret))) == NULL)
     goto cleanup;
+
+  /* Initialize the type with error.
+   * Usefull for cleanup, in case of parser error. */
+  ret->type = type;
 
   parser = json_parser_new ();
   if (!json_parser_load_from_data (parser, json, len, &err))
@@ -358,9 +362,9 @@ ipc_data_from_json (const char *json, size_t len)
     }
 
   type = json_reader_get_int_value (reader);
+  ret->type = type;
   json_reader_end_member (reader);
 
-  ret->type = type;
   switch (type)
     {
     case IPC_DT_ERROR:
@@ -407,13 +411,15 @@ cleanup:
   if (reader)
     g_object_unref (reader);
   g_object_unref (parser);
+
   if (err != NULL)
     {
       g_warning ("%s: Unable to parse json (%s). Reason: %s", __func__, json,
                  err->message);
+
+      if (ret != NULL)
+        ipc_data_destroy (&ret);
     }
-  if (ret == NULL)
-    ipc_data_destroy (ret);
 
   return ret;
 }
