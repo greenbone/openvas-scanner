@@ -11,7 +11,7 @@ jobs:
     runs-on: 'ubuntu-latest'
     steps:
     - name: Run update header
-      uses: greenbone/actions/update-header@v1
+      uses: greenbone/actions/update-header@v2
       with:
         github-user: ${{ secrets.GREENBONE_BOT }}
         github-user-mail: ${{ secrets.GREENBONE_BOT_MAIL }}
