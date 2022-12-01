@@ -11,4 +11,4 @@ jobs:
     container: greenbone/doxygen
     steps:
       - name: Run the c lang coverage action
-        uses: greenbone/actions/doc-coverage-clang@v1
+        uses: greenbone/actions/doc-coverage-clang@v2
