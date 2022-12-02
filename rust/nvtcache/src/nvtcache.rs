@@ -56,7 +56,7 @@ impl RedisNvtCache {
     /// Get the key nvtcache, which has the feed version
     pub fn get_version(&self) -> RedisResult<String> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        cache.redis_get_key(CACHE_KEY)
+        cache.redis_key(CACHE_KEY)
     }
 
     /// Check if the nvtcache is uptodate, comparing the feed version
@@ -65,7 +65,7 @@ impl RedisNvtCache {
     /// Return True if it is updated, False if outdated, Error otherwise.
     pub fn check_feed(&self, current: &str) -> RedisResult<bool> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let cached = cache.redis_get_key(CACHE_KEY)?;
+        let cached = cache.redis_key(CACHE_KEY)?;
         if cached == current {
             return Ok(true);
         }
@@ -144,6 +144,7 @@ impl Sink for RedisNvtCache {
 
     fn on_exit(&self) -> Result<(), sink::SinkError> {
         self.store_nvt()?;
+        
         Ok(())
     }
 
