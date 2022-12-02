@@ -587,15 +587,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nvtcache"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "redis",
- "sink",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -724,6 +715,15 @@ dependencies = [
  "ryu",
  "sha1_smol",
  "url",
+]
+
+[[package]]
+name = "redis-sink"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "redis",
+ "sink",
 ]
 
 [[package]]
