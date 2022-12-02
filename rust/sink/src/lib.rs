@@ -174,7 +174,8 @@ This metadata is gathered and stored by a special `description` run parsing thro
 These functions are described in the description crate within builtin crate.
 "### => {
     "Is an identifying field" => Oid(String),
-    "The filename of the NASL Plugin" => FileName(String),
+    "The filename of the NASL Plugin\n\nThe filename is set on a description run and is not read from the NASL script." => FileName(String),
+    "The version of the NASL feed\n\nThe version is read from plugins_version.inc." => Version(String),
     "Name of a plugin" => Name(String),
     "Tags of a plugin" => Tag(TagKey, String),
         "Dependencies of other scripts that must be run upfront" => Dependencies(Vec<String>),

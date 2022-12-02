@@ -53,10 +53,9 @@ mod test {
         //assert!(nvtcache.cache.get_namespace()? > 0);
 
         // TODO translate to scope commands
-        let _ = nvtcache.set_version("202212101125")?;
-        assert_eq!(nvtcache.check_feed("202212101125")?, true);
 
         let commands = [
+            NVT(Version("202212101125".to_owned())),
             NVT(FileName("test.nasl".to_owned())),
             NVT(Tag(
                 CreationDate,
@@ -99,6 +98,7 @@ mod test {
             nvtcache.store("test.nasl", c).unwrap();
         }
         let get_commands = [
+            (NVTKey::Version, vec![NVT(Version("202212101125".to_owned()))]),
             (
                 NVTKey::FileName,
                 vec![NVT(FileName("test.nasl".to_owned()))],

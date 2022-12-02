@@ -49,48 +49,7 @@ impl RedisNvtCache {
         cache.delete_namespace()
     }
 
-    // TODO move that out of here
-
-    /// Set the key nvtcache
-    pub fn set_version(&self, feed_version: &str) -> RedisResult<()> {
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        cache.redis_set_key(CACHE_KEY, feed_version)
-    }
-
-    /// Get the key nvtcache, which has the feed version
-    pub fn get_version(&self) -> RedisResult<String> {
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        cache.redis_key(CACHE_KEY)
-    }
-
-    /// Check if the nvtcache is uptodate, comparing the feed version
-    /// in the filesystem (in plugin_feed_info.inc) and compare it
-    /// with the version in the cache
-    /// Return True if it is updated, False if outdated, Error otherwise.
-    pub fn check_feed(&self, current: &str) -> RedisResult<bool> {
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let cached = cache.redis_key(CACHE_KEY)?;
-        if cached == current {
-            return Ok(true);
-        }
-        Ok(false)
-    }
-    // END TODO
-
-    pub fn get_nvt_field(&self, oid: String, field: KbNvtPos) -> RedisResult<String> {
-        let key = format!("nvt:{}", oid);
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let value = cache.lindex(&key, field)?;
-        Ok(value)
-    }
-
-    pub fn get_nvt_filename(&self, oid: &str) -> RedisResult<String> {
-        let key = format!("nvt:{}", oid);
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let filename = cache.lindex(&key, KbNvtPos::Filename)?;
-        Ok(filename)
-    }
-
+    
     fn store_nvt(&self, cache: &mut RedisCtx) -> RedisResult<()> {
         let nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
         // TODO add oid duplicate check on interpreter
@@ -108,31 +67,36 @@ impl From<DbError> for SinkError {
 }
 
 impl Sink for RedisNvtCache {
-    fn store(&self, _key: &str, scope: sink::StoreType) -> Result<(), sink::SinkError> {
+    fn store(&self, _key: &str, scope: StoreType) -> Result<(), SinkError> {
         match scope {
             StoreType::NVT(field) => {
                 let mut nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
                 match field {
-                    sink::NVTField::Oid(oid) => nvtc.set_oid(oid),
-                    sink::NVTField::FileName(name) => nvtc.set_filename(name),
-                    sink::NVTField::Name(name) => nvtc.set_name(name),
-                    sink::NVTField::Tag(key, value) => nvtc.add_tag(key.as_ref().to_owned(), value),
-                    sink::NVTField::Dependencies(dependencies) => {
+                    NVTField::Oid(oid) => nvtc.set_oid(oid),
+                    NVTField::FileName(name) => nvtc.set_filename(name),
+                    NVTField::Name(name) => nvtc.set_name(name),
+                    NVTField::Tag(key, value) => nvtc.add_tag(key.as_ref().to_owned(), value),
+                    NVTField::Dependencies(dependencies) => {
                         nvtc.set_dependencies(dependencies)
                     }
-                    sink::NVTField::RequiredKeys(rk) => nvtc.set_required_keys(rk),
-                    sink::NVTField::MandatoryKeys(mk) => nvtc.set_mandatory_keys(mk),
-                    sink::NVTField::ExcludedKeys(ek) => nvtc.set_excluded_keys(ek),
-                    sink::NVTField::RequiredPorts(rp) => nvtc.set_required_ports(rp),
-                    sink::NVTField::RequiredUdpPorts(rup) => nvtc.set_required_udp_ports(rup),
-                    sink::NVTField::Preference(pref) => nvtc.add_pref(pref),
-                    sink::NVTField::Category(cat) => nvtc.set_category(cat),
-                    sink::NVTField::Family(family) => nvtc.set_family(family),
-                    sink::NVTField::Reference(x) => nvtc.add_ref(x),
-                    sink::NVTField::NoOp => {
+                    NVTField::RequiredKeys(rk) => nvtc.set_required_keys(rk),
+                    NVTField::MandatoryKeys(mk) => nvtc.set_mandatory_keys(mk),
+                    NVTField::ExcludedKeys(ek) => nvtc.set_excluded_keys(ek),
+                    NVTField::RequiredPorts(rp) => nvtc.set_required_ports(rp),
+                    NVTField::RequiredUdpPorts(rup) => nvtc.set_required_udp_ports(rup),
+                    NVTField::Preference(pref) => nvtc.add_pref(pref),
+                    NVTField::Category(cat) => nvtc.set_category(cat),
+                    NVTField::Family(family) => nvtc.set_family(family),
+                    NVTField::Reference(x) => nvtc.add_ref(x),
+                    NVTField::NoOp => {
                         // script_version
                         // script_copyright
                         // are getting ignored. Although they're still being in NASL they have no functionality
+                    }
+                    NVTField::Version(version) => {
+                        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+                        cache.redis_set_key(CACHE_KEY, version)?;
+                        return Ok(());
                     }
                 }
                 Ok(())
@@ -256,6 +220,10 @@ impl Sink for RedisNvtCache {
                         Ok(vec![StoreType::NVT(sink::NVTField::Family(strresult))])
                     }
                     NVTKey::NoOp => Ok(vec![]),
+                    NVTKey::Version => {
+                        let feed = cache.redis_key(CACHE_KEY)?;
+                        Ok(vec![StoreType::NVT(NVTField::Version(feed))])
+                    },
                 },
                 None => todo!(),
             },
