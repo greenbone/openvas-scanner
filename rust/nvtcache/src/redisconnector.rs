@@ -234,7 +234,7 @@ impl RedisCtx {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    pub fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisResult<()> {
+    pub fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisResult<()> {
         // TODO remove here
         let oid = nvt.oid();
         let name = nvt.name();

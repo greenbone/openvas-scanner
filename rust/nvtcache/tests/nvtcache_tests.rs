@@ -47,7 +47,7 @@ mod test {
             let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
             env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)
         };
-        let nvtcache = nvtcache::RedisNvtCache::init(&socket)?;
+        let nvtcache = nvtcache::RedisCache::init(&socket)?;
 
         // Test get_namespace()
         //assert!(nvtcache.cache.get_namespace()? > 0);
