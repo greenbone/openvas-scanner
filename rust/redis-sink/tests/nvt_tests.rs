@@ -1,5 +1,5 @@
-use nvtcache::dberror::RedisResult;
-use nvtcache::nvt::{parse_nvt_timestamp, Nvt};
+use redis_sink::dberror::RedisResult;
+use redis_sink::nvt::{parse_nvt_timestamp, Nvt};
 
 #[cfg(test)]
 mod test {

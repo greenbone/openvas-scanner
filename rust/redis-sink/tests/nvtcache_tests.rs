@@ -1,28 +1,22 @@
-use ::nvtcache::dberror::RedisResult;
-use ::nvtcache::nvt::Nvt;
-use ::nvtcache::redisconnector::KbNvtPos;
-use nvtcache::nvtcache;
-
-//test
 #[cfg(test)]
 #[cfg(feature = "redis_test")]
+// This is an integration test and requires a running redis instance.
+// Use cargo test --features=redis_test.
+// Also, set the environment variables REDIS_SOCKET and PLUGIN_PATH with valid paths
 mod test {
 
-    use sink::NVTField;
+    use redis_sink::dberror::RedisResult;
     use sink::NVTField::*;
     use sink::NVTKey;
     use sink::NvtRef;
     use sink::Sink;
-    use sink::StoreType;
     use sink::StoreType::NVT;
     use sink::TagKey::*;
     use sink::ACT::*;
 
     use std::env;
 
-    use ::nvtcache::redisconnector::RedisCtx;
-
-    use super::*;
+    use redis_sink::connector::{RedisCache, RedisCtx};
 
     #[test]
     fn redis_ctx() {
@@ -39,20 +33,12 @@ mod test {
     }
 
     #[test]
-    // This is an integration test and requires a running redis instance.
-    // Use cargo test --features=redis_test.
-    // Also, set the environment variables REDIS_SOCKET and PLUGIN_PATH with valid paths
     fn integration_test_nvtcache() -> RedisResult<()> {
         let socket = {
             let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
             env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)
         };
-        let nvtcache = nvtcache::RedisCache::init(&socket)?;
-
-        // Test get_namespace()
-        //assert!(nvtcache.cache.get_namespace()? > 0);
-
-        // TODO translate to scope commands
+        let nvtcache = RedisCache::init(&socket)?;
 
         let commands = [
             NVT(Version("202212101125".to_owned())),
@@ -98,7 +84,10 @@ mod test {
             nvtcache.store("test.nasl", c).unwrap();
         }
         let get_commands = [
-            (NVTKey::Version, vec![NVT(Version("202212101125".to_owned()))]),
+            (
+                NVTKey::Version,
+                vec![NVT(Version("202212101125".to_owned()))],
+            ),
             (
                 NVTKey::FileName,
                 vec![NVT(FileName("test.nasl".to_owned()))],
