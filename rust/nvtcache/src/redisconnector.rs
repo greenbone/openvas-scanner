@@ -229,17 +229,22 @@ impl RedisCtx {
 
         tag.iter().as_ref().join("|")
     }
-
+    /// Add an NVT in the redis cache.
+    /// The NVT metadata is stored in two different keys:
+    /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
+    /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
+    ///   (which is especial and uses preferences id 0)
     pub fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisResult<()> {
         // TODO remove here
         let oid = nvt.oid();
         let name = nvt.name();
-        let required_keys = nvt.required_keys().concat();
-        let mandatory_keys = nvt.mandatory_keys().concat();
-        let excluded_keys = nvt.excluded_keys().concat();
-        let required_udp_ports = nvt.required_udp_ports().concat();
-        let required_ports = nvt.required_ports().concat();
-        let dependencies = nvt.dependencies().concat();
+        // TODO verify, before it was concat without delimeter which seems wrong
+        let required_keys = nvt.required_keys().join(",");
+        let mandatory_keys = nvt.mandatory_keys().join(",");
+        let excluded_keys = nvt.excluded_keys().join(",");
+        let required_udp_ports = nvt.required_udp_ports().join(",");
+        let required_ports = nvt.required_ports().join(",");
+        let dependencies = nvt.dependencies().join(",");
         let tags = self.tags_as_single_string(nvt.tag());
         let category = nvt.category().to_string();
         let family = nvt.family();

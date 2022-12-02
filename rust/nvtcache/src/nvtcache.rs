@@ -1,10 +1,11 @@
 use sink::GetType;
+use sink::NVTField;
 use sink::NVTKey;
 use sink::Sink;
 use sink::SinkError;
 use sink::StoreType;
-use sink::ACT;
 use sink::TagKey;
+use sink::ACT;
 
 use crate::dberror::DbError;
 use crate::dberror::RedisResult;
@@ -147,59 +148,76 @@ impl Sink for RedisNvtCache {
     fn get(&self, key: &str, scope: sink::GetType) -> Result<Vec<StoreType>, SinkError> {
         let rkey = format!("nvt:{}", key);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let mut positional = |key: NVTKey| -> Result<String, SinkError> {
-            let pos = KbNvtPos::try_from(key)?;
-            let strresult = cache.lindex(&rkey, pos)?;
-            Ok(strresult)
+        let mut as_stringvec = |key: KbNvtPos| -> Result<Vec<String>, SinkError> {
+            let dependencies = cache.lindex(&rkey, key)?;
+            Ok(dependencies
+                .split(',')
+                .into_iter()
+                .map(|s| s.to_owned())
+                .collect())
         };
         match scope {
             GetType::NVT(nvt) => match nvt {
                 Some(x) => match x {
                     NVTKey::Oid => Ok(vec![StoreType::NVT(sink::NVTField::Oid(key.to_owned()))]),
                     NVTKey::FileName => {
-                        let strresult = positional(x)?;
+                        let strresult = cache.lindex(&rkey, KbNvtPos::Filename)?;
                         Ok(vec![StoreType::NVT(sink::NVTField::FileName(strresult))])
                     }
                     NVTKey::Name => {
-                        let strresult = positional(x)?;
+                        let strresult = cache.lindex(&rkey, KbNvtPos::Name)?;
                         Ok(vec![StoreType::NVT(sink::NVTField::Name(strresult))])
                     }
                     NVTKey::Tag => {
                         let tags = cache.lindex(&rkey, KbNvtPos::Tags)?;
-                        let cves = cache.lindex(&rkey, KbNvtPos::Cves)?;
-                        let bids = cache.lindex(&rkey, KbNvtPos::Bids)?;
-                        let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
+                        // thsore are references
+                        //let cves = cache.lindex(&rkey, KbNvtPos::Cves)?;
+                        //let bids = cache.lindex(&rkey, KbNvtPos::Bids)?;
+                        //let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
                         let mut result = vec![];
                         for tag in tags.split('|') {
                             let (key, value) = {
                                 let kv_pair: Vec<&str> = tag.split('=').collect();
                                 if kv_pair.len() != 2 {
-                                    return Err(SinkError {  });
+                                    return Err(SinkError {});
                                 }
                                 (kv_pair[0], kv_pair[1])
                             };
                             let key: TagKey = key.parse()?;
+                            result.push(StoreType::NVT(NVTField::Tag(key, value.to_owned())));
                         }
-                        
+
                         Ok(result)
-                    },
-                    NVTKey::Dependencies => todo!(),
-                    NVTKey::RequiredKeys => todo!(),
-                    NVTKey::MandatoryKeys => todo!(),
-                    NVTKey::ExcludedKeys => todo!(),
-                    NVTKey::RequiredPorts => todo!(),
-                    NVTKey::RequiredUdpPorts => todo!(),
+                    }
+                    NVTKey::Dependencies => Ok(vec![StoreType::NVT(NVTField::Dependencies(
+                        as_stringvec(KbNvtPos::Dependencies)?,
+                    ))]),
+                    NVTKey::RequiredKeys => Ok(vec![StoreType::NVT(NVTField::RequiredKeys(
+                        as_stringvec(KbNvtPos::RequiredKeys)?,
+                    ))]),
+                    NVTKey::MandatoryKeys => Ok(vec![StoreType::NVT(NVTField::MandatoryKeys(
+                        as_stringvec(KbNvtPos::MandatoryKeys)?,
+                    ))]),
+                    NVTKey::ExcludedKeys => Ok(vec![StoreType::NVT(NVTField::ExcludedKeys(
+                        as_stringvec(KbNvtPos::ExcludedKeys)?,
+                    ))]),
+                    NVTKey::RequiredPorts => Ok(vec![StoreType::NVT(NVTField::RequiredPorts(
+                        as_stringvec(KbNvtPos::RequiredPorts)?,
+                    ))]),
+                    NVTKey::RequiredUdpPorts => Ok(vec![StoreType::NVT(NVTField::RequiredUdpPorts(
+                        as_stringvec(KbNvtPos::RequiredUDPPorts)?,
+                    ))]),
                     NVTKey::Preference => todo!(),
                     NVTKey::Reference => todo!(),
                     NVTKey::Category => {
-                        let numeric: ACT = match positional(x)?.parse() {
+                        let numeric: ACT = match cache.lindex(&rkey, KbNvtPos::Category)?.parse() {
                             Ok(x) => x,
                             Err(_) => return Err(SinkError {}),
                         };
                         Ok(vec![StoreType::NVT(sink::NVTField::Category(numeric))])
                     }
                     NVTKey::Family => {
-                        let strresult = positional(x)?;
+                        let strresult = cache.lindex(&rkey, KbNvtPos::Family)?;
                         Ok(vec![StoreType::NVT(sink::NVTField::Family(strresult))])
                     }
                     NVTKey::NoOp => Ok(vec![]),
