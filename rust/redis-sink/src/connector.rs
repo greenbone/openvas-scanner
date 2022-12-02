@@ -16,7 +16,7 @@ use sink::SinkError;
 use sink::StoreType;
 use sink::TagKey;
 
-pub enum KbNvtPos {
+enum KbNvtPos {
     Filename,
     RequiredKeys,
     MandatoryKeys,
@@ -70,8 +70,8 @@ pub struct RedisCtx {
     global_db_index: String,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct RedisValueHandler {
+#[derive(Debug, PartialEq, Eq)]
+struct RedisValueHandler {
     v: String,
 }
 
@@ -144,7 +144,7 @@ impl RedisCtx {
         }
     }
 
-    pub fn namespace(&mut self) -> RedisResult<u32> {
+    fn namespace(&mut self) -> RedisResult<u32> {
         let db: u32 = self.db;
         Ok(db)
     }
@@ -197,40 +197,27 @@ impl RedisCtx {
     }
 
     /// Delete all keys in the namespace and relase the it
-    pub fn delete_namespace(&mut self) -> RedisResult<()> {
+    fn delete_namespace(&mut self) -> RedisResult<()> {
         Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
         self.release_namespace()?;
         Ok(())
     }
     //Wrapper function to avoid accessing kb member directly.
-    pub fn redis_set_key<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisResult<()> {
+    pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisResult<()> {
         self.kb.set(key, val)?;
         Ok(())
     }
 
-    pub fn lpush<T: ToRedisArgs>(&mut self, key: String, val: T) -> RedisResult<String> {
-        let ret: RedisValueHandler = self.kb.lpush(key, val)?;
-        Ok(ret.v)
-    }
-
-    pub fn rpush<T: ToRedisArgs>(&mut self, key: String, val: T) -> RedisResult<String> {
-        let ret: RedisValueHandler = self.kb.rpush(key, val)?;
-        Ok(ret.v)
-    }
-    pub fn redis_key(&mut self, key: &str) -> RedisResult<String> {
+    pub fn value(&mut self, key: &str) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
 
-    pub fn lindex(&mut self, key: &str, index: KbNvtPos) -> RedisResult<String> {
+    fn lindex(&mut self, key: &str, index: KbNvtPos) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
         Ok(ret.v)
     }
 
-    pub fn redis_del_key(&mut self, key: String) -> RedisResult<String> {
-        let ret: RedisValueHandler = self.kb.del(key)?;
-        Ok(ret.v)
-    }
 
     fn tags_as_single_string(&self, tags: &[(String, String)]) -> String {
         let tag: Vec<String> = tags
@@ -245,8 +232,7 @@ impl RedisCtx {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    pub fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisResult<()> {
-        // TODO remove here
+    pub(crate) fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisResult<()> {
         let oid = nvt.oid();
         let name = nvt.name();
         // TODO verify, before it was concat without delimeter which seems wrong
@@ -379,7 +365,7 @@ impl Sink for RedisCache {
                         }
                         NVTField::Version(version) => {
                             let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-                            cache.redis_set_key(CACHE_KEY, version)?;
+                            cache.set_value(CACHE_KEY, version)?;
                             return Ok(());
                         }
                     }
@@ -496,7 +482,7 @@ impl Sink for RedisCache {
                     }
                     NVTKey::NoOp => Ok(vec![]),
                     NVTKey::Version => {
-                        let feed = cache.redis_key(CACHE_KEY)?;
+                        let feed = cache.value(CACHE_KEY)?;
                         Ok(vec![StoreType::NVT(NVTField::Version(feed))])
                     }
                 },
