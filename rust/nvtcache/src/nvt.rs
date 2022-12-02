@@ -310,133 +310,133 @@ impl Nvt {
     //   GET FUNCTIONS
 
     /// Get the NVT OID
-    pub fn get_oid(&self) -> &str {
+    pub fn oid(&self) -> &str {
         &self.oid
     }
 
     /// Get the NVT name
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Get the NVT summary
     // Not used during plugin upload.
-    pub fn get_summary(&self) -> &str {
+    pub fn summary(&self) -> &str {
         &self.summary
     }
 
     /// Get the NVT insight
     // Not used during plugin upload.
-    pub fn get_insight(&self) -> &str {
+    pub fn insight(&self) -> &str {
         &self.insight
     }
 
     /// Get the NVT affected
     // Not used during plugin upload.
-    pub fn get_affected(&self) -> &str {
+    pub fn affected(&self) -> &str {
         &self.affected
     }
 
     /// Get the NVT impact
     // Not used during plugin upload.
-    pub fn get_impact(&self) -> &str {
+    pub fn impact(&self) -> &str {
         &self.impact
     }
 
     /// Get the NVT creation_time
     // Not used during plugin upload.
-    pub fn get_creation_time(&mut self) -> RedisResult<TimeT> {
+    pub fn creation_time(&mut self) -> RedisResult<TimeT> {
         Ok(self.creation_time)
     }
 
     /// Get the NVT modification_time
     // Not used during plugin upload.
-    pub fn get_modification_time(&mut self) -> RedisResult<TimeT> {
+    pub fn modification_time(&mut self) -> RedisResult<TimeT> {
         Ok(self.modification_time)
     }
     /// Get the NVT solution
     // Not used during plugin upload.
-    pub fn get_solution(&self) -> &str {
+    pub fn solution(&self) -> &str {
         &self.solution
     }
 
     /// Get the NVT solution_type
     // Not used during plugin upload.
-    pub fn get_solution_type(&self) -> &str {
+    pub fn solution_type(&self) -> &str {
         &self.solution_type
     }
 
     /// Get the NVT solution method
     // Not used during plugin upload.
-    pub fn get_solution_method(&self) -> &str {
+    pub fn solution_method(&self) -> &str {
         &self.solution_method
     }
 
     /// Get the NVT tag
-    pub fn get_tag(&self) -> &Vec<(String, String)> {
+    pub fn tag(&self) -> &Vec<(String, String)> {
         &self.tag
     }
 
     /// Get the NVT CVSS base
     // Not used during plugin upload.
-    pub fn get_cvss_base(&self) -> &str {
+    pub fn cvss_base(&self) -> &str {
         &self.cvss_base
     }
     /// Get the NVT dependencies
-    pub fn get_dependencies(&self) -> &Vec<String> {
+    pub fn dependencies(&self) -> &Vec<String> {
         &self.dependencies
     }
 
     /// Get the NVT required keys
-    pub fn get_required_keys(&self) -> &Vec<String> {
+    pub fn required_keys(&self) -> &Vec<String> {
         &self.required_keys
     }
 
     /// Get the NVT mandatory keys
-    pub fn get_mandatory_keys(&self) -> &Vec<String> {
+    pub fn mandatory_keys(&self) -> &Vec<String> {
         &self.mandatory_keys
     }
 
     /// Get the NVT excluded keys
-    pub fn get_excluded_keys(&self) -> &Vec<String> {
+    pub fn excluded_keys(&self) -> &Vec<String> {
         &self.excluded_keys
     }
 
     /// Get the NVT required ports
-    pub fn get_required_ports(&self) -> &Vec<String> {
+    pub fn required_ports(&self) -> &Vec<String> {
         &self.required_ports
     }
 
     /// Get the NVT required udp ports
-    pub fn get_required_udp_ports(&self) -> &Vec<String> {
+    pub fn required_udp_ports(&self) -> &Vec<String> {
         &self.required_udp_ports
     }
 
     /// Get the NVT detection
     // Not used during plugin upload.
-    pub fn get_detection(&self) -> &str {
+    pub fn detection(&self) -> &str {
         &self.detection
     }
 
     /// Get the NVT QoD Type
     // Not used during plugin upload.
-    pub fn get_qod_type(&self) -> &str {
+    pub fn qod_type(&self) -> &str {
         &self.qod_type
     }
 
     /// Get the NVT QoD (Quality of Detection)
     // Not used during plugin upload.
-    pub fn get_qod(&self) -> &str {
+    pub fn qod(&self) -> &str {
         &self.qod
     }
 
     /// Get the NVT category.
-    pub fn get_category(&self) -> i32 {
+    pub fn category(&self) -> i32 {
         self.category as i32
     }
 
     /// Get the NVT family
-    pub fn get_family(&self) -> &str {
+    pub fn family(&self) -> &str {
         &self.family
     }
 
@@ -448,7 +448,7 @@ impl Nvt {
     /// cve and bid strings are CSC strings containing only
     /// "id, id, ...", while other custom types includes the type
     /// and the string is in the format "type:id, type:id, ..."
-    pub fn get_refs(&self) -> (String, String, String) {
+    pub fn refs(&self) -> (String, String, String) {
         let (bids, cves, xrefs): (Vec<String>, Vec<String>, Vec<String>) =
             self.refs
                 .iter()
@@ -483,7 +483,7 @@ impl Nvt {
     }
 
     /// Transforms prefs to string representatiosn {id}:{name}:{id}:{default} so that it can be stored into redis
-    pub fn get_prefs(&self) -> Vec<String> {
+    pub fn prefs(&self) -> Vec<String> {
         self.prefs
             .iter()
             .map(|pref| {

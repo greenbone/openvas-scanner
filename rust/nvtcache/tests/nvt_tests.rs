@@ -19,13 +19,13 @@ mod test {
         }
         //Add first tag
         nvt.add_tag("Tag Name".to_string(), "Tag Value".to_string());
-        let tag = nvt.get_tag();
+        let tag = nvt.tag();
         let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
         assert_eq!(tag, &expected);
 
         //Add second tag cvss_base which is ignored
         nvt.add_tag("cvss_base".to_string(), "Tag Value1".to_string());
-        let tag = nvt.get_tag();
+        let tag = nvt.tag();
         let expected = vec![("Tag Name".to_string(), "Tag Value".to_string())];
 
         assert_eq!(tag, &expected);
@@ -64,7 +64,7 @@ mod test {
         nvt.add_ref(bid_refs1);
         nvt.add_ref(bid_refs2);
         let bid;
-        (_, bid, _) = nvt.get_refs();
+        (_, bid, _) = nvt.refs();
 
         assert_eq!(bid, "BID_ID1, BID_ID2");
 
@@ -86,7 +86,7 @@ mod test {
         nvt.add_ref(cve_refs1);
         nvt.add_ref(cve_refs2);
         let cve;
-        (cve, _, _) = nvt.get_refs();
+        (cve, _, _) = nvt.refs();
         assert_eq!(cve, "cve_ID1, cve_ID1");
 
         Ok(())
@@ -108,7 +108,7 @@ mod test {
         nvt.add_ref(xrefs1);
         nvt.add_ref(xrefs2);
         let xrefs;
-        (_, _, xrefs) = nvt.get_refs();
+        (_, _, xrefs) = nvt.refs();
         assert_eq!(xrefs, "URL:http://greenbone.net, URL:http://openvas.net");
 
         Ok(())

@@ -133,7 +133,7 @@ impl RedisCtx {
         }
     }
 
-    pub fn get_namespace(&mut self) -> RedisResult<u32> {
+    pub fn namespace(&mut self) -> RedisResult<u32> {
         let db: u32 = self.db;
         Ok(db)
     }
@@ -178,7 +178,7 @@ impl RedisCtx {
     /// Delete an entry from the in-use namespace's list
     fn release_namespace(&mut self) -> RedisResult<()> {
         // Get firstthe current db index, the one to be released
-        let dbi = self.get_namespace()?;
+        let dbi = self.namespace()?;
         // Remove the entry from the hash list
         self.set_namespace(0)?;
         self.kb.hdel(&self.global_db_index, dbi)?;
@@ -206,7 +206,7 @@ impl RedisCtx {
         let ret: RedisValueHandler = self.kb.rpush(key, val)?;
         Ok(ret.v)
     }
-    pub fn redis_get_key(&mut self, key: &str) -> RedisResult<String> {
+    pub fn redis_key(&mut self, key: &str) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
@@ -232,20 +232,20 @@ impl RedisCtx {
 
     pub fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisResult<()> {
         // TODO remove here
-        let oid = nvt.get_oid();
-        let name = nvt.get_name();
-        let required_keys = nvt.get_required_keys().concat();
-        let mandatory_keys = nvt.get_mandatory_keys().concat();
-        let excluded_keys = nvt.get_excluded_keys().concat();
-        let required_udp_ports = nvt.get_required_udp_ports().concat();
-        let required_ports = nvt.get_required_ports().concat();
-        let dependencies = nvt.get_dependencies().concat();
-        let tags = self.tags_as_single_string(nvt.get_tag());
-        let category = nvt.get_category().to_string();
-        let family = nvt.get_family();
+        let oid = nvt.oid();
+        let name = nvt.name();
+        let required_keys = nvt.required_keys().concat();
+        let mandatory_keys = nvt.mandatory_keys().concat();
+        let excluded_keys = nvt.excluded_keys().concat();
+        let required_udp_ports = nvt.required_udp_ports().concat();
+        let required_ports = nvt.required_ports().concat();
+        let dependencies = nvt.dependencies().concat();
+        let tags = self.tags_as_single_string(nvt.tag());
+        let category = nvt.category().to_string();
+        let family = nvt.family();
 
         // Get the references
-        let (cves, bids, xrefs) = nvt.get_refs();
+        let (cves, bids, xrefs) = nvt.refs();
 
         let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
         let values = [
@@ -268,7 +268,7 @@ impl RedisCtx {
         self.kb.rpush(key_name, &values)?;
 
         // Add preferences
-        let prefs = nvt.get_prefs();
+        let prefs = nvt.prefs();
         if !prefs.is_empty() {
             let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
             self.kb.lpush(key_name, prefs)?;
