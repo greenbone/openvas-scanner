@@ -16,30 +16,33 @@ use std::ops::DerefMut;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-pub struct RedisNvtCache {
+pub struct RedisCache {
     cache: Arc<Mutex<RedisCtx>>,
     // The current redis implementation needs a complete NVT object to work with
     // due to the defined ordering.
     // Therefore it caches it until on exit is called.
-    internal_cache: Arc<Mutex<Nvt>>,
+    internal_cache: Arc<Mutex<Option<Nvt>>>,
 }
 
 const CACHE_KEY: &str = "nvticache";
 
-/// NvtCache implementation.
-impl RedisNvtCache {
+/// Cache implementation.
+///
+/// We need a second level cache before redis due to NVT runs. In this case we need to have the complete data to get the ordering right.
+/// This should be changed when there is new OSP frontend available.
+impl RedisCache {
     /// Initialize and return an NVT Cache Object
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
     /// `"unix:///run/redis/redis-server.sock"`.
     /// While the plugin_path is given without the protocol infix.
     /// The reason is that while redis can be configured to use tcp the plugins must be available within the filesystem.
-    pub fn init(redis_url: &str) -> RedisResult<RedisNvtCache> {
+    pub fn init(redis_url: &str) -> RedisResult<RedisCache> {
         let rctx = RedisCtx::new(redis_url)?;
 
-        Ok(RedisNvtCache {
+        Ok(RedisCache {
             cache: Arc::new(Mutex::new(rctx)),
-            internal_cache: Arc::new(Mutex::new(Nvt::default())),
+            internal_cache: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -49,12 +52,12 @@ impl RedisNvtCache {
         cache.delete_namespace()
     }
 
-    
     fn store_nvt(&self, cache: &mut RedisCtx) -> RedisResult<()> {
-        let nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
+        let may_nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
+        if let Some(nvtc) = &*may_nvtc {
+            cache.redis_add_nvt(nvtc)?;
+        }
         // TODO add oid duplicate check on interpreter
-
-        cache.redis_add_nvt(nvtc.clone()).unwrap();
 
         Ok(())
     }
@@ -66,39 +69,43 @@ impl From<DbError> for SinkError {
     }
 }
 
-impl Sink for RedisNvtCache {
+impl Sink for RedisCache {
     fn store(&self, _key: &str, scope: StoreType) -> Result<(), SinkError> {
         match scope {
             StoreType::NVT(field) => {
-                let mut nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
-                match field {
-                    NVTField::Oid(oid) => nvtc.set_oid(oid),
-                    NVTField::FileName(name) => nvtc.set_filename(name),
-                    NVTField::Name(name) => nvtc.set_name(name),
-                    NVTField::Tag(key, value) => nvtc.add_tag(key.as_ref().to_owned(), value),
-                    NVTField::Dependencies(dependencies) => {
-                        nvtc.set_dependencies(dependencies)
-                    }
-                    NVTField::RequiredKeys(rk) => nvtc.set_required_keys(rk),
-                    NVTField::MandatoryKeys(mk) => nvtc.set_mandatory_keys(mk),
-                    NVTField::ExcludedKeys(ek) => nvtc.set_excluded_keys(ek),
-                    NVTField::RequiredPorts(rp) => nvtc.set_required_ports(rp),
-                    NVTField::RequiredUdpPorts(rup) => nvtc.set_required_udp_ports(rup),
-                    NVTField::Preference(pref) => nvtc.add_pref(pref),
-                    NVTField::Category(cat) => nvtc.set_category(cat),
-                    NVTField::Family(family) => nvtc.set_family(family),
-                    NVTField::Reference(x) => nvtc.add_ref(x),
-                    NVTField::NoOp => {
-                        // script_version
-                        // script_copyright
-                        // are getting ignored. Although they're still being in NASL they have no functionality
-                    }
-                    NVTField::Version(version) => {
-                        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-                        cache.redis_set_key(CACHE_KEY, version)?;
-                        return Ok(());
+                let mut may_nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
+                if may_nvtc.is_none() {
+                    *may_nvtc = Some(Nvt::default());
+                }
+                if let Some(nvtc) = &mut *may_nvtc {
+                    match field {
+                        NVTField::Oid(oid) => nvtc.set_oid(oid),
+                        NVTField::FileName(name) => nvtc.set_filename(name),
+                        NVTField::Name(name) => nvtc.set_name(name),
+                        NVTField::Tag(key, value) => nvtc.add_tag(key.as_ref().to_owned(), value),
+                        NVTField::Dependencies(dependencies) => nvtc.set_dependencies(dependencies),
+                        NVTField::RequiredKeys(rk) => nvtc.set_required_keys(rk),
+                        NVTField::MandatoryKeys(mk) => nvtc.set_mandatory_keys(mk),
+                        NVTField::ExcludedKeys(ek) => nvtc.set_excluded_keys(ek),
+                        NVTField::RequiredPorts(rp) => nvtc.set_required_ports(rp),
+                        NVTField::RequiredUdpPorts(rup) => nvtc.set_required_udp_ports(rup),
+                        NVTField::Preference(pref) => nvtc.add_pref(pref),
+                        NVTField::Category(cat) => nvtc.set_category(cat),
+                        NVTField::Family(family) => nvtc.set_family(family),
+                        NVTField::Reference(x) => nvtc.add_ref(x),
+                        NVTField::NoOp => {
+                            // script_version
+                            // script_copyright
+                            // are getting ignored. Although they're still being in NASL they have no functionality
+                        }
+                        NVTField::Version(version) => {
+                            let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+                            cache.redis_set_key(CACHE_KEY, version)?;
+                            return Ok(());
+                        }
                     }
                 }
+
                 Ok(())
             }
         }
@@ -135,19 +142,9 @@ impl Sink for RedisNvtCache {
                     }
                     NVTKey::Tag => {
                         let tags = cache.lindex(&rkey, KbNvtPos::Tags)?;
-                        // thsore are references
-                        //let cves = cache.lindex(&rkey, KbNvtPos::Cves)?;
-                        //let bids = cache.lindex(&rkey, KbNvtPos::Bids)?;
-                        //let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
                         let mut result = vec![];
                         for tag in tags.split('|') {
-                            let (key, value) = {
-                                let kv_pair: Vec<&str> = tag.split('=').collect();
-                                if kv_pair.len() != 2 {
-                                    return Err(SinkError {});
-                                }
-                                (kv_pair[0], kv_pair[1])
-                            };
+                            let (key, value) = tag.rsplit_once('=').ok_or(SinkError {})?;
                             let key: TagKey = key.parse()?;
                             result.push(StoreType::NVT(NVTField::Tag(key, value.to_owned())));
                         }
@@ -196,8 +193,7 @@ impl Sink for RedisNvtCache {
                         }
                         if !xref.is_empty() {
                             for r in xref.split(" ,") {
-                                let (id, class) =
-                                    { r.rsplit_once(':').ok_or_else(|| SinkError {})? };
+                                let (id, class) = r.rsplit_once(':').ok_or(SinkError {})?;
 
                                 results.push(StoreType::NVT(NVTField::Reference(NvtRef {
                                     class: class.to_owned(),
@@ -223,7 +219,7 @@ impl Sink for RedisNvtCache {
                     NVTKey::Version => {
                         let feed = cache.redis_key(CACHE_KEY)?;
                         Ok(vec![StoreType::NVT(NVTField::Version(feed))])
-                    },
+                    }
                 },
                 None => todo!(),
             },
