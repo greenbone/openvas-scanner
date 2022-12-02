@@ -211,7 +211,7 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
-    pub fn lindex(&mut self, key: String, index: KbNvtPos) -> RedisResult<String> {
+    pub fn lindex(&mut self, key: &str, index: KbNvtPos) -> RedisResult<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
         Ok(ret.v)
     }

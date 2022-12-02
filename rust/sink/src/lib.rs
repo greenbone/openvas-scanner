@@ -1,9 +1,14 @@
 //#![warn(missing_docs)]
 //! NASL Sink defines technology indepdent sink traits, structs ..{w;
 
-use std::sync::{Arc, Mutex};
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 /// Attack Category either set by script_category or on a scan to reflect the state the scan is in
+///
+/// ACT are stored as integers due to the dependency to OSPD-Openvas. When this dependency vanishes they should be stored and retrieved as strings to be easier to identify.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ACT {
     /// Defines a initializer
@@ -30,6 +35,27 @@ pub enum ACT {
     End,
 }
 
+impl FromStr for ACT {
+    type Err = SinkError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "0" => ACT::Init,
+            "1" => ACT::Scanner,
+            "2" => ACT::Settings,
+            "3" => ACT::GatherInfo,
+            "4" => ACT::Attack,
+            "5" => ACT::MixedAttack,
+            "6" => ACT::DestructiveAttack,
+            "7" => ACT::Denial,
+            "8" => ACT::KillHost,
+            "9" => ACT::Flood,
+            "10" => ACT::End,
+            _ => return Err(SinkError {}),
+        })
+    }
+}
+
 macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
@@ -40,20 +66,23 @@ macro_rules! make_str_lookup_enum {
              $key,
             )*
         }
-        impl $enum_name{
-            /// Matches a given string and returns TagKey
-            pub fn new(key: &str) -> Option<Self> {
+        
+        impl FromStr for $enum_name {
+            type Err = SinkError;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
                 use $enum_name::*;
-                match key {
+                match s {
                     $(
-                    stringify!($matcher) => Some($key),
+                    stringify!($matcher) => Ok($key),
                     )*
-                    _ => None,
+                    _ => Err(SinkError {}),
                 }
             }
+        }
 
-            /// Returns string representation
-            pub fn as_str(&self) -> &str {
+        impl AsRef<str> for $enum_name{
+            fn as_ref(&self) -> &str {
                 use $enum_name::*;
                 match self {
                     $(
@@ -66,6 +95,14 @@ macro_rules! make_str_lookup_enum {
 
     };
 }
+
+// impl FromStr for TagKey {
+//     type Err;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         todo!()
+//     }
+// }
 
 make_str_lookup_enum! {
     TagKey: "Allowed keys for a tag" => {
@@ -175,7 +212,6 @@ These functions are described in the description crate within builtin crate.
     NoOp
 }}
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Preferences that can be overridden by a user.
 pub struct NvtPreference {
@@ -248,10 +284,9 @@ pub enum StoreType {
     NVT(NVTField),
 }
 
-#[derive(Clone, Debug, PartialEq,Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GetType {
     NVT(Option<NVTKey>),
-    
 }
 
 /// TBD errors
@@ -347,8 +382,8 @@ mod tests {
             fn $matcher() {
                 use super::TagKey::*;
                 use super::*;
-                assert_eq!(TagKey::new(stringify!($matcher)), Some($key));
-                assert_eq!(TagKey::new(stringify!($matcher)).unwrap().as_str(), stringify!($matcher));
+                assert_eq!(TagKey::from_str(stringify!($matcher)), Ok($key));
+                assert_eq!(TagKey::from_str(stringify!($matcher)).unwrap().as_ref(), stringify!($matcher));
             }
             )*
 
@@ -383,10 +418,13 @@ mod tests {
     #[test]
     pub fn default_storage() -> Result<(), SinkError> {
         let storage = DefaultSink::default();
-        use StoreType::*;
         use NVTField::*;
+        use StoreType::*;
         storage.store("moep", NVT(Oid("moep".to_owned())))?;
-        assert_eq!(storage.get("moep", GetType::NVT(None))?, vec![NVT(Oid("moep".to_owned()))]);
+        assert_eq!(
+            storage.get("moep", GetType::NVT(None))?,
+            vec![NVT(Oid("moep".to_owned()))]
+        );
         Ok(())
     }
 }

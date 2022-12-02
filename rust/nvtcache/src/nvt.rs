@@ -491,7 +491,7 @@ impl Nvt {
                     "{}:{}:{}:{}",
                     pref.id(),
                     pref.name(),
-                    pref.class().as_str(),
+                    pref.class().as_ref(),
                     pref.default()
                 )
             })

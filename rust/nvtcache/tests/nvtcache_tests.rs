@@ -8,10 +8,12 @@ use nvtcache::nvtcache;
 #[cfg(feature = "redis_test")]
 mod test {
 
+    use sink::NVTField;
     use sink::NVTField::*;
     use sink::NVTKey;
     use sink::NvtRef;
     use sink::Sink;
+    use sink::StoreType;
     use sink::StoreType::NVT;
     use sink::TagKey::*;
     use sink::ACT::*;
@@ -33,10 +35,7 @@ mod test {
         assert_eq!(rctx.redis_key("int value").unwrap(), "42".to_owned());
 
         rctx.redis_set_key("string value", "moep").unwrap();
-        assert_eq!(
-            rctx.redis_key("string value").unwrap(),
-            "moep".to_owned()
-        );
+        assert_eq!(rctx.redis_key("string value").unwrap(), "moep".to_owned());
     }
 
     #[test]
@@ -44,7 +43,6 @@ mod test {
     // Use cargo test --features=redis_test.
     // Also, set the environment variables REDIS_SOCKET and PLUGIN_PATH with valid paths
     fn integration_test_nvtcache() -> RedisResult<()> {
-
         let socket = {
             let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
             env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)
@@ -60,12 +58,11 @@ mod test {
 
         let commands = [
             NVT(FileName("test.nasl".to_owned())),
-            NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
             NVT(Tag(
                 CreationDate,
                 "2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)".to_owned(),
             )),
-            NVT(Name("that is a very long and descriptive name".to_owned())),
+            NVT(Name("fancy name".to_owned())),
             NVT(Category(Denial)),
             NVT(Family("Denial of Service".to_owned())),
             NVT(Dependencies(vec![
@@ -96,18 +93,36 @@ mod test {
                 text: None,
             })),
             NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
+            NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
         ];
         for c in commands {
             nvtcache.store("test.nasl", c).unwrap();
         }
+        let get_commands = [
+            (
+                NVTKey::FileName,
+                NVT(FileName("test.nasl".to_owned())),
+            ),
+            (
+                NVTKey::Name,
+                NVT(Name("fancy name".to_owned())),
+            ),
+            (
+                NVTKey::Category,
+                NVT(Category(Denial)),
+            ),
+        ];
+        // nvts can only be stored at the end of the run due to preferences and references being left sided
+        // if the internal order of preferences and references doesn't matter we could store in the moment we have an oid
         nvtcache.on_exit().unwrap();
-        let x = nvtcache
-            .get(
-                "0.0.0.0.0.0.0.0.0.1",
-                sink::GetType::NVT(Some(NVTKey::FileName)),
-            )
-            .unwrap();
-        assert_eq!(x, vec![]);
+        for (cmd, expected) in get_commands {
+            let actual = nvtcache
+                .get("0.0.0.0.0.0.0.0.0.1", sink::GetType::NVT(Some(cmd)))
+                .unwrap();
+            assert_eq!(actual, vec![expected]);
+        }
+
+        nvtcache.reset()?;
 
         Ok(())
     }
