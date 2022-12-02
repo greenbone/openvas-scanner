@@ -25,11 +25,11 @@ mod test {
             env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)
         };
         let mut rctx = RedisCtx::new(&socket).unwrap();
-        rctx.redis_set_key("int value", 42).unwrap();
-        assert_eq!(rctx.redis_key("int value").unwrap(), "42".to_owned());
+        rctx.set_value("int value", 42).unwrap();
+        assert_eq!(rctx.value("int value").unwrap(), "42".to_owned());
 
-        rctx.redis_set_key("string value", "moep").unwrap();
-        assert_eq!(rctx.redis_key("string value").unwrap(), "moep".to_owned());
+        rctx.set_value("string value", "moep").unwrap();
+        assert_eq!(rctx.value("string value").unwrap(), "moep".to_owned());
     }
 
     #[test]
