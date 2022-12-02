@@ -1,6 +1,7 @@
 use sink::GetType;
 use sink::NVTField;
 use sink::NVTKey;
+use sink::NvtRef;
 use sink::Sink;
 use sink::SinkError;
 use sink::StoreType;
@@ -204,11 +205,45 @@ impl Sink for RedisNvtCache {
                     NVTKey::RequiredPorts => Ok(vec![StoreType::NVT(NVTField::RequiredPorts(
                         as_stringvec(KbNvtPos::RequiredPorts)?,
                     ))]),
-                    NVTKey::RequiredUdpPorts => Ok(vec![StoreType::NVT(NVTField::RequiredUdpPorts(
-                        as_stringvec(KbNvtPos::RequiredUDPPorts)?,
-                    ))]),
+                    NVTKey::RequiredUdpPorts => Ok(vec![StoreType::NVT(
+                        NVTField::RequiredUdpPorts(as_stringvec(KbNvtPos::RequiredUDPPorts)?),
+                    )]),
                     NVTKey::Preference => todo!(),
-                    NVTKey::Reference => todo!(),
+                    NVTKey::Reference => {
+                        let cves = cache.lindex(&rkey, KbNvtPos::Cves)?;
+                        let bids = cache.lindex(&rkey, KbNvtPos::Bids)?;
+                        let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
+                        let mut results = vec![];
+                        if !cves.is_empty() {
+                            results.push(StoreType::NVT(NVTField::Reference(NvtRef {
+                                class: "cve".to_owned(),
+                                id: cves,
+                                text: None,
+                            })))
+                        }
+                        if !bids.is_empty() {
+                            for bi in bids.split(" ,") {
+                                results.push(StoreType::NVT(NVTField::Reference(NvtRef {
+                                    class: "bid".to_owned(),
+                                    id: bi.to_owned(),
+                                    text: None,
+                                })))
+                            }
+                        }
+                        if !xref.is_empty() {
+                            for r in xref.split(" ,") {
+                                let (id, class) =
+                                    { r.rsplit_once(':').ok_or_else(|| SinkError {})? };
+
+                                results.push(StoreType::NVT(NVTField::Reference(NvtRef {
+                                    class: class.to_owned(),
+                                    id: id.to_owned(),
+                                    text: None,
+                                })))
+                            }
+                        }
+                        Ok(results)
+                    }
                     NVTKey::Category => {
                         let numeric: ACT = match cache.lindex(&rkey, KbNvtPos::Category)?.parse() {
                             Ok(x) => x,

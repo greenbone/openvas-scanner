@@ -105,15 +105,65 @@ mod test {
             ),
             (NVTKey::Name, vec![NVT(Name("fancy name".to_owned()))]),
             (NVTKey::Category, vec![NVT(Category(Denial))]),
-            (NVTKey::Tag, vec![NVT(Tag(CreationDate, "1366091481".to_owned()))]),
-            (NVTKey::Family, vec![NVT(Family("Denial of Service".to_owned()))]),
-            (NVTKey::Dependencies, vec![NVT(Dependencies(vec!["ssh_detect.nasl".to_owned(), "ssh2.nasl".to_owned()]))]),
-            (NVTKey::RequiredKeys, vec![NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()]))]),
-            (NVTKey::MandatoryKeys, vec![NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()]))]),
-            (NVTKey::ExcludedKeys, vec![NVT(ExcludedKeys(vec!["Settings/disable_cgi_scanning".to_owned(), "bla/bla".to_owned()]))]),
-            (NVTKey::RequiredPorts, vec![NVT(RequiredPorts(vec!["Services/ssh".to_owned(), "22".to_owned()]))]),
-            (NVTKey::RequiredUdpPorts, vec![NVT(RequiredUdpPorts(vec!["Services/udp/unknown".to_owned(), "17".to_owned()]))]),
-
+            (
+                NVTKey::Tag,
+                vec![NVT(Tag(CreationDate, "1366091481".to_owned()))],
+            ),
+            (
+                NVTKey::Family,
+                vec![NVT(Family("Denial of Service".to_owned()))],
+            ),
+            (
+                NVTKey::Dependencies,
+                vec![NVT(Dependencies(vec![
+                    "ssh_detect.nasl".to_owned(),
+                    "ssh2.nasl".to_owned(),
+                ]))],
+            ),
+            (
+                NVTKey::RequiredKeys,
+                vec![NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()]))],
+            ),
+            (
+                NVTKey::MandatoryKeys,
+                vec![NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()]))],
+            ),
+            (
+                NVTKey::ExcludedKeys,
+                vec![NVT(ExcludedKeys(vec![
+                    "Settings/disable_cgi_scanning".to_owned(),
+                    "bla/bla".to_owned(),
+                ]))],
+            ),
+            (
+                NVTKey::RequiredPorts,
+                vec![NVT(RequiredPorts(vec![
+                    "Services/ssh".to_owned(),
+                    "22".to_owned(),
+                ]))],
+            ),
+            (
+                NVTKey::RequiredUdpPorts,
+                vec![NVT(RequiredUdpPorts(vec![
+                    "Services/udp/unknown".to_owned(),
+                    "17".to_owned(),
+                ]))],
+            ),
+            (
+                NVTKey::Reference,
+                vec![
+                    NVT(Reference(NvtRef {
+                        class: "cve".to_owned(),
+                        id: "CVE-1999-0524".to_owned(),
+                        text: None,
+                    })),
+                    NVT(Reference(NvtRef {
+                        class: "URL".to_owned(),
+                        id: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
+                        text: None,
+                    })),
+                ],
+            ),
         ];
         // nvts can only be stored at the end of the run due to preferences and references being left sided
         // if the internal order of preferences and references doesn't matter we could store in the moment we have an oid
