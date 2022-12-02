@@ -179,9 +179,7 @@ fn as_cve_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
 }
 
 fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
-    let key = TagKey::new(&arguments[0].to_string()).ok_or_else(|| FunctionError {
-        reason: "invalid tagkey".to_owned(),
-    })?;
+    let key: TagKey = arguments[0].to_string().parse()?;
     Ok(NVTField::Tag(key, arguments[1].to_string()))
 }
 

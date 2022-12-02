@@ -3,11 +3,14 @@ use sink::NVTKey;
 use sink::Sink;
 use sink::SinkError;
 use sink::StoreType;
+use sink::ACT;
+use sink::TagKey;
 
 use crate::dberror::DbError;
 use crate::dberror::RedisResult;
 use crate::nvt::*;
 use crate::redisconnector::*;
+use std::ops::DerefMut;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -29,7 +32,6 @@ impl RedisNvtCache {
     /// `"unix:///run/redis/redis-server.sock"`.
     /// While the plugin_path is given without the protocol infix.
     /// The reason is that while redis can be configured to use tcp the plugins must be available within the filesystem.
-    // TODO initialize redis ctx before
     pub fn init(redis_url: &str) -> RedisResult<RedisNvtCache> {
         let rctx = RedisCtx::new(redis_url)?;
 
@@ -74,29 +76,23 @@ impl RedisNvtCache {
     // END TODO
 
     pub fn get_nvt_field(&self, oid: String, field: KbNvtPos) -> RedisResult<String> {
-        let mut key: String = "nvt:".to_owned();
-        key.push_str(oid.as_str());
+        let key = format!("nvt:{}", oid);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let value = cache.lindex(key, field)?;
+        let value = cache.lindex(&key, field)?;
         Ok(value)
     }
 
     pub fn get_nvt_filename(&self, oid: &str) -> RedisResult<String> {
-        let mut key: String = "nvt:".to_owned();
-        key.push_str(oid);
+        let key = format!("nvt:{}", oid);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let filename = cache.lindex(key, KbNvtPos::Filename)?;
+        let filename = cache.lindex(&key, KbNvtPos::Filename)?;
         Ok(filename)
     }
 
-
-
-
-    pub fn store_nvt(&self) -> RedisResult<()> {
+    fn store_nvt(&self, cache: &mut RedisCtx) -> RedisResult<()> {
         let nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
         // TODO add oid duplicate check on interpreter
 
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         cache.redis_add_nvt(nvtc.clone()).unwrap();
 
         Ok(())
@@ -118,7 +114,7 @@ impl Sink for RedisNvtCache {
                     sink::NVTField::Oid(oid) => nvtc.set_oid(oid),
                     sink::NVTField::FileName(name) => nvtc.set_filename(name),
                     sink::NVTField::Name(name) => nvtc.set_name(name),
-                    sink::NVTField::Tag(key, value) => nvtc.add_tag(key.as_str().to_owned(), value),
+                    sink::NVTField::Tag(key, value) => nvtc.add_tag(key.as_ref().to_owned(), value),
                     sink::NVTField::Dependencies(dependencies) => {
                         nvtc.set_dependencies(dependencies)
                     }
@@ -143,25 +139,50 @@ impl Sink for RedisNvtCache {
     }
 
     fn on_exit(&self) -> Result<(), sink::SinkError> {
-        self.store_nvt()?;
-        
+        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+        self.store_nvt(cache.deref_mut())?;
         Ok(())
     }
 
     fn get(&self, key: &str, scope: sink::GetType) -> Result<Vec<StoreType>, SinkError> {
         let rkey = format!("nvt:{}", key);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+        let mut positional = |key: NVTKey| -> Result<String, SinkError> {
+            let pos = KbNvtPos::try_from(key)?;
+            let strresult = cache.lindex(&rkey, pos)?;
+            Ok(strresult)
+        };
         match scope {
             GetType::NVT(nvt) => match nvt {
                 Some(x) => match x {
                     NVTKey::Oid => Ok(vec![StoreType::NVT(sink::NVTField::Oid(key.to_owned()))]),
                     NVTKey::FileName => {
-                        let pos = KbNvtPos::try_from(x)?;
-                        let strresult = cache.lindex(rkey, pos)?;
+                        let strresult = positional(x)?;
                         Ok(vec![StoreType::NVT(sink::NVTField::FileName(strresult))])
                     }
-                    NVTKey::Name => todo!(),
-                    NVTKey::Tag => todo!(),
+                    NVTKey::Name => {
+                        let strresult = positional(x)?;
+                        Ok(vec![StoreType::NVT(sink::NVTField::Name(strresult))])
+                    }
+                    NVTKey::Tag => {
+                        let tags = cache.lindex(&rkey, KbNvtPos::Tags)?;
+                        let cves = cache.lindex(&rkey, KbNvtPos::Cves)?;
+                        let bids = cache.lindex(&rkey, KbNvtPos::Bids)?;
+                        let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
+                        let mut result = vec![];
+                        for tag in tags.split('|') {
+                            let (key, value) = {
+                                let kv_pair: Vec<&str> = tag.split('=').collect();
+                                if kv_pair.len() != 2 {
+                                    return Err(SinkError {  });
+                                }
+                                (kv_pair[0], kv_pair[1])
+                            };
+                            let key: TagKey = key.parse()?;
+                        }
+                        
+                        Ok(result)
+                    },
                     NVTKey::Dependencies => todo!(),
                     NVTKey::RequiredKeys => todo!(),
                     NVTKey::MandatoryKeys => todo!(),
@@ -170,9 +191,18 @@ impl Sink for RedisNvtCache {
                     NVTKey::RequiredUdpPorts => todo!(),
                     NVTKey::Preference => todo!(),
                     NVTKey::Reference => todo!(),
-                    NVTKey::Category => todo!(),
-                    NVTKey::Family => todo!(),
-                    NVTKey::NoOp => todo!(),
+                    NVTKey::Category => {
+                        let numeric: ACT = match positional(x)?.parse() {
+                            Ok(x) => x,
+                            Err(_) => return Err(SinkError {}),
+                        };
+                        Ok(vec![StoreType::NVT(sink::NVTField::Category(numeric))])
+                    }
+                    NVTKey::Family => {
+                        let strresult = positional(x)?;
+                        Ok(vec![StoreType::NVT(sink::NVTField::Family(strresult))])
+                    }
+                    NVTKey::NoOp => Ok(vec![]),
                 },
                 None => todo!(),
             },
