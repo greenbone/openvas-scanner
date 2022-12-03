@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     context::{ContextType, NaslContext, Register},
     error::FunctionError,
@@ -15,28 +17,47 @@ impl From<SinkError> for FunctionError {
     }
 }
 
-/// Makes a storage function base on a very small DSL.
+/// Makes a storage function based on a very small DSL.
 ///
-/// The DSL is defined as
-/// function_name => [positional_key: expected_amount_pos_args] (key_named_parameter:value_named_parameter)
-/// although the positional block as well as the named_parameter block are optional wen both are omitted a warning 
-/// that the storage is unused will pop up informing the developer that this created method is useless.
+/// ```ignore
+///make_storage_function! {
+///  only_one_unnamed_parameter as_one_unnamed_field => [:1],
+///  a_list_of_unnamed_parameter as_list => [:0],
+///  name_value_pairs as_pair => (name: value),
+///  id_is_optional as_optional_id => (name: type: value) ? (id),
+///  combined => [0] (name: type: value) ? (id)
+///}
+/// ````
+/// The first parameter is the name of the function as well as the &str lookup key.
+/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FunctionError>` must be defined.
+///
+/// Parameter are separated from the definition by a `=>`.
+///
+/// All parameter groups are optional.
+/// The first parameter group are unnamed parameter `[amount]` the amount is the specific 
+/// number of expected arguments or 0 for a variadic list.
+/// Followed by required named parameter separated by `:` `(field1: field2)`.
+/// The third group indicated by `(?field1: field2)` are optional named parameter.
 macro_rules! make_storage_function {
-    ($($name:ident $transform:expr => $([$key:ident : $len:expr])? $(($($value:ident):+))? ),+) => {
+    ($($name:ident $transform:expr => $([$len:expr])? $(($($value:ident):+))? $(?($($optional_value:ident):+))?),+) => {
         $(
         $(
         /// Stores
         /// positional values
         #[doc = concat!("(", stringify!($len), ")")]
-        /// as
-        #[doc = concat!("`", stringify!($key), "`.")]
         )?
         $(
         /// Stores value defined in named_parameter
-            $(
+        $(
         #[doc = concat!("`", stringify!($value), "`")]
-            )+
-        )*
+        )+
+        )?
+        $(
+        /// Stores optional value defined in named_parameter
+        $(
+        #[doc = concat!("`", stringify!($optional_value), "`")]
+        )+
+        )?
         ///
         /// Returns NaslValue::Null on success.
         pub fn $name(
@@ -68,8 +89,16 @@ macro_rules! make_storage_function {
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, ctx, stringify!($value))?;
+            let value = get_named_parameter(registrat, ctx, stringify!($value), true)?;
             variables.push(value);
+            )+
+            )?
+            $(
+            $(
+            let value = get_named_parameter(registrat, ctx, stringify!($optional_value), false)?;
+            if !matches!(value, &NaslValue::Exit(0)) {
+               variables.push(value);
+            }
             )+
             )?
             let db_arg = $transform(&variables)?;
@@ -93,9 +122,16 @@ fn get_named_parameter<'a>(
     registrat: &'a Register,
     ctx: &'a NaslContext,
     key: &'a str,
-) -> Result<&NaslValue, FunctionError> {
+    required: bool,
+) -> Result<&'a NaslValue, FunctionError> {
     match ctx.named(registrat, key) {
-        None => Err(FunctionError::new(format!("expected {} to be set.", key))),
+        None => {
+            if required {
+                Err(FunctionError::new(format!("expected {} to be set.", key)))
+            } else {
+                Ok(&NaslValue::Exit(0))
+            }
+        }
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
             _ => Err(FunctionError::new(format!(
@@ -108,7 +144,7 @@ fn get_named_parameter<'a>(
 
 fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     Ok(NVTField::Preference(NvtPreference {
-        id: 0,
+        id: Some(0),
         name: "timeout".to_owned(),
         class: PreferenceType::Entry,
         default: arguments[0].to_string(),
@@ -197,22 +233,50 @@ fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     }))
 }
 
+fn as_preference(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+    if arguments.len() < 3 {
+        return Err(FunctionError {
+            reason: "expected at least name, type and value to be set.".to_owned(),
+        });
+    }
+    let name = arguments[0].to_string();
+    let class = arguments[1].to_string();
+    let value = arguments[2].to_string();
+    let id: Option<i32> = {
+        if arguments.len() == 4 {
+            match arguments[3].to_string().parse() {
+                Ok(id) => Some(id),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    };
+    Ok(NVTField::Preference(NvtPreference {
+        id,
+        class: PreferenceType::from_str(&class)?,
+        name,
+        default: value,
+    }))
+}
+
 // creates the actual description functions
 make_storage_function! {
-  script_timeout as_timeout_field => [timeout :1],
-  script_category as_category_field => [category :1],
-  script_name as_name_field => [name :1],
-  script_version as_noop => [version :1],
-  script_copyright as_noop => [copyright :1],
-  script_family as_family_field => [family :1],
-  script_oid as_oid_field => [oid :1],
-  script_dependencies as_dependencies_field => [dependencies :0],
-  script_exclude_keys as_exclude_keys_field => [exclude_keys :0],
-  script_mandatory_keys as_mandatory_keys_field => [mandatory_keys: 0],
-  script_require_ports as_require_ports_field => [required_ports: 0],
-  script_require_udp_ports as_require_udp_ports_field => [require_udp_ports: 0],
-  script_require_keys as_require_keys_field => [require_keys: 0],
-  script_cve_id as_cve_field => [cve_ids: 0],
+  script_timeout as_timeout_field => [1],
+  script_category as_category_field => [1],
+  script_name as_name_field => [1],
+  script_version as_noop => [1],
+  script_copyright as_noop => [1],
+  script_family as_family_field => [1],
+  script_oid as_oid_field => [1],
+  script_dependencies as_dependencies_field => [0],
+  script_exclude_keys as_exclude_keys_field => [0],
+  script_mandatory_keys as_mandatory_keys_field => [ 0],
+  script_require_ports as_require_ports_field => [ 0],
+  script_require_udp_ports as_require_udp_ports_field => [ 0],
+  script_require_keys as_require_keys_field => [ 0],
+  script_cve_id as_cve_field => [ 0],
   script_tag as_tag_field => (name: value),
-  script_xref as_xref_field => (name: value)
+  script_xref as_xref_field => (name: value),
+  script_add_preference as_preference => (name: type: value) ? (id)
 }

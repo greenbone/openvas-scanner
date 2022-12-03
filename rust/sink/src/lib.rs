@@ -217,7 +217,7 @@ These functions are described in the description crate within builtin crate.
 /// Preferences that can be overridden by a user.
 pub struct NvtPreference {
     /// Preference ID
-    pub id: i32,
+    pub id: Option<i32>,
     /// Preference type
     pub class: PreferenceType,
     /// Name of the preference
@@ -255,7 +255,7 @@ impl NvtRef {
 }
 
 impl NvtPreference {
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> Option<i32> {
         self.id
     }
 
@@ -354,7 +354,7 @@ impl Sink for DefaultSink {
         Ok(())
     }
 
-    fn get(&self, key: &str, scope: GetType) -> Result<Vec<StoreType>, SinkError> {
+    fn get(&self, key: &str, _scope: GetType) -> Result<Vec<StoreType>, SinkError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
