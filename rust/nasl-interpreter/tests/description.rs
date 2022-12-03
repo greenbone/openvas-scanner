@@ -1,16 +1,16 @@
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::{interpret, Mode};
     use nasl_interpreter::NaslValue;
-    
-    use sink::DefaultSink;
+    use nasl_interpreter::{interpret, Mode};
+
     use sink::NVTField::*;
     use sink::NvtRef;
-    use sink::StoreType::NVT;
     use sink::Sink;
+    use sink::StoreType::NVT;
     use sink::TagKey::*;
     use sink::ACT::*;
+    use sink::{DefaultSink, NvtPreference, PreferenceType};
 
     #[test]
     fn description() {
@@ -29,10 +29,11 @@ if(description)
   script_mandatory_keys("ssh/blubb/detected");
   script_xref(name:"URL", value:"http://freshmeat.sourceforge.net/projects/eventh/");
   script_exclude_keys("Settings/disable_cgi_scanning", "bla/bla");
-  #script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
   script_require_udp_ports("Services/udp/unknown", 17);
   script_cve_id("CVE-1999-0524");
   script_require_keys("WMI/Apache/RootPath");
+  script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
+  script_add_preference(name:"Without ID", type:"password", value:"");
   exit(0);
 }
         "###;
@@ -80,7 +81,19 @@ if(description)
                     id: "CVE-1999-0524".to_owned(),
                     text: None
                 })),
-                NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()]))
+                NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
+                NVT(Preference(NvtPreference {
+                    id: Some(2),
+                    class: PreferenceType::Password,
+                    name: "Enable Password".to_owned(),
+                    default: "".to_owned()
+                })),
+                NVT(Preference(NvtPreference {
+                    id: None,
+                    class: PreferenceType::Password,
+                    name: "Without ID".to_owned(),
+                    default: "".to_owned()
+                })),
             ]
         );
     }

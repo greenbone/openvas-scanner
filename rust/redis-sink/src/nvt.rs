@@ -489,7 +489,7 @@ impl Nvt {
             .map(|pref| {
                 format!(
                     "{}:{}:{}:{}",
-                    pref.id(),
+                    pref.id().unwrap_or_default(),
                     pref.name(),
                     pref.class().as_ref(),
                     pref.default()
