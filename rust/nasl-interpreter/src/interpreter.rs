@@ -260,39 +260,8 @@ impl<'a> Interpreter<'a> {
             AttackCategory(cat) => Ok(NaslValue::AttackCategory(cat)),
         }
     }
-}
 
-#[cfg(test)]
-mod test {
-
-    use nasl_syntax::{Statement, StringCategory, TokenCategory};
-    use sink::DefaultSink;
-
-    use crate::interpreter::NaslValue;
-
-    use super::{Interpreter};
-
-    fn built_in() {
-        let code = "script_name(\"test_script\");";
-        let statement = Statement::Call(
-            nasl_syntax::Token {
-                category: TokenCategory::Identifier(None),
-                position: (0, 11),
-            },
-            Box::new(Statement::Parameter(vec![Statement::Primitive(
-                nasl_syntax::Token {
-                    category: nasl_syntax::TokenCategory::String(StringCategory::Unquotable),
-                    position: (13, 24),
-                },
-            )])),
-        );
-        let mut storage = DefaultSink::default();
-
-        let mut interpreter = Interpreter::new(&storage, vec![], None, Some("test.nasl"), code);
-
-        assert_eq!(interpreter.resolve(statement), Ok(NaslValue::Null));
-        // TODO use correct interface
-        //assert!(storage.map.contains_key("name"));
-        //assert_eq!(storage.map.get("name").unwrap().as_str(), "test_script");
+    pub fn registrat(&self) -> &Register {
+        &self.registrat
     }
 }

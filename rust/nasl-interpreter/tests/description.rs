@@ -7,7 +7,7 @@ mod tests {
     use sink::NVTField::*;
     use sink::NvtRef;
     use sink::Sink;
-    use sink::StoreType::NVT;
+    use sink::Dispatch::NVT;
     use sink::TagKey::*;
     use sink::ACT::*;
     use sink::{DefaultSink, NvtPreference, PreferenceType};
@@ -41,7 +41,7 @@ if(description)
         let results = interpret(&storage, Mode::Description("test.nasl"), code);
         assert_eq!(results, vec![Ok(NaslValue::Exit(0))]);
         assert_eq!(
-            &storage.get("test.nasl", sink::GetType::NVT(None)).unwrap(),
+            &storage.retrieve("test.nasl", sink::Retrieve::NVT(None)).unwrap(),
             &vec![
                 NVT(FileName("test.nasl".to_owned())),
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
