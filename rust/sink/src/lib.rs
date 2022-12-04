@@ -10,6 +10,8 @@ use nvt::{NVTField, NVTKey};
 
 
 /// Dispatch command for a given Field
+///
+/// Defines what kind of information needs to be distributed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Dispatch {
     /// Metadata of the NASL script.
@@ -17,6 +19,8 @@ pub enum Dispatch {
 }
 
 /// Retrieve command for a given Field
+///
+/// Defines what kind of information needs to be gathered.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Retrieve {
     /// Metadata of the NASL script.
@@ -28,6 +32,14 @@ pub enum Retrieve {
 pub struct SinkError {}
 
 /// Defines the Sink interface to distribute Scope
+///
+/// In NASL there are three different kind of data:
+/// 1. nvt metadata handled as NVT
+/// 2. knowledgebase, not implemented yet
+/// 3. log (results), not implemented yet
+/// 
+/// While the knowledgebase lifetime is limited to the run of a scan
+/// NVT as well as Log are consumed by our clients.
 pub trait Sink {
     /// Stores given scope to key
     ///

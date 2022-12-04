@@ -1,10 +1,32 @@
+//! Defines NVT 
 use std::str::FromStr;
 
 use crate::SinkError;
 
-/// Attack Category either set by script_category or on a scan to reflect the state the scan is in
+/// Attack Category either set by script_category
 ///
-/// ACT are stored as integers due to the dependency to OSPD-Openvas. When this dependency vanishes they should be stored and retrieved as strings to be easier to identify.
+/// It defines what kind of attack script the nasl plugin is.
+/// Some scripts like
+///
+/// - Init
+/// - Scanner
+/// - Settings
+/// - GatherInfo
+///
+/// are running before the actual attack scans
+///
+/// - Attack
+/// - MixedAttack
+/// - DestructiveAttack
+/// - Denial
+/// - KillHost
+/// - Flood
+///
+/// are running before cleanup scripts
+///
+/// - End
+///
+/// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ACT {
     /// Defines a initializer
@@ -34,6 +56,7 @@ pub enum ACT {
 impl FromStr for ACT {
     type Err = SinkError;
 
+    // Iis defined as a numeric value instead of string representations due to downwards compatible reasons.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "0" => ACT::Init,
@@ -145,6 +168,7 @@ macro_rules! make_fields {
         #[derive(Clone, Debug, PartialEq, Eq)]
         pub enum NVTField {
             $(
+             #[doc = $doc]
              $name $( ($( $value$(<$st>)? ),*) )?
              ),*
         }
@@ -153,6 +177,7 @@ macro_rules! make_fields {
         #[derive(Clone, Debug, PartialEq, Eq)]
         pub enum NVTKey {
            $(
+             #[doc = $doc]
              $name
            ),*
         }
@@ -161,38 +186,42 @@ macro_rules! make_fields {
 
 make_fields! {
     "Is an identifying field" => Oid(String),
-    "The filename of the NASL Plugin\n\nThe filename is set on a description run and is not read from the NASL script." => FileName(String),
-    "The version of the NASL feed\n\nThe version is read from plugins_version.inc." => Version(String),
+    "The filename of the NASL Plugin
+
+The filename is set on a description run and is not read from the NASL script." => FileName(String),
+    "The version of the NASL feed
+
+The version is read from plugins_version.inc." => Version(String),
     "Name of a plugin" => Name(String),
     "Tags of a plugin" => Tag(TagKey, String),
         "Dependencies of other scripts that must be run upfront" => Dependencies(Vec<String>),
     r###"Required keys
-    
-    Those keys must be set to run this script. Otherwise it will be skipped."### =>
+
+Those keys must be set to run this script. Otherwise it will be skipped."### =>
     RequiredKeys(Vec<String>),
     r###"Mandatory keys
-    
-    Those keys must be set to run this script. Otherwise it will be skipped."### =>
+
+Those keys must be set to run this script. Otherwise it will be skipped."### =>
     MandatoryKeys(Vec<String>),
     r###"Excluded keys
-    
-    Those keys must not be set to run this script. Otherwise it will be skipped."### =>
+
+Those keys must not be set to run this script. Otherwise it will be skipped."### =>
     ExcludedKeys(Vec<String>),
     r###"Required TCP ports
-    
-    Those ports must be found and open. Otherwise it will be skipped."### =>
+
+Those ports must be found and open. Otherwise it will be skipped."### =>
     RequiredPorts(Vec<String>),
     r###"Required UDP ports
 
-    Those ports must be found and open. Otherwise it will be skipped."### =>
+Those ports must be found and open. Otherwise it will be skipped."### =>
     RequiredUdpPorts(Vec<String>),
     r###"Preferences that can be set by a User"### =>
     Preference(NvtPreference),
     r###"Reference either cve, bid, ..."### =>
     Reference(NvtRef),
     r###"Category of a plugin
-    
-    Category will be used to identify the type of the NASL plugin."### =>
+
+Category will be used to identify the type of the NASL plugin."### =>
     Category(ACT),
     r###"Family"### =>
     Family(String),
@@ -200,8 +229,8 @@ make_fields! {
     NoOp
 }
 
+/// Preferences that can be set by a user when running a script.
 #[derive(Clone, Debug, PartialEq, Eq)]
-/// Preferences that can be overridden by a user.
 pub struct NvtPreference {
     /// Preference ID
     pub id: Option<i32>,
@@ -213,6 +242,7 @@ pub struct NvtPreference {
     pub default: String,
 }
 
+/// References defines where the information for that vulnerability attack is from.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
@@ -223,7 +253,6 @@ pub struct NvtRef {
     pub text: Option<String>,
 }
 
-// TODO remove getter and constructor
 impl NvtRef {
     pub fn new(class: String, id: String, text: Option<String>) -> Self {
         Self { class, id, text }
