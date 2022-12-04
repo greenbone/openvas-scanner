@@ -10,7 +10,7 @@ mod test {
     use sink::NVTKey;
     use sink::NvtRef;
     use sink::Sink;
-    use sink::StoreType::NVT;
+    use sink::Dispatch::NVT;
     use sink::TagKey::*;
     use sink::ACT::*;
 
@@ -159,7 +159,7 @@ mod test {
         nvtcache.on_exit().unwrap();
         for (cmd, expected) in get_commands {
             let actual = nvtcache
-                .get("0.0.0.0.0.0.0.0.0.1", sink::GetType::NVT(Some(cmd)))
+                .get("0.0.0.0.0.0.0.0.0.1", sink::Retrieve::NVT(Some(cmd)))
                 .unwrap();
             assert_eq!(actual, expected);
         }

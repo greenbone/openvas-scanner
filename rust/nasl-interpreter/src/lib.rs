@@ -45,9 +45,9 @@ pub fn interpret<'a>(
                 "description".to_owned(),
                 ContextType::Value(NaslValue::Number(1)),
             )];
-            if let Err(err) = storage.store(
+            if let Err(err) = storage.dispatch(
                 filename,
-                sink::StoreType::NVT(sink::NVTField::FileName(filename.to_owned())),
+                sink::Dispatch::NVT(sink::NVTField::FileName(filename.to_owned())),
             ) {
                 return vec![Err(InterpretError::from(err))];
             }

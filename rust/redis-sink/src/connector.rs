@@ -7,13 +7,13 @@ use crate::dberror::RedisResult;
 use crate::nvt::Nvt;
 use redis::*;
 use sink::ACT;
-use sink::GetType;
+use sink::Retrieve;
 use sink::NVTField;
 use sink::NVTKey;
 use sink::NvtRef;
 use sink::Sink;
 use sink::SinkError;
-use sink::StoreType;
+use sink::Dispatch;
 use sink::TagKey;
 
 enum KbNvtPos {
@@ -335,9 +335,9 @@ impl From<DbError> for SinkError {
 }
 
 impl Sink for RedisCache {
-    fn store(&self, _key: &str, scope: StoreType) -> Result<(), SinkError> {
+    fn dispatch(&self, _key: &str, scope: Dispatch) -> Result<(), SinkError> {
         match scope {
-            StoreType::NVT(field) => {
+            Dispatch::NVT(field) => {
                 let mut may_nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
                 if may_nvtc.is_none() {
                     *may_nvtc = Some(Nvt::default());
@@ -382,7 +382,7 @@ impl Sink for RedisCache {
         Ok(())
     }
 
-    fn get(&self, key: &str, scope: sink::GetType) -> Result<Vec<StoreType>, SinkError> {
+    fn retrieve(&self, key: &str, scope: sink::Retrieve) -> Result<Vec<Dispatch>, SinkError> {
         let rkey = format!("nvt:{}", key);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         let mut as_stringvec = |key: KbNvtPos| -> Result<Vec<String>, SinkError> {
@@ -394,16 +394,16 @@ impl Sink for RedisCache {
                 .collect())
         };
         match scope {
-            GetType::NVT(nvt) => match nvt {
+            Retrieve::NVT(nvt) => match nvt {
                 Some(x) => match x {
-                    NVTKey::Oid => Ok(vec![StoreType::NVT(sink::NVTField::Oid(key.to_owned()))]),
+                    NVTKey::Oid => Ok(vec![Dispatch::NVT(sink::NVTField::Oid(key.to_owned()))]),
                     NVTKey::FileName => {
                         let strresult = cache.lindex(&rkey, KbNvtPos::Filename)?;
-                        Ok(vec![StoreType::NVT(sink::NVTField::FileName(strresult))])
+                        Ok(vec![Dispatch::NVT(sink::NVTField::FileName(strresult))])
                     }
                     NVTKey::Name => {
                         let strresult = cache.lindex(&rkey, KbNvtPos::Name)?;
-                        Ok(vec![StoreType::NVT(sink::NVTField::Name(strresult))])
+                        Ok(vec![Dispatch::NVT(sink::NVTField::Name(strresult))])
                     }
                     NVTKey::Tag => {
                         let tags = cache.lindex(&rkey, KbNvtPos::Tags)?;
@@ -411,27 +411,27 @@ impl Sink for RedisCache {
                         for tag in tags.split('|') {
                             let (key, value) = tag.rsplit_once('=').ok_or(SinkError {})?;
                             let key: TagKey = key.parse()?;
-                            result.push(StoreType::NVT(NVTField::Tag(key, value.to_owned())));
+                            result.push(Dispatch::NVT(NVTField::Tag(key, value.to_owned())));
                         }
 
                         Ok(result)
                     }
-                    NVTKey::Dependencies => Ok(vec![StoreType::NVT(NVTField::Dependencies(
+                    NVTKey::Dependencies => Ok(vec![Dispatch::NVT(NVTField::Dependencies(
                         as_stringvec(KbNvtPos::Dependencies)?,
                     ))]),
-                    NVTKey::RequiredKeys => Ok(vec![StoreType::NVT(NVTField::RequiredKeys(
+                    NVTKey::RequiredKeys => Ok(vec![Dispatch::NVT(NVTField::RequiredKeys(
                         as_stringvec(KbNvtPos::RequiredKeys)?,
                     ))]),
-                    NVTKey::MandatoryKeys => Ok(vec![StoreType::NVT(NVTField::MandatoryKeys(
+                    NVTKey::MandatoryKeys => Ok(vec![Dispatch::NVT(NVTField::MandatoryKeys(
                         as_stringvec(KbNvtPos::MandatoryKeys)?,
                     ))]),
-                    NVTKey::ExcludedKeys => Ok(vec![StoreType::NVT(NVTField::ExcludedKeys(
+                    NVTKey::ExcludedKeys => Ok(vec![Dispatch::NVT(NVTField::ExcludedKeys(
                         as_stringvec(KbNvtPos::ExcludedKeys)?,
                     ))]),
-                    NVTKey::RequiredPorts => Ok(vec![StoreType::NVT(NVTField::RequiredPorts(
+                    NVTKey::RequiredPorts => Ok(vec![Dispatch::NVT(NVTField::RequiredPorts(
                         as_stringvec(KbNvtPos::RequiredPorts)?,
                     ))]),
-                    NVTKey::RequiredUdpPorts => Ok(vec![StoreType::NVT(
+                    NVTKey::RequiredUdpPorts => Ok(vec![Dispatch::NVT(
                         NVTField::RequiredUdpPorts(as_stringvec(KbNvtPos::RequiredUDPPorts)?),
                     )]),
                     NVTKey::Preference => todo!(),
@@ -441,7 +441,7 @@ impl Sink for RedisCache {
                         let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
                         let mut results = vec![];
                         if !cves.is_empty() {
-                            results.push(StoreType::NVT(NVTField::Reference(NvtRef {
+                            results.push(Dispatch::NVT(NVTField::Reference(NvtRef {
                                 class: "cve".to_owned(),
                                 id: cves,
                                 text: None,
@@ -449,7 +449,7 @@ impl Sink for RedisCache {
                         }
                         if !bids.is_empty() {
                             for bi in bids.split(" ,") {
-                                results.push(StoreType::NVT(NVTField::Reference(NvtRef {
+                                results.push(Dispatch::NVT(NVTField::Reference(NvtRef {
                                     class: "bid".to_owned(),
                                     id: bi.to_owned(),
                                     text: None,
@@ -460,7 +460,7 @@ impl Sink for RedisCache {
                             for r in xref.split(" ,") {
                                 let (id, class) = r.rsplit_once(':').ok_or(SinkError {})?;
 
-                                results.push(StoreType::NVT(NVTField::Reference(NvtRef {
+                                results.push(Dispatch::NVT(NVTField::Reference(NvtRef {
                                     class: class.to_owned(),
                                     id: id.to_owned(),
                                     text: None,
@@ -474,16 +474,16 @@ impl Sink for RedisCache {
                             Ok(x) => x,
                             Err(_) => return Err(SinkError {}),
                         };
-                        Ok(vec![StoreType::NVT(sink::NVTField::Category(numeric))])
+                        Ok(vec![Dispatch::NVT(sink::NVTField::Category(numeric))])
                     }
                     NVTKey::Family => {
                         let strresult = cache.lindex(&rkey, KbNvtPos::Family)?;
-                        Ok(vec![StoreType::NVT(sink::NVTField::Family(strresult))])
+                        Ok(vec![Dispatch::NVT(sink::NVTField::Family(strresult))])
                     }
                     NVTKey::NoOp => Ok(vec![]),
                     NVTKey::Version => {
                         let feed = cache.value(CACHE_KEY)?;
-                        Ok(vec![StoreType::NVT(NVTField::Version(feed))])
+                        Ok(vec![Dispatch::NVT(NVTField::Version(feed))])
                     }
                 },
                 None => todo!(),

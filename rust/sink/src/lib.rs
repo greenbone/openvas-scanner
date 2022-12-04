@@ -96,14 +96,6 @@ macro_rules! make_str_lookup_enum {
     };
 }
 
-// impl FromStr for TagKey {
-//     type Err;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         todo!()
-//     }
-// }
-
 make_str_lookup_enum! {
     TagKey: "Allowed keys for a tag" => {
         affected => Affected,
@@ -272,21 +264,17 @@ impl NvtPreference {
     }
 }
 
-/// TBD
+/// Dispatch command for a given Field
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StoreType {
+pub enum Dispatch {
     /// Metadata of the NASL script.
-    ///
-    /// Each NASL script within the feed must provide at least
-    /// - OID
-    /// - filename
-    /// - family
-    /// - category
     NVT(NVTField),
 }
 
+/// Retrieve command for a given Field
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum GetType {
+pub enum Retrieve {
+    /// Metadata of the NASL script.
     NVT(Option<NVTKey>),
 }
 
@@ -299,11 +287,11 @@ pub trait Sink {
     /// Stores given scope to key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn store(&self, key: &str, scope: StoreType) -> Result<(), SinkError>;
+    fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError>;
     /// Get scopes found by key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn get(&self, key: &str, scope: GetType) -> Result<Vec<StoreType>, SinkError>;
+    fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Dispatch>, SinkError>;
 
     /// On exit is called when a script exit
     ///
@@ -314,7 +302,7 @@ pub trait Sink {
 /// Contains a Vector of all stored items.
 ///
 /// The first String statement is the used key while the Vector of Scope are the values.
-type StoreItem = Vec<(String, Vec<StoreType>)>;
+type StoreItem = Vec<(String, Vec<Dispatch>)>;
 
 /// Is a inmemory sink that behaves like a Storage.
 #[derive(Default)]
@@ -345,7 +333,7 @@ impl DefaultSink {
 }
 
 impl Sink for DefaultSink {
-    fn store(&self, key: &str, scope: StoreType) -> Result<(), SinkError> {
+    fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError> {
         let mut data = Arc::as_ref(&self.data).lock().unwrap();
         match data.iter_mut().find(|(k, _)| k.as_str() == key) {
             Some((_, v)) => v.push(scope),
@@ -354,7 +342,7 @@ impl Sink for DefaultSink {
         Ok(())
     }
 
-    fn get(&self, key: &str, _scope: GetType) -> Result<Vec<StoreType>, SinkError> {
+    fn retrieve(&self, key: &str, _scope: Retrieve) -> Result<Vec<Dispatch>, SinkError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
@@ -420,10 +408,10 @@ mod tests {
     pub fn default_storage() -> Result<(), SinkError> {
         let storage = DefaultSink::default();
         use NVTField::*;
-        use StoreType::*;
-        storage.store("moep", NVT(Oid("moep".to_owned())))?;
+        use Dispatch::*;
+        storage.dispatch("moep", NVT(Oid("moep".to_owned())))?;
         assert_eq!(
-            storage.get("moep", GetType::NVT(None))?,
+            storage.retrieve("moep", Retrieve::NVT(None))?,
             vec![NVT(Oid("moep".to_owned()))]
         );
         Ok(())

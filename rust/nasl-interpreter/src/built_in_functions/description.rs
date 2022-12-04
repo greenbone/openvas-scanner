@@ -102,7 +102,7 @@ macro_rules! make_storage_function {
             )+
             )?
             let db_arg = $transform(&variables)?;
-            storage.store(key, sink::StoreType::NVT(db_arg))?;
+            storage.dispatch(key, sink::Dispatch::NVT(db_arg))?;
             Ok(NaslValue::Null)
         }
         )*
@@ -275,7 +275,7 @@ make_storage_function! {
   script_require_ports as_require_ports_field => [ 0],
   script_require_udp_ports as_require_udp_ports_field => [ 0],
   script_require_keys as_require_keys_field => [ 0],
-  script_cve_id as_cve_field => [ 0],
+  script_cve_id as_cve_field => [0],
   script_tag as_tag_field => (name: value),
   script_xref as_xref_field => (name: value),
   script_add_preference as_preference => (name: type: value) ? (id)
