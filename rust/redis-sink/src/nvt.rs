@@ -1,6 +1,6 @@
 use crate::dberror::RedisResult;
 use chrono::prelude::*;
-use sink::{NvtPreference, ACT, NvtRef};
+use sink::nvt::{NvtRef, NvtPreference, ACT};
 
 ///Alias for time stamps
 type TimeT = i64;

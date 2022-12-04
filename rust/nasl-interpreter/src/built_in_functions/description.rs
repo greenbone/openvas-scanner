@@ -7,7 +7,8 @@ use crate::{
     NaslFunction,
 };
 
-use sink::{NVTField, NvtPreference, PreferenceType, Sink, SinkError, TagKey};
+use sink::nvt::{NVTField, NvtPreference, PreferenceType, TagKey, NvtRef};
+use sink::{Sink, SinkError};
 
 impl From<SinkError> for FunctionError {
     fn from(_: SinkError) -> Self {
@@ -207,7 +208,7 @@ fn as_require_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionE
 }
 
 fn as_cve_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
-    Ok(NVTField::Reference(sink::NvtRef {
+    Ok(NVTField::Reference(NvtRef {
         class: "cve".to_owned(),
         id: arguments[0].to_string(),
         text: None,
@@ -226,7 +227,7 @@ fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
         });
     }
     // TODO handle csv correctly
-    Ok(NVTField::Reference(sink::NvtRef {
+    Ok(NVTField::Reference(NvtRef {
         class: arguments[1].to_string(),
         id: arguments[0].to_string(),
         text: None,

@@ -47,7 +47,7 @@ pub fn interpret<'a>(
             )];
             if let Err(err) = storage.dispatch(
                 filename,
-                sink::Dispatch::NVT(sink::NVTField::FileName(filename.to_owned())),
+                sink::Dispatch::NVT(sink::nvt::NVTField::FileName(filename.to_owned())),
             ) {
                 return vec![Err(InterpretError::from(err))];
             }
