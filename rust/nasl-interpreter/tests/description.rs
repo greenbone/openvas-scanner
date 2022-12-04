@@ -4,13 +4,13 @@ mod tests {
     use nasl_interpreter::NaslValue;
     use nasl_interpreter::{interpret, Mode};
 
-    use sink::NVTField::*;
-    use sink::NvtRef;
+    use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
+    use sink::nvt::NvtRef;
     use sink::Sink;
     use sink::Dispatch::NVT;
-    use sink::TagKey::*;
-    use sink::ACT::*;
-    use sink::{DefaultSink, NvtPreference, PreferenceType};
+    use sink::nvt::TagKey::*;
+    use sink::nvt::ACT::*;
+    use sink::DefaultSink;
 
     #[test]
     fn description() {

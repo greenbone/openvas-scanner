@@ -4,7 +4,7 @@ use redis_sink::nvt::{parse_nvt_timestamp, Nvt};
 #[cfg(test)]
 mod test {
 
-    use sink::{NvtRef, ACT};
+    use sink::nvt::{NvtRef, ACT};
 
     use super::*;
 
