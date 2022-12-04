@@ -27,9 +27,6 @@ enum KbNvtPos {
     Category,
     Family,
     Name,
-    //The last two members aren't stored.
-    Timestamp,
-    OID,
 }
 
 impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
@@ -37,7 +34,6 @@ impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
 
     fn try_from(value: sink::nvt::NVTKey) -> Result<Self, Self::Error> {
         Ok(match value {
-            sink::nvt::NVTKey::Oid => Self::OID,
             sink::nvt::NVTKey::FileName => Self::Filename,
             sink::nvt::NVTKey::Name => Self::Name,
             sink::nvt::NVTKey::Dependencies => Self::Dependencies,
@@ -224,7 +220,9 @@ impl RedisCtx {
         tag.iter().as_ref().join("|")
     }
     /// Add an NVT in the redis cache.
+    ///
     /// The NVT metadata is stored in two different keys:
+
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
@@ -279,7 +277,10 @@ impl RedisCtx {
 /// Cache implementation.
 ///
 /// This implementation is threadsafe as it stored the underlying RedisCtx within a lockable arc reference.
-/// We need a second level cache before redis due to NVT runs. In this case we need to have the complete data to get the ordering right.
+///
+/// We need a second level cache before redis due to NVT runs.
+/// In this case we need to wait until we get the OID so that we can build the key additionally
+/// we need to have all refernces and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
 pub struct RedisCache {
     cache: Arc<Mutex<RedisCtx>>,
@@ -296,8 +297,6 @@ impl RedisCache {
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
     /// `"unix:///run/redis/redis-server.sock"`.
-    /// While the plugin_path is given without the protocol infix.
-    /// The reason is that while redis can be configured to use tcp the plugins must be available within the filesystem.
     pub fn init(redis_url: &str) -> RedisResult<RedisCache> {
         let rctx = RedisCtx::new(redis_url)?;
 
@@ -319,7 +318,6 @@ impl RedisCache {
             cache.redis_add_nvt(nvtc)?;
         }
         // TODO add oid duplicate check on interpreter
-
         Ok(())
     }
 }
