@@ -31,6 +31,12 @@
 #include <glib.h>
 #include <gvm/base/prefs.h> /* for prefs_get */
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib logging domain.
+ */
+#define G_LOG_DOMAIN "lib  misc"
+
 /**
  * @brief user-agent, or NULL.
  */
@@ -48,6 +54,7 @@ send_user_agent_via_ipc (struct ipc_context *ipc_context)
   if (ipc_send (ipc_context, IPC_MAIN, json, strlen (json)) < 0)
     g_warning ("Unable to send %s to host process", user_agent);
 }
+
 /**
  * @brief Create and set the global User-Agent variable.
  *
@@ -94,7 +101,8 @@ user_agent_set (const gchar *ua)
   gchar *ua_aux = NULL;
 
   ua_aux = g_strdup (user_agent);
-  if (!ua || strlen (ua) == 0)
+
+  if (ua != NULL && ua[0] != '\0')
     {
       g_free (user_agent);
       user_agent = g_strdup (ua);
