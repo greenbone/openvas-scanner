@@ -6,13 +6,15 @@
 mod test {
 
     use redis_sink::dberror::RedisResult;
-    use sink::NVTField::*;
-    use sink::NVTKey;
-    use sink::NvtRef;
-    use sink::Sink;
+    use sink::nvt::NVTField::*;
+    use sink::nvt::NVTKey;
+    use sink::nvt::NvtPreference;
+    use sink::nvt::NvtRef;
+    use sink::nvt::PreferenceType;
+    use sink::nvt::TagKey::*;
+    use sink::nvt::ACT::*;
     use sink::Dispatch::NVT;
-    use sink::TagKey::*;
-    use sink::ACT::*;
+    use sink::Sink;
 
     use std::env;
 
@@ -79,9 +81,15 @@ mod test {
             })),
             NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
             NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
+            NVT(Preference(NvtPreference {
+                id: Some(2),
+                class: PreferenceType::Password,
+                name: "Enable Password".to_owned(),
+                default: "".to_owned(),
+            })),
         ];
         for c in commands {
-            nvtcache.store("test.nasl", c).unwrap();
+            nvtcache.dispatch("test.nasl", c).unwrap();
         }
         let get_commands = [
             (
@@ -153,13 +161,22 @@ mod test {
                     })),
                 ],
             ),
+            (
+                NVTKey::Preference,
+                vec![NVT(Preference(NvtPreference {
+                    id: Some(2),
+                    class: PreferenceType::Password,
+                    name: "Enable Password".to_owned(),
+                    default: "".to_owned(),
+                }))],
+            ),
         ];
         // nvts can only be stored at the end of the run due to preferences and references being left sided
         // if the internal order of preferences and references doesn't matter we could store in the moment we have an oid
         nvtcache.on_exit().unwrap();
         for (cmd, expected) in get_commands {
             let actual = nvtcache
-                .get("0.0.0.0.0.0.0.0.0.1", sink::Retrieve::NVT(Some(cmd)))
+                .retrieve("0.0.0.0.0.0.0.0.0.1", sink::Retrieve::NVT(Some(cmd)))
                 .unwrap();
             assert_eq!(actual, expected);
         }

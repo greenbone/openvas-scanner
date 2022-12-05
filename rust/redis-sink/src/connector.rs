@@ -1,4 +1,5 @@
 use std::ops::DerefMut;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -6,7 +7,9 @@ use crate::dberror::DbError;
 use crate::dberror::RedisResult;
 use crate::nvt::Nvt;
 use redis::*;
+use sink::nvt::NvtPreference;
 use sink::nvt::NvtRef;
+use sink::nvt::PreferenceType;
 use sink::Dispatch;
 use sink::Retrieve;
 use sink::Sink;
@@ -205,9 +208,17 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
-    fn lindex(&mut self, key: &str, index: KbNvtPos) -> RedisResult<String> {
-        let ret: RedisValueHandler = self.kb.lindex(key, index as isize)?;
+    fn lindex(&mut self, key: &str, index: isize) -> RedisResult<String> {
+        let ret: RedisValueHandler = self.kb.lindex(key, index)?;
         Ok(ret.v)
+    }
+
+    fn lrange(&mut self, ket: &str, from: isize, to: isize) -> RedisResult<Vec<String>> {
+        let ret: Vec<Value> = self.kb.lrange(ket, from, to)?;
+        Ok(ret
+            .iter()
+            .map(|v| from_redis_value(v).unwrap_or_default())
+            .collect())
     }
 
     fn tags_as_single_string(&self, tags: &[(String, String)]) -> String {
@@ -242,7 +253,7 @@ impl RedisCtx {
         // Get the references
         let (cves, bids, xrefs) = nvt.refs();
 
-        let key_name = ["nvt:".to_owned(), oid.to_owned()].join("");
+        let key_name = format!("nvt:{}", oid);
         let values = [
             nvt.filename(),
             &required_keys,
@@ -265,7 +276,7 @@ impl RedisCtx {
         // Add preferences
         let prefs = nvt.prefs();
         if !prefs.is_empty() {
-            let key_name = ["oid:".to_owned(), oid.to_owned(), "prefs".to_owned()].join("");
+            let key_name = format!("oid:{}prefs", oid);
             self.kb.lpush(key_name, prefs)?;
         }
 
@@ -385,7 +396,7 @@ impl Sink for RedisCache {
         let rkey = format!("nvt:{}", key);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         let mut as_stringvec = |key: KbNvtPos| -> Result<Vec<String>, SinkError> {
-            let dependencies = cache.lindex(&rkey, key)?;
+            let dependencies = cache.lindex(&rkey, key as isize)?;
             Ok(dependencies
                 .split(',')
                 .into_iter()
@@ -399,17 +410,17 @@ impl Sink for RedisCache {
                         key.to_owned(),
                     ))]),
                     sink::nvt::NVTKey::FileName => {
-                        let strresult = cache.lindex(&rkey, KbNvtPos::Filename)?;
+                        let strresult = cache.lindex(&rkey, KbNvtPos::Filename as isize)?;
                         Ok(vec![Dispatch::NVT(sink::nvt::NVTField::FileName(
                             strresult,
                         ))])
                     }
                     sink::nvt::NVTKey::Name => {
-                        let strresult = cache.lindex(&rkey, KbNvtPos::Name)?;
+                        let strresult = cache.lindex(&rkey, KbNvtPos::Name as isize)?;
                         Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Name(strresult))])
                     }
                     sink::nvt::NVTKey::Tag => {
-                        let tags = cache.lindex(&rkey, KbNvtPos::Tags)?;
+                        let tags = cache.lindex(&rkey, KbNvtPos::Tags as isize)?;
                         let mut result = vec![];
                         for tag in tags.split('|') {
                             let (key, value) = tag.rsplit_once('=').ok_or(SinkError {})?;
@@ -441,11 +452,36 @@ impl Sink for RedisCache {
                             as_stringvec(KbNvtPos::RequiredUDPPorts)?,
                         ))])
                     }
-                    sink::nvt::NVTKey::Preference => todo!(),
+                    sink::nvt::NVTKey::Preference => {
+                        let pkey = format!("oid:{}prefs", key);
+                        let result = cache.lrange(&pkey, 0, -1)?;
+                        Ok(result
+                            .iter()
+                            .map(|s| {
+                                let split: Vec<&str> = s.split(':').collect();
+                                let id = match split[0].parse() {
+                                    Ok(v) => Some(v),
+                                    Err(_) => None,
+                                };
+                                let name = split[1];
+                                let class = match PreferenceType::from_str(split[2]) {
+                                    Ok(v) => v,
+                                    Err(_) => PreferenceType::Entry,
+                                };
+                                let default = split[3];
+                                Dispatch::NVT(sink::nvt::NVTField::Preference(NvtPreference {
+                                    id,
+                                    class,
+                                    default: default.to_owned(),
+                                    name: name.to_owned(),
+                                }))
+                            })
+                            .collect())
+                    }
                     sink::nvt::NVTKey::Reference => {
-                        let cves = cache.lindex(&rkey, KbNvtPos::Cves)?;
-                        let bids = cache.lindex(&rkey, KbNvtPos::Bids)?;
-                        let xref = cache.lindex(&rkey, KbNvtPos::Xrefs)?;
+                        let cves = cache.lindex(&rkey, KbNvtPos::Cves as isize)?;
+                        let bids = cache.lindex(&rkey, KbNvtPos::Bids as isize)?;
+                        let xref = cache.lindex(&rkey, KbNvtPos::Xrefs as isize)?;
                         let mut results = vec![];
                         if !cves.is_empty() {
                             results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
@@ -482,14 +518,14 @@ impl Sink for RedisCache {
                     }
                     sink::nvt::NVTKey::Category => {
                         let numeric: sink::nvt::ACT =
-                            match cache.lindex(&rkey, KbNvtPos::Category)?.parse() {
+                            match cache.lindex(&rkey, KbNvtPos::Category as isize)?.parse() {
                                 Ok(x) => x,
                                 Err(_) => return Err(SinkError {}),
                             };
                         Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Category(numeric))])
                     }
                     sink::nvt::NVTKey::Family => {
-                        let strresult = cache.lindex(&rkey, KbNvtPos::Family)?;
+                        let strresult = cache.lindex(&rkey, KbNvtPos::Family as isize)?;
                         Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Family(strresult))])
                     }
                     sink::nvt::NVTKey::NoOp => Ok(vec![]),
@@ -518,7 +554,8 @@ impl Sink for RedisCache {
                     ];
                     let mut result: Vec<Dispatch> = vec![];
                     for k in fields {
-                        let mut single_field_result = self.retrieve(key, sink::Retrieve::NVT(Some(k)))?;
+                        let mut single_field_result =
+                            self.retrieve(key, sink::Retrieve::NVT(Some(k)))?;
                         result.append(&mut single_field_result);
                     }
                     Ok(result)
