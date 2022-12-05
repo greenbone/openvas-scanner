@@ -1,13 +1,10 @@
 //#![warn(missing_docs)]
 //! NASL Sink defines technology indepdent sink traits, structs ..{w;
 
-pub mod nvt; 
-use std::{
-    sync::{Arc, Mutex},
-};
+pub mod nvt;
+use std::sync::{Arc, Mutex};
 
 use nvt::{NVTField, NVTKey};
-
 
 /// Dispatch command for a given Field
 ///
@@ -37,7 +34,7 @@ pub struct SinkError {}
 /// 1. nvt metadata handled as NVT
 /// 2. knowledgebase, not implemented yet
 /// 3. log (results), not implemented yet
-/// 
+///
 /// While the knowledgebase lifetime is limited to the run of a scan
 /// NVT as well as Log are consumed by our clients.
 pub trait Sink {
@@ -99,11 +96,52 @@ impl Sink for DefaultSink {
         Ok(())
     }
 
-    fn retrieve(&self, key: &str, _scope: Retrieve) -> Result<Vec<Dispatch>, SinkError> {
+    fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Dispatch>, SinkError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
-            Some((_, v)) => Ok(v.clone()),
+            Some((_, v)) => match scope {
+                Retrieve::NVT(None) => Ok(v.clone()),
+                Retrieve::NVT(Some(nkey)) => {
+                    let results: Vec<Dispatch> = v
+                        .clone()
+                        .into_iter()
+                        .filter(|v| match nkey {
+                            NVTKey::Oid => matches!(v, Dispatch::NVT(NVTField::Oid(_))),
+                            NVTKey::FileName => matches!(v, Dispatch::NVT(NVTField::FileName(_))),
+                            NVTKey::Version => matches!(v, Dispatch::NVT(NVTField::Version(_))),
+                            NVTKey::Name => matches!(v, Dispatch::NVT(NVTField::Name(_))),
+                            NVTKey::Tag => matches!(v, Dispatch::NVT(NVTField::Tag(_, _))),
+                            NVTKey::Dependencies => {
+                                matches!(v, Dispatch::NVT(NVTField::Dependencies(_)))
+                            }
+                            NVTKey::RequiredKeys => {
+                                matches!(v, Dispatch::NVT(NVTField::RequiredKeys(_)))
+                            }
+                            NVTKey::MandatoryKeys => {
+                                matches!(v, Dispatch::NVT(NVTField::MandatoryKeys(_)))
+                            }
+                            NVTKey::ExcludedKeys => {
+                                matches!(v, Dispatch::NVT(NVTField::ExcludedKeys(_)))
+                            }
+                            NVTKey::RequiredPorts => {
+                                matches!(v, Dispatch::NVT(NVTField::RequiredPorts(_)))
+                            }
+                            NVTKey::RequiredUdpPorts => {
+                                matches!(v, Dispatch::NVT(NVTField::RequiredUdpPorts(_)))
+                            }
+                            NVTKey::Preference => {
+                                matches!(v, Dispatch::NVT(NVTField::Preference(_)))
+                            }
+                            NVTKey::Reference => matches!(v, Dispatch::NVT(NVTField::Reference(_))),
+                            NVTKey::Category => matches!(v, Dispatch::NVT(NVTField::Category(_))),
+                            NVTKey::Family => matches!(v, Dispatch::NVT(NVTField::Family(_))),
+                            NVTKey::NoOp => matches!(v, Dispatch::NVT(NVTField::NoOp)),
+                        })
+                        .collect();
+                    Ok(results)
+                }
+            },
             None => Ok(vec![]),
         }
     }
@@ -119,10 +157,9 @@ impl Sink for DefaultSink {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Dispatch::*;
     use super::NVTField::*;
-
+    use super::*;
 
     #[test]
     pub fn default_storage() -> Result<(), SinkError> {
@@ -131,6 +168,14 @@ mod tests {
         assert_eq!(
             storage.retrieve("moep", Retrieve::NVT(None))?,
             vec![NVT(Oid("moep".to_owned()))]
+        );
+        assert_eq!(
+            storage.retrieve("moep", Retrieve::NVT(Some(NVTKey::Oid)))?,
+            vec![NVT(Oid("moep".to_owned()))]
+        );
+        assert_eq!(
+            storage.retrieve("moep", Retrieve::NVT(Some(NVTKey::Family)))?,
+            vec![]
         );
         Ok(())
     }
