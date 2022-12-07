@@ -1,25 +1,25 @@
-# HMAC_MD2
+# HMAC_MD5
 
 ## NAME
 
-**HMAC_MD2** - takes named paramaeter data and key to return HMAC MD2 string.
+**HMAC_MD5** - takes named paramaeter data and key to return HMAC MD5 string.
 ## SYNOPSIS
 
-*str* **HMAC_MD2**(key: str, data: str);
+*str* **HMAC_MD5**(key: str, data: str);
 
-**HMAC_MD2** It takes two arguments.
+**HMAC_MD5** It takes two arguments.
 
 - key - the key to be used for hashing
 - data - to data to be used for hashin
 
 ## DESCRIPTION
 
-HMAC_MD2 is a type of message authentication code involving MD2 hash function and a secret cryptographic key.
+HMAC_MD5 is a type of message authentication code involving MD5 hash function and a secret cryptographic key.
 
 
 ## RETURN VALUE
 
-HMAC MD2 string.
+HMAC MD5 string.
 
 ## ERRORS
 
@@ -28,7 +28,7 @@ Returns NULL when given data is null, given key is null or when the algorithm is
 ## EXAMPLES
 
 ```cpp
-hash = HMAC_MD2(key: "my_shared?key", data: "so much wow");
+hash = HMAC_MD5(key: "my_shared?key", data: "so much wow");
 ```
 
 ## SEE ALSO
