@@ -1,11 +1,11 @@
-use crate::{unexpected_statement, SyntaxError, Token, TokenCategory};
+use crate::{unexpected_statement, SyntaxError, Token, TokenCategory, token::ACT};
 
 /// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AssignOrder {
     /// Assign first than return
     AssignReturn,
-    /// Retutn than assign
+    /// Return than assign
     ReturnAssign,
 }
 
@@ -23,6 +23,8 @@ pub enum DeclareScope {
 pub enum Statement {
     /// Either a Number, String, Boolean or Null
     Primitive(Token),
+    /// Attack category set by script_category
+    AttackCategory(ACT),
     /// Is a variable
     Variable(Token),
     /// Is a array variable, it contains the lookup token as well as an optional lookup statement
@@ -74,7 +76,7 @@ pub enum Statement {
 impl Statement {
     /// Returns true when Statement may returns something
     ///
-    /// Since nasl is a dynamic, typeless language there is no guarantue.
+    /// Since nasl is a dynamic, typeless language there is no guarantee.
     /// In uncertain things like a function it returns true.
     #[inline(always)]
     pub fn is_returnable(&self) -> bool {
@@ -116,7 +118,7 @@ impl Statement {
     /// Retrieves the stored token in a Statement.
     ///
     /// If a Statement contains multiple Statements (e.g. Declare) than just the first one is returned.
-    /// Returns None on EoF or when a slice of vectors is empty.
+    /// Returns None on EoF, when a slice of vectors is empty or on AttackCategory
     #[inline(always)]
     pub fn as_token(&self) -> Option<&Token> {
         match self {
@@ -141,6 +143,7 @@ impl Statement {
             Statement::FunctionDeclaration(token, _, _) => Some(token),
             Statement::NoOp(token) => token.as_ref(),
             Statement::EoF => None,
+            Statement::AttackCategory(_) => None,
         }
     }
 }

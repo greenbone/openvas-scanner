@@ -3,20 +3,30 @@ use std::ops::Range;
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
 
-/// Identifies if a string is quoteable or unquoteable
+/// Identifies if a string is quotable or unquotable
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StringCategory {
-    Quoteable,   // '..\''
-    Unquoteable, // "..\"
+    /// Defines a string as capable of quoting
+    ///
+    /// Quotable strings will interpret \n\t...
+    Quotable, // '..\''
+    /// Defines a string as incapable of quoting
+    ///
+    /// Unquotable strings will use escaped characters as is instead of interpreting them.
+    Unquotable, // "..\"
 }
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Base {
-    Binary, // 0b010101
-    Octal,  // 0123456780
-    Base10, // 1234567890
-    Hex,    //0x123456789ABCDEF0
+    /// Base 2: contains 01 is defined by 0b e.g.: `0b010101`
+    Binary,
+    /// Base 8: contains 0-8 is defined by a starting 0 e.g.: `0123456780`
+    Octal,
+    /// Base 10: contains 0-9 is the default e.g.: `1234567890`
+    Base10,
+    /// Base 16: contains 0-9A-F is defined by a starting 0x e.g.: `0x123456789ABCDEF0`
+    Hex,
 }
 
 impl Base {
@@ -45,6 +55,16 @@ impl Base {
             Self::Hex => Self::verify_hex,
         }
     }
+
+    /// Returns the radix
+    pub fn radix(&self) -> u32 {
+        match self {
+            Base::Binary => 2,
+            Base::Octal => 8,
+            Base::Base10 => 10,
+            Base::Hex => 16,
+        }
+    }
 }
 
 /// Is used to identify which Category type is unclosed
@@ -54,52 +74,142 @@ pub enum UnclosedCategory {
     String(StringCategory),
 }
 
+/// Attack Category either set by script_category or on a scan to reflect the state the scan is in
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ACT {
+    /// Defines a initializer
+    Init = 0,
+    /// Defines a port scanner
+    Scanner,
+    /// Defines a settings configurator
+    Settings,
+    /// Gathers information about the environment the scan runs in
+    GatherInfo,
+    /// Executes actual attacks
+    Attack,
+    /// Same as attack left for downwards Compatibility
+    MixedAttack,
+    /// Exhausting attack should not be considered safe to execute
+    DestructiveAttack,
+    /// Exhausting attack should not be considered safe to execute
+    Denial,
+    /// Exhausting attack should not be considered safe to execute
+    KillHost,
+    /// Exhausting attack should not be considered safe to execute
+    Flood,
+    /// Should be executed at the end
+    End,
+}
+
+macro_rules! make_keyword_matcher {
+    ($($matcher:ident : $define:expr),+) => {
+
+impl Keyword {
+    /// Creates a new keyword based on a string identifier
+    pub fn new(keyword: &str) -> Option<Self> {
+        match keyword {
+           $(
+           stringify!($matcher) => Some($define),
+           )*
+            _ => None
+        }
+
+    }
+
+}
+
+impl ToString for Keyword {
+    fn to_string(&self) -> String {
+            $(
+                // cannot use match here because define is an expression
+        if self == &$define {
+           return stringify!($matcher).to_owned();
+        }
+            )*
+                return "".to_owned();
+
+    }
+}
+    };
+}
+
 /// Are reserved words that cannot be reused otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Keyword {
-    Function,    // function declaration
-    FCTAnonArgs, // _FCT_ANON_ARGS
-    True,        // TRUE
-    False,       // FALSE
-    For,         // for
-    ForEach,     // foreach
-    If,          // if
-    Else,        // else
-    While,       //while
-    Repeat,      //repeat
-    Until,       // until
-    LocalVar,    // local_var
-    GlobalVar,   // global_var
-    Null,        // NULL
-    Return,      // return
-    Include,     // include (is not a buildin if overridden NASL cannot work )
-    Exit,        // exit (is not a buildin function of overridden NASL detail run cannot work)
+    /// function declaration
+    Function,
+    /// _FCT_ANON_ARGS
+    FCTAnonArgs,
+    /// TRUE
+    True,
+    /// FALSE
+    False,
+    /// for
+    For,
+    /// foreach
+    ForEach,
+    /// if
+    If,
+    /// else
+    Else,
+    /// while
+    While,
+    /// repeat
+    Repeat,
+    /// until
+    Until,
+    /// local_var
+    LocalVar,
+    /// global_var
+    GlobalVar,
+    /// NULL
+    Null,
+    /// return
+    Return,
+    /// include
+    Include,
+    /// Scanning phases; can be set by category in the description block
+    ACT(ACT),
+    /// exit
+    Exit,
 }
 
-impl Keyword {
-    /// Parses given keyword and returns Keyword enum or None
-    pub fn new(keyword: &str) -> Option<Self> {
-        match keyword {
-            "function" => Some(Keyword::Function),
-            "_FCT_ANON_ARGS" => Some(Keyword::FCTAnonArgs),
-            "TRUE" => Some(Keyword::True),
-            "FALSE" => Some(Keyword::False),
-            "for" => Some(Keyword::For),
-            "foreach" => Some(Keyword::ForEach),
-            "if" => Some(Keyword::If),
-            "else" => Some(Keyword::Else),
-            "while" => Some(Keyword::While),
-            "repeat" => Some(Keyword::Repeat),
-            "until" => Some(Keyword::Until),
-            "local_var" => Some(Keyword::LocalVar),
-            "global_var" => Some(Keyword::GlobalVar),
-            "NULL" => Some(Keyword::Null),
-            "return" => Some(Keyword::Return),
-            "include" => Some(Keyword::Include),
-            "exit" => Some(Keyword::Exit),
-            _ => None,
-        }
+impl From<Token> for Range<usize> {
+    fn from(token: Token) -> Self {
+        let (start, end) = token.position;
+        Range { start, end }
     }
+}
+
+make_keyword_matcher! {
+    function: Keyword::Function,
+    _FCT_ANON_ARGS: Keyword::FCTAnonArgs,
+    TRUE: Keyword::True,
+    FALSE: Keyword::False,
+    for: Keyword::For,
+    foreach: Keyword::ForEach,
+    if: Keyword::If,
+    else: Keyword::Else,
+    while: Keyword::While,
+    repeat: Keyword::Repeat,
+    until: Keyword::Until,
+    local_var: Keyword::LocalVar,
+    global_var: Keyword::GlobalVar,
+    NULL: Keyword::Null,
+    return: Keyword::Return,
+    include: Keyword::Include,
+    exit: Keyword::Exit,
+    ACT_ATTACK: Keyword::ACT(ACT::Attack),
+    ACT_DENIAL: Keyword::ACT(ACT::Denial),
+    ACT_DESTRUCTIVE_ATTACK: Keyword::ACT(ACT::DestructiveAttack),
+    ACT_END: Keyword::ACT(ACT::End),
+    ACT_FLOOD: Keyword::ACT(ACT::Flood),
+    ACT_GATHER_INFO: Keyword::ACT(ACT::GatherInfo),
+    ACT_INIT: Keyword::ACT(ACT::Init),
+    ACT_KILL_HOST: Keyword::ACT(ACT::KillHost),
+    ACT_MIXED_ATTACK: Keyword::ACT(ACT::MixedAttack),
+    ACT_SCANNER: Keyword::ACT(ACT::Scanner),
+    ACT_SETTINGS: Keyword::ACT(ACT::Settings)
 }
 
 /// Is used to identify a Token
@@ -205,9 +315,9 @@ pub enum Category {
     String(StringCategory),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(Base),
-    /// We currently just suport 127.0.0.1 notation
+    /// We currently just support 127.0.0.1 notation
     IPv4Address,
-    /// Wrongfullt identified as IpV4
+    /// Wrongfully identified as IpV4
     IllegalIPv4Address,
     /// An illegal Number e.g. 0b2
     IllegalNumber(Base),
@@ -217,7 +327,7 @@ pub enum Category {
     Identifier(Option<Keyword>),
     /// Unclosed token. This can happen on e.g. string literals
     Unclosed(UnclosedCategory),
-    /// Number starts with an unidentifieable base
+    /// Number starts with an unidentifiable base
     UnknownBase,
     /// used when the symbol is unknown
     UnknownSymbol,
@@ -243,7 +353,7 @@ impl Token {
 
     /// Returns true when an Token is faulty
     ///
-    /// A Token is faulyt when it is a syntactical error like
+    /// A Token is faulty when it is a syntactical error like
     /// - [Category::IllegalIPv4Address]
     /// - [Category::Unclosed]
     /// - [Category::UnknownBase]
@@ -258,12 +368,6 @@ impl Token {
                 | Category::UnknownBase
                 | Category::UnknownSymbol
         )
-    }
-
-    /// Returns the byte Range within original input
-    pub fn range(&self) -> Range<usize> {
-        let (start, end) = self.position;
-        Range { start, end }
     }
 }
 
@@ -380,7 +484,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Skips initital and ending string identifier ' || " and verifies that a string is closed
+    // Skips initial and ending string identifier ' || " and verifies that a string is closed
     #[inline(always)]
     fn tokenize_string(
         &mut self,
@@ -478,7 +582,7 @@ impl<'a> Tokenizer<'a> {
                 return token!(Category::IPv4Address, start, self.cursor.len_consumed());
             }
 
-            // we verify that the cursor actually moved to prevent scenarious like
+            // we verify that the cursor actually moved to prevent scenarios like
             // 0b without any actual number in it
             if start == self.cursor.len_consumed() {
                 token!(Category::IllegalNumber(base), start, start)
@@ -555,7 +659,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
             '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
-            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual), // token!(Percent, start, self.cursor.len_consumed()),
+            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),
             ';' => token!(Semicolon, start, self.cursor.len_consumed()),
             '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
             '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
@@ -568,10 +672,10 @@ impl<'a> Iterator for Tokenizer<'a> {
             '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
-            '"' => self.tokenize_string(StringCategory::Unquoteable, |c| c != '"'),
+            '"' => self.tokenize_string(StringCategory::Unquotable, |c| c != '"'),
             '\'' => {
                 let mut back_slash = false;
-                self.tokenize_string(StringCategory::Quoteable, |c| {
+                self.tokenize_string(StringCategory::Quotable, |c| {
                     if !back_slash && c == '\'' {
                         false
                     } else {
@@ -684,20 +788,20 @@ mod tests {
     }
 
     #[test]
-    fn unquoteable_string() {
+    fn unquotable_string() {
         use StringCategory::*;
         let code = "\"hello I am a closed string\\\"";
         let (tokenizer, result) =
-            verify_tokens!(code, vec![(Category::String(Unquoteable), 1, 28)]);
+            verify_tokens!(code, vec![(Category::String(Unquotable), 1, 28)]);
         assert_eq!(
-            tokenizer.lookup(result[0].range()),
+            tokenizer.lookup(Range::from(result[0])),
             "hello I am a closed string\\"
         );
         let code = "\"hello I am a unclosed string\\";
         verify_tokens!(
             code,
             vec![(
-                Category::Unclosed(UnclosedCategory::String(Unquoteable)),
+                Category::Unclosed(UnclosedCategory::String(Unquotable)),
                 1,
                 30
             )]
@@ -705,17 +809,17 @@ mod tests {
     }
 
     #[test]
-    fn quoteable_string() {
+    fn quotable_string() {
         use StringCategory::*;
         let code = "'Hello \\'you\\'!'";
-        let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quoteable), 1, 15)]);
-        assert_eq!(tokenizer.lookup(result[0].range()), "Hello \\'you\\'!");
+        let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quotable), 1, 15)]);
+        assert_eq!(tokenizer.lookup(Range::from(result[0])), "Hello \\'you\\'!");
 
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
             code,
             vec![(
-                Category::Unclosed(UnclosedCategory::String(Quoteable)),
+                Category::Unclosed(UnclosedCategory::String(Quotable)),
                 1,
                 17
             )]
@@ -787,7 +891,7 @@ mod tests {
         use StringCategory::*;
         verify_tokens!(
             r###"'webapps\\appliance\\'"###,
-            vec![(String(Quoteable), 1, 21)]
+            vec![(String(Quotable), 1, 21)]
         );
     }
 
@@ -842,7 +946,7 @@ exit(1);
                 (LeftCurlyBracket, 17, 18),           // start execution block
                 (Identifier(None), 21, 31),           // lookup function script_oid
                 (LeftParen, 31, 32),                  // start parameter expression block
-                (String(Unquoteable), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
+                (String(Unquotable), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
                 (RightParen, 61, 62),          // end expression block
                 (Semicolon, 62, 63),           // finish execution
                 (Identifier(Some(Exit)), 66, 70), // lookup keyword exit

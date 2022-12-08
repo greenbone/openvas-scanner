@@ -216,7 +216,7 @@ mod test {
                             position: (11, 15)
                         },
                         Box::new(Primitive(Token {
-                            category: String(StringCategory::Unquoteable),
+                            category: String(StringCategory::Unquotable),
                             position: (17, 26)
                         }))
                     ),

@@ -17,6 +17,10 @@ pub use error::{SyntaxError, ErrorKind};
 pub use statement::*;
 pub use token::Category as TokenCategory;
 pub use token::Token;
+pub use token::StringCategory;
+pub use token::Base as NumberBase;
+pub use token::Keyword;
+pub use token::ACT as ACT;
 
 
 /// Parses given code and returns found Statements and Errors
@@ -71,7 +75,7 @@ mod tests {
                     position: (16, 17)
                 },
                 Token {
-                    category: Category::String(StringCategory::Quoteable),
+                    category: Category::String(StringCategory::Quotable),
                     position: (19, 25)
                 },
                 Token {

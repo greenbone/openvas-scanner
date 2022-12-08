@@ -72,7 +72,7 @@ impl<'a> Lexer<'a> {
     /// It uses a prefix_extension to verify if a token is prefix relevant and if parsing should continue
     /// or stop. This is crucial for keyword handling.
     ///
-    /// Afterwards it verifies via the postifx_extension if a token is postfix relevant.
+    /// Afterwards it verifies via the postfix_extension if a token is postfix relevant.
     ///
     /// Last but not least it verifies if a token is infix relevant if the binding power of infix token
     /// is lower than the given min_bp it aborts. This is done to handle the correct operation order.

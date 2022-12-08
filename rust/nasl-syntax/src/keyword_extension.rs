@@ -1,9 +1,11 @@
 use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
+    lexer::{End, Lexer},
     token::{Category, Keyword, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
-    variable_extension::CommaGroup, lexer::{End, Lexer}, Statement, DeclareScope,
+    variable_extension::CommaGroup,
+    DeclareScope, Statement,
 };
 
 pub(crate) trait Keywords {
@@ -16,10 +18,7 @@ pub(crate) trait Keywords {
 }
 
 impl<'a> Lexer<'a> {
-    fn parse_declaration(
-        &mut self,
-        scope: DeclareScope,
-    ) -> Result<(End, Statement), SyntaxError> {
+    fn parse_declaration(&mut self, scope: DeclareScope) -> Result<(End, Statement), SyntaxError> {
         let (end, params) = self.parse_comma_group(Category::Semicolon)?;
         if end == End::Continue {
             return Err(unexpected_end!("expected a finished statement."));
@@ -68,7 +67,7 @@ impl<'a> Lexer<'a> {
         ))
     }
 
-    fn jump_to_left_parenthis(&mut self) -> Result<(), SyntaxError> {
+    fn jump_to_left_parenthesis(&mut self) -> Result<(), SyntaxError> {
         let token = self
             .token()
             .ok_or_else(|| unexpected_end!("expected paren."))?;
@@ -80,7 +79,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_call_return_params(&mut self) -> Result<Statement, SyntaxError> {
-        self.jump_to_left_parenthis()?;
+        self.jump_to_left_parenthesis()?;
         let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
         if end.is_done() {
@@ -168,7 +167,7 @@ impl<'a> Lexer<'a> {
         }
     }
     fn parse_for(&mut self) -> Result<(End, Statement), SyntaxError> {
-        self.jump_to_left_parenthis()?;
+        self.jump_to_left_parenthesis()?;
         let (end, assignment) = self.statement(0, &|c| c == Category::Semicolon)?;
         if !matches!(assignment, Statement::Assign(_, _, _, _)) {
             return Err(unexpected_statement!(assignment));
@@ -202,7 +201,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_while(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        self.jump_to_left_parenthis()?;
+        self.jump_to_left_parenthesis()?;
         let (end, condition) = self.statement(0, &|c| c == Category::RightParen)?;
         if !end {
             return Err(unclosed_token!(token));
@@ -325,6 +324,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::True => Ok((End::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((End::Continue, Statement::Primitive(token))),
             Keyword::Function => self.parse_function(token),
+            Keyword::ACT(Category) => Ok((End::Continue, Statement::AttackCategory(Category))),
         }
     }
 }
@@ -335,11 +335,11 @@ mod test {
     use crate::{
         parse,
         token::{Base, Category, Keyword, StringCategory, Token},
-        SyntaxError, DeclareScope, AssignOrder,
+        AssignOrder, DeclareScope, SyntaxError,
     };
 
-    use crate::TokenCategory::*;
     use crate::Statement::*;
+    use crate::TokenCategory::*;
 
     #[test]
     fn if_statement() {
@@ -360,7 +360,7 @@ mod test {
                         position: (17, 27)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
-                        category: String(StringCategory::Quoteable),
+                        category: String(StringCategory::Quotable),
                         position: (29, 30)
                     })]))
                 )),
@@ -370,7 +370,7 @@ mod test {
                         position: (39, 46)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
-                        category: String(StringCategory::Quoteable),
+                        category: String(StringCategory::Quotable),
                         position: (48, 50)
                     })]))
                 )))
@@ -400,7 +400,7 @@ mod test {
 
     #[test]
     fn local_var() -> Result<(), SyntaxError> {
-        let exspected = |scope: DeclareScope, offset: usize| {
+        let expected = |scope: DeclareScope, offset: usize| {
             Declare(
                 scope,
                 vec![
@@ -421,11 +421,11 @@ mod test {
         };
         assert_eq!(
             parse("local_var a, b, c;").next().unwrap().unwrap(),
-            exspected(DeclareScope::Local, 0)
+            expected(DeclareScope::Local, 0)
         );
         assert_eq!(
             parse("global_var a, b, c;").next().unwrap().unwrap(),
-            exspected(DeclareScope::Global, 1)
+            expected(DeclareScope::Global, 1)
         );
         Ok(())
     }
@@ -512,19 +512,13 @@ mod test {
     #[test]
     fn while_loop() {
         let code = "while (TRUE) ;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap(),
-            While(_, _)
-        ))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), While(_, _)))
     }
 
     #[test]
     fn repeat_loop() {
         let code = "repeat ; until 1 == 1;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap(),
-            Repeat(_, _)
-        ))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), Repeat(_, _)))
     }
 
     #[test]

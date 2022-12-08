@@ -10,7 +10,7 @@ use crate::{
 pub(crate) trait Infix {
     /// Returns true when an Operation needs a infix handling.
     ///
-    /// This is separated in two methods to prevent unnecessary clones of a previos statement.
+    /// This is separated in two methods to prevent unnecessary clones of a previous statement.
     fn needs_infix(&self, op: Operation, min_bp: u8) -> Option<bool>;
 
     /// Is the actual handling of infix. The caller must ensure that needs_infix is called previously.
@@ -73,7 +73,7 @@ impl<'a> Infix for Lexer<'a> {
                 Operation::Assign(Category::DoublePoint) => match lhs {
                     Statement::Variable(left) => {
                         // if the right side is a parameter we need to transform the NamedParameter
-                        // from the atomar params and assign the first one to the NamedParameter instead
+                        // from the atomic params and assign the first one to the NamedParameter instead
                         // of Statement::Parameter and put it upfront
                         match rhs {
                             Statement::Parameter(params) => {
@@ -137,7 +137,7 @@ impl<'a> Infix for Lexer<'a> {
 }
 
 // if the right side is a parameter we need to transform the NamedParameter
-// from the atomar params and assign the first one to the NamedParameter instead
+// from the atomic params and assign the first one to the NamedParameter instead
 // of Statement::Parameter and put it upfront
 fn first_element_as_named_parameter(
     mut params: Vec<Statement>,
@@ -155,6 +155,8 @@ fn first_element_as_named_parameter(
 
 #[cfg(test)]
 mod test {
+
+    use std::ops::Range;
 
     use super::*;
     use crate::token::Base;
@@ -178,7 +180,7 @@ mod test {
             };
         match s {
             Primitive(token) => match token.category() {
-                Number(_) => code[token.range()].parse().unwrap(),
+                Number(_) => code[Range::from(token)].parse().unwrap(),
                 String(_) => todo!(),
                 _ => todo!(),
             },
@@ -301,7 +303,7 @@ mod test {
                         position: (0, 1),
                     }),
                     Primitive(Token {
-                        category: String(StringCategory::Quoteable),
+                        category: String(StringCategory::Quotable),
                         position: ((6 + shift) as usize, (7 + shift) as usize),
                     }),
                 ],
@@ -320,7 +322,7 @@ mod test {
     }
 
     #[test]
-    fn locical_operator() {
+    fn logical_operator() {
         fn expected(category: Category, shift: usize) -> Statement {
             Operator(
                 category,
