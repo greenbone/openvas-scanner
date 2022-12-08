@@ -324,7 +324,7 @@ impl<'a> Keywords for Lexer<'a> {
             Keyword::True => Ok((End::Continue, Statement::Primitive(token))),
             Keyword::False => Ok((End::Continue, Statement::Primitive(token))),
             Keyword::Function => self.parse_function(token),
-            Keyword::ACT(Category) => Ok((End::Continue, Statement::AttackCategory(Category))),
+            Keyword::ACT(category) => Ok((End::Continue, Statement::AttackCategory(category))),
         }
     }
 }

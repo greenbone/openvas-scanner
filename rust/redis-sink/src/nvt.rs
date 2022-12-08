@@ -1,4 +1,4 @@
-use crate::dberror::RedisResult;
+use crate::dberror::RedisSinkResult;
 use chrono::prelude::*;
 use sink::nvt::{NvtRef, NvtPreference, ACT};
 
@@ -127,7 +127,7 @@ impl Default for Nvt {
 
 impl Nvt {
     /// Nvt constructor
-    pub fn new() -> RedisResult<Nvt> {
+    pub fn new() -> RedisSinkResult<Nvt> {
         Ok(Nvt::default())
     }
 
@@ -345,13 +345,13 @@ impl Nvt {
 
     /// Get the NVT creation_time
     // Not used during plugin upload.
-    pub fn creation_time(&mut self) -> RedisResult<TimeT> {
+    pub fn creation_time(&mut self) -> RedisSinkResult<TimeT> {
         Ok(self.creation_time)
     }
 
     /// Get the NVT modification_time
     // Not used during plugin upload.
-    pub fn modification_time(&mut self) -> RedisResult<TimeT> {
+    pub fn modification_time(&mut self) -> RedisSinkResult<TimeT> {
         Ok(self.modification_time)
     }
     /// Get the NVT solution

@@ -1,4 +1,4 @@
-use redis_sink::dberror::RedisResult;
+use redis_sink::dberror::RedisSinkResult;
 use redis_sink::nvt::{parse_nvt_timestamp, Nvt};
 
 #[cfg(test)]
@@ -48,7 +48,7 @@ mod test {
     }
 
     #[test]
-    fn test_bid_refs() -> RedisResult<()> {
+    fn test_bid_refs() -> RedisSinkResult<()> {
         let mut nvt = Nvt::new()?;
         let bid_refs1 = NvtRef::new(
             "bid".to_owned(),
@@ -71,7 +71,7 @@ mod test {
         Ok(())
     }
     #[test]
-    fn test_cve_refs() -> RedisResult<()> {
+    fn test_cve_refs() -> RedisSinkResult<()> {
         let mut nvt = Nvt::new()?;
         let cve_refs1 = NvtRef::new(
             "cve".to_owned(),
@@ -92,7 +92,7 @@ mod test {
         Ok(())
     }
     #[test]
-    fn test_xrefs() -> RedisResult<()> {
+    fn test_xrefs() -> RedisSinkResult<()> {
         let mut nvt = Nvt::new()?;
         let xrefs1 = NvtRef::new(
             "URL".to_owned(),

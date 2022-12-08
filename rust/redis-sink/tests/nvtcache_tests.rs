@@ -5,7 +5,7 @@
 // Also, set the environment variables REDIS_SOCKET and PLUGIN_PATH with valid paths
 mod test {
 
-    use redis_sink::dberror::RedisResult;
+    use redis_sink::dberror::RedisSinkResult;
     use sink::nvt::NVTField::*;
     use sink::nvt::NVTKey;
     use sink::nvt::NvtPreference;
@@ -32,10 +32,11 @@ mod test {
 
         rctx.set_value("string value", "moep").unwrap();
         assert_eq!(rctx.value("string value").unwrap(), "moep".to_owned());
+        rctx.delete_namespace().unwrap();
     }
 
     #[test]
-    fn integration_test_nvtcache() -> RedisResult<()> {
+    fn integration_test_nvtcache() -> RedisSinkResult<()> {
         let socket = {
             let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
             env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)

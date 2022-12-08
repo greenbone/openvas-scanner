@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::dberror::DbError;
-use crate::dberror::RedisResult;
+use crate::dberror::RedisSinkResult;
 use crate::nvt::Nvt;
 use redis::*;
 use sink::nvt::NvtPreference;
@@ -33,7 +33,7 @@ enum KbNvtPos {
 }
 
 impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
-    type Error = DbError;
+    type Error = SinkError;
 
     fn try_from(value: sink::nvt::NVTKey) -> Result<Self, Self::Error> {
         Ok(match value {
@@ -49,7 +49,7 @@ impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
             sink::nvt::NVTKey::Family => Self::Family,
             // tags must also be handled manually due to differenciation
             _ => {
-                return Err(DbError::CustomErr(format!(
+                return Err(SinkError::UnexpectedData(format!(
                     "{:?} is not a redis position and must be handled differently",
                     value
                 )))
@@ -84,7 +84,7 @@ impl FromRedisValue for RedisValueHandler {
 
 impl RedisCtx {
     /// Connect to the redis server and return a redis context object
-    pub fn new(redis_socket: &str) -> RedisResult<RedisCtx> {
+    pub fn new(redis_socket: &str) -> RedisSinkResult<RedisCtx> {
         let client = redis::Client::open(redis_socket)?;
         let kb = client.get_connection()?;
         let global_db_index = "GVM.__GlobalDBIndex".to_string();
@@ -99,29 +99,7 @@ impl RedisCtx {
     }
 
     /// Get the max db index configured for the redis server instance
-    fn max_db_index(&mut self) -> RedisResult<u32> {
-        if self.maxdb > 0 {
-            return Ok(self.maxdb);
-        }
-
-        let maxdb = Cmd::new()
-            .arg("CONFIG")
-            .arg("GET")
-            .arg("databases")
-            .query(&mut self.kb);
-
-        match maxdb {
-            Ok(mdb) => {
-                let res: Vec<String> = mdb;
-                self.maxdb = max_db_index_to_uint(res);
-                return Ok(self.maxdb);
-            }
-            Err(_) => {
-                return Err(DbError::MaxDbErr(String::from(
-                    "Not possible to get the Max. database index.",
-                )))
-            }
-        }
+    fn max_db_index(&mut self) -> RedisSinkResult<u32> {
         /// Redis always replies about config with a vector
         /// of 2 string ["databases", "Number"]
         /// Therefore we convert the "Number" to uint32
@@ -130,6 +108,7 @@ impl RedisCtx {
                 match res[1].to_string().parse::<u32>() {
                     Ok(m) => return m,
                     Err(e) => {
+                        // TODO refactor
                         println!("{}", e);
                         return 0_u32;
                     }
@@ -137,14 +116,25 @@ impl RedisCtx {
             }
             0_u32
         }
+        if self.maxdb > 0 {
+            return Ok(self.maxdb);
+        }
+
+        let maxdb = Cmd::new()
+            .arg("CONFIG")
+            .arg("GET")
+            .arg("databases")
+            .query(&mut self.kb)?;
+        self.maxdb = max_db_index_to_uint(maxdb);
+        Ok(self.maxdb)
     }
 
-    fn namespace(&mut self) -> RedisResult<u32> {
+    fn namespace(&mut self) -> RedisSinkResult<u32> {
         let db: u32 = self.db;
         Ok(db)
     }
 
-    fn set_namespace(&mut self, db_index: u32) -> RedisResult<()> {
+    fn set_namespace(&mut self, db_index: u32) -> RedisSinkResult<()> {
         Cmd::new()
             .arg("SELECT")
             .arg(db_index.to_string())
@@ -154,12 +144,12 @@ impl RedisCtx {
         Ok(())
     }
 
-    fn try_database(&mut self, dbi: u32) -> RedisResult<u32> {
+    fn try_database(&mut self, dbi: u32) -> RedisSinkResult<u32> {
         let ret = self.kb.hset_nx(&self.global_db_index, dbi, 1)?;
         Ok(ret)
     }
 
-    fn select_database(&mut self) -> RedisResult<u32> {
+    fn select_database(&mut self) -> RedisSinkResult<u32> {
         let maxdb: u32 = self.max_db_index()?;
         let mut selected_db: u32 = 0;
 
@@ -182,7 +172,7 @@ impl RedisCtx {
     }
 
     /// Delete an entry from the in-use namespace's list
-    fn release_namespace(&mut self) -> RedisResult<()> {
+    fn release_namespace(&mut self) -> RedisSinkResult<()> {
         // Get firstthe current db index, the one to be released
         let dbi = self.namespace()?;
         // Remove the entry from the hash list
@@ -192,28 +182,28 @@ impl RedisCtx {
     }
 
     /// Delete all keys in the namespace and relase the it
-    fn delete_namespace(&mut self) -> RedisResult<()> {
+    pub fn delete_namespace(&mut self) -> RedisSinkResult<()> {
         Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
         self.release_namespace()?;
         Ok(())
     }
     //Wrapper function to avoid accessing kb member directly.
-    pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisResult<()> {
+    pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()> {
         self.kb.set(key, val)?;
         Ok(())
     }
 
-    pub fn value(&mut self, key: &str) -> RedisResult<String> {
+    pub fn value(&mut self, key: &str) -> RedisSinkResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
 
-    fn lindex(&mut self, key: &str, index: isize) -> RedisResult<String> {
+    fn lindex(&mut self, key: &str, index: isize) -> RedisSinkResult<String> {
         let ret: RedisValueHandler = self.kb.lindex(key, index)?;
         Ok(ret.v)
     }
 
-    fn lrange(&mut self, ket: &str, from: isize, to: isize) -> RedisResult<Vec<String>> {
+    fn lrange(&mut self, ket: &str, from: isize, to: isize) -> RedisSinkResult<Vec<String>> {
         let ret: Vec<Value> = self.kb.lrange(ket, from, to)?;
         Ok(ret
             .iter()
@@ -236,7 +226,7 @@ impl RedisCtx {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    pub(crate) fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisResult<()> {
+    pub(crate) fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisSinkResult<()> {
         let oid = nvt.oid();
         let name = nvt.name();
         // TODO verify, before it was concat without delimeter which seems wrong
@@ -307,7 +297,7 @@ impl RedisCache {
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
     /// `"unix:///run/redis/redis-server.sock"`.
-    pub fn init(redis_url: &str) -> RedisResult<RedisCache> {
+    pub fn init(redis_url: &str) -> RedisSinkResult<RedisCache> {
         let rctx = RedisCtx::new(redis_url)?;
 
         Ok(RedisCache {
@@ -317,24 +307,18 @@ impl RedisCache {
     }
 
     /// Reset the NVT Cache and release the redis namespace
-    pub fn reset(&self) -> RedisResult<()> {
+    pub fn reset(&self) -> RedisSinkResult<()> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         cache.delete_namespace()
     }
 
-    fn store_nvt(&self, cache: &mut RedisCtx) -> RedisResult<()> {
+    fn store_nvt(&self, cache: &mut RedisCtx) -> RedisSinkResult<()> {
         let may_nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
         if let Some(nvtc) = &*may_nvtc {
             cache.redis_add_nvt(nvtc)?;
         }
         // TODO add oid duplicate check on interpreter
         Ok(())
-    }
-}
-
-impl From<DbError> for SinkError {
-    fn from(_: DbError) -> Self {
-        Self {}
     }
 }
 
@@ -423,7 +407,9 @@ impl Sink for RedisCache {
                         let tags = cache.lindex(&rkey, KbNvtPos::Tags as isize)?;
                         let mut result = vec![];
                         for tag in tags.split('|') {
-                            let (key, value) = tag.rsplit_once('=').ok_or(SinkError {})?;
+                            let (key, value) = tag
+                                .rsplit_once('=')
+                                .ok_or_else(|| SinkError::UnexpectedData(tag.to_owned()))?;
                             let key: sink::nvt::TagKey = key.parse()?;
                             result.push(Dispatch::NVT(sink::nvt::NVTField::Tag(
                                 key,
@@ -503,7 +489,9 @@ impl Sink for RedisCache {
                         }
                         if !xref.is_empty() {
                             for r in xref.split(" ,") {
-                                let (id, class) = r.rsplit_once(':').ok_or(SinkError {})?;
+                                let (id, class) = r
+                                    .rsplit_once(':')
+                                    .ok_or_else(|| SinkError::UnexpectedData(r.to_owned()))?;
 
                                 results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(
                                     NvtRef {
@@ -517,12 +505,9 @@ impl Sink for RedisCache {
                         Ok(results)
                     }
                     sink::nvt::NVTKey::Category => {
-                        let numeric: sink::nvt::ACT =
-                            match cache.lindex(&rkey, KbNvtPos::Category as isize)?.parse() {
-                                Ok(x) => x,
-                                Err(_) => return Err(SinkError {}),
-                            };
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Category(numeric))])
+                        let act: sink::nvt::ACT =
+                            cache.lindex(&rkey, KbNvtPos::Category as isize)?.parse()?;
+                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Category(act))])
                     }
                     sink::nvt::NVTKey::Family => {
                         let strresult = cache.lindex(&rkey, KbNvtPos::Family as isize)?;
