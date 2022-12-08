@@ -135,17 +135,6 @@ procs_terminate_childs (void)
     }
 }
 
-/**
- * @brief Init procs, must be called once per process
- *
- * @param max
- */
-void
-procs_init (int cap)
-{
-  ipcc = ipc_contexts_init (cap);
-}
-
 static void
 init_child_signal_handlers (void)
 {
