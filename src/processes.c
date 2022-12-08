@@ -97,8 +97,9 @@ clean_procs (void)
 
 /**
  * @brief Terminates a given process. If termination does not work, the process
- * will get killed. In case init_procs was called, only direct child processes
- * can be terminated
+ * will get killed.
+ * Terminate process can be called with the (-1 * pid) to send the signal to the
+ * process group.
  *
  * @param pid id of the child process
  * @return int 0 on success, NOCHILD if child does not exist, NOINIT if not
@@ -107,29 +108,12 @@ clean_procs (void)
 int
 terminate_process (pid_t pid)
 {
-  if (ipcc != NULL)
-    {
-      for (int i = 0; i < ipcc->len; i++)
-        {
-          if (ipcc->ctxs[i].pid == pid)
-            {
-              kill (pid, SIGTERM);
-              usleep (10000);
-              if (!ipcc->ctxs[i].closed)
-                kill (pid, SIGKILL);
-              return 0;
-            }
-        }
-      return NOCHILD;
-    }
-  else
-    {
-      kill (pid, SIGTERM);
-      usleep (10000);
-      if (waitpid (pid, NULL, WNOHANG))
-        kill (pid, SIGKILL);
-      return 0;
-    }
+  kill (pid, SIGTERM);
+  usleep (10000);
+  if (waitpid (pid, NULL, WNOHANG))
+    kill (pid, SIGKILL);
+
+  return 0;
 }
 
 /**
