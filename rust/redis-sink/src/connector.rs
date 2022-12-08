@@ -307,6 +307,147 @@ impl RedisCache {
         // TODO add oid duplicate check on interpreter
         Ok(())
     }
+
+    fn retrieve_nvt_key(
+        &self,
+        cache: &mut RedisCtx,
+        oid: &str,
+        key: sink::nvt::NVTKey,
+    ) -> Result<Vec<Dispatch>, SinkError> {
+        let rkey = format!("nvt:{}", oid);
+        let mut as_stringvec = |key: KbNvtPos| -> Result<Vec<String>, SinkError> {
+            let dependencies = cache.lindex(&rkey, key as isize)?;
+            Ok(dependencies
+                .split(',')
+                .into_iter()
+                .map(|s| s.to_owned())
+                .collect())
+        };
+        match key {
+            sink::nvt::NVTKey::Oid => Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Oid(
+                oid.to_owned(),
+            ))]),
+            sink::nvt::NVTKey::FileName => {
+                let strresult = cache.lindex(&rkey, KbNvtPos::Filename as isize)?;
+                Ok(vec![Dispatch::NVT(sink::nvt::NVTField::FileName(
+                    strresult,
+                ))])
+            }
+            sink::nvt::NVTKey::Name => {
+                let strresult = cache.lindex(&rkey, KbNvtPos::Name as isize)?;
+                Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Name(strresult))])
+            }
+            sink::nvt::NVTKey::Tag => {
+                let tags = cache.lindex(&rkey, KbNvtPos::Tags as isize)?;
+                let mut result = vec![];
+                for tag in tags.split('|') {
+                    let (key, value) = tag
+                        .rsplit_once('=')
+                        .ok_or_else(|| SinkError::UnexpectedData(tag.to_owned()))?;
+                    let key: sink::nvt::TagKey = key.parse()?;
+                    result.push(Dispatch::NVT(sink::nvt::NVTField::Tag(
+                        key,
+                        value.to_owned(),
+                    )));
+                }
+                Ok(result)
+            }
+            sink::nvt::NVTKey::Dependencies => Ok(vec![Dispatch::NVT(
+                sink::nvt::NVTField::Dependencies(as_stringvec(KbNvtPos::Dependencies)?),
+            )]),
+            sink::nvt::NVTKey::RequiredKeys => Ok(vec![Dispatch::NVT(
+                sink::nvt::NVTField::RequiredKeys(as_stringvec(KbNvtPos::RequiredKeys)?),
+            )]),
+            sink::nvt::NVTKey::MandatoryKeys => Ok(vec![Dispatch::NVT(
+                sink::nvt::NVTField::MandatoryKeys(as_stringvec(KbNvtPos::MandatoryKeys)?),
+            )]),
+            sink::nvt::NVTKey::ExcludedKeys => Ok(vec![Dispatch::NVT(
+                sink::nvt::NVTField::ExcludedKeys(as_stringvec(KbNvtPos::ExcludedKeys)?),
+            )]),
+            sink::nvt::NVTKey::RequiredPorts => Ok(vec![Dispatch::NVT(
+                sink::nvt::NVTField::RequiredPorts(as_stringvec(KbNvtPos::RequiredPorts)?),
+            )]),
+            sink::nvt::NVTKey::RequiredUdpPorts => Ok(vec![Dispatch::NVT(
+                sink::nvt::NVTField::RequiredUdpPorts(as_stringvec(KbNvtPos::RequiredUDPPorts)?),
+            )]),
+            sink::nvt::NVTKey::Preference => {
+                let pkey = format!("oid:{}prefs", oid);
+                let result = cache.lrange(&pkey, 0, -1)?;
+                Ok(result
+                    .iter()
+                    .map(|s| {
+                        let split: Vec<&str> = s.split(':').collect();
+                        let id = match split[0].parse() {
+                            Ok(v) => Some(v),
+                            Err(_) => None,
+                        };
+                        let name = split[1];
+                        let class = match PreferenceType::from_str(split[2]) {
+                            Ok(v) => v,
+                            Err(_) => PreferenceType::Entry,
+                        };
+                        let default = split[3];
+                        Dispatch::NVT(sink::nvt::NVTField::Preference(NvtPreference {
+                            id,
+                            class,
+                            default: default.to_owned(),
+                            name: name.to_owned(),
+                        }))
+                    })
+                    .collect())
+            }
+            sink::nvt::NVTKey::Reference => {
+                let cves = cache.lindex(&rkey, KbNvtPos::Cves as isize)?;
+                let bids = cache.lindex(&rkey, KbNvtPos::Bids as isize)?;
+                let xref = cache.lindex(&rkey, KbNvtPos::Xrefs as isize)?;
+                let mut results = vec![];
+                if !cves.is_empty() {
+                    results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
+                        class: "cve".to_owned(),
+                        id: cves,
+                        text: None,
+                    })))
+                }
+                if !bids.is_empty() {
+                    for bi in bids.split(" ,") {
+                        results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
+                            class: "bid".to_owned(),
+                            id: bi.to_owned(),
+                            text: None,
+                        })))
+                    }
+                }
+                if !xref.is_empty() {
+                    for r in xref.split(" ,") {
+                        let (id, class) = r
+                            .rsplit_once(':')
+                            .ok_or_else(|| SinkError::UnexpectedData(r.to_owned()))?;
+
+                        results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
+                            class: class.to_owned(),
+                            id: id.to_owned(),
+                            text: None,
+                        })))
+                    }
+                }
+                Ok(results)
+            }
+            sink::nvt::NVTKey::Category => {
+                let act: sink::nvt::ACT =
+                    cache.lindex(&rkey, KbNvtPos::Category as isize)?.parse()?;
+                Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Category(act))])
+            }
+            sink::nvt::NVTKey::Family => {
+                let strresult = cache.lindex(&rkey, KbNvtPos::Family as isize)?;
+                Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Family(strresult))])
+            }
+            sink::nvt::NVTKey::NoOp => Ok(vec![]),
+            sink::nvt::NVTKey::Version => {
+                let feed = cache.value(CACHE_KEY)?;
+                Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Version(feed))])
+            }
+        }
+    }
 }
 
 impl Sink for RedisCache {
@@ -364,148 +505,10 @@ impl Sink for RedisCache {
     }
 
     fn retrieve(&self, key: &str, scope: sink::Retrieve) -> Result<Vec<Dispatch>, SinkError> {
-        let rkey = format!("nvt:{}", key);
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-        let mut as_stringvec = |key: KbNvtPos| -> Result<Vec<String>, SinkError> {
-            let dependencies = cache.lindex(&rkey, key as isize)?;
-            Ok(dependencies
-                .split(',')
-                .into_iter()
-                .map(|s| s.to_owned())
-                .collect())
-        };
         match scope {
             Retrieve::NVT(nvt) => match nvt {
-                Some(x) => match x {
-                    sink::nvt::NVTKey::Oid => Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Oid(
-                        key.to_owned(),
-                    ))]),
-                    sink::nvt::NVTKey::FileName => {
-                        let strresult = cache.lindex(&rkey, KbNvtPos::Filename as isize)?;
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::FileName(
-                            strresult,
-                        ))])
-                    }
-                    sink::nvt::NVTKey::Name => {
-                        let strresult = cache.lindex(&rkey, KbNvtPos::Name as isize)?;
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Name(strresult))])
-                    }
-                    sink::nvt::NVTKey::Tag => {
-                        let tags = cache.lindex(&rkey, KbNvtPos::Tags as isize)?;
-                        let mut result = vec![];
-                        for tag in tags.split('|') {
-                            let (key, value) = tag
-                                .rsplit_once('=')
-                                .ok_or_else(|| SinkError::UnexpectedData(tag.to_owned()))?;
-                            let key: sink::nvt::TagKey = key.parse()?;
-                            result.push(Dispatch::NVT(sink::nvt::NVTField::Tag(
-                                key,
-                                value.to_owned(),
-                            )));
-                        }
-                        Ok(result)
-                    }
-                    sink::nvt::NVTKey::Dependencies => Ok(vec![Dispatch::NVT(
-                        sink::nvt::NVTField::Dependencies(as_stringvec(KbNvtPos::Dependencies)?),
-                    )]),
-                    sink::nvt::NVTKey::RequiredKeys => Ok(vec![Dispatch::NVT(
-                        sink::nvt::NVTField::RequiredKeys(as_stringvec(KbNvtPos::RequiredKeys)?),
-                    )]),
-                    sink::nvt::NVTKey::MandatoryKeys => Ok(vec![Dispatch::NVT(
-                        sink::nvt::NVTField::MandatoryKeys(as_stringvec(KbNvtPos::MandatoryKeys)?),
-                    )]),
-                    sink::nvt::NVTKey::ExcludedKeys => Ok(vec![Dispatch::NVT(
-                        sink::nvt::NVTField::ExcludedKeys(as_stringvec(KbNvtPos::ExcludedKeys)?),
-                    )]),
-                    sink::nvt::NVTKey::RequiredPorts => Ok(vec![Dispatch::NVT(
-                        sink::nvt::NVTField::RequiredPorts(as_stringvec(KbNvtPos::RequiredPorts)?),
-                    )]),
-                    sink::nvt::NVTKey::RequiredUdpPorts => {
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::RequiredUdpPorts(
-                            as_stringvec(KbNvtPos::RequiredUDPPorts)?,
-                        ))])
-                    }
-                    sink::nvt::NVTKey::Preference => {
-                        let pkey = format!("oid:{}prefs", key);
-                        let result = cache.lrange(&pkey, 0, -1)?;
-                        Ok(result
-                            .iter()
-                            .map(|s| {
-                                let split: Vec<&str> = s.split(':').collect();
-                                let id = match split[0].parse() {
-                                    Ok(v) => Some(v),
-                                    Err(_) => None,
-                                };
-                                let name = split[1];
-                                let class = match PreferenceType::from_str(split[2]) {
-                                    Ok(v) => v,
-                                    Err(_) => PreferenceType::Entry,
-                                };
-                                let default = split[3];
-                                Dispatch::NVT(sink::nvt::NVTField::Preference(NvtPreference {
-                                    id,
-                                    class,
-                                    default: default.to_owned(),
-                                    name: name.to_owned(),
-                                }))
-                            })
-                            .collect())
-                    }
-                    sink::nvt::NVTKey::Reference => {
-                        let cves = cache.lindex(&rkey, KbNvtPos::Cves as isize)?;
-                        let bids = cache.lindex(&rkey, KbNvtPos::Bids as isize)?;
-                        let xref = cache.lindex(&rkey, KbNvtPos::Xrefs as isize)?;
-                        let mut results = vec![];
-                        if !cves.is_empty() {
-                            results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
-                                class: "cve".to_owned(),
-                                id: cves,
-                                text: None,
-                            })))
-                        }
-                        if !bids.is_empty() {
-                            for bi in bids.split(" ,") {
-                                results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(
-                                    NvtRef {
-                                        class: "bid".to_owned(),
-                                        id: bi.to_owned(),
-                                        text: None,
-                                    },
-                                )))
-                            }
-                        }
-                        if !xref.is_empty() {
-                            for r in xref.split(" ,") {
-                                let (id, class) = r
-                                    .rsplit_once(':')
-                                    .ok_or_else(|| SinkError::UnexpectedData(r.to_owned()))?;
-
-                                results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(
-                                    NvtRef {
-                                        class: class.to_owned(),
-                                        id: id.to_owned(),
-                                        text: None,
-                                    },
-                                )))
-                            }
-                        }
-                        Ok(results)
-                    }
-                    sink::nvt::NVTKey::Category => {
-                        let act: sink::nvt::ACT =
-                            cache.lindex(&rkey, KbNvtPos::Category as isize)?.parse()?;
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Category(act))])
-                    }
-                    sink::nvt::NVTKey::Family => {
-                        let strresult = cache.lindex(&rkey, KbNvtPos::Family as isize)?;
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Family(strresult))])
-                    }
-                    sink::nvt::NVTKey::NoOp => Ok(vec![]),
-                    sink::nvt::NVTKey::Version => {
-                        let feed = cache.value(CACHE_KEY)?;
-                        Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Version(feed))])
-                    }
-                },
+                Some(x) => self.retrieve_nvt_key(&mut cache, key, x),
                 None => {
                     let fields = [
                         sink::nvt::NVTKey::Oid,
@@ -526,8 +529,7 @@ impl Sink for RedisCache {
                     ];
                     let mut result: Vec<Dispatch> = vec![];
                     for k in fields {
-                        let mut single_field_result =
-                            self.retrieve(key, sink::Retrieve::NVT(Some(k)))?;
+                        let mut single_field_result = self.retrieve_nvt_key(&mut cache, key, k)?;
                         result.append(&mut single_field_result);
                     }
                     Ok(result)
