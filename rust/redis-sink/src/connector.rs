@@ -100,33 +100,20 @@ impl RedisCtx {
 
     /// Get the max db index configured for the redis server instance
     fn max_db_index(&mut self) -> RedisSinkResult<u32> {
-        /// Redis always replies about config with a vector
-        /// of 2 string ["databases", "Number"]
-        /// Therefore we convert the "Number" to uint32
-        fn max_db_index_to_uint(res: Vec<String>) -> u32 {
-            if res.len() == 2 {
-                match res[1].to_string().parse::<u32>() {
-                    Ok(m) => return m,
-                    Err(e) => {
-                        // TODO refactor
-                        println!("{}", e);
-                        return 0_u32;
-                    }
-                }
-            }
-            0_u32
-        }
         if self.maxdb > 0 {
             return Ok(self.maxdb);
         }
 
-        let maxdb = Cmd::new()
+        // Redis always replies about config with a vector
+        // of 2 string ["databases", "Number"]
+        // Therefore we convert the "Number" to uint32
+        let (_, max_db) = Cmd::new()
             .arg("CONFIG")
             .arg("GET")
             .arg("databases")
-            .query(&mut self.kb)?;
-        self.maxdb = max_db_index_to_uint(maxdb);
-        Ok(self.maxdb)
+            .query::<(String, u32)>(&mut self.kb)?;
+        self.maxdb = max_db;
+        Ok(max_db)
     }
 
     fn namespace(&mut self) -> RedisSinkResult<u32> {
