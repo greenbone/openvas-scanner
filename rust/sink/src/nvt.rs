@@ -70,7 +70,7 @@ impl FromStr for ACT {
             "8" => ACT::KillHost,
             "9" => ACT::Flood,
             "10" => ACT::End,
-            _ => return Err(SinkError {}),
+            _ => return Err(SinkError::UnexpectedData(s.to_owned()) ),
         })
     }
 }
@@ -95,7 +95,7 @@ macro_rules! make_str_lookup_enum {
                     $(
                     stringify!($matcher) => Ok($key),
                     )*
-                    _ => Err(SinkError {}),
+                    _ => Err(SinkError::UnexpectedData(s.to_owned())),
                 }
             }
         }

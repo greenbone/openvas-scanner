@@ -24,9 +24,24 @@ pub enum Retrieve {
     NVT(Option<NVTKey>),
 }
 
-/// TBD errors
+/// Defines abstract SinkError cases
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SinkError {}
+pub enum SinkError {
+    /// Informs the caller to retry the call
+    Retry(String),
+    /// The connection to a DB was lost.
+    ///
+    /// The default solution in those cases are most of the times to try a reconnect.
+    ConnectionLost(String),
+    /// The sink did expected a different kind of data and is unable to fullfil the request.
+    ///
+    /// This is usually a usage error.
+    UnexpectedData(String),
+    /// There is a deeper problem with the underlying DataBase
+    ///
+    /// An example would be that there is no free db left on redis and that it needs to be cleaned up.
+    Dirty(String),
+}
 
 /// Defines the Sink interface to distribute Scope
 ///
