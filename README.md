@@ -33,7 +33,7 @@ For detailed installation requirements and instructions, please see the file
 `openvas` and for making the scanner available to other GVM modules.
 
 If you are not familiar or comfortable building from source code, we recommend
-that you use the Greenbone Enerprise TRIAL, a prepared virtual
+that you use the Greenbone Enterprise TRIAL, a prepared virtual
 machine with a readily available setup. Information regarding the virtual machine
 is available at <https://www.greenbone.net/en/testnow>.
 
