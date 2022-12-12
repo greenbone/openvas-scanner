@@ -24,6 +24,7 @@
 
 #include "nasl.h"
 
+#include "../misc/kb_cache.h" // for get_main_kb
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h"
 #include "../misc/plugutils.h"
@@ -352,6 +353,7 @@ main (int argc, char **argv)
       if (rc)
         exit (1);
 
+      set_main_kb (kb);
       script_infos = init (&ip6, host->vhosts, kb);
       for (int i = 0; nasl_filenames[i] != NULL; i++)
         {
