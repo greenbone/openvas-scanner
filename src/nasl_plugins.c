@@ -215,7 +215,9 @@ nasl_thread (struct ipc_context *ipcc, struct script_infos *args)
   kb_lnk_reset (get_main_kb ());
   addr6_to_str (args->ip, ip_str);
   // TODO extend sript_infos here
-  setproctitle ("openvas: testing %s (%s)", ip_str, args->name);
+
+  setproctitle ("openvas: testing %s (%s)", ip_str,
+                g_path_get_basename (args->name));
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;
