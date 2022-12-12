@@ -25,8 +25,8 @@
 
 #include "plugutils.h"
 
-#include "kb_cache.h"
-#include "network.h" // for OPENVAS_ENCAPS_IP
+#include "kb_cache.h" // for get_main_kb
+#include "network.h"  // for OPENVAS_ENCAPS_IP
 #include "scan_id.h"
 #include "support.h" // for g_memdup2 workaround
 
