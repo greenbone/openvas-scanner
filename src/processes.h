@@ -38,9 +38,6 @@
 typedef void (*process_func_t) (void *);
 
 void
-procs_init (int cap);
-
-void
 procs_terminate_childs (void);
 
 int
