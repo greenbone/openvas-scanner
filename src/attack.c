@@ -671,9 +671,10 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
 
       if (check_kb_inconsistency (get_main_kb ()) != 0)
         {
-          // As long as we don't have a proper communication channel
-          // to our ancestors we just kill our parent and ourselves
-          // (but let our grandparents live).
+          // We send the stop scan signal to the current parent process
+          // group, which is the main scan process and host processes.
+          // This avoid to attack new hosts and force the running host
+          // process to finish and spread the signal to the plugin processes
           // To prevent duplicate results we don't let ACT_END run.
           killpg (parent, SIGUSR1);
         }
