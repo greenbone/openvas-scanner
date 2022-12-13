@@ -1,11 +1,13 @@
 use std::ops::Range;
 
 use nasl_syntax::{
-    NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT, Keyword,
+    AssignOrder, Keyword, NumberBase, Statement, Statement::*, StringCategory, Token,
+    TokenCategory, ACT,
 };
 use sink::Sink;
 
 use crate::{
+    call::CallExtension,
     context::{ContextType, CtxType, Register},
     error::InterpretError,
     lookup,
@@ -51,11 +53,11 @@ impl ToString for NaslValue {
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
     // TODO change to enum
-    oid: Option<&'a str>,
-    filename: Option<&'a str>,
-    code: &'a str,
-    registrat: Register,
-    storage: &'a dyn Sink,
+    pub(crate) oid: Option<&'a str>,
+    pub(crate) filename: Option<&'a str>,
+    pub(crate) code: &'a str,
+    pub(crate) registrat: Register,
+    pub(crate) storage: &'a dyn Sink,
 }
 
 trait PrimitiveResolver<T> {
@@ -124,6 +126,11 @@ impl TryFrom<(&str, Token)> for NaslValue {
     }
 }
 
+/// Interpreter always returns a NaslValue or an InterpretError
+///
+/// When a result does not contain a value than NaslValue::Null must be returned.
+pub type InterpretResult = Result<NaslValue, InterpretError>;
+
 impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
     pub fn new(
@@ -144,16 +151,15 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn resolve_key(&self) -> &str {
+    pub(crate) fn resolve_key(&self) -> &str {
         if let Some(oid) = self.oid {
             return oid;
         }
         self.filename.unwrap_or_default()
-        
     }
 
     /// Interprets a Statement
-    pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpretError> {
+    pub fn resolve(&mut self, statement: Statement) -> InterpretResult {
         match statement {
             Array(_, _) => todo!(),
             Exit(stmt) => {
@@ -181,59 +187,25 @@ impl<'a> Interpreter<'a> {
                     ContextType::Value(result) => Ok(result.clone()),
                 }
             }
-            Call(function_name, parameters) => {
-                let name = &self.code[Range::from(function_name)];
-                // get the context
-                let mut named = vec![];
-                let mut position = vec![];
-                match *parameters {
-                    Parameter(params) => {
-                        for p in params {
-                            match p {
-                                NamedParameter(token, val) => {
-                                    let val = self.resolve(*val)?;
-                                    let name = self.code[Range::from(token)].to_owned();
-                                    named.push((name, ContextType::Value(val)))
-                                }
-                                val => {
-                                    let val = self.resolve(val)?;
-                                    position.push(ContextType::Value(val));
-                                }
-                            }
-                        }
-                    }
-                    _ => {
-                        return Err(InterpretError::new(
-                            "invalid statement type for function parameters".to_string(),
-                        ))
-                    }
-                };
-
-                self.registrat
-                    .create_root_child(CtxType::Function(named, position));
-                // TODO change to use root context to lookup both
-                let result = match lookup(name) {
-                    // Built-In Function
-                    Some(function) => match function(self.resolve_key(), self.storage, &self.registrat) {
-                        Ok(value) => Ok(value),
-                        Err(x) => Err(InterpretError::new(format!(
-                            "unable to call function {}: {:?}",
-                            name,
-                            x
-                        ))),
-                    },
-                    // Check for user defined function
-                    None => todo!(
-                        "{} not a built-in function and user function are not yet implemented",
-                        name.to_string()
-                    ),
-                };
-                self.registrat.drop_last();
-                result
-            }
+            Call(name, arguments) => self.call(name, arguments),
             Declare(_, _) => todo!(),
             Parameter(_) => todo!(),
-            Assign(_, _, _, _) => todo!(),
+            Assign(cat, order, left, right) => match cat {
+                TokenCategory::Equal => match *left {
+                    Variable(token) => {
+                        let key: NaslValue = TryFrom::try_from((self.code, token))?;
+                        let val = self.resolve(*right)?;
+                        let mut moep = self.registrat.last_mut();
+                        moep.add_named(&key.to_string(), ContextType::Value(val.clone()));
+                        Ok(val)
+                    }
+                    Array(_, _) => todo!("arrays are not yet implemented"),
+                    _ => Err(InterpretError {
+                        reason: "".to_owned(),
+                    }),
+                },
+                _ => todo!(),
+            },
             Operator(_, _) => todo!(),
             If(condition, if_block, else_block) => match self.resolve(*condition) {
                 Ok(value) => {
@@ -249,7 +221,7 @@ impl<'a> Interpreter<'a> {
             Block(blocks) => {
                 for stmt in blocks {
                     if let NaslValue::Exit(rc) = self.resolve(stmt)? {
-                        return Ok(NaslValue::Exit(rc))
+                        return Ok(NaslValue::Exit(rc));
                     }
                 }
                 // currently blocks don't return something
