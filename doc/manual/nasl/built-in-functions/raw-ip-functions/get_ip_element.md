@@ -1,56 +1,67 @@
-# forge_igmp_packet
+# get_ip_element
 
 ## NAME
 
-**forge_igmp_packet** - fills an IP datagram with IGMP data.
+**get_ip_element** - extracts a field from a datagram.
 
 ## SYNOPSIS
 
-*any* **forge_igmp_packet**(code: *int*, type:  *int*, data: *string*, group: *string*, cksum: *int*, ip: *string*);
+*any* **get_ip_element**(ip: *string*, element: *string*);
 
-**forge_igmp_packet** It takes named arguments.
+**get_ip_element** It takes two named parameters.
 
 
 ## DESCRIPTION
-Fills an IP datagram with IGMP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
-- ip: IP datagram that is updated.
-- data: Payload.
-- code: IGMP code. 0 by default.
-- group: IGMP group
-- type: IGMP type. 0 by default.
-- update_ip_len: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
+
+Get an ICMP element from a IP datagram. It returns a data block or an integer, according to the type of the element. Its arguments are:
+
+- ip: is the IP datagram.
+- element: is the name of the field to get
+  
+Valid IP elements to get are:
+
+- ip_v
+- ip_id
+- ip_hl
+- ip_tos
+- ip_len
+- ip_off
+- ip_ttl
+- ip_p
+- ip_sum
+- ip_src
+- ip_dst
+
+For more details about the fields, see **[get_ip_element(3)](get_ip_element.md)**.
 
 ## RETURN VALUE
+Returns an IP element from a IP datagram.
 
-The modified IP datagram or NULL on error.
 
 ## ERRORS
+- no valid 'ip' argument
+- no valid 'element' argument
+- unknown element
 
-- missing 'ip' parameter.
 
 ## EXAMPLES
 
-**1** Forge the forged igmp packet:
+**1** Get an icmp element from an IP packet with ICMP data:
 ```cpp
 ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,
                      ip_tos : 0,
                      ip_len : 20,
                      ip_id : 0xFEAF,
-                     ip_p : IPPROTO_IGMP,
+                     ip_p : IPPROTO_ICMP,
                      ip_ttl : 255,
                      ip_off : 0,
                      ip_src : 192.168.0.1,
                      ip_dst : 192.168.0.12);
 
 
-igmp2 = forge_igmp_packet(ip    : ip_packet,
-                          type  : 0x11,
-                          code  : 0x00,
-                          group : 0.0.0.0,
-                          data  : "haha",
-                          update_ip_len : FALSE);
-
+el = get_ip_packet (ip: ip_packet, element: "icmp_type");
+display (el);
 ```
 
 ## SEE ALSO

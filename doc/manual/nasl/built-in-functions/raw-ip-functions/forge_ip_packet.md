@@ -1,36 +1,43 @@
-# forge_igmp_packet
+# forge_ip_packet
 
 ## NAME
 
-**forge_igmp_packet** - fills an IP datagram with IGMP data.
+**forge_ip_packet** - Forge an IP datagram inside the block of data
 
 ## SYNOPSIS
 
-*any* **forge_igmp_packet**(code: *int*, type:  *int*, data: *string*, group: *string*, cksum: *int*, ip: *string*);
+*any* **forge_ip_packet**(data: *string*, ip_hl: *int*, ip_id: *int*, ip_len: *int*, ip_off: *int*, ip_p: *IPPROTO*, ip_dst: *string* ,ip_src: *string*, ip_sum: *int*, ip_tos: *int*, ip_ttl: *int*, ip_v is: **);
 
-**forge_igmp_packet** It takes named arguments.
+**forge_ip_packet** It takes named arguments.
 
 
 ## DESCRIPTION
-Fills an IP datagram with IGMP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
-- ip: IP datagram that is updated.
-- data: Payload.
-- code: IGMP code. 0 by default.
-- group: IGMP group
-- type: IGMP type. 0 by default.
-- update_ip_len: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
+Forge an IP datagram inside the block of data. It takes following arguments:
+
+- data: is the payload.
+- ip_hl: is the IP header length in 32 bits words. 5 by default.
+- ip_id: is the datagram ID; by default, it is random.
+- ip_len: is the length of the datagram. By default, it is 20 plus the length of the data field.
+- ip_off: is the fragment offset in 64 bits words. By default, 0.
+- ip_p: is the IP protocol. 0 by default.
+- ip_src: is the source address in ASCII. NASL will convert it into an integer in network order.
+- ip_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. By default it takes the target IP address via call to **[plug_get_host_ip(3)](plug_get_host_ip.md)**. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
+- ip_sum: is the packet header checksum. It will be computed by default.
+- ip_tos: is the “type of service” field. 0 by default
+- ip_ttl: is the “Time To Live”. 64 by default.
+- ip_v is: the IP version. 4 by default.
 
 ## RETURN VALUE
 
-The modified IP datagram or NULL on error.
+The IP datagram or NULL on error.
 
 ## ERRORS
 
-- missing 'ip' parameter.
+- No valid dst_addr could be determined via call to **[plug_get_host_ip(3)](plug_get_host_ip.md)**
 
 ## EXAMPLES
 
-**1** Forge the forged igmp packet:
+**1** Forge the forged ip packet for later fill it with IGMP paget:
 ```cpp
 ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,

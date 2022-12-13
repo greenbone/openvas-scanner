@@ -1,24 +1,28 @@
-# forge_igmp_packet
+# forge_udp_packet
 
 ## NAME
 
-**forge_igmp_packet** - fills an IP datagram with IGMP data.
+**forge_udp_packet** - Fills an IP datagram with UDP data.
 
 ## SYNOPSIS
 
-*any* **forge_igmp_packet**(code: *int*, type:  *int*, data: *string*, group: *string*, cksum: *int*, ip: *string*);
+*any* **forge_udp_packet**(data: **, ip: **, uh_dport: **, uh_sport: **, uh_sum: **, uh_ulen: **, update_ip_len: **);
 
-**forge_igmp_packet** It takes named arguments.
+**forge_udp_packet** It takes many named arguments, someones are optional. For details, see the description below.
 
 
 ## DESCRIPTION
-Fills an IP datagram with IGMP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
-- ip: IP datagram that is updated.
-- data: Payload.
-- code: IGMP code. 0 by default.
-- group: IGMP group
-- type: IGMP type. 0 by default.
-- update_ip_len: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
+
+Fills an IP datagram with UDP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
+
+- data: is the payload.
+- ip: is the IP datagram to be filled.
+- uh_dport: is the destination port. NASL will convert it into network order if necessary. 0 by default.
+- uh_sport: is the source port. NASL will convert it into network order if necessary. 0 by default.
+- uh_sum: is the UDP checksum. Although it is not compulsory, the right value is computed by default.
+- uh_ulen: is the data length. By default it is set to the length the data argument plus the size of the UDP header.
+- update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
+  
 
 ## RETURN VALUE
 
@@ -26,31 +30,34 @@ The modified IP datagram or NULL on error.
 
 ## ERRORS
 
-- missing 'ip' parameter.
+- Invalid value for the argument 'ip': You get this error if you provide an invalid `ip` argument.
+
 
 ## EXAMPLES
 
-**1** Forge the forged igmp packet:
+**1** Dump the forged udp packet:
 ```cpp
-ip_packet = forge_ip_packet(ip_v : 4,
+data = "some data";
+
+UDP_LEN = strlen(blat) + 8;
+ip = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,
                      ip_tos : 0,
                      ip_len : 20,
                      ip_id : 0xFEAF,
-                     ip_p : IPPROTO_IGMP,
+                     ip_p : IPPROTO_UDP,
                      ip_ttl : 255,
                      ip_off : 0,
                      ip_src : 192.168.0.1,
                      ip_dst : 192.168.0.12);
 
+udpip = forge_udp_packet(ip : ip,
+                         uh_sport : 32000,
+                         uh_dport : 5060,
+                         uh_ulen : UDP_LEN,
+                         data : data);
 
-igmp2 = forge_igmp_packet(ip    : ip_packet,
-                          type  : 0x11,
-                          code  : 0x00,
-                          group : 0.0.0.0,
-                          data  : "haha",
-                          update_ip_len : FALSE);
-
+dump_udp_packet (udpip);
 ```
 
 ## SEE ALSO
