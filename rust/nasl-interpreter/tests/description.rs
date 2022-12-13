@@ -15,6 +15,7 @@ mod tests {
     #[test]
     fn description() {
         let code = r###"
+rc = 23;
 if(description)
 {
   script_oid("0.0.0.0.0.0.0.0.0.1");
@@ -34,12 +35,12 @@ if(description)
   script_require_keys("WMI/Apache/RootPath");
   script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
   script_add_preference(name:"Without ID", type:"password", value:"");
-  exit(0);
+  exit(rc);
 }
         "###;
         let storage = DefaultSink::new(true);
         let results = interpret(&storage, Mode::Description("test.nasl"), code);
-        assert_eq!(results, vec![Ok(NaslValue::Exit(0))]);
+        assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
             &storage.retrieve("test.nasl", sink::Retrieve::NVT(None)).unwrap(),
             &vec![
