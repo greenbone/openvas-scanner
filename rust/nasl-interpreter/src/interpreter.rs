@@ -1,16 +1,15 @@
 use std::ops::Range;
 
 use nasl_syntax::{
-    AssignOrder, Keyword, NumberBase, Statement, Statement::*, StringCategory, Token,
-    TokenCategory, ACT,
+    Keyword, NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
 };
 use sink::Sink;
 
 use crate::{
+    assign::AssignExtension,
     call::CallExtension,
-    context::{ContextType, CtxType, Register},
+    context::{ContextType, Register},
     error::InterpretError,
-    lookup,
 };
 
 /// Represents a valid Value of NASL
@@ -104,6 +103,20 @@ impl From<NaslValue> for bool {
     }
 }
 
+impl From<NaslValue> for i32 {
+    fn from(value: NaslValue) -> Self {
+        match value {
+            NaslValue::String(_) => 1,
+            NaslValue::Number(x) => x,
+            NaslValue::Array(_) => 1,
+            NaslValue::Boolean(x) => x as i32,
+            NaslValue::AttackCategory(x) => x as i32,
+            NaslValue::Null => 0,
+            NaslValue::Exit(x) => x,
+        }
+    }
+}
+
 impl TryFrom<(&str, Token)> for NaslValue {
     type Error = InterpretError;
 
@@ -190,23 +203,8 @@ impl<'a> Interpreter<'a> {
             Call(name, arguments) => self.call(name, arguments),
             Declare(_, _) => todo!(),
             Parameter(_) => todo!(),
-            Assign(cat, order, left, right) => match cat {
-                TokenCategory::Equal => match *left {
-                    Variable(token) => {
-                        let key: NaslValue = TryFrom::try_from((self.code, token))?;
-                        let val = self.resolve(*right)?;
-                        let mut moep = self.registrat.last_mut();
-                        moep.add_named(&key.to_string(), ContextType::Value(val.clone()));
-                        Ok(val)
-                    }
-                    Array(_, _) => todo!("arrays are not yet implemented"),
-                    _ => Err(InterpretError {
-                        reason: "".to_owned(),
-                    }),
-                },
-                _ => todo!(),
-            },
-            Operator(_, _) => todo!(),
+            Assign(cat, order, left, right) => self.assign(cat, order, *left, *right),
+            Operator(sign, stmt) =>todo!(), 
             If(condition, if_block, else_block) => match self.resolve(*condition) {
                 Ok(value) => {
                     if bool::from(value) {
@@ -227,7 +225,7 @@ impl<'a> Interpreter<'a> {
                 // currently blocks don't return something
                 Ok(NaslValue::Null)
             }
-            NoOp(_) => todo!(),
+            NoOp(_) => Ok(NaslValue::Null),
             EoF => todo!(),
             AttackCategory(cat) => Ok(NaslValue::AttackCategory(cat)),
         }

@@ -4,6 +4,7 @@ use error::{FunctionError, InterpretError};
 
 mod built_in_functions;
 mod call;
+mod assign;
 mod context;
 pub mod error;
 mod interpreter;
