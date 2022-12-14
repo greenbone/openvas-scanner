@@ -1,10 +1,10 @@
 use nasl_syntax::{
     Statement, Statement::*, Token,
 };
-use std::ops::Range;
+use std::{ops::Range, collections::HashMap};
 
 
-use crate::{interpreter::InterpretResult, Interpreter, context::CtxType, lookup, ContextType, error::InterpretError};
+use crate::{interpreter::InterpretResult, Interpreter, context::NaslContextType, lookup, ContextType, error::InterpretError};
 
 /// Is a trait to handle function calls within nasl.
 pub(crate) trait CallExtension {
@@ -17,7 +17,7 @@ impl<'a> CallExtension for Interpreter<'a> {
     fn call(&mut self, name: Token, arguments: Box<Statement>) -> InterpretResult {
         let name = &self.code[Range::from(name)];
         // get the context
-        let mut named = vec![];
+        let mut named = HashMap::new();
         let mut position = vec![];
         match *arguments{
             Parameter(params) => {
@@ -26,7 +26,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                         NamedParameter(token, val) => {
                             let val = self.resolve(*val)?;
                             let name = self.code[Range::from(token)].to_owned();
-                            named.push((name, ContextType::Value(val)))
+                            named.insert(name, ContextType::Value(val));
                         }
                         val => {
                             let val = self.resolve(val)?;
@@ -43,7 +43,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         };
 
         self.registrat
-            .create_root_child(CtxType::Function(named, position));
+            .create_root_child(NaslContextType::Function(named, position));
         // TODO change to use root context to lookup both
         let result = match lookup(name) {
             // Built-In Function

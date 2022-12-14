@@ -34,18 +34,19 @@ impl Register {
     }
 
     /// Creates a root context
-    pub fn create_root(&mut self, initial: Vec<Named>) -> &NaslContext {
+    pub fn create_root(&mut self, initial: Vec<(String, ContextType)>) -> &NaslContext {
+        let initial = initial.into_iter().collect();
         let result = NaslContext {
             parent: None,
             id: 0,
-            class: CtxType::Execution(initial),
+            class: NaslContextType::Execution(initial),
         };
         self.blocks.push(result);
         return self.blocks.last_mut().unwrap();
     }
 
     /// Creates a child context
-    pub fn create_child(&mut self, parent: &NaslContext, class: CtxType) -> &NaslContext {
+    pub fn create_child(&mut self, parent: &NaslContext, class: NaslContextType) -> &NaslContext {
         let result = NaslContext {
             parent: Some(parent.id),
             id: self.index(),
@@ -59,7 +60,7 @@ impl Register {
     ///
     /// This is used to function calls to prevent that the called function can access the
     /// context of the caller.
-    pub fn create_root_child(&mut self, class: CtxType) -> &NaslContext {
+    pub fn create_root_child(&mut self, class: NaslContextType) -> &NaslContext {
         let result = NaslContext {
             parent: Some(0),
             id: self.index(),
@@ -104,16 +105,17 @@ impl Default for Register {
         Self::new()
     }
 }
-
-type Named = (String, ContextType);
+use std::collections::HashMap;
+type Named = HashMap<String, ContextType>;
 type Positional = ContextType;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CtxType {
+// TODO either rename or move to ContextType
+pub enum NaslContextType {
     /// Root cannot contain position parameter since it is not a function call
-    Execution(Vec<Named>),
+    Execution(Named),
     /// Can contain named parameter as well as positional. e.g. lol(data: data, 1, 2, 3);
-    Function(Vec<Named>, Vec<Positional>),
+    Function(Named, Vec<Positional>),
 }
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -126,27 +128,27 @@ pub struct NaslContext {
     /// Own id within the register
     id: usize,
     /// The type of context.
-    class: CtxType,
+    class: NaslContextType,
 }
 
 impl NaslContext {
     /// Finds the first context that is a function
     fn find_first_function(&self, registrat: &Register) -> Option<usize> {
         match self.class {
-            CtxType::Execution(_) => match self.parent {
+            NaslContextType::Execution(_) => match self.parent {
                 Some(pid) => registrat.blocks[pid].find_first_function(registrat),
                 None => None,
             },
-            CtxType::Function(_, _) => Some(self.id),
+            NaslContextType::Function(_, _) => Some(self.id),
         }
     }
 
     /// Adds a named parameter to the context
     pub fn add_named(&mut self, name: &str, value: ContextType) {
         match &mut self.class {
-            CtxType::Execution(named) => named.push((name.to_owned(), value)),
-            CtxType::Function(named, _) => named.push((name.to_owned(), value)),
-        }
+            NaslContextType::Execution(named) => named.insert(name.to_owned(), value),
+            NaslContextType::Function(named, _) => named.insert(name.to_owned(), value),
+        };
     }
 
     /// Adds a named parameter to the root context
@@ -158,7 +160,7 @@ impl NaslContext {
     /// Adds a parameter as the last position
     pub fn add_positional(&mut self, value: ContextType) {
         match &mut self.class {
-            CtxType::Function(_, position) => position.push(value),
+            NaslContextType::Function(_, position) => position.push(value),
             _ => todo!("Error handling"),
         }
     }
@@ -166,26 +168,26 @@ impl NaslContext {
     /// Retrieves a named parameter
     pub fn named<'a>(&'a self, registrat: &'a Register, name: &'a str) -> Option<&ContextType> {
         let named = match &self.class {
-            CtxType::Execution(named) => named,
-            CtxType::Function(named, _) => named,
+            NaslContextType::Execution(named) => named,
+            NaslContextType::Function(named, _) => named,
         };
-
         // first check local
-        match named.iter().find(|(element_name, _)| element_name == name) {
-            Some((_, x)) => Some(x),
+        match named.get(name) {
+            Some(ctx) => Some(ctx),
             None => match self.parent {
                 Some(parent) => registrat.blocks[parent].named(registrat, name),
                 None => None,
             },
         }
+
     }
 
     /// Retrieves positional parameter
     pub fn positional<'a>(&'a self, registrat: &'a Register) -> &[ContextType] {
         match self.find_first_function(registrat) {
             Some(id) => match &registrat.blocks[id].class {
-                CtxType::Execution(_) => panic!("this should not happen"),
-                CtxType::Function(_, positional) => positional,
+                NaslContextType::Execution(_) => panic!("this should not happen"),
+                NaslContextType::Function(_, positional) => positional,
             },
             None => &[],
         }
