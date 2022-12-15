@@ -462,48 +462,65 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
 }
 
 static void
-read_ipc (struct ipc_context *ctx)
+process_ipc_data (const gchar *result)
 {
-  char *result;
   ipc_data_t *idata;
 
-  while ((result = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
+  if ((idata = ipc_data_from_json (result, strlen (result))) != NULL)
     {
-      if ((idata = ipc_data_from_json (result, strlen (result))) != NULL)
+      switch (ipc_get_data_type_from_data (idata))
         {
-          switch (ipc_get_data_type_from_data (idata))
+        case IPC_DT_ERROR:
+          g_warning ("%s: Unknown data type.", __func__);
+          break;
+        case IPC_DT_HOSTNAME:
+          if (ipc_get_hostname_from_data (idata) == NULL)
+            g_warning ("%s: ihost data is NULL ignoring new vhost", __func__);
+          else
+            append_vhost (ipc_get_hostname_from_data (idata),
+                          ipc_get_hostname_source_from_data (idata));
+          break;
+        case IPC_DT_USER_AGENT:
+          if (ipc_get_user_agent_from_data (idata) == NULL)
+            g_warning ("%s: iuser_agent data is NULL, ignoring new user agent",
+                       __func__);
+          else
             {
-            case IPC_DT_ERROR:
-              g_warning ("%s: Unknown data type.", __func__);
-              break;
-            case IPC_DT_HOSTNAME:
-              if (ipc_get_hostname_from_data (idata) == NULL)
-                g_warning ("%s: ihost data is NULL ignoring new vhost",
-                           __func__);
-              else
-                append_vhost (ipc_get_hostname_from_data (idata),
-                              ipc_get_hostname_source_from_data (idata));
-              break;
-            case IPC_DT_USER_AGENT:
-              if (ipc_get_user_agent_from_data (idata) == NULL)
-                g_warning (
-                  "%s: iuser_agent data is NULL, ignoring new user agent",
-                  __func__);
-              else
-                {
-                  gchar *old_ua = NULL;
-                  old_ua =
-                    user_agent_set (ipc_get_user_agent_from_data (idata));
-                  g_debug ("%s: The User-Agent %s has been overwritten with %s",
-                           __func__, old_ua,
-                           ipc_get_user_agent_from_data (idata));
-                  g_free (old_ua);
-                }
-              break;
+              gchar *old_ua = NULL;
+              old_ua = user_agent_set (ipc_get_user_agent_from_data (idata));
+              g_debug ("%s: The User-Agent %s has been overwritten with %s",
+                       __func__, old_ua, ipc_get_user_agent_from_data (idata));
+              g_free (old_ua);
             }
-          ipc_data_destroy (&idata);
+          break;
         }
+      ipc_data_destroy (&idata);
     }
+}
+
+static void
+read_ipc (struct ipc_context *ctx)
+{
+  char *results;
+
+  while ((results = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
+    {
+      int len = 0;
+      int pos = 0;
+      for (int j = 0; results[j] != '\0'; j++)
+        if (results[j] == '}')
+          {
+            gchar *message = NULL;
+            len = j - pos + 1;
+            message = g_malloc0 (sizeof (gchar) * (len));
+            memcpy (message, &results[pos], len);
+            pos = j + 1;
+            len = 0;
+            process_ipc_data (message);
+            g_free (message);
+          }
+    }
+  g_free (results);
 }
 
 /**
@@ -654,9 +671,10 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
 
       if (check_kb_inconsistency (get_main_kb ()) != 0)
         {
-          // As long as we don't have a proper communication channel
-          // to our ancestors we just kill our parent and ourselves
-          // (but let our grandparents live).
+          // We send the stop scan signal to the current parent process
+          // group, which is the main scan process and host processes.
+          // This avoid to attack new hosts and force the running host
+          // process to finish and spread the signal to the plugin processes
           // To prevent duplicate results we don't let ACT_END run.
           killpg (parent, SIGUSR1);
         }
