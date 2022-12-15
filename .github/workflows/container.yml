@@ -2,10 +2,10 @@ name: Container
 
 on:
   push:
-    branches: [ main, stable, oldstable, middleware ]
+    branches: [main, stable, oldstable, middleware]
     tags: ["v*"]
   pull_request:
-    branches: [ main, stable, oldstable, middleware ]
+    branches: [main, stable, oldstable, middleware]
   workflow_dispatch:
 
 jobs:
@@ -23,17 +23,22 @@ jobs:
           labels: |
             org.opencontainers.image.vendor=Greenbone
             org.opencontainers.image.base.name=greenbone/gvm-libs
-          flavor: latest=false # no latest container tag for git tags
+          flavor: latest=false # no auto latest container tag for git tags
           tags: |
-            # create container tag for git tags
-            type=ref,event=tag
+            # use container tag for git tags
+            type=match,pattern=v(.*),group=1
+            # use latest for latest tag from stable branch
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v22.4') }}
+            # use stable for latest 22.4 tag
+            type=raw,value=stable,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v22.4') }}
+            # use oldstable for latest 22.4 tag
+            type=raw,value=oldstable,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v21.4') }}
+            # use edge for default branch
+            type=edge
+            # use branch-sha otherwise for pushes to branches other then main (will not be uploaded)
+            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
+            # use pr-$PR_ID for pull requests (will not be uploaded)
             type=ref,event=pr
-            # use latest for stable branch
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'stable') }}
-            type=raw,value=stable,enable=${{ github.ref == format('refs/heads/{0}', 'stable') }}
-            type=raw,value=oldstable,enable=${{ github.ref == format('refs/heads/{0}', 'oldstable') }}
-            # use unstable for main branch
-            type=raw,value=unstable,enable={{is_default_branch}}
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
@@ -48,7 +53,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == 'main') }}
           file: .docker/prod.Dockerfile
           build-args: |
             REPOSITORY=${{ github.repository }}
