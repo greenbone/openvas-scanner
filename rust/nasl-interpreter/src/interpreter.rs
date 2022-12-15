@@ -103,16 +103,17 @@ impl From<NaslValue> for bool {
     }
 }
 
-impl From<NaslValue> for i32 {
-    fn from(value: NaslValue) -> Self {
+
+impl From<&NaslValue> for i32 {
+    fn from(value: &NaslValue) -> Self {
         match value {
             NaslValue::String(_) => 1,
-            NaslValue::Number(x) => x,
+            &NaslValue::Number(x) => x,
             NaslValue::Array(_) => 1,
-            NaslValue::Boolean(x) => x as i32,
-            NaslValue::AttackCategory(x) => x as i32,
+            &NaslValue::Boolean(x) => x as i32,
+            &NaslValue::AttackCategory(x) => x as i32,
             NaslValue::Null => 0,
-            NaslValue::Exit(x) => x,
+            &NaslValue::Exit(x) => x,
         }
     }
 }
