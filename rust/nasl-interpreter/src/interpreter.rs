@@ -49,6 +49,7 @@ impl ToString for NaslValue {
     }
 }
 
+
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
     // TODO change to enum

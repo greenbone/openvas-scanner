@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 nasl-syntax = {path = "../nasl-syntax"}
 sink = {path = "../sink"}
+# used for !~ =~ string regex operations
+regex = "1"
