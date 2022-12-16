@@ -149,15 +149,41 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 Ok(NaslValue::Boolean(!a.to_string().contains(&substr)))
             }),
             // bool
-            TokenCategory::Bang => todo!(),
-            TokenCategory::AmpersandAmpersand => todo!(),
-            TokenCategory::PipePipe => todo!(),
-            TokenCategory::EqualEqual => todo!(),
-            TokenCategory::BangEqual => todo!(),
-            TokenCategory::Greater => todo!(),
-            TokenCategory::Less => todo!(),
-            TokenCategory::GreaterEqual => todo!(),
-            TokenCategory::LessEqual => todo!(),
+            TokenCategory::Bang => self.execute(stmts, |a, _| {
+                Ok(NaslValue::Boolean(!bool::from(a)))
+            }),
+            TokenCategory::AmpersandAmpersand => self.execute(stmts, |a, b| {
+                let right = b.map(bool::from).unwrap_or_default();
+                Ok(NaslValue::Boolean(bool::from(a) && right))
+            }),
+            TokenCategory::PipePipe => self.execute(stmts, |a, b| {
+                let right = b.map(bool::from).unwrap_or_default();
+                Ok(NaslValue::Boolean(bool::from(a) || right))
+            }),
+            TokenCategory::EqualEqual => self.execute(stmts, |a, b| {
+                let right = b.unwrap_or(NaslValue::Null);
+                Ok(NaslValue::Boolean(a == right))
+            }),
+            TokenCategory::BangEqual => self.execute(stmts, |a, b| {
+                let right = b.unwrap_or(NaslValue::Null);
+                Ok(NaslValue::Boolean(a != right))
+            }),
+            TokenCategory::Greater => self.execute(stmts, |a, b| {
+                let right = b.map(|x|i32::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i32::from(&a) > right))
+            }),
+            TokenCategory::Less => self.execute(stmts, |a, b| {
+                let right = b.map(|x|i32::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i32::from(&a) < right))
+            }),
+            TokenCategory::GreaterEqual => self.execute(stmts, |a, b| {
+                let right = b.map(|x|i32::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i32::from(&a) >= right))
+            }),
+            TokenCategory::LessEqual => self.execute(stmts, |a, b| {
+                let right = b.map(|x|i32::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i32::from(&a) <= right))
+            }),
             // weird
             TokenCategory::X => todo!(),
             _ => Err(InterpretError {
@@ -212,6 +238,18 @@ mod tests {
         r_match: "'hello' =~ 'hell';" => NaslValue::Boolean(true),
         r_not_match: "'hello' !~ 'hell';" => NaslValue::Boolean(false),
         contains: "'hello' >< 'hell';" => NaslValue::Boolean(true),
-        not_contains: "'hello' >!< 'hell';" => NaslValue::Boolean(false)
+        not_contains: "'hello' >!< 'hell';" => NaslValue::Boolean(false),
+        bool_not: "!23;" => NaslValue::Boolean(false),
+        bool_not_reverse: "!0;" => NaslValue::Boolean(true),
+        bool_and: "1 && 1;" => NaslValue::Boolean(true),
+        bool_or: "1 || 0;" => NaslValue::Boolean(true),
+        equals_string: "'1' == '1';" => NaslValue::Boolean(true),
+        //equals_array: "[0] == [0];" => NaslValue::Boolean(true),
+        equals_number: "1 == 1;" => NaslValue::Boolean(true),
+        unequal: "1 != 1;" => NaslValue::Boolean(false),
+        greater: "1 > 0;" => NaslValue::Boolean(true),
+        less: "1 < 2;" => NaslValue::Boolean(true),
+        greater_equal: "1 >= 1;" => NaslValue::Boolean(true),
+        less_equal: "1 <= 1;" => NaslValue::Boolean(true)
     }
 }

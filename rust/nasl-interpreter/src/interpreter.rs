@@ -94,7 +94,7 @@ impl From<NaslValue> for bool {
     fn from(value: NaslValue) -> Self {
         match value {
             NaslValue::String(string) => !string.is_empty() && string != "0",
-            NaslValue::Array(_) => true,
+            NaslValue::Array(v) => !v.is_empty(),
             NaslValue::Boolean(boolean) => boolean,
             NaslValue::Null => false,
             NaslValue::Number(number) => number != 0,
@@ -204,7 +204,15 @@ impl<'a> Interpreter<'a> {
             }
             Call(name, arguments) => self.call(name, arguments),
             Declare(_, _) => todo!(),
-            Parameter(_) => todo!(),
+            // array creation
+            Parameter(x) => {
+                let mut result = vec![];
+                for stmt in x {
+                    let val = self.resolve(stmt)?;
+                    result.push(val);
+                }
+                Ok(NaslValue::Array(result))
+            },
             Assign(cat, order, left, right) => self.assign(cat, order, *left, *right),
             Operator(sign, stmts) => self.operator(sign, stmts),
             If(condition, if_block, else_block) => match self.resolve(*condition) {
