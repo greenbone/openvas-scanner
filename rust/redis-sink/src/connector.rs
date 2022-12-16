@@ -47,7 +47,7 @@ impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
             sink::nvt::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
             sink::nvt::NVTKey::Category => Self::Category,
             sink::nvt::NVTKey::Family => Self::Family,
-            // tags must also be handled manually due to differenciation
+            // tags must also be handled manually due to differentiation
             _ => {
                 return Err(SinkError::UnexpectedData(format!(
                     "{:?} is not a redis position and must be handled differently",
@@ -160,7 +160,7 @@ impl RedisCtx {
 
     /// Delete an entry from the in-use namespace's list
     fn release_namespace(&mut self) -> RedisSinkResult<()> {
-        // Get firstthe current db index, the one to be released
+        // Get the current db index first, the one to be released
         let dbi = self.namespace()?;
         // Remove the entry from the hash list
         self.set_namespace(0)?;
@@ -168,7 +168,7 @@ impl RedisCtx {
         Ok(())
     }
 
-    /// Delete all keys in the namespace and relase the it
+    /// Delete all keys in the namespace and release the it
     pub fn delete_namespace(&mut self) -> RedisSinkResult<()> {
         Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
         self.release_namespace()?;
@@ -216,7 +216,7 @@ impl RedisCtx {
     pub(crate) fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisSinkResult<()> {
         let oid = nvt.oid();
         let name = nvt.name();
-        // TODO verify, before it was concat without delimeter which seems wrong
+        // TODO verify, before it was concat without delimiter which seems wrong
         let required_keys = nvt.required_keys().join(",");
         let mandatory_keys = nvt.mandatory_keys().join(",");
         let excluded_keys = nvt.excluded_keys().join(",");
@@ -263,11 +263,11 @@ impl RedisCtx {
 
 /// Cache implementation.
 ///
-/// This implementation is threadsafe as it stored the underlying RedisCtx within a lockable arc reference.
+/// This implementation is thread-safe as it stored the underlying RedisCtx within a lockable arc reference.
 ///
 /// We need a second level cache before redis due to NVT runs.
 /// In this case we need to wait until we get the OID so that we can build the key additionally
-/// we need to have all refernces and preferences to respect the order to be downwards compatible.
+/// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
 pub struct RedisCache {
     cache: Arc<Mutex<RedisCtx>>,

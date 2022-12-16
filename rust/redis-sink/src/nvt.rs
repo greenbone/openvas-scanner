@@ -482,7 +482,7 @@ impl Nvt {
         );
     }
 
-    /// Transforms prefs to string representatiosn {id}:{name}:{id}:{default} so that it can be stored into redis
+    /// Transforms prefs to string representation {id}:{name}:{id}:{default} so that it can be stored into redis
     pub fn prefs(&self) -> Vec<String> {
         self.prefs
             .iter()

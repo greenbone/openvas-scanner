@@ -287,7 +287,7 @@ pub enum Category {
     GreaterGreaterGreaterEqual,
     /// `x` is a special functionality to redo a function call n times.E.g. `send_packet( udp, pcap_active:FALSE ) x 200;`
     X,
-    /// A String can be either Quoteable (') or Unquoteable (") both can be multiline
+    /// A String can be either Quotable (') or Unquotable (") both can be multiline
     String(StringCategory),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(Base),

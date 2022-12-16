@@ -152,7 +152,7 @@ impl<'a> Interpreter<'a> {
         
     }
 
-    /// Interpretes a Statement
+    /// Interprets a Statement
     pub fn resolve(&mut self, statement: Statement) -> Result<NaslValue, InterpretError> {
         match statement {
             Array(_, _) => todo!(),
