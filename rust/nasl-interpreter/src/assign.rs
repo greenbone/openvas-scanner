@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use nasl_syntax::{AssignOrder, Statement, Token, TokenCategory};
+use nasl_syntax::{AssignOrder, Statement, TokenCategory};
 
 use crate::{
     error::InterpretError, interpreter::InterpretResult, ContextType, Interpreter, NaslValue,
