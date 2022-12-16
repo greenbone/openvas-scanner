@@ -1,4 +1,5 @@
 use nasl_syntax::{Statement, TokenCategory};
+use regex::Regex;
 
 use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue};
 
@@ -70,6 +71,22 @@ macro_rules! num_expr {
     };
 }
 
+fn match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult {
+    let right = matches.map(|x| x.to_string()).unwrap_or_default();
+    match Regex::new(&right) {
+        Ok(c) => Ok(NaslValue::Boolean(c.is_match(&a.to_string()))),
+        Err(err) => Err(InterpretError {
+            reason: err.to_string(),
+        }),
+    }
+}
+
+
+fn not_match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult {
+    let result = match_regex(a, matches)?;
+    Ok(NaslValue::Boolean(!bool::from(result)))
+}
+
 impl<'a> OperatorExtension for Interpreter<'a> {
     fn operator(&mut self, category: TokenCategory, stmts: Vec<Statement>) -> InterpretResult {
         match category {
@@ -91,10 +108,8 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 }
                 left => {
                     let result = match b {
-                        Some(right) => {
-                           i32::from(&left) - i32::from(&right)
-                        }
-                        None => -i32::from(&left)
+                        Some(right) => i32::from(&left) - i32::from(&right),
+                        None => -i32::from(&left),
                     };
                     Ok(NaslValue::Number(result))
                 }
@@ -108,23 +123,31 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 self.execute(stmts, |a, b| num_expr!(|a, b| a >> b => a b))
             }
             // let left_casted = left as u32; (left_casted >> right) as i64
-            TokenCategory::GreaterGreaterGreater => {
-                self.execute(stmts, |a, b| num_expr!(|a, b| ((a as u32) >> b) as i32 => a b))
-            },
+            TokenCategory::GreaterGreaterGreater => self.execute(
+                stmts,
+                |a, b| num_expr!(|a, b| ((a as u32) >> b) as i32 => a b),
+            ),
             TokenCategory::Ampersand => self.execute(stmts, |a, b| num_expr!(& a b)),
             TokenCategory::Pipe => self.execute(stmts, |a, b| num_expr!(| a b)),
             TokenCategory::Caret => self.execute(stmts, |a, b| num_expr!(^ a b)),
-            TokenCategory::StarStar => {
-                self.execute(stmts,|a, b| num_expr!(|a, b| (a as u32).pow(b as u32) as i32 => a b))
-            }
+            TokenCategory::StarStar => self.execute(
+                stmts,
+                |a, b| num_expr!(|a, b| (a as u32).pow(b as u32) as i32 => a b),
+            ),
             TokenCategory::Tilde => {
-                self.execute(stmts,|a, b| num_expr!(|a: i32, _: i32| !a => a b))
-            },
+                self.execute(stmts, |a, b| num_expr!(|a: i32, _: i32| !a => a b))
+            }
             // string
-            TokenCategory::EqualTilde => todo!(),
-            TokenCategory::BangTilde => todo!(),
-            TokenCategory::GreaterLess => todo!(),
-            TokenCategory::GreaterBangLess => todo!(),
+            TokenCategory::EqualTilde => self.execute(stmts, match_regex),
+            TokenCategory::BangTilde => self.execute(stmts, not_match_regex),
+            TokenCategory::GreaterLess => self.execute(stmts, |a, b| {
+                let substr = b.map(|x|x.to_string()).unwrap_or_default();
+                Ok(NaslValue::Boolean(a.to_string().contains(&substr)))
+            }),
+            TokenCategory::GreaterBangLess => self.execute(stmts, |a, b| {
+                let substr = b.map(|x|x.to_string()).unwrap_or_default();
+                Ok(NaslValue::Boolean(!a.to_string().contains(&substr)))
+            }),
             // bool
             TokenCategory::Bang => todo!(),
             TokenCategory::AmpersandAmpersand => todo!(),
@@ -185,6 +208,10 @@ mod tests {
         or: "-2 | 2;" => NaslValue::Number(-2),
         xor: "-2 ^ 2;" => NaslValue::Number(-4),
         pow: "2 ** 2;" => NaslValue::Number(4),
-        not: "~2;" => NaslValue::Number(-3)
+        not: "~2;" => NaslValue::Number(-3),
+        r_match: "'hello' =~ 'hell';" => NaslValue::Boolean(true),
+        r_not_match: "'hello' !~ 'hell';" => NaslValue::Boolean(false),
+        contains: "'hello' >< 'hell';" => NaslValue::Boolean(true),
+        not_contains: "'hello' >!< 'hell';" => NaslValue::Boolean(false)
     }
 }
