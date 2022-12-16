@@ -9,7 +9,7 @@ use crate::{
     assign::AssignExtension,
     call::CallExtension,
     context::{ContextType, Register},
-    error::InterpretError,
+    error::InterpretError, operator::OperatorExtension,
 };
 
 /// Represents a valid Value of NASL
@@ -205,7 +205,7 @@ impl<'a> Interpreter<'a> {
             Declare(_, _) => todo!(),
             Parameter(_) => todo!(),
             Assign(cat, order, left, right) => self.assign(cat, order, *left, *right),
-            Operator(sign, stmt) =>todo!(), 
+            Operator(sign, stmts) => self.operator(sign, stmts),
             If(condition, if_block, else_block) => match self.resolve(*condition) {
                 Ok(value) => {
                     if bool::from(value) {

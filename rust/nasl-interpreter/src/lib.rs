@@ -8,6 +8,7 @@ mod assign;
 mod context;
 pub mod error;
 mod interpreter;
+mod operator;
 
 pub use context::ContextType;
 pub use interpreter::{Interpreter, NaslValue};
