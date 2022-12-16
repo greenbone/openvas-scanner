@@ -19,7 +19,7 @@ pub fn lookup(function_name: &str) -> Option<NaslFunction> {
 
 /// Defines the mode of the run
 pub enum Mode<'a> {
-    /// Runs without any kind of prereuists; requires the OID of the script.
+    /// Runs without any kind of prerequisites; requires the OID of the script.
     Normal(&'a str),
     /// A Description run will set description to 1 and stores the key as NVTFileName; requires the filename of the script.
     Description(&'a str),
@@ -28,7 +28,7 @@ pub enum Mode<'a> {
 impl From<SinkError> for InterpretError {
     fn from(_: SinkError) -> Self {
         Self {
-            reason: "somethign horrible when on the DB".to_owned(),
+            reason: "something horrible when on the DB".to_owned(),
         }
     }
 }

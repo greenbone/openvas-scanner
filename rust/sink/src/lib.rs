@@ -1,5 +1,5 @@
 //#![warn(missing_docs)]
-//! NASL Sink defines technology indepdent sink traits, structs ..{w;
+//! NASL Sink defines technology independent sink traits, structs ..{w;
 
 pub mod nvt;
 use std::sync::{Arc, Mutex};
@@ -73,7 +73,7 @@ pub trait Sink {
 /// The first String statement is the used key while the Vector of Scope are the values.
 type StoreItem = Vec<(String, Vec<Dispatch>)>;
 
-/// Is a inmemory sink that behaves like a Storage.
+/// Is a in-memory sink that behaves like a Storage.
 #[derive(Default)]
 pub struct DefaultSink {
     /// If dirty it will not clean the data on_exit
