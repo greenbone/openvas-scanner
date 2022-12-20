@@ -13,6 +13,7 @@
 ## DESCRIPTION
 
 Takes any number of unnamed arguments and returns an array made from them.
+
 It can also be used to flatten arrays.
 
 ## RETURN VALUE

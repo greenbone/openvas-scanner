@@ -6,7 +6,7 @@
 
 ## SYNOPSIS
 
-*arr* **make_array**(any, any, ...);
+*dict* **make_array**(any, any, ...);
 
 **make_array** - takes any even number of unnamed arguments and returns an dictionary made from them.
 
