@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 use nasl_syntax::{AssignOrder, Statement, TokenCategory};
 
@@ -34,6 +34,21 @@ fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
     }
     (idx, arr)
 }
+
+#[inline(always)]
+fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
+    match left {
+        NaslValue::Array(x) => x
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (i.to_string(), v))
+            .collect(),
+        NaslValue::Dict(x) => x,
+        NaslValue::Null => HashMap::new(),
+        x => HashMap::from([("0".to_string(), x)]),
+    }
+}
+
 impl<'a> Interpreter<'a> {
     #[inline(always)]
     fn named_value(&self, key: &str) -> Result<NaslValue, InterpretError> {
@@ -49,10 +64,81 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn handle_dict(
+        &mut self,
+        key: &str,
+        idx: String,
+        left: NaslValue,
+        right: &NaslValue,
+        return_original: &AssignOrder,
+        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    ) -> NaslValue {
+        let mut dict = prepare_dict(left);
+        match return_original {
+            AssignOrder::ReturnAssign => {
+                let original = dict.get(&idx).unwrap_or(&NaslValue::Null).clone();
+                let result = result(&original, right);
+                dict.insert(idx, result);
+                let register = self.registrat.last_mut();
+                register.add_named(key, ContextType::Value(NaslValue::Dict(dict)));
+                original
+            }
+            AssignOrder::AssignReturn => {
+                let original = dict.get(&idx).unwrap_or(&NaslValue::Null);
+                let result = result(original, right);
+                dict.insert(idx, result.clone());
+                let register = self.registrat.last_mut();
+                register.add_named(key, ContextType::Value(NaslValue::Dict(dict)));
+                result
+            }
+        }
+    }
+
+    fn handle_array(
+        &mut self,
+        key: &str,
+        idx: &NaslValue,
+        left: NaslValue,
+        right: &NaslValue,
+        return_original: &AssignOrder,
+        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    ) -> NaslValue {
+        let (idx, mut arr) = prepare_array(idx, left);
+        match return_original {
+            AssignOrder::ReturnAssign => {
+                let orig = arr[idx].clone();
+                let result = result(&orig, right);
+                arr[idx] = result;
+                let register = self.registrat.last_mut();
+                register.add_named(key, ContextType::Value(NaslValue::Array(arr)));
+                orig
+            }
+            AssignOrder::AssignReturn => {
+                let result = result(&arr[idx], right);
+                arr[idx] = result.clone();
+                let register = self.registrat.last_mut();
+                register.add_named(key, ContextType::Value(NaslValue::Array(arr)));
+                result
+            }
+        }
+    }
+
     #[inline(always)]
     fn store_return(
         &mut self,
         key: &str,
+        lookup: Option<NaslValue>,
+        right: &NaslValue,
+        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    ) -> InterpretResult {
+        self.dynamic_return(key, &AssignOrder::AssignReturn, lookup, right, result)
+    }
+
+    #[inline(always)]
+    fn dynamic_return(
+        &mut self,
+        key: &str,
+        order: &AssignOrder,
         lookup: Option<NaslValue>,
         right: &NaslValue,
         result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
@@ -63,52 +149,32 @@ impl<'a> Interpreter<'a> {
                 let result = result(&left, right);
                 let register = self.registrat.last_mut();
                 register.add_named(key, ContextType::Value(result.clone()));
-                result
+                match order {
+                    AssignOrder::AssignReturn => result,
+                    AssignOrder::ReturnAssign => left,
+                }
             }
-            Some(idx) => {
-                let (idx, mut arr) = prepare_array(&idx, left);
-                let result = result(&arr[idx], right);
-                arr[idx] = result.clone();
-                let register = self.registrat.last_mut();
-                register.add_named(key, ContextType::Value(NaslValue::Array(arr)));
-                result
-            }
+            Some(idx) => match idx {
+                NaslValue::String(idx) => self.handle_dict(key, idx, left, right, order, result),
+                _ => match left {
+                    NaslValue::Dict(_) => {
+                        self.handle_dict(key, idx.to_string(), left, right, order, result)
+                    }
+                    _ => self.handle_array(key, &idx, left, right, order, result),
+                },
+            },
         };
         Ok(result)
     }
-
     #[inline(always)]
-    fn dynamic_return(
+    fn without_right(
         &mut self,
         order: &AssignOrder,
         key: &str,
         lookup: Option<NaslValue>,
         result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
     ) -> InterpretResult {
-        match order {
-            AssignOrder::AssignReturn => self.store_return(key, lookup, &NaslValue::Null, result),
-            AssignOrder::ReturnAssign => {
-                let left = self.named_value(key)?;
-                let result = match lookup {
-                    None => {
-                        let result = result(&left, &NaslValue::Null);
-                        let register = self.registrat.last_mut();
-                        register.add_named(key, ContextType::Value(result));
-                        left
-                    }
-                    Some(idx) => {
-                        let (idx, mut arr) = prepare_array(&idx, left);
-                        let orig = arr[idx].clone();
-                        let result = result(&orig, &NaslValue::Null);
-                        arr[idx] = result;
-                        let register = self.registrat.last_mut();
-                        register.add_named(key, ContextType::Value(NaslValue::Array(arr)));
-                        orig
-                    }
-                };
-                Ok(result)
-            }
-        }
+        self.dynamic_return(key, order, lookup, &NaslValue::Null, result)
     }
 }
 
@@ -135,33 +201,7 @@ impl<'a> AssignExtension for Interpreter<'a> {
         };
         let val = self.resolve(right)?;
         match category {
-            TokenCategory::Equal => match lookup {
-                Some(idx) => {
-                    let idx = i32::from(&idx) as usize;
-                    let mut arr: Vec<NaslValue> = match self.registrat().named(key) {
-                        Some(ContextType::Value(NaslValue::Array(x))) => x.clone(),
-                        Some(ContextType::Value(x)) => {
-                            vec![x.clone()]
-                        }
-                        _ => {
-                            vec![]
-                        }
-                    };
-
-                    for _ in arr.len()..idx + 1 {
-                        arr.push(NaslValue::Null)
-                    }
-                    arr[idx] = val.clone();
-                    let register = self.registrat.last_mut();
-                    register.add_named(key, ContextType::Value(NaslValue::Array(arr.clone())));
-                    Ok(val)
-                }
-                None => {
-                    let register = self.registrat.last_mut();
-                    register.add_named(key, ContextType::Value(val.clone()));
-                    Ok(val)
-                }
-            },
+            TokenCategory::Equal => self.store_return(key, lookup, &val, |_, right| right.clone()),
             TokenCategory::PlusEqual => self.store_return(key, lookup, &val, |left, right| {
                 NaslValue::Number(i32::from(left) + i32::from(right))
             }),
@@ -193,10 +233,10 @@ impl<'a> AssignExtension for Interpreter<'a> {
             TokenCategory::PercentEqual => self.store_return(key, lookup, &val, |left, right| {
                 NaslValue::Number(i32::from(left) % i32::from(right))
             }),
-            TokenCategory::PlusPlus => self.dynamic_return(&order, key, lookup, |left, _| {
+            TokenCategory::PlusPlus => self.without_right(&order, key, lookup, |left, _| {
                 NaslValue::Number(i32::from(left) + 1)
             }),
-            TokenCategory::MinusMinus => self.dynamic_return(&order, key, lookup, |left, _| {
+            TokenCategory::MinusMinus => self.without_right(&order, key, lookup, |left, _| {
                 NaslValue::Number(i32::from(left) - 1)
             }),
             _ => Err(InterpretError {
@@ -208,6 +248,8 @@ impl<'a> AssignExtension for Interpreter<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
@@ -325,6 +367,26 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Array(vec![NaslValue::Number(12), NaslValue::Null, NaslValue::Number(12)]))));
+    }
+
+    #[test]
+    fn dict() {
+        let code = r###"
+        a['hi'] = 12;
+        a;
+        a['hi'];
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut parser = parse(code).map(|x| match x {
+            Ok(x) => interpreter.resolve(x),
+            Err(x) => Err(InterpretError {
+                reason: x.to_string(),
+            }),
+        });
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Dict(HashMap::from([("hi".to_owned(), NaslValue::Number(12))])))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
     }
     #[test]
     fn empty_bracklet() {

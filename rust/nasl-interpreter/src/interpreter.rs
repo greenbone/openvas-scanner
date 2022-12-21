@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 use nasl_syntax::{
     Keyword, NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
@@ -9,7 +9,8 @@ use crate::{
     assign::AssignExtension,
     call::CallExtension,
     context::{ContextType, Register},
-    error::InterpretError, operator::OperatorExtension,
+    error::InterpretError,
+    operator::OperatorExtension,
 };
 
 /// Represents a valid Value of NASL
@@ -21,6 +22,8 @@ pub enum NaslValue {
     Number(i32),
     /// Array value
     Array(Vec<NaslValue>),
+    /// Array value
+    Dict(HashMap<String, NaslValue>),
     /// Boolean value
     Boolean(bool),
     /// Attack category keyword
@@ -38,7 +41,13 @@ impl ToString for NaslValue {
             NaslValue::Number(x) => x.to_string(),
             NaslValue::Array(x) => x
                 .iter()
-                .map(|x| x.to_string())
+                .enumerate()
+                .map(|(i, v)| format!("{}: {}", i, v.to_string()))
+                .collect::<Vec<String>>()
+                .join(","),
+            NaslValue::Dict(x) => x
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k, v.to_string()))
                 .collect::<Vec<String>>()
                 .join(","),
             NaslValue::Boolean(x) => x.to_string(),
@@ -48,7 +57,6 @@ impl ToString for NaslValue {
         }
     }
 }
-
 
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
@@ -100,10 +108,10 @@ impl From<NaslValue> for bool {
             NaslValue::Number(number) => number != 0,
             NaslValue::Exit(number) => number != 0,
             NaslValue::AttackCategory(_) => true,
+            NaslValue::Dict(v) => !v.is_empty(),
         }
     }
 }
-
 
 impl From<&NaslValue> for i32 {
     fn from(value: &NaslValue) -> Self {
@@ -111,6 +119,7 @@ impl From<&NaslValue> for i32 {
             NaslValue::String(_) => 1,
             &NaslValue::Number(x) => x,
             NaslValue::Array(_) => 1,
+            NaslValue::Dict(_) => 1,
             &NaslValue::Boolean(x) => x as i32,
             &NaslValue::AttackCategory(x) => x as i32,
             NaslValue::Null => 0,
@@ -176,7 +185,35 @@ impl<'a> Interpreter<'a> {
     /// Interprets a Statement
     pub fn resolve(&mut self, statement: Statement) -> InterpretResult {
         match statement {
-            Array(_, _) => todo!(),
+            Array(name, position) => {
+                let name = &self.code[Range::from(name)];
+                let val = self.registrat.named(name).ok_or_else(|| InterpretError {
+                    reason: format!("{} not found.", name),
+                })?;
+                let val = val.clone();
+
+                match (position, val) {
+                    (None, ContextType::Value(v)) => Ok(v),
+                    (Some(p), ContextType::Value(NaslValue::Array(x))) => {
+                        let position = self.resolve(*p)?;
+                        let position = i32::from(&position) as usize;
+                        let result = x.get(position).ok_or_else(|| InterpretError {
+                            reason: format!("positiong {} not found", position),
+                        })?;
+                        Ok(result.clone())
+                    }
+                    (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
+                        let position = self.resolve(*p)?.to_string();
+                        let result = x.get(&position).ok_or_else(|| InterpretError {
+                            reason: format!("{} not found.", position),
+                        })?;
+                        Ok(result.clone())
+                    }
+                    (p, x) => Err(InterpretError {
+                        reason: format!("Internal error statement: {:?} -> {:?}.", p, x),
+                    }),
+                }
+            }
             Exit(stmt) => {
                 let rc = self.resolve(*stmt)?;
                 match rc {
@@ -212,7 +249,7 @@ impl<'a> Interpreter<'a> {
                     result.push(val);
                 }
                 Ok(NaslValue::Array(result))
-            },
+            }
             Assign(cat, order, left, right) => self.assign(cat, order, *left, *right),
             Operator(sign, stmts) => self.operator(sign, stmts),
             If(condition, if_block, else_block) => match self.resolve(*condition) {
