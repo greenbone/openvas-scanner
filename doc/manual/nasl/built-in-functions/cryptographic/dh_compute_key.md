@@ -29,5 +29,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[dh_compute_key(3)](dh_compute_key.md)**,
 **[dh_generate_key(3)](dh_generate_key.md)**,
