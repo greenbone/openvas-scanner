@@ -8,7 +8,7 @@ use crate::interpreter::NaslValue;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ContextType {
     /// Represents a Function definition
-    Function(Statement),
+    Function(Vec<String>, Statement),
     /// Represents a Variable or Parameter
     Value(NaslValue),
 }
@@ -91,6 +91,13 @@ impl Register {
         last.unwrap()
     }
 
+
+    /// Adds a named parameter to the root context
+    pub fn add_global(&mut self, name: &str, value: ContextType) {
+        let global = &mut self.blocks[0];
+        global.add_named(name, value);
+    }
+
     /// Destroys the current context.
     ///
     /// This must be called when a context vanishes.
@@ -110,12 +117,15 @@ type Named = HashMap<String, ContextType>;
 type Positional = ContextType;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-// TODO either rename or move to ContextType
 pub enum NaslContextType {
     /// Root cannot contain position parameter since it is not a function call
+    // TODO rename those are definitions
     Execution(Named),
-    /// Can contain named parameter as well as positional. e.g. lol(data: data, 1, 2, 3);
+    /// Used to prepare the functional context on call
+    // TODO rename call context
     Function(Named, Vec<Positional>),
+
+
 }
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -144,6 +154,7 @@ impl NaslContext {
     }
 
     /// Adds a named parameter to the context
+    // TODO remove from ContextType to NaslValue
     pub fn add_named(&mut self, name: &str, value: ContextType) {
         match &mut self.class {
             NaslContextType::Execution(named) => named.insert(name.to_owned(), value),

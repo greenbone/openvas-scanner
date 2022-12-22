@@ -1,14 +1,15 @@
-use nasl_syntax::{
-    Statement, Statement::*, Token,
+use nasl_syntax::{Statement, Statement::*, Token};
+
+use crate::{
+    context::NaslContextType, error::InterpretError, interpreter::InterpretResult, lookup,
+    ContextType, Interpreter, NaslValue,
 };
 use std::collections::HashMap;
 
 
-use crate::{interpreter::InterpretResult, Interpreter, context::NaslContextType, lookup, ContextType, error::InterpretError};
 
 /// Is a trait to handle function calls within nasl.
 pub(crate) trait CallExtension {
-    /// Is the actual handling of postfix. The caller must ensure that needs_postfix is called previously.
     fn call(&mut self, name: Token, arguments: Box<Statement>) -> InterpretResult;
 }
 
@@ -19,7 +20,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         // get the context
         let mut named = HashMap::new();
         let mut position = vec![];
-        match *arguments{
+        match *arguments {
             Parameter(params) => {
                 for p in params {
                     match p {
@@ -44,7 +45,6 @@ impl<'a> CallExtension for Interpreter<'a> {
 
         self.registrat
             .create_root_child(NaslContextType::Function(named, position));
-        // TODO change to use root context to lookup both
         let result = match lookup(name) {
             // Built-In Function
             Some(function) => match function(self.resolve_key(), self.storage, &self.registrat) {
@@ -55,12 +55,72 @@ impl<'a> CallExtension for Interpreter<'a> {
                 ))),
             },
             // Check for user defined function
-            None => todo!(
-                "{} not a built-in function and user function are not yet implemented",
-                name.to_string()
-            ),
+            None => {
+                let found = self
+                    .registrat
+                    .named(name)
+                    .ok_or_else(|| InterpretError {
+                        reason: format!("function {} not found", name),
+                    })?
+                    .clone();
+                match found {
+                    ContextType::Function(params, stmt) => {
+                        // prepare default values
+                        for p in params {
+                            match self.registrat.named(&p) {
+                                None => {
+                                    self.registrat
+                                        .last_mut()
+                                        .add_named(&p, ContextType::Value(NaslValue::Null));
+                                }
+                                Some(_) => {}
+                            }
+                        }
+                        // add default NaslValue::Null for each defined params
+                        match self.resolve(stmt)? {
+                            NaslValue::Return(x) => Ok(NaslValue::Number(x)),
+                            a => Ok(a),
+                        }
+                    }
+                    _ => Err(InterpretError {
+                        reason: format!("unexpected ContextType: {:?}", found),
+                    }),
+                }
+            }
         };
         self.registrat.drop_last();
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use nasl_syntax::parse;
+    use sink::DefaultSink;
+
+    use crate::{Interpreter, error::InterpretError, NaslValue};
+
+
+    #[test]
+    fn default_null_on_user_defined_functions() {
+        let code = r###"
+        function test(a, b) {
+            return a + b;
+        }
+        test(a: 1, b: 2);
+        test(a: 1);
+        test();
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
+        let mut parser = parse(code).map(|x| match x {
+            Ok(x) => interpreter.resolve(x),
+            Err(x) => Err(InterpretError {
+                reason: x.to_string(),
+            }),
+        });
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));
     }
 }

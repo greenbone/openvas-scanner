@@ -57,7 +57,7 @@ impl<'a> Interpreter<'a> {
             .named(key)
             .unwrap_or(&ContextType::Value(NaslValue::Null))
         {
-            ContextType::Function(_) => Err(InterpretError {
+            ContextType::Function(_, _) => Err(InterpretError {
                 reason: format!("{} is not assignable", key),
             }),
             ContextType::Value(val) => Ok(val.clone()),
