@@ -4,4 +4,4 @@
 
 Implementation of an API for X.509 certificates.
 
-## TOC
+## TABLE OF CONTENT

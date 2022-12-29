@@ -6,4 +6,4 @@ Simple Network Management Protocol (SNMP) is an Internet Standard protocol for c
 
 SNMP functions are used to get available SNMP devices in the network.
 
-## TOC
+## TABLE OF CONTENT
