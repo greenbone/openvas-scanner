@@ -25,4 +25,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[bn_random(3)](bn_random.md)**,
+**[bn_cmp(3)](bn_cmp.md)**,
