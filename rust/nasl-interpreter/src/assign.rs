@@ -122,7 +122,7 @@ impl<'a> AssignExtension for Interpreter<'a> {
     ) -> InterpretResult {
         let (key, lookup) = {
             match left {
-                Variable(token) | Array(token, None) => (&self.code[Range::from(token)], None),
+                Variable(token) => (&self.code[Range::from(token)], None),
                 Array(token, Some(stmt)) => {
                     (&self.code[Range::from(token)], Some(self.resolve(*stmt)?))
                 }
@@ -286,5 +286,59 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
+    }
+    #[test]
+    fn implicit_extend() {
+        let code = r###"
+        a[2] = 12;
+        a;
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut parser = parse(code).map(|x| match x {
+            Ok(x) => interpreter.resolve(x),
+            Err(x) => Err(InterpretError {
+                reason: x.to_string(),
+            }),
+        });
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Array(vec![NaslValue::Null, NaslValue::Null, NaslValue::Number(12)]))));
+    }
+
+    #[test]
+    fn implicit_transformation() {
+        let code = r###"
+        a = 12;
+        a;
+        a[2] = 12;
+        a;
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut parser = parse(code).map(|x| match x {
+            Ok(x) => interpreter.resolve(x),
+            Err(x) => Err(InterpretError {
+                reason: x.to_string(),
+            }),
+        });
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Array(vec![NaslValue::Number(12), NaslValue::Null, NaslValue::Number(12)]))));
+    }
+    #[test]
+    fn empty_bracklet() {
+        let code = r###"
+        a[] = 12;
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut parser = parse(code).map(|x| match x {
+            Ok(x) => interpreter.resolve(x),
+            Err(x) => Err(InterpretError {
+                reason: x.to_string(),
+            }),
+        });
+        assert!(matches!(parser.next(), Some(Err(_))));
     }
 }
