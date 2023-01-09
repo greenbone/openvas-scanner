@@ -21,7 +21,8 @@ pub use token::StringCategory;
 pub use token::Base as NumberBase;
 pub use token::IdentifierType;
 pub use sink::nvt::ACT as ACT;
-
+pub use lexer::Lexer as Lexer;
+pub use token::Tokenizer;
 
 /// Parses given code and returns found Statements and Errors
 ///
@@ -34,8 +35,6 @@ pub use sink::nvt::ACT as ACT;
 ///     nasl_syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
 /// ````
 pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>> + '_ {
-    use lexer::Lexer;
-    use token::Tokenizer;
     let tokenizer = Tokenizer::new(code);
     Lexer::new(tokenizer)
 }

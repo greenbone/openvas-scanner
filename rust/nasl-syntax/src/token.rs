@@ -145,6 +145,10 @@ pub enum IdentifierType {
     Null,
     /// return
     Return,
+    /// continue
+    Continue,
+    /// break
+    Break,
     /// include
     Include,
     /// Scanning phases; can be set by category in the description block
@@ -183,7 +187,9 @@ make_keyword_matcher! {
     ACT_KILL_HOST: IdentifierType::ACT(ACT::KillHost),
     ACT_MIXED_ATTACK: IdentifierType::ACT(ACT::MixedAttack),
     ACT_SCANNER: IdentifierType::ACT(ACT::Scanner),
-    ACT_SETTINGS: IdentifierType::ACT(ACT::Settings)
+    ACT_SETTINGS: IdentifierType::ACT(ACT::Settings),
+    continue: IdentifierType::Continue,
+    break: IdentifierType::Break
 }
 
 /// Is used to identify a Token
@@ -582,7 +588,7 @@ impl<'a> Tokenizer<'a> {
 
     // checks if a number is binary, octal, base10 or hex
     #[inline(always)]
-    pub fn tokenize_number(&mut self, mut start: usize, current: char) -> Category {
+    fn tokenize_number(&mut self, mut start: usize, current: char) -> Category {
         use Base::*;
         let may_base = {
             if current == '0' {
@@ -945,6 +951,8 @@ mod tests {
         verify_tokens!("return", vec![(Identifier(Return), 1, 1)]);
         verify_tokens!("include", vec![(Identifier(Include), 1, 1)]);
         verify_tokens!("exit", vec![(Identifier(Exit), 1, 1)]);
+        verify_tokens!("break", vec![(Identifier(Break), 1, 1)]);
+        verify_tokens!("continue", vec![(Identifier(Continue), 1, 1)]);
     }
 
     #[test]
