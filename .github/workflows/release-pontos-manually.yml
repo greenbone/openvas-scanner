@@ -2,6 +2,10 @@ name: Manually release gvm-libs with pontos
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Select branch that should be used for releasing'
+        default: 'main'
 
 jobs:
   build-and-release:
