@@ -39,6 +39,10 @@ pub enum Statement {
     Exit(Box<Statement>),
     /// Special Return statement
     Return(Box<Statement>),
+    /// Special Break statement
+    Break,
+    /// Special Continue statement
+    Continue,
     /// Special include call
     Include(Box<Statement>),
     /// Declares a new variable in either global or local scope
@@ -148,6 +152,8 @@ impl Statement {
             Statement::NoOp(token) => token.as_ref(),
             Statement::EoF => None,
             Statement::AttackCategory(_) => None,
+            Statement::Continue => None,
+            Statement::Break => None,
         }
     }
 }
@@ -177,6 +183,8 @@ impl fmt::Display for Statement {
             Statement::FunctionDeclaration(_, _, _) => write!(f, "FunctionDeclaration"),
             Statement::NoOp(_) => write!(f, "NoOp"),
             Statement::EoF => write!(f, "EoF"),
+            Statement::Break => write!(f, "Break"),
+            Statement::Continue => write!(f, "Continue"),
         }
     }
 }

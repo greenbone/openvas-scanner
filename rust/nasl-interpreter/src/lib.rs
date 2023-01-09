@@ -1,4 +1,4 @@
-//! Is a crate to use Stataments from nasl-syntax and execute them.
+//! Is a crate to use Statements from nasl-syntax and execute them.
 #![warn(missing_docs)]
 use built_in_functions::description;
 mod error;
@@ -13,6 +13,7 @@ mod include;
 mod interpreter;
 mod loader;
 mod operator;
+mod loop_extension;
 
 pub use context::ContextType;
 pub use context::Register;
