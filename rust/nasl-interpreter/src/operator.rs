@@ -227,7 +227,7 @@ mod tests {
             #[test]
             fn $name() {
                 let storage = DefaultSink::new(false);
-                let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, $code);
+                let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
                 let mut parser = parse($code).map(|x| match x {
                     Ok(x) => interpreter.resolve(x),
                     Err(x) => Err(InterpretError {

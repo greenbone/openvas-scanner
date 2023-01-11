@@ -1,5 +1,5 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
-use std::{ops::Not, clone};
+use std::ops::Not;
 
 use crate::{
     error::SyntaxError,

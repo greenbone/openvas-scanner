@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
 use nasl_syntax::{AssignOrder, Statement, TokenCategory};
 
@@ -188,9 +188,9 @@ impl<'a> AssignExtension for Interpreter<'a> {
     ) -> InterpretResult {
         let (key, lookup) = {
             match left {
-                Variable(token) => (&self.code[Range::from(&token)], None),
+                Variable(token) => (Self::identifier(&token)?, None),
                 Array(token, Some(stmt)) => {
-                    (&self.code[Range::from(&token)], Some(self.resolve(*stmt)?))
+                    (Self::identifier(&token)?, Some(self.resolve(*stmt)?))
                 }
                 _ => {
                     return Err(InterpretError {
@@ -201,42 +201,42 @@ impl<'a> AssignExtension for Interpreter<'a> {
         };
         let val = self.resolve(right)?;
         match category {
-            TokenCategory::Equal => self.store_return(key, lookup, &val, |_, right| right.clone()),
-            TokenCategory::PlusEqual => self.store_return(key, lookup, &val, |left, right| {
+            TokenCategory::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
+            TokenCategory::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) + i64::from(right))
             }),
-            TokenCategory::MinusEqual => self.store_return(key, lookup, &val, |left, right| {
+            TokenCategory::MinusEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) - i64::from(right))
             }),
-            TokenCategory::SlashEqual => self.store_return(key, lookup, &val, |left, right| {
+            TokenCategory::SlashEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) / i64::from(right))
             }),
-            TokenCategory::StarEqual => self.store_return(key, lookup, &val, |left, right| {
+            TokenCategory::StarEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) * i64::from(right))
             }),
             TokenCategory::GreaterGreaterEqual => {
-                self.store_return(key, lookup, &val, |left, right| {
+                self.store_return(&key, lookup, &val, |left, right| {
                     NaslValue::Number(i64::from(left) >> i64::from(right))
                 })
             }
-            TokenCategory::LessLessEqual => self.store_return(key, lookup, &val, |left, right| {
+            TokenCategory::LessLessEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) << i64::from(right))
             }),
             TokenCategory::GreaterGreaterGreaterEqual => {
-                self.store_return(key, lookup, &val, |left, right| {
+                self.store_return(&key, lookup, &val, |left, right| {
                     // get rid of minus sign
                     let left = i64::from(left) as u32;
                     let right = i64::from(right) as u32;
                     NaslValue::Number((left << right) as i64)
                 })
             }
-            TokenCategory::PercentEqual => self.store_return(key, lookup, &val, |left, right| {
+            TokenCategory::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) % i64::from(right))
             }),
-            TokenCategory::PlusPlus => self.without_right(&order, key, lookup, |left, _| {
+            TokenCategory::PlusPlus => self.without_right(&order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) + 1)
             }),
-            TokenCategory::MinusMinus => self.without_right(&order, key, lookup, |left, _| {
+            TokenCategory::MinusMinus => self.without_right(&order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) - 1)
             }),
             _ => Err(InterpretError {
@@ -273,7 +273,7 @@ mod tests {
         --a;
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {
@@ -310,7 +310,7 @@ mod tests {
         ++a[0];
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {
@@ -336,7 +336,7 @@ mod tests {
         a;
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {
@@ -356,7 +356,7 @@ mod tests {
         a;
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {
@@ -377,7 +377,7 @@ mod tests {
         a['hi'];
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {
@@ -394,7 +394,7 @@ mod tests {
         a[] = 12;
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None, code);
+        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {
