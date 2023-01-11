@@ -52,7 +52,7 @@ impl<'a> CommaGroup for Lexer<'a> {
 
 impl<'a> Variables for Lexer<'a> {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        if *token.category() != Category::Identifier(None) {
+        if !matches!(token.category(), Category::Identifier(crate::IdentifierType::Undefined(_))) {
             return Err(unexpected_token!(token));
         }
         use End::*;
@@ -98,6 +98,7 @@ mod test {
     
     use Category::*;
     use Statement::*;
+    use crate::IdentifierType::*;
 
     fn token(category: Category, start: usize, end: usize) -> Token {
         Token {
@@ -112,7 +113,7 @@ mod test {
 
     #[test]
     fn variables() {
-        assert_eq!(result("a;"), Variable(token(Identifier(None), 0, 1)));
+        assert_eq!(result("a;"), Variable(token(Identifier(Undefined("a".to_owned())), 0, 1)));
     }
 
     #[test]
@@ -120,7 +121,7 @@ mod test {
         assert_eq!(
             result("a[0];"),
             Array(
-                token(Identifier(None), 0, 1),
+                token(Identifier(Undefined("a".to_owned())), 0, 1),
                 Some(Box::new(Primitive(token(Number(0), 2, 3))))
             )
         );
@@ -132,7 +133,7 @@ mod test {
                 AssignOrder::AssignReturn,
                 Box::new(Array(
                     Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (0, 1)
                     },
                     None
@@ -161,7 +162,7 @@ mod test {
                 AssignOrder::AssignReturn,
                 Box::new(Array(
                     Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (0, 1)
                     },
                     Some(Box::new(Primitive(Token {
@@ -189,7 +190,7 @@ mod test {
 
     #[test]
     fn anon_function_call() {
-        let fn_name = token(Identifier(None), 0, 1);
+        let fn_name = token(Identifier(Undefined("a".to_owned())), 0, 1);
         let args = Box::new(Parameter(vec![
             Primitive(token(Number(1), 2, 3)),
             Primitive(token(Number(2), 5, 6)),
@@ -206,13 +207,13 @@ mod test {
             result("script_tag(name:\"cvss_base\", value:1 + 1 % 2);"),
             Call(
                 Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("script_tag".to_owned())),
                     position: (0, 10)
                 },
                 Box::new(Parameter(vec![
                     NamedParameter(
                         Token {
-                            category: Identifier(None),
+                            category: Identifier(Undefined("name".to_owned())),
                             position: (11, 15)
                         },
                         Box::new(Primitive(Token {
@@ -222,7 +223,7 @@ mod test {
                     ),
                     NamedParameter(
                         Token {
-                            category: Identifier(None),
+                            category: Identifier(Undefined("value".to_owned())),
                             position: (29, 34)
                         },
                         Box::new(Operator(
@@ -256,12 +257,12 @@ mod test {
             result("script_tag(name: 2);"),
             Call(
                 Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("script_tag".to_owned())),
                     position: (0, 10)
                 },
                 Box::new(Parameter(vec![NamedParameter(
                     Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("name".to_owned())),
                         position: (11, 15)
                     },
                     Box::new(Primitive(Token {

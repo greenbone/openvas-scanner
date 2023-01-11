@@ -84,6 +84,7 @@ mod test {
 
     use Category::*;
     use Statement::*;
+    use crate::IdentifierType::Undefined;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -108,14 +109,14 @@ mod test {
                     Equal,
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (31, 32)
                     })),
                     Box::new(Operator(
                         Plus,
                         vec![
                             Variable(Token {
-                                category: Identifier(None),
+                                category: Identifier(Undefined("b".to_owned())),
                                 position: (35, 36)
                             }),
                             Primitive(Token {
@@ -129,21 +130,21 @@ mod test {
                     Equal,
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("b".to_owned())),
                         position: (58, 59)
                     },)),
                     Box::new(Operator(
                         Minus,
                         vec![
                             Variable(Token {
-                                category: Identifier(None),
+                                category: Identifier(Undefined("a".to_owned())),
                                 position: (62, 63)
                             }),
                             Assign(
                                 MinusMinus,
                                 AssignOrder::AssignReturn,
                                 Box::new(Variable(Token {
-                                    category: Identifier(None),
+                                    category: Identifier(Undefined("c".to_owned())),
                                     position: (68, 69)
                                 },)),
                                 Box::new(NoOp(None))
@@ -155,7 +156,7 @@ mod test {
                     Equal,
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("d".to_owned())),
                         position: (108, 109)
                     },)),
                     Box::new(Primitive(Token {

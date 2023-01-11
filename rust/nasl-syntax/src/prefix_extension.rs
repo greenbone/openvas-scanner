@@ -100,6 +100,7 @@ mod test {
 
     use Category::*;
     use Statement::*;
+    use crate::IdentifierType::Undefined;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -152,7 +153,7 @@ mod test {
                                 assign_operator,
                                 AssignOrder::AssignReturn,
                                 Box::new(Variable(Token {
-                                    category: Identifier(None),
+                                    category: Identifier(Undefined("a".to_owned())),
                                     position: (6, 7),
                                 })),
                                 Box::new(NoOp(None)),
@@ -178,7 +179,7 @@ mod test {
                 AssignReturn,
                 Box::new(Array(
                     Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (2, 3),
                     },
                     Some(Box::new(Primitive(Token {
