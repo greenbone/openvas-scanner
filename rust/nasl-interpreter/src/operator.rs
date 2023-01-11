@@ -42,10 +42,10 @@ impl<'a> Interpreter<'a> {
 }
 
 #[inline(always)]
-fn as_i32(left: NaslValue, right: Option<NaslValue>) -> (i32, i32) {
+fn as_i64(left: NaslValue, right: Option<NaslValue>) -> (i64, i64) {
     (
-        i32::from(&left),
-        right.map(|x| i32::from(&x)).unwrap_or_default(),
+        i64::from(&left),
+        right.map(|x| i64::from(&x)).unwrap_or_default(),
     )
 }
 
@@ -57,16 +57,16 @@ macro_rules! expr {
 macro_rules! num_expr {
     ($op:tt $left:ident $right:ident) => {
         {
-        let (left, right) = as_i32($left, $right);
+        let (left, right) = as_i64($left, $right);
         let result = expr!(left $op right);
-        Ok(NaslValue::Number(result))
+        Ok(NaslValue::Number(result as i64))
         }
     };
     ($op:expr => $left:ident $right:ident) => {
         {
-        let (left, right) = as_i32($left, $right);
+        let (left, right) = as_i64($left, $right);
         let result = $op(left, right);
-        Ok(NaslValue::Number(result))
+        Ok(NaslValue::Number(result as i64))
         }
     };
 }
@@ -96,8 +96,8 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                     Ok(NaslValue::String(format!("{}{}", x, right)))
                 }
                 left => {
-                    let right = b.map(|x| i32::from(&x)).unwrap_or_default();
-                    Ok(NaslValue::Number(i32::from(&left) + right))
+                    let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                    Ok(NaslValue::Number(i64::from(&left) + right))
                 }
             }),
             TokenCategory::Minus => self.execute(stmts, |a, b| match a {
@@ -107,8 +107,8 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 }
                 left => {
                     let result = match b {
-                        Some(right) => i32::from(&left) - i32::from(&right),
-                        None => -i32::from(&left),
+                        Some(right) => i64::from(&left) - i64::from(&right),
+                        None => -i64::from(&left),
                     };
                     Ok(NaslValue::Number(result))
                 }
@@ -134,7 +134,7 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 |a, b| num_expr!(|a, b| (a as u32).pow(b as u32) as i32 => a b),
             ),
             TokenCategory::Tilde => {
-                self.execute(stmts, |a, b| num_expr!(|a: i32, _: i32| !a => a b))
+                self.execute(stmts, |a, b| num_expr!(|a: i64, _: i64| !a => a b))
             }
             // string
             TokenCategory::EqualTilde => self.execute(stmts, match_regex),
@@ -168,20 +168,20 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 Ok(NaslValue::Boolean(a != right))
             }),
             TokenCategory::Greater => self.execute(stmts, |a, b| {
-                let right = b.map(|x| i32::from(&x)).unwrap_or_default();
-                Ok(NaslValue::Boolean(i32::from(&a) > right))
+                let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i64::from(&a) > right))
             }),
             TokenCategory::Less => self.execute(stmts, |a, b| {
-                let right = b.map(|x| i32::from(&x)).unwrap_or_default();
-                Ok(NaslValue::Boolean(i32::from(&a) < right))
+                let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i64::from(&a) < right))
             }),
             TokenCategory::GreaterEqual => self.execute(stmts, |a, b| {
-                let right = b.map(|x| i32::from(&x)).unwrap_or_default();
-                Ok(NaslValue::Boolean(i32::from(&a) >= right))
+                let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i64::from(&a) >= right))
             }),
             TokenCategory::LessEqual => self.execute(stmts, |a, b| {
-                let right = b.map(|x| i32::from(&x)).unwrap_or_default();
-                Ok(NaslValue::Boolean(i32::from(&a) <= right))
+                let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                Ok(NaslValue::Boolean(i64::from(&a) <= right))
             }),
             TokenCategory::X => {
                 // operation on more than two values
@@ -193,7 +193,7 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 let mut stmts = stmts;
                 let repeat = {
                     let last = self.resolve(stmts.pop().unwrap())?;
-                    i32::from(&last)
+                    i64::from(&last)
                 };
                 if repeat == 0 {
                     // don't execute;

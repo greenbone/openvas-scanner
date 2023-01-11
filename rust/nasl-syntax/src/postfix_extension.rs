@@ -84,10 +84,10 @@ impl<'a> Postfix for Lexer<'a> {
 mod test {
     use crate::{
         parse,
-        token::{Base, Category, Token}, Statement, AssignOrder,
+        token::{Category, Token}, Statement, AssignOrder,
     };
 
-    use Base::*;
+    
     use Category::*;
     use crate::Statement::*;
 
@@ -102,7 +102,7 @@ mod test {
                 Plus,
                 vec![
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(1),
                         position: (0, 1),
                     }),
                     Operator(
@@ -118,7 +118,7 @@ mod test {
                                 Box::new(NoOp(None)),
                             ),
                             Primitive(Token {
-                                category: Number(Base10),
+                                category: Number(1),
                                 position: (10, 11),
                             }),
                         ],
@@ -143,7 +143,7 @@ mod test {
                         position: (0, 1),
                     },
                     Some(Box::new(Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(1),
                         position: (2, 3),
                     }))),
                 )),

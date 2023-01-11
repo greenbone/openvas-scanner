@@ -44,7 +44,7 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::{
         cursor::Cursor,
-        token::{Base, Category, Keyword, StringCategory, Token, Tokenizer},
+        token::{Category, Keyword, StringCategory, Token, Tokenizer},
         Statement, SyntaxError, AssignOrder,
     };
 
@@ -103,7 +103,7 @@ mod tests {
                         position: (0, 1)
                     },)),
                     Box::new(Primitive(Token {
-                        category: Number(Base::Base10),
+                        category: Number(23),
                         position: (4, 6)
                     }))
                 )),
@@ -115,7 +115,7 @@ mod tests {
                         position: (7, 8)
                     },)),
                     Box::new(Primitive(Token {
-                        category: Number(Base::Base10),
+                        category: Number(1),
                         position: (11, 12)
                     }))
                 ))

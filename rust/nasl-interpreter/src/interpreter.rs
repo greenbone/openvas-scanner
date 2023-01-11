@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use nasl_syntax::{
-    Keyword, NumberBase, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
+    Keyword, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
 };
 use sink::Sink;
 
@@ -19,7 +19,7 @@ pub enum NaslValue {
     /// String value
     String(String),
     /// Number value
-    Number(i32),
+    Number(i64),
     /// Array value
     Array(Vec<NaslValue>),
     /// Array value
@@ -31,7 +31,7 @@ pub enum NaslValue {
     /// Null value
     Null,
     /// Exit value of the script
-    Exit(i32),
+    Exit(i64),
 }
 
 impl ToString for NaslValue {
@@ -91,13 +91,6 @@ impl PrimitiveResolver<String> for StringCategory {
     }
 }
 
-impl PrimitiveResolver<i32> for NumberBase {
-    /// Resolves a range into number based on code
-    fn resolve(&self, code: &str, range: Range<usize>) -> i32 {
-        i32::from_str_radix(&code[range], self.radix()).unwrap()
-    }
-}
-
 impl From<NaslValue> for bool {
     fn from(value: NaslValue) -> Self {
         match value {
@@ -113,15 +106,15 @@ impl From<NaslValue> for bool {
     }
 }
 
-impl From<&NaslValue> for i32 {
+impl From<&NaslValue> for i64 {
     fn from(value: &NaslValue) -> Self {
         match value {
             NaslValue::String(_) => 1,
             &NaslValue::Number(x) => x,
             NaslValue::Array(_) => 1,
             NaslValue::Dict(_) => 1,
-            &NaslValue::Boolean(x) => x as i32,
-            &NaslValue::AttackCategory(x) => x as i32,
+            &NaslValue::Boolean(x) => x as i64,
+            &NaslValue::AttackCategory(x) => x as i64,
             NaslValue::Null => 0,
             &NaslValue::Exit(x) => x,
         }
@@ -140,8 +133,8 @@ impl TryFrom<(&str, Token)> for NaslValue {
             TokenCategory::Identifier(None) => Ok(NaslValue::String(
                 StringCategory::Unquotable.resolve(code, Range::from(token)),
             )),
-            TokenCategory::Number(base) => {
-                Ok(NaslValue::Number(base.resolve(code, Range::from(token))))
+            TokenCategory::Number(num) => {
+                Ok(NaslValue::Number(num))
             }
             _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),
@@ -196,7 +189,7 @@ impl<'a> Interpreter<'a> {
                     (None, ContextType::Value(v)) => Ok(v),
                     (Some(p), ContextType::Value(NaslValue::Array(x))) => {
                         let position = self.resolve(*p)?;
-                        let position = i32::from(&position) as usize;
+                        let position = i64::from(&position) as usize;
                         let result = x.get(position).ok_or_else(|| InterpretError {
                             reason: format!("positiong {} not found", position),
                         })?;

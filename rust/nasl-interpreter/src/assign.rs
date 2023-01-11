@@ -21,7 +21,7 @@ pub(crate) trait AssignExtension {
 
 #[inline(always)]
 fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
-    let idx = i32::from(idx) as usize;
+    let idx = i64::from(idx) as usize;
     let mut arr: Vec<NaslValue> = match left {
         NaslValue::Array(x) => x,
         _ => {
@@ -203,41 +203,41 @@ impl<'a> AssignExtension for Interpreter<'a> {
         match category {
             TokenCategory::Equal => self.store_return(key, lookup, &val, |_, right| right.clone()),
             TokenCategory::PlusEqual => self.store_return(key, lookup, &val, |left, right| {
-                NaslValue::Number(i32::from(left) + i32::from(right))
+                NaslValue::Number(i64::from(left) + i64::from(right))
             }),
             TokenCategory::MinusEqual => self.store_return(key, lookup, &val, |left, right| {
-                NaslValue::Number(i32::from(left) - i32::from(right))
+                NaslValue::Number(i64::from(left) - i64::from(right))
             }),
             TokenCategory::SlashEqual => self.store_return(key, lookup, &val, |left, right| {
-                NaslValue::Number(i32::from(left) / i32::from(right))
+                NaslValue::Number(i64::from(left) / i64::from(right))
             }),
             TokenCategory::StarEqual => self.store_return(key, lookup, &val, |left, right| {
-                NaslValue::Number(i32::from(left) * i32::from(right))
+                NaslValue::Number(i64::from(left) * i64::from(right))
             }),
             TokenCategory::GreaterGreaterEqual => {
                 self.store_return(key, lookup, &val, |left, right| {
-                    NaslValue::Number(i32::from(left) >> i32::from(right))
+                    NaslValue::Number(i64::from(left) >> i64::from(right))
                 })
             }
             TokenCategory::LessLessEqual => self.store_return(key, lookup, &val, |left, right| {
-                NaslValue::Number(i32::from(left) << i32::from(right))
+                NaslValue::Number(i64::from(left) << i64::from(right))
             }),
             TokenCategory::GreaterGreaterGreaterEqual => {
                 self.store_return(key, lookup, &val, |left, right| {
                     // get rid of minus sign
-                    let left = i32::from(left) as u32;
-                    let right = i32::from(right) as u32;
-                    NaslValue::Number((left << right) as i32)
+                    let left = i64::from(left) as u32;
+                    let right = i64::from(right) as u32;
+                    NaslValue::Number((left << right) as i64)
                 })
             }
             TokenCategory::PercentEqual => self.store_return(key, lookup, &val, |left, right| {
-                NaslValue::Number(i32::from(left) % i32::from(right))
+                NaslValue::Number(i64::from(left) % i64::from(right))
             }),
             TokenCategory::PlusPlus => self.without_right(&order, key, lookup, |left, _| {
-                NaslValue::Number(i32::from(left) + 1)
+                NaslValue::Number(i64::from(left) + 1)
             }),
             TokenCategory::MinusMinus => self.without_right(&order, key, lookup, |left, _| {
-                NaslValue::Number(i32::from(left) - 1)
+                NaslValue::Number(i64::from(left) - 1)
             }),
             _ => Err(InterpretError {
                 reason: format!("{:?} is not supported", category),

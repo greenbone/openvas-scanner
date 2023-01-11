@@ -79,10 +79,9 @@ mod test {
     use crate::{
         {AssignOrder, Statement},
         parse,
-        token::{Base, Category, Token},
+        token::{Category, Token},
     };
 
-    use Base::*;
     use Category::*;
     use Statement::*;
 
@@ -120,7 +119,7 @@ mod test {
                                 position: (35, 36)
                             }),
                             Primitive(Token {
-                                category: Number(Base10),
+                                category: Number(1),
                                 position: (39, 40)
                             })
                         ]
@@ -160,7 +159,7 @@ mod test {
                         position: (108, 109)
                     },)),
                     Box::new(Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(23),
                         position: (112, 114)
                     }))
                 )])

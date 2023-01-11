@@ -95,10 +95,9 @@ mod test {
         AssignOrder,
         Statement,
         parse,
-        token::{Base, Category, StringCategory, Token},
+        token::{Category, StringCategory, Token},
     };
 
-    use Base::*;
     use Category::*;
     use Statement::*;
 
@@ -117,7 +116,7 @@ mod test {
         fn expected(category: Category) -> Statement {
             Statement::Operator(
                 category,
-                vec![Statement::Primitive(token(Number(Base10), 1, 2))],
+                vec![Statement::Primitive(token(Number(1), 1, 2))],
             )
         }
 
@@ -129,7 +128,7 @@ mod test {
 
     #[test]
     fn single_statement() {
-        assert_eq!(result("1;"), Primitive(token(Number(Base10), 0, 1)));
+        assert_eq!(result("1;"), Primitive(token(Number(1), 0, 1)));
         assert_eq!(
             result("'a';"),
             Primitive(token(String(StringCategory::Quotable), 1, 2))
@@ -143,7 +142,7 @@ mod test {
                 Plus,
                 vec![
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(1),
                         position: (0, 1),
                     }),
                     Operator(
@@ -159,7 +158,7 @@ mod test {
                                 Box::new(NoOp(None)),
                             ),
                             Primitive(Token {
-                                category: Number(Base10),
+                                category: Number(1),
                                 position: (10, 11),
                             }),
                         ],
@@ -183,7 +182,7 @@ mod test {
                         position: (2, 3),
                     },
                     Some(Box::new(Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(0),
                         position: (4, 5),
                     }))),
                 )),
