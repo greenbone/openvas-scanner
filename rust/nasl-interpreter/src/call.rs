@@ -15,7 +15,7 @@ pub(crate) trait CallExtension {
 impl<'a> CallExtension for Interpreter<'a> {
     #[inline(always)]
     fn call(&mut self, name: Token, arguments: Box<Statement>) -> InterpretResult {
-        let name = &self.code[Range::from(name)];
+        let name = &self.code[Range::from(&name)];
         // get the context
         let mut named = HashMap::new();
         let mut position = vec![];
@@ -25,7 +25,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                     match p {
                         NamedParameter(token, val) => {
                             let val = self.resolve(*val)?;
-                            let name = self.code[Range::from(token)].to_owned();
+                            let name = self.code[Range::from(&token)].to_owned();
                             named.insert(name, ContextType::Value(val));
                         }
                         val => {

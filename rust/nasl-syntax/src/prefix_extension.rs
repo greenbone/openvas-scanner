@@ -17,7 +17,7 @@ pub(crate) trait Prefix {
     fn prefix_statement(
         &mut self,
         token: Token,
-        abort: &impl Fn(Category) -> bool,
+        abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError>;
 }
 
@@ -62,10 +62,10 @@ impl<'a> Prefix for Lexer<'a> {
     fn prefix_statement(
         &mut self,
         token: Token,
-        abort: &impl Fn(Category) -> bool,
+        abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         use End::*;
-        let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
+        let op = Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(token)?;
@@ -83,7 +83,7 @@ impl<'a> Prefix for Lexer<'a> {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp => Ok((Done(token.category()), Statement::NoOp(Some(token)))),
+            Operation::NoOp => Ok((Done(token.category().clone()), Statement::NoOp(Some(token)))),
         }
     }
 }
@@ -95,7 +95,7 @@ mod test {
         AssignOrder,
         Statement,
         parse,
-        token::{Category, StringCategory, Token},
+        token::{Category, Token},
     };
 
     use Category::*;
@@ -131,7 +131,7 @@ mod test {
         assert_eq!(result("1;"), Primitive(token(Number(1), 0, 1)));
         assert_eq!(
             result("'a';"),
-            Primitive(token(String(StringCategory::Quotable), 1, 2))
+            Primitive(token(String("a".to_owned()), 1, 2))
         );
     }
 

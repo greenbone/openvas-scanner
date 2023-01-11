@@ -26,12 +26,12 @@ impl<'a> CommaGroup for Lexer<'a> {
         let mut params = vec![];
         let mut end = End::Continue;
         while let Some(token) = self.peek() {
-            if token.category() == category {
+            if *token.category() == category {
                 self.token();
                 end = End::Done(category);
                 break;
             }
-            let (stmtend, param) = self.statement(0, &|c| c == category || c == Category::Comma)?;
+            let (stmtend, param) = self.statement(0, &|c| c == &category || c == &Category::Comma)?;
             match param {
                 Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
                 param => params.push(param),
@@ -52,7 +52,7 @@ impl<'a> CommaGroup for Lexer<'a> {
 
 impl<'a> Variables for Lexer<'a> {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        if token.category() != Category::Identifier(None) {
+        if *token.category() != Category::Identifier(None) {
             return Err(unexpected_token!(token));
         }
         use End::*;
@@ -72,7 +72,7 @@ impl<'a> Variables for Lexer<'a> {
                 }
                 Category::LeftBrace => {
                     self.token();
-                    let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
+                    let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
                     if end == End::Continue {
                         return Err(unclosed_token!(token));
@@ -92,7 +92,7 @@ mod test {
     use crate::{
         {AssignOrder, Statement},
         parse,
-        token::{Category, StringCategory, Token},
+        token::{Category, Token},
     };
 
     
@@ -216,7 +216,7 @@ mod test {
                             position: (11, 15)
                         },
                         Box::new(Primitive(Token {
-                            category: String(StringCategory::Unquotable),
+                            category: String("cvss_base".to_owned()),
                             position: (17, 26)
                         }))
                     ),

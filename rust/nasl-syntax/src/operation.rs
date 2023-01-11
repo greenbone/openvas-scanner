@@ -2,7 +2,8 @@
 use crate::token::{Category, Keyword, Token};
 
 /// Is defining different OPerations to control the infix, postfix or infix handling.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+// TODO maybe transform tokencategory to operation category
 pub(crate) enum Operation {
     /// Operator are mostly used in infix.
     ///
@@ -54,7 +55,7 @@ impl Operation {
             | Category::GreaterEqual
             | Category::LessEqual
             | Category::X
-            | Category::StarStar => Some(Operation::Operator(token.category())),
+            | Category::StarStar => Some(Operation::Operator(token.category().clone())),
             Category::Equal
             | Category::MinusEqual
             | Category::PlusEqual
@@ -67,14 +68,14 @@ impl Operation {
             | Category::Semicolon
             | Category::DoublePoint
             | Category::PercentEqual
-            | Category::MinusMinus => Some(Operation::Assign(token.category())),
+            | Category::MinusMinus => Some(Operation::Assign(token.category().clone())),
             Category::String(_) | Category::Number(_) | Category::IPv4Address => Some(Operation::Primitive),
             Category::LeftParen
             | Category::LeftBrace
             | Category::LeftCurlyBracket
-            | Category::Comma => Some(Operation::Grouping(token.category())),
+            | Category::Comma => Some(Operation::Grouping(token.category().clone())),
             Category::Identifier(None) => Some(Operation::Variable),
-            Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword)),
+            Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword.clone())),
             Category::Comment => Some(Operation::NoOp),
             _ => None,
         }
