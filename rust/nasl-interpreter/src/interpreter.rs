@@ -1,7 +1,7 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
 use nasl_syntax::{
-    IdentifierType, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
+    IdentifierType, Statement, Statement::*, Token, TokenCategory, ACT,
 };
 use sink::Sink;
 
@@ -63,32 +63,8 @@ pub struct Interpreter<'a> {
     // TODO change to enum
     pub(crate) oid: Option<&'a str>,
     pub(crate) filename: Option<&'a str>,
-    pub(crate) code: &'a str,
     pub(crate) registrat: Register,
     pub(crate) storage: &'a dyn Sink,
-}
-
-trait PrimitiveResolver<T> {
-    fn resolve(&self, code: &str, range: Range<usize>) -> T;
-}
-
-impl PrimitiveResolver<String> for StringCategory {
-    /// Resolves a range into a String based on code
-    fn resolve(&self, code: &str, range: Range<usize>) -> String {
-        match self {
-            StringCategory::Quotable => code[range].to_owned(),
-            StringCategory::Unquotable => {
-                let mut string = code[range].to_string();
-                string = string.replace(r#"\n"#, "\n");
-                string = string.replace(r#"\\"#, "\\");
-                string = string.replace(r#"\""#, "\"");
-                string = string.replace(r#"\'"#, "'");
-                string = string.replace(r#"\r"#, "\r");
-                string = string.replace(r#"\t"#, "\t");
-                string
-            }
-        }
-    }
 }
 
 impl From<NaslValue> for bool {
@@ -121,15 +97,14 @@ impl From<&NaslValue> for i64 {
     }
 }
 
-impl TryFrom<(&str, Token)> for NaslValue {
+impl TryFrom<&Token> for NaslValue {
     type Error = InterpretError;
 
-    fn try_from(value: (&str, Token)) -> Result<Self, Self::Error> {
-        let (code, token) = value;
-        match token.category {
-            TokenCategory::String(category) => Ok(NaslValue::String(category)),
-            TokenCategory::Identifier(IdentifierType::Undefined(id)) => Ok(NaslValue::String(id)),
-            TokenCategory::Number(num) => Ok(NaslValue::Number(num)),
+    fn try_from(token: &Token) -> Result<Self, Self::Error> {
+        match token.category() {
+            TokenCategory::String(category) => Ok(NaslValue::String(category.clone())),
+            TokenCategory::Identifier(IdentifierType::Undefined(id)) => Ok(NaslValue::String(id.clone())),
+            TokenCategory::Number(num) => Ok(NaslValue::Number(*num)),
             _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),
             }),
@@ -149,14 +124,12 @@ impl<'a> Interpreter<'a> {
         initial: Vec<(String, ContextType)>,
         oid: Option<&'a str>,
         filename: Option<&'a str>,
-        code: &'a str,
     ) -> Self {
         let mut registrat = Register::default();
         registrat.create_root(initial);
         Interpreter {
             oid,
             filename,
-            code,
             registrat,
             storage,
         }
@@ -169,11 +142,19 @@ impl<'a> Interpreter<'a> {
         self.filename.unwrap_or_default()
     }
 
+    pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
+        match token.category() {
+            TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.clone()),
+            cat => Err(InterpretError { reason: format!("unexpected category {:?}", cat) }),
+        }
+    }
+
     /// Interprets a Statement
     pub fn resolve(&mut self, statement: Statement) -> InterpretResult {
         match statement {
             Array(name, position) => {
-                let name = &self.code[Range::from(&name)];
+                
+                let name = &Self::identifier(&name)?;
                 let val = self.registrat.named(name).ok_or_else(|| InterpretError {
                     reason: format!("{} not found.", name),
                 })?;
@@ -216,9 +197,9 @@ impl<'a> Interpreter<'a> {
             Repeat(_, _) => todo!(),
             ForEach(_, _, _) => todo!(),
             FunctionDeclaration(_, _, _) => todo!(),
-            Primitive(token) => TryFrom::try_from((self.code, token)),
+            Primitive(token) => TryFrom::try_from(&token),
             Variable(token) => {
-                let name: NaslValue = TryFrom::try_from((self.code, token))?;
+                let name: NaslValue = TryFrom::try_from(&token)?;
                 match self.registrat.named(&name.to_string()).ok_or_else(|| {
                     InterpretError::new(format!("variable {} not found", name.to_string()))
                 })? {

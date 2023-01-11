@@ -95,14 +95,17 @@ impl IdentifierType {
 
 impl ToString for IdentifierType {
     fn to_string(&self) -> String {
-            $(
-                // cannot use match here because define is an expression
-        if self == &$define {
-           return stringify!($matcher).to_owned();
+        $(
+        // special case that is not defined via macro_call
+        if let IdentifierType::Undefined(r) = self {
+            return r.clone();
         }
-            )*
-                return "".to_owned();
-
+        // cannot use match here because define is an expression
+        if self == &$define {
+            return stringify!($matcher).to_owned();
+        }
+        )*
+        return "".to_owned();
     }
 }
     };
