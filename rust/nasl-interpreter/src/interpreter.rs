@@ -1,6 +1,8 @@
 use std::{collections::HashMap, ops::Range};
 
-use nasl_syntax::{Keyword, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT};
+use nasl_syntax::{
+    IdentifierType, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
+};
 use sink::Sink;
 
 use crate::{
@@ -51,7 +53,7 @@ impl ToString for NaslValue {
             NaslValue::Boolean(x) => x.to_string(),
             NaslValue::Null => "\0".to_owned(),
             NaslValue::Exit(rc) => format!("exit({})", rc),
-            NaslValue::AttackCategory(category) => Keyword::ACT(*category).to_string(),
+            NaslValue::AttackCategory(category) => IdentifierType::ACT(*category).to_string(),
         }
     }
 }
@@ -126,9 +128,7 @@ impl TryFrom<(&str, Token)> for NaslValue {
         let (code, token) = value;
         match token.category {
             TokenCategory::String(category) => Ok(NaslValue::String(category)),
-            TokenCategory::Identifier(None) => Ok(NaslValue::String(
-                StringCategory::Unquotable.resolve(code, Range::from(&token)),
-            )),
+            TokenCategory::Identifier(IdentifierType::Undefined(id)) => Ok(NaslValue::String(id)),
             TokenCategory::Number(num) => Ok(NaslValue::Number(num)),
             _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),

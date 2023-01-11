@@ -2,7 +2,7 @@ use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
     lexer::{End, Lexer},
-    token::{Category, Keyword, Token},
+    token::{Category, IdentifierType, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
     variable_extension::CommaGroup,
     DeclareScope, Statement,
@@ -12,7 +12,7 @@ pub(crate) trait Keywords {
     /// Parses keywords.
     fn parse_keyword(
         &mut self,
-        keyword: Keyword,
+        keyword: IdentifierType,
         token: Token,
     ) -> Result<(End, Statement), SyntaxError>;
 }
@@ -46,7 +46,7 @@ impl<'a> Lexer<'a> {
         let r#else: Option<Statement> = {
             match self.peek() {
                 Some(token) => match token.category() {
-                    Category::Identifier(Some(Keyword::Else)) => {
+                    Category::Identifier(IdentifierType::Else) => {
                         self.token();
                         let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
                         if end == End::Continue {
@@ -117,7 +117,7 @@ impl<'a> Lexer<'a> {
         let id = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(id.category(), Category::Identifier(None)) {
+        if !matches!(id.category(), Category::Identifier(IdentifierType::Undefined(_))) {
             return Err(unexpected_token!(id));
         }
         let paren = self
@@ -226,7 +226,7 @@ impl<'a> Lexer<'a> {
         let until: Statement = {
             match self.token() {
                 Some(token) => match token.category() {
-                    Category::Identifier(Some(Keyword::Until)) => {
+                    Category::Identifier(IdentifierType::Until) => {
                         let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
                         if !end {
                             return Err(unclosed_token!(token));
@@ -249,7 +249,7 @@ impl<'a> Lexer<'a> {
         let variable: Token = {
             match self.token() {
                 Some(token) => match token.category() {
-                    Category::Identifier(None) => Ok(token),
+                    Category::Identifier(IdentifierType::Undefined(_)) => Ok(token),
                     _ => Err(unexpected_token!(token)),
                 },
                 None => Err(unexpected_end!("in foreach")),
@@ -304,28 +304,29 @@ impl<'a> Lexer<'a> {
 impl<'a> Keywords for Lexer<'a> {
     fn parse_keyword(
         &mut self,
-        keyword: Keyword,
+        keyword: IdentifierType,
         token: Token,
     ) -> Result<(End, Statement), SyntaxError> {
         match keyword {
-            Keyword::For => self.parse_for(),
-            Keyword::ForEach => self.parse_foreach(token),
-            Keyword::If => self.parse_if(),
-            Keyword::Else => Err(unexpected_token!(token)), // handled in if
-            Keyword::While => self.parse_while(token),
-            Keyword::Repeat => self.parse_repeat(token),
-            Keyword::Until => Err(unexpected_token!(token)), // handled in repeat
-            Keyword::LocalVar => self.parse_declaration(DeclareScope::Local),
-            Keyword::GlobalVar => self.parse_declaration(DeclareScope::Global),
-            Keyword::Null => Ok((End::Continue, Statement::Primitive(token))),
-            Keyword::Return => self.parse_return(),
-            Keyword::Include => self.parse_include(),
-            Keyword::Exit => self.parse_exit(),
-            Keyword::FCTAnonArgs => self.parse_fct_anon_args(token),
-            Keyword::True => Ok((End::Continue, Statement::Primitive(token))),
-            Keyword::False => Ok((End::Continue, Statement::Primitive(token))),
-            Keyword::Function => self.parse_function(token),
-            Keyword::ACT(category) => Ok((End::Continue, Statement::AttackCategory(category))),
+            IdentifierType::For => self.parse_for(),
+            IdentifierType::ForEach => self.parse_foreach(token),
+            IdentifierType::If => self.parse_if(),
+            IdentifierType::Else => Err(unexpected_token!(token)), // handled in if
+            IdentifierType::While => self.parse_while(token),
+            IdentifierType::Repeat => self.parse_repeat(token),
+            IdentifierType::Until => Err(unexpected_token!(token)), // handled in repeat
+            IdentifierType::LocalVar => self.parse_declaration(DeclareScope::Local),
+            IdentifierType::GlobalVar => self.parse_declaration(DeclareScope::Global),
+            IdentifierType::Null => Ok((End::Continue, Statement::Primitive(token))),
+            IdentifierType::Return => self.parse_return(),
+            IdentifierType::Include => self.parse_include(),
+            IdentifierType::Exit => self.parse_exit(),
+            IdentifierType::FCTAnonArgs => self.parse_fct_anon_args(token),
+            IdentifierType::True => Ok((End::Continue, Statement::Primitive(token))),
+            IdentifierType::False => Ok((End::Continue, Statement::Primitive(token))),
+            IdentifierType::Function => self.parse_function(token),
+            IdentifierType::ACT(category) => Ok((End::Continue, Statement::AttackCategory(category))),
+            IdentifierType::Undefined(_) => Err(unexpected_token!(token)),
         }
     }
 }
@@ -335,12 +336,13 @@ mod test {
 
     use crate::{
         parse,
-        token::{Category, Keyword, Token},
+        token::{Category, IdentifierType, Token},
         AssignOrder, DeclareScope, SyntaxError,
     };
 
     use crate::Statement::*;
     use crate::TokenCategory::*;
+    use crate::IdentifierType::Undefined;
 
     #[test]
     fn if_statement() {
@@ -352,12 +354,12 @@ mod test {
             actual,
             If(
                 Box::new(Variable(Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("description".to_owned())),
                     position: (4, 15)
                 })),
                 Box::new(Call(
                     Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("script_oid".to_owned())),
                         position: (17, 27)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
@@ -367,7 +369,7 @@ mod test {
                 )),
                 Some(Box::new(Call(
                     Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("display".to_owned())),
                         position: (39, 46)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
@@ -390,7 +392,7 @@ mod test {
             actual,
             If(
                 Box::new(Variable(Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("description".to_owned())),
                     position: (4, 15)
                 })),
                 Box::new(Block(vec![])),
@@ -406,15 +408,15 @@ mod test {
                 scope,
                 vec![
                     Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (10 + offset, 11 + offset),
                     }),
                     Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("b".to_owned())),
                         position: (13 + offset, 14 + offset),
                     }),
                     Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("c".to_owned())),
                         position: (16 + offset, 17 + offset),
                     }),
                 ],
@@ -436,7 +438,7 @@ mod test {
         assert_eq!(
             parse("NULL;").next().unwrap().unwrap(),
             Primitive(Token {
-                category: Identifier(Some(Keyword::Null)),
+                category: Identifier(IdentifierType::Null),
                 position: (0, 4)
             })
         );
@@ -447,14 +449,14 @@ mod test {
         assert_eq!(
             parse("TRUE;").next().unwrap().unwrap(),
             Primitive(Token {
-                category: Identifier(Some(Keyword::True)),
+                category: Identifier(IdentifierType::True),
                 position: (0, 4)
             })
         );
         assert_eq!(
             parse("FALSE;").next().unwrap().unwrap(),
             Primitive(Token {
-                category: Identifier(Some(Keyword::False)),
+                category: Identifier(IdentifierType::False),
                 position: (0, 5)
             })
         );
@@ -557,11 +559,11 @@ mod test {
                 .unwrap(),
             FunctionDeclaration(
                 Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("register_packages".to_owned())),
                     position: (9, 26)
                 },
                 vec![Variable(Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("buf".to_owned())),
                     position: (28, 31)
                 })],
                 Box::new(Block(vec![Return(Box::new(Primitive(Token {
@@ -577,7 +579,7 @@ mod test {
                 .unwrap(),
             FunctionDeclaration(
                 Token {
-                    category: Identifier(None),
+                    category: Identifier(Undefined("register_packages".to_owned())),
                     position: (9, 26)
                 },
                 vec![],
@@ -597,12 +599,12 @@ mod test {
                 Category::Equal,
                 AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
-                    category: Category::Identifier(None),
+                    category: Category::Identifier(Undefined("arg1".to_owned())),
                     position: (0, 4)
                 },)),
                 Box::new(Array(
                     Token {
-                        category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
+                        category: Category::Identifier(IdentifierType::FCTAnonArgs),
                         position: (7, 21),
                     },
                     Some(Box::new(Primitive(Token {
@@ -618,12 +620,12 @@ mod test {
                 Category::Equal,
                 AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
-                    category: Category::Identifier(None),
+                    category: Category::Identifier(Undefined("arg1".to_owned())),
                     position: (0, 4)
                 },)),
                 Box::new(Array(
                     Token {
-                        category: Category::Identifier(Some(Keyword::FCTAnonArgs)),
+                        category: Category::Identifier(IdentifierType::FCTAnonArgs),
                         position: (7, 21),
                     },
                     None

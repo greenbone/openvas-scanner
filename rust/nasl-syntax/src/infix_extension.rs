@@ -164,6 +164,7 @@ mod test {
     use crate::token::Category::*;
     use crate::token::Token;
     use Statement::*;
+    use crate::IdentifierType::Undefined;
 
     // simplified resolve method to verify a calculate with a given statement
     fn resolve(code: &str, s: Statement) -> i64 {
@@ -275,7 +276,7 @@ mod test {
             Assign(
                 category,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(None), 0, 1))),
+                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 0, 1))),
                 Box::new(Primitive(token(Number(1), 5 + shift, 6 + shift))),
             )
         }
@@ -298,7 +299,7 @@ mod test {
                 category,
                 vec![
                     Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (0, 1),
                     }),
                     Primitive(Token {
@@ -327,7 +328,7 @@ mod test {
                 category,
                 vec![
                     Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(Undefined("a".to_owned())),
                         position: (0, 1),
                     }),
                     Primitive(Token {
@@ -348,7 +349,7 @@ mod test {
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(None), 0, 1))),
+                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 0, 1))),
                 Box::new(Primitive(Token {
                     category: Number(1),
                     position: (4, 5)
@@ -360,7 +361,7 @@ mod test {
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(None), 1, 2))),
+                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 2))),
                 Box::new(Primitive(Token {
                     category: Number(1),
                     position: (5, 6)
@@ -378,7 +379,7 @@ mod test {
                 vec![
                     Call(
                         Token {
-                            category: Identifier(None),
+                            category: Identifier(Undefined("x".to_owned())),
                             position: (0, 1)
                         },
                         Box::new(Parameter(vec![]))

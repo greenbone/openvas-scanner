@@ -19,7 +19,7 @@ pub use token::Category as TokenCategory;
 pub use token::Token;
 pub use token::StringCategory;
 pub use token::Base as NumberBase;
-pub use token::Keyword;
+pub use token::IdentifierType;
 pub use sink::nvt::ACT as ACT;
 
 
@@ -44,7 +44,7 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::{
         cursor::Cursor,
-        token::{Category, Keyword, Token, Tokenizer},
+        token::{Category, IdentifierType, Token, Tokenizer},
         Statement, SyntaxError, AssignOrder,
     };
 
@@ -63,11 +63,11 @@ mod tests {
             all_tokens,
             vec![
                 Token {
-                    category: Category::Identifier(Some(Keyword::LocalVar)),
+                    category: Category::Identifier(IdentifierType::LocalVar),
                     position: (0, 9)
                 },
                 Token {
-                    category: Category::Identifier(None),
+                    category: Category::Identifier(IdentifierType::Undefined("hello".to_owned())),
                     position: (10, 15)
                 },
                 Token {
@@ -99,7 +99,7 @@ mod tests {
                     Equal,
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(IdentifierType::Undefined("a".to_owned())),
                         position: (0, 1)
                     },)),
                     Box::new(Primitive(Token {
@@ -111,7 +111,7 @@ mod tests {
                     Equal,
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
-                        category: Identifier(None),
+                        category: Identifier(IdentifierType::Undefined("b".to_owned())),
                         position: (7, 8)
                     },)),
                     Box::new(Primitive(Token {

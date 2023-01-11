@@ -1,5 +1,5 @@
 //! Defines Operations used in Lexer to be transformed to Statements.
-use crate::token::{Category, Keyword, Token};
+use crate::token::{Category, IdentifierType, Token};
 
 /// Is defining different OPerations to control the infix, postfix or infix handling.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub(crate) enum Operation {
     /// Is handled in prefix.
     Primitive,
     /// Is handled in prefix.
-    Keyword(Keyword),
+    Keyword(IdentifierType),
     /// Empty statement
     NoOp,
 }
@@ -74,8 +74,8 @@ impl Operation {
             | Category::LeftBrace
             | Category::LeftCurlyBracket
             | Category::Comma => Some(Operation::Grouping(token.category().clone())),
-            Category::Identifier(None) => Some(Operation::Variable),
-            Category::Identifier(Some(keyword)) => Some(Operation::Keyword(keyword.clone())),
+            Category::Identifier(IdentifierType::Undefined(_)) => Some(Operation::Variable),
+            Category::Identifier(keyword) => Some(Operation::Keyword(keyword.clone())),
             Category::Comment => Some(Operation::NoOp),
             _ => None,
         }
