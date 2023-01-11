@@ -334,7 +334,7 @@ mod test {
 
     use crate::{
         parse,
-        token::{Base, Category, Keyword, StringCategory, Token},
+        token::{Category, Keyword, StringCategory, Token},
         AssignOrder, DeclareScope, SyntaxError,
     };
 
@@ -564,7 +564,7 @@ mod test {
                     position: (28, 31)
                 })],
                 Box::new(Block(vec![Return(Box::new(Primitive(Token {
-                    category: Number(Base::Base10),
+                    category: Number(1),
                     position: (43, 44)
                 })))]))
             )
@@ -581,7 +581,7 @@ mod test {
                 },
                 vec![],
                 Box::new(Block(vec![Return(Box::new(Primitive(Token {
-                    category: Number(Base::Base10),
+                    category: Number(1),
                     position: (39, 40)
                 })))]))
             )
@@ -605,7 +605,7 @@ mod test {
                         position: (7, 21),
                     },
                     Some(Box::new(Primitive(Token {
-                        category: Category::Number(Base::Base10),
+                        category: Category::Number(0),
                         position: (22, 23)
                     })))
                 ))

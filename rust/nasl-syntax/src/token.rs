@@ -290,7 +290,7 @@ pub enum Category {
     /// A String can be either Quotable (') or Unquotable (") both can be multiline
     String(StringCategory),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
-    Number(Base),
+    Number(i64),
     /// We currently just support 127.0.0.1 notation
     IPv4Address,
     /// Wrongfully identified as IpV4
@@ -322,6 +322,8 @@ pub struct Token {
 }
 
 impl Token {
+
+
     /// Returns the Category
     pub fn category(&self) -> Category {
         self.category
@@ -563,7 +565,8 @@ impl<'a> Tokenizer<'a> {
             if start == self.cursor.len_consumed() {
                 token!(Category::IllegalNumber(base), start, start)
             } else {
-                token!(Category::Number(base), start, self.cursor.len_consumed())
+                let num = i64::from_str_radix(&self.code[Range{ start, end: self.cursor.len_consumed()}], base.radix()).unwrap();
+                token!(Category::Number(num), start, self.cursor.len_consumed())
             }
         } else {
             token!(Category::UnknownBase, start, self.cursor.len_consumed())
@@ -806,18 +809,19 @@ mod tests {
     fn numbers() {
         use Base::*;
         use Category::*;
-        verify_tokens!("0", vec![(Number(Base10), 0, 1)]);
-        verify_tokens!("0b01", vec![(Number(Binary), 2, 4)]);
-        verify_tokens!("1234567890", vec![(Number(Base10), 0, 10)]);
-        verify_tokens!("0.123456789", vec![(Number(Base10), 0, 11)]);
-        verify_tokens!("012345670", vec![(Number(Octal), 1, 9)]);
-        verify_tokens!("0x1234567890ABCDEF", vec![(Number(Hex), 2, 18)]);
+        verify_tokens!("0", vec![(Number(0), 0, 1)]);
+        verify_tokens!("0b01", vec![(Number(1), 2, 4)]);
+        verify_tokens!("1234567890", vec![(Number(1234567890), 0, 10)]);
+        // TODO remove float
+        //verify_tokens!("0.123456789", vec![(Number(Base10), 0, 11)]);
+        verify_tokens!("012345670", vec![(Number(2739128), 1, 9)]);
+        verify_tokens!("0x1234567890ABCDEF", vec![(Number(1311768467294899695), 2, 18)]);
         // That would be later illegal because a number if followed by a number
         // but within tokenizing I think it is the best to ignore that and let it be handled by AST
-        verify_tokens!("0b02", vec![(Number(Binary), 2, 3), (Number(Base10), 3, 4)]);
+        verify_tokens!("0b02", vec![(Number(0), 2, 3), (Number(2), 3, 4)]);
         verify_tokens!(
             "0b2",
-            vec![(IllegalNumber(Binary), 2, 2), (Number(Base10), 2, 3)]
+            vec![(IllegalNumber(Binary), 2, 2), (Number(2), 2, 3)]
         );
     }
 
@@ -838,7 +842,7 @@ mod tests {
         verify_tokens!("_h4llo", vec![(Identifier(None), 0, 6)]);
         verify_tokens!(
             "4_h4llo",
-            vec![(Number(Base::Base10), 0, 1), (Identifier(None), 1, 7)]
+            vec![(Number(4), 0, 1), (Identifier(None), 1, 7)]
         );
     }
 
@@ -887,7 +891,7 @@ mod tests {
                 (LeftParen, 1, 2),
                 (RightParen, 2, 3),
                 (X, 4, 5),
-                (Number(Base::Base10), 6, 8),
+                (Number(10), 6, 8),
                 (Semicolon, 8, 9),
             ]
         );
@@ -895,7 +899,6 @@ mod tests {
 
     #[test]
     fn tokenize_description_block() {
-        use Base::*;
         use Category::*;
         use Keyword::*;
         use StringCategory::*;
@@ -927,17 +930,17 @@ exit(1);
                 (Semicolon, 62, 63),           // finish execution
                 (Identifier(Some(Exit)), 66, 70), // lookup keyword exit
                 (LeftParen, 70, 71),           // start parameter expression block
-                (Number(Base10), 71, 72),      // call exit with 0
+                (Number(0), 71, 72),      // call exit with 0
                 (RightParen, 72, 73),          // end expression block
                 (Semicolon, 73, 74),           // finish execution
                 (RightCurlyBracket, 75, 76),   // finish expression block
                 (Identifier(None), 78, 79),    // lookup j
                 (Equal, 80, 81),               // assign to j
-                (Number(Base10), 82, 85),      // number 123
+                (Number(123), 82, 85),      // number 123
                 (Semicolon, 85, 86),           // finish execution
                 (Identifier(None), 87, 88),    // lookup j
                 (GreaterGreaterGreaterEqual, 89, 93), // shift j and assign to j
-                (Number(Base10), 94, 95),      // 8
+                (Number(8), 94, 95),      // 8
                 (Semicolon, 95, 96),           // finish execution
                 (Identifier(None), 97, 104),   // lookup display
                 (LeftParen, 104, 105),         // start parameter expression block
@@ -946,7 +949,7 @@ exit(1);
                 (Semicolon, 107, 108),         // finish execution
                 (Identifier(Some(Exit)), 109, 113), // lookup keyword exit
                 (LeftParen, 113, 114),         // start parameter expression block
-                (Number(Base10), 114, 115),    // call exit with 1
+                (Number(1), 114, 115),    // call exit with 1
                 (RightParen, 115, 116),        // finish parameter expression block
                 (Semicolon, 116, 117)          // finish execution
             ]

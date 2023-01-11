@@ -92,10 +92,10 @@ mod test {
     use crate::{
         {AssignOrder, Statement},
         parse,
-        token::{Base, Category, StringCategory, Token},
+        token::{Category, StringCategory, Token},
     };
 
-    use Base::*;
+    
     use Category::*;
     use Statement::*;
 
@@ -121,7 +121,7 @@ mod test {
             result("a[0];"),
             Array(
                 token(Identifier(None), 0, 1),
-                Some(Box::new(Primitive(token(Number(Base10), 2, 3))))
+                Some(Box::new(Primitive(token(Number(0), 2, 3))))
             )
         );
 
@@ -139,15 +139,15 @@ mod test {
                 )),
                 Box::new(Parameter(vec![
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(1),
                         position: (5, 6)
                     }),
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(2),
                         position: (8, 9)
                     }),
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(3),
                         position: (11, 12)
                     })
                 ]))
@@ -165,21 +165,21 @@ mod test {
                         position: (0, 1)
                     },
                     Some(Box::new(Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(0),
                         position: (2, 3)
                     })))
                 )),
                 Box::new(Parameter(vec![
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(1),
                         position: (8, 9)
                     }),
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(2),
                         position: (11, 12)
                     }),
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(4),
                         position: (14, 15)
                     })
                 ]))
@@ -191,9 +191,9 @@ mod test {
     fn anon_function_call() {
         let fn_name = token(Identifier(None), 0, 1);
         let args = Box::new(Parameter(vec![
-            Primitive(token(Number(Base10), 2, 3)),
-            Primitive(token(Number(Base10), 5, 6)),
-            Primitive(token(Number(Base10), 8, 9)),
+            Primitive(token(Number(1), 2, 3)),
+            Primitive(token(Number(2), 5, 6)),
+            Primitive(token(Number(3), 8, 9)),
         ]));
 
         assert_eq!(result("a(1, 2, 3);"), Call(fn_name, args));
@@ -229,18 +229,18 @@ mod test {
                             Plus,
                             vec![
                                 Primitive(Token {
-                                    category: Number(Base10),
+                                    category: Number(1),
                                     position: (35, 36)
                                 }),
                                 Operator(
                                     Percent,
                                     vec![
                                         Primitive(Token {
-                                            category: Number(Base10),
+                                            category: Number(1),
                                             position: (39, 40)
                                         }),
                                         Primitive(Token {
-                                            category: Number(Base10),
+                                            category: Number(2),
                                             position: (43, 44)
                                         })
                                     ]
@@ -265,7 +265,7 @@ mod test {
                         position: (11, 15)
                     },
                     Box::new(Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(2),
                         position: (17, 18)
                     }))
                 )]))

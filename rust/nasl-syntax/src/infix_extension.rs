@@ -159,8 +159,8 @@ mod test {
     use std::ops::Range;
 
     use super::*;
-    use crate::token::Base;
-    use crate::token::Base::*;
+    
+    
     use crate::token::Category::*;
     use crate::token::StringCategory;
     use crate::token::Token;
@@ -277,7 +277,7 @@ mod test {
                 category,
                 AssignOrder::AssignReturn,
                 Box::new(Variable(token(Identifier(None), 0, 1))),
-                Box::new(Primitive(token(Number(Base10), 5 + shift, 6 + shift))),
+                Box::new(Primitive(token(Number(1), 5 + shift, 6 + shift))),
             )
         }
         assert_eq!(result("a += 1;"), expected(PlusEqual, 0));
@@ -332,7 +332,7 @@ mod test {
                         position: (0, 1),
                     }),
                     Primitive(Token {
-                        category: Number(Base::Base10),
+                        category: Number(1),
                         position: (5 + shift, 6 + shift),
                     }),
                 ],
@@ -351,7 +351,7 @@ mod test {
                 AssignOrder::AssignReturn,
                 Box::new(Variable(token(Identifier(None), 0, 1))),
                 Box::new(Primitive(Token {
-                    category: Number(Base10),
+                    category: Number(1),
                     position: (4, 5)
                 }))
             )
@@ -363,7 +363,7 @@ mod test {
                 AssignOrder::AssignReturn,
                 Box::new(Variable(token(Identifier(None), 1, 2))),
                 Box::new(Primitive(Token {
-                    category: Number(Base10),
+                    category: Number(1),
                     position: (5, 6)
                 }))
             )
@@ -385,7 +385,7 @@ mod test {
                         Box::new(Parameter(vec![]))
                     ),
                     Primitive(Token {
-                        category: Number(Base10),
+                        category: Number(2),
                         position: (6, 7)
                     })
                 ]
