@@ -1,5 +1,5 @@
 //! Lexer is used to parse a single statement based on token::Tokenizer.
-use std::ops::Not;
+use std::{ops::Not, clone};
 
 use crate::{
     error::SyntaxError,
@@ -49,7 +49,7 @@ impl<'a> Lexer<'a> {
     /// Returns next token of tokenizer
     pub(crate) fn token(&mut self) -> Option<Token> {
         for token in self.tokenizer.by_ref() {
-            if token.category() == Category::Comment {
+            if token.category() == &Category::Comment {
                 continue;
             }
             return Some(token);
@@ -60,7 +60,7 @@ impl<'a> Lexer<'a> {
     /// Returns peeks token of tokenizer
     pub(crate) fn peek(&mut self) -> Option<Token> {
         for token in self.tokenizer.clone(){
-            if token.category() == Category::Comment {
+            if token.category() == &Category::Comment {
                 continue;
             }
             return Some(token);
@@ -79,7 +79,7 @@ impl<'a> Lexer<'a> {
     pub(crate) fn statement(
         &mut self,
         min_binding_power: u8,
-        abort: &impl Fn(Category) -> bool,
+        abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         // reset unhandled_token when min_bp is 0
         let (state, mut left) = self
@@ -106,12 +106,12 @@ impl<'a> Lexer<'a> {
         while let Some(token) = self.peek(){
             if abort(token.category()) {
                 self.token();
-                end_statement = End::Done(token.category());
+                end_statement = End::Done(token.category().clone());
                 break;
             }
-            let op = Operation::new(token).ok_or_else(|| unexpected_token!(token))?;
+            let op = Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
 
-            if self.needs_postfix(op) {
+            if self.needs_postfix(op.clone()) {
                 let (end, stmt) = self
                     .postfix_statement(op, token, left)
                     .expect("needs postfix should have been validated before")?;
@@ -124,7 +124,7 @@ impl<'a> Lexer<'a> {
                 continue;
             }
 
-            if let Some(min_bp_reached) = self.needs_infix(op, min_binding_power) {
+            if let Some(min_bp_reached) = self.needs_infix(op.clone(), min_binding_power) {
                 if !min_bp_reached {
                     break;
                 }
@@ -151,7 +151,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Statement, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.statement(0, &|cat| cat == Category::Semicolon);
+        let result = self.statement(0, &|cat| cat == &Category::Semicolon);
         match result {
             Ok((_, Statement::EoF)) => None,
             Ok((End::Done(_), stmt)) => Some(Ok(stmt)),

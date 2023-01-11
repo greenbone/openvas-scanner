@@ -76,7 +76,6 @@ pub enum UnclosedCategory {
     String(StringCategory),
 }
 
-
 macro_rules! make_keyword_matcher {
     ($($matcher:ident : $define:expr),+) => {
 
@@ -150,8 +149,8 @@ pub enum Keyword {
     Exit,
 }
 
-impl From<Token> for Range<usize> {
-    fn from(token: Token) -> Self {
+impl From<&Token> for Range<usize> {
+    fn from(token: &Token) -> Self {
         let (start, end) = token.position;
         Range { start, end }
     }
@@ -189,7 +188,7 @@ make_keyword_matcher! {
 }
 
 /// Is used to identify a Token
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Category {
     /// `(`
     LeftParen,
@@ -288,7 +287,7 @@ pub enum Category {
     /// `x` is a special functionality to redo a function call n times.E.g. `send_packet( udp, pcap_active:FALSE ) x 200;`
     X,
     /// A String can be either Quotable (') or Unquotable (") both can be multiline
-    String(StringCategory),
+    String(String),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(i64),
     /// We currently just support 127.0.0.1 notation
@@ -309,7 +308,7 @@ pub enum Category {
     UnknownSymbol,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the TokenType as well as the position in form of Range<usize>
 pub struct Token {
     /// The category or kind of a token
@@ -322,11 +321,9 @@ pub struct Token {
 }
 
 impl Token {
-
-
     /// Returns the Category
-    pub fn category(&self) -> Category {
-        self.category
+    pub fn category(&self) -> &Category {
+        &self.category
     }
 
     /// Returns true when an Token is faulty
@@ -479,11 +476,26 @@ impl<'a> Tokenizer<'a> {
                 self.cursor.len_consumed()
             )
         } else {
-            let result = token!(
-                Category::String(string_category),
-                start,
-                self.cursor.len_consumed()
-            );
+            let result = {
+                let raw = &self.code[Range {
+                    start,
+                    end: self.cursor.len_consumed(),
+                }];
+                match string_category {
+                    StringCategory::Quotable => raw.to_owned(),
+                    StringCategory::Unquotable => {
+                        let mut string = raw.to_string();
+                        string = string.replace(r#"\n"#, "\n");
+                        string = string.replace(r#"\\"#, "\\");
+                        string = string.replace(r#"\""#, "\"");
+                        string = string.replace(r#"\'"#, "'");
+                        string = string.replace(r#"\r"#, "\r");
+                        string = string.replace(r#"\t"#, "\t");
+                        string
+                    }
+                }
+            };
+            let result = token!(Category::String(result), start, self.cursor.len_consumed());
             // skip "
             self.cursor.advance();
             result
@@ -565,7 +577,14 @@ impl<'a> Tokenizer<'a> {
             if start == self.cursor.len_consumed() {
                 token!(Category::IllegalNumber(base), start, start)
             } else {
-                let num = i64::from_str_radix(&self.code[Range{ start, end: self.cursor.len_consumed()}], base.radix()).unwrap();
+                let num = i64::from_str_radix(
+                    &self.code[Range {
+                        start,
+                        end: self.cursor.len_consumed(),
+                    }],
+                    base.radix(),
+                )
+                .unwrap();
                 token!(Category::Number(num), start, self.cursor.len_consumed())
             }
         } else {
@@ -688,7 +707,7 @@ mod tests {
         ($code:expr, $expected:expr) => {{
             let tokenizer = Tokenizer::new($code);
             let actual: Vec<Token> = tokenizer.clone().collect();
-            let expected: Vec<Token> = $expected.iter().map(|x| build_token(*x)).collect();
+            let expected: Vec<Token> = $expected.iter().map(|x| build_token(x.clone())).collect();
             assert_eq!(actual, expected);
             (tokenizer, actual)
         }};
@@ -770,10 +789,16 @@ mod tests {
     fn unquotable_string() {
         use StringCategory::*;
         let code = "\"hello I am a closed string\\\"";
-        let (tokenizer, result) =
-            verify_tokens!(code, vec![(Category::String(Unquotable), 1, 28)]);
+        let (tokenizer, result) = verify_tokens!(
+            code,
+            vec![(
+                Category::String("hello I am a closed string\\".to_owned()),
+                1,
+                28
+            )]
+        );
         assert_eq!(
-            tokenizer.lookup(Range::from(result[0])),
+            tokenizer.lookup(Range::from(&result[0])),
             "hello I am a closed string\\"
         );
         let code = "\"hello I am a unclosed string\\";
@@ -791,9 +816,10 @@ mod tests {
     fn quotable_string() {
         use StringCategory::*;
         let code = "'Hello \\'you\\'!'";
-        let (tokenizer, result) = verify_tokens!(code, vec![(Category::String(Quotable), 1, 15)]);
-        assert_eq!(tokenizer.lookup(Range::from(result[0])), "Hello \\'you\\'!");
-
+        verify_tokens!(
+            code,
+            vec![(Category::String("Hello \\'you\\'!".to_owned()), 1, 15)]
+        );
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
             code,
@@ -815,7 +841,10 @@ mod tests {
         // TODO remove float
         //verify_tokens!("0.123456789", vec![(Number(Base10), 0, 11)]);
         verify_tokens!("012345670", vec![(Number(2739128), 1, 9)]);
-        verify_tokens!("0x1234567890ABCDEF", vec![(Number(1311768467294899695), 2, 18)]);
+        verify_tokens!(
+            "0x1234567890ABCDEF",
+            vec![(Number(1311768467294899695), 2, 18)]
+        );
         // That would be later illegal because a number if followed by a number
         // but within tokenizing I think it is the best to ignore that and let it be handled by AST
         verify_tokens!("0b02", vec![(Number(0), 2, 3), (Number(2), 3, 4)]);
@@ -840,10 +869,7 @@ mod tests {
         verify_tokens!("hel_lo", vec![(Identifier(None), 0, 6)]);
         verify_tokens!("_hello", vec![(Identifier(None), 0, 6)]);
         verify_tokens!("_h4llo", vec![(Identifier(None), 0, 6)]);
-        verify_tokens!(
-            "4_h4llo",
-            vec![(Number(4), 0, 1), (Identifier(None), 1, 7)]
-        );
+        verify_tokens!("4_h4llo", vec![(Number(4), 0, 1), (Identifier(None), 1, 7)]);
     }
 
     #[test]
@@ -868,10 +894,9 @@ mod tests {
     #[test]
     fn string_quoting() {
         use Category::*;
-        use StringCategory::*;
         verify_tokens!(
             r###"'webapps\\appliance\\'"###,
-            vec![(String(Quotable), 1, 21)]
+            vec![(String("webapps\\\\appliance\\\\".to_owned()), 1, 21)]
         );
     }
 
@@ -901,7 +926,6 @@ mod tests {
     fn tokenize_description_block() {
         use Category::*;
         use Keyword::*;
-        use StringCategory::*;
 
         let code = r#"
 if(description)
@@ -919,39 +943,39 @@ exit(1);
             code,
             vec![
                 (Identifier(Some(If)), 1, 3),
-                (LeftParen, 3, 4),                    // start expression block
-                (Identifier(None), 4, 15),            // verify is description is true
-                (RightParen, 15, 16),                 // end expression block
-                (LeftCurlyBracket, 17, 18),           // start execution block
-                (Identifier(None), 21, 31),           // lookup function script_oid
-                (LeftParen, 31, 32),                  // start parameter expression block
-                (String(Unquotable), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
-                (RightParen, 61, 62),          // end expression block
-                (Semicolon, 62, 63),           // finish execution
-                (Identifier(Some(Exit)), 66, 70), // lookup keyword exit
-                (LeftParen, 70, 71),           // start parameter expression block
-                (Number(0), 71, 72),      // call exit with 0
-                (RightParen, 72, 73),          // end expression block
-                (Semicolon, 73, 74),           // finish execution
-                (RightCurlyBracket, 75, 76),   // finish expression block
-                (Identifier(None), 78, 79),    // lookup j
-                (Equal, 80, 81),               // assign to j
-                (Number(123), 82, 85),      // number 123
-                (Semicolon, 85, 86),           // finish execution
-                (Identifier(None), 87, 88),    // lookup j
+                (LeftParen, 3, 4),          // start expression block
+                (Identifier(None), 4, 15),  // verify is description is true
+                (RightParen, 15, 16),       // end expression block
+                (LeftCurlyBracket, 17, 18), // start execution block
+                (Identifier(None), 21, 31), // lookup function script_oid
+                (LeftParen, 31, 32),        // start parameter expression block
+                (String("1.3.6.1.4.1.25623.1.0.99999".to_owned()), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
+                (RightParen, 61, 62),                                       // end expression block
+                (Semicolon, 62, 63),                                        // finish execution
+                (Identifier(Some(Exit)), 66, 70),                           // lookup keyword exit
+                (LeftParen, 70, 71),         // start parameter expression block
+                (Number(0), 71, 72),         // call exit with 0
+                (RightParen, 72, 73),        // end expression block
+                (Semicolon, 73, 74),         // finish execution
+                (RightCurlyBracket, 75, 76), // finish expression block
+                (Identifier(None), 78, 79),  // lookup j
+                (Equal, 80, 81),             // assign to j
+                (Number(123), 82, 85),       // number 123
+                (Semicolon, 85, 86),         // finish execution
+                (Identifier(None), 87, 88),  // lookup j
                 (GreaterGreaterGreaterEqual, 89, 93), // shift j and assign to j
-                (Number(8), 94, 95),      // 8
-                (Semicolon, 95, 96),           // finish execution
-                (Identifier(None), 97, 104),   // lookup display
-                (LeftParen, 104, 105),         // start parameter expression block
-                (Identifier(None), 105, 106),  // resolve j primitive
-                (RightParen, 106, 107),        // finish parameter expression block
-                (Semicolon, 107, 108),         // finish execution
+                (Number(8), 94, 95),         // 8
+                (Semicolon, 95, 96),         // finish execution
+                (Identifier(None), 97, 104), // lookup display
+                (LeftParen, 104, 105),       // start parameter expression block
+                (Identifier(None), 105, 106), // resolve j primitive
+                (RightParen, 106, 107),      // finish parameter expression block
+                (Semicolon, 107, 108),       // finish execution
                 (Identifier(Some(Exit)), 109, 113), // lookup keyword exit
-                (LeftParen, 113, 114),         // start parameter expression block
-                (Number(1), 114, 115),    // call exit with 1
-                (RightParen, 115, 116),        // finish parameter expression block
-                (Semicolon, 116, 117)          // finish execution
+                (LeftParen, 113, 114),       // start parameter expression block
+                (Number(1), 114, 115),       // call exit with 1
+                (RightParen, 115, 116),      // finish parameter expression block
+                (Semicolon, 116, 117)        // finish execution
             ]
         );
     }

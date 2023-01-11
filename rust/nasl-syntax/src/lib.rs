@@ -44,7 +44,7 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::{
         cursor::Cursor,
-        token::{Category, Keyword, StringCategory, Token, Tokenizer},
+        token::{Category, Keyword, Token, Tokenizer},
         Statement, SyntaxError, AssignOrder,
     };
 
@@ -75,7 +75,7 @@ mod tests {
                     position: (16, 17)
                 },
                 Token {
-                    category: Category::String(StringCategory::Quotable),
+                    category: Category::String("World!".to_owned()),
                     position: (19, 25)
                 },
                 Token {

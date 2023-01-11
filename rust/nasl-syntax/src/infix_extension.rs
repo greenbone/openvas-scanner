@@ -19,7 +19,7 @@ pub(crate) trait Infix {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: &impl Fn(Category) -> bool,
+        abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError>;
 }
 
@@ -61,12 +61,12 @@ impl<'a> Infix for Lexer<'a> {
         op: Operation,
         token: Token,
         lhs: Statement,
-        abort: &impl Fn(Category) -> bool,
+        abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         Ok({
             // binding power of the right side
             let (_, right_bp) =
-                infix_binding_power(op).expect("handle_infix should be called first");
+                infix_binding_power(op.clone()).expect("handle_infix should be called first");
             let (end, rhs) = self.statement(right_bp, abort)?;
             let stmt = match op {
                 // DoublePoint operation needs to be changed to NamedParameter statement
@@ -97,11 +97,11 @@ impl<'a> Infix for Lexer<'a> {
                 },
                 // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
                 Operation::Assign(category) => match lhs {
-                    Statement::Variable(var) => {
+                    Statement::Variable(ref var) => {
                         // when the right side is a parameter list than it is an array
                         let lhs = {
                             match rhs {
-                                Statement::Parameter(_) => Statement::Array(var, None),
+                                Statement::Parameter(_) => Statement::Array(var.clone(), None),
                                 _ => lhs,
                             }
                         };
@@ -118,9 +118,9 @@ impl<'a> Infix for Lexer<'a> {
                         Box::new(lhs),
                         Box::new(rhs),
                     ),
-                    _ => Statement::Operator(token.category(), vec![lhs, rhs]),
+                    _ => Statement::Operator(token.category().clone(), vec![lhs, rhs]),
                 },
-                _ => Statement::Operator(token.category(), vec![lhs, rhs]),
+                _ => Statement::Operator(token.category().clone(), vec![lhs, rhs]),
             };
             (end, stmt)
         })
@@ -162,7 +162,6 @@ mod test {
     
     
     use crate::token::Category::*;
-    use crate::token::StringCategory;
     use crate::token::Token;
     use Statement::*;
 
@@ -180,7 +179,7 @@ mod test {
             };
         match s {
             Primitive(token) => match token.category() {
-                Number(_) => code[Range::from(token)].parse().unwrap(),
+                Number(_) => code[Range::from(&token)].parse().unwrap(),
                 String(_) => todo!(),
                 _ => todo!(),
             },
@@ -303,7 +302,7 @@ mod test {
                         position: (0, 1),
                     }),
                     Primitive(Token {
-                        category: String(StringCategory::Quotable),
+                        category: String("1".to_owned()),
                         position: ((6 + shift) as usize, (7 + shift) as usize),
                     }),
                 ],

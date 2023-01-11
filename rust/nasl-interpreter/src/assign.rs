@@ -188,9 +188,9 @@ impl<'a> AssignExtension for Interpreter<'a> {
     ) -> InterpretResult {
         let (key, lookup) = {
             match left {
-                Variable(token) => (&self.code[Range::from(token)], None),
+                Variable(token) => (&self.code[Range::from(&token)], None),
                 Array(token, Some(stmt)) => {
-                    (&self.code[Range::from(token)], Some(self.resolve(*stmt)?))
+                    (&self.code[Range::from(&token)], Some(self.resolve(*stmt)?))
                 }
                 _ => {
                     return Err(InterpretError {

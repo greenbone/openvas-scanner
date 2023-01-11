@@ -35,11 +35,11 @@ impl<'a> Lexer<'a> {
     fn parse_if(&mut self) -> Result<(End, Statement), SyntaxError> {
         let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match token.category() {
-            Category::LeftParen => self.parse_paren(token),
-            _ => Err(unexpected_token!(token)),
+            Category::LeftParen => self.parse_paren(token.clone()),
+            _ => Err(unexpected_token!(token.clone())),
         }?
         .as_returnable_or_err()?;
-        let (end, body) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         if end == End::Continue {
             return Err(unclosed_token!(token));
         }
@@ -48,7 +48,7 @@ impl<'a> Lexer<'a> {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Else)) => {
                         self.token();
-                        let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+                        let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
                         if end == End::Continue {
                             return Err(unexpected_statement!(stmt));
                         }
@@ -71,7 +71,7 @@ impl<'a> Lexer<'a> {
         let token = self
             .token()
             .ok_or_else(|| unexpected_end!("expected paren."))?;
-        if token.category() != Category::LeftParen {
+        if token.category() != &Category::LeftParen {
             Err(unexpected_token!(token))
         } else {
             Ok(())
@@ -80,7 +80,7 @@ impl<'a> Lexer<'a> {
 
     fn parse_call_return_params(&mut self) -> Result<Statement, SyntaxError> {
         self.jump_to_left_parenthesis()?;
-        let (end, parameter) = self.statement(0, &|cat| cat == Category::RightParen)?;
+        let (end, parameter) = self.statement(0, &|cat| cat == &Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
         if end.is_done() {
             Ok(parameter)
@@ -91,7 +91,7 @@ impl<'a> Lexer<'a> {
 
     fn parse_exit(&mut self) -> Result<(End, Statement), SyntaxError> {
         let parameter = self.parse_call_return_params()?;
-        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         if matches!(should_be_semicolon, Statement::NoOp(_)) {
             Ok((
                 End::Done(Category::Semicolon),
@@ -155,7 +155,7 @@ impl<'a> Lexer<'a> {
                 ));
             }
         }
-        let (end, parameter) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let (end, parameter) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
         if let End::Done(cat) = end {
             Ok((
@@ -168,7 +168,7 @@ impl<'a> Lexer<'a> {
     }
     fn parse_for(&mut self) -> Result<(End, Statement), SyntaxError> {
         self.jump_to_left_parenthesis()?;
-        let (end, assignment) = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, assignment) = self.statement(0, &|c| c == &Category::Semicolon)?;
         if !matches!(assignment, Statement::Assign(_, _, _, _)) {
             return Err(unexpected_statement!(assignment));
         }
@@ -176,16 +176,16 @@ impl<'a> Lexer<'a> {
             return Err(unclosed_statement!(assignment));
         }
         // `for (i = 0; i < 10; i++) display("hi");`
-        let (end, condition) = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, condition) = self.statement(0, &|c| c == &Category::Semicolon)?;
         let condition = condition.as_returnable_or_err()?;
         if end == End::Continue {
             return Err(unclosed_statement!(condition));
         }
-        let (end, update) = self.statement(0, &|c| c == Category::RightParen)?;
+        let (end, update) = self.statement(0, &|c| c == &Category::RightParen)?;
         if end == End::Continue {
             return Err(unclosed_statement!(update));
         }
-        let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
         match end {
             End::Done(cat) => Ok((
                 End::Done(cat),
@@ -202,12 +202,12 @@ impl<'a> Lexer<'a> {
 
     fn parse_while(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         self.jump_to_left_parenthesis()?;
-        let (end, condition) = self.statement(0, &|c| c == Category::RightParen)?;
+        let (end, condition) = self.statement(0, &|c| c == &Category::RightParen)?;
         if !end {
             return Err(unclosed_token!(token));
         }
         let condition = condition.as_returnable_or_err()?;
-        let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
         if !end {
             return Err(unclosed_token!(token));
         }
@@ -217,7 +217,8 @@ impl<'a> Lexer<'a> {
         ))
     }
     fn parse_repeat(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        let (end, body) = self.statement(0, &|c| c == Category::Semicolon)?;
+        // TODO remove repetition
+        let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
 
         if !end {
             return Err(unclosed_token!(token));
@@ -226,7 +227,7 @@ impl<'a> Lexer<'a> {
             match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(Some(Keyword::Until)) => {
-                        let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+                        let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
                         if !end {
                             return Err(unclosed_token!(token));
                         }
@@ -261,7 +262,7 @@ impl<'a> Lexer<'a> {
                 _ => Err(unexpected_token!(token)),
             }?
         };
-        let (end, block) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+        let (end, block) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         if !end {
             Err(unclosed_token!(token))
         } else {
@@ -279,7 +280,7 @@ impl<'a> Lexer<'a> {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
                     self.token();
-                    let (end, lookup) = self.statement(0, &|c| c == Category::RightBrace)?;
+                    let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
                     if end == End::Continue {
                         Err(unclosed_token!(token))
@@ -334,7 +335,7 @@ mod test {
 
     use crate::{
         parse,
-        token::{Category, Keyword, StringCategory, Token},
+        token::{Category, Keyword, Token},
         AssignOrder, DeclareScope, SyntaxError,
     };
 
@@ -360,7 +361,7 @@ mod test {
                         position: (17, 27)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
-                        category: String(StringCategory::Quotable),
+                        category: String("1".to_owned()),
                         position: (29, 30)
                     })]))
                 )),
@@ -370,7 +371,7 @@ mod test {
                         position: (39, 46)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
-                        category: String(StringCategory::Quotable),
+                        category: String("hi".to_owned()),
                         position: (48, 50)
                     })]))
                 )))

@@ -1,8 +1,6 @@
 use std::{collections::HashMap, ops::Range};
 
-use nasl_syntax::{
-    Keyword, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT,
-};
+use nasl_syntax::{Keyword, Statement, Statement::*, StringCategory, Token, TokenCategory, ACT};
 use sink::Sink;
 
 use crate::{
@@ -127,15 +125,11 @@ impl TryFrom<(&str, Token)> for NaslValue {
     fn try_from(value: (&str, Token)) -> Result<Self, Self::Error> {
         let (code, token) = value;
         match token.category {
-            TokenCategory::String(category) => Ok(NaslValue::String(
-                category.resolve(code, Range::from(token)),
-            )),
+            TokenCategory::String(category) => Ok(NaslValue::String(category)),
             TokenCategory::Identifier(None) => Ok(NaslValue::String(
-                StringCategory::Unquotable.resolve(code, Range::from(token)),
+                StringCategory::Unquotable.resolve(code, Range::from(&token)),
             )),
-            TokenCategory::Number(num) => {
-                Ok(NaslValue::Number(num))
-            }
+            TokenCategory::Number(num) => Ok(NaslValue::Number(num)),
             _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),
             }),
@@ -179,7 +173,7 @@ impl<'a> Interpreter<'a> {
     pub fn resolve(&mut self, statement: Statement) -> InterpretResult {
         match statement {
             Array(name, position) => {
-                let name = &self.code[Range::from(name)];
+                let name = &self.code[Range::from(&name)];
                 let val = self.registrat.named(name).ok_or_else(|| InterpretError {
                     reason: format!("{} not found.", name),
                 })?;

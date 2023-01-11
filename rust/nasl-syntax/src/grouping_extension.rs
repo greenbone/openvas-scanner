@@ -27,7 +27,7 @@ impl<'a> Lexer<'a> {
 
 impl<'a> Grouping for Lexer<'a> {
     fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let (end, right) = self.statement(0, &|cat| cat == Category::RightParen)?;
+        let (end, right) = self.statement(0, &|cat| cat == &Category::RightParen)?;
         if !end {
             Err(unclosed_token!(token))
         } else {
@@ -46,11 +46,11 @@ impl<'a> Grouping for Lexer<'a> {
     fn parse_block(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
         while let Some(token) = self.peek() {
-            if token.category() == Category::RightCurlyBracket {
+            if token.category() == &Category::RightCurlyBracket {
                 self.token();
                 return Ok(Statement::Block(results));
             }
-            let (end, stmt) = self.statement(0, &|cat| cat == Category::Semicolon)?;
+            let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
             if end.is_done() && !matches!(stmt, Statement::NoOp(_)) {
                 results.push(stmt);
             }
@@ -65,10 +65,10 @@ impl<'a> Grouping for Lexer<'a> {
                 .map(|stmt| (End::Continue, stmt)),
             Category::LeftCurlyBracket => self
                 .parse_block(token)
-                .map(|stmt| (End::Done(token.category()), stmt)),
+                .map(|stmt| (End::Done(Category::LeftCurlyBracket), stmt)),
             Category::LeftBrace => self
                 .parse_brace(token)
-                .map(|stmt| (End::Done(token.category()), stmt)),
+                .map(|stmt| (End::Done(Category::LeftBrace), stmt)),
             _ => Err(unexpected_token!(token)),
         }
     }
