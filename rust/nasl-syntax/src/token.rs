@@ -152,7 +152,6 @@ pub enum IdentifierType {
     Exit,
     /// Undefined
     Undefined(String),
-
 }
 
 impl From<&Token> for Range<usize> {
@@ -507,6 +506,46 @@ impl<'a> Tokenizer<'a> {
             result
         }
     }
+    #[inline(always)]
+    fn may_parse_ipv4(&mut self, base: Base, start: usize) -> Option<Token> {
+        use Base::*;
+        // IPv4Address start as Base10
+        if base == Base10 && self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
+            self.cursor.advance();
+            self.cursor.skip_while(base.verifier());
+            // verify it may be an IPv4Address
+            // if the next one is a dot we are at
+            // 127.0
+            // and need to parse .0
+            if self.cursor.peek(0) == '.' {
+                if self.cursor.peek(1).is_numeric() {
+                    self.cursor.advance();
+                    self.cursor.skip_while(base.verifier());
+                } else {
+                    return token!(
+                        Category::IllegalIPv4Address,
+                        start,
+                        self.cursor.len_consumed()
+                    );
+                }
+
+                if self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
+                    self.cursor.advance();
+                    self.cursor.skip_while(base.verifier());
+                } else {
+                    return token!(
+                        Category::IllegalIPv4Address,
+                        start,
+                        self.cursor.len_consumed()
+                    );
+                }
+                return token!(Category::IPv4Address, start, self.cursor.len_consumed());
+            } else {
+                return token!(Category::IPv4Address, start, self.cursor.len_consumed());
+            }
+        }
+        None
+    }
 
     // checks if a number is binary, octal, base10 or hex
     #[inline(always)]
@@ -543,55 +582,25 @@ impl<'a> Tokenizer<'a> {
         };
         if let Some(base) = may_base {
             self.cursor.skip_while(base.verifier());
-            // we only allow float numbers in base10
-            if base == Base10 && self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
-                self.cursor.advance();
-                self.cursor.skip_while(base.verifier());
-            }
-            // verify it may be an IPv4Address
-            // if the next one is a dot we are at
-            // 127.0
-            // and need to parse .0
-
-            if self.cursor.peek(0) == '.' {
-                if self.cursor.peek(1).is_numeric() {
-                    self.cursor.advance();
-                    self.cursor.skip_while(base.verifier());
-                } else {
-                    return token!(
-                        Category::IllegalIPv4Address,
-                        start,
-                        self.cursor.len_consumed()
-                    );
+            match self.may_parse_ipv4(base, start) {
+                Some(token) => Some(token),
+                None => {
+                    // we verify that the cursor actually moved to prevent scenarios like
+                    // 0b without any actual number in it
+                    if start == self.cursor.len_consumed() {
+                        token!(Category::IllegalNumber(base), start, start)
+                    } else {
+                        let num = i64::from_str_radix(
+                            &self.code[Range {
+                                start,
+                                end: self.cursor.len_consumed(),
+                            }],
+                            base.radix(),
+                        )
+                        .unwrap();
+                        token!(Category::Number(num), start, self.cursor.len_consumed())
+                    }
                 }
-
-                if self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
-                    self.cursor.advance();
-                    self.cursor.skip_while(base.verifier());
-                } else {
-                    return token!(
-                        Category::IllegalIPv4Address,
-                        start,
-                        self.cursor.len_consumed()
-                    );
-                }
-                return token!(Category::IPv4Address, start, self.cursor.len_consumed());
-            }
-
-            // we verify that the cursor actually moved to prevent scenarios like
-            // 0b without any actual number in it
-            if start == self.cursor.len_consumed() {
-                token!(Category::IllegalNumber(base), start, start)
-            } else {
-                let num = i64::from_str_radix(
-                    &self.code[Range {
-                        start,
-                        end: self.cursor.len_consumed(),
-                    }],
-                    base.radix(),
-                )
-                .unwrap();
-                token!(Category::Number(num), start, self.cursor.len_consumed())
             }
         } else {
             token!(Category::UnknownBase, start, self.cursor.len_consumed())
@@ -873,10 +882,25 @@ mod tests {
     fn identifier() {
         use Category::*;
         use IdentifierType::*;
-        verify_tokens!("hel_lo", vec![(Identifier(Undefined("hel_lo".to_owned())), 0, 6)]);
-        verify_tokens!("_hello", vec![(Identifier(Undefined("_hello".to_owned())), 0, 6)]);
-        verify_tokens!("_h4llo", vec![(Identifier(Undefined("_h4llo".to_owned())), 0, 6)]);
-        verify_tokens!("4_h4llo", vec![(Number(4), 0, 1), (Identifier(Undefined("_h4llo".to_owned())), 1, 7)]);
+        verify_tokens!(
+            "hel_lo",
+            vec![(Identifier(Undefined("hel_lo".to_owned())), 0, 6)]
+        );
+        verify_tokens!(
+            "_hello",
+            vec![(Identifier(Undefined("_hello".to_owned())), 0, 6)]
+        );
+        verify_tokens!(
+            "_h4llo",
+            vec![(Identifier(Undefined("_h4llo".to_owned())), 0, 6)]
+        );
+        verify_tokens!(
+            "4_h4llo",
+            vec![
+                (Number(4), 0, 1),
+                (Identifier(Undefined("_h4llo".to_owned())), 1, 7)
+            ]
+        );
     }
 
     #[test]
@@ -950,26 +974,26 @@ exit(1);
             code,
             vec![
                 (Identifier(If), 1, 3),
-                (LeftParen, 3, 4),          // start expression block
-                (Identifier(Undefined("description".to_owned())), 4, 15),  // verify is description is true
-                (RightParen, 15, 16),       // end expression block
-                (LeftCurlyBracket, 17, 18), // start execution block
+                (LeftParen, 3, 4), // start expression block
+                (Identifier(Undefined("description".to_owned())), 4, 15), // verify is description is true
+                (RightParen, 15, 16),                                     // end expression block
+                (LeftCurlyBracket, 17, 18),                               // start execution block
                 (Identifier(Undefined("script_oid".to_owned())), 21, 31), // lookup function script_oid
-                (LeftParen, 31, 32),        // start parameter expression block
+                (LeftParen, 31, 32), // start parameter expression block
                 (String("1.3.6.1.4.1.25623.1.0.99999".to_owned()), 33, 60), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
                 (RightParen, 61, 62),                                       // end expression block
                 (Semicolon, 62, 63),                                        // finish execution
-                (Identifier(Exit), 66, 70),                           // lookup keyword exit
+                (Identifier(Exit), 66, 70),                                 // lookup keyword exit
                 (LeftParen, 70, 71),         // start parameter expression block
                 (Number(0), 71, 72),         // call exit with 0
                 (RightParen, 72, 73),        // end expression block
                 (Semicolon, 73, 74),         // finish execution
                 (RightCurlyBracket, 75, 76), // finish expression block
-                (Identifier(Undefined("j".to_owned())), 78, 79),  // lookup j
+                (Identifier(Undefined("j".to_owned())), 78, 79), // lookup j
                 (Equal, 80, 81),             // assign to j
                 (Number(123), 82, 85),       // number 123
                 (Semicolon, 85, 86),         // finish execution
-                (Identifier(Undefined("j".to_owned())), 87, 88),  // lookup j
+                (Identifier(Undefined("j".to_owned())), 87, 88), // lookup j
                 (GreaterGreaterGreaterEqual, 89, 93), // shift j and assign to j
                 (Number(8), 94, 95),         // 8
                 (Semicolon, 95, 96),         // finish execution
