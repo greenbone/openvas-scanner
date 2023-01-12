@@ -47,7 +47,9 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{error::InterpretError, Interpreter, NaslValue};
+    use crate::{
+        context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
+    };
 
     #[test]
     fn declare_function() {
@@ -58,7 +60,9 @@ mod tests {
         test(a: 1, b: 2);
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {

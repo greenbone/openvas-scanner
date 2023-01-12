@@ -54,9 +54,7 @@ impl<'a> Lexer<'a> {
                         }
                         Some(stmt)
                     }
-                    _ => {
-                        None
-                    }
+                    _ => None,
                 },
                 None => None,
             }
@@ -104,12 +102,17 @@ impl<'a> Lexer<'a> {
 
     fn parse_include(&mut self) -> Result<(End, Statement), SyntaxError> {
         let parameter = self.parse_call_return_params()?;
-        match parameter {
-            Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => Ok((
-                End::Done(Category::RightParen),
-                Statement::Include(Box::new(parameter)),
-            )),
-            _ => Err(unexpected_statement!(parameter)),
+        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+        if matches!(should_be_semicolon, Statement::NoOp(_)) {
+            match parameter {
+                Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => Ok((
+                    End::Done(Category::RightParen),
+                    Statement::Include(Box::new(parameter)),
+                )),
+                _ => Err(unexpected_statement!(parameter)),
+            }
+        } else {
+            Err(unexpected_statement!(should_be_semicolon))
         }
     }
 
@@ -117,7 +120,10 @@ impl<'a> Lexer<'a> {
         let id = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(id.category(), Category::Identifier(IdentifierType::Undefined(_))) {
+        if !matches!(
+            id.category(),
+            Category::Identifier(IdentifierType::Undefined(_))
+        ) {
             return Err(unexpected_token!(id));
         }
         let paren = self
@@ -158,10 +164,7 @@ impl<'a> Lexer<'a> {
         let (end, parameter) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
         if let End::Done(cat) = end {
-            Ok((
-                End::Done(cat),
-                Statement::Return(Box::new(parameter)),
-            ))
+            Ok((End::Done(cat), Statement::Return(Box::new(parameter))))
         } else {
             Err(unexpected_end!("exit"))
         }
@@ -272,10 +275,7 @@ impl<'a> Lexer<'a> {
             ))
         }
     }
-    fn parse_fct_anon_args(
-        &mut self,
-        keyword: Token,
-    ) -> Result<(End, Statement), SyntaxError> {
+    fn parse_fct_anon_args(&mut self, keyword: Token) -> Result<(End, Statement), SyntaxError> {
         match self.peek() {
             Some(token) => match token.category() {
                 Category::LeftBrace => {
@@ -285,16 +285,13 @@ impl<'a> Lexer<'a> {
                     if end == End::Continue {
                         Err(unclosed_token!(token))
                     } else {
-
                         Ok((
                             End::Continue,
                             Statement::Array(keyword, Some(Box::new(lookup))),
                         ))
                     }
                 }
-                _ => {
-                    Ok((End::Continue, Statement::Array(keyword, None)))
-                }
+                _ => Ok((End::Continue, Statement::Array(keyword, None))),
             },
             None => Err(unexpected_end!("in fct_anon_args")),
         }
@@ -325,7 +322,9 @@ impl<'a> Keywords for Lexer<'a> {
             IdentifierType::True => Ok((End::Continue, Statement::Primitive(token))),
             IdentifierType::False => Ok((End::Continue, Statement::Primitive(token))),
             IdentifierType::Function => self.parse_function(token),
-            IdentifierType::ACT(category) => Ok((End::Continue, Statement::AttackCategory(category))),
+            IdentifierType::ACT(category) => {
+                Ok((End::Continue, Statement::AttackCategory(category)))
+            }
             IdentifierType::Undefined(_) => Err(unexpected_token!(token)),
         }
     }
@@ -340,9 +339,9 @@ mod test {
         AssignOrder, DeclareScope, SyntaxError,
     };
 
+    use crate::IdentifierType::Undefined;
     use crate::Statement::*;
     use crate::TokenCategory::*;
-    use crate::IdentifierType::Undefined;
 
     #[test]
     fn if_statement() {

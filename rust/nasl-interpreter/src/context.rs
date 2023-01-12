@@ -25,24 +25,24 @@ pub struct Register {
 impl Register {
     /// Creates an empty register
     pub fn new() -> Self {
-        Self { blocks: vec![] }
+        Self {
+            blocks: vec![NaslContext::default()],
+        }
+    }
+
+    pub fn root_initial(initial: Vec<(String, ContextType)>) -> Self {
+        let root = NaslContext{
+            defined: initial.into_iter().collect(),
+            ..Default::default()
+        };
+        Self{
+            blocks: vec![root],
+        }
     }
 
     /// Returns the next index
     pub fn index(&self) -> usize {
         self.blocks.len()
-    }
-
-    /// Creates a root context
-    pub fn create_root(&mut self, initial: Vec<(String, ContextType)>) -> &NaslContext {
-        let initial = initial.into_iter().collect();
-        let result = NaslContext {
-            parent: None,
-            id: 0,
-            defined: initial,
-        };
-        self.blocks.push(result);
-        return self.blocks.last_mut().unwrap();
     }
 
     /// Creates a child context
@@ -124,6 +124,16 @@ pub struct NaslContext {
     id: usize,
     /// The defined values/ functions.
     defined: Named,
+}
+
+impl Default for NaslContext {
+    fn default() -> Self {
+        Self {
+            parent: Default::default(),
+            id: Default::default(),
+            defined: Default::default(),
+        }
+    }
 }
 
 impl NaslContext {
