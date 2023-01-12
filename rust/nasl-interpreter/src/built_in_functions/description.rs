@@ -76,16 +76,7 @@ macro_rules! make_storage_function {
                 ));
             }
             for p in positional {
-                match p {
-                    ContextType::Value(value) => {
-                        variables.push(value);
-                    },
-                    _ => {
-                        return Err(FunctionError::new(
-                            "argument is a function, string was expected".to_string(),
-                        ))
-                    }
-                }
+                variables.push(p);
             }
             )?
             $(

@@ -1,12 +1,10 @@
 use nasl_syntax::{Statement, Statement::*, Token};
 
 use crate::{
-    context::NaslContextType, error::InterpretError, interpreter::InterpretResult, lookup,
-    ContextType, Interpreter, NaslValue,
+    error::InterpretError, interpreter::InterpretResult, lookup, ContextType, Interpreter,
+    NaslValue,
 };
 use std::collections::HashMap;
-
-
 
 /// Is a trait to handle function calls within nasl.
 pub(crate) trait CallExtension {
@@ -31,7 +29,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                         }
                         val => {
                             let val = self.resolve(val)?;
-                            position.push(ContextType::Value(val));
+                            position.push(val);
                         }
                     }
                 }
@@ -42,9 +40,11 @@ impl<'a> CallExtension for Interpreter<'a> {
                 ))
             }
         };
-
-        self.registrat
-            .create_root_child(NaslContextType::Function(named, position));
+        named.insert(
+            "_FCT_ANON_ARGS".to_owned(),
+            ContextType::Value(NaslValue::Array(position)),
+        );
+        self.registrat.create_root_child(named);
         let result = match lookup(name) {
             // Built-In Function
             Some(function) => match function(self.resolve_key(), self.storage, &self.registrat) {
@@ -98,8 +98,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, error::InterpretError, NaslValue};
-
+    use crate::{error::InterpretError, Interpreter, NaslValue};
 
     #[test]
     fn default_null_on_user_defined_functions() {

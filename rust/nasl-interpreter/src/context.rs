@@ -39,18 +39,18 @@ impl Register {
         let result = NaslContext {
             parent: None,
             id: 0,
-            class: NaslContextType::Execution(initial),
+            defined: initial,
         };
         self.blocks.push(result);
         return self.blocks.last_mut().unwrap();
     }
 
     /// Creates a child context
-    pub fn create_child(&mut self, parent: &NaslContext, class: NaslContextType) -> &NaslContext {
+    pub fn create_child(&mut self, parent: &NaslContext, defined: Named) -> &NaslContext {
         let result = NaslContext {
             parent: Some(parent.id),
             id: self.index(),
-            class,
+            defined,
         };
         self.blocks.push(result);
         return self.blocks.last_mut().unwrap();
@@ -60,11 +60,11 @@ impl Register {
     ///
     /// This is used to function calls to prevent that the called function can access the
     /// context of the caller.
-    pub fn create_root_child(&mut self, class: NaslContextType) -> &NaslContext {
+    pub fn create_root_child(&mut self, defined: Named) -> &NaslContext {
         let result = NaslContext {
             parent: Some(0),
             id: self.index(),
-            class,
+            defined,
         };
         self.blocks.push(result);
         return self.blocks.last_mut().unwrap();
@@ -79,7 +79,6 @@ impl Register {
         last.unwrap()
     }
 
-
     /// Finds a named ContextType within last.
     pub fn named<'a>(&'a self, name: &'a str) -> Option<&ContextType> {
         self.last().named(self, name)
@@ -90,7 +89,6 @@ impl Register {
         let last = self.blocks.last_mut();
         last.unwrap()
     }
-
 
     /// Adds a named parameter to the root context
     pub fn add_global(&mut self, name: &str, value: ContextType) {
@@ -114,19 +112,6 @@ impl Default for Register {
 }
 use std::collections::HashMap;
 type Named = HashMap<String, ContextType>;
-type Positional = ContextType;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum NaslContextType {
-    /// Root cannot contain position parameter since it is not a function call
-    // TODO rename those are definitions
-    Execution(Named),
-    /// Used to prepare the functional context on call
-    // TODO rename call context
-    Function(Named, Vec<Positional>),
-
-
-}
 
 /// NaslContext is a struct to contain variables and if root declared functions
 ///
@@ -137,29 +122,14 @@ pub struct NaslContext {
     parent: Option<usize>,
     /// Own id within the register
     id: usize,
-    /// The type of context.
-    class: NaslContextType,
+    /// The defined values/ functions.
+    defined: Named,
 }
 
 impl NaslContext {
-    /// Finds the first context that is a function
-    fn find_first_function(&self, registrat: &Register) -> Option<usize> {
-        match self.class {
-            NaslContextType::Execution(_) => match self.parent {
-                Some(pid) => registrat.blocks[pid].find_first_function(registrat),
-                None => None,
-            },
-            NaslContextType::Function(_, _) => Some(self.id),
-        }
-    }
-
     /// Adds a named parameter to the context
-    // TODO remove from ContextType to NaslValue
     pub fn add_named(&mut self, name: &str, value: ContextType) {
-        match &mut self.class {
-            NaslContextType::Execution(named) => named.insert(name.to_owned(), value),
-            NaslContextType::Function(named, _) => named.insert(name.to_owned(), value),
-        };
+        self.defined.insert(name.to_owned(), value);
     }
 
     /// Adds a named parameter to the root context
@@ -168,39 +138,23 @@ impl NaslContext {
         global.add_named(name, value);
     }
 
-    /// Adds a parameter as the last position
-    pub fn add_positional(&mut self, value: ContextType) {
-        match &mut self.class {
-            NaslContextType::Function(_, position) => position.push(value),
-            _ => todo!("Error handling"),
-        }
-    }
-
-    /// Retrieves a named parameter
+    /// Retrieves a definition by name
     pub fn named<'a>(&'a self, registrat: &'a Register, name: &'a str) -> Option<&ContextType> {
-        let named = match &self.class {
-            NaslContextType::Execution(named) => named,
-            NaslContextType::Function(named, _) => named,
-        };
         // first check local
-        match named.get(name) {
+        match self.defined.get(name) {
             Some(ctx) => Some(ctx),
             None => match self.parent {
                 Some(parent) => registrat.blocks[parent].named(registrat, name),
                 None => None,
             },
         }
-
     }
 
-    /// Retrieves positional parameter
-    pub fn positional<'a>(&'a self, registrat: &'a Register) -> &[ContextType] {
-        match self.find_first_function(registrat) {
-            Some(id) => match &registrat.blocks[id].class {
-                NaslContextType::Execution(_) => panic!("this should not happen"),
-                NaslContextType::Function(_, positional) => positional,
-            },
-            None => &[],
+    /// Retrieves positional definitions
+    pub fn positional<'a>(&'a self, registrat: &'a Register) -> &[NaslValue] {
+        match self.named(registrat, "_FCT_ANON_ARGS") {
+            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
+            _ => &[],
         }
     }
 }
