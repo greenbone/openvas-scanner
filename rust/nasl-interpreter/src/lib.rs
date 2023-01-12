@@ -2,17 +2,21 @@ use built_in_functions::description;
 use context::Register;
 use error::{FunctionError, InterpretError};
 
+mod assign;
 mod built_in_functions;
 mod call;
-mod assign;
-mod declare;
 mod context;
+mod declare;
 pub mod error;
+mod include;
 mod interpreter;
+mod loader;
 mod operator;
 
 pub use context::ContextType;
 pub use interpreter::{Interpreter, NaslValue};
+pub use loader::{Loader, LoadError};
+use loader::NoOpLoader;
 use nasl_syntax::parse;
 use sink::{Sink, SinkError};
 
@@ -42,23 +46,24 @@ pub fn interpret<'a>(
     mode: Mode,
     code: &'a str,
 ) -> Result<NaslValue, InterpretError> {
-    let mut interpreter = match mode {
-        Mode::Normal(oid) => Interpreter::new(storage, vec![], Some(oid), None),
-        Mode::Description(filename) => {
+    let (key, mut register) = match mode {
+        Mode::Normal(key) => (key, Register::default()),
+        Mode::Description(key) => {
             let initial = vec![(
                 "description".to_owned(),
                 ContextType::Value(NaslValue::Number(1)),
             )];
             if let Err(err) = storage.dispatch(
-                filename,
-                sink::Dispatch::NVT(sink::nvt::NVTField::FileName(filename.to_owned())),
+                key,
+                sink::Dispatch::NVT(sink::nvt::NVTField::FileName(key.to_owned())),
             ) {
                 return Err(InterpretError::from(err));
             }
-            Interpreter::new(storage, initial, None, Some(filename))
+            (key, Register::root_initial(initial))
         }
     };
-
+    let loader = NoOpLoader::default();
+    let mut interpreter = Interpreter::new(key, storage, &loader, &mut register);
     let result = parse(code)
         .map(|stmt| match stmt {
             Ok(stmt) => interpreter.resolve(stmt),

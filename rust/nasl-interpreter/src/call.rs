@@ -47,7 +47,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         self.registrat.create_root_child(named);
         let result = match lookup(name) {
             // Built-In Function
-            Some(function) => match function(self.resolve_key(), self.storage, &self.registrat) {
+            Some(function) => match function(self.key, self.storage, self.registrat) {
                 Ok(value) => Ok(value),
                 Err(x) => Err(InterpretError::new(format!(
                     "unable to call function {}: {:?}",
@@ -69,6 +69,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                         for p in params {
                             match self.registrat.named(&p) {
                                 None => {
+                                    // add default NaslValue::Null for each defined params
                                     self.registrat
                                         .last_mut()
                                         .add_named(&p, ContextType::Value(NaslValue::Null));
@@ -76,9 +77,8 @@ impl<'a> CallExtension for Interpreter<'a> {
                                 Some(_) => {}
                             }
                         }
-                        // add default NaslValue::Null for each defined params
                         match self.resolve(stmt)? {
-                            NaslValue::Return(x) => Ok(NaslValue::Number(x)),
+                            NaslValue::Return(x) => Ok(*x),
                             a => Ok(a),
                         }
                     }
@@ -98,7 +98,9 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{error::InterpretError, Interpreter, NaslValue};
+    use crate::{
+        context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
+    };
 
     #[test]
     fn default_null_on_user_defined_functions() {
@@ -111,7 +113,9 @@ mod tests {
         test();
         "###;
         let storage = DefaultSink::new(false);
-        let mut interpreter = Interpreter::new(&storage, vec![], Some("1"), None);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser = parse(code).map(|x| match x {
             Ok(x) => interpreter.resolve(x),
             Err(x) => Err(InterpretError {

@@ -10,7 +10,7 @@ use crate::{
     call::CallExtension,
     context::{ContextType, Register},
     error::InterpretError,
-    operator::OperatorExtension, declare::DeclareFunctionExtension,
+    operator::OperatorExtension, declare::DeclareFunctionExtension, loader::Loader, include::IncludeExtension,
 };
 
 /// Represents a valid Value of NASL
@@ -31,7 +31,7 @@ pub enum NaslValue {
     /// Null value
     Null,
     /// Returns value of the context
-    Return(i64),
+    Return(Box<NaslValue>),
     /// Exit value of the script
     Exit(i64),
 }
@@ -56,18 +56,17 @@ impl ToString for NaslValue {
             NaslValue::Null => "\0".to_owned(),
             NaslValue::Exit(rc) => format!("exit({})", rc),
             NaslValue::AttackCategory(category) => IdentifierType::ACT(*category).to_string(),
-            NaslValue::Return(rc) => format!("return({})", rc),
+            NaslValue::Return(rc) => format!("return({:?})", *rc),
         }
     }
 }
 
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
-    // TODO change to enum
-    pub(crate) oid: Option<&'a str>,
-    pub(crate) filename: Option<&'a str>,
-    pub(crate) registrat: Register,
+    pub(crate) key: &'a str,
+    pub(crate) registrat: &'a mut Register,
     pub(crate) storage: &'a dyn Sink,
+    pub(crate) loader: &'a dyn Loader,
 }
 
 impl From<NaslValue> for bool {
@@ -81,7 +80,7 @@ impl From<NaslValue> for bool {
             NaslValue::Exit(number) => number != 0,
             NaslValue::AttackCategory(_) => true,
             NaslValue::Dict(v) => !v.is_empty(),
-            NaslValue::Return(number) => number != 0,
+            NaslValue::Return(_) => true,
         }
     }
 }
@@ -97,7 +96,7 @@ impl From<&NaslValue> for i64 {
             &NaslValue::AttackCategory(x) => x as i64,
             NaslValue::Null => 0,
             &NaslValue::Exit(x) => x,
-            &NaslValue::Return(x) => x,
+            &NaslValue::Return(_) => -1,
         }
     }
 }
@@ -125,26 +124,17 @@ pub type InterpretResult = Result<NaslValue, InterpretError>;
 impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
     pub fn new(
+        key: &'a str,
         storage: &'a dyn Sink,
-        initial: Vec<(String, ContextType)>,
-        oid: Option<&'a str>,
-        filename: Option<&'a str>,
+        loader: &'a dyn Loader,
+        register: &'a mut Register,
     ) -> Self {
-        let mut registrat = Register::default();
-        registrat.create_root(initial);
         Interpreter {
-            oid,
-            filename,
-            registrat,
+            key,
+            registrat: register,
             storage,
+            loader,
         }
-    }
-
-    pub(crate) fn resolve_key(&self) -> &str {
-        if let Some(oid) = self.oid {
-            return oid;
-        }
-        self.filename.unwrap_or_default()
     }
 
     pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
@@ -196,12 +186,9 @@ impl<'a> Interpreter<'a> {
             }
             Return(stmt) => {
                 let rc = self.resolve(*stmt)?;
-                match rc {
-                    NaslValue::Number(rc) => Ok(NaslValue::Return(rc)),
-                    _ => Err(InterpretError::new("expected numeric value".to_string())),
-                }
+                Ok(NaslValue::Return(Box::new(rc)))
             },
-            Include(_) => todo!(),
+            Include(inc) => self.include(*inc),
             NamedParameter(_, _) => todo!(),
             For(_, _, _, _) => todo!(),
             While(_, _) => todo!(),
