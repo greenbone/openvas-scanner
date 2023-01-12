@@ -590,15 +590,18 @@ impl<'a> Tokenizer<'a> {
                     if start == self.cursor.len_consumed() {
                         token!(Category::IllegalNumber(base), start, start)
                     } else {
-                        let num = i64::from_str_radix(
+                        match i64::from_str_radix(
                             &self.code[Range {
                                 start,
                                 end: self.cursor.len_consumed(),
                             }],
                             base.radix(),
-                        )
-                        .unwrap();
-                        token!(Category::Number(num), start, self.cursor.len_consumed())
+                        ) {
+                            Ok(num) => {
+                                token!(Category::Number(num), start, self.cursor.len_consumed())
+                            }
+                            Err(_) => token!(Category::IllegalNumber(base), start, start),
+                        }
                     }
                 }
             }
