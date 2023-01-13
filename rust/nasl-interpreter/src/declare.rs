@@ -78,7 +78,28 @@ mod tests {
 
     #[test]
     fn declare_local() {
-
+        let code = r###"
+        function test(a, b) {
+            local_var c;
+            c =  a + b;
+            return c;
+        }
+        test(a: 1, b: 2);
+        c;
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser = parse(code).map(|x| match x {
+            Ok(x) => interpreter.resolve(x),
+            Err(x) => Err(InterpretError {
+                reason: x.to_string(),
+            }),
+        });
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
+        assert!(matches!(parser.next(), Some(Err(_)))); // not found
     }
 
     #[test]

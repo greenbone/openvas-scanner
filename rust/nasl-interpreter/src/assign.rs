@@ -51,27 +51,27 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
 
 impl<'a> Interpreter<'a> {
     #[inline(always)]
-    fn save(&mut self, key: &str, value: NaslValue) {
-        // TODO find the register of the value if present or use global
-        self.registrat.add_global(key, ContextType::Value(value));
+    fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
+        self.registrat.add_to_index(idx, key, ContextType::Value(value)).unwrap();
     }
 
     #[inline(always)]
-    fn named_value(&self, key: &str) -> Result<NaslValue, InterpretError> {
+    fn named_value(&self, key: &str) -> Result<(usize, NaslValue), InterpretError> {
         match self
             .registrat()
-            .named(key)
-            .unwrap_or(&ContextType::Value(NaslValue::Null))
+            .index_named(key)
+            .unwrap_or((0, &ContextType::Value(NaslValue::Null)))
         {
-            ContextType::Function(_, _) => Err(InterpretError {
+            (_, ContextType::Function(_, _)) => Err(InterpretError {
                 reason: format!("{} is not assignable", key),
             }),
-            ContextType::Value(val) => Ok(val.clone()),
+            (idx, ContextType::Value(val)) => Ok((idx, val.clone())),
         }
     }
 
     fn handle_dict(
         &mut self,
+        ridx: usize,
         key: &str,
         idx: String,
         left: NaslValue,
@@ -85,14 +85,14 @@ impl<'a> Interpreter<'a> {
                 let original = dict.get(&idx).unwrap_or(&NaslValue::Null).clone();
                 let result = result(&original, right);
                 dict.insert(idx, result);
-                self.save(key, NaslValue::Dict(dict));
+                self.save(ridx, key, NaslValue::Dict(dict));
                 original
             }
             AssignOrder::AssignReturn => {
                 let original = dict.get(&idx).unwrap_or(&NaslValue::Null);
                 let result = result(original, right);
                 dict.insert(idx, result.clone());
-                self.save(key, NaslValue::Dict(dict));
+                self.save(ridx, key, NaslValue::Dict(dict));
                 result
             }
         }
@@ -100,6 +100,7 @@ impl<'a> Interpreter<'a> {
 
     fn handle_array(
         &mut self,
+        ridx: usize,
         key: &str,
         idx: &NaslValue,
         left: NaslValue,
@@ -113,13 +114,13 @@ impl<'a> Interpreter<'a> {
                 let orig = arr[idx].clone();
                 let result = result(&orig, right);
                 arr[idx] = result;
-                self.save(key, NaslValue::Array(arr));
+                self.save(ridx, key, NaslValue::Array(arr));
                 orig
             }
             AssignOrder::AssignReturn => {
                 let result = result(&arr[idx], right);
                 arr[idx] = result.clone();
-                self.save(key, NaslValue::Array(arr));
+                self.save(ridx, key, NaslValue::Array(arr));
                 result
             }
         }
@@ -145,23 +146,23 @@ impl<'a> Interpreter<'a> {
         right: &NaslValue,
         result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
     ) -> InterpretResult {
-        let left = self.named_value(key)?;
+        let (ridx, left) = self.named_value(key)?;
         let result = match lookup {
             None => {
                 let result = result(&left, right);
-                self.save(key, result.clone());
+                self.save(ridx, key, result.clone());
                 match order {
                     AssignOrder::AssignReturn => result,
                     AssignOrder::ReturnAssign => left,
                 }
             }
             Some(idx) => match idx {
-                NaslValue::String(idx) => self.handle_dict(key, idx, left, right, order, result),
+                NaslValue::String(idx) => self.handle_dict(ridx, key, idx, left, right, order, result),
                 _ => match left {
                     NaslValue::Dict(_) => {
-                        self.handle_dict(key, idx.to_string(), left, right, order, result)
+                        self.handle_dict(ridx, key, idx.to_string(), left, right, order, result)
                     }
-                    _ => self.handle_array(key, &idx, left, right, order, result),
+                    _ => self.handle_array(ridx, key, &idx, left, right, order, result),
                 },
             },
         };
