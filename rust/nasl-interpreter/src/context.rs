@@ -1,6 +1,6 @@
 use nasl_syntax::Statement;
 
-use crate::interpreter::NaslValue;
+use crate::{error::InterpretError, interpreter::NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -31,13 +31,11 @@ impl Register {
     }
 
     pub fn root_initial(initial: Vec<(String, ContextType)>) -> Self {
-        let root = NaslContext{
+        let root = NaslContext {
             defined: initial.into_iter().collect(),
             ..Default::default()
         };
-        Self{
-            blocks: vec![root],
-        }
+        Self { blocks: vec![root] }
     }
 
     /// Returns the next index
@@ -81,9 +79,8 @@ impl Register {
 
     /// Finds a named ContextType
     pub fn named<'a>(&'a self, name: &'a str) -> Option<&ContextType> {
-        self.last().named(self, name).map(|(_, val) | val)
+        self.last().named(self, name).map(|(_, val)| val)
     }
-
 
     /// Finds a named ContextType with index
     pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &ContextType)> {
@@ -102,13 +99,32 @@ impl Register {
         global.add_named(name, value);
     }
 
+    /// Adds a named parameter to the root context
+    pub fn add_to_index(
+        &mut self,
+        idx: usize,
+        name: &str,
+        value: ContextType,
+    ) -> Result<(), InterpretError> {
+        if idx >= self.blocks.len() {
+            Err(InterpretError {
+                reason: format!(
+                    "{} is higher than available blocks ({})",
+                    idx,
+                    self.blocks.len()
+                ),
+            })
+        } else {
+            let global = &mut self.blocks[idx];
+            global.add_named(name, value);
+            Ok(())
+        }
+    }
     /// Adds a named parameter to the last context
     pub fn add_local(&mut self, name: &str, value: ContextType) {
         let last = &mut self.last_mut();
         last.add_named(name, value);
     }
-
-
 
     /// Retrieves all positional definitions
     pub fn positional(&self) -> &[NaslValue] {
@@ -156,7 +172,11 @@ impl NaslContext {
     }
 
     /// Retrieves a definition by name
-    fn named<'a>(&'a self, registrat: &'a Register, name: &'a str) -> Option<(usize, &ContextType)> {
+    fn named<'a>(
+        &'a self,
+        registrat: &'a Register,
+        name: &'a str,
+    ) -> Option<(usize, &ContextType)> {
         // first check local
         match self.defined.get(name) {
             Some(ctx) => Some((self.id, ctx)),
@@ -166,5 +186,4 @@ impl NaslContext {
             },
         }
     }
-
 }
