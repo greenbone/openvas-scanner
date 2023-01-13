@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
-use nasl_syntax::{
-    IdentifierType, Statement, Statement::*, Token, TokenCategory, ACT,
-};
+use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory, ACT};
 use sink::Sink;
 
 use crate::{
     assign::AssignExtension,
     call::CallExtension,
     context::{ContextType, Register},
+    declare::DeclareFunctionExtension,
     error::InterpretError,
-    operator::OperatorExtension, declare::DeclareFunctionExtension, loader::Loader, include::IncludeExtension,
+    include::IncludeExtension,
+    loader::Loader,
+    operator::OperatorExtension,
 };
 
 /// Represents a valid Value of NASL
@@ -107,8 +108,11 @@ impl TryFrom<&Token> for NaslValue {
     fn try_from(token: &Token) -> Result<Self, Self::Error> {
         match token.category() {
             TokenCategory::String(category) => Ok(NaslValue::String(category.clone())),
-            TokenCategory::Identifier(IdentifierType::Undefined(id)) => Ok(NaslValue::String(id.clone())),
+            TokenCategory::Identifier(IdentifierType::Undefined(id)) => {
+                Ok(NaslValue::String(id.clone()))
+            }
             TokenCategory::Number(num) => Ok(NaslValue::Number(*num)),
+            TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
             _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),
             }),
@@ -140,7 +144,9 @@ impl<'a> Interpreter<'a> {
     pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
         match token.category() {
             TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.clone()),
-            cat => Err(InterpretError { reason: format!("unexpected category {:?}", cat) }),
+            cat => Err(InterpretError {
+                reason: format!("unexpected category {:?}", cat),
+            }),
         }
     }
 
@@ -148,7 +154,6 @@ impl<'a> Interpreter<'a> {
     pub fn resolve(&mut self, statement: Statement) -> InterpretResult {
         match statement {
             Array(name, position) => {
-                
                 let name = &Self::identifier(&name)?;
                 let val = self.registrat.named(name).ok_or_else(|| InterpretError {
                     reason: format!("{} not found.", name),
@@ -187,10 +192,10 @@ impl<'a> Interpreter<'a> {
             Return(stmt) => {
                 let rc = self.resolve(*stmt)?;
                 Ok(NaslValue::Return(Box::new(rc)))
-            },
+            }
             Include(inc) => self.include(*inc),
             NamedParameter(_, _) => todo!(),
-            For(_, _, _, _) => todo!(),
+            For(_, _, _, _) => Ok(NaslValue::Null),
             While(_, _) => todo!(),
             Repeat(_, _) => todo!(),
             ForEach(_, _, _) => todo!(),
@@ -206,7 +211,36 @@ impl<'a> Interpreter<'a> {
                 }
             }
             Call(name, arguments) => self.call(name, arguments),
-            Declare(_, _) => todo!(),
+            Declare(scope, stmts) => {
+                match scope {
+                    nasl_syntax::DeclareScope::Global => {
+                        for stmt in stmts {
+                            if let Variable(ref token) = stmt {
+                                if let TokenCategory::Identifier(name) = token.category() {
+                                    self.registrat.add_global(
+                                        &name.to_string(),
+                                        ContextType::Value(NaslValue::Null),
+                                    );
+                                }
+                            };
+                        }
+                    }
+                    nasl_syntax::DeclareScope::Local => {
+                        // TODO fix that
+                        for stmt in stmts {
+                            if let Variable(ref token) = stmt {
+                                if let TokenCategory::Identifier(name) = token.category() {
+                                    self.registrat.last_mut().add_named(
+                                        &name.to_string(),
+                                        ContextType::Value(NaslValue::Null),
+                                    );
+                                }
+                            };
+                        }
+                    }
+                }
+                Ok(NaslValue::Null)
+            }
             // array creation
             Parameter(x) => {
                 let mut result = vec![];

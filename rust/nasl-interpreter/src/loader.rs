@@ -46,8 +46,14 @@ impl Loader for NoOpLoader {
 /// 
 /// So when the root path is `/var/lib/openvas/plugins` than it will be extended to
 /// `/var/lib/openvas/plugins/plugin_feed_info.inc`.
-struct FSPluginLoader<'a> {
+pub struct FSPluginLoader<'a> {
     root: &'a Path,
+}
+
+impl<'a> FSPluginLoader<'a> {
+    pub fn new(root: &'a Path) -> Self {
+        Self{ root }
+    }
 }
 
 impl<'a> Loader for FSPluginLoader<'a> {

@@ -1,5 +1,5 @@
 use built_in_functions::description;
-use context::Register;
+pub use context::Register;
 use error::{FunctionError, InterpretError};
 
 mod assign;
@@ -15,7 +15,7 @@ mod operator;
 
 pub use context::ContextType;
 pub use interpreter::{Interpreter, NaslValue};
-pub use loader::{Loader, LoadError};
+pub use loader::*;
 use loader::NoOpLoader;
 use nasl_syntax::parse;
 use sink::{Sink, SinkError};
