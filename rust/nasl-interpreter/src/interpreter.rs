@@ -7,7 +7,7 @@ use crate::{
     assign::AssignExtension,
     call::CallExtension,
     context::{ContextType, Register},
-    declare::DeclareFunctionExtension,
+    declare::{DeclareFunctionExtension, DeclareVariableExtension},
     error::InterpretError,
     include::IncludeExtension,
     loader::Loader,
@@ -211,36 +211,7 @@ impl<'a> Interpreter<'a> {
                 }
             }
             Call(name, arguments) => self.call(name, arguments),
-            Declare(scope, stmts) => {
-                match scope {
-                    nasl_syntax::DeclareScope::Global => {
-                        for stmt in stmts {
-                            if let Variable(ref token) = stmt {
-                                if let TokenCategory::Identifier(name) = token.category() {
-                                    self.registrat.add_global(
-                                        &name.to_string(),
-                                        ContextType::Value(NaslValue::Null),
-                                    );
-                                }
-                            };
-                        }
-                    }
-                    nasl_syntax::DeclareScope::Local => {
-                        // TODO fix that
-                        for stmt in stmts {
-                            if let Variable(ref token) = stmt {
-                                if let TokenCategory::Identifier(name) = token.category() {
-                                    self.registrat.last_mut().add_named(
-                                        &name.to_string(),
-                                        ContextType::Value(NaslValue::Null),
-                                    );
-                                }
-                            };
-                        }
-                    }
-                }
-                Ok(NaslValue::Null)
-            }
+            Declare(scope, stmts) => self.declare_variable(scope, stmts),
             // array creation
             Parameter(x) => {
                 let mut result = vec![];

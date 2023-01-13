@@ -74,13 +74,19 @@ impl Register {
     ///
     /// The idea is that since NASL is an iterative language the last context is also the current
     /// one.
-    pub fn last(&self) -> &NaslContext {
+    fn last(&self) -> &NaslContext {
         let last = self.blocks.last();
         last.unwrap()
     }
 
-    /// Finds a named ContextType within last.
+    /// Finds a named ContextType
     pub fn named<'a>(&'a self, name: &'a str) -> Option<&ContextType> {
+        self.last().named(self, name).map(|(_, val) | val)
+    }
+
+
+    /// Finds a named ContextType with index
+    pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &ContextType)> {
         self.last().named(self, name)
     }
 
@@ -94,6 +100,22 @@ impl Register {
     pub fn add_global(&mut self, name: &str, value: ContextType) {
         let global = &mut self.blocks[0];
         global.add_named(name, value);
+    }
+
+    /// Adds a named parameter to the last context
+    pub fn add_local(&mut self, name: &str, value: ContextType) {
+        let last = &mut self.last_mut();
+        last.add_named(name, value);
+    }
+
+
+
+    /// Retrieves all positional definitions
+    pub fn positional(&self) -> &[NaslValue] {
+        match self.named("_FCT_ANON_ARGS") {
+            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
+            _ => &[],
+        }
     }
 
     /// Destroys the current context.
@@ -117,6 +139,7 @@ type Named = HashMap<String, ContextType>;
 ///
 /// A context should never be created directly but via a Register.
 /// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
+#[derive(Default)]
 pub struct NaslContext {
     /// Parent id within the register
     parent: Option<usize>,
@@ -126,33 +149,17 @@ pub struct NaslContext {
     defined: Named,
 }
 
-impl Default for NaslContext {
-    fn default() -> Self {
-        Self {
-            parent: Default::default(),
-            id: Default::default(),
-            defined: Default::default(),
-        }
-    }
-}
-
 impl NaslContext {
     /// Adds a named parameter to the context
-    pub fn add_named(&mut self, name: &str, value: ContextType) {
+    fn add_named(&mut self, name: &str, value: ContextType) {
         self.defined.insert(name.to_owned(), value);
     }
 
-    /// Adds a named parameter to the root context
-    pub fn add_global(&mut self, registrat: &mut Register, name: &str, value: ContextType) {
-        let global = &mut registrat.blocks[0];
-        global.add_named(name, value);
-    }
-
     /// Retrieves a definition by name
-    pub fn named<'a>(&'a self, registrat: &'a Register, name: &'a str) -> Option<&ContextType> {
+    fn named<'a>(&'a self, registrat: &'a Register, name: &'a str) -> Option<(usize, &ContextType)> {
         // first check local
         match self.defined.get(name) {
-            Some(ctx) => Some(ctx),
+            Some(ctx) => Some((self.id, ctx)),
             None => match self.parent {
                 Some(parent) => registrat.blocks[parent].named(registrat, name),
                 None => None,
@@ -160,11 +167,4 @@ impl NaslContext {
         }
     }
 
-    /// Retrieves positional definitions
-    pub fn positional<'a>(&'a self, registrat: &'a Register) -> &[NaslValue] {
-        match self.named(registrat, "_FCT_ANON_ARGS") {
-            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
-            _ => &[],
-        }
-    }
 }
