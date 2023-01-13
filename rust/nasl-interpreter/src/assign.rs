@@ -51,6 +51,12 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
 
 impl<'a> Interpreter<'a> {
     #[inline(always)]
+    fn save(&mut self, key: &str, value: NaslValue) {
+        // TODO find the register of the value if present or use global
+        self.registrat.add_global(key, ContextType::Value(value));
+    }
+
+    #[inline(always)]
     fn named_value(&self, key: &str) -> Result<NaslValue, InterpretError> {
         match self
             .registrat()
@@ -79,16 +85,14 @@ impl<'a> Interpreter<'a> {
                 let original = dict.get(&idx).unwrap_or(&NaslValue::Null).clone();
                 let result = result(&original, right);
                 dict.insert(idx, result);
-                let register = self.registrat.last_mut();
-                register.add_named(key, ContextType::Value(NaslValue::Dict(dict)));
+                self.save(key, NaslValue::Dict(dict));
                 original
             }
             AssignOrder::AssignReturn => {
                 let original = dict.get(&idx).unwrap_or(&NaslValue::Null);
                 let result = result(original, right);
                 dict.insert(idx, result.clone());
-                let register = self.registrat.last_mut();
-                register.add_named(key, ContextType::Value(NaslValue::Dict(dict)));
+                self.save(key, NaslValue::Dict(dict));
                 result
             }
         }
@@ -109,15 +113,13 @@ impl<'a> Interpreter<'a> {
                 let orig = arr[idx].clone();
                 let result = result(&orig, right);
                 arr[idx] = result;
-                let register = self.registrat.last_mut();
-                register.add_named(key, ContextType::Value(NaslValue::Array(arr)));
+                self.save(key, NaslValue::Array(arr));
                 orig
             }
             AssignOrder::AssignReturn => {
                 let result = result(&arr[idx], right);
                 arr[idx] = result.clone();
-                let register = self.registrat.last_mut();
-                register.add_named(key, ContextType::Value(NaslValue::Array(arr)));
+                self.save(key, NaslValue::Array(arr));
                 result
             }
         }
@@ -147,8 +149,7 @@ impl<'a> Interpreter<'a> {
         let result = match lookup {
             None => {
                 let result = result(&left, right);
-                let register = self.registrat.last_mut();
-                register.add_named(key, ContextType::Value(result.clone()));
+                self.save(key, result.clone());
                 match order {
                     AssignOrder::AssignReturn => result,
                     AssignOrder::ReturnAssign => left,
@@ -189,9 +190,7 @@ impl<'a> AssignExtension for Interpreter<'a> {
         let (key, lookup) = {
             match left {
                 Variable(token) => (Self::identifier(&token)?, None),
-                Array(token, Some(stmt)) => {
-                    (Self::identifier(&token)?, Some(self.resolve(*stmt)?))
-                }
+                Array(token, Some(stmt)) => (Self::identifier(&token)?, Some(self.resolve(*stmt)?)),
                 _ => {
                     return Err(InterpretError {
                         reason: format!("{:?} is not supported", left),
@@ -253,7 +252,9 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{error::InterpretError, Interpreter, NaslValue, context::Register, loader::NoOpLoader};
+    use crate::{
+        context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
+    };
 
     #[test]
     fn variables() {
@@ -350,7 +351,14 @@ mod tests {
             }),
         });
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Array(vec![NaslValue::Null, NaslValue::Null, NaslValue::Number(12)]))));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Null,
+                NaslValue::Null,
+                NaslValue::Number(12)
+            ])))
+        );
     }
 
     #[test]
@@ -374,7 +382,14 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Array(vec![NaslValue::Number(12), NaslValue::Null, NaslValue::Number(12)]))));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(12),
+                NaslValue::Null,
+                NaslValue::Number(12)
+            ])))
+        );
     }
 
     #[test]
@@ -395,7 +410,13 @@ mod tests {
             }),
         });
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Dict(HashMap::from([("hi".to_owned(), NaslValue::Number(12))])))));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Dict(HashMap::from([(
+                "hi".to_owned(),
+                NaslValue::Number(12)
+            )]))))
+        );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
     }
     #[test]

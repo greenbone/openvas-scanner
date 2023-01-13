@@ -71,8 +71,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                                 None => {
                                     // add default NaslValue::Null for each defined params
                                     self.registrat
-                                        .last_mut()
-                                        .add_named(&p, ContextType::Value(NaslValue::Null));
+                                        .add_local(&p, ContextType::Value(NaslValue::Null));
                                 }
                                 Some(_) => {}
                             }

@@ -1,4 +1,4 @@
-use nasl_syntax::{Statement, Token};
+use nasl_syntax::{DeclareScope, Statement, Token, TokenCategory};
 
 use crate::{
     error::InterpretError, interpreter::InterpretResult, ContextType, Interpreter, NaslValue,
@@ -42,6 +42,31 @@ impl<'a> DeclareFunctionExtension for Interpreter<'a> {
     }
 }
 
+pub(crate) trait DeclareVariableExtension {
+    fn declare_variable(&mut self, scope: DeclareScope, stmts: Vec<Statement>) -> InterpretResult;
+}
+
+impl<'a> DeclareVariableExtension for Interpreter<'a> {
+    fn declare_variable(&mut self, scope: DeclareScope, stmts: Vec<Statement>) -> InterpretResult {
+        let mut add = |key: &str| {
+            let value = ContextType::Value(NaslValue::Null);
+            match scope {
+                DeclareScope::Global => self.registrat.add_global(key, value),
+                DeclareScope::Local => self.registrat.add_local(key, value),
+            }
+        };
+
+        for stmt in stmts {
+            if let Statement::Variable(ref token) = stmt {
+                if let TokenCategory::Identifier(name) = token.category() {
+                    add(&name.to_string());
+                }
+            };
+        }
+        Ok(NaslValue::Null)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
@@ -50,6 +75,11 @@ mod tests {
     use crate::{
         context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
     };
+
+    #[test]
+    fn declare_local() {
+
+    }
 
     #[test]
     fn declare_function() {

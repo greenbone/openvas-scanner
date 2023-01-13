@@ -66,10 +66,9 @@ macro_rules! make_storage_function {
             storage: &dyn Sink,
             registrat: &Register,
         ) -> Result<NaslValue, FunctionError> {
-            let ctx = registrat.last();
             let mut variables = vec![];
             $(
-            let positional = ctx.positional(registrat);
+            let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
                 return Err(FunctionError::new(
                     format!("expected {} positional arguments but {} were given.", $len, positional.len()),
@@ -81,13 +80,13 @@ macro_rules! make_storage_function {
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, ctx, stringify!($value), true)?;
+            let value = get_named_parameter(registrat, stringify!($value), true)?;
             variables.push(value);
             )+
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, ctx, stringify!($optional_value), false)?;
+            let value = get_named_parameter(registrat, stringify!($optional_value), false)?;
             if !matches!(value, &NaslValue::Exit(0)) {
                variables.push(value);
             }
@@ -112,11 +111,10 @@ macro_rules! make_storage_function {
 
 fn get_named_parameter<'a>(
     registrat: &'a Register,
-    ctx: &'a NaslContext,
     key: &'a str,
     required: bool,
 ) -> Result<&'a NaslValue, FunctionError> {
-    match ctx.named(registrat, key) {
+    match registrat.named(key) {
         None => {
             if required {
                 Err(FunctionError::new(format!("expected {} to be set.", key)))
