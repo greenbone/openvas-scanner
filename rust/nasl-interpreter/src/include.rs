@@ -1,9 +1,7 @@
 use nasl_syntax::{parse, Statement};
 use sink::DefaultSink;
 
-use crate::{
-    error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue,
-};
+use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue};
 
 /// Is a trait to declare include functionality
 pub(crate) trait IncludeExtension {
@@ -22,9 +20,11 @@ impl<'a> IncludeExtension for Interpreter<'a> {
                         Ok(stmt) => inter.resolve(stmt),
                         Err(err) => Err(InterpretError::from(err)),
                     })
-                    .last()
-                    .ok_or_else(|| InterpretError::new("should not happen".to_owned()))?;
-                result.map(|_| NaslValue::Null)
+                    .find(|e| e.is_err());
+                match result {
+                    Some(e) => e,
+                    None => Ok(NaslValue::Null),
+                }
             }
             a => Err(InterpretError::new(format!("invalid: {:?}", a))),
         }
@@ -38,9 +38,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{
-        context::Register, Interpreter, LoadError, Loader, NaslValue,
-    };
+    use crate::{context::Register, Interpreter, LoadError, Loader, NaslValue};
 
     struct FakeInclude<'a> {
         plugins: &'a HashMap<String, String>,
