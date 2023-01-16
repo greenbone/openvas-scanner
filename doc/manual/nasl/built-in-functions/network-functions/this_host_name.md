@@ -11,6 +11,7 @@
 **this_host_name** takes no arguments
 
 ## DESCRIPTION
+
 Get the host name of the current (attacking) machine.
 
 ## RETURN VALUE

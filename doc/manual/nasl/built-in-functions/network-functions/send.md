@@ -2,7 +2,7 @@
 
 ## NAME
 
-**send** sends data on a socket.
+**send** - sends data on a socket.
 
 ## SYNOPSIS
 

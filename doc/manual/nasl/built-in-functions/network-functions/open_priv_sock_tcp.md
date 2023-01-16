@@ -2,7 +2,7 @@
 
 ## NAME
 
-**open_priv_sock_tcp** opens a “privileged” TCP socket to the target host.
+**open_priv_sock_tcp** - opens a “privileged” TCP socket to the target host.
 
 ## SYNOPSIS
 
@@ -13,6 +13,7 @@
 - sport is the source port, which may be inferior to 1024.
 
 ## DESCRIPTION
+
 Open a “privileged” TCP socket to the target host.
 
 ## RETURN VALUE

@@ -11,6 +11,7 @@
 **scanner_get_port** takes a single unnamed argument, the index.
 
 ## DESCRIPTION
+
 Walks through the list of open ports.
 If the plugin is a port scanner, it needs to report the list of open ports back to openvas scanner, and it also needs to know which ports are to be scanned.
 

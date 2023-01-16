@@ -16,6 +16,7 @@
 - timeout can be changed from the default.
 
 ## DESCRIPTION
+
 Receives data from a TCP or UDP socket. For a UDP socket, if it cannot read data, NASL will suppose that the last sent datagram was lost and will sent it again a couple of time. 
 
 ## RETURN VALUE
