@@ -8,9 +8,8 @@ All those functions but script_get_preference are only used in the "description 
 ## TABLE OF CONTENT
 
 **[script_add_preference](script_add_preference.md)** - adds an option to the plugin. 
-
 **[script_category](script_category.md)** - sets the plugin's category.
-
+**[script_copyright](script_copyright.md)** - Deprecated. Kept for backward compatibility, but currently does nothing.
 **[script_cve_id](script_cve_id.md)** - sets the CVE IDs of the flaws tested by the script. 
 **[script_dependencies](script_dependencies.md)** - sets the lists of scripts that should be run before this one (if “optimize mode” is on). 
 **[script_exclude_keys](script_exclude_keys.md)** - sets the list of “KB items” that must not be set to run this script in “optimize mode”. 
