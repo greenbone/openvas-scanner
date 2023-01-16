@@ -6,8 +6,7 @@ Used for SSH connections and interactions
 
 ## TABLE OF CONTENT
 
-
-
+**[sftp_enabled_check](sftp_enabled_check.md)** - checks if SFTP is enabled on the target system
 **[ssh_connect](ssh_connect.md)** - connect ot the target via TCP and setup an SSH connection
 **[ssh_disconnect](ssh_disconnect.md)** - disconnect an open SSH connection
 **[ssh_get_auth_methods](ssh_get_auth_methods.md)** - get list of supported authentication schemes
