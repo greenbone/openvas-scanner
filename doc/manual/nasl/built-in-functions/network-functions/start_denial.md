@@ -11,6 +11,7 @@
 **start_denial** takes no arguments.
 
 ## DESCRIPTION
+
 Initializes some internal data structure for end_denial.
 
 ## RETURN VALUE

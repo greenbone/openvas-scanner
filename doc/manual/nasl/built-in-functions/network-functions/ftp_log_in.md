@@ -2,7 +2,7 @@
 
 ## NAME
 
-**ftp_log_in** performs a FTP identification / authentication on an open socket.
+**ftp_log_in** - performs a FTP identification / authentication on an open socket.
 
 ## SYNOPSIS
 

@@ -11,6 +11,7 @@
 **telnet_init** This function takes one unnamed argument, the open socket.
 
 ## DESCRIPTION
+
 Read the data on the socket (more or less the telnet dialog plus the banner).
 
 ## RETURN VALUE

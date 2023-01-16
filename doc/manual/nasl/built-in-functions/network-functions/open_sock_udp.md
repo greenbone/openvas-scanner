@@ -2,7 +2,7 @@
 
 ## NAME
 
-**open_sock_udp** opens a UDP socket to the target host.
+**open_sock_udp** - opens a UDP socket to the target host.
 
 ## SYNOPSIS
 
@@ -11,6 +11,7 @@
 **open_sock_udp** takes an unnamed integer argument (the port number)
 
 ## DESCRIPTION
+
 Open a UDP socket to the target host.
 
 ## RETURN VALUE

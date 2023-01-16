@@ -11,6 +11,7 @@
 **leave_multicast_group** takes a single unnamed argument, an IP multicast address.
 
 ## DESCRIPTION
+
 Leaves a multicast group. Note that if *join_multicast_group* was called several times, each call to *leave_multicast_cast* only decrements a counter; the group is left when the counter reaches 0.
 
 

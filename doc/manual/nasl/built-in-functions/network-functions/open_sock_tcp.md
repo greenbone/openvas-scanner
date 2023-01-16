@@ -2,7 +2,7 @@
 
 ## NAME
 
-**open_sock_tcp** opens a TCP socket to the target host.
+**open_sock_tcp** - opens a TCP socket to the target host.
 
 ## SYNOPSIS
 
@@ -15,6 +15,7 @@
 - priority A string value with priorities for an TLS encapsulation. For the syntax of the priority string see the GNUTLS manual. This argument is only used in ENCAPS_TLScustom encapsulation.
 
 ## DESCRIPTION
+
 Open a TCP socket to the target host.
 This function is used to create a TCP connection to the target host.  It requires the port number as its argument and has various optional named arguments to control encapsulation, timeout and buffering.
 
