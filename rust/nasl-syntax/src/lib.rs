@@ -64,23 +64,23 @@ mod tests {
             vec![
                 Token {
                     category: Category::Identifier(IdentifierType::LocalVar),
-                    position: (0, 9)
+                    position: (1, 1)
                 },
                 Token {
                     category: Category::Identifier(IdentifierType::Undefined("hello".to_owned())),
-                    position: (10, 15)
+                    position: (1, 11)
                 },
                 Token {
                     category: Category::Equal,
-                    position: (16, 17)
+                    position: (1, 17)
                 },
                 Token {
                     category: Category::String("World!".to_owned()),
-                    position: (19, 25)
+                    position: (1, 19)
                 },
                 Token {
                     category: Category::Semicolon,
-                    position: (26, 27)
+                    position: (1, 27)
                 }
             ]
         );
@@ -100,11 +100,11 @@ mod tests {
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(IdentifierType::Undefined("a".to_owned())),
-                        position: (0, 1)
+                        position: (1, 1)
                     },)),
                     Box::new(Primitive(Token {
                         category: Number(23),
-                        position: (4, 6)
+                        position: (1, 5)
                     }))
                 )),
                 Ok(Assign(
@@ -112,11 +112,11 @@ mod tests {
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(IdentifierType::Undefined("b".to_owned())),
-                        position: (7, 8)
+                        position: (1, 8)
                     },)),
                     Box::new(Primitive(Token {
                         category: Number(1),
-                        position: (11, 12)
+                        position: (1, 12)
                     }))
                 ))
             ]

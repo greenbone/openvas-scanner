@@ -156,8 +156,6 @@ fn first_element_as_named_parameter(
 #[cfg(test)]
 mod test {
 
-    use std::ops::Range;
-
     use super::*;
     
     
@@ -180,7 +178,7 @@ mod test {
             };
         match s {
             Primitive(token) => match token.category() {
-                Number(_) => code[Range::from(&token)].parse().unwrap(),
+                Number(num) => *num,
                 String(_) => todo!(),
                 _ => todo!(),
             },
@@ -276,8 +274,8 @@ mod test {
             Assign(
                 category,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 0, 1))),
-                Box::new(Primitive(token(Number(1), 5 + shift, 6 + shift))),
+                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 1))),
+                Box::new(Primitive(token(Number(1), 1, 6 + shift))),
             )
         }
         assert_eq!(result("a += 1;"), expected(PlusEqual, 0));
@@ -300,11 +298,11 @@ mod test {
                 vec![
                     Variable(Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (0, 1),
+                        position: (1, 1),
                     }),
                     Primitive(Token {
                         category: String("1".to_owned()),
-                        position: ((6 + shift) as usize, (7 + shift) as usize),
+                        position: (1, (6 + shift) as usize),
                     }),
                 ],
             )
@@ -329,11 +327,11 @@ mod test {
                 vec![
                     Variable(Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (0, 1),
+                        position: (1, 1),
                     }),
                     Primitive(Token {
                         category: Number(1),
-                        position: (5 + shift, 6 + shift),
+                        position: (1, 6 + shift),
                     }),
                 ],
             )
@@ -349,10 +347,10 @@ mod test {
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 0, 1))),
+                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 1))),
                 Box::new(Primitive(Token {
                     category: Number(1),
-                    position: (4, 5)
+                    position: (1, 5)
                 }))
             )
         );
@@ -364,7 +362,7 @@ mod test {
                 Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 2))),
                 Box::new(Primitive(Token {
                     category: Number(1),
-                    position: (5, 6)
+                    position: (1, 6)
                 }))
             )
         );
@@ -380,13 +378,13 @@ mod test {
                     Call(
                         Token {
                             category: Identifier(Undefined("x".to_owned())),
-                            position: (0, 1)
+                            position: (1, 1)
                         },
                         Box::new(Parameter(vec![]))
                     ),
                     Primitive(Token {
                         category: Number(2),
-                        position: (6, 7)
+                        position: (1, 7)
                     })
                 ]
             )

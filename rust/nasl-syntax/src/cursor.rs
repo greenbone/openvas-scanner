@@ -12,6 +12,8 @@ pub struct Cursor<'a> {
     /// is needed to calculate the length when e.g. tokenizing
     initial_len: usize,
     chars: Chars<'a>,
+    line: usize,
+    col: usize,
 }
 
 impl<'a> Cursor<'a> {
@@ -20,6 +22,8 @@ impl<'a> Cursor<'a> {
         Cursor {
             initial_len: input.len(),
             chars: input.chars(),
+            line: 1,
+            col: 1,
         }
     }
 
@@ -34,7 +38,19 @@ impl<'a> Cursor<'a> {
 
     /// Returns the next char or None if at the end
     pub fn advance(&mut self) -> Option<char> {
-        self.chars.next()
+        match self.chars.next() {
+            Some('\n') => {
+                self.line += 1;
+                self.col = 1;
+                Some('\n')
+            }
+            Some(c) => {
+                self.col += 1;
+                Some(c)
+            }
+            None => None
+
+        }
     }
 
     /// Returns true when the Cursor is at the end of the initial input
@@ -52,6 +68,11 @@ impl<'a> Cursor<'a> {
     /// Returns amount of already consumed symbols.
     pub fn len_consumed(&self) -> usize {
         self.initial_len - self.chars.as_str().len()
+    }
+
+    /// Returns the line and the colum in line of the current position
+    pub fn line_colum(&self) -> (usize, usize) {
+        (self.line, self.col)
     }
 }
 

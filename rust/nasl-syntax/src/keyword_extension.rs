@@ -354,26 +354,26 @@ mod test {
             If(
                 Box::new(Variable(Token {
                     category: Identifier(Undefined("description".to_owned())),
-                    position: (4, 15)
+                    position: (1, 5)
                 })),
                 Box::new(Call(
                     Token {
                         category: Identifier(Undefined("script_oid".to_owned())),
-                        position: (17, 27)
+                        position: (1, 18)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
                         category: String("1".to_owned()),
-                        position: (29, 30)
+                        position: (1, 29)
                     })]))
                 )),
                 Some(Box::new(Call(
                     Token {
                         category: Identifier(Undefined("display".to_owned())),
-                        position: (39, 46)
+                        position: (1, 40)
                     },
                     Box::new(Parameter(vec![Primitive(Token {
                         category: String("hi".to_owned()),
-                        position: (48, 50)
+                        position: (1, 48)
                     })]))
                 )))
             )
@@ -392,7 +392,7 @@ mod test {
             If(
                 Box::new(Variable(Token {
                     category: Identifier(Undefined("description".to_owned())),
-                    position: (4, 15)
+                    position: (1, 5)
                 })),
                 Box::new(Block(vec![])),
                 None
@@ -408,15 +408,15 @@ mod test {
                 vec![
                     Variable(Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (10 + offset, 11 + offset),
+                        position: (1, 11 + offset),
                     }),
                     Variable(Token {
                         category: Identifier(Undefined("b".to_owned())),
-                        position: (13 + offset, 14 + offset),
+                        position: (1, 14 + offset),
                     }),
                     Variable(Token {
                         category: Identifier(Undefined("c".to_owned())),
-                        position: (16 + offset, 17 + offset),
+                        position: (1, 17 + offset),
                     }),
                 ],
             )
@@ -438,7 +438,7 @@ mod test {
             parse("NULL;").next().unwrap().unwrap(),
             Primitive(Token {
                 category: Identifier(IdentifierType::Null),
-                position: (0, 4)
+                position: (1, 1)
             })
         );
     }
@@ -449,14 +449,14 @@ mod test {
             parse("TRUE;").next().unwrap().unwrap(),
             Primitive(Token {
                 category: Identifier(IdentifierType::True),
-                position: (0, 4)
+                position: (1, 1)
             })
         );
         assert_eq!(
             parse("FALSE;").next().unwrap().unwrap(),
             Primitive(Token {
                 category: Identifier(IdentifierType::False),
-                position: (0, 5)
+                position: (1, 1)
             })
         );
     }
@@ -559,15 +559,15 @@ mod test {
             FunctionDeclaration(
                 Token {
                     category: Identifier(Undefined("register_packages".to_owned())),
-                    position: (9, 26)
+                    position: (1, 10)
                 },
                 vec![Variable(Token {
                     category: Identifier(Undefined("buf".to_owned())),
-                    position: (28, 31)
+                    position: (1, 29)
                 })],
                 Box::new(Block(vec![Return(Box::new(Primitive(Token {
                     category: Number(1),
-                    position: (43, 44)
+                    position: (1, 44)
                 })))]))
             )
         );
@@ -579,12 +579,12 @@ mod test {
             FunctionDeclaration(
                 Token {
                     category: Identifier(Undefined("register_packages".to_owned())),
-                    position: (9, 26)
+                    position: (1, 10)
                 },
                 vec![],
                 Box::new(Block(vec![Return(Box::new(Primitive(Token {
                     category: Number(1),
-                    position: (39, 40)
+                    position: (1, 40)
                 })))]))
             )
         );
@@ -599,16 +599,16 @@ mod test {
                 AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
                     category: Category::Identifier(Undefined("arg1".to_owned())),
-                    position: (0, 4)
+                    position: (1, 1)
                 },)),
                 Box::new(Array(
                     Token {
                         category: Category::Identifier(IdentifierType::FCTAnonArgs),
-                        position: (7, 21),
+                        position: (1, 8),
                     },
                     Some(Box::new(Primitive(Token {
                         category: Category::Number(0),
-                        position: (22, 23)
+                        position: (1, 23)
                     })))
                 ))
             ))
@@ -620,12 +620,12 @@ mod test {
                 AssignOrder::AssignReturn,
                 Box::new(Variable(Token {
                     category: Category::Identifier(Undefined("arg1".to_owned())),
-                    position: (0, 4)
+                    position: (1, 1)
                 },)),
                 Box::new(Array(
                     Token {
                         category: Category::Identifier(IdentifierType::FCTAnonArgs),
-                        position: (7, 21),
+                        position: (1, 8),
                     },
                     None
                 ))

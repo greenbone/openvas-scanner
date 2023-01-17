@@ -97,14 +97,14 @@ mod test {
     }
 
     #[test]
-    fn postfix_variable_assignment_operator() {
+    fn variable_assignment_operator() {
         let expected = |assign_operator: Category| {
             Operator(
                 Plus,
                 vec![
                     Primitive(Token {
                         category: Number(1),
-                        position: (0, 1),
+                        position: (1, 1),
                     }),
                     Operator(
                         Star,
@@ -114,13 +114,13 @@ mod test {
                                 AssignOrder::ReturnAssign,
                                 Box::new(Variable(Token {
                                     category: Identifier(Undefined("a".to_owned())),
-                                    position: (4, 5),
+                                    position: (1, 5),
                                 })),
                                 Box::new(NoOp(None)),
                             ),
                             Primitive(Token {
                                 category: Number(1),
-                                position: (10, 11),
+                                position: (1, 11),
                             }),
                         ],
                     ),
@@ -132,7 +132,7 @@ mod test {
     }
 
     #[test]
-    fn postfix_array_assignment_operator() {
+    fn array_assignment_operator() {
         use AssignOrder::*;
         let expected = |assign_operator: Category| {
             Assign(
@@ -141,11 +141,11 @@ mod test {
                 Box::new(Array(
                     Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (0, 1),
+                        position: (1, 1),
                     },
                     Some(Box::new(Primitive(Token {
                         category: Number(1),
-                        position: (2, 3),
+                        position: (1, 3),
                     }))),
                 )),
                 Box::new(NoOp(None)),
