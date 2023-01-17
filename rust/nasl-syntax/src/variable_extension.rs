@@ -113,7 +113,7 @@ mod test {
 
     #[test]
     fn variables() {
-        assert_eq!(result("a;"), Variable(token(Identifier(Undefined("a".to_owned())), 0, 1)));
+        assert_eq!(result("a;"), Variable(token(Identifier(Undefined("a".to_owned())), 1, 1)));
     }
 
     #[test]
@@ -121,8 +121,8 @@ mod test {
         assert_eq!(
             result("a[0];"),
             Array(
-                token(Identifier(Undefined("a".to_owned())), 0, 1),
-                Some(Box::new(Primitive(token(Number(0), 2, 3))))
+                token(Identifier(Undefined("a".to_owned())), 1, 1),
+                Some(Box::new(Primitive(token(Number(0), 1, 3))))
             )
         );
 
@@ -134,22 +134,22 @@ mod test {
                 Box::new(Array(
                     Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (0, 1)
+                        position: (1, 1)
                     },
                     None
                 )),
                 Box::new(Parameter(vec![
                     Primitive(Token {
                         category: Number(1),
-                        position: (5, 6)
+                        position: (1, 6)
                     }),
                     Primitive(Token {
                         category: Number(2),
-                        position: (8, 9)
+                        position: (1, 9)
                     }),
                     Primitive(Token {
                         category: Number(3),
-                        position: (11, 12)
+                        position: (1, 12)
                     })
                 ]))
             )
@@ -163,25 +163,25 @@ mod test {
                 Box::new(Array(
                     Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (0, 1)
+                        position: (1, 1)
                     },
                     Some(Box::new(Primitive(Token {
                         category: Number(0),
-                        position: (2, 3)
+                        position: (1, 3)
                     })))
                 )),
                 Box::new(Parameter(vec![
                     Primitive(Token {
                         category: Number(1),
-                        position: (8, 9)
+                        position: (1, 9)
                     }),
                     Primitive(Token {
                         category: Number(2),
-                        position: (11, 12)
+                        position: (1, 12)
                     }),
                     Primitive(Token {
                         category: Number(4),
-                        position: (14, 15)
+                        position: (1, 15)
                     })
                 ]))
             )
@@ -190,11 +190,11 @@ mod test {
 
     #[test]
     fn anon_function_call() {
-        let fn_name = token(Identifier(Undefined("a".to_owned())), 0, 1);
+        let fn_name = token(Identifier(Undefined("a".to_owned())), 1, 1);
         let args = Box::new(Parameter(vec![
-            Primitive(token(Number(1), 2, 3)),
-            Primitive(token(Number(2), 5, 6)),
-            Primitive(token(Number(3), 8, 9)),
+            Primitive(token(Number(1), 1, 3)),
+            Primitive(token(Number(2), 1, 6)),
+            Primitive(token(Number(3), 1, 9)),
         ]));
 
         assert_eq!(result("a(1, 2, 3);"), Call(fn_name, args));
@@ -208,41 +208,41 @@ mod test {
             Call(
                 Token {
                     category: Identifier(Undefined("script_tag".to_owned())),
-                    position: (0, 10)
+                    position: (1, 1)
                 },
                 Box::new(Parameter(vec![
                     NamedParameter(
                         Token {
                             category: Identifier(Undefined("name".to_owned())),
-                            position: (11, 15)
+                            position: (1, 12)
                         },
                         Box::new(Primitive(Token {
                             category: String("cvss_base".to_owned()),
-                            position: (17, 26)
+                            position: (1, 17)
                         }))
                     ),
                     NamedParameter(
                         Token {
                             category: Identifier(Undefined("value".to_owned())),
-                            position: (29, 34)
+                            position: (1, 30)
                         },
                         Box::new(Operator(
                             Plus,
                             vec![
                                 Primitive(Token {
                                     category: Number(1),
-                                    position: (35, 36)
+                                    position: (1, 36)
                                 }),
                                 Operator(
                                     Percent,
                                     vec![
                                         Primitive(Token {
                                             category: Number(1),
-                                            position: (39, 40)
+                                            position: (1, 40)
                                         }),
                                         Primitive(Token {
                                             category: Number(2),
-                                            position: (43, 44)
+                                            position: (1, 44)
                                         })
                                     ]
                                 )
@@ -258,16 +258,16 @@ mod test {
             Call(
                 Token {
                     category: Identifier(Undefined("script_tag".to_owned())),
-                    position: (0, 10)
+                    position: (1, 1)
                 },
                 Box::new(Parameter(vec![NamedParameter(
                     Token {
                         category: Identifier(Undefined("name".to_owned())),
-                        position: (11, 15)
+                        position: (1, 12)
                     },
                     Box::new(Primitive(Token {
                         category: Number(2),
-                        position: (17, 18)
+                        position: (1, 18)
                     }))
                 )]))
             )

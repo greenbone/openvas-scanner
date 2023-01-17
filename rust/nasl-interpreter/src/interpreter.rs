@@ -113,6 +113,8 @@ impl TryFrom<&Token> for NaslValue {
             }
             TokenCategory::Number(num) => Ok(NaslValue::Number(*num)),
             TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
+            TokenCategory::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
+            TokenCategory::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
             _ => Err(InterpretError {
                 reason: format!("invalid primitive {:?}", token.category()),
             }),
@@ -177,6 +179,7 @@ impl<'a> Interpreter<'a> {
                         })?;
                         Ok(result.clone())
                     }
+                    (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
                     (p, x) => Err(InterpretError {
                         reason: format!("Internal error statement: {:?} -> {:?}.", p, x),
                     }),

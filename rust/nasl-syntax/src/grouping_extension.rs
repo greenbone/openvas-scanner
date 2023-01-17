@@ -110,18 +110,18 @@ mod test {
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (31, 32)
+                        position: (3, 17)
                     })),
                     Box::new(Operator(
                         Plus,
                         vec![
                             Variable(Token {
                                 category: Identifier(Undefined("b".to_owned())),
-                                position: (35, 36)
+                                position: (3, 21)
                             }),
                             Primitive(Token {
                                 category: Number(1),
-                                position: (39, 40)
+                                position: (3, 25)
                             })
                         ]
                     ))
@@ -131,21 +131,21 @@ mod test {
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(Undefined("b".to_owned())),
-                        position: (58, 59)
+                        position: (4, 17)
                     },)),
                     Box::new(Operator(
                         Minus,
                         vec![
                             Variable(Token {
                                 category: Identifier(Undefined("a".to_owned())),
-                                position: (62, 63)
+                                position: (4, 21)
                             }),
                             Assign(
                                 MinusMinus,
                                 AssignOrder::AssignReturn,
                                 Box::new(Variable(Token {
                                     category: Identifier(Undefined("c".to_owned())),
-                                    position: (68, 69)
+                                    position: (4, 27)
                                 },)),
                                 Box::new(NoOp(None))
                             )
@@ -157,11 +157,11 @@ mod test {
                     AssignOrder::AssignReturn,
                     Box::new(Variable(Token {
                         category: Identifier(Undefined("d".to_owned())),
-                        position: (108, 109)
+                        position: (6, 20)
                     },)),
                     Box::new(Primitive(Token {
                         category: Number(23),
-                        position: (112, 114)
+                        position: (6, 24)
                     }))
                 )])
             ])

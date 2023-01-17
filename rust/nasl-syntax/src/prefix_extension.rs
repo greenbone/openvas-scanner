@@ -3,12 +3,12 @@ use crate::{
     error::SyntaxError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
-    lexer::{Lexer, End},
-    {AssignOrder, Statement},
+    lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
     unexpected_end, unexpected_token,
     variable_extension::Variables,
+    {AssignOrder, Statement},
 };
 pub(crate) trait Prefix {
     /// Handles statements before operation statements get handled.
@@ -28,7 +28,6 @@ fn prefix_binding_power(token: Token) -> Result<u8, SyntaxError> {
         _ => Err(unexpected_token!(token)),
     }
 }
-
 
 impl<'a> Lexer<'a> {
     /// Parses Operations that have an prefix (e.g. -1)
@@ -92,15 +91,14 @@ impl<'a> Prefix for Lexer<'a> {
 mod test {
 
     use crate::{
-        AssignOrder,
-        Statement,
         parse,
         token::{Category, Token},
+        AssignOrder, Statement,
     };
 
+    use crate::IdentifierType::Undefined;
     use Category::*;
     use Statement::*;
-    use crate::IdentifierType::Undefined;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -115,10 +113,7 @@ mod test {
     #[test]
     fn operations() {
         fn expected(category: Category) -> Statement {
-            Statement::Operator(
-                category,
-                vec![Statement::Primitive(token(Number(1), 1, 2))],
-            )
+            Statement::Operator(category, vec![Statement::Primitive(token(Number(1), 1, 2))])
         }
 
         assert_eq!(result("-1;"), expected(Category::Minus));
@@ -129,10 +124,10 @@ mod test {
 
     #[test]
     fn single_statement() {
-        assert_eq!(result("1;"), Primitive(token(Number(1), 0, 1)));
+        assert_eq!(result("1;"), Primitive(token(Number(1), 1, 1)));
         assert_eq!(
             result("'a';"),
-            Primitive(token(String("a".to_owned()), 1, 2))
+            Primitive(token(String("a".to_owned()), 1, 1))
         );
     }
 
@@ -144,7 +139,7 @@ mod test {
                 vec![
                     Primitive(Token {
                         category: Number(1),
-                        position: (0, 1),
+                        position: (1, 1),
                     }),
                     Operator(
                         Star,
@@ -154,13 +149,13 @@ mod test {
                                 AssignOrder::AssignReturn,
                                 Box::new(Variable(Token {
                                     category: Identifier(Undefined("a".to_owned())),
-                                    position: (6, 7),
+                                    position: (1, 7),
                                 })),
                                 Box::new(NoOp(None)),
                             ),
                             Primitive(Token {
                                 category: Number(1),
-                                position: (10, 11),
+                                position: (1, 11),
                             }),
                         ],
                     ),
@@ -180,11 +175,11 @@ mod test {
                 Box::new(Array(
                     Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (2, 3),
+                        position: (1, 3),
                     },
                     Some(Box::new(Primitive(Token {
                         category: Number(0),
-                        position: (4, 5),
+                        position: (1, 5),
                     }))),
                 )),
                 Box::new(NoOp(None)),
