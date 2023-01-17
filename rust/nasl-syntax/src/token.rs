@@ -289,8 +289,7 @@ pub enum Category {
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(i64),
     /// We currently just support 127.0.0.1 notation
-    // TODO should contain string
-    IPv4Address,
+    IPv4Address(String),
     /// Wrongfully identified as IpV4
     IllegalIPv4Address,
     /// An illegal Number e.g. 0b2
@@ -511,9 +510,15 @@ impl<'a> Tokenizer<'a> {
                 } else {
                     return Some(Category::IllegalIPv4Address);
                 }
-                return Some(Category::IPv4Address);
+                return Some(Category::IPv4Address(
+                    self.code[Range {
+                        start,
+                        end: self.cursor.len_consumed(),
+                    }]
+                    .to_owned(),
+                ));
             } else {
-                return Some(Category::IPv4Address);
+                return Some(Category::IllegalIPv4Address);
             }
         }
         None
@@ -806,11 +811,7 @@ mod tests {
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
             code,
-            vec![(
-                Category::Unclosed(UnclosedCategory::String(Quotable)),
-                1,
-                1
-            )]
+            vec![(Category::Unclosed(UnclosedCategory::String(Quotable)), 1, 1)]
         );
     }
 
@@ -902,7 +903,7 @@ mod tests {
     #[test]
     fn simplified_ipv4_address() {
         use Category::*;
-        verify_tokens!("10.187.76.12", vec![(IPv4Address, 1, 1)]);
+        verify_tokens!("10.187.76.12", vec![(IPv4Address("10.187.76.12".to_owned()), 1, 1)]);
     }
 
     #[test]
@@ -945,17 +946,17 @@ exit(1);
                 (LeftParen, 2, 3), // start expression block
                 (Identifier(Undefined("description".to_owned())), 2, 4), // verify is description is true
                 (RightParen, 2, 15),                                     // end expression block
-                (LeftCurlyBracket, 3, 1),                               // start execution block
+                (LeftCurlyBracket, 3, 1),                                // start execution block
                 (Identifier(Undefined("script_oid".to_owned())), 4, 3), // lookup function script_oid
                 (LeftParen, 4, 13), // start parameter expression block
                 (String("1.3.6.1.4.1.25623.1.0.99999".to_owned()), 4, 14), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
                 (RightParen, 4, 43),                                       // end expression block
                 (Semicolon, 4, 44),                                        // finish execution
-                (Identifier(Exit), 5, 3),                                 // lookup keyword exit
+                (Identifier(Exit), 5, 3),                                  // lookup keyword exit
                 (LeftParen, 5, 7),         // start parameter expression block
                 (Number(0), 5, 8),         // call exit with 0
                 (RightParen, 5, 9),        // end expression block
-                (Semicolon, 5, 10),         // finish execution
+                (Semicolon, 5, 10),        // finish execution
                 (RightCurlyBracket, 6, 1), // finish expression block
                 (Identifier(Undefined("j".to_owned())), 8, 1), // lookup j
                 (Equal, 8, 3),             // assign to j
@@ -966,15 +967,15 @@ exit(1);
                 (Number(8), 9, 8),         // 8
                 (Semicolon, 9, 9),         // finish execution
                 (Identifier(Undefined("display".to_owned())), 10, 1), // lookup display
-                (LeftParen, 10, 8),       // start parameter expression block
+                (LeftParen, 10, 8),        // start parameter expression block
                 (Identifier(Undefined("j".to_owned())), 10, 9), // resolve j primitive
                 (RightParen, 10, 10),      // finish parameter expression block
                 (Semicolon, 10, 11),       // finish execution
                 (Identifier(Exit), 11, 1), // lookup keyword exit
-                (LeftParen, 11, 5),       // start parameter expression block
-                (Number(1), 11, 6),       // call exit with 1
-                (RightParen, 11, 7),      // finish parameter expression block
-                (Semicolon, 11, 8)        // finish execution
+                (LeftParen, 11, 5),        // start parameter expression block
+                (Number(1), 11, 6),        // call exit with 1
+                (RightParen, 11, 7),       // finish parameter expression block
+                (Semicolon, 11, 8)         // finish execution
             ]
         );
     }
