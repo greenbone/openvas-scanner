@@ -69,7 +69,7 @@ impl Operation {
             | Category::DoublePoint
             | Category::PercentEqual
             | Category::MinusMinus => Some(Operation::Assign(token.category().clone())),
-            Category::String(_) | Category::Number(_) | Category::IPv4Address => Some(Operation::Primitive),
+            Category::String(_) | Category::Number(_) | Category::IPv4Address(_) => Some(Operation::Primitive),
             Category::LeftParen
             | Category::LeftBrace
             | Category::LeftCurlyBracket
