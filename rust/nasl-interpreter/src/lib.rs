@@ -1,4 +1,4 @@
-//! Is a crate to use Statements from nasl-syntax and execute them.
+//! Is a crate to use Stataments from nasl-syntax and execute them.
 #![warn(missing_docs)]
 use built_in_functions::description;
 mod error;
@@ -32,4 +32,3 @@ impl From<SinkError> for InterpretError {
         InterpretError::new(format!("An error occurred while using a sink: {}", se))
     }
 }
-
