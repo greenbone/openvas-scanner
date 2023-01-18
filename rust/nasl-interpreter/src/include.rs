@@ -5,11 +5,11 @@ use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, Na
 
 /// Is a trait to declare include functionality
 pub(crate) trait IncludeExtension {
-    fn include(&mut self, name: Statement) -> InterpretResult;
+    fn include(&mut self, name: &Statement) -> InterpretResult;
 }
 
 impl<'a> IncludeExtension for Interpreter<'a> {
-    fn include(&mut self, name: Statement) -> InterpretResult {
+    fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name)? {
             NaslValue::String(key) => {
                 let code = self.loader.load(&key)?;
@@ -17,7 +17,7 @@ impl<'a> IncludeExtension for Interpreter<'a> {
                 let mut inter = Interpreter::new(self.key, &storage, self.loader, self.registrat);
                 let result = parse(&code)
                     .map(|parsed| match parsed {
-                        Ok(stmt) => inter.resolve(stmt),
+                        Ok(stmt) => inter.resolve(&stmt),
                         Err(err) => Err(InterpretError::from(err)),
                     })
                     .find(|e| e.is_err());
@@ -73,7 +73,7 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let mut interpreter = Interpreter::new("1", &storage, loader, &mut register);
-        let mut interpreter = parse(code).map(|x| interpreter.resolve(x.expect("expected")));
+        let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(

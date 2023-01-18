@@ -8,44 +8,44 @@ use crate::{
 pub(crate) trait DeclareFunctionExtension {
     fn declare_function(
         &mut self,
-        name: Token,
-        arguments: Vec<Statement>,
-        execution: Box<Statement>,
+        name: &Token,
+        arguments: &[Statement],
+        execution: &Statement,
     ) -> InterpretResult;
 }
 
 impl<'a> DeclareFunctionExtension for Interpreter<'a> {
     fn declare_function(
         &mut self,
-        name: Token,
-        arguments: Vec<Statement>,
-        execution: Box<Statement>,
+        name: &Token,
+        arguments: &[Statement],
+        execution: &Statement,
     ) -> InterpretResult {
-        let name = &Self::identifier(&name)?;
+        let name = &Self::identifier(name)?;
         let mut names = vec![];
         for a in arguments {
             match a {
                 Statement::Variable(token) => {
-                    let param_name = &Self::identifier(&token)?;
+                    let param_name = &Self::identifier(token)?;
                     names.push(param_name.to_owned());
                 }
                 _ => {
-                    return Err(InterpretError::unsupported(&a, "parameter"))
+                    return Err(InterpretError::unsupported(a, "parameter"))
                 }
             }
         }
         self.registrat
-            .add_global(name, ContextType::Function(names, *execution));
+            .add_global(name, ContextType::Function(names, execution.clone()));
         Ok(NaslValue::Null)
     }
 }
 
 pub(crate) trait DeclareVariableExtension {
-    fn declare_variable(&mut self, scope: DeclareScope, stmts: Vec<Statement>) -> InterpretResult;
+    fn declare_variable(&mut self, scope: &DeclareScope, stmts: &[Statement]) -> InterpretResult;
 }
 
 impl<'a> DeclareVariableExtension for Interpreter<'a> {
-    fn declare_variable(&mut self, scope: DeclareScope, stmts: Vec<Statement>) -> InterpretResult {
+    fn declare_variable(&mut self, scope: &DeclareScope, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
             match scope {
@@ -90,7 +90,7 @@ mod tests {
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser = parse(code).map(|x| 
-            interpreter.resolve(x.expect("unexpected parse error"))
+            interpreter.resolve(&x.expect("unexpected parse error"))
         );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
@@ -109,7 +109,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| interpreter.resolve(x.expect("unexpected parse error")));
+        let mut parser = parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
     }

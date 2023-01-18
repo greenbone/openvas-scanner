@@ -32,7 +32,7 @@ impl InterpretError {
 
     pub fn from_statement(stmt: &Statement, reason: String) -> Self {
         let (line, col) = stmt.as_token().map(|x| x.position).unwrap_or_default();
-        return InterpretError { reason, line, col };
+        InterpretError { reason, line, col }
     }
 
     pub fn internal_error(stmt: &Statement, dspl: &dyn Display) -> Self {
