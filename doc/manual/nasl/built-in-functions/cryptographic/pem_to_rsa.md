@@ -8,7 +8,7 @@
 
 *str* **pem_to_rsa**(priv: str, passphrase: str);
 
-**pem_to_rsa** - reads the private key in pem format to return the `d` parameter of the RSA key.
+**pem_to_rsa** reads the private key in pem format to return the `d` parameter of the RSA key.
 
 ## DESCRIPTION
 

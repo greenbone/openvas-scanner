@@ -8,7 +8,7 @@
 
 *str* **bf_cbc_encrypt**(key:str, iv: str, data: str);
 
-**bf_cbc_encrypt** - encrypts given data with blowfish CBC mode.
+**bf_cbc_encrypt** encrypts given data with blowfish CBC mode.
 
 ## DESCRIPTION
 Encrypt the given data using the blowfish algorithm in CBC mode.

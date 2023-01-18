@@ -8,7 +8,7 @@
 
 *int* **unixtime**();
 
-**unixtime** - returns the unix time (number of seconds since 1970-01-01).
+**unixtime** returns the unix time (number of seconds since 1970-01-01).
 
 ## DESCRIPTION
 

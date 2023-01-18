@@ -8,7 +8,7 @@
 
 *str* **aes128_gcm_encrypt**(key:str, iv: str, data: str);
 
-**aes128_gcm_encrypt** - encrypts given data with AES 128 GCM mode.
+**aes128_gcm_encrypt** encrypts given data with AES 128 GCM mode.
 
 ## DESCRIPTION
 Encrypt the given data using the AES 128 bit algorithm in GCM mode.

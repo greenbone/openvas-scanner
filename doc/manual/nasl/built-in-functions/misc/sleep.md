@@ -8,7 +8,7 @@
 
 *void* **sleep**(int);
 
-**sleep** - takes an integer and sleeps the amount of seconds
+**sleep** takes an integer and sleeps the amount of seconds
 
 ## DESCRIPTION
 

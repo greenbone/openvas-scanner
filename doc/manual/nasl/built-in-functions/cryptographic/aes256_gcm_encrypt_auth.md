@@ -8,7 +8,7 @@
 
 *str* **aes256_gcm_encrypt_auth**(key:str, iv: str, data: str, aad: str);
 
-**aes256_gcm_encrypt_auth** - encrypts given data including a authentication token with AES 256 GCM mode.
+**aes256_gcm_encrypt_auth** encrypts given data including a authentication token with AES 256 GCM mode.
 
 ## DESCRIPTION
 Encrypt the given data using the AES 256 bit algorithm in GCM mode including an authentication token given via aad.

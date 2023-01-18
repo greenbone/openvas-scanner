@@ -8,14 +8,16 @@
 
 *str* **gunzip**(data: str);
 
-**gunzip** - decompress given data.
+**gunzip** takes 1 named argument.
 
 ## DESCRIPTION
 
 Decompresses given data.
+
 ## Returns
 
 Decompressed data.
+
 ## EXAMPLES
 
 ```cpp

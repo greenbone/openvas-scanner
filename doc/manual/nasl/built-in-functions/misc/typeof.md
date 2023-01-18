@@ -8,7 +8,7 @@
 
 *str* **typeof**(any);
 
-**typeof** - returns the type of given unnamed argument.
+**typeof** returns the type of given unnamed argument.
 
 ## DESCRIPTION
 

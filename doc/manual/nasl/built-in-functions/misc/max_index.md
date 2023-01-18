@@ -8,7 +8,7 @@
 
 *int* **max_index**(arr|dict);
 
-**max_index** - takes an array or dict and returns it length.
+**max_index** takes an array or dict and returns it length.
 
 ## DESCRIPTION
 

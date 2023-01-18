@@ -8,7 +8,7 @@
 
 _str_ **open_rc4_cipher**(key:str, iv: str);
 
-**open_rc4_cipher** - opens an rc4 encryption handler for data stream encryptions.
+**open_rc4_cipher** opens an rc4 encryption handler for data stream encryptions.
 
 ## DESCRIPTION
 

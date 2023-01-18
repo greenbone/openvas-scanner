@@ -2,13 +2,13 @@
 
 ## NAME
 
-**get_byte_order** - returns 1 on little-endian, 0 bid-endian
+**get_byte_order** - get byte order of host system
 
 ## SYNOPSIS
 
 *bool* **get_byte_order**();
 
-**get_byte_order** - returns 1 on little-endian, 0 bid-endian
+**get_byte_order** takes no arguments
 
 ## DESCRIPTION
 

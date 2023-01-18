@@ -2,13 +2,13 @@
 
 ## NAME
 
-**gzip** - compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
+**gzip** - compress given data with gzip
 
 ## SYNOPSIS
 
-*str* **gzip**(str, headformat: str);
+*string* **gzip**(*string*, headformat: *string*);
 
-**gzip** - compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
+**gzip** takes 1 positional and 1 named argument.
 
 ## DESCRIPTION
 

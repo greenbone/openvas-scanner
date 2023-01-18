@@ -8,7 +8,7 @@
 
 *str* **aes128_ccm_encrypt_auth**(key:str, iv: str, data: str, aad: str);
 
-**aes128_ccm_encrypt_auth** - encrypts given data including a authentication token with AES 128 CCM mode.
+**aes128_ccm_encrypt_auth** encrypts given data including a authentication token with AES 128 CCM mode.
 
 ## DESCRIPTION
 Encrypt the given data using the AES 128 bit algorithm in CCM mode including an authentication token given via aad.

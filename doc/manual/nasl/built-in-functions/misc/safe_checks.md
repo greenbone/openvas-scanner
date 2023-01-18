@@ -8,7 +8,7 @@
 
 *bool* **safe_checks**();
 
-**safe_checks** - takes no argument and returns the boolean value of the “safe checks” option.
+**safe_checks** takes no argument and returns the boolean value of the “safe checks” option.
 
 ## DESCRIPTION
 

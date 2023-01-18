@@ -8,13 +8,14 @@
 
 *str* **dec2str**(num: int);
 
-**dec2str** - converts given num as str
+**dec2str** takes 1 named argument.
 
 ## DESCRIPTION
 
 Converts a given number `num` to string.
 
 ## Returns
+
 A string represenation of the given number.
 
 ## EXAMPLES

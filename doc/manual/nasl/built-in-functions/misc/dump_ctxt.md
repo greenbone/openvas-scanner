@@ -2,13 +2,13 @@
 
 ## NAME
 
-**dump_ctxt** - is a debug function to print the keys available within the called context. It does not take any nor returns any arguments.
+**dump_ctxt** - debug function to print the keys available within the called context
 
 ## SYNOPSIS
 
 *nil* **dump_ctxt**();
 
-**dump_ctxt** - is a debug function to print the keys available within the called context. It does not take any nor returns any arguments.
+**dump_ctxt** takes no arguments.
 
 ## DESCRIPTION
 

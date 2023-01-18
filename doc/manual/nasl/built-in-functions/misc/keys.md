@@ -6,9 +6,9 @@
 
 ## SYNOPSIS
 
-*arr* **keys**(dict);
+*array* **keys**(*array*);
 
-**keys** - returns an array with the keys of a dict
+**keys** takes 1 positional argument.
 
 ## DESCRIPTION
 

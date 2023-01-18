@@ -2,18 +2,17 @@
 
 ## NAME
 
-**exit** - ends the script with the given result code.
+**exit** - ends the script with the given result code
 
 ## SYNOPSIS
 
-*void* **exit**(int);
+*void* **exit**(0: *int*);
 
-**exit** - ends the script with the given result code.
+**exit** takes one positional argument.
 
 ## DESCRIPTION
 
 exit ends the script with the given result code.
-
 
 ## EXAMPLES
 

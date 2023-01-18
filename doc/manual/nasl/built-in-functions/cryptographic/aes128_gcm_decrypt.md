@@ -8,7 +8,7 @@
 
 *str* **aes128_gcm_decrypt**(key:str, iv: str, data: str, len: int);
 
-**aes128_gcm_decrypt** - decrypts given data with AES 128 GCM mode.
+**aes128_gcm_decrypt** decrypts given data with AES 128 GCM mode.
 
 ## DESCRIPTION
 decrypt the given data using the AES 128 bit algorithm in GCM mode.

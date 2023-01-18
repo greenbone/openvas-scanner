@@ -2,7 +2,7 @@
 
 ## NAME
 
-**TARGET_IS_IPV6** - 
+**TARGET_IS_IPV6** - check if the currently scanned target is an IPv6 address
 
 ## SYNOPSIS
 

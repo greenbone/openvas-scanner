@@ -2,7 +2,8 @@
 
 ## NAME
 
-**RIPEMD160** - takes a unnamed paramaeter and return RIPEMD160 hash.
+**RIPEMD160** - takes a unnamed paramaeter and return RIPEMD160 hash
+
 ## SYNOPSIS
 
 *str* **RIPEMD160**(str);

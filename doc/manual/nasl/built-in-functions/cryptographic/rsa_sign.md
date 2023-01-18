@@ -8,7 +8,7 @@
 
 *str* **rsa_sign**(data: str, priv: str, passphrase: str);
 
-**rsa_sign** - signs data with the given private RSA key.
+**rsa_sign** signs data with the given private RSA key.
 
 ## DESCRIPTION
 

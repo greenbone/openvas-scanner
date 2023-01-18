@@ -8,7 +8,7 @@
 
 *str* **close_stream_cipher**(hd: int);
 
-**close_stream_cipher** - closes a stream cipher.
+**close_stream_cipher** closes a stream cipher.
 
 ## DESCRIPTION
 Closes a stream cipher.

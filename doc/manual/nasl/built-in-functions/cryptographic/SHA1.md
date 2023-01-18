@@ -2,7 +2,8 @@
 
 ## NAME
 
-**SHA1** - takes a unnamed paramaeter and return SHA1 hash.
+**SHA1** - takes a unnamed paramaeter and return SHA1 hash
+
 ## SYNOPSIS
 
 *str* **SHA1**(str);

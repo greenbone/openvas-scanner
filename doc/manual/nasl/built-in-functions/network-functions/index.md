@@ -17,7 +17,7 @@ In case of error, all those functions returns a value that can be interpreted as
 - **[get_port_state](get_port_state.md)** - get a port state
 - **[get_port_transport](get_port_transport.md)** - Get the encapsulation used for the given port, if it was previously stored in the kb.
 - **[get_source_port](get_source_port.md)** - get port of a opened socket
-
+- **[get_tcp_port_state](get_tcp_port_state.md)** - Get a port state
 - **[get_udp_port_state](get_udp_port_state.md)** - get a udp port state.
 - **[islocalhost](islocalhost.md)** - Check if the  target host is the same as the attacking host
 - **[islocalnet](islocalnet.md)** - Check if the target host is on the same network as the attacking host

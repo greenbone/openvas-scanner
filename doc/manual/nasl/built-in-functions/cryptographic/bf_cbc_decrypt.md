@@ -8,7 +8,7 @@
 
 *str* **bf_cbc_decrypt**(key:str, iv: str, data: str);
 
-**bf_cbc_decrypt** - decrypts given data with blowfish CBC mode.
+**bf_cbc_decrypt** decrypts given data with blowfish CBC mode.
 
 ## DESCRIPTION
 decrypt the given data using the blowfish algorithm in CBC mode.

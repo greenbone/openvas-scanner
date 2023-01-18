@@ -8,7 +8,7 @@
 
 *void* **usleep**(int);
 
-**usleep** - takes an integer and sleeps the amount of microseconds
+**usleep** takes an integer and sleeps the amount of microseconds
 
 ## DESCRIPTION
 

@@ -8,7 +8,7 @@
 
 *str* **aes128_cbc_encrypt**(key:str, iv: str, data: str);
 
-**aes128_cbc_encrypt** - encrypts given data with AES 128 CBC mode.
+**aes128_cbc_encrypt** encrypts given data with AES 128 CBC mode.
 
 ## DESCRIPTION
 Encrypt the given data using the AES 128 bit algorithm in CBC mode.

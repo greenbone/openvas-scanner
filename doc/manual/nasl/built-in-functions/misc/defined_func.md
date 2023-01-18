@@ -2,13 +2,13 @@
 
 ## NAME
 
-**defined_func** - takes a unnamed string parameter as a function name to figure out if it is defined.
+**defined_func** - check if a given function is defined
 
 ## SYNOPSIS
 
-*bool* **defined_func**(str);
+*bool* **defined_func**(0: *string*);
 
-**defined_func** - takes a unnamed string parameter as a function name to figure out if it is defined.
+**defined_func** takes 1 positional argument.
 
 ## DESCRIPTION
 
