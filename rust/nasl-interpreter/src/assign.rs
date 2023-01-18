@@ -12,10 +12,10 @@ pub(crate) trait AssignExtension {
     /// Assigns a right value to a left value and returns either previous or new value based on the order
     fn assign(
         &mut self,
-        category: TokenCategory,
-        order: AssignOrder,
-        left: Statement,
-        right: Statement,
+        category: &TokenCategory,
+        order: &AssignOrder,
+        left: &Statement,
+        right: &Statement,
     ) -> InterpretResult;
 }
 
@@ -191,18 +191,18 @@ impl<'a> Interpreter<'a> {
 impl<'a> AssignExtension for Interpreter<'a> {
     fn assign(
         &mut self,
-        category: TokenCategory,
-        order: AssignOrder,
-        left: Statement,
-        right: Statement,
+        category: &TokenCategory,
+        order: &AssignOrder,
+        left: &Statement,
+        right: &Statement,
     ) -> InterpretResult {
         let (key, lookup) = {
             match left {
                 Variable(ref token) => (Self::identifier(token)?, None),
                 Array(ref token, Some(stmt)) => {
-                    (Self::identifier(token)?, Some(self.resolve(*stmt)?))
+                    (Self::identifier(token)?, Some(self.resolve(stmt)?))
                 }
-                _ => return Err(InterpretError::unsupported(&left, "assign left")),
+                _ => return Err(InterpretError::unsupported(left, "assign left")),
             }
         };
         let val = self.resolve(right)?;
@@ -239,10 +239,10 @@ impl<'a> AssignExtension for Interpreter<'a> {
             TokenCategory::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) % i64::from(right))
             }),
-            TokenCategory::PlusPlus => self.without_right(&order, &key, lookup, |left, _| {
+            TokenCategory::PlusPlus => self.without_right(order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) + 1)
             }),
-            TokenCategory::MinusMinus => self.without_right(&order, &key, lookup, |left, _| {
+            TokenCategory::MinusMinus => self.without_right(order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) - 1)
             }),
 
@@ -285,7 +285,7 @@ mod tests {
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(25))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(23))));
@@ -320,7 +320,7 @@ mod tests {
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(25))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(23))));
@@ -344,7 +344,7 @@ mod tests {
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(
             parser.next(),
@@ -369,7 +369,7 @@ mod tests {
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
@@ -395,7 +395,7 @@ mod tests {
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(
             parser.next(),

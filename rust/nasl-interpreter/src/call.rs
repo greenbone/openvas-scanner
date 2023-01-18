@@ -8,23 +8,23 @@ use std::collections::HashMap;
 
 /// Is a trait to handle function calls within nasl.
 pub(crate) trait CallExtension {
-    fn call(&mut self, name: Token, arguments: Box<Statement>) -> InterpretResult;
+    fn call(&mut self, name: &Token, arguments: &Statement) -> InterpretResult;
 }
 
 impl<'a> CallExtension for Interpreter<'a> {
     #[inline(always)]
-    fn call(&mut self, name: Token, arguments: Box<Statement>) -> InterpretResult {
-        let name = &Self::identifier(&name)?;
+    fn call(&mut self, name: &Token, arguments: &Statement) -> InterpretResult {
+        let name = &Self::identifier(name)?;
         // get the context
         let mut named = HashMap::new();
         let mut position = vec![];
-        match *arguments {
+        match arguments {
             Parameter(params) => {
                 for p in params {
                     match p {
                         NamedParameter(token, val) => {
-                            let val = self.resolve(*val)?;
-                            let name = Self::identifier(&token)?;
+                            let val = self.resolve(val)?;
+                            let name = Self::identifier(token)?;
                             named.insert(name, ContextType::Value(val));
                         }
                         val => {
@@ -74,7 +74,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                                 Some(_) => {}
                             }
                         }
-                        match self.resolve(stmt)? {
+                        match self.resolve(&stmt)? {
                             NaslValue::Return(x) => Ok(*x),
                             a => Ok(a),
                         }
@@ -111,7 +111,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| interpreter.resolve(x.expect("unexpected parse error")));
+        let mut parser = parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));

@@ -149,52 +149,52 @@ impl<'a> Interpreter<'a> {
     }
 
     /// Interprets a Statement
-    pub fn resolve(&mut self, statement: Statement) -> InterpretResult {
+    pub fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         match statement {
             Array(name, position) => {
-                let name = &Self::identifier(&name)?;
+                let name = &Self::identifier(name)?;
                 let val = self.registrat.named(name).unwrap_or(&ContextType::Value(NaslValue::Null));
                 let val = val.clone();
 
                 match (position, val) {
                     (None, ContextType::Value(v)) => Ok(v),
                     (Some(p), ContextType::Value(NaslValue::Array(x))) => {
-                        let position = self.resolve(*p)?;
+                        let position = self.resolve(p)?;
                         let position = i64::from(&position) as usize;
                         let result = x.get(position).unwrap_or(&NaslValue::Null);
                         Ok(result.clone())
                     }
                     (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
-                        let position = self.resolve(*p)?.to_string();
+                        let position = self.resolve(p)?.to_string();
                         let result = x.get(&position).unwrap_or(&NaslValue::Null);
                         Ok(result.clone())
                     }
                     (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
-                    (Some(p), _) => Err(InterpretError::unsupported(&p, "array")),
+                    (Some(p), _) => Err(InterpretError::unsupported(p, "array")),
                     (_, _) => Err(InterpretError::new(format!("{} is not resolvable.", name))),
                 }
             }
             Exit(stmt) => {
-                let rc = self.resolve(*stmt)?;
+                let rc = self.resolve(stmt)?;
                 match rc {
                     NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
                     _ => Err(InterpretError::new("expected numeric value".to_string())),
                 }
             }
             Return(stmt) => {
-                let rc = self.resolve(*stmt)?;
+                let rc = self.resolve(stmt)?;
                 Ok(NaslValue::Return(Box::new(rc)))
             }
-            Include(inc) => self.include(*inc),
+            Include(inc) => self.include(inc),
             NamedParameter(_, _) => todo!(),
             For(_, _, _, _) => Ok(NaslValue::Null),
             While(_, _) => todo!(),
             Repeat(_, _) => todo!(),
             ForEach(_, _, _) => todo!(),
             FunctionDeclaration(name, args, exec) => self.declare_function(name, args, exec),
-            Primitive(token) => TryFrom::try_from(&token),
+            Primitive(token) => TryFrom::try_from(token),
             Variable(token) => {
-                let name: NaslValue = TryFrom::try_from(&token)?;
+                let name: NaslValue = TryFrom::try_from(token)?;
                 match self.registrat.named(&name.to_string()).ok_or_else(|| {
                     InterpretError::new(format!("variable {} not found", name.to_string()))
                 })? {
@@ -213,14 +213,14 @@ impl<'a> Interpreter<'a> {
                 }
                 Ok(NaslValue::Array(result))
             }
-            Assign(cat, order, left, right) => self.assign(cat, order, *left, *right),
+            Assign(cat, order, left, right) => self.assign(cat, order, left, right),
             Operator(sign, stmts) => self.operator(sign, stmts),
-            If(condition, if_block, else_block) => match self.resolve(*condition) {
+            If(condition, if_block, else_block) => match self.resolve(condition) {
                 Ok(value) => {
                     if bool::from(value) {
-                        return self.resolve(*if_block);
+                        return self.resolve(if_block);
                     } else if else_block.is_some() {
-                        return self.resolve(*else_block.unwrap());
+                        return self.resolve(else_block.as_ref().unwrap());
                     }
                     Ok(NaslValue::Null)
                 }
@@ -239,7 +239,7 @@ impl<'a> Interpreter<'a> {
             }
             NoOp(_) => Ok(NaslValue::Null),
             EoF => todo!(),
-            AttackCategory(cat) => Ok(NaslValue::AttackCategory(cat)),
+            AttackCategory(cat) => Ok(NaslValue::AttackCategory(*cat)),
         }
     }
 

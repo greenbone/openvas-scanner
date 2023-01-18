@@ -64,7 +64,7 @@ pub fn interpret<'a>(
     let mut interpreter = Interpreter::new(key, storage, &loader, &mut register);
     let result = parse(code)
         .map(|stmt| match stmt {
-            Ok(stmt) => interpreter.resolve(stmt),
+            Ok(stmt) => interpreter.resolve(&stmt),
             Err(r) => Err(InterpretError::from(r)),
         })
         .last()
