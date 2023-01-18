@@ -9,9 +9,3 @@
 *NULL* **plugin_run_synscan**();
 
 **plugin_run_synscan** takes no arguments.
-
-## DESCRIPTION
-
-## RETURN VALUE
-
-## ERROR

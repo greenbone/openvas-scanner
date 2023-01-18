@@ -47,4 +47,4 @@ When either the given socket is not valid or when it was not possible to get the
 
 ## SEE ALSO
 
-**[open_sock_tcp](../network/open_sock_tcp.md)**, **[get_sock_info](get_sock_info.md)**
+**[open_sock_tcp(3)](../network/open_sock_tcp.md)**
