@@ -1,16 +1,31 @@
+use nasl_interpreter::{LoadError, Loader};
+
+#[derive(Default)]
+pub struct NoOpLoader {}
+
+/// Is a no operation loader for test purposes.
+impl Loader for NoOpLoader {
+    fn load(&self, _: &str) -> Result<String, LoadError> {
+        Ok(String::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::NaslValue;
-    use nasl_interpreter::{interpret, Mode};
+    use nasl_interpreter::{ContextType, InterpretError, NaslValue};
+    use nasl_interpreter::{Interpreter, Register};
 
-    use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
+    use nasl_syntax::parse;
     use sink::nvt::NvtRef;
-    use sink::Sink;
-    use sink::Dispatch::NVT;
     use sink::nvt::TagKey::*;
     use sink::nvt::ACT::*;
+    use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
     use sink::DefaultSink;
+    use sink::Dispatch::NVT;
+    use sink::Sink;
+
+    use crate::NoOpLoader;
 
     #[test]
     fn description() {
@@ -39,10 +54,33 @@ if(description)
 }
         "###;
         let storage = DefaultSink::new(true);
-        let results = interpret(&storage, Mode::Description("test.nasl"), code);
+        let loader = NoOpLoader::default();
+        let key = "test.nasl";
+        let initial = vec![(
+            "description".to_owned(),
+            ContextType::Value(NaslValue::Number(1)),
+        )];
+        storage
+            .dispatch(
+                key,
+                sink::Dispatch::NVT(sink::nvt::NVTField::FileName(key.to_owned())),
+            )
+            .expect("storage should work");
+        let mut register = Register::root_initial(initial);
+        let mut interpreter = Interpreter::new(key, &storage, &loader, &mut register);
+        let results = parse(code)
+            .map(|stmt| match stmt {
+                Ok(stmt) => interpreter.resolve(&stmt),
+                Err(r) => Err(InterpretError::from(r)),
+            })
+            .last()
+            // for the case of NaslValue that returns nothing
+            .unwrap_or(Ok(NaslValue::Exit(0)));
         assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
-            &storage.retrieve("test.nasl", sink::Retrieve::NVT(None)).unwrap(),
+            &storage
+                .retrieve("test.nasl", sink::Retrieve::NVT(None))
+                .unwrap(),
             &vec![
                 NVT(FileName("test.nasl".to_owned())),
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),

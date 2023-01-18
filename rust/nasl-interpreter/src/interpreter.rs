@@ -107,7 +107,9 @@ impl TryFrom<&Token> for NaslValue {
 
     fn try_from(token: &Token) -> Result<Self, Self::Error> {
         match token.category() {
-            TokenCategory::String(category) | TokenCategory::IPv4Address(category)=> Ok(NaslValue::String(category.clone())),
+            TokenCategory::String(category) | TokenCategory::IPv4Address(category) => {
+                Ok(NaslValue::String(category.clone()))
+            }
             TokenCategory::Identifier(IdentifierType::Undefined(id)) => {
                 Ok(NaslValue::String(id.clone()))
             }
@@ -115,7 +117,10 @@ impl TryFrom<&Token> for NaslValue {
             TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
             TokenCategory::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
             TokenCategory::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
-            _ => Err(InterpretError::new(format!("{} is not a primitive.", token.category()))),
+            _ => Err(InterpretError::new(format!(
+                "{} is not a primitive.",
+                token.category()
+            ))),
         }
     }
 }
@@ -144,7 +149,10 @@ impl<'a> Interpreter<'a> {
     pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
         match token.category() {
             TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.clone()),
-            _ => Err(InterpretError::new(format!("{} is not a primitive.", token.category()))),
+            _ => Err(InterpretError::new(format!(
+                "{} is not a primitive.",
+                token.category()
+            ))),
         }
     }
 
@@ -153,7 +161,10 @@ impl<'a> Interpreter<'a> {
         match statement {
             Array(name, position) => {
                 let name = &Self::identifier(name)?;
-                let val = self.registrat.named(name).unwrap_or(&ContextType::Value(NaslValue::Null));
+                let val = self
+                    .registrat
+                    .named(name)
+                    .unwrap_or(&ContextType::Value(NaslValue::Null));
                 let val = val.clone();
 
                 match (position, val) {
@@ -241,9 +252,16 @@ impl<'a> Interpreter<'a> {
             EoF => todo!(),
             AttackCategory(cat) => Ok(NaslValue::AttackCategory(*cat)),
         }
+        .map_err(|e| {
+            if e.col == 0 && e.line == 0 {
+                InterpretError::from_statement(statement, e.reason)
+            } else {
+                e
+            }
+        })
     }
 
-    pub fn registrat(&self) -> &Register {
+    pub(crate) fn registrat(&self) -> &Register {
         self.registrat
     }
 }
