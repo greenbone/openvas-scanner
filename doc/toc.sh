@@ -27,7 +27,7 @@ make_tocs() {
                     break
                 fi
             done < $dir/index.md
-            printf "$file_content$toc" > $dir/index.md
+            printf "$file_content$toc\n" > $dir/index.md
         fi
     done
 }
