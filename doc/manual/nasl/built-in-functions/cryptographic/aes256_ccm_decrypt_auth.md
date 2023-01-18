@@ -8,7 +8,7 @@
 
 *str* **aes256_ccm_decrypt_auth**(key:str, iv: str, data: str, aad: str, len: int);
 
-**aes256_ccm_decrypt_auth** - decrypts given data including a authentication token with AES 256 CCM mode.
+**aes256_ccm_decrypt_auth** decrypts given data including a authentication token with AES 256 CCM mode.
 
 ## DESCRIPTION
 decrypt the given data using the AES 256 bit algorithm in CCM mode including an authentication token given via aad.

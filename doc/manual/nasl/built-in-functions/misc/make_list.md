@@ -8,7 +8,7 @@
 
 *arr* **make_list**(any, ...);
 
-**make_list** - takes any number of unnamed arguments and returns an array made from them.
+**make_list** takes any number of unnamed arguments and returns an array made from them.
 
 ## DESCRIPTION
 

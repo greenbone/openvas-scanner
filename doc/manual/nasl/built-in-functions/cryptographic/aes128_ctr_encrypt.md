@@ -8,7 +8,7 @@
 
 *str* **aes128_ctr_encrypt**(key:str, iv: str, data: str);
 
-**aes128_ctr_encrypt** - encrypts given data with AES 128 CTR mode.
+**aes128_ctr_encrypt** encrypts given data with AES 128 CTR mode.
 
 ## DESCRIPTION
 Encrypt the given data using the AES 128 bit algorithm in CTR mode.

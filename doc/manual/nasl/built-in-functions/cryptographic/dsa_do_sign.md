@@ -8,7 +8,7 @@
 
 *str* **dsa_do_sign**(p: str, g: str, q: str, pub: str, priv: str, data: str);
 
-**dsa_do_sign** - computes DSA signature.
+**dsa_do_sign** computes DSA signature.
 
 ## DESCRIPTION
 

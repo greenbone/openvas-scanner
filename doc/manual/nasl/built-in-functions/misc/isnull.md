@@ -2,13 +2,13 @@
 
 ## NAME
 
-**isnull** - returns true when the given unnamed argument is null.
+**isnull** - check if a given value is NULL
 
 ## SYNOPSIS
 
-*bool* **isnull**(any);
+*bool* **isnull**(*any*);
 
-**isnull** - returns true when the given unnamed argument is null.
+**isnull** takes 1 positional argument.
 
 ## DESCRIPTION
 Returns true when the given unnamed argument is null.

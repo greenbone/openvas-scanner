@@ -8,7 +8,7 @@
 
 *str* **rc4_encrypt**(data: str, hd: int, iv: str, key: str);
 
-**rc4_encrypt** - encrypts given data with blowfish CBC mode.
+**rc4_encrypt** encrypts given data with blowfish CBC mode.
 
 ## DESCRIPTION
 

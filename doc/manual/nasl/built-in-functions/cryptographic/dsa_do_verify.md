@@ -8,7 +8,7 @@
 
 *str* **dsa_do_verify**(p: str, g: str, q: str, pub: str, r: str, s: str, data: str);
 
-**dsa_do_verify** - verifies that the DSA signature matches the hash based on the public DSA key. Returns 1 if the signature is valid otherwise 0.
+**dsa_do_verify** verifies that the DSA signature matches the hash based on the public DSA key. Returns 1 if the signature is valid otherwise 0.
 
 ## DESCRIPTION
 

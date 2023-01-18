@@ -8,7 +8,7 @@
 
 *str* **aes128_ccm_decrypt**(key:str, iv: str, data: str, len: int);
 
-**aes128_ccm_decrypt** - decrypts given data with AES 128 CCM mode.
+**aes128_ccm_decrypt** decrypts given data with AES 128 CCM mode.
 
 ## DESCRIPTION
 decrypt the given data using the AES 128 bit algorithm in CCM mode.

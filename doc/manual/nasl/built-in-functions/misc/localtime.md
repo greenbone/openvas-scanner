@@ -6,9 +6,9 @@
 
 ## SYNOPSIS
 
-*str* **localtime**(str|int, utc: bool);
+*string* **localtime**(*any*, utc: *bool*);
 
-**localtime** - returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
+**localtime** takes 1 positional and 1 named argument.
 
 ## DESCRIPTION
 

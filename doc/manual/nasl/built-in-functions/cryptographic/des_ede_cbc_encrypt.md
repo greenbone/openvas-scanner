@@ -8,7 +8,7 @@
 
 *str* **des_ede_cbc_encrypt**(key:str, iv: str, data: str);
 
-**des_ede_cbc_encrypt** - encrypts given data with DES EDE CBC mode.
+**des_ede_cbc_encrypt** encrypts given data with DES EDE CBC mode.
 
 ## DESCRIPTION
 Encrypt the given data using the DES EDE algorithm in CBC mode.

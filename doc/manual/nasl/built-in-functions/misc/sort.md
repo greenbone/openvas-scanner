@@ -8,7 +8,7 @@
 
 *arr* **sort**(arr);
 
-**sort** - sorts the value of a dict/array. WARNING: drops the keys of a dict and returns an array.
+**sort** sorts the value of a dict/array. WARNING: drops the keys of a dict and returns an array.
 
 ## DESCRIPTION
 

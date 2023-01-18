@@ -12,4 +12,4 @@ Host functions are used to get, resolve, compare and add hosts to the vhosts lis
 - **[resolve_host_name](resolve_host_name.md)** - get an IP address corresponding to the host name
 - **[resolve_hostname_to_multiple_ips](resolve_hostname_to_multiple_ips.md)** - resolve a hostname to all found addresses
 - **[same_host](same_host.md)** - compare two hosts
-- **[TARGET_IS_IPV6](TARGET_IS_IPV6.md)** - 
+- **[TARGET_IS_IPV6](TARGET_IS_IPV6.md)** - check if the currently scanned target is an IPv6 address

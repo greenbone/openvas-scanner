@@ -8,7 +8,7 @@
 
 *int* **open_sock_kdc**();
 
-**open_sock_kdc** - takes no arguments.
+**open_sock_kdc** takes no arguments.
 
 ## DESCRIPTION
 

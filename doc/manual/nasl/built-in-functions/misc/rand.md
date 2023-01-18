@@ -8,7 +8,7 @@
 
 *int* **rand**();
 
-**rand** - returns a pseudo random number.
+**rand** returns a pseudo random number.
 
 ## DESCRIPTION
 

@@ -8,7 +8,7 @@
 
 *str* **aes256_ccm_encrypt**(key:str, iv: str, data: str);
 
-**aes256_ccm_encrypt** - encrypts given data with AES 256 CCM mode.
+**aes256_ccm_encrypt** encrypts given data with AES 256 CCM mode.
 
 ## DESCRIPTION
 Encrypt the given data using the AES 256 bit algorithm in CCM mode.

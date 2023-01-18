@@ -2,13 +2,13 @@
 
 ## NAME
 
-**gettimeofday** - returns the number of seconds and microseconds since 1970-01-01 as a string 'seconds.microseconds'.
+**gettimeofday** - get the number of seconds and microseconds since 1970-01-01
 
 ## SYNOPSIS
 
 *str* **gettimeofday**();
 
-**gettimeofday** - returns the number of seconds and microseconds since 1970-01-01 as a string 'seconds.microseconds'.
+**gettimeofday** takes no arguments
 
 ## DESCRIPTION
 

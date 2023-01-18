@@ -8,7 +8,7 @@
 
 *int* **mktime**(arr|dict);
 
-**mktime** - takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
+**mktime** takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
 
 ## DESCRIPTION
 

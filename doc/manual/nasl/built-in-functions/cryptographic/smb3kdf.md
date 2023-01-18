@@ -2,7 +2,8 @@
 
 ## NAME
 
-**smb3kdf** - is a key derivation function for SMB3.
+**smb3kdf** - is a key derivation function for SMB3
+
 ## SYNOPSIS
 
 *str* **smb3kdf**(key: str, label: str, ctx: str, lvalue: int);
