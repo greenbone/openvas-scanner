@@ -2,7 +2,7 @@
 //! NASL Sink defines technology independent sink traits, structs ..{w;
 
 pub mod nvt;
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, fmt::Display};
 
 use nvt::{NVTField, NVTKey};
 
@@ -41,6 +41,17 @@ pub enum SinkError {
     ///
     /// An example would be that there is no free db left on redis and that it needs to be cleaned up.
     Dirty(String),
+}
+
+impl Display for SinkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SinkError::Retry(p) => write!(f, "There was a temporary issue while reading {}.", p),
+            SinkError::ConnectionLost(p) => write!(f, "Connection lost {}.", p),
+            SinkError::UnexpectedData(p) => write!(f, "Unexpected data {}", p),
+            SinkError::Dirty(p) => write!(f, "Unexpected issue {}", p),
+        }
+    }
 }
 
 /// Defines the Sink interface to distribute Scope

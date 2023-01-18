@@ -18,15 +18,16 @@ impl<'a> Interpreter<'a> {
     ) -> InterpretResult {
         // operation on no values
         if stmts.is_empty() {
-            return Err(InterpretError {
-                reason: "".to_owned(),
-            });
+            return Err(InterpretError::new(
+                "Internal error: operation without statements is invalid.".to_string(),
+            ));
         }
         // operation on more than two values
         if stmts.len() > 2 {
-            return Err(InterpretError {
-                reason: "".to_owned(),
-            });
+            return Err(InterpretError::internal_error(
+                &stmts[0],
+                &"operation with more than two statements is invalid.".to_string(),
+            ));
         }
         let (left, right) = {
             let last = self.resolve(stmts.pop().unwrap())?;
@@ -75,9 +76,10 @@ fn match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult {
     let right = matches.map(|x| x.to_string()).unwrap_or_default();
     match Regex::new(&right) {
         Ok(c) => Ok(NaslValue::Boolean(c.is_match(&a.to_string()))),
-        Err(err) => Err(InterpretError {
-            reason: err.to_string(),
-        }),
+        Err(err) => Err(InterpretError::new(format!(
+            "{} is a invalid regex: {}.",
+            right, err
+        ))),
     }
 }
 
@@ -186,9 +188,10 @@ impl<'a> OperatorExtension for Interpreter<'a> {
             TokenCategory::X => {
                 // operation on more than two values
                 if stmts.len() != 2 {
-                    return Err(InterpretError {
-                        reason: "".to_owned(),
-                    });
+                    return Err(InterpretError::internal_error(
+                        &stmts[0],
+                        &format!("operation is invalid."),
+                    ));
                 }
                 let mut stmts = stmts;
                 let repeat = {
@@ -200,15 +203,16 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                     return Ok(NaslValue::Null);
                 }
                 let repeatable = stmts.pop().unwrap();
-                for _ in 1..repeat -1 {
+                for _ in 1..repeat - 1 {
                     self.resolve(repeatable.clone())?;
                 }
                 self.resolve(repeatable)
             }
 
-            _ => Err(InterpretError {
-                reason: format!("Unsupported operations {:?}", category),
-            }),
+            _ => Err(stmts
+                .get(0)
+                .map(|stmt| InterpretError::unsupported(stmt, "operation"))
+                .unwrap_or_else(|| InterpretError::new(format!("Internal error: missing stmts")))),
         }
     }
 }
@@ -218,7 +222,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{error::InterpretError, Interpreter, NaslValue};
+    use crate::{Interpreter, NaslValue};
     use crate::{NoOpLoader, Register};
 
     macro_rules! create_test {
@@ -231,12 +235,9 @@ mod tests {
                 let mut register = Register::default();
                 let loader = NoOpLoader::default();
                 let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-                let mut parser = parse($code).map(|x| match x {
-                    Ok(x) => interpreter.resolve(x),
-                    Err(x) => Err(InterpretError {
-                        reason: x.to_string(),
-                    }),
-                });
+                let mut parser = parse($code).map(|x|
+                    interpreter.resolve(x.expect("unexpected parse error"))
+                );
                 assert_eq!(parser.next(), Some(Ok($result)));
             }
         )*

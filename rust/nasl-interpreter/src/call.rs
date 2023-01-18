@@ -59,9 +59,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                 let found = self
                     .registrat
                     .named(name)
-                    .ok_or_else(|| InterpretError {
-                        reason: format!("function {} not found", name),
-                    })?
+                    .ok_or_else(|| InterpretError::new(format!("function {} not found", name)))?
                     .clone();
                 match found {
                     ContextType::Function(params, stmt) => {
@@ -81,9 +79,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                             a => Ok(a),
                         }
                     }
-                    _ => Err(InterpretError {
-                        reason: format!("unexpected ContextType: {:?}", found),
-                    }),
+                    ContextType::Value(stmt) => Err(InterpretError::new(format!("unable to call stored variable {:?}", stmt))),
                 }
             }
         };
@@ -98,7 +94,7 @@ mod tests {
     use sink::DefaultSink;
 
     use crate::{
-        context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
+        context::Register, loader::NoOpLoader, Interpreter, NaslValue,
     };
 
     #[test]
@@ -115,12 +111,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser = parse(code).map(|x| interpreter.resolve(x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));

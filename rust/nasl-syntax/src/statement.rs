@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::ACT;
 
 use crate::{unexpected_statement, SyntaxError, Token, TokenCategory};
@@ -146,6 +148,35 @@ impl Statement {
             Statement::NoOp(token) => token.as_ref(),
             Statement::EoF => None,
             Statement::AttackCategory(_) => None,
+        }
+    }
+}
+
+impl fmt::Display for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Statement::Primitive(_) => write!(f, "Primitive"),
+            Statement::AttackCategory(_) => write!(f, "AttackCategory"),
+            Statement::Variable(_) => write!(f, "Variable"),
+            Statement::Array(_, _) => write!(f, "Array"),
+            Statement::Call(_, _) => write!(f, "Call"),
+            Statement::Exit(_) => write!(f, "Exit"),
+            Statement::Return(_) => write!(f, "Return"),
+            Statement::Include(_) => write!(f, "Include"),
+            Statement::Declare(_, _) => write!(f, "Declare"),
+            Statement::Parameter(_) => write!(f, "Parameter"),
+            Statement::NamedParameter(_, _) => write!(f, "NamedParameter"),
+            Statement::Assign(_, _, _, _) => write!(f, "Assign"),
+            Statement::Operator(_, _) => write!(f, "Operator"),
+            Statement::If(_, _, _) => write!(f, "If"),
+            Statement::For(_, _, _, _) => write!(f, "For"),
+            Statement::While(_, _) => write!(f, "While"),
+            Statement::Repeat(_, _) => write!(f, "Repeat"),
+            Statement::ForEach(_, _, _) => write!(f, "ForEach"),
+            Statement::Block(_) => write!(f, "Block"),
+            Statement::FunctionDeclaration(_, _, _) => write!(f, "FunctionDeclaration"),
+            Statement::NoOp(_) => write!(f, "NoOp"),
+            Statement::EoF => write!(f, "EoF"),
         }
     }
 }

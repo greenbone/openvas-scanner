@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::ops::Range;
 
 use crate::ACT;
@@ -306,6 +307,71 @@ pub enum Category {
     UnknownSymbol,
 }
 
+impl Display for Category {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Category::LeftParen => write!(f, "LeftParen"),
+            Category::RightParen => write!(f, "RightParen"),
+            Category::LeftBrace => write!(f, "LeftBrace"),
+            Category::RightBrace => write!(f, "RightBrace"),
+            Category::LeftCurlyBracket => write!(f, "LeftCurlyBracket"),
+            Category::RightCurlyBracket => write!(f, "RightCurlyBracket"),
+            Category::Comma => write!(f, "Comma"),
+            Category::Dot => write!(f, "Dot"),
+            Category::Percent => write!(f, "Percent"),
+            Category::PercentEqual => write!(f, "PercentEqual"),
+            Category::Semicolon => write!(f, "Semicolon"),
+            Category::DoublePoint => write!(f, "DoublePoint"),
+            Category::Tilde => write!(f, "Tilde"),
+            Category::Caret => write!(f, "Caret"),
+            Category::Ampersand => write!(f, "Ampersand"),
+            Category::AmpersandAmpersand => write!(f, "AmpersandAmpersand"),
+            Category::Pipe => write!(f, "Pipe"),
+            Category::PipePipe => write!(f, "PipePipe"),
+            Category::Bang => write!(f, "Bang"),
+            Category::BangEqual => write!(f, "BangEqual"),
+            Category::BangTilde => write!(f, "BangTilde"),
+            Category::Equal => write!(f, "Equal"),
+            Category::EqualEqual => write!(f, "EqualEqual"),
+            Category::EqualTilde => write!(f, "EqualTilde"),
+            Category::Greater => write!(f, "Greater"),
+            Category::GreaterGreater => write!(f, "GreaterGreater"),
+            Category::GreaterEqual => write!(f, "GreaterEqual"),
+            Category::GreaterLess => write!(f, "GreaterLess"),
+            Category::Less => write!(f, "Less"),
+            Category::LessLess => write!(f, "LessLess"),
+            Category::LessEqual => write!(f, "LessEqual"),
+            Category::Minus => write!(f, "Minus"),
+            Category::MinusMinus => write!(f, "MinusMinus"),
+            Category::MinusEqual => write!(f, "MinusEqual"),
+            Category::Plus => write!(f, "Plus"),
+            Category::PlusEqual => write!(f, "PlusEqual"),
+            Category::PlusPlus => write!(f, "PlusPlus"),
+            Category::Slash => write!(f, "Slash"),
+            Category::SlashEqual => write!(f, "SlashEqual"),
+            Category::Star => write!(f, "Star"),
+            Category::StarStar => write!(f, "StarStar"),
+            Category::StarEqual => write!(f, "StarEqual"),
+            Category::GreaterGreaterGreater => write!(f, "GreaterGreaterGreater"),
+            Category::GreaterGreaterEqual => write!(f, "GreaterGreaterEqual"),
+            Category::LessLessEqual => write!(f, "LessLessEqual"),
+            Category::GreaterBangLess => write!(f, "GreaterBangLess"),
+            Category::GreaterGreaterGreaterEqual => write!(f, "GreaterGreaterGreaterEqual"),
+            Category::X => write!(f, "X"),
+            Category::String(_) => write!(f, "String"),
+            Category::Number(_) => write!(f, "Number"),
+            Category::IPv4Address(_) => write!(f, "IPv4Address"),
+            Category::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
+            Category::IllegalNumber(_) => write!(f, "IllegalNumber"),
+            Category::Comment => write!(f, "Comment"),
+            Category::Identifier(_) => write!(f, "Identifier"),
+            Category::Unclosed(_) => write!(f, "Unclosed"),
+            Category::UnknownBase => write!(f, "UnknownBase"),
+            Category::UnknownSymbol => write!(f, "UnknownSymbol"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the TokenType as well as the position in form of Range<usize>
 pub struct Token {
@@ -347,16 +413,6 @@ pub struct Tokenizer<'a> {
     // Is used to lookup keywords
     code: &'a str,
     cursor: Cursor<'a>,
-}
-
-// Is used to build Some(Token{ ... }) to make the match case within Iterator for Tokenizer easier to read
-macro_rules! token {
-    ($category:expr, $start:expr) => {
-        Some(Token {
-            category: $category,
-            position: $start,
-        })
-    };
 }
 
 impl<'a> Tokenizer<'a> {

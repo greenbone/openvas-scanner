@@ -34,10 +34,8 @@ pub enum Mode<'a> {
 }
 
 impl From<SinkError> for InterpretError {
-    fn from(_: SinkError) -> Self {
-        Self {
-            reason: "something horrible when on the DB".to_owned(),
-        }
+    fn from(se: SinkError) -> Self {
+        InterpretError::new(format!("An error occured while using a sink: {}", se))
     }
 }
 

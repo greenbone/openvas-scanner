@@ -107,13 +107,11 @@ impl Register {
         value: ContextType,
     ) -> Result<(), InterpretError> {
         if idx >= self.blocks.len() {
-            Err(InterpretError {
-                reason: format!(
-                    "{} is higher than available blocks ({})",
-                    idx,
-                    self.blocks.len()
-                ),
-            })
+            Err(InterpretError::new(format!(
+                "{} is higher than available blocks ({})",
+                idx,
+                self.blocks.len()
+            )))
         } else {
             let global = &mut self.blocks[idx];
             global.add_named(name, value);

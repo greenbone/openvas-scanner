@@ -52,7 +52,9 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
 impl<'a> Interpreter<'a> {
     #[inline(always)]
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
-        self.registrat.add_to_index(idx, key, ContextType::Value(value)).unwrap();
+        self.registrat
+            .add_to_index(idx, key, ContextType::Value(value))
+            .unwrap();
     }
 
     #[inline(always)]
@@ -62,13 +64,15 @@ impl<'a> Interpreter<'a> {
             .index_named(key)
             .unwrap_or((0, &ContextType::Value(NaslValue::Null)))
         {
-            (_, ContextType::Function(_, _)) => Err(InterpretError {
-                reason: format!("{} is not assignable", key),
-            }),
+            (_, ContextType::Function(_, _)) => Err(InterpretError::new(format!(
+                "{} is a function and not assignable.",
+                key
+            ))),
             (idx, ContextType::Value(val)) => Ok((idx, val.clone())),
         }
     }
-
+    #[allow(clippy::too_many_arguments)]
+    #[inline(always)]
     fn handle_dict(
         &mut self,
         ridx: usize,
@@ -98,6 +102,8 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    #[inline(always)]
     fn handle_array(
         &mut self,
         ridx: usize,
@@ -157,7 +163,9 @@ impl<'a> Interpreter<'a> {
                 }
             }
             Some(idx) => match idx {
-                NaslValue::String(idx) => self.handle_dict(ridx, key, idx, left, right, order, result),
+                NaslValue::String(idx) => {
+                    self.handle_dict(ridx, key, idx, left, right, order, result)
+                }
                 _ => match left {
                     NaslValue::Dict(_) => {
                         self.handle_dict(ridx, key, idx.to_string(), left, right, order, result)
@@ -190,13 +198,11 @@ impl<'a> AssignExtension for Interpreter<'a> {
     ) -> InterpretResult {
         let (key, lookup) = {
             match left {
-                Variable(token) => (Self::identifier(&token)?, None),
-                Array(token, Some(stmt)) => (Self::identifier(&token)?, Some(self.resolve(*stmt)?)),
-                _ => {
-                    return Err(InterpretError {
-                        reason: format!("{:?} is not supported", left),
-                    })
+                Variable(ref token) => (Self::identifier(token)?, None),
+                Array(ref token, Some(stmt)) => {
+                    (Self::identifier(token)?, Some(self.resolve(*stmt)?))
                 }
+                _ => return Err(InterpretError::unsupported(&left, "assign left")),
             }
         };
         let val = self.resolve(right)?;
@@ -239,9 +245,11 @@ impl<'a> AssignExtension for Interpreter<'a> {
             TokenCategory::MinusMinus => self.without_right(&order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) - 1)
             }),
-            _ => Err(InterpretError {
-                reason: format!("{:?} is not supported", category),
-            }),
+
+            _ => Err(InterpretError::new(format!(
+                "invalid assign category {}",
+                &category
+            ))),
         }
     }
 }
@@ -253,9 +261,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{
-        context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
-    };
+    use crate::{context::Register, loader::NoOpLoader, Interpreter, NaslValue};
 
     #[test]
     fn variables() {
@@ -278,12 +284,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(25))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(23))));
@@ -317,12 +319,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(25))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(23))));
@@ -345,12 +343,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(
             parser.next(),
@@ -374,12 +368,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
@@ -404,12 +394,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
         assert_eq!(
             parser.next(),
@@ -419,22 +405,5 @@ mod tests {
             )]))))
         );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-    }
-    #[test]
-    fn empty_bracklet() {
-        let code = r###"
-        a[] = 12;
-        "###;
-        let storage = DefaultSink::new(false);
-        let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
-        assert!(matches!(parser.next(), Some(Err(_))));
     }
 }

@@ -1,6 +1,6 @@
 //! This crate is used to load NASL code based on a name.
 
-use std::{path::Path, fs};
+use std::{fmt::Display, fs, path::Path};
 
 use crate::error::InterpretError;
 
@@ -17,9 +17,21 @@ pub enum LoadError {
     Dirty(String),
 }
 
+impl Display for LoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoadError::Retry(p) => write!(f, "There was a temporary issue while reading {}.", p),
+            LoadError::NotFound(p) => write!(f, "{} not found.", p),
+            LoadError::PermissionDenied(p) => write!(f, "Insufficient rights to read {}", p),
+            LoadError::Dirty(p) => write!(f, "Unexpected issue while trying to read {}", p),
+        }
+    }
+}
+
 impl From<LoadError> for InterpretError {
     fn from(le: LoadError) -> Self {
-        InterpretError { reason: format!("{:?}", le) }
+        let reason = format!("Error while loading a file: {}", le);
+        Self::new(reason)
     }
 }
 
@@ -43,7 +55,7 @@ impl Loader for NoOpLoader {
 ///
 /// When load is called with e.g. plugin_feed_info.inc than the FSPluginLoader
 /// expands `plugin_feed_info.inc` with the given root path.
-/// 
+///
 /// So when the root path is `/var/lib/openvas/plugins` than it will be extended to
 /// `/var/lib/openvas/plugins/plugin_feed_info.inc`.
 pub struct FSPluginLoader<'a> {
@@ -52,7 +64,7 @@ pub struct FSPluginLoader<'a> {
 
 impl<'a> FSPluginLoader<'a> {
     pub fn new(root: &'a Path) -> Self {
-        Self{ root }
+        Self { root }
     }
 }
 
@@ -66,7 +78,7 @@ impl<'a> Loader for FSPluginLoader<'a> {
             )));
         }
         // unfortunately NASL is not UTF-8 so we need to map it manually
-        let result= fs::read(path.clone()).map(|bs| bs.iter().map(|&b| b as char).collect());
+        let result = fs::read(path.clone()).map(|bs| bs.iter().map(|&b| b as char).collect());
         match result {
             Ok(result) => Ok(result),
             Err(err) => {
@@ -74,8 +86,12 @@ impl<'a> Loader for FSPluginLoader<'a> {
                 match err.kind() {
                     std::io::ErrorKind::NotFound => Err(LoadError::NotFound(pstr)),
                     std::io::ErrorKind::PermissionDenied => Err(LoadError::PermissionDenied(pstr)),
-                    std::io::ErrorKind::TimedOut => Err(LoadError::Retry(format!("{} timed out.", pstr))),
-                    std::io::ErrorKind::Interrupted => Err(LoadError::Retry(format!("{} interrupted.", pstr))),
+                    std::io::ErrorKind::TimedOut => {
+                        Err(LoadError::Retry(format!("{} timed out.", pstr)))
+                    }
+                    std::io::ErrorKind::Interrupted => {
+                        Err(LoadError::Retry(format!("{} interrupted.", pstr)))
+                    }
                     _ => Err(LoadError::Dirty(format!("{}: {:?}", pstr, err))),
                 }
             }

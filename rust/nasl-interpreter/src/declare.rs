@@ -30,9 +30,7 @@ impl<'a> DeclareFunctionExtension for Interpreter<'a> {
                     names.push(param_name.to_owned());
                 }
                 _ => {
-                    return Err(InterpretError {
-                        reason: "only variable supported".to_owned(),
-                    })
+                    return Err(InterpretError::unsupported(&a, "parameter"))
                 }
             }
         }
@@ -73,7 +71,7 @@ mod tests {
     use sink::DefaultSink;
 
     use crate::{
-        context::Register, error::InterpretError, loader::NoOpLoader, Interpreter, NaslValue,
+        context::Register, loader::NoOpLoader, Interpreter, NaslValue,
     };
 
     #[test]
@@ -91,12 +89,9 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser = parse(code).map(|x| 
+            interpreter.resolve(x.expect("unexpected parse error"))
+        );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
         assert!(matches!(parser.next(), Some(Err(_)))); // not found
@@ -114,12 +109,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| match x {
-            Ok(x) => interpreter.resolve(x),
-            Err(x) => Err(InterpretError {
-                reason: x.to_string(),
-            }),
-        });
+        let mut parser = parse(code).map(|x| interpreter.resolve(x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
     }
