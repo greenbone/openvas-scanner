@@ -42,7 +42,7 @@ pub trait Loader {
 }
 
 #[derive(Default)]
-pub struct NoOpLoader {}
+pub(crate) struct NoOpLoader {}
 
 /// Is a no operation loader for test purposes.
 impl Loader for NoOpLoader {
@@ -63,6 +63,7 @@ pub struct FSPluginLoader<'a> {
 }
 
 impl<'a> FSPluginLoader<'a> {
+    /// Creates a new file system plugin loader based on the given root path
     pub fn new(root: &'a Path) -> Self {
         Self { root }
     }

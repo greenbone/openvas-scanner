@@ -30,6 +30,7 @@ impl Register {
         }
     }
 
+    /// Creates a root Register based on the given initial values
     pub fn root_initial(initial: Vec<(String, ContextType)>) -> Self {
         let root = NaslContext {
             defined: initial.into_iter().collect(),
