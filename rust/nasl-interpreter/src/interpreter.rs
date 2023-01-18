@@ -107,7 +107,7 @@ impl TryFrom<&Token> for NaslValue {
 
     fn try_from(token: &Token) -> Result<Self, Self::Error> {
         match token.category() {
-            TokenCategory::String(category) => Ok(NaslValue::String(category.clone())),
+            TokenCategory::String(category) | TokenCategory::IPv4Address(category)=> Ok(NaslValue::String(category.clone())),
             TokenCategory::Identifier(IdentifierType::Undefined(id)) => {
                 Ok(NaslValue::String(id.clone()))
             }
@@ -115,9 +115,7 @@ impl TryFrom<&Token> for NaslValue {
             TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
             TokenCategory::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
             TokenCategory::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
-            _ => Err(InterpretError {
-                reason: format!("invalid primitive {:?}", token.category()),
-            }),
+            _ => Err(InterpretError::new(format!("{} is not a primitive.", token.category()))),
         }
     }
 }
@@ -146,9 +144,7 @@ impl<'a> Interpreter<'a> {
     pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
         match token.category() {
             TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.clone()),
-            cat => Err(InterpretError {
-                reason: format!("unexpected category {:?}", cat),
-            }),
+            _ => Err(InterpretError::new(format!("{} is not a primitive.", token.category()))),
         }
     }
 
@@ -157,9 +153,7 @@ impl<'a> Interpreter<'a> {
         match statement {
             Array(name, position) => {
                 let name = &Self::identifier(&name)?;
-                let val = self.registrat.named(name).ok_or_else(|| InterpretError {
-                    reason: format!("{} not found.", name),
-                })?;
+                let val = self.registrat.named(name).unwrap_or(&ContextType::Value(NaslValue::Null));
                 let val = val.clone();
 
                 match (position, val) {
@@ -167,22 +161,17 @@ impl<'a> Interpreter<'a> {
                     (Some(p), ContextType::Value(NaslValue::Array(x))) => {
                         let position = self.resolve(*p)?;
                         let position = i64::from(&position) as usize;
-                        let result = x.get(position).ok_or_else(|| InterpretError {
-                            reason: format!("positiong {} not found", position),
-                        })?;
+                        let result = x.get(position).unwrap_or(&NaslValue::Null);
                         Ok(result.clone())
                     }
                     (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
                         let position = self.resolve(*p)?.to_string();
-                        let result = x.get(&position).ok_or_else(|| InterpretError {
-                            reason: format!("{} not found.", position),
-                        })?;
+                        let result = x.get(&position).unwrap_or(&NaslValue::Null);
                         Ok(result.clone())
                     }
                     (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
-                    (p, x) => Err(InterpretError {
-                        reason: format!("Internal error statement: {:?} -> {:?}.", p, x),
-                    }),
+                    (Some(p), _) => Err(InterpretError::unsupported(&p, "array")),
+                    (_, _) => Err(InterpretError::new(format!("{} is not resolveable.", name))),
                 }
             }
             Exit(stmt) => {
@@ -255,6 +244,6 @@ impl<'a> Interpreter<'a> {
     }
 
     pub fn registrat(&self) -> &Register {
-        &self.registrat
+        self.registrat
     }
 }
