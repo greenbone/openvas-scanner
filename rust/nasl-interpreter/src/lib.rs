@@ -32,3 +32,4 @@ impl From<SinkError> for InterpretError {
         InterpretError::new(format!("An error occurred while using a sink: {}", se))
     }
 }
+
