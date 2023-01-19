@@ -55,7 +55,7 @@ impl<'a> Loader for FSPluginLoader<'a> {
         let path = self.root.join(key);
         if !path.is_file() {
             return Err(LoadError::NotFound(format!(
-                "{} does not exist or is not accessable.",
+                "{} does not exist or is not accessible.",
                 path.as_os_str().to_str().unwrap_or_default()
             )));
         }
