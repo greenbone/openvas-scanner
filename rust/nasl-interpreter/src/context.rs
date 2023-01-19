@@ -1,6 +1,6 @@
 use nasl_syntax::Statement;
 
-use crate::{error::InterpretError, interpreter::NaslValue};
+use crate::{error::InterpretError, interpreter::NaslValue, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -127,7 +127,7 @@ impl Register {
 
     /// Retrieves all positional definitions
     pub fn positional(&self) -> &[NaslValue] {
-        match self.named("_FCT_ANON_ARGS") {
+        match self.named(FC_ANON_ARGS) {
             Some(ContextType::Value(NaslValue::Array(arr))) => arr,
             _ => &[],
         }

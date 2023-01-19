@@ -2,7 +2,7 @@ use nasl_syntax::{Statement, Statement::*, Token};
 
 use crate::{
     error::InterpretError, interpreter::InterpretResult, lookup, ContextType, Interpreter,
-    NaslValue,
+    NaslValue, lookup_keys::FC_ANON_ARGS,
 };
 use std::collections::HashMap;
 
@@ -41,7 +41,7 @@ impl<'a> CallExtension for Interpreter<'a> {
             }
         };
         named.insert(
-            "_FCT_ANON_ARGS".to_owned(),
+            FC_ANON_ARGS.to_owned(),
             ContextType::Value(NaslValue::Array(position)),
         );
         self.registrat.create_root_child(named);

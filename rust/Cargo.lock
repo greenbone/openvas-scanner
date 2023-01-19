@@ -554,6 +554,7 @@ dependencies = [
 name = "nasl-interpreter"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nasl-syntax",
  "regex",
  "sink",
