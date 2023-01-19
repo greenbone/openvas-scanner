@@ -169,17 +169,6 @@ mod tests {
     use sink::DefaultSink;
 
     use crate::{Interpreter, NaslValue, Register, NoOpLoader};
-    macro_rules! no_op_interpreter {
-        ($code:expr) => {
-            {
-                let storage = DefaultSink::new(false);
-                let mut register = Register::default();
-                let loader = NoOpLoader::default();
-                let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-                parse($code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")))
-            }
-        };
-    }
 
 
     #[test]
