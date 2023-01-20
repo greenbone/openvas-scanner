@@ -1,13 +1,14 @@
 //! Is a crate to use Statements from nasl-syntax and execute them.
 #![warn(missing_docs)]
+mod built_in_functions;
 use built_in_functions::description;
 mod error;
 use built_in_functions::hostname;
 use built_in_functions::rand;
+use built_in_functions::string;
 use error::FunctionError;
 
 mod assign;
-mod built_in_functions;
 mod call;
 mod context;
 mod declare;
@@ -31,6 +32,7 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
     description::lookup(function_name)
         .or_else(|| hostname::lookup(function_name))
         .or_else(|| rand::lookup(function_name))
+        .or_else(|| string::lookup(function_name))
 }
 
 impl From<SinkError> for InterpretError {
