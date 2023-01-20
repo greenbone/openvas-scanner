@@ -3,9 +3,9 @@
 use built_in_functions::description;
 mod error;
 use built_in_functions::hostname;
+use built_in_functions::rand;
 use error::FunctionError;
 
-mod lookup_keys;
 mod assign;
 mod built_in_functions;
 mod call;
@@ -14,6 +14,7 @@ mod declare;
 mod include;
 mod interpreter;
 mod loader;
+mod lookup_keys;
 mod loop_extension;
 mod operator;
 
@@ -27,7 +28,9 @@ use sink::{Sink, SinkError};
 // Is a type definition for built-in functions
 pub(crate) type NaslFunction = fn(&str, &dyn Sink, &Register) -> Result<NaslValue, FunctionError>;
 pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
-    description::lookup(function_name).or_else(|| hostname::lookup(function_name))
+    description::lookup(function_name)
+        .or_else(|| hostname::lookup(function_name))
+        .or_else(|| rand::lookup(function_name))
 }
 
 impl From<SinkError> for InterpretError {
