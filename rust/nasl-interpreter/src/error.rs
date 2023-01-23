@@ -18,11 +18,11 @@ impl FunctionError {
 pub struct InterpretError {
     /// Represents a human readable reason
     pub reason: String,
-    /// The line number within the script when that error occured
+    /// The line number within the script when that error occurred
     ///
     /// It starts 1.
     pub line: usize,
-    /// The colum number within the script when that error occured
+    /// The colum number within the script when that error occurred
     ///
     /// It starts 1.
     pub col: usize,
@@ -32,7 +32,7 @@ impl InterpretError {
     /// Creates a new Error with line and col set to 0
     ///
     /// Use this only when there is no statement available.
-    /// If thre line as well as col is null Interpreter::resolve will replace it 
+    /// If the line as well as col is null Interpreter::resolve will replace it 
     /// with the line and col number based on the root statement.
     pub fn new(reason: String) -> Self {
         Self {
