@@ -35,7 +35,7 @@ pub enum Mode<'a> {
 
 impl From<SinkError> for InterpretError {
     fn from(se: SinkError) -> Self {
-        InterpretError::new(format!("An error occured while using a sink: {}", se))
+        InterpretError::new(format!("An error occurred while using a sink: {}", se))
     }
 }
 
