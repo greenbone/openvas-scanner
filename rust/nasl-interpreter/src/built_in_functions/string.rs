@@ -73,6 +73,17 @@ fn tolower(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Func
     })
 }
 
+/// NASL function to return the length of string
+///
+/// If this function retrieves anything but a string it returns 0
+fn strlen(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    Ok(match positional.get(0) {
+        Some(NaslValue::String(x)) => x.len().into(),
+        _ => 0_i64.into(),
+    })
+}
+
 /// NASL function to parse numeric values into characters and combine with additional values
 fn raw_string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
@@ -109,6 +120,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "raw_string" => Some(raw_string),
         "tolower" => Some(tolower),
         "toupper" => Some(toupper),
+        "strlen" => Some(strlen),
         _ => None,
     }
 }
@@ -187,5 +199,20 @@ mod tests {
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok("HALLO".into())));
+    }
+    #[test]
+    fn strlen() {
+        let code = r###"
+        strlen(0x7B);
+        strlen('hallo');
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(0i64.into())));
+        assert_eq!(parser.next(), Some(Ok(5i64.into())));
     }
 }
