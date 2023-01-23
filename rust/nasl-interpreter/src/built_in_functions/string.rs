@@ -51,14 +51,38 @@ fn write_nasl_value(s: &mut String, value: &NaslValue) -> Result<(), FunctionErr
     Ok(())
 }
 
+/// NASL function to return uppercase equivalent of a given string
+///
+/// If this function retrieves anything but a string it returns NULL
+fn toupper(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    Ok(match positional.get(0) {
+        Some(NaslValue::String(x)) => x.to_uppercase().into(),
+        _ => NaslValue::Null,
+    })
+}
+
+/// NASL function to return lowercase equivalent of a given string
+///
+/// If this function retrieves anything but a string it returns NULL
+fn tolower(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    Ok(match positional.get(0) {
+        Some(NaslValue::String(x)) => x.to_lowercase().into(),
+        _ => NaslValue::Null,
+    })
+}
+
+/// NASL function to parse numeric values into characters and combine with additional values
 fn raw_string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
         write_nasl_value(&mut s, &p)?;
     }
-    Ok(NaslValue::String(s))
+    Ok(s.into())
 }
+
 /// NASL function to return  a hex presentation of given string as a positional argument.
 ///
 /// If the positional arguments are empty it reutnrns NaslValue::Null.
@@ -72,7 +96,7 @@ fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
             for byte in x.as_bytes() {
                 write!(s, "{:02X}", byte)?;
             }
-            NaslValue::String(s)
+            s.into()
         }
         _ => NaslValue::Null,
     })
@@ -83,6 +107,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "hexstr" => Some(hexstr),
         "raw_string" => Some(raw_string),
+        "tolower" => Some(tolower),
+        "toupper" => Some(toupper),
         _ => None,
     }
 }
@@ -93,12 +119,6 @@ mod tests {
     use sink::DefaultSink;
 
     use crate::{Interpreter, NaslValue, NoOpLoader, Register};
-
-    impl From<&str> for NaslValue {
-        fn from(s: &str) -> Self {
-            Self::String(s.to_owned())
-        }
-    }
 
     #[test]
     fn hexstr() {
@@ -137,5 +157,35 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("{".into())));
         assert_eq!(parser.next(), Some(Ok("{.".into())));
         assert_eq!(parser.next(), Some(Ok("{.Hallo".into())));
+    }
+    #[test]
+    fn tolower() {
+        let code = r###"
+        tolower(0x7B);
+        tolower('HALLO');
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok("hallo".into())));
+    }
+    #[test]
+    fn toupper() {
+        let code = r###"
+        toupper(0x7B);
+        toupper('hallo');
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok("HALLO".into())));
     }
 }
