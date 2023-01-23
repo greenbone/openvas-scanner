@@ -23,7 +23,17 @@ impl From<fmt::Error> for FunctionError {
     }
 }
 
-fn write_nasl_value(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
+/// NASL function to parse numeric values into characters and combine with additional values
+fn raw_string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    let mut s = String::with_capacity(2 * positional.len());
+    for p in positional {
+        write_raw_nasl_string(&mut s, &p)?;
+    }
+    Ok(s.into())
+}
+
+fn write_raw_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
     match value {
         NaslValue::String(x) => write!(s, "{}", x),
         NaslValue::Number(x) => {
@@ -36,17 +46,50 @@ fn write_nasl_value(s: &mut String, value: &NaslValue) -> Result<(), FunctionErr
         }
         NaslValue::Array(x) => {
             for p in x {
-                write_nasl_value(s, p)?;
+                write_raw_nasl_string(s, p)?;
             }
             Ok(())
         }
         NaslValue::Dict(x) => {
             for p in x.values() {
-                write_nasl_value(s, p)?;
+                write_raw_nasl_string(s, p)?;
             }
             Ok(())
         }
         _ => write!(s, "."),
+    }?;
+    Ok(())
+}
+
+/// NASL function to parse values into string representations
+fn string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    let mut s = String::with_capacity(2 * positional.len());
+    for p in positional {
+        write_nasl_string(&mut s, &p)?;
+    }
+    Ok(s.into())
+}
+
+fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
+    match value {
+        NaslValue::Array(x) => {
+            for p in x {
+                write_raw_nasl_string(s, p)?;
+            }
+            Ok(())
+        }
+        NaslValue::Dict(x) => {
+            for p in x.values() {
+                write_raw_nasl_string(s, p)?;
+            }
+            Ok(())
+        }
+        NaslValue::String(x) => write!(s, "{}", x),
+        NaslValue::Number(x) => write!(s, "{}", x),
+        NaslValue::Boolean(x) => write!(s, "{}", *x as i32),
+        NaslValue::AttackCategory(x) => write!(s, "{}", *x as i32),
+        _ => Ok(()),
     }?;
     Ok(())
 }
@@ -84,16 +127,6 @@ fn strlen(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     })
 }
 
-/// NASL function to parse numeric values into characters and combine with additional values
-fn raw_string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
-    let positional = resolve_positional_arguments(register);
-    let mut s = String::with_capacity(2 * positional.len());
-    for p in positional {
-        write_nasl_value(&mut s, &p)?;
-    }
-    Ok(s.into())
-}
-
 /// NASL function to return  a hex presentation of given string as a positional argument.
 ///
 /// If the positional arguments are empty it reutnrns NaslValue::Null.
@@ -121,6 +154,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "tolower" => Some(tolower),
         "toupper" => Some(toupper),
         "strlen" => Some(strlen),
+        "string" => Some(string),
         _ => None,
     }
 }
@@ -215,4 +249,24 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(0i64.into())));
         assert_eq!(parser.next(), Some(Ok(5i64.into())));
     }
+    #[test]
+    fn string() {
+        let code = r###"
+        string(0x7B);
+        string(0x7B, 1);
+        string(0x7B, 1, "Hallo");
+        string(0x7B, 1, NULL, "Hallo");
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok("123".into())));
+        assert_eq!(parser.next(), Some(Ok("1231".into())));
+        assert_eq!(parser.next(), Some(Ok("1231Hallo".into())));
+        assert_eq!(parser.next(), Some(Ok("1231Hallo".into())));
+    }
+
 }
