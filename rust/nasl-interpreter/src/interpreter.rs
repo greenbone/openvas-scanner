@@ -48,10 +48,21 @@ impl From<&str> for NaslValue {
     }
 }
 
-
 impl From<String> for NaslValue {
     fn from(s: String) -> Self {
         Self::String(s)
+    }
+}
+
+impl From<i64> for NaslValue {
+    fn from(n: i64) -> Self {
+        Self::Number(n)
+    }
+}
+
+impl From<usize> for NaslValue {
+    fn from(n: usize) -> Self {
+        Self::Number(n as i64)
     }
 }
 
