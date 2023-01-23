@@ -171,7 +171,7 @@ impl<'a> Interpreter<'a> {
                     }
                     (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
                     (Some(p), _) => Err(InterpretError::unsupported(&p, "array")),
-                    (_, _) => Err(InterpretError::new(format!("{} is not resolveable.", name))),
+                    (_, _) => Err(InterpretError::new(format!("{} is not resolvable.", name))),
                 }
             }
             Exit(stmt) => {
