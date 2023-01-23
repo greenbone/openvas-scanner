@@ -11,8 +11,8 @@ use crate::{
     error::InterpretError,
     include::IncludeExtension,
     loader::Loader,
-    operator::OperatorExtension, 
     loop_extension::LoopExtension,
+    operator::OperatorExtension,
 };
 
 /// Represents a valid Value of NASL
@@ -40,6 +40,19 @@ pub enum NaslValue {
     Break,
     /// Exit value of the script
     Exit(i64),
+}
+
+impl From<&str> for NaslValue {
+    fn from(s: &str) -> Self {
+        Self::String(s.to_owned())
+    }
+}
+
+
+impl From<String> for NaslValue {
+    fn from(s: String) -> Self {
+        Self::String(s)
+    }
 }
 
 impl ToString for NaslValue {
@@ -143,11 +156,13 @@ impl From<NaslValue> for Vec<NaslValue> {
             NaslValue::Dict(ret) => ret.values().cloned().collect(),
             NaslValue::Boolean(_) => vec![value],
             NaslValue::Number(_) => vec![value],
-            NaslValue::String(ret) => ret.chars().map(|x| NaslValue::String(x.to_string())).collect(),
-            _ => vec![]
+            NaslValue::String(ret) => ret
+                .chars()
+                .map(|x| NaslValue::String(x.to_string()))
+                .collect(),
+            _ => vec![],
         }
     }
-    
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -223,7 +238,9 @@ impl<'a> Interpreter<'a> {
             }
             Include(inc) => self.include(inc),
             NamedParameter(_, _) => todo!(),
-            For(assignment, condition, update, body) => self.for_loop(assignment, condition, update, body),
+            For(assignment, condition, update, body) => {
+                self.for_loop(assignment, condition, update, body)
+            }
             While(condition, body) => self.while_loop(condition, body),
             Repeat(body, condition) => self.repeat_loop(body, condition),
             ForEach(variable, iterable, body) => self.for_each_loop(variable, iterable, body),
