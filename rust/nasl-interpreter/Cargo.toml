@@ -3,12 +3,11 @@ name = "nasl-interpreter"
 version = "0.1.0"
 edition = "2021"
 
-[target.'cfg(not(windows))'.dependencies]
-libc = "^0.2"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 nasl-syntax = {path = "../nasl-syntax"}
 sink = {path = "../sink"}
 # used for !~ =~ string regex operations
 regex = "1"
+# used for get-hostnames; an alternative implementation without dependency can be found in:
+# ee3f7e1ed6da946e5eace08d074b320f80087a3c
+dns-lookup = "1.0.8"
