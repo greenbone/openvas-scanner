@@ -32,7 +32,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
 /// NASL function to get all stored vhosts
 ///
 /// As of now (2023-01-20) there is no vhost handling.
-/// Therefore this function does load the registered TARGET and if it is an IP Addres resolves it via DNS instead.
+/// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
 pub fn get_host_names(
     _: &str,
     _: &dyn Sink,
@@ -44,7 +44,7 @@ pub fn get_host_names(
 /// NASL function to get the current hostname
 ///
 /// As of now (2023-01-20) there is no vhost handling.
-/// Therefore this function does load the registered TARGET and if it is an IP Addres resolves it via DNS instead.
+/// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
 pub fn get_host_name(
     _: &str,
     _: &dyn Sink,
