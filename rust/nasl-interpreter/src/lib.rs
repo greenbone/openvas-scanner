@@ -4,6 +4,7 @@ mod built_in_functions;
 use built_in_functions::array;
 use built_in_functions::description;
 mod error;
+use built_in_functions::function;
 use built_in_functions::hostname;
 use built_in_functions::rand;
 use built_in_functions::string;
@@ -36,6 +37,7 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
         .or_else(|| rand::lookup(function_name))
         .or_else(|| string::lookup(function_name))
         .or_else(|| array::lookup(function_name))
+        .or_else(|| function::lookup(function_name))
 }
 
 impl From<SinkError> for InterpretError {
