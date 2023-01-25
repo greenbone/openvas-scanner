@@ -4,15 +4,10 @@ use core::fmt::{self, Write};
 use sink::Sink;
 
 use crate::{
-    error::FunctionError, lookup_keys::FC_ANON_ARGS, ContextType, NaslFunction, NaslValue, Register,
+    error::FunctionError, NaslFunction, NaslValue, Register,
 };
 
-fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
-    match register.named(FC_ANON_ARGS).cloned() {
-        Some(ContextType::Value(NaslValue::Array(arr))) => arr,
-        _ => vec![],
-    }
-}
+use super::resolve_positional_arguments;
 
 impl From<fmt::Error> for FunctionError {
     fn from(e: fmt::Error) -> Self {
