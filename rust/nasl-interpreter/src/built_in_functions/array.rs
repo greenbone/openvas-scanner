@@ -22,8 +22,6 @@ pub fn make_array(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValu
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
         if idx % 2 == 1 {
-            
-            println!("{}", idx);
             values.insert(positional[idx -1].to_string(), val.clone());
         }
     }

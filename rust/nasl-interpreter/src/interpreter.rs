@@ -44,10 +44,15 @@ pub enum NaslValue {
     Exit(i64),
 }
 
-
 impl From<Vec<u8>> for NaslValue {
     fn from(s: Vec<u8>) -> Self {
         Self::Data(s)
+    }
+}
+
+impl From<bool> for NaslValue {
+    fn from(b: bool) -> Self {
+        NaslValue::Boolean(b)
     }
 }
 
