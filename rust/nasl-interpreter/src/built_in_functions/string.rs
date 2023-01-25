@@ -127,6 +127,35 @@ fn strlen(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     })
 }
 
+/// NASL function to return a substr of a string.
+///
+/// The first positional argument is the *string* to get the slice from.
+/// As a second positional argument an *int* that contains the start index for the slice is required.
+/// The optional third positional argument is an *int* and contains the end index for the slice.
+/// If not given it is set to the end of the string.
+/// If the start integer is higher than the value of the string NULL is returned.
+fn substr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    if positional.len() < 2 {
+        return Ok(NaslValue::Null);
+    }
+    // we checked previously if the size is sufficient
+    unsafe {
+        let s = positional.get_unchecked(0).to_string();
+        let lidx: i64 = positional.get_unchecked(1).into();
+        if lidx as usize > s.len() {
+            return Ok(NaslValue::Null);
+        }
+        Ok(match positional.get(2) {
+            Some(nv) => {
+                let ridx: i64 = nv.into();
+                (&s[lidx as usize..ridx as usize]).into()
+            }
+            _ => (&s[lidx as usize..]).into(),
+        })
+    }
+}
+
 /// NASL function to return  a hex presentation of given string as a positional argument.
 ///
 /// If the positional arguments are empty it reutnrns NaslValue::Null.
@@ -155,6 +184,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "toupper" => Some(toupper),
         "strlen" => Some(strlen),
         "string" => Some(string),
+        "substr" => Some(substr),
         _ => None,
     }
 }
@@ -269,4 +299,21 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("1231Hallo".into())));
     }
 
+    #[test]
+    fn substr() {
+        let code = r###"
+        substr("hello", 1);
+        substr("hello", 0, 4);
+        substr("hello", 6);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok("ello".into())));
+        assert_eq!(parser.next(), Some(Ok("hell".into())));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+    }
 }
