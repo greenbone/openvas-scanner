@@ -75,6 +75,12 @@ impl From<usize> for NaslValue {
     }
 }
 
+impl From<HashMap<String, NaslValue>> for NaslValue {
+    fn from(x: HashMap<String, NaslValue>) -> Self {
+        NaslValue::Dict(x)
+    }
+}
+
 impl ToString for NaslValue {
     fn to_string(&self) -> String {
         match self {

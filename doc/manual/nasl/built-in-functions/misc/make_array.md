@@ -21,7 +21,7 @@ Returns a dictionary made out of the arguments.
 
 ## Error
 
-Returns NULL when the amount of arguments are not even.
+Drops the last value when the arguments are not even.
 
 ## EXAMPLES
 
