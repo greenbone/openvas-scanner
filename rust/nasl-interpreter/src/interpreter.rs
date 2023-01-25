@@ -137,6 +137,12 @@ impl From<&NaslValue> for i64 {
     }
 }
 
+impl From<NaslValue> for i64 {
+    fn from(nv: NaslValue) -> Self {
+        i64::from(&nv)
+    }
+}
+
 impl TryFrom<&Token> for NaslValue {
     type Error = InterpretError;
 
