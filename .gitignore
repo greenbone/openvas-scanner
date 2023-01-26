@@ -5,3 +5,4 @@ nasl/nasl_grammar.tab.h
 .cache/
 testsuiterun.nasl
 .vscode
+.venv/
