@@ -9,7 +9,6 @@ use crate::{
 
 fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
     match register.named(FC_ANON_ARGS).cloned() {
-        // TODO maybe we need to resolve those nasl values?
         Some(ContextType::Value(NaslValue::Array(arr))) => arr,
         _ => vec![],
     }
@@ -23,17 +22,45 @@ impl From<fmt::Error> for FunctionError {
     }
 }
 
+fn append_nasl_value_as_u8(data: &mut Vec<u8>, p: &NaslValue) {
+    match p {
+        NaslValue::String(s) => {
+            data.extend_from_slice(s.as_bytes());
+        }
+        NaslValue::Data(d) => data.extend_from_slice(d),
+        NaslValue::Number(x) => {
+            data.push(*x as u8);
+        }
+        NaslValue::Array(x) => {
+            for v in x {
+                append_nasl_value_as_u8(data, v)
+            }
+        }
+        NaslValue::Dict(x) => {
+            for v in x.values() {
+                append_nasl_value_as_u8(data, v)
+            }
+        }
+        NaslValue::Boolean(x) => match x {
+            true => data.push(1),
+            false => data.push(0),
+        },
+        NaslValue::AttackCategory(x) => data.push(*x as i32 as u8),
+        _ => {}
+    }
+}
+
 /// NASL function to parse numeric values into characters and combine with additional values
 fn raw_string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
-    let mut s = String::with_capacity(2 * positional.len());
+    let mut data: Vec<u8> = vec![];
     for p in positional {
-        write_raw_nasl_string(&mut s, &p)?;
+        append_nasl_value_as_u8(&mut data, &p);
     }
-    Ok(s.into())
+    Ok(data.into())
 }
 
-fn write_raw_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
+fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
     match value {
         NaslValue::String(x) => write!(s, "{}", x),
         NaslValue::Number(x) => {
@@ -46,13 +73,13 @@ fn write_raw_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), Functi
         }
         NaslValue::Array(x) => {
             for p in x {
-                write_raw_nasl_string(s, p)?;
+                write_nasl_string(s, p)?;
             }
             Ok(())
         }
         NaslValue::Dict(x) => {
             for p in x.values() {
-                write_raw_nasl_string(s, p)?;
+                write_nasl_string(s, p)?;
             }
             Ok(())
         }
@@ -66,22 +93,22 @@ fn string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     let positional = resolve_positional_arguments(register);
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
-        write_nasl_string(&mut s, &p)?;
+        write_nasl_string_value(&mut s, &p)?;
     }
     Ok(s.into())
 }
 
-fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
+fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
     match value {
         NaslValue::Array(x) => {
             for p in x {
-                write_raw_nasl_string(s, p)?;
+                write_nasl_string(s, p)?;
             }
             Ok(())
         }
         NaslValue::Dict(x) => {
             for p in x.values() {
-                write_raw_nasl_string(s, p)?;
+                write_nasl_string(s, p)?;
             }
             Ok(())
         }
@@ -156,13 +183,12 @@ fn substr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     }
 }
 
-/// NASL function to return  a hex presentation of given string as a positional argument.
+/// NASL function to return a hex representation of a given positional string argument.
 ///
-/// If the positional arguments are empty it reutnrns NaslValue::Null.
+/// If the positional arguments are empty it returns NaslValue::Null.
 /// It only uses the first positional argument and when it is not a NaslValue:String than it returns NaslValue::Null.
 fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
-    // we already checked that positional has at least one argument
     Ok(match positional.get(0) {
         Some(NaslValue::String(x)) => {
             let mut s = String::with_capacity(2 * x.len());
@@ -230,9 +256,9 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok("{".into())));
-        assert_eq!(parser.next(), Some(Ok("{.".into())));
-        assert_eq!(parser.next(), Some(Ok("{.Hallo".into())));
+        assert_eq!(parser.next(), Some(Ok(vec![123].into())));
+        assert_eq!(parser.next(), Some(Ok(vec![123, 1].into())));
+        assert_eq!(parser.next(), Some(Ok(vec![123, 1, 72, 97, 108, 108, 111].into())));
     }
     #[test]
     fn tolower() {

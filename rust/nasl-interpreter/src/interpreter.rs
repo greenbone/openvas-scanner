@@ -20,6 +20,8 @@ use crate::{
 pub enum NaslValue {
     /// String value
     String(String),
+    /// Data value
+    Data(Vec<u8>),
     /// Number value
     Number(i64),
     /// Array value
@@ -40,6 +42,13 @@ pub enum NaslValue {
     Break,
     /// Exit value of the script
     Exit(i64),
+}
+
+
+impl From<Vec<u8>> for NaslValue {
+    fn from(s: Vec<u8>) -> Self {
+        Self::Data(s)
+    }
 }
 
 impl From<&str> for NaslValue {
@@ -77,6 +86,7 @@ impl ToString for NaslValue {
                 .map(|(i, v)| format!("{}: {}", i, v.to_string()))
                 .collect::<Vec<String>>()
                 .join(","),
+            NaslValue::Data(x) => x.iter().map(|x| *x as char).collect(),
             NaslValue::Dict(x) => x
                 .iter()
                 .map(|(k, v)| format!("{}: {}", k, v.to_string()))
@@ -106,6 +116,7 @@ impl From<NaslValue> for bool {
         match value {
             NaslValue::String(string) => !string.is_empty() && string != "0",
             NaslValue::Array(v) => !v.is_empty(),
+            NaslValue::Data(v) => !v.is_empty(),
             NaslValue::Boolean(boolean) => boolean,
             NaslValue::Null => false,
             NaslValue::Number(number) => number != 0,
@@ -125,6 +136,7 @@ impl From<&NaslValue> for i64 {
             NaslValue::String(_) => 1,
             &NaslValue::Number(x) => x,
             NaslValue::Array(_) => 1,
+            NaslValue::Data(_) => 1,
             NaslValue::Dict(_) => 1,
             &NaslValue::Boolean(x) => x as i64,
             &NaslValue::AttackCategory(x) => x as i64,
