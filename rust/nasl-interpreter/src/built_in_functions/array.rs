@@ -15,7 +15,7 @@ use super::resolve_positional_arguments;
 /// NASL function to create a dictionary out of an even number of arguments
 ///
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
-/// When there are uneven elements the uneven key will be dropped.
+/// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
 pub fn make_array(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);

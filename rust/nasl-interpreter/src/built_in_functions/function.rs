@@ -1,6 +1,5 @@
 //! Defines various built-in functions for NASL functions.
 
-use std::collections::HashMap;
 
 use sink::Sink;
 
