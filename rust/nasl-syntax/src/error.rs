@@ -20,6 +20,8 @@ pub enum ErrorKind {
     UnclosedToken(Token),
     /// An unexpected statement occurred
     UnexpectedStatement(Statement),
+    /// When an unexpected Statement occurs it maybe an MissingSemicolon
+    MissingSemicolon(Statement),
     /// An token is unclosed
     UnclosedStatement(Statement),
     /// The cursor is already at the end but that is not expected
@@ -94,8 +96,7 @@ macro_rules! unexpected_statement {
     ($statement:expr) => {{
         use $crate::syntax_error;
         use $crate::ErrorKind;
-
-        syntax_error!(ErrorKind::UnexpectedStatement($statement))
+        syntax_error!(ErrorKind::MissingSemicolon($statement))
     }};
 }
 
@@ -167,10 +168,12 @@ impl fmt::Display for SyntaxError {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            // TODO fix statement print
             ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {:?}", token),
             ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {:?}", token),
             ErrorKind::UnexpectedStatement(stmt) => write!(f, "unexpected statement: {:?}", stmt),
             ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {:?}", stmt),
+            ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {:?}", stmt),
             ErrorKind::EoF => write!(f, "end of file."),
             ErrorKind::IOError(kind) => write!(f, "IOError: {}", kind),
         }
@@ -198,5 +201,61 @@ impl From<io::Error> for SyntaxError {
             line!(),
             file!().to_owned(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{parse, ErrorKind, TokenCategory};
+
+    fn test_for_missing_semicolon(code: &str) {
+        let result = parse(code).next().unwrap();
+        match result {
+            Ok(_) => panic!("expected test to return Err"),
+            Err(e) => match e.kind {
+                ErrorKind::MissingSemicolon(_) => {}
+                _ => panic!("Expected MissingSemicolon but got: {:?}", e),
+            },
+        }
+    }
+
+    fn test_for_unclosed_token(code: &str, category: TokenCategory) {
+        let result = parse(code).next().unwrap();
+        match result {
+            Ok(_) => panic!("expected test to return Err"),
+            Err(e) => match e.kind {
+                ErrorKind::UnclosedToken(token) => {
+                    assert_eq!(token.category(), &category);
+                }
+                _ => panic!("Expected UnclosedToken but got: {:?} for {}", e, code),
+            },
+        }
+    }
+    #[test]
+    fn missing_semicolon_assignment() {
+        let code = "a = 12";
+        test_for_missing_semicolon(code);
+    }
+
+    #[test]
+    fn missing_semicolon_call() {
+        let code = "calle(me)";
+        test_for_missing_semicolon(code);
+    }
+
+    #[test]
+    fn missing_right_paren() {
+        test_for_unclosed_token("calle(me;", TokenCategory::LeftParen);
+        test_for_unclosed_token("foreach a(x { a = 2;", TokenCategory::LeftParen);
+        test_for_unclosed_token("for (i = 0; i < 10; i++ ;", TokenCategory::LeftParen);
+        test_for_unclosed_token("while (TRUE ;", TokenCategory::LeftParen);
+    }
+
+    #[test]
+    fn missing_right_curly_bracket() {
+        test_for_unclosed_token("if (a) { a = 2", TokenCategory::LeftCurlyBracket);
+        test_for_unclosed_token("foreach a(x) { a = 2;", TokenCategory::LeftCurlyBracket);
+        test_for_unclosed_token("{ a = 2;", TokenCategory::LeftCurlyBracket);
+        test_for_unclosed_token("function a() { a = 2;", TokenCategory::LeftCurlyBracket);
     }
 }
