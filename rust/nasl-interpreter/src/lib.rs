@@ -4,6 +4,7 @@
 
 //! Is a crate to use Statements from nasl-syntax and execute them.
 #![warn(missing_docs)]
+mod naslvalue;
 mod built_in_functions;
 use built_in_functions::array;
 use built_in_functions::description;
@@ -29,8 +30,9 @@ mod operator;
 pub use context::ContextType;
 pub use context::Register;
 pub use error::InterpretError;
-pub use interpreter::{Interpreter, NaslValue};
+pub use interpreter::Interpreter;
 pub use loader::*;
+pub use naslvalue::NaslValue;
 use sink::{Sink, SinkError};
 
 // Is a type definition for built-in functions

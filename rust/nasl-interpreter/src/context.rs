@@ -4,7 +4,7 @@
 
 use nasl_syntax::Statement;
 
-use crate::{error::InterpretError, interpreter::NaslValue, lookup_keys::FC_ANON_ARGS};
+use crate::{error::InterpretError, lookup_keys::FC_ANON_ARGS, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
