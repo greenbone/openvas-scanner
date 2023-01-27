@@ -7,11 +7,7 @@
 use core::fmt::Write;
 use sink::Sink;
 
-use crate::{
-    context::ContextType,
-    error::FunctionError,
-    NaslFunction, NaslValue, Register,
-};
+use crate::{context::ContextType, error::FunctionError, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
 
@@ -236,6 +232,17 @@ fn chomp(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functi
     }
 }
 
+/// NASL function to display any number of NASL values
+///
+/// Internally the string function is used to concatenate the given parameters
+fn display(buf: &str, sink: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    register
+        .logger()
+        .as_ref()
+        .print(string(buf, sink, register)?.to_string());
+    Ok(NaslValue::Null)
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -248,6 +255,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "substr" => Some(substr),
         "crap" => Some(crap),
         "chomp" => Some(chomp),
+        "display" => Some(display),
         _ => None,
     }
 }
@@ -419,5 +427,19 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
+    }
+
+    #[test]
+    fn display() {
+        let code = r###"
+        display("abc");
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
     }
 }
