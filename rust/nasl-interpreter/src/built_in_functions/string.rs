@@ -7,17 +7,13 @@
 use core::fmt::{self, Write};
 use sink::Sink;
 
-use crate::{context::ContextType, error::FunctionError, NaslFunction, NaslValue, Register};
+use crate::{
+    context::ContextType,
+    error::{FunctionError, FunctionErrorKind},
+    NaslFunction, NaslValue, Register,
+};
 
 use super::resolve_positional_arguments;
-
-impl From<fmt::Error> for FunctionError {
-    fn from(e: fmt::Error) -> Self {
-        Self {
-            reason: format!("{}", e),
-        }
-    }
-}
 
 fn append_nasl_value_as_u8(data: &mut Vec<u8>, p: &NaslValue) {
     match p {
@@ -81,8 +77,8 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
             Ok(())
         }
         _ => write!(s, "."),
-    }?;
-    Ok(())
+    }
+    .map_err(|e| FunctionError::new("string".to_owned(), e.into()))
 }
 
 /// NASL function to parse values into string representations
@@ -114,8 +110,8 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Func
         NaslValue::Boolean(x) => write!(s, "{}", *x as i32),
         NaslValue::AttackCategory(x) => write!(s, "{}", *x as i32),
         _ => Ok(()),
-    }?;
-    Ok(())
+    }
+    .map_err(|e| FunctionError::new("string".to_owned(), e.into()))
 }
 
 /// NASL function to return uppercase equivalent of a given string
@@ -190,7 +186,8 @@ fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
         Some(NaslValue::String(x)) => {
             let mut s = String::with_capacity(2 * x.len());
             for byte in x.as_bytes() {
-                write!(s, "{:02X}", byte)?;
+                write!(s, "{:02X}", byte)
+                    .map_err(|e| FunctionError::new("randr".to_owned(), e.into()))?
             }
             s.into()
         }
@@ -205,22 +202,30 @@ fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
 fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let data = match register.named("data") {
         None => "X",
-        Some(x) => match x {
-            ContextType::Value(NaslValue::String(x)) => x,
-            _ => {
-                return Err(FunctionError::new(
-                    "expected data argument to be a string".to_owned(),
-                ))
-            }
-        },
+        Some(ContextType::Value(NaslValue::String(x))) => x,
+        Some(x) => {
+            let ek = match x {
+                ContextType::Value(a) => ("data", "string", a).into(),
+                ContextType::Function(_, _) => ("data", "string", "function").into(),
+            };
+            return Err(FunctionError::new("crap".to_string(), ek));
+        }
     };
     match register.named("length") {
         None => {
             let positional = resolve_positional_arguments(register);
             match positional.get(0) {
                 Some(NaslValue::Number(x)) => Ok(NaslValue::String(data.repeat(*x as usize))),
+                Some(x) => Err(FunctionError::new(
+                    "crap".to_string(),
+                    ("length", "numeric", x).into(),
+                )),
                 _ => Err(FunctionError::new(
-                    "expected numeric length argument".to_owned(),
+                    "crap".to_string(),
+                    FunctionErrorKind::MissingPositionalArguments {
+                        expected: 1,
+                        got: 0,
+                    },
                 )),
             }
         }
@@ -229,7 +234,8 @@ fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functio
                 Ok(NaslValue::String(data.repeat(*x as usize)))
             }
             _ => Err(FunctionError::new(
-                "expected numeric length argument".to_owned(),
+                "crap".to_string(),
+                FunctionErrorKind::MissingArguments(vec!["length".to_string()]),
             )),
         },
     }
@@ -307,7 +313,10 @@ mod tests {
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(vec![123].into())));
         assert_eq!(parser.next(), Some(Ok(vec![123, 1].into())));
-        assert_eq!(parser.next(), Some(Ok(vec![123, 1, 72, 97, 108, 108, 111].into())));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(vec![123, 1, 72, 97, 108, 108, 111].into()))
+        );
     }
     #[test]
     fn tolower() {

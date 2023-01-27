@@ -2,20 +2,89 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::fmt::Display;
+use std::{fmt::Display, io};
 
 use nasl_syntax::{Statement, SyntaxError};
+use sink::SinkError;
+
+use crate::NaslValue;
+
+#[derive(Debug)]
+pub enum FunctionErrorKind {
+    MissingPositionalArguments { expected: usize, got: usize },
+    MissingArguments(Vec<String>),
+    FMTError(String),
+    WrongArgument(String),
+    SinkError(SinkError),
+    IOError(io::ErrorKind),
+}
+
+impl From<(&str, &str, &str)> for FunctionErrorKind {
+    fn from(value: (&str, &str, &str)) -> Self {
+        let (key, expected, got) = value;
+        FunctionErrorKind::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
+    }
+}
+
+impl From<(&str, &str)> for FunctionErrorKind {
+    fn from(value: (&str, &str)) -> Self {
+        let (expected, got) = value;
+        FunctionErrorKind::WrongArgument(format!("Expected {expected} but got {got}"))
+    }
+}
+
+impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
+    fn from(value: (&str, &str, &NaslValue)) -> Self {
+        let (key, expected, got) = value;
+        let got: &str = &got.to_string();
+        (key, expected, got).into()
+    }
+}
+
+impl From<(&str,  &NaslValue)> for FunctionErrorKind {
+    fn from(value: (&str, &NaslValue)) -> Self {
+        let (expected, got) = value;
+        let got: &str = &got.to_string();
+        (expected, got).into()
+    }
+}
+
+impl From<SinkError> for FunctionErrorKind {
+    fn from(se: SinkError) -> Self {
+        Self::SinkError(se)
+    }
+}
+
+impl From<std::fmt::Error>  for FunctionErrorKind {
+    fn from(fe: std::fmt::Error) -> Self {
+        Self::FMTError(fe.to_string())
+    }
+}
+
+impl From<io::ErrorKind> for FunctionErrorKind {
+    fn from(iek: io::ErrorKind) -> Self {
+        Self::IOError(iek)
+    }
+}
 
 #[derive(Debug)]
 pub struct FunctionError {
-    pub reason: String,
+    pub function: String,
+    pub kind: FunctionErrorKind,
 }
 
 impl FunctionError {
-    pub fn new(reason: String) -> Self {
-        Self { reason }
+    pub fn new(function: String, kind: FunctionErrorKind) -> Self {
+        Self { function, kind }
     }
 }
+
+impl From<SinkError> for FunctionError {
+    fn from(e: SinkError) -> Self {
+        Self::new("".to_owned(), e.into())
+    }
+}
+
 
 #[derive(Debug, PartialEq, Eq)]
 /// Is used to represent an error while interpreting
@@ -36,7 +105,7 @@ impl InterpretError {
     /// Creates a new Error with line and col set to 0
     ///
     /// Use this only when there is no statement available.
-    /// If the line as well as col is null Interpreter::resolve will replace it 
+    /// If the line as well as col is null Interpreter::resolve will replace it
     /// with the line and col number based on the root statement.
     pub fn new(reason: String) -> Self {
         Self {
