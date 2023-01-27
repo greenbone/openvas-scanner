@@ -4,23 +4,15 @@
 
 use std::str::FromStr;
 
+use crate::error::FunctionErrorKind;
 use crate::{
     context::{ContextType, Register},
     error::FunctionError,
-    NaslValue,
-    NaslFunction,
+    NaslFunction, NaslValue,
 };
 
-use sink::nvt::{NVTField, NvtPreference, PreferenceType, TagKey, NvtRef};
+use sink::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey};
 use sink::{Sink, SinkError};
-
-impl From<SinkError> for FunctionError {
-    fn from(_: SinkError) -> Self {
-        Self {
-            reason: "something went horrible wrong on a db".to_owned(),
-        }
-    }
-}
 
 /// Makes a storage function based on a very small DSL.
 ///
@@ -39,7 +31,7 @@ impl From<SinkError> for FunctionError {
 /// Parameter are separated from the definition by a `=>`.
 ///
 /// All parameter groups are optional.
-/// The first parameter group are unnamed parameter `[amount]` the amount is the specific 
+/// The first parameter group are unnamed parameter `[amount]` the amount is the specific
 /// number of expected arguments or 0 for a variadic list.
 /// Followed by required named parameter separated by `:` `(field1: field2)`.
 /// The third group indicated by `(?field1: field2)` are optional named parameter.
@@ -75,7 +67,8 @@ macro_rules! make_storage_function {
             let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
                 return Err(FunctionError::new(
-                    format!("expected {} positional arguments but {} were given.", $len, positional.len()),
+                    stringify!($name).to_owned(),
+                    FunctionErrorKind::MissingPositionalArguments { expected: $len, got: positional.len() },
                 ));
             }
             for p in positional {
@@ -84,13 +77,13 @@ macro_rules! make_storage_function {
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, stringify!($value), true)?;
+            let value = get_named_parameter(stringify!($name), registrat, stringify!($value), true)?;
             variables.push(value);
             )+
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, stringify!($optional_value), false)?;
+            let value = get_named_parameter(stringify!($name), registrat, stringify!($optional_value), false)?;
             if !matches!(value, &NaslValue::Exit(0)) {
                variables.push(value);
             }
@@ -114,6 +107,7 @@ macro_rules! make_storage_function {
 }
 
 fn get_named_parameter<'a>(
+    function: &'a str,
     registrat: &'a Register,
     key: &'a str,
     required: bool,
@@ -121,17 +115,20 @@ fn get_named_parameter<'a>(
     match registrat.named(key) {
         None => {
             if required {
-                Err(FunctionError::new(format!("expected {} to be set.", key)))
+                Err(FunctionError::new(
+                    function.to_owned(),
+                    FunctionErrorKind::MissingArguments(vec![key.to_owned()]),
+                ))
             } else {
                 Ok(&NaslValue::Exit(0))
             }
         }
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
-            _ => Err(FunctionError::new(format!(
-                "expected {} to be a string.",
-                key
-            ))),
+            _ => Err(FunctionError::new(
+                function.to_owned(),
+                (key, "value", "function").into(),
+            )),
         },
     }
 }
@@ -148,9 +145,10 @@ fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError>
 fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(NVTField::Category(*cat)),
-        _ => Err(FunctionError {
-            reason: "unexpected type for category.".to_owned(),
-        }),
+        a => Err(FunctionError::new(
+            "script_category".to_owned(),
+            ("AttackCategory", a).into(),
+        )),
     }
 }
 
@@ -215,11 +213,11 @@ fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
 
 fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     if arguments.len() != 2 {
-        return Err(FunctionError {
-            reason: "expected either name or csv to be set".to_owned(),
-        });
+        return Err(FunctionError::new(
+            "script_xref".to_owned(),
+            FunctionErrorKind::MissingArguments(vec!["name".to_owned(), "csv".to_owned()]),
+        ));
     }
-    // TODO handle csv correctly
     Ok(NVTField::Reference(NvtRef {
         class: arguments[1].to_string(),
         id: arguments[0].to_string(),
@@ -229,9 +227,10 @@ fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
 
 fn as_preference(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     if arguments.len() < 3 {
-        return Err(FunctionError {
-            reason: "expected at least name, type and value to be set.".to_owned(),
-        });
+        return Err(FunctionError::new(
+            "script_add_preference".to_owned(),
+            FunctionErrorKind::MissingArguments(vec!["type".to_owned(), "value".to_owned()]),
+        ));
     }
     let name = arguments[0].to_string();
     let class = arguments[1].to_string();

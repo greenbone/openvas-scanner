@@ -6,28 +6,22 @@
 
 use std::{
     fs::File,
-    io::{self, Read},
+    io::Read,
 };
 
 use sink::Sink;
 
 use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 
-impl From<io::Error> for FunctionError {
-    fn from(e: io::Error) -> Self {
-        Self {
-            reason: format!("Internal error on rand {}", e),
-        }
-    }
-}
-
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
 fn random_impl() -> Result<i64, FunctionError> {
-    let mut rng = File::open("/dev/urandom")?;
+    let mut rng = File::open("/dev/urandom")
+        .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()))?;
     let mut buffer = [0u8; 8];
-    rng.read_exact(&mut buffer)?;
+    rng.read_exact(&mut buffer)
+        .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()));
     Ok(i64::from_be_bytes(buffer))
 }
 

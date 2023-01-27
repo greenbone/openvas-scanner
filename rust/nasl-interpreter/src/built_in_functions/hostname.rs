@@ -11,7 +11,7 @@ use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, 
 ///
 /// It does lookup TARGET and when not found falls back to 127.0.0.1 to resolve.
 /// If the TARGET is not a IP address than we assume that it already is a fqdn or a hostname and will return that instead.
-fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
+fn resolve_hostname(function: &str, register: &Register) -> Result<String, FunctionError> {
     use dns_lookup::lookup_addr;
 
     let default_ip = "127.0.0.1";
@@ -25,9 +25,9 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
     );
 
     match target.parse() {
-        Ok(addr) => lookup_addr(&addr).map_err(|x| FunctionError {
-            reason: format!("Error while lookup {}: {}", addr, x),
-        }),
+        Ok(addr) => {
+            lookup_addr(&addr).map_err(|x| FunctionError::new(function.to_owned(), x.kind().into()))
+        }
         // assumes that target is already a hostname
         Err(_) => Ok(target),
     }
@@ -42,7 +42,8 @@ pub fn get_host_names(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-    resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
+    resolve_hostname("get_host_names", register)
+        .map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
 /// NASL function to get the current hostname
@@ -54,7 +55,7 @@ pub fn get_host_name(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-    resolve_hostname(register).map(NaslValue::String)
+    resolve_hostname("get_host_name", register).map(NaslValue::String)
 }
 
 /// Returns found function for key or None when not found
