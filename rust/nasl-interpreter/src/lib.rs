@@ -23,6 +23,7 @@ mod declare;
 mod include;
 mod interpreter;
 mod loader;
+mod logger;
 mod lookup_keys;
 mod loop_extension;
 mod operator;
@@ -33,6 +34,7 @@ pub use error::InterpretError;
 pub use interpreter::Interpreter;
 pub use loader::*;
 pub use naslvalue::NaslValue;
+pub use logger::{Mode, NaslLogger, DefaultLogger};
 use sink::Sink;
 
 // Is a type definition for built-in functions
