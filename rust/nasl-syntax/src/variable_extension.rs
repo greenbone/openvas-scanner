@@ -67,7 +67,7 @@ impl<'a> Variables for Lexer<'a> {
                     self.token();
                     let (end, params) = self.parse_comma_group(Category::RightParen)?;
                     if end == End::Continue {
-                        return Err(unclosed_token!(token));
+                        return Err(unclosed_token!(nt));
                     }
                     return Ok((
                         Continue,

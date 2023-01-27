@@ -163,6 +163,7 @@ impl<'a> Iterator for Lexer<'a> {
                 if matches!(stmt, Statement::NoOp(_)) {
                     Some(Ok(stmt))
                 } else {
+                    println!("here?");
                     Some(Err(unexpected_statement!(stmt)))
                 }
             }
