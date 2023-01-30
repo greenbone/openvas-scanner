@@ -384,7 +384,7 @@ mod test {
                             category: Identifier(Undefined("x".to_owned())),
                             position: (1, 1)
                         },
-                        Box::new(Parameter(vec![]))
+                        vec![]
                     ),
                     Primitive(Token {
                         category: Number(2),

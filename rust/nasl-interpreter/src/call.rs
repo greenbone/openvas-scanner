@@ -5,49 +5,37 @@
 use nasl_syntax::{Statement, Statement::*, Token};
 
 use crate::{
-    error::InterpretError,
-    interpreter::InterpretResult,
-    lookup,
-    lookup_keys::FC_ANON_ARGS,
+    error::InterpretError, interpreter::InterpretResult, lookup, lookup_keys::FC_ANON_ARGS,
     ContextType, Interpreter, NaslValue,
 };
 use std::collections::HashMap;
 
 /// Is a trait to handle function calls within nasl.
 pub(crate) trait CallExtension {
-    fn call(&mut self, name: &Token, arguments: &Statement) -> InterpretResult;
+    fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult;
 }
 
 impl<'a> CallExtension for Interpreter<'a> {
     #[inline(always)]
-    fn call(&mut self, name: &Token, arguments: &Statement) -> InterpretResult {
+    fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context
         let mut named = HashMap::new();
         let mut position = vec![];
-        match arguments {
-            // TODO simplify
-            Parameter(params) => {
-                for p in params {
-                    match p {
-                        NamedParameter(token, val) => {
-                            let val = self.resolve(val)?;
-                            let name = Self::identifier(token)?;
-                            named.insert(name, ContextType::Value(val));
-                        }
-                        val => {
-                            let val = self.resolve(val)?;
-                            position.push(val);
-                        }
-                    }
+        // TODO simplify
+        for p in arguments {
+            match p {
+                NamedParameter(token, val) => {
+                    let val = self.resolve(val)?;
+                    let name = Self::identifier(token)?;
+                    named.insert(name, ContextType::Value(val));
+                }
+                val => {
+                    let val = self.resolve(val)?;
+                    position.push(val);
                 }
             }
-            _ => {
-                panic!(
-                    "The lexer must ensure that a call never has another statement than parameter."
-                )
-            }
-        };
+        }
         named.insert(
             FC_ANON_ARGS.to_owned(),
             ContextType::Value(NaslValue::Array(position)),

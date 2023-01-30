@@ -71,7 +71,7 @@ impl<'a> Variables for Lexer<'a> {
                     }
                     return Ok((
                         Continue,
-                        Statement::Call(token, Box::new(Statement::Parameter(params))),
+                        Statement::Call(token, params),
                     ));
                 }
                 Category::LeftBrace => {
@@ -195,11 +195,11 @@ mod test {
     #[test]
     fn anon_function_call() {
         let fn_name = token(Identifier(Undefined("a".to_owned())), 1, 1);
-        let args = Box::new(Parameter(vec![
+        let args = vec![
             Primitive(token(Number(1), 1, 3)),
             Primitive(token(Number(2), 1, 6)),
             Primitive(token(Number(3), 1, 9)),
-        ]));
+        ];
 
         assert_eq!(result("a(1, 2, 3);"), Call(fn_name, args));
     }
@@ -214,7 +214,7 @@ mod test {
                     category: Identifier(Undefined("script_tag".to_owned())),
                     position: (1, 1)
                 },
-                Box::new(Parameter(vec![
+                vec![
                     NamedParameter(
                         Token {
                             category: Identifier(Undefined("name".to_owned())),
@@ -253,7 +253,7 @@ mod test {
                             ]
                         ))
                     )
-                ]))
+                ]
             )
         );
 
@@ -264,7 +264,7 @@ mod test {
                     category: Identifier(Undefined("script_tag".to_owned())),
                     position: (1, 1)
                 },
-                Box::new(Parameter(vec![NamedParameter(
+                vec![NamedParameter(
                     Token {
                         category: Identifier(Undefined("name".to_owned())),
                         position: (1, 12)
@@ -273,7 +273,7 @@ mod test {
                         category: Number(2),
                         position: (1, 18)
                     }))
-                )]))
+                )]
             )
         );
     }
