@@ -1,5 +1,30 @@
 #!/bin/bash
 
+print_progress() {
+    # echo -ne "\033[2K"
+    terminal_width=$(tput cols)
+    bar_width=$((terminal_width - 7))
+    percent=$((100 * cfiles / nfiles))
+    progress=$((percent * bar_width / 100))
+    empty=$((bar_width - progress))
+    echo -ne "["
+    for ((i=0;i<$progress;i++))
+    do
+        echo -ne "▇"
+    done
+    for ((i=0;i<$empty;i++))
+    do
+        echo -ne " "
+    done
+    echo -ne "]$percent%"
+    if [ $cfiles == $nfiles ]
+    then
+        echo -ne "\nDone\n"
+    else
+        echo -ne "\r"
+    fi
+}
+
 make_entry() {
     toc="$toc<li>"
 
@@ -36,6 +61,8 @@ recursive_toc() {
             recursive_toc
         # Else make an entry for the file
         elif [[ -f $entry ]]; then
+            cfiles=$((cfiles + 1))
+            print_progress
             filename="$(basename -- $entry)"
             if [ $filename != index.md ]; then
                 make_entry
@@ -85,6 +112,8 @@ recursive_html() {
             root_dir=${root_dir%"../"}
         # Else make an entry for the file
         elif [[ -f $entry ]]; then
+            cfiles=$((cfiles + 1))
+            print_progress
             filename="$(basename -- $entry)"
             make_html
         fi
@@ -110,9 +139,13 @@ js_path=js/script.js
 toc=""
 
 search_dir="$base_dir"manual
+nfiles=$(find "$search_dir"/ -type f | wc -l)
+cfiles=0
+echo "Creating Table of Content for html pages..."
 recursive_toc
 
 search_dir="$base_dir"manual
+echo "Creating html pages..."
+cfiles=0
 recursive_html
-
 exit 0
