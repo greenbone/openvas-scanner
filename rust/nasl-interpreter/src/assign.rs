@@ -203,6 +203,7 @@ impl<'a> AssignExtension for Interpreter<'a> {
                 Array(ref token, Some(stmt)) => {
                     (Self::identifier(token)?, Some(self.resolve(stmt)?))
                 }
+                Array(ref token, None) => (Self::identifier(token)?, None),
                 _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };
@@ -403,5 +404,22 @@ mod tests {
             )]))))
         );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+    }
+
+    #[test]
+    fn array_creation() {
+        let code = r###"
+        a = [1, 2, 3];
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![1.into(), 2.into(), 3.into()])))
+        );
     }
 }

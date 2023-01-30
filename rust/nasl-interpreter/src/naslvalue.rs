@@ -57,6 +57,12 @@ impl From<String> for NaslValue {
     }
 }
 
+impl From<i32> for NaslValue {
+    fn from(n: i32) -> Self {
+        Self::Number(n as i64)
+    }
+}
+
 impl From<i64> for NaslValue {
     fn from(n: i64) -> Self {
         Self::Number(n)
