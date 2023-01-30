@@ -79,7 +79,7 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, loader, &mut register);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(interpreter.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(interpreter.next(), Some(Ok(12.into())));
         assert_eq!(
             interpreter.next(),
             Some(Ok(NaslValue::Dict(HashMap::from([(

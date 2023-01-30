@@ -285,19 +285,19 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(25))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(23))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(11))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(22))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(5))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(20))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(80))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
+        assert_eq!(parser.next(), Some(Ok(25.into())));
+        assert_eq!(parser.next(), Some(Ok(23.into())));
+        assert_eq!(parser.next(), Some(Ok(11.into())));
+        assert_eq!(parser.next(), Some(Ok(22.into())));
+        assert_eq!(parser.next(), Some(Ok(5.into())));
+        assert_eq!(parser.next(), Some(Ok(20.into())));
+        assert_eq!(parser.next(), Some(Ok(80.into())));
+        assert_eq!(parser.next(), Some(Ok(0.into())));
+        assert_eq!(parser.next(), Some(Ok(0.into())));
+        assert_eq!(parser.next(), Some(Ok(2.into())));
+        assert_eq!(parser.next(), Some(Ok(2.into())));
+        assert_eq!(parser.next(), Some(Ok(0.into())));
     }
     #[test]
     fn arrays() {
@@ -320,17 +320,17 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(25))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(23))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(11))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(22))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(5))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(20))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(80))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
+        assert_eq!(parser.next(), Some(Ok(25.into())));
+        assert_eq!(parser.next(), Some(Ok(23.into())));
+        assert_eq!(parser.next(), Some(Ok(11.into())));
+        assert_eq!(parser.next(), Some(Ok(22.into())));
+        assert_eq!(parser.next(), Some(Ok(5.into())));
+        assert_eq!(parser.next(), Some(Ok(20.into())));
+        assert_eq!(parser.next(), Some(Ok(80.into())));
+        assert_eq!(parser.next(), Some(Ok(0.into())));
+        assert_eq!(parser.next(), Some(Ok(0.into())));
+        assert_eq!(parser.next(), Some(Ok(2.into())));
     }
     #[test]
     fn implicit_extend() {
@@ -344,13 +344,13 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Array(vec![
                 NaslValue::Null,
                 NaslValue::Null,
-                NaslValue::Number(12)
+                12.into()
             ])))
         );
     }
@@ -369,15 +369,15 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Array(vec![
-                NaslValue::Number(12),
+                12.into(),
                 NaslValue::Null,
-                NaslValue::Number(12)
+                12.into()
             ])))
         );
     }
@@ -395,15 +395,15 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Dict(HashMap::from([(
                 "hi".to_owned(),
-                NaslValue::Number(12)
+                12.into()
             )]))))
         );
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(12))));
+        assert_eq!(parser.next(), Some(Ok(12.into())));
     }
 
     #[test]
