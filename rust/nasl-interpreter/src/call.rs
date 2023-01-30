@@ -104,7 +104,7 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));
+        assert_eq!(parser.next(), Some(Ok(3.into())));
+        assert_eq!(parser.next(), Some(Ok(1.into())));
     }
 }

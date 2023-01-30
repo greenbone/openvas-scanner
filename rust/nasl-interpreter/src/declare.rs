@@ -97,7 +97,7 @@ mod tests {
             interpreter.resolve(&x.expect("unexpected parse error"))
         );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
+        assert_eq!(parser.next(), Some(Ok(3.into())));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Null)))); // not found
     }
 
@@ -115,6 +115,6 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser = parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
+        assert_eq!(parser.next(), Some(Ok(3.into())));
     }
 }
