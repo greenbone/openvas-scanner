@@ -5,7 +5,11 @@
 use nasl_syntax::{Statement, TokenCategory};
 use regex::Regex;
 
-use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue};
+use crate::{
+    error::InterpretError,
+    interpreter::InterpretResult,
+    Interpreter, NaslValue,
+};
 
 /// Is a trait to handle operator within nasl.
 pub(crate) trait OperatorExtension {
@@ -22,16 +26,15 @@ impl<'a> Interpreter<'a> {
     ) -> InterpretResult {
         // operation on no values
         if stmts.is_empty() {
-            return Err(InterpretError::new(
-                "Internal error: operation without statements is invalid.".to_string(),
-            ));
+            // This case should not happen beause it should be Lexer error already.
+            // We panic here to immediately escelate.
+            panic!(
+                "An operation without any statement should be already an error within the lexer."
+            );
         }
         // operation on more than two values
         if stmts.len() > 2 {
-            return Err(InterpretError::internal_error(
-                &stmts[0],
-                &"operation with more than two statements is invalid.".to_string(),
-            ));
+            panic!("An operation with more than two statements should be already an SyntaxError.");
         }
         let (left, right) = {
             let first = self.resolve(&stmts[0])?;
@@ -79,10 +82,7 @@ fn match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult {
     let right = matches.map(|x| x.to_string()).unwrap_or_default();
     match Regex::new(&right) {
         Ok(c) => Ok(NaslValue::Boolean(c.is_match(&a.to_string()))),
-        Err(err) => Err(InterpretError::new(format!(
-            "{} is a invalid regex: {}.",
-            right, err
-        ))),
+        Err(_) => Err(InterpretError::unparse_regex(&right)),
     }
 }
 
@@ -191,10 +191,10 @@ impl<'a> OperatorExtension for Interpreter<'a> {
             TokenCategory::X => {
                 // operation on more than two values
                 if stmts.len() != 2 {
-                    return Err(InterpretError::internal_error(
-                        &stmts[0],
-                        &"operation is invalid.".to_owned(),
-                    ));
+                    panic!(
+                        "An x operation with not exactly 2 parameter should be an SyntaxError 
+                         and not happen while trying to resolve this oepration."
+                    );
                 }
                 let repeat = {
                     let last = self.resolve(&stmts[1])?;
@@ -211,10 +211,7 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 self.resolve(repeatable)
             }
 
-            _ => Err(stmts
-                .get(0)
-                .map(|stmt| InterpretError::unsupported(stmt, "operation"))
-                .unwrap_or_else(|| InterpretError::new("Internal error: missing stmts".to_owned()))),
+            o => Err(InterpretError::wrong_category(o)),
         }
     }
 }
@@ -276,6 +273,7 @@ mod tests {
         less: "1 < 2;" => NaslValue::Boolean(true),
         greater_equal: "1 >= 1;" => NaslValue::Boolean(true),
         less_equal: "1 <= 1;" => NaslValue::Boolean(true),
+        xxxgonna_give_it_to_ya: "script_oid('hi') x 200;" => NaslValue::Null,
         gonna_give_it_to_ya: "script_oid('hi') x 200;" => NaslValue::Null
     }
 }

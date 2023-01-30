@@ -6,7 +6,6 @@
 
 use std::{fmt::Display, fs, path::Path};
 
-use crate::error::InterpretError;
 
 /// Defines abstract Loader error cases
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,12 +31,6 @@ impl Display for LoadError {
     }
 }
 
-impl From<LoadError> for InterpretError {
-    fn from(le: LoadError) -> Self {
-        let reason = format!("Error while loading a file: {}", le);
-        Self::new(reason)
-    }
-}
 
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
 pub trait Loader {

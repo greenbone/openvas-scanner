@@ -34,7 +34,7 @@ impl<'a> DeclareFunctionExtension for Interpreter<'a> {
                     names.push(param_name.to_owned());
                 }
                 _ => {
-                    return Err(InterpretError::unsupported(a, "parameter"))
+                    return Err(InterpretError::unsupported(a, "variable"))
                 }
             }
         }
@@ -98,7 +98,7 @@ mod tests {
         );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
-        assert!(matches!(parser.next(), Some(Err(_)))); // not found
+        assert!(matches!(parser.next(), Some(Ok(NaslValue::Null)))); // not found
     }
 
     #[test]

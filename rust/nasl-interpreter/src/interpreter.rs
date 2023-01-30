@@ -10,11 +10,11 @@ use crate::{
     call::CallExtension,
     context::{ContextType, Register},
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    error::InterpretError,
     include::IncludeExtension,
     loader::Loader,
     loop_extension::LoopExtension,
-    operator::OperatorExtension, NaslValue,
+    operator::OperatorExtension,
+    NaslValue, InterpretError,
 };
 
 /// Used to interpret a Statement
@@ -48,11 +48,8 @@ impl<'a> Interpreter<'a> {
 
     pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
         match token.category() {
-            TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.clone()),
-            _ => Err(InterpretError::new(format!(
-                "{} is not a primitive.",
-                token.category()
-            ))),
+            TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
+            cat => Err(InterpretError::wrong_category(cat)),
         }
     }
 
@@ -60,10 +57,10 @@ impl<'a> Interpreter<'a> {
     pub fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         match statement {
             Array(name, position) => {
-                let name = &Self::identifier(name)?;
+                let name = Self::identifier(name)?;
                 let val = self
                     .registrat
-                    .named(name)
+                    .named(&name)
                     .unwrap_or(&ContextType::Value(NaslValue::Null));
                 let val = val.clone();
 
@@ -82,14 +79,16 @@ impl<'a> Interpreter<'a> {
                     }
                     (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
                     (Some(p), _) => Err(InterpretError::unsupported(p, "array")),
-                    (_, _) => Err(InterpretError::new(format!("{} is not resolvable.", name))),
+                    (None, ContextType::Function(_, _)) => {
+                        Err(InterpretError::unsupported(statement, "variable"))
+                    }
                 }
             }
             Exit(stmt) => {
                 let rc = self.resolve(stmt)?;
                 match rc {
                     NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
-                    _ => Err(InterpretError::new("expected numeric value".to_string())),
+                    _ => Err(InterpretError::unsupported(stmt, "numeric")),
                 }
             }
             Return(stmt) => {
@@ -108,11 +107,12 @@ impl<'a> Interpreter<'a> {
             Primitive(token) => TryFrom::try_from(token),
             Variable(token) => {
                 let name: NaslValue = TryFrom::try_from(token)?;
-                match self.registrat.named(&name.to_string()).ok_or_else(|| {
-                    InterpretError::new(format!("variable {} not found", name.to_string()))
-                })? {
-                    ContextType::Function(_, _) => todo!(),
-                    ContextType::Value(result) => Ok(result.clone()),
+                match self.registrat.named(&name.to_string()) {
+                    Some(ContextType::Value(result)) => Ok(result.clone()),
+                    None => Ok(NaslValue::Null),
+                    Some(ContextType::Function(_, _)) => {
+                        Err(InterpretError::unsupported(statement, "variable"))
+                    }
                 }
             }
             Call(name, arguments) => self.call(name, arguments),
@@ -159,8 +159,8 @@ impl<'a> Interpreter<'a> {
             Break => Ok(NaslValue::Break),
         }
         .map_err(|e| {
-            if e.col == 0 && e.line == 0 {
-                InterpretError::from_statement(statement, e.reason)
+            if e.origin.is_none() {
+                InterpretError::from_statement(statement, e.kind)
             } else {
                 e
             }

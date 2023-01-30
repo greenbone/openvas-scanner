@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use nasl_syntax::{ACT, IdentifierType, Token, TokenCategory};
+use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 
 use crate::InterpretError;
 
@@ -162,10 +162,7 @@ impl TryFrom<&Token> for NaslValue {
             TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
             TokenCategory::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
             TokenCategory::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
-            _ => Err(InterpretError::new(format!(
-                "{} is not a primitive.",
-                token.category()
-            ))),
+            o => Err(InterpretError::wrong_category(o)),
         }
     }
 }

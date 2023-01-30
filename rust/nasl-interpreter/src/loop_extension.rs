@@ -102,11 +102,8 @@ impl<'a> LoopExtension for Interpreter<'a> {
         // Get name of the iteration variable
         let iter_name = match variable.category() {
             TokenCategory::Identifier(IdentifierType::Undefined(name)) => name,
-            _ => {
-                return Err(InterpretError::new(format!(
-                    "Unexpected variable category: {}",
-                    variable.category()
-                )))
+            o => {
+                return Err(InterpretError::wrong_category(o))
             }
         };
         // Iterate through the iterable Statement

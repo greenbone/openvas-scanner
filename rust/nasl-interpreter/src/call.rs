@@ -5,8 +5,11 @@
 use nasl_syntax::{Statement, Statement::*, Token};
 
 use crate::{
-    error::InterpretError, interpreter::InterpretResult, lookup, ContextType, Interpreter,
-    NaslValue, lookup_keys::FC_ANON_ARGS,
+    error::InterpretError,
+    interpreter::InterpretResult,
+    lookup,
+    lookup_keys::FC_ANON_ARGS,
+    ContextType, Interpreter, NaslValue,
 };
 use std::collections::HashMap;
 
@@ -23,6 +26,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         let mut named = HashMap::new();
         let mut position = vec![];
         match arguments {
+            // TODO simplify
             Parameter(params) => {
                 for p in params {
                     match p {
@@ -39,9 +43,9 @@ impl<'a> CallExtension for Interpreter<'a> {
                 }
             }
             _ => {
-                return Err(InterpretError::new(
-                    "invalid statement type for function parameters".to_string(),
-                ))
+                panic!(
+                    "The lexer must ensure that a call never has another statement than parameter."
+                )
             }
         };
         named.insert(
@@ -51,19 +55,15 @@ impl<'a> CallExtension for Interpreter<'a> {
         self.registrat.create_root_child(named);
         let result = match lookup(name) {
             // Built-In Function
-            Some(function) => match function(self.key, self.storage, self.registrat) {
-                Ok(value) => Ok(value),
-                Err(x) => Err(InterpretError::new(format!(
-                    "unable to call function {}: {:?}",
-                    name, x
-                ))),
-            },
+            Some(function) => {
+                function(self.key, self.storage, self.registrat).map_err(|x| x.into())
+            }
             // Check for user defined function
             None => {
                 let found = self
                     .registrat
                     .named(name)
-                    .ok_or_else(|| InterpretError::new(format!("function {} not found", name)))?
+                    .ok_or_else(|| InterpretError::not_found(name))?
                     .clone();
                 match found {
                     ContextType::Function(params, stmt) => {
@@ -83,7 +83,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                             a => Ok(a),
                         }
                     }
-                    ContextType::Value(stmt) => Err(InterpretError::new(format!("unable to call stored variable {:?}", stmt))),
+                    ContextType::Value(_) => Err(InterpretError::expected_function()),
                 }
             }
         };
@@ -97,9 +97,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{
-        context::Register, loader::NoOpLoader, Interpreter, NaslValue,
-    };
+    use crate::{context::Register, loader::NoOpLoader, Interpreter, NaslValue};
 
     #[test]
     fn default_null_on_user_defined_functions() {
@@ -115,7 +113,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));

@@ -4,10 +4,7 @@
 
 //! Defines NASL functions that deal with random and helpers
 
-use std::{
-    fs::File,
-    io::Read,
-};
+use std::{fs::File, io::Read};
 
 use sink::Sink;
 
@@ -21,8 +18,8 @@ fn random_impl() -> Result<i64, FunctionError> {
         .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()))?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
-        .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()));
-    Ok(i64::from_be_bytes(buffer))
+        .map(|_| i64::from_be_bytes(buffer))
+        .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()))
 }
 
 /// NASL function to get random number
