@@ -112,11 +112,7 @@ impl Register {
         value: ContextType,
     ) -> Result<(), InterpretError> {
         if idx >= self.blocks.len() {
-            Err(InterpretError::new(format!(
-                "{} is higher than available blocks ({})",
-                idx,
-                self.blocks.len()
-            )))
+            panic!("The given index should be retrieved by named_value. Therefore this should not happen.");
         } else {
             let global = &mut self.blocks[idx];
             global.add_named(name, value);

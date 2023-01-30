@@ -22,7 +22,7 @@ impl<'a> IncludeExtension for Interpreter<'a> {
                 let result = parse(&code)
                     .map(|parsed| match parsed {
                         Ok(stmt) => inter.resolve(&stmt),
-                        Err(err) => Err(InterpretError::from(err)),
+                        Err(err) => Err(InterpretError::include_syntax_error(&key, err)),
                     })
                     .find(|e| e.is_err());
                 match result {
@@ -30,7 +30,7 @@ impl<'a> IncludeExtension for Interpreter<'a> {
                     None => Ok(NaslValue::Null),
                 }
             }
-            a => Err(InterpretError::new(format!("invalid: {:?}", a))),
+            _ => Err(InterpretError::unsupported(name, "string")),
         }
     }
 }

@@ -33,7 +33,7 @@ pub use error::InterpretError;
 pub use interpreter::Interpreter;
 pub use loader::*;
 pub use naslvalue::NaslValue;
-use sink::{Sink, SinkError};
+use sink::Sink;
 
 // Is a type definition for built-in functions
 pub(crate) type NaslFunction = fn(&str, &dyn Sink, &Register) -> Result<NaslValue, FunctionError>;
@@ -46,8 +46,3 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
         .or_else(|| function::lookup(function_name))
 }
 
-impl From<SinkError> for InterpretError {
-    fn from(se: SinkError) -> Self {
-        InterpretError::new(format!("An error occurred while using a sink: {}", se))
-    }
-}

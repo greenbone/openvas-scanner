@@ -68,10 +68,7 @@ impl<'a> Interpreter<'a> {
             .index_named(key)
             .unwrap_or((0, &ContextType::Value(NaslValue::Null)))
         {
-            (_, ContextType::Function(_, _)) => Err(InterpretError::new(format!(
-                "{} is a function and not assignable.",
-                key
-            ))),
+            (_, ContextType::Function(_, _)) => Err(InterpretError::expected_value()),
             (idx, ContextType::Value(val)) => Ok((idx, val.clone())),
         }
     }
@@ -206,7 +203,7 @@ impl<'a> AssignExtension for Interpreter<'a> {
                 Array(ref token, Some(stmt)) => {
                     (Self::identifier(token)?, Some(self.resolve(stmt)?))
                 }
-                _ => return Err(InterpretError::unsupported(left, "assign left")),
+                _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };
         let val = self.resolve(right)?;
@@ -250,10 +247,7 @@ impl<'a> AssignExtension for Interpreter<'a> {
                 NaslValue::Number(i64::from(left) - 1)
             }),
 
-            _ => Err(InterpretError::new(format!(
-                "invalid assign category {}",
-                &category
-            ))),
+            cat => Err(InterpretError::wrong_category(cat)),
         }
     }
 }

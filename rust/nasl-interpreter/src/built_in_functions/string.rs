@@ -4,13 +4,12 @@
 
 //! Defines NASL functions that deal with string and their helpers
 
-use core::fmt::{self, Write};
+use core::fmt::Write;
 use sink::Sink;
 
 use crate::{
     context::ContextType,
-    error::{FunctionError, FunctionErrorKind},
-    NaslFunction, NaslValue, Register,
+    NaslFunction, NaslValue, Register, error::{FunctionError, FunctionErrorKind},
 };
 
 use super::resolve_positional_arguments;

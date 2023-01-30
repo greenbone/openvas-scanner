@@ -4,15 +4,14 @@
 
 use std::str::FromStr;
 
-use crate::error::FunctionErrorKind;
 use crate::{
     context::{ContextType, Register},
-    error::FunctionError,
     NaslFunction, NaslValue,
+    FunctionError, error::FunctionErrorKind
 };
 
 use sink::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey};
-use sink::{Sink, SinkError};
+use sink::Sink;
 
 /// Makes a storage function based on a very small DSL.
 ///
