@@ -38,7 +38,7 @@ pub enum Statement {
     /// Is a array variable, it contains the lookup token as well as an optional lookup statement
     Array(Token, Option<Box<Statement>>),
     /// Is a call of a function
-    Call(Token, Box<Statement>),
+    Call(Token, Vec<Statement>),
     /// Special exit call
     Exit(Box<Statement>),
     /// Special Return statement

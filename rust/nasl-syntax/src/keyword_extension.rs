@@ -413,20 +413,20 @@ mod test {
                         category: Identifier(Undefined("script_oid".to_owned())),
                         position: (1, 18)
                     },
-                    Box::new(Parameter(vec![Primitive(Token {
+                    vec![Primitive(Token {
                         category: String("1".to_owned()),
                         position: (1, 29)
-                    })]))
+                    })]
                 )),
                 Some(Box::new(Call(
                     Token {
                         category: Identifier(Undefined("display".to_owned())),
                         position: (1, 40)
                     },
-                    Box::new(Parameter(vec![Primitive(Token {
+                    vec![Primitive(Token {
                         category: String("hi".to_owned()),
                         position: (1, 48)
-                    })]))
+                    })]
                 )))
             )
         );
