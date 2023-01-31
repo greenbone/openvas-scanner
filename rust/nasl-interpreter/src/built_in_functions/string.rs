@@ -3,9 +3,7 @@
 use core::fmt::{self, Write};
 use sink::Sink;
 
-use crate::{
-    error::FunctionError, NaslFunction, NaslValue, Register,
-};
+use crate::{context::ContextType, error::FunctionError, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
 
@@ -196,6 +194,39 @@ fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     })
 }
 
+fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let data = match register.named("data") {
+        None => "X",
+        Some(x) => match x {
+            ContextType::Value(NaslValue::String(x)) => x,
+            _ => {
+                return Err(FunctionError::new(
+                    "expected data argument to be a string".to_owned(),
+                ))
+            }
+        },
+    };
+    match register.named("length") {
+        None => {
+            let positional = resolve_positional_arguments(register);
+            match positional.get(0) {
+                Some(NaslValue::Number(x)) => Ok(NaslValue::String(data.repeat(*x as usize))),
+                _ => Err(FunctionError::new(
+                    "expected numeric length argument".to_owned(),
+                )),
+            }
+        }
+        Some(x) => match x {
+            ContextType::Value(NaslValue::Number(x)) => {
+                Ok(NaslValue::String(data.repeat(*x as usize)))
+            }
+            _ => Err(FunctionError::new(
+                "expected numeric length argument".to_owned(),
+            )),
+        },
+    }
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -206,6 +237,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "strlen" => Some(strlen),
         "string" => Some(string),
         "substr" => Some(substr),
+        "crap" => Some(crap),
         _ => None,
     }
 }
@@ -336,5 +368,23 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("ello".into())));
         assert_eq!(parser.next(), Some(Ok("hell".into())));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+    }
+
+    #[test]
+    fn crap() {
+        let code = r###"
+        crap(5);
+        crap(length: 5);
+        crap(data: "ab", length: 5);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
+        assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
+        assert_eq!(parser.next(), Some(Ok("ababababab".into())));
     }
 }
