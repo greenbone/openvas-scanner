@@ -355,8 +355,8 @@ impl Nvt {
 
     /// Get the NVT modification_time
     // Not used during plugin upload.
-    pub fn modification_time(&mut self) -> RedisSinkResult<TimeT> {
-        Ok(self.modification_time)
+    pub fn modification_time(&self) -> &TimeT {
+        &self.modification_time
     }
     /// Get the NVT solution
     // Not used during plugin upload.
@@ -377,7 +377,7 @@ impl Nvt {
     }
 
     /// Get the NVT tag
-    pub fn tag(&self) -> &Vec<(String, String)> {
+    pub fn tag(&self) -> &[(String, String)] {
         &self.tag
     }
 

@@ -9,5 +9,8 @@ license = "GPL-2.0-or-later"
 [dependencies]
 clap = { version = "~4", features = ["derive"] }
 nasl-syntax = { path = "../nasl-syntax" }
+nasl-interpreter = { path = "../nasl-interpreter" }
+sink = { path = "../sink" }
+redis-sink = { path = "../redis-sink" }
 walkdir = "2"
 

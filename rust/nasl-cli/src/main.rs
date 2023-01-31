@@ -8,7 +8,10 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
+use nasl_interpreter::{ContextType, FSPluginLoader, Interpreter, Register};
 use nasl_syntax::{Statement, SyntaxError};
+use redis_sink::connector::RedisCache;
+use sink::{DefaultSink, Sink};
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
@@ -25,6 +28,25 @@ enum Command {
     /// It is mostly for debug purposes and verification if the nasl-syntax-parser is working as expected.
     Syntax {
         /// The path for the file or dir to parse
+        #[arg(short, long)]
+        path: PathBuf,
+        /// prints the parsed statements
+        #[arg(short, long, default_value_t = false)]
+        verbose: bool,
+    },
+    /// Subcommand to print the raw statements of a file.
+    ///
+    /// It is mostly for debug purposes and verification if the nasl-syntax-parser is working as expected.
+    Feed {
+        /// Redis address inform of tcp (redis://) or unix socket (unix://).
+        ///
+        /// It must be the complete redis address in either the form of a unix socket or tcp.
+        /// For tcp provide the address in the form of: `redis://host:port`.
+        /// For unix sockket provide the path to the socket in the form of: `unix://path/to/redis.sock`.
+        /// When not provided the DefaultSink will be used instead.
+        #[arg(short, long)]
+        redis: Option<String>,
+        /// The path to the NASL plugins
         #[arg(short, long)]
         path: PathBuf,
         /// prints the parsed statements
@@ -108,10 +130,72 @@ fn syntax_check(path: PathBuf, verbose: bool) {
         skipped, parsed, errors
     );
 }
+fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
+    println!("description run syntax in {:?}.", path);
+    if !path.as_path().is_dir() {
+        println!("is not a path, stopping.");
+        return;
+    }
+    let root_dir = path.clone();
+    let root_dir_len = path.to_str().map(|x|x.len()).unwrap_or_default();
+    let loader = FSPluginLoader::new(&root_dir);
+    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+        let ext = {
+            if let Some(ext) = entry.path().extension() {
+                ext.to_str().unwrap().to_owned()
+            } else {
+                "".to_owned()
+            }
+        };
+        if matches!(ext.as_str(), "nasl") {
+            let code = load_file(entry.path())
+                .unwrap_or_else(|_| panic!("{:?} should be loadable", entry.path()));
+            let mut register = Register::root_initial(vec![
+                (
+                    "description".to_owned(),
+                    ContextType::Value(nasl_interpreter::NaslValue::Boolean(true)),
+                ),
+                (
+                    "OPENVAS_VERSION".to_owned(),
+                    ContextType::Value(nasl_interpreter::NaslValue::String("1".to_owned())),
+                ),
+            ]);
+            let key = entry.path().to_str().unwrap_or_default();
+            let key = &key[root_dir_len..];
+            let mut interpreter = Interpreter::new(key, storage, &loader, &mut register);
+            let result = nasl_syntax::parse(&code)
+                .map(|r| r.unwrap_or_else(|_| panic!(" should be parseable.")))
+                .map(|stmt| interpreter.resolve(&stmt))
+                .map(|ir| ir.unwrap_or_else(|e| panic!("{:?}", e)))
+                .find(|ir| matches!(ir, nasl_interpreter::NaslValue::Exit(_)))
+                .unwrap();
+            storage.on_exit().unwrap();
+            if verbose {
+                println!("{:?} {:?}.", entry.path(), result);
+            }
+        }
+    }
+}
 
 fn main() {
     let cli = Cli::parse();
     match cli.command {
         Command::Syntax { path, verbose } => syntax_check(path, verbose),
+        Command::Feed {
+            redis: Some(x),
+            path,
+            verbose,
+        } => {
+            let redis = RedisCache::init(&x).unwrap();
+            feed_run(&redis, path, verbose)
+        }
+        Command::Feed {
+            redis: None,
+            path,
+            verbose,
+        } => {
+            let sink = DefaultSink::default();
+            feed_run(&sink, path, verbose)
+        }
     }
 }

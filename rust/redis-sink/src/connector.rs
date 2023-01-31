@@ -98,7 +98,9 @@ impl RedisCtx {
             maxdb: 0,
             global_db_index,
         };
-        let _kbi = redisctx.select_database()?;
+        // we just use the DB 1 instead of guessing since currently we just use
+        // redis for nvt information.
+        redisctx.set_namespace(1)?;
         Ok(redisctx)
     }
 
@@ -230,13 +232,14 @@ impl RedisCtx {
         let tags = self.tags_as_single_string(nvt.tag());
         let category = nvt.category().to_string();
         let family = nvt.family();
+        let filename = nvt.filename();
 
         // Get the references
         let (cves, bids, xrefs) = nvt.refs();
 
         let key_name = format!("nvt:{}", oid);
         let values = [
-            nvt.filename(),
+            filename,
             &required_keys,
             &mandatory_keys,
             &excluded_keys,
@@ -260,6 +263,16 @@ impl RedisCtx {
             let key_name = format!("oid:{}prefs", oid);
             self.kb.lpush(key_name, prefs)?;
         }
+
+        let key_name = format!("filename:{filename}");
+        let tags = nvt.tag();
+        let last_modification = {
+            tags.iter()
+                .find(|(key, _)| key == "last_modification")
+                .map_or_else(|| "0", |(_, val)| val)
+        };
+        let values = [&last_modification, oid];
+        self.kb.rpush(key_name, &values)?;
 
         Ok(())
     }
@@ -304,10 +317,11 @@ impl RedisCache {
     }
 
     fn store_nvt(&self, cache: &mut RedisCtx) -> RedisSinkResult<()> {
-        let may_nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
+        let mut may_nvtc = Arc::as_ref(&self.internal_cache).lock().unwrap();
         if let Some(nvtc) = &*may_nvtc {
             cache.redis_add_nvt(nvtc)?;
         }
+        *may_nvtc = None;
         // TODO add oid duplicate check on interpreter
         Ok(())
     }
@@ -464,7 +478,10 @@ impl Sink for RedisCache {
                 }
                 if let Some(nvtc) = &mut *may_nvtc {
                     match field {
-                        sink::nvt::NVTField::Oid(oid) => nvtc.set_oid(oid),
+                        sink::nvt::NVTField::Oid(oid) => {
+                            nvtc.set_filename(_key.to_owned());
+                            nvtc.set_oid(oid)
+                        }
                         sink::nvt::NVTField::FileName(name) => nvtc.set_filename(name),
                         sink::nvt::NVTField::Name(name) => nvtc.set_name(name),
                         sink::nvt::NVTField::Tag(key, value) => {
