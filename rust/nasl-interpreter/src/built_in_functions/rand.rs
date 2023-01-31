@@ -15,11 +15,11 @@ use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
 fn random_impl() -> Result<i64, FunctionError> {
     let mut rng = File::open("/dev/urandom")
-        .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()))?;
+        .map_err(|e| FunctionError::new("randr", e.kind().into()))?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
         .map(|_| i64::from_be_bytes(buffer))
-        .map_err(|e| FunctionError::new("randr".to_owned(), e.kind().into()))
+        .map_err(|e| FunctionError::new("randr", e.kind().into()))
 }
 
 /// NASL function to get random number

@@ -9,7 +9,8 @@ use sink::Sink;
 
 use crate::{
     context::ContextType,
-    NaslFunction, NaslValue, Register, error::{FunctionError, FunctionErrorKind},
+    error::FunctionError,
+    NaslFunction, NaslValue, Register,
 };
 
 use super::resolve_positional_arguments;
@@ -77,7 +78,7 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
         }
         _ => write!(s, "."),
     }
-    .map_err(|e| FunctionError::new("string".to_owned(), e.into()))
+    .map_err(|e| FunctionError::new("string", e.into()))
 }
 
 /// NASL function to parse values into string representations
@@ -110,7 +111,7 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Func
         NaslValue::AttackCategory(x) => write!(s, "{}", *x as i32),
         _ => Ok(()),
     }
-    .map_err(|e| FunctionError::new("string".to_owned(), e.into()))
+    .map_err(|e| FunctionError::new("string", e.into()))
 }
 
 /// NASL function to return uppercase equivalent of a given string
@@ -185,8 +186,7 @@ fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
         Some(NaslValue::String(x)) => {
             let mut s = String::with_capacity(2 * x.len());
             for byte in x.as_bytes() {
-                write!(s, "{:02X}", byte)
-                    .map_err(|e| FunctionError::new("randr".to_owned(), e.into()))?
+                write!(s, "{:02X}", byte).map_err(|e| FunctionError::new("randr", e.into()))?
             }
             s.into()
         }
@@ -207,7 +207,7 @@ fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functio
                 ContextType::Value(a) => ("data", "string", a).into(),
                 ContextType::Function(_, _) => ("data", "string", "function").into(),
             };
-            return Err(FunctionError::new("crap".to_string(), ek));
+            return Err(FunctionError::new("crap", ek));
         }
     };
     match register.named("length") {
@@ -215,28 +215,13 @@ fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functio
             let positional = resolve_positional_arguments(register);
             match positional.get(0) {
                 Some(NaslValue::Number(x)) => Ok(NaslValue::String(data.repeat(*x as usize))),
-                Some(x) => Err(FunctionError::new(
-                    "crap".to_string(),
-                    ("length", "numeric", x).into(),
-                )),
-                _ => Err(FunctionError::new(
-                    "crap".to_string(),
-                    FunctionErrorKind::MissingPositionalArguments {
-                        expected: 1,
-                        got: 0,
-                    },
-                )),
+                x => Err(FunctionError::new("crap", ("0", "numeric", x).into())),
             }
         }
-        Some(x) => match x {
-            ContextType::Value(NaslValue::Number(x)) => {
-                Ok(NaslValue::String(data.repeat(*x as usize)))
-            }
-            _ => Err(FunctionError::new(
-                "crap".to_string(),
-                FunctionErrorKind::MissingArguments(vec!["length".to_string()]),
-            )),
-        },
+        Some(ContextType::Value(NaslValue::Number(x))) => {
+            Ok(NaslValue::String(data.repeat(*x as usize)))
+        }
+        x => Err(FunctionError::new("crap", ("length", "numeric", x).into())),
     }
 }
 
@@ -247,9 +232,7 @@ fn chomp(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functi
     let positional = resolve_positional_arguments(register);
     match positional.get(0) {
         Some(NaslValue::String(x)) => Ok(NaslValue::String(x.trim_end().to_owned())),
-        _ => Err(FunctionError::new(
-            "expected positional argument of string type".to_owned(),
-        )),
+        x => Err(FunctionError::new("chomp", ("0", "string", x).into())),
     }
 }
 

@@ -7,7 +7,7 @@ use std::io;
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
 use sink::SinkError;
 
-use crate::{NaslValue, LoadError};
+use crate::{NaslValue, LoadError, ContextType};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum FunctionErrorKind {
@@ -41,6 +41,25 @@ impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
     }
 }
 
+
+impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
+    fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
+        match value {
+            (key, expected, Some(x)) => (key, expected, x).into(),
+            (key, expected, None) => (key, expected, "NULL").into(),
+        }
+    }
+}
+
+impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
+    fn from(value: (&str, &str, Option<&ContextType>)) -> Self {
+        match value {
+            (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
+            (key, expected, Some(ContextType::Function(_, _))) => (key, expected, "function").into(),
+            (key, expected, None) => (key, expected, "NULL").into(),
+        }
+    }
+}
 impl From<(&str,  &NaslValue)> for FunctionErrorKind {
     fn from(value: (&str, &NaslValue)) -> Self {
         let (expected, got) = value;
@@ -74,14 +93,14 @@ pub struct FunctionError {
 }
 
 impl FunctionError {
-    pub fn new(function: String, kind: FunctionErrorKind) -> Self {
-        Self { function, kind }
+    pub fn new(function: &str, kind: FunctionErrorKind) -> Self {
+        Self { function: function.to_owned(), kind }
     }
 }
 
 impl From<SinkError> for FunctionError {
     fn from(e: SinkError) -> Self {
-        Self::new("".to_owned(), e.into())
+        Self::new("", e.into())
     }
 }
 
