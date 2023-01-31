@@ -194,6 +194,10 @@ fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     })
 }
 
+/// NASL function to return a buffer of required length with repeated occurrences of a specified string
+///
+/// Length argument is required and can be a named argument or a positional argument.
+/// Data argument is an optional named argument and is taken to be "X" if not provided.
 fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let data = match register.named("data") {
         None => "X",
