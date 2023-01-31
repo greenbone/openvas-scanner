@@ -5,11 +5,7 @@
 use nasl_syntax::{Statement, TokenCategory};
 use regex::Regex;
 
-use crate::{
-    error::InterpretError,
-    interpreter::InterpretResult,
-    Interpreter, NaslValue,
-};
+use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue};
 
 /// Is a trait to handle operator within nasl.
 pub(crate) trait OperatorExtension {
@@ -24,18 +20,9 @@ impl<'a> Interpreter<'a> {
         stmts: &[Statement],
         result: impl Fn(NaslValue, Option<NaslValue>) -> InterpretResult,
     ) -> InterpretResult {
-        // operation on no values
-        if stmts.is_empty() {
-            // This case should not happen beause it should be Lexer error already.
-            // We panic here to immediately escelate.
-            panic!(
-                "An operation without any statement should be already an error within the lexer."
-            );
-        }
-        // operation on more than two values
-        if stmts.len() > 2 {
-            panic!("An operation with more than two statements should be already an SyntaxError.");
-        }
+        // neither empty statements nor statements over 2 arguments should ever happen
+        // because it is handled as a SyntaxError. Therefore we don't double check and
+        // and let it run into a index out of bound panic to immediately escalate.
         let (left, right) = {
             let first = self.resolve(&stmts[0])?;
             if stmts.len() == 1 {
@@ -189,13 +176,9 @@ impl<'a> OperatorExtension for Interpreter<'a> {
                 Ok(NaslValue::Boolean(i64::from(&a) <= right))
             }),
             TokenCategory::X => {
-                // operation on more than two values
-                if stmts.len() != 2 {
-                    panic!(
-                        "An x operation with not exactly 2 parameter should be an SyntaxError 
-                         and not happen while trying to resolve this oepration."
-                    );
-                }
+                // neither empty statements nor statements over 2 arguments should ever happen
+                // because it is handled as a SyntaxError. Therefore we don't double check and
+                // and let it run into a index out of bound panic to immediately escalate.
                 let repeat = {
                     let last = self.resolve(&stmts[1])?;
                     i64::from(&last)
@@ -244,9 +227,9 @@ mod tests {
     }
     create_test! {
         numeric_plus: "1+2;" => 3.into(),
-        string_plus: "'hello ' + 'world!';" => NaslValue::String("hello world!".to_owned()),
+        string_plus: "'hello ' + 'world!';" => "hello world!".into(),
         numeric_minus : "1 - 2;" => NaslValue::Number(-1),
-        string_minus : "'hello ' - 'o ';" => NaslValue::String("hell".to_owned()),
+        string_minus : "'hello ' - 'o ';" => "hell".into(),
         multiplication: "1*2;" => 2.into(),
         division: "512/2;" => 256.into(),
         modulo: "512%2;" => 0.into(),
