@@ -66,7 +66,7 @@ macro_rules! make_storage_function {
             let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
                 return Err(FunctionError::new(
-                    stringify!($name).to_owned(),
+                    stringify!($name),
                     FunctionErrorKind::MissingPositionalArguments { expected: $len, got: positional.len() },
                 ));
             }
@@ -115,7 +115,7 @@ fn get_named_parameter<'a>(
         None => {
             if required {
                 Err(FunctionError::new(
-                    function.to_owned(),
+                    function,
                     FunctionErrorKind::MissingArguments(vec![key.to_owned()]),
                 ))
             } else {
@@ -125,7 +125,7 @@ fn get_named_parameter<'a>(
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
             _ => Err(FunctionError::new(
-                function.to_owned(),
+                function,
                 (key, "value", "function").into(),
             )),
         },
@@ -145,7 +145,7 @@ fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(NVTField::Category(*cat)),
         a => Err(FunctionError::new(
-            "script_category".to_owned(),
+            "script_category",
             ("AttackCategory", a).into(),
         )),
     }
@@ -213,7 +213,7 @@ fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
 fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     if arguments.len() != 2 {
         return Err(FunctionError::new(
-            "script_xref".to_owned(),
+            "script_xref",
             FunctionErrorKind::MissingArguments(vec!["name".to_owned(), "csv".to_owned()]),
         ));
     }
@@ -227,7 +227,7 @@ fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
 fn as_preference(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
     if arguments.len() < 3 {
         return Err(FunctionError::new(
-            "script_add_preference".to_owned(),
+            "script_add_preference",
             FunctionErrorKind::MissingArguments(vec!["type".to_owned(), "value".to_owned()]),
         ));
     }
