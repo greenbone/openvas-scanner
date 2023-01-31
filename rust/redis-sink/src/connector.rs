@@ -194,8 +194,8 @@ impl RedisCtx {
         Ok(ret.v)
     }
 
-    fn lrange(&mut self, ket: &str, from: isize, to: isize) -> RedisSinkResult<Vec<String>> {
-        let ret: Vec<Value> = self.kb.lrange(ket, from, to)?;
+    fn lrange(&mut self, key: &str, from: isize, to: isize) -> RedisSinkResult<Vec<String>> {
+        let ret: Vec<Value> = self.kb.lrange(key, from, to)?;
         Ok(ret
             .iter()
             .map(|v| from_redis_value(v).unwrap_or_default())

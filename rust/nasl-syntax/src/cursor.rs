@@ -74,8 +74,8 @@ impl<'a> Cursor<'a> {
         self.initial_len - self.chars.as_str().len()
     }
 
-    /// Returns the line and the colum in line of the current position
-    pub fn line_colum(&self) -> (usize, usize) {
+    /// Returns the line and the column in line of the current position
+    pub fn line_column(&self) -> (usize, usize) {
         (self.line, self.col)
     }
 }

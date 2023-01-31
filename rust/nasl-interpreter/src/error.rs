@@ -157,7 +157,7 @@ impl InterpretError {
     /// Returns the line and column number
     ///
     /// Based on the stored statement the line and column number are retained.
-    /// That start both at 1 the only occurence when there is no such number is when either
+    /// That start both at 1 the only occurrence when there is no such number is when either
     /// no statement is stored in this error or when the given statement is either a
     /// - Statement::EoF,
     /// - Statement::AttackCategory,

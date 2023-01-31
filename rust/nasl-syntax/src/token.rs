@@ -698,7 +698,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         use Category::*;
         self.cursor.skip_while(|c| c.is_whitespace());
         let start = self.cursor.len_consumed();
-        let position = self.cursor.line_colum();
+        let position = self.cursor.line_column();
         let category: Category = match self.cursor.advance()? {
             '(' => LeftParen,
             ')' => RightParen,

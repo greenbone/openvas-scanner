@@ -37,7 +37,7 @@ pub enum SinkError {
     ///
     /// The default solution in those cases are most of the times to try a reconnect.
     ConnectionLost(String),
-    /// The sink did expected a different kind of data and is unable to fullfil the request.
+    /// The sink did expected a different kind of data and is unable to fulfil the request.
     ///
     /// This is usually a usage error.
     UnexpectedData(String),
