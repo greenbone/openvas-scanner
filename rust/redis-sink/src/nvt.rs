@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use crate::dberror::RedisSinkResult;
 use chrono::prelude::*;
 use sink::nvt::{NvtRef, NvtPreference, ACT};

@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Defines NASL functions that deal with string and their helpers
 
 use core::fmt::{self, Write};

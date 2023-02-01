@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::collections::HashMap;
 
 use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory, ACT};
