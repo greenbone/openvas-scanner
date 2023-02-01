@@ -12,9 +12,9 @@
 
 ## DESCRIPTION
 
-Expands the with the given hostname.
+Expands the vHosts list with the given hostname.
 
-The mandatory parameter *hostname* is of type *string*. It contains the hostname which should be added to the list of VHosts
+The mandatory parameter *hostname* is of type *string*. It contains the hostname which should be added to the list of vHosts
 
 Additionally a source, how the hostname was detected can be added with the named argument *source* as a *string*. If it is not given, the value *NASL* is set as default.
 
