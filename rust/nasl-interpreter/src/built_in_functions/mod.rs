@@ -6,7 +6,7 @@ use crate::{Register, NaslValue, ContextType, lookup_keys::FC_ANON_ARGS};
 
 pub mod description;
 pub mod hostname;
-pub mod rand;
+pub mod misc;
 pub mod string;
 pub mod array;
 pub mod function;
