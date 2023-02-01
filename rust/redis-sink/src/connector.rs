@@ -7,13 +7,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::dberror::DbError;
 use crate::dberror::RedisSinkResult;
 use crate::nvt::Nvt;
 use redis::*;
 use sink::nvt::NVTField;
 use sink::nvt::NvtPreference;
-use sink::nvt::NvtRef;
 use sink::nvt::PreferenceType;
 use sink::Dispatch;
 use sink::Retrieve;
@@ -66,7 +64,6 @@ impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
 pub struct RedisCtx {
     kb: Connection, //a redis connection
     db: u32,        // the name space
-    maxdb: u32,     // max db index
     global_db_index: String,
 }
 
@@ -95,8 +92,7 @@ impl RedisCtx {
         let global_db_index = "GVM.__GlobalDBIndex".to_string();
         let mut redisctx = RedisCtx {
             kb,
-            db: 0,
-            maxdb: 0,
+            db: 1,
             global_db_index,
         };
         // we just use the DB 1 instead of guessing since currently we just use
@@ -105,28 +101,6 @@ impl RedisCtx {
         Ok(redisctx)
     }
 
-    /// Get the max db index configured for the redis server instance
-    fn max_db_index(&mut self) -> RedisSinkResult<u32> {
-        if self.maxdb > 0 {
-            return Ok(self.maxdb);
-        }
-
-        // Redis always replies about config with a vector
-        // of 2 string ["databases", "Number"]
-        // Therefore we convert the "Number" to uint32
-        let (_, max_db) = Cmd::new()
-            .arg("CONFIG")
-            .arg("GET")
-            .arg("databases")
-            .query::<(String, u32)>(&mut self.kb)?;
-        self.maxdb = max_db;
-        Ok(max_db)
-    }
-
-    fn namespace(&mut self) -> RedisSinkResult<u32> {
-        let db: u32 = self.db;
-        Ok(db)
-    }
 
     fn set_namespace(&mut self, db_index: u32) -> RedisSinkResult<()> {
         Cmd::new()
@@ -138,40 +112,13 @@ impl RedisCtx {
         Ok(())
     }
 
-    fn try_database(&mut self, dbi: u32) -> RedisSinkResult<u32> {
-        let ret = self.kb.hset_nx(&self.global_db_index, dbi, 1)?;
-        Ok(ret)
-    }
-
-    fn select_database(&mut self) -> RedisSinkResult<u32> {
-        let maxdb: u32 = self.max_db_index()?;
-        let mut selected_db: u32 = 0;
-
-        // Start always from 1. Namespace 0 is reserved
-        //format self.global_db_index
-        for i in 1..maxdb {
-            let ret = self.try_database(i)?;
-            if ret == 1 {
-                selected_db = i;
-                break;
-            }
-        }
-        if selected_db > 0 {
-            self.set_namespace(selected_db)?;
-            return Ok(self.db);
-        }
-        Err(DbError::NoAvailDbErr(String::from(
-            "Not possible to select a free db",
-        )))
-    }
 
     /// Delete an entry from the in-use namespace's list
     fn release_namespace(&mut self) -> RedisSinkResult<()> {
         // Get the current db index first, the one to be released
-        let dbi = self.namespace()?;
         // Remove the entry from the hash list
         self.set_namespace(0)?;
-        self.kb.hdel(&self.global_db_index, dbi)?;
+        self.kb.hdel(&self.global_db_index, self.db)?;
         Ok(())
     }
 
