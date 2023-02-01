@@ -5,9 +5,11 @@
 use std::{
     fs, io,
     path::{Path, PathBuf},
+    process,
 };
 
 use clap::{Parser, Subcommand};
+use configparser::ini::Ini;
 use nasl_interpreter::{ContextType, FSPluginLoader, Interpreter, Register};
 use nasl_syntax::{Statement, SyntaxError};
 use redis_sink::connector::RedisCache;
@@ -48,11 +50,18 @@ enum Command {
         redis: Option<String>,
         /// The path to the NASL plugins
         #[arg(short, long)]
-        path: PathBuf,
+        path: Option<PathBuf>,
         /// prints the parsed statements
         #[arg(short, long, default_value_t = false)]
         verbose: bool,
+        #[command(subcommand)]
+        action: FeedAction,
     },
+}
+
+#[derive(clap::Subcommand, Debug, Clone)]
+enum FeedAction {
+    Update,
 }
 
 fn load_file<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
@@ -148,18 +157,22 @@ fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
         .unwrap_or_else(|_| panic!("{:?} should be loadable", plgin_feed));
     let mut register = Register::default();
     let mut interpreter = Interpreter::new("WTF", storage, &loader, &mut register);
-    nasl_syntax::parse(&code).map(|x| {
-        let x = x.expect("don't expect parse error");
-        interpreter.resolve(&x).expect("nope")
-    }).last();
+    nasl_syntax::parse(&code)
+        .map(|x| {
+            let x = x.expect("don't expect parse error");
+            interpreter.resolve(&x).expect("nope")
+        })
+        .last();
     let feed_version = register
         .named("PLUGIN_SET")
         .map(|x| x.to_string())
         .unwrap_or_else(|| "0".to_owned());
-    storage.dispatch(
-        "generic",
-        sink::Dispatch::NVT(sink::nvt::NVTField::Version(feed_version)),
-    ).unwrap();
+    storage
+        .dispatch(
+            "generic",
+            sink::Dispatch::NVT(sink::nvt::NVTField::Version(feed_version)),
+        )
+        .unwrap();
 
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         let ext = {
@@ -189,7 +202,7 @@ fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
             let result = nasl_syntax::parse(&code)
                 .map(|r| r.unwrap_or_else(|_| panic!(" should be parseable.")))
                 .map(|stmt| interpreter.resolve(&stmt))
-                .map(|ir| ir.unwrap_or_else(|e| panic!("{:?}", e)))
+                .map(|ir| ir.unwrap_or_else(|e| panic!("{e:?}")))
                 .find(|ir| matches!(ir, nasl_interpreter::NaslValue::Exit(_)))
                 .unwrap();
             storage.on_exit().unwrap();
@@ -206,18 +219,56 @@ fn main() {
         Command::Syntax { path, verbose } => syntax_check(path, verbose),
         Command::Feed {
             redis: Some(x),
-            path,
+            path: Some(path),
             verbose,
+            action: FeedAction::Update,
         } => {
             let redis = RedisCache::init(&x).unwrap();
             feed_run(&redis, path, verbose)
         }
         Command::Feed {
-            redis: None,
+            redis,
             path,
             verbose,
+            action: FeedAction::Update,
         } => {
-            let sink = DefaultSink::default();
+            // This is only supported as long as nasl-cli does not have an own configuration and is dependent on openvas
+            // afterwards we should switch to toml file
+            let oconfig = process::Command::new("openvas")
+                .arg("-s")
+                .output()
+                .expect("Unless path and redis url is provided openvas is required.");
+            let mut config = Ini::new();
+            let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
+            config
+                .read(oconfig)
+                .expect("openvas -s must return ini output");
+            let redis = {
+                if let Some(rp) = redis {
+                    rp
+                } else {
+                    let dba = config
+                        .get("default", "db_address")
+                        .expect("openvas -s must contain db_address");
+                    if dba.starts_with("redis://") || dba.starts_with("unix://") {
+                        dba
+                    } else {
+                        format!("unix://{dba}")
+                    }
+                }
+            };
+            let sink = RedisCache::init(&redis).expect("redis connection");
+            let path = {
+                if let Some(p) = path {
+                    p
+                } else {
+                    PathBuf::from(
+                        config
+                            .get("default", "plugins_folder")
+                            .expect("openvas -s must contain plugins_folder"),
+                    )
+                }
+            };
             feed_run(&sink, path, verbose)
         }
     }

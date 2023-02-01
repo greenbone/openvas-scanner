@@ -209,6 +209,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "configparser"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5458d9d1a587efaf5091602c59d299696a3877a439c8f6d461a2d3cce11df87a"
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -647,6 +653,7 @@ name = "nasl-cli"
 version = "0.1.0"
 dependencies = [
  "clap 4.1.4",
+ "configparser",
  "nasl-interpreter",
  "nasl-syntax",
  "redis-sink",
