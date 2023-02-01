@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::{env, fs, path::PathBuf};
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};

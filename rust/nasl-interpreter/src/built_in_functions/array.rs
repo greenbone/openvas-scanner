@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Defines various built-in functions for NASL arrays and lists.
 //!
 //! In NASL a array is actually a dictionary capable of having not just indexable keys

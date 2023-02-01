@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //#![warn(missing_docs)]
 //! NASL Sink defines technology independent sink traits, structs ..{w;
 
