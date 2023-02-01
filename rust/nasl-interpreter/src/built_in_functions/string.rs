@@ -236,6 +236,39 @@ fn chomp(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functi
     }
 }
 
+/// NASL function to lookup position of a substring within a string
+///
+/// The first positional argument is the *string* to search through.
+/// The second positional argument is the *string* to search for.
+/// The optional third positional argument is an *int* containing an offset from where to start the search.
+fn stridx(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    let haystack = match positional.get(0) {
+        Some(NaslValue::String(x)) => x,
+        _ => {
+            return Err(FunctionError::new(
+                "expected first positional argument of string type".to_owned(),
+            ))
+        }
+    };
+    let needle = match positional.get(1) {
+        Some(NaslValue::String(x)) => x,
+        _ => {
+            return Err(FunctionError::new(
+                "expected second positional argument of string type".to_owned(),
+            ))
+        }
+    };
+    let offset = match positional.get(2) {
+        Some(NaslValue::Number(x)) => *x as usize,
+        _ => 0 as usize,
+    };
+    Ok(match &haystack[offset..].find(needle) {
+        Some(index) => NaslValue::Number(*index as i64),
+        None => NaslValue::Number(-1),
+    })
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -248,6 +281,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "substr" => Some(substr),
         "crap" => Some(crap),
         "chomp" => Some(chomp),
+        "stridx" => Some(stridx),
         _ => None,
     }
 }
@@ -419,5 +453,29 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
+    }
+
+    #[test]
+    fn stridx() {
+        let code = r###"
+        stridx("abc", "bcd");
+        stridx("abc", "bc");
+        stridx("abc", "abc");
+        stridx("blahabc", "abc", 4);
+        stridx("blahabc", "abc", 3);
+        stridx("blahbc", "abc", 2);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok((-1 as i64).into())));
+        assert_eq!(parser.next(), Some(Ok((1 as i64).into())));
+        assert_eq!(parser.next(), Some(Ok((0 as i64).into())));
+        assert_eq!(parser.next(), Some(Ok((0 as i64).into())));
+        assert_eq!(parser.next(), Some(Ok((1 as i64).into())));
+        assert_eq!(parser.next(), Some(Ok((-1 as i64).into())));
     }
 }

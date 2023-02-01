@@ -14,11 +14,11 @@
 
 This function looks up a substring within a string and returns the position of the first occurrence.
 
-The first positional argument is the *string* to search trough.
+The first positional argument is the *string* to search through.
 
 The second positional argument is the *string* to search for.
 
-The optional third positional argument is an *int* containing a offset from where to start the search.
+The optional third positional argument is an *int* containing an offset from where to start the search.
 
 ## RETURN VALUE
 
