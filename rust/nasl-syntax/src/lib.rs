@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //! nasl_syntax is a library to parse nasl scripts to statements for further usage.
+#![allow(clippy::uninlined_format_args)]
 #![warn(missing_docs)]
 mod cursor;
 mod error;

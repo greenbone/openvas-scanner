@@ -4,6 +4,7 @@
 
 //! Is a crate to use Statements from nasl-syntax and execute them.
 #![warn(missing_docs)]
+#![allow(clippy::uninlined_format_args)]
 mod naslvalue;
 mod built_in_functions;
 use built_in_functions::array;
