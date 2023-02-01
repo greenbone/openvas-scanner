@@ -270,16 +270,6 @@ impl RedisCtx {
             self.kb.lpush(key_name, prefs)?;
         }
 
-        let key_name = format!("filename:{filename}");
-        let tags = nvt.tag();
-        let last_modification = {
-            tags.iter()
-                .find(|(key, _)| key == "last_modification")
-                .map_or_else(|| "0", |(_, val)| val)
-        };
-        let values = [&last_modification, oid];
-        self.kb.rpush(key_name, &values)?;
-
         Ok(())
     }
 }
