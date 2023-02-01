@@ -98,7 +98,8 @@ impl ToString for NaslValue {
                 .map(|(k, v)| format!("{}: {}", k, v.to_string()))
                 .collect::<Vec<String>>()
                 .join(","),
-            NaslValue::Boolean(x) => x.to_string(),
+            NaslValue::Boolean(true) => "1".to_string(),
+            NaslValue::Boolean(false) => "0".to_string(),
             NaslValue::Null => "\0".to_owned(),
             NaslValue::Exit(rc) => format!("exit({})", rc),
             NaslValue::AttackCategory(category) => IdentifierType::ACT(*category).to_string(),

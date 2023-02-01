@@ -17,6 +17,15 @@ pub enum ContextType {
     Value(NaslValue),
 }
 
+impl ToString for ContextType {
+    fn to_string(&self) -> String {
+        match self {
+            ContextType::Function(_, _) => "".to_owned(),
+            ContextType::Value(v) => v.to_string(),
+        }
+    }
+}
+
 /// Registers all NaslContext
 ///
 /// When creating a new context call a corresponding create method.

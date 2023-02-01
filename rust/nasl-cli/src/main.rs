@@ -137,8 +137,30 @@ fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
         return;
     }
     let root_dir = path.clone();
-    let root_dir_len = path.to_str().map(|x|x.len()).unwrap_or_default();
+    let root_dir_len = path.to_str().map(|x| x.len()).unwrap_or_default();
     let loader = FSPluginLoader::new(&root_dir);
+    let mut plgin_feed = root_dir.clone();
+    plgin_feed.push("plugin_feed_info.inc");
+
+    // load feed version
+
+    let code = load_file(plgin_feed.as_path())
+        .unwrap_or_else(|_| panic!("{:?} should be loadable", plgin_feed));
+    let mut register = Register::default();
+    let mut interpreter = Interpreter::new("WTF", storage, &loader, &mut register);
+    nasl_syntax::parse(&code).map(|x| {
+        let x = x.expect("don't expect parse error");
+        interpreter.resolve(&x).expect("nope")
+    }).last();
+    let feed_version = register
+        .named("PLUGIN_SET")
+        .map(|x| x.to_string())
+        .unwrap_or_else(|| "0".to_owned());
+    storage.dispatch(
+        "generic",
+        sink::Dispatch::NVT(sink::nvt::NVTField::Version(feed_version)),
+    ).unwrap();
+
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         let ext = {
             if let Some(ext) = entry.path().extension() {
@@ -160,6 +182,7 @@ fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
                     ContextType::Value(nasl_interpreter::NaslValue::String("1".to_owned())),
                 ),
             ]);
+
             let key = entry.path().to_str().unwrap_or_default();
             let key = &key[root_dir_len..];
             let mut interpreter = Interpreter::new(key, storage, &loader, &mut register);

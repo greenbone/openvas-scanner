@@ -11,6 +11,7 @@ use crate::dberror::DbError;
 use crate::dberror::RedisSinkResult;
 use crate::nvt::Nvt;
 use redis::*;
+use sink::nvt::NVTField;
 use sink::nvt::NvtPreference;
 use sink::nvt::NvtRef;
 use sink::nvt::PreferenceType;
@@ -186,6 +187,12 @@ impl RedisCtx {
         Ok(())
     }
 
+    //Wrapper function to avoid accessing kb member directly.
+    pub fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()> {
+        self.kb.rpush(key, val)?;
+        Ok(())
+    }
+
     pub fn value(&mut self, key: &str) -> RedisSinkResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
@@ -222,13 +229,12 @@ impl RedisCtx {
     pub(crate) fn redis_add_nvt(&mut self, nvt: &Nvt) -> RedisSinkResult<()> {
         let oid = nvt.oid();
         let name = nvt.name();
-        // TODO verify, before it was concat without delimiter which seems wrong
-        let required_keys = nvt.required_keys().join(",");
-        let mandatory_keys = nvt.mandatory_keys().join(",");
-        let excluded_keys = nvt.excluded_keys().join(",");
-        let required_udp_ports = nvt.required_udp_ports().join(",");
-        let required_ports = nvt.required_ports().join(",");
-        let dependencies = nvt.dependencies().join(",");
+        let required_keys = nvt.required_keys().join(", ");
+        let mandatory_keys = nvt.mandatory_keys().join(", ");
+        let excluded_keys = nvt.excluded_keys().join(", ");
+        let required_udp_ports = nvt.required_udp_ports().join(", ");
+        let required_ports = nvt.required_ports().join(", ");
+        let dependencies = nvt.dependencies().join(", ");
         let tags = self.tags_as_single_string(nvt.tag());
         let category = nvt.category().to_string();
         let family = nvt.family();
@@ -260,7 +266,7 @@ impl RedisCtx {
         // Add preferences
         let prefs = nvt.prefs();
         if !prefs.is_empty() {
-            let key_name = format!("oid:{}prefs", oid);
+            let key_name = format!("oid:{}:prefs", oid);
             self.kb.lpush(key_name, prefs)?;
         }
 
@@ -418,37 +424,17 @@ impl RedisCache {
                 let cves = cache.lindex(&rkey, KbNvtPos::Cves as isize)?;
                 let bids = cache.lindex(&rkey, KbNvtPos::Bids as isize)?;
                 let xref = cache.lindex(&rkey, KbNvtPos::Xrefs as isize)?;
-                let mut results = vec![];
-                if !cves.is_empty() {
-                    results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
-                        class: "cve".to_owned(),
-                        id: cves,
-                        text: None,
-                    })))
-                }
-                if !bids.is_empty() {
-                    for bi in bids.split(" ,") {
-                        results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
-                            class: "bid".to_owned(),
-                            id: bi.to_owned(),
-                            text: None,
-                        })))
-                    }
-                }
-                if !xref.is_empty() {
-                    for r in xref.split(" ,") {
-                        let (id, class) = r
-                            .rsplit_once(':')
-                            .ok_or_else(|| SinkError::UnexpectedData(r.to_owned()))?;
-
-                        results.push(Dispatch::NVT(sink::nvt::NVTField::Reference(NvtRef {
-                            class: class.to_owned(),
-                            id: id.to_owned(),
-                            text: None,
-                        })))
-                    }
-                }
-                Ok(results)
+                let cves = cves.split(" ,").map(|x| ("cve", x).into());
+                let bids = bids.split(" ,").map(|x| ("bid", x).into());
+                let xref = xref
+                    .split(" ,")
+                    .filter_map(|x| x.rsplit_once(':'))
+                    .map(|x| {
+                        let (class, id) = x;
+                        (class, id).into()
+                    });
+                let result = cves.chain(bids).chain(xref).collect();
+                Ok(vec![Dispatch::NVT(NVTField::Reference(result))])
             }
             sink::nvt::NVTKey::Category => {
                 let act: sink::nvt::ACT =
@@ -461,7 +447,7 @@ impl RedisCache {
             }
             sink::nvt::NVTKey::NoOp => Ok(vec![]),
             sink::nvt::NVTKey::Version => {
-                let feed = cache.value(CACHE_KEY)?;
+                let feed = cache.lindex(CACHE_KEY, 0)?;
                 Ok(vec![Dispatch::NVT(sink::nvt::NVTField::Version(feed))])
             }
         }
@@ -500,7 +486,11 @@ impl Sink for RedisCache {
                         sink::nvt::NVTField::Preference(pref) => nvtc.add_pref(pref),
                         sink::nvt::NVTField::Category(cat) => nvtc.set_category(cat),
                         sink::nvt::NVTField::Family(family) => nvtc.set_family(family),
-                        sink::nvt::NVTField::Reference(x) => nvtc.add_ref(x),
+                        sink::nvt::NVTField::Reference(x) => {
+                            for r in x {
+                                nvtc.add_ref(r)
+                            }
+                        }
                         sink::nvt::NVTField::NoOp => {
                             // script_version
                             // script_copyright
@@ -508,7 +498,7 @@ impl Sink for RedisCache {
                         }
                         sink::nvt::NVTField::Version(version) => {
                             let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
-                            cache.set_value(CACHE_KEY, version)?;
+                            cache.rpush(CACHE_KEY, &[&version])?;
                             return Ok(());
                         }
                     }

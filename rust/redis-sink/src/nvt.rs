@@ -67,6 +67,7 @@ pub struct Nvt {
     oid: String,
     name: String,
     filename: String,
+    version: String,
     tag: Vec<(String, String)>,
     cvss_base: String, //Stored in redis under Tag item. Not in use.
     summary: String,          //Stored in redis under Tag item. Not in use.
@@ -100,6 +101,7 @@ impl Default for Nvt {
             oid: String::new(),
             name: String::new(),
             filename: String::new(),
+            version: Default::default(),
             summary: String::new(),
             insight: String::new(),
             affected: String::new(),
@@ -470,7 +472,7 @@ impl Nvt {
                         }
                         _ => {
                             let mut new_xref: Vec<String> = xrefs;
-                            new_xref.push(format!("{}:{}", b.class(), b.id()));
+                            new_xref.push(format!("{}:{}", b.id(), b.class()));
                             (bids, cves, new_xref)
                         }
                     }
@@ -479,6 +481,7 @@ impl Nvt {
         // Some references include a comma. Therefore the refs separator is ", ".
         // The string ", " is not accepted as reference value, since it will misunderstood
         // as ref separator.
+
         return (
             cves.iter().as_ref().join(", "),
             bids.iter().as_ref().join(", "),
@@ -492,7 +495,7 @@ impl Nvt {
             .iter()
             .map(|pref| {
                 format!(
-                    "{}:{}:{}:{}",
+                    "{}|||{}|||{}|||{}",
                     pref.id().unwrap_or_default(),
                     pref.name(),
                     pref.class().as_ref(),

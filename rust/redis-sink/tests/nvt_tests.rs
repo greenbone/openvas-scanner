@@ -113,7 +113,7 @@ mod test {
         nvt.add_ref(xrefs2);
         let xrefs;
         (_, _, xrefs) = nvt.refs();
-        assert_eq!(xrefs, "URL:http://greenbone.net, URL:http://openvas.net");
+        assert_eq!(xrefs, "http://greenbone.net:URL, http://openvas.net:URL");
 
         Ok(())
     }

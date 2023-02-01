@@ -106,11 +106,11 @@ if(description)
                     "22".to_owned()
                 ])),
                 NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()])),
-                NVT(Reference(NvtRef {
+                NVT(Reference(vec![NvtRef {
                     class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
                     id: "URL".to_owned(),
                     text: None
-                })),
+                }])),
                 NVT(ExcludedKeys(vec![
                     "Settings/disable_cgi_scanning".to_owned(),
                     "bla/bla".to_owned()
@@ -119,11 +119,11 @@ if(description)
                     "Services/udp/unknown".to_owned(),
                     "17".to_owned()
                 ])),
-                NVT(Reference(NvtRef {
+                NVT(Reference(vec![NvtRef {
                     class: "cve".to_owned(),
                     id: "CVE-1999-0524".to_owned(),
                     text: None
-                })),
+                }])),
                 NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
                 NVT(Preference(NvtPreference {
                     id: Some(2),
