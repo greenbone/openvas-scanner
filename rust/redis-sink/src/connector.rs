@@ -53,8 +53,7 @@ impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
             // tags must also be handled manually due to differentiation
             _ => {
                 return Err(SinkError::UnexpectedData(format!(
-                    "{:?} is not a redis position and must be handled differently",
-                    value
+                    "{value:?} is not a redis position and must be handled differently"
                 )))
             }
         })
@@ -161,7 +160,7 @@ impl RedisCtx {
     fn tags_as_single_string(&self, tags: &[(String, String)]) -> String {
         let tag: Vec<String> = tags
             .iter()
-            .map(|(key, val)| format!("{}={}", key, val))
+            .map(|(key, val)| format!("{key}={val}"))
             .collect();
 
         tag.iter().as_ref().join("|")
@@ -190,7 +189,7 @@ impl RedisCtx {
         // Get the references
         let (cves, bids, xrefs) = nvt.refs();
 
-        let key_name = format!("nvt:{}", oid);
+        let key_name = format!("nvt:{oid}");
         let values = [
             filename,
             &required_keys,
@@ -213,7 +212,7 @@ impl RedisCtx {
         // Add preferences
         let prefs = nvt.prefs();
         if !prefs.is_empty() {
-            let key_name = format!("oid:{}:prefs", oid);
+            let key_name = format!("oid:{oid}:prefs");
             self.kb.lpush(key_name, prefs)?;
         }
 
@@ -275,7 +274,7 @@ impl RedisCache {
         oid: &str,
         key: sink::nvt::NVTKey,
     ) -> Result<Vec<Dispatch>, SinkError> {
-        let rkey = format!("nvt:{}", oid);
+        let rkey = format!("nvt:{oid}");
         let mut as_stringvec = |key: KbNvtPos| -> Result<Vec<String>, SinkError> {
             let dependencies = cache.lindex(&rkey, key as isize)?;
             Ok(dependencies
@@ -332,7 +331,7 @@ impl RedisCache {
                 sink::nvt::NVTField::RequiredUdpPorts(as_stringvec(KbNvtPos::RequiredUDPPorts)?),
             )]),
             sink::nvt::NVTKey::Preference => {
-                let pkey = format!("oid:{}prefs", oid);
+                let pkey = format!("oid:{oid}prefs");
                 let result = cache.lrange(&pkey, 0, -1)?;
                 Ok(result
                     .iter()

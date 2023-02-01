@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //! nasl_syntax is a library to parse nasl scripts to statements for further usage.
-#![allow(clippy::uninlined_format_args)]
 #![warn(missing_docs)]
 mod cursor;
 mod error;
@@ -14,19 +13,19 @@ mod lexer;
 mod operation;
 mod postfix_extension;
 mod prefix_extension;
+mod statement;
 mod token;
 mod variable_extension;
-mod statement;
 
-pub use error::{SyntaxError, ErrorKind};
+pub use error::{ErrorKind, SyntaxError};
+pub use lexer::Lexer;
+pub use sink::nvt::ACT;
 pub use statement::*;
-pub use token::Category as TokenCategory;
-pub use token::Token;
-pub use token::StringCategory;
 pub use token::Base as NumberBase;
+pub use token::Category as TokenCategory;
 pub use token::IdentifierType;
-pub use sink::nvt::ACT as ACT;
-pub use lexer::Lexer as Lexer;
+pub use token::StringCategory;
+pub use token::Token;
 pub use token::Tokenizer;
 
 /// Parses given code and returns found Statements and Errors
@@ -49,7 +48,7 @@ mod tests {
     use crate::{
         cursor::Cursor,
         token::{Category, IdentifierType, Token, Tokenizer},
-        Statement, SyntaxError, AssignOrder,
+        AssignOrder, Statement, SyntaxError,
     };
 
     #[test]

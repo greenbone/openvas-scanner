@@ -32,13 +32,13 @@ pub enum DbError {
 impl fmt::Display for DbError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DbError::NoAvailDbErr(e) => write!(f, "No DB available: {}", e),
-            DbError::ConfigurationError(e) => write!(f, "Unable to use redis due to wrong configuration: {}", e),
-            DbError::SystemError(e) => write!(f, "Operation system of redis has issues: {}", e),
-            DbError::LibraryError(e) => write!(f, "Library issue: {}", e),
-            DbError::ConnectionLost(e) => write!(f, "Connection lost: {}", e),
-            DbError::Retry(e) => write!(f, "Temporary issue: {}", e),
-            DbError::Unknown(e) => write!(f, "Unclassified error occurred on redis: {}", e),
+            DbError::NoAvailDbErr(e) => write!(f, "No DB available: {e}"),
+            DbError::ConfigurationError(e) => write!(f, "Unable to use redis due to wrong configuration: {e}"),
+            DbError::SystemError(e) => write!(f, "Operation system of redis has issues: {e}"),
+            DbError::LibraryError(e) => write!(f, "Library issue: {e}"),
+            DbError::ConnectionLost(e) => write!(f, "Connection lost: {e}"),
+            DbError::Retry(e) => write!(f, "Temporary issue: {e}"),
+            DbError::Unknown(e) => write!(f, "Unclassified error occurred on redis: {e}"),
         }
     }
 }

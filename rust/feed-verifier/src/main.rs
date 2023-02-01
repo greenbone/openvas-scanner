@@ -1,5 +1,5 @@
 use redis::{Commands, RedisResult};
-use std::collections::HashSet;
+
 use std::process::Command;
 use std::{
     collections::HashMap,
@@ -111,7 +111,7 @@ fn main() {
 
     // feed -v -r "unix:///run/redis/redis.sock" -p /var/lib/openvas/plugins/
     println!("execxuting nasl-cli");
-    let o = Command::new("/home/philipp/src/openvas-scanner/rust/target/release/nasl-cli")
+    let _o = Command::new("/home/philipp/src/openvas-scanner/rust/target/release/nasl-cli")
         .arg("feed")
         .arg("-r")
         .arg("unix:///run/redis/redis.sock")

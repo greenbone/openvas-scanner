@@ -13,7 +13,7 @@ use configparser::ini::Ini;
 use nasl_interpreter::{ContextType, FSPluginLoader, Interpreter, Register};
 use nasl_syntax::{Statement, SyntaxError};
 use redis_sink::connector::RedisCache;
-use sink::{DefaultSink, Sink};
+use sink::{Sink};
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
@@ -88,21 +88,21 @@ fn print_results(path: &Path, verbose: bool) -> usize {
     let mut errors = 0;
 
     if verbose {
-        println!("# {:?}", path);
+        println!("# {path:?}");
         let results = read(path).unwrap();
         for r in results {
             match r {
-                Ok(stmt) => println!("{:?}", stmt),
-                Err(err) => eprintln!("{}", err),
+                Ok(stmt) => println!("{stmt:?}"),
+                Err(err) => eprintln!("{err}"),
             }
         }
     } else {
-        let err = read_errors(&path).unwrap();
+        let err = read_errors(path).unwrap();
         if !err.is_empty() {
-            eprintln!("# Error in {:?}", path);
+            eprintln!("# Error in {path:?}");
         }
         errors += err.len();
-        err.iter().for_each(|r| eprintln!("{}", r));
+        err.iter().for_each(|r| eprintln!("{r}"));
     }
     errors
 }
@@ -111,10 +111,10 @@ fn syntax_check(path: PathBuf, verbose: bool) {
     let mut parsed: usize = 0;
     let mut skipped: usize = 0;
     let mut errors: usize = 0;
-    println!("verifiying NASL syntax in {:?}.", path);
+    println!("verifiying NASL syntax in {path:?}.");
     if path.as_path().is_dir() {
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            print!("\rparsing {}th file", parsed);
+            print!("\rparsing {parsed}th file");
             let ext = {
                 if let Some(ext) = entry.path().extension() {
                     ext.to_str().unwrap().to_owned()
@@ -135,12 +135,11 @@ fn syntax_check(path: PathBuf, verbose: bool) {
         parsed += 1;
     }
     println!(
-        "skipped: {} files; parsed: {} files; errors: {}",
-        skipped, parsed, errors
+        "skipped: {skipped} files; parsed: {parsed} files; errors: {errors}"
     );
 }
 fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
-    println!("description run syntax in {:?}.", path);
+    println!("description run syntax in {path:?}.");
     if !path.as_path().is_dir() {
         println!("is not a path, stopping.");
         return;
@@ -154,7 +153,7 @@ fn feed_run(storage: &dyn Sink, path: PathBuf, verbose: bool) {
     // load feed version
 
     let code = load_file(plgin_feed.as_path())
-        .unwrap_or_else(|_| panic!("{:?} should be loadable", plgin_feed));
+        .unwrap_or_else(|_| panic!("{plgin_feed:?} should be loadable"));
     let mut register = Register::default();
     let mut interpreter = Interpreter::new("WTF", storage, &loader, &mut register);
     nasl_syntax::parse(&code)

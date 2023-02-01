@@ -524,7 +524,7 @@ mod test {
         for call in test_cases {
             assert!(
                 matches!(
-                    parse(&format!("{};", call)).next().unwrap().unwrap(),
+                    parse(&format!("{call};")).next().unwrap().unwrap(),
                     Exit(_),
                 ),
                 "{}",
@@ -545,7 +545,7 @@ mod test {
         for call in test_cases {
             assert!(
                 matches!(
-                    parse(&format!("{};", call)).next().unwrap().unwrap(),
+                    parse(&format!("{call};")).next().unwrap().unwrap(),
                     Return(_),
                 ),
                 "{}",
@@ -584,7 +584,7 @@ mod test {
         for call in test_cases {
             assert!(
                 matches!(
-                    parse(&format!("{};", call)).next().unwrap().unwrap(),
+                    parse(&format!("{call};")).next().unwrap().unwrap(),
                     ForEach(_, _, _),
                 ),
                 "{}",

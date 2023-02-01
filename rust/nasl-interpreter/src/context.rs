@@ -4,7 +4,12 @@
 
 use nasl_syntax::Statement;
 
-use crate::{error::InterpretError, lookup_keys::FC_ANON_ARGS, NaslValue, logger::{NaslLogger, DefaultLogger}};
+use crate::{
+    error::InterpretError,
+    logger::{DefaultLogger, NaslLogger},
+    lookup_keys::FC_ANON_ARGS,
+    NaslValue,
+};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -41,7 +46,7 @@ impl Register {
     pub fn new() -> Self {
         Self {
             blocks: vec![NaslContext::default()],
-            logger: Box::new(DefaultLogger::new())
+            logger: Box::new(DefaultLogger::new()),
         }
     }
 
@@ -51,14 +56,15 @@ impl Register {
             defined: initial.into_iter().collect(),
             ..Default::default()
         };
-        Self { blocks: vec![root],
-               logger: Box::new(DefaultLogger::new())
+        Self {
+            blocks: vec![root],
+            logger: Box::<DefaultLogger>::default(),
         }
     }
 
     /// Get the logger to print messages
-    pub fn logger(&self) -> &Box<dyn NaslLogger> {
-        &self.logger
+    pub fn logger(&self) -> &dyn NaslLogger {
+        &*self.logger
     }
 
     /// Set a new logger

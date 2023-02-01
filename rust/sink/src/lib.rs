@@ -1,4 +1,3 @@
-#![allow(clippy::uninlined_format_args)]
 // Copyright (C) 2023 Greenbone Networks GmbH
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
@@ -51,10 +50,10 @@ pub enum SinkError {
 impl Display for SinkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SinkError::Retry(p) => write!(f, "There was a temporary issue while reading {}.", p),
-            SinkError::ConnectionLost(p) => write!(f, "Connection lost {}.", p),
-            SinkError::UnexpectedData(p) => write!(f, "Unexpected data {}", p),
-            SinkError::Dirty(p) => write!(f, "Unexpected issue {}", p),
+            SinkError::Retry(p) => write!(f, "There was a temporary issue while reading {p}."),
+            SinkError::ConnectionLost(p) => write!(f, "Connection lost {p}."),
+            SinkError::UnexpectedData(p) => write!(f, "Unexpected data {p}"),
+            SinkError::Dirty(p) => write!(f, "Unexpected issue {p}"),
         }
     }
 }
