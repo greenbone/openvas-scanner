@@ -245,19 +245,11 @@ fn stridx(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     let positional = resolve_positional_arguments(register);
     let haystack = match positional.get(0) {
         Some(NaslValue::String(x)) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "expected first positional argument of string type".to_owned(),
-            ))
-        }
+        x => return Err(FunctionError::new("stridx", ("0", "string", x).into())),
     };
     let needle = match positional.get(1) {
         Some(NaslValue::String(x)) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "expected second positional argument of string type".to_owned(),
-            ))
-        }
+        x => return Err(FunctionError::new("stridx", ("1", "string", x).into())),
     };
     let offset = match positional.get(2) {
         Some(NaslValue::Number(x)) => *x as usize,
