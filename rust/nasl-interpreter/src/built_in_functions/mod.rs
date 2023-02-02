@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use crate::{Register, NaslValue, ContextType, lookup_keys::FC_ANON_ARGS};
 
 pub mod description;

@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Defines NASL functions that deal with string and their helpers
 
 use core::fmt::{self, Write};
@@ -231,6 +235,19 @@ fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functio
     }
 }
 
+/// NASL function to remove trailing whitespaces from a string
+///
+/// Takes one required positional argument of string type.
+fn chomp(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = resolve_positional_arguments(register);
+    match positional.get(0) {
+        Some(NaslValue::String(x)) => Ok(NaslValue::String(x.trim_end().to_owned())),
+        _ => Err(FunctionError::new(
+            "expected positional argument of string type".to_owned(),
+        )),
+    }
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -242,6 +259,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "string" => Some(string),
         "substr" => Some(substr),
         "crap" => Some(crap),
+        "chomp" => Some(chomp),
         _ => None,
     }
 }
@@ -390,5 +408,25 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
         assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
         assert_eq!(parser.next(), Some(Ok("ababababab".into())));
+    }
+
+    #[test]
+    fn chomp() {
+        let code = r###"
+        chomp("abc");
+        chomp("abc\n");
+        chomp("abc  ");
+        chomp("abc\n\t\r ");
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok("abc".into())));
+        assert_eq!(parser.next(), Some(Ok("abc".into())));
+        assert_eq!(parser.next(), Some(Ok("abc".into())));
+        assert_eq!(parser.next(), Some(Ok("abc".into())));
     }
 }

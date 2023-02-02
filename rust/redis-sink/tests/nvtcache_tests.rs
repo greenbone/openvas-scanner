@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #[cfg(test)]
 #[cfg(feature = "redis_test")]
 // This is an integration test and requires a running redis instance.

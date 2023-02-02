@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 ///! This module defines the Cursor as a basis for tokenizing
 use std::str::Chars;
 

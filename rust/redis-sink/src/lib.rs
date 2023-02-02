@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /// Module to handle custom errors
 pub mod dberror;
 /// Module to handle Nvt metadata. The Nvt structure is defined here as well

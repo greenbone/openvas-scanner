@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! nasl_syntax is a library to parse nasl scripts to statements for further usage.
 #![warn(missing_docs)]
 mod cursor;
