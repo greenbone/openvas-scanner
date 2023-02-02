@@ -4,31 +4,22 @@
 
 //! Defines NASL miscellaneous functions
 
-use std::{
-    fs::File,
-    io::{self, Read},
-};
+use std::{fs::File, io::Read};
 
 use sink::Sink;
 
 use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register};
 
-impl From<io::Error> for FunctionError {
-    fn from(e: io::Error) -> Self {
-        Self {
-            reason: format!("Internal error on rand {}", e),
-        }
-    }
-}
-
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
 fn random_impl() -> Result<i64, FunctionError> {
-    let mut rng = File::open("/dev/urandom")?;
+    let mut rng = File::open("/dev/urandom")
+        .map_err(|e| FunctionError::new("randr", e.kind().into()))?;
     let mut buffer = [0u8; 8];
-    rng.read_exact(&mut buffer)?;
-    Ok(i64::from_be_bytes(buffer))
+    rng.read_exact(&mut buffer)
+        .map(|_| i64::from_be_bytes(buffer))
+        .map_err(|e| FunctionError::new("randr", e.kind().into()))
 }
 
 /// NASL function to get random number
@@ -45,9 +36,7 @@ pub fn get_byte_order(_: &str, _: &dyn Sink, _: &Register) -> Result<NaslValue, 
 pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     match register.named("num") {
         Some(ContextType::Value(NaslValue::Number(x))) => Ok(NaslValue::String(x.to_string())),
-        _ => Err(FunctionError::new(
-            "expected named 'num' argument of number type".to_owned(),
-        )),
+        x => Err(FunctionError::new("dec2str", ("0", "numeric", x).into())),
     }
 }
 
