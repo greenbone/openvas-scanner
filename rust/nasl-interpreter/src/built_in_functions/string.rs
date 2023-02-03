@@ -464,6 +464,7 @@ mod tests {
         stridx("blahabc", "abc", 4);
         stridx("blahabc", "abc", 3);
         stridx("blahbc", "abc", 2);
+        "###;
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
