@@ -9,7 +9,7 @@ use digest::{
     core_api::{BufferKindUser, CoreProxy, FixedOutputCore, UpdateCore},
     crypto_common::BlockSizeUser,
     typenum::{IsLess, Le, NonZero, U256},
-    HashMarker,
+    HashMarker, InvalidLength,
 };
 use hex::encode;
 use hmac::{Hmac, Mac};
@@ -47,7 +47,7 @@ where
     };
     let mut hmac = match Hmac::<D>::new_from_slice(key.as_bytes()) {
         Ok(x) => x,
-        Err(_) => {
+        Err(InvalidLength) => {
             return Err(FunctionError::new(
                 function,
                 ("valid size key", "invalid size key").into(),
