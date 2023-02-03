@@ -4,7 +4,7 @@
 
 use nasl_syntax::Statement;
 
-use crate::{error::InterpretError, lookup_keys::FC_ANON_ARGS, NaslValue};
+use crate::{error::InterpretError, lookup_keys::FC_ANON_ARGS, NaslValue, logger::{NaslLogger, DefaultLogger}};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -24,6 +24,7 @@ pub enum ContextType {
 /// deleted by calling drop_last when the context runs out of scope.
 pub struct Register {
     blocks: Vec<NaslContext>,
+    logger: Box<dyn NaslLogger>,
 }
 
 impl Register {
@@ -31,6 +32,7 @@ impl Register {
     pub fn new() -> Self {
         Self {
             blocks: vec![NaslContext::default()],
+            logger: Box::new(DefaultLogger::new())
         }
     }
 
@@ -40,7 +42,19 @@ impl Register {
             defined: initial.into_iter().collect(),
             ..Default::default()
         };
-        Self { blocks: vec![root] }
+        Self { blocks: vec![root],
+               logger: Box::new(DefaultLogger::new())
+        }
+    }
+
+    /// Get the logger to print messages
+    pub fn logger(&self) -> &Box<dyn NaslLogger> {
+        &self.logger
+    }
+
+    /// Set a new logger
+    pub fn set_logger(&mut self, logger: Box<dyn NaslLogger>) {
+        self.logger = logger;
     }
 
     /// Returns the next index
