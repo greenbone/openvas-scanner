@@ -560,6 +560,12 @@ openvas (int argc, char *argv[], char *env[])
     }
   tzset ();
 
+#ifdef LOG_REFERENCES_AVAILABLE
+  if (scan_id)
+    set_log_reference (scan_id);
+  if (stop_scan_id)
+    set_log_reference (stop_scan_id);
+#endif // LOG_REFERENCES_AVAILABLE
   if (init_logging () != 0)
     return EXIT_FAILURE;
 
@@ -601,6 +607,9 @@ openvas (int argc, char *argv[], char *env[])
       set_scan_id (g_strdup (stop_scan_id));
       err = stop_single_task_scan ();
       gvm_close_sentry ();
+#ifdef LOG_REFERENCES_AVAILABLE
+      free_log_reference ();
+#endif // LOG_REFERENCES_AVAILABLE
       return err ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
@@ -621,6 +630,9 @@ openvas (int argc, char *argv[], char *env[])
 
       gvm_close_sentry ();
       destroy_scan_globals (globals);
+#ifdef LOG_REFERENCES_AVAILABLE
+      free_log_reference ();
+#endif // LOG_REFERENCES_AVAILABLE
       return EXIT_SUCCESS;
     }
 
