@@ -8,7 +8,7 @@ use std::{fs::File, io::Read};
 
 use sink::Sink;
 
-use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register};
+use crate::{error::{FunctionError, FunctionErrorKind}, ContextType, NaslFunction, NaslValue, Register};
 
 #[inline]
 #[cfg(unix)]
@@ -40,12 +40,28 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     }
 }
 
+/// Returns true when the given unnamed argument is null.
+pub fn isnull (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = register.positional();
+    if positional.len() == 0 {
+        return Err(FunctionError::new(
+            "isnull",
+            FunctionErrorKind::MissingPositionalArguments{ expected: 1, got: positional.len()}));
+    }
+    match positional[0] {
+        NaslValue::Null => Ok(NaslValue::Boolean(true)),
+        _ => Ok(NaslValue::Boolean(false)),
+    }
+}
+
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "rand" => Some(rand),
         "get_byte_order" => Some(get_byte_order),
         "dec2str" => Some(dec2str),
+        "isnull" => Some(isnull),
         _ => None,
     }
 }
@@ -102,5 +118,21 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("23".into())));
+    }
+
+    #[test]
+    fn isnull() {
+        let code = r###"
+        isnull(42);
+        isnull(Null);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(true))));
     }
 }
