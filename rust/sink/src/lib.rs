@@ -19,6 +19,12 @@ pub enum Dispatch {
     NVT(NVTField),
 }
 
+impl From<NVTField> for Dispatch {
+    fn from(value: NVTField) -> Self {
+        Self::NVT(value)
+    }
+}
+
 /// Retrieve command for a given Field
 ///
 /// Defines what kind of information needs to be gathered.

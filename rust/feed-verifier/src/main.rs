@@ -58,7 +58,7 @@ fn get(con: &mut redis::Connection) -> RedisResult<HashMap<String, Vec<String>>>
             return Ok(result);
         }
     }
-    Err(Error::new(ErrorKind::NotFound, "").into())
+    Err(Error::new(ErrorKind::NotFound, "noe values??????").into())
 }
 
 // Although does differentiate between ' and " to handle escaping in
@@ -113,10 +113,7 @@ fn main() {
     println!("execxuting nasl-cli");
     let _o = Command::new("/home/philipp/src/openvas-scanner/rust/target/release/nasl-cli")
         .arg("feed")
-        .arg("-r")
-        .arg("unix:///run/redis/redis.sock")
-        .arg("-p")
-        .arg("/var/lib/openvas/plugins/")
+        .arg("update")
         .output()
         .expect("Failed to execute openvas");
 

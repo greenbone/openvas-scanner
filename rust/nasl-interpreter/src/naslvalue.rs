@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 
@@ -31,6 +31,43 @@ pub enum NaslValue {
     Break,
     /// Exit value of the script
     Exit(i64),
+}
+
+impl Display for NaslValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NaslValue::String(x) => write!(f, "{x}"),
+            NaslValue::Number(x) => write!(f, "{x}"),
+            NaslValue::Array(x) => write!(
+                f,
+                "{}",
+                x.iter()
+                    .enumerate()
+                    .map(|(i, v)| format!("{}: {}", i, v))
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
+            NaslValue::Data(x) => write!(f, "{}", x.iter().map(|x| *x as char).collect::<String>()),
+            NaslValue::Dict(x) => write!(
+                f,
+                "{}",
+                x.iter()
+                    .map(|(k, v)| format!("{}: {}", k, v))
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
+            NaslValue::Boolean(true) => write!(f, "1"),
+            NaslValue::Boolean(false) => write!(f, "0"),
+            NaslValue::Null => write!(f, "\0"),
+            NaslValue::Exit(rc) => write!(f, "exit({})", rc),
+            NaslValue::AttackCategory(category) => {
+                write!(f, "{}", IdentifierType::ACT(*category).to_string())
+            }
+            NaslValue::Return(rc) => write!(f, "return({:?})", *rc),
+            NaslValue::Continue => write!(f, "continue"),
+            NaslValue::Break => write!(f, "break"),
+        }
+    }
 }
 
 impl From<Vec<u8>> for NaslValue {
@@ -78,35 +115,6 @@ impl From<usize> for NaslValue {
 impl From<HashMap<String, NaslValue>> for NaslValue {
     fn from(x: HashMap<String, NaslValue>) -> Self {
         NaslValue::Dict(x)
-    }
-}
-
-impl ToString for NaslValue {
-    fn to_string(&self) -> String {
-        match self {
-            NaslValue::String(x) => x.to_owned(),
-            NaslValue::Number(x) => x.to_string(),
-            NaslValue::Array(x) => x
-                .iter()
-                .enumerate()
-                .map(|(i, v)| format!("{}: {}", i, v.to_string()))
-                .collect::<Vec<String>>()
-                .join(","),
-            NaslValue::Data(x) => x.iter().map(|x| *x as char).collect(),
-            NaslValue::Dict(x) => x
-                .iter()
-                .map(|(k, v)| format!("{}: {}", k, v.to_string()))
-                .collect::<Vec<String>>()
-                .join(","),
-            NaslValue::Boolean(true) => "1".to_string(),
-            NaslValue::Boolean(false) => "0".to_string(),
-            NaslValue::Null => "\0".to_owned(),
-            NaslValue::Exit(rc) => format!("exit({})", rc),
-            NaslValue::AttackCategory(category) => IdentifierType::ACT(*category).to_string(),
-            NaslValue::Return(rc) => format!("return({:?})", *rc),
-            NaslValue::Continue => "".to_string(),
-            NaslValue::Break => "".to_string(),
-        }
     }
 }
 

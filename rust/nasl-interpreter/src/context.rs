@@ -31,6 +31,59 @@ impl ToString for ContextType {
     }
 }
 
+impl From<NaslValue> for ContextType {
+    fn from(value: NaslValue) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl From<Vec<u8>> for ContextType {
+    fn from(s: Vec<u8>) -> Self {
+        Self::Value(s.into())
+    }
+}
+
+impl From<bool> for ContextType {
+    fn from(b: bool) -> Self {
+        Self::Value(b.into())
+    }
+}
+
+impl From<&str> for ContextType {
+    fn from(s: &str) -> Self {
+        Self::Value(s.into())
+    }
+}
+
+impl From<String> for ContextType {
+    fn from(s: String) -> Self {
+        Self::Value(s.into())
+    }
+}
+
+impl From<i32> for ContextType {
+    fn from(n: i32) -> Self {
+        Self::Value(n.into())
+    }
+}
+
+impl From<i64> for ContextType {
+    fn from(n: i64) -> Self {
+        Self::Value(n.into())
+    }
+}
+
+impl From<usize> for ContextType {
+    fn from(n: usize) -> Self {
+        Self::Value(n.into())
+    }
+}
+
+impl From<HashMap<String, NaslValue>> for ContextType {
+    fn from(x: HashMap<String, NaslValue>) -> Self {
+        Self::Value(x.into())
+    }
+}
 /// Registers all NaslContext
 ///
 /// When creating a new context call a corresponding create method.
@@ -51,9 +104,14 @@ impl Register {
     }
 
     /// Creates a root Register based on the given initial values
-    pub fn root_initial(initial: Vec<(String, ContextType)>) -> Self {
+    pub fn root_initial(initial: &[(String, ContextType)]) -> Self {
+        let mut defined = HashMap::with_capacity(initial.len());
+        for (k, v) in initial {
+            defined.insert(k.to_owned(), v.to_owned());
+
+        }
         let root = NaslContext {
-            defined: initial.into_iter().collect(),
+            defined,
             ..Default::default()
         };
         Self {

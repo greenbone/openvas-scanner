@@ -60,7 +60,7 @@ if(description)
         let storage = DefaultSink::new(true);
         let loader = NoOpLoader::default();
         let key = "test.nasl";
-        let initial = vec![(
+        let initial = [(
             "description".to_owned(),
             ContextType::Value(NaslValue::Number(1)),
         )];
@@ -70,7 +70,7 @@ if(description)
                 sink::Dispatch::NVT(sink::nvt::NVTField::FileName(key.to_owned())),
             )
             .expect("storage should work");
-        let mut register = Register::root_initial(initial);
+        let mut register = Register::root_initial(&initial);
         let mut interpreter = Interpreter::new(key, &storage, &loader, &mut register);
         let results = parse(code)
             .map(|stmt| match stmt {

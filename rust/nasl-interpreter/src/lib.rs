@@ -34,6 +34,7 @@ pub use context::ContextType;
 pub use context::Register;
 pub use error::InterpretError;
 pub use interpreter::Interpreter;
+pub use error::InterpretErrorKind;
 pub use loader::*;
 pub use naslvalue::NaslValue;
 pub use logger::{Mode, NaslLogger, DefaultLogger};

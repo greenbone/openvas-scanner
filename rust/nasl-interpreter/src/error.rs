@@ -114,6 +114,7 @@ pub struct InterpretError {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.
     FunctioExpectedValue,
@@ -126,7 +127,12 @@ pub enum InterpretErrorKind {
     /// Regex parsing went wrong.
     InvalidRegex(String),
     /// An SyntaxError while including another script
-    IncludeSyntaxError { filename: String, err: SyntaxError },
+    IncludeSyntaxError { 
+        /// The name of the file trying to include
+        filename: String, 
+        /// The syntactical error that occurred
+        err: SyntaxError 
+    },
     /// SyntaxError
     SyntaxError(SyntaxError),
     /// When the given key was not found in the context
