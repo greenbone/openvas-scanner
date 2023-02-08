@@ -169,13 +169,13 @@ impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             // TODO fix statement print
-            ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {:?}", token),
-            ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {:?}", token),
-            ErrorKind::UnexpectedStatement(stmt) => write!(f, "unexpected statement: {:?}", stmt),
-            ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {:?}", stmt),
-            ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {:?}", stmt),
+            ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {token:?}"),
+            ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {token:?}"),
+            ErrorKind::UnexpectedStatement(stmt) => write!(f, "unexpected statement: {stmt:?}"),
+            ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {stmt:?}"),
+            ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {stmt:?}"),
             ErrorKind::EoF => write!(f, "end of file."),
-            ErrorKind::IOError(kind) => write!(f, "IOError: {}", kind),
+            ErrorKind::IOError(kind) => write!(f, "IOError: {kind}"),
         }
     }
 }
@@ -214,7 +214,7 @@ mod tests {
             Ok(_) => panic!("expected test to return Err"),
             Err(e) => match e.kind {
                 ErrorKind::MissingSemicolon(_) => {}
-                _ => panic!("Expected MissingSemicolon but got: {:?}", e),
+                _ => panic!("Expected MissingSemicolon but got: {e:?}"),
             },
         }
     }
@@ -227,7 +227,7 @@ mod tests {
                 ErrorKind::UnclosedToken(token) => {
                     assert_eq!(token.category(), &category);
                 }
-                _ => panic!("Expected UnclosedToken but got: {:?} for {}", e, code),
+                _ => panic!("Expected UnclosedToken but got: {e:?} for {code}"),
             },
         }
     }

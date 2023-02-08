@@ -39,25 +39,6 @@ pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
     ret
 }
 
-/// Structure to store NVT Severities
-// Severities are stored in redis under the Tag item
-// Currently not used
-#[derive(Clone, Debug)]
-#[allow(dead_code)]
-pub struct NvtSeverity {
-    /// Severity type ("cvss_base_v2", ...)
-    severity_type: String,
-    /// Optional: Where does the severity come from
-    /// ("CVE-2018-1234", "Greenbone Research")
-    origin: String,
-    /// Timestamp in seconds since epoch, defaults to VT creation date.
-    date: i32,
-    /// The score derived from the value in range [0.0-10.0]
-    score: f32,
-    /// The value which corresponds to the type.
-    value: String,
-}
-
 #[derive(Clone, Debug)]
 /// Structure to hold a NVT
 pub struct Nvt {
@@ -65,20 +46,6 @@ pub struct Nvt {
     name: String,
     filename: String,
     tag: Vec<(String, String)>,
-    cvss_base: String,            //Stored in redis under Tag item. Not in use.
-    summary: String,              //Stored in redis under Tag item. Not in use.
-    insight: String,              //Stored in redis under Tag item. Not in use.
-    affected: String,             //Stored in redis under Tag item. Not in use.
-    impact: String,               //Stored in redis under Tag item. Not in use.
-    creation_time: TimeT,         //Stored in redis under Tag item. Not in use.
-    modification_time: TimeT,     //Stored in redis under Tag item. Not in use.
-    solution: String,             //Stored in redis under Tag item. Not in use.
-    solution_type: String,        //Stored in redis under Tag item. Not in use.
-    solution_method: String,      //Stored in redis under Tag item. Not in use.
-    detection: String,            //Stored in redis under Tag item. Not in use.
-    qod_type: String,             //Stored in redis under Tag item. Not in use.
-    qod: String,                  //Stored in redis under Tag item. Not in use.
-    severities: Vec<NvtSeverity>, //Stored in redis under Tag item. Not in use.
     dependencies: Vec<String>,
     required_keys: Vec<String>,
     mandatory_keys: Vec<String>,
@@ -97,28 +64,14 @@ impl Default for Nvt {
             oid: String::new(),
             name: String::new(),
             filename: String::new(),
-            summary: String::new(),
-            insight: String::new(),
-            affected: String::new(),
-            impact: String::new(),
-            creation_time: 0,
-            modification_time: 0,
-            solution: String::new(),
-            solution_type: String::new(),
-            solution_method: String::new(),
             tag: vec![],
-            cvss_base: String::new(),
             dependencies: vec![],
             required_keys: vec![],
             mandatory_keys: vec![],
             excluded_keys: vec![],
             required_ports: vec![],
             required_udp_ports: vec![],
-            detection: String::new(),
-            qod_type: String::new(),
-            qod: String::new(),
             refs: vec![],
-            severities: vec![],
             prefs: vec![],
             category: ACT::End,
             family: String::new(),
@@ -142,68 +95,9 @@ impl Nvt {
         self.name = name;
     }
 
-    /// Set the NVT summary
-    // Not used during plugin upload.
-    pub fn set_summary(&mut self, summary: String) {
-        self.summary = summary;
-    }
-
-    /// Set the NVT insight
-    // Not used during plugin upload.
-    pub fn set_insight(&mut self, insight: String) {
-        self.insight = insight;
-    }
-
-    /// Set the NVT affected
-    // Not used during plugin upload.
-    pub fn set_affected(&mut self, affected: String) {
-        self.affected = affected;
-    }
-
-    /// Set the NVT impact
-    // Not used during plugin upload.
-    pub fn set_impact(&mut self, impact: String) {
-        self.impact = impact;
-    }
-
-    /// Set the NVT creation_time
-    // Not used during plugin upload.
-    pub fn set_creation_time(&mut self, creation_time: TimeT) {
-        self.creation_time = creation_time;
-    }
-
-    /// Set the NVT modification_time
-    // Not used during plugin upload.
-    pub fn set_modification_time(&mut self, modification_time: TimeT) {
-        self.modification_time = modification_time;
-    }
-    /// Set the NVT solution
-    // Not used during plugin upload.
-    pub fn set_solution(&mut self, solution: String) {
-        self.solution = solution;
-    }
-
-    /// Set the NVT solution_type
-    // Not used during plugin upload.
-    pub fn set_solution_type(&mut self, solution_type: String) {
-        self.solution_type = solution_type;
-    }
-
-    /// Set the NVT solution method
-    // Not used during plugin upload.
-    pub fn set_solution_method(&mut self, solution_method: String) {
-        self.solution_method = solution_method;
-    }
-
     /// Set the NVT tag
     pub fn set_tag(&mut self, tag: Vec<(String, String)>) {
         self.tag = tag;
-    }
-
-    /// Set the NVT CVSS base
-    // Not used during plugin upload.
-    pub fn set_cvss_base(&mut self, cvss_base: String) {
-        self.cvss_base = cvss_base;
     }
 
     /// Set the NVT dependencies
@@ -234,24 +128,6 @@ impl Nvt {
     /// Set the NVT required udp ports
     pub fn set_required_udp_ports(&mut self, required_udp_ports: Vec<String>) {
         self.required_udp_ports = required_udp_ports;
-    }
-
-    /// Set the NVT detection
-    // Not used during plugin upload.
-    pub fn set_detection(&mut self, detection: String) {
-        self.detection = detection;
-    }
-
-    /// Set the NVT QoD Type
-    // Not used during plugin upload.
-    pub fn set_qod_type(&mut self, qod_type: String) {
-        self.qod_type = qod_type;
-    }
-
-    /// Set the NVT QoD (Quality of Detection)
-    // Not used during plugin upload.
-    pub fn set_qod(&mut self, qod: String) {
-        self.qod = qod;
     }
 
     /// Set the NVT category. Check that category is a valid Category
@@ -302,14 +178,6 @@ impl Nvt {
         self.refs.push(nvtref);
     }
 
-    /// Function to add a new severity to the Nvt
-    // Not used during plugin upload.
-    pub fn add_severity(&mut self, severity: NvtSeverity) {
-        self.severities.push(severity);
-    }
-
-    //   GET FUNCTIONS
-
     /// Get the NVT OID
     pub fn oid(&self) -> &str {
         &self.oid
@@ -320,69 +188,10 @@ impl Nvt {
         &self.name
     }
 
-    /// Get the NVT summary
-    // Not used during plugin upload.
-    pub fn summary(&self) -> &str {
-        &self.summary
-    }
-
-    /// Get the NVT insight
-    // Not used during plugin upload.
-    pub fn insight(&self) -> &str {
-        &self.insight
-    }
-
-    /// Get the NVT affected
-    // Not used during plugin upload.
-    pub fn affected(&self) -> &str {
-        &self.affected
-    }
-
-    /// Get the NVT impact
-    // Not used during plugin upload.
-    pub fn impact(&self) -> &str {
-        &self.impact
-    }
-
-    /// Get the NVT creation_time
-    // Not used during plugin upload.
-    pub fn creation_time(&mut self) -> RedisSinkResult<TimeT> {
-        Ok(self.creation_time)
-    }
-
-    /// Get the NVT modification_time
-    // Not used during plugin upload.
-    pub fn modification_time(&mut self) -> RedisSinkResult<TimeT> {
-        Ok(self.modification_time)
-    }
-    /// Get the NVT solution
-    // Not used during plugin upload.
-    pub fn solution(&self) -> &str {
-        &self.solution
-    }
-
-    /// Get the NVT solution_type
-    // Not used during plugin upload.
-    pub fn solution_type(&self) -> &str {
-        &self.solution_type
-    }
-
-    /// Get the NVT solution method
-    // Not used during plugin upload.
-    pub fn solution_method(&self) -> &str {
-        &self.solution_method
-    }
-
-    /// Get the NVT tag
-    pub fn tag(&self) -> &Vec<(String, String)> {
+    pub fn tag(&self) -> &[(String, String)] {
         &self.tag
     }
 
-    /// Get the NVT CVSS base
-    // Not used during plugin upload.
-    pub fn cvss_base(&self) -> &str {
-        &self.cvss_base
-    }
     /// Get the NVT dependencies
     pub fn dependencies(&self) -> &Vec<String> {
         &self.dependencies
@@ -411,24 +220,6 @@ impl Nvt {
     /// Get the NVT required udp ports
     pub fn required_udp_ports(&self) -> &Vec<String> {
         &self.required_udp_ports
-    }
-
-    /// Get the NVT detection
-    // Not used during plugin upload.
-    pub fn detection(&self) -> &str {
-        &self.detection
-    }
-
-    /// Get the NVT QoD Type
-    // Not used during plugin upload.
-    pub fn qod_type(&self) -> &str {
-        &self.qod_type
-    }
-
-    /// Get the NVT QoD (Quality of Detection)
-    // Not used during plugin upload.
-    pub fn qod(&self) -> &str {
-        &self.qod
     }
 
     /// Get the NVT category.
@@ -467,7 +258,7 @@ impl Nvt {
                         }
                         _ => {
                             let mut new_xref: Vec<String> = xrefs;
-                            new_xref.push(format!("{}:{}", b.class(), b.id()));
+                            new_xref.push(format!("{}:{}", b.id(), b.class()));
                             (bids, cves, new_xref)
                         }
                     }
@@ -476,6 +267,7 @@ impl Nvt {
         // Some references include a comma. Therefore the refs separator is ", ".
         // The string ", " is not accepted as reference value, since it will misunderstood
         // as ref separator.
+
         return (
             cves.iter().as_ref().join(", "),
             bids.iter().as_ref().join(", "),
@@ -485,18 +277,21 @@ impl Nvt {
 
     /// Transforms prefs to string representation {id}:{name}:{id}:{default} so that it can be stored into redis
     pub fn prefs(&self) -> Vec<String> {
-        self.prefs
+        let mut prefs = self.prefs.clone();
+        prefs.sort_by(|a, b| b.id.unwrap_or_default().cmp(&a.id.unwrap_or_default()));
+        let results: Vec<String> = prefs
             .iter()
             .map(|pref| {
                 format!(
-                    "{}:{}:{}:{}",
+                    "{}|||{}|||{}|||{}",
                     pref.id().unwrap_or_default(),
                     pref.name(),
                     pref.class().as_ref(),
                     pref.default()
                 )
             })
-            .collect()
+            .collect();
+        results
     }
 
     pub fn set_filename(&mut self, filename: String) {

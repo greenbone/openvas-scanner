@@ -9,6 +9,7 @@
 // Also, set the environment variables REDIS_SOCKET and PLUGIN_PATH with valid paths
 mod test {
 
+    use redis_sink::connector::NameSpaceSelector;
     use redis_sink::dberror::RedisSinkResult;
     use sink::nvt::NVTField::*;
     use sink::nvt::NVTKey;
@@ -24,28 +25,27 @@ mod test {
 
     use redis_sink::connector::{RedisCache, RedisCtx};
 
+    fn redis_url() -> &'static str {
+        option_env!("REDIS_URL").unwrap_or("unix:///run/redis/redis.sock")
+    }
+
     #[test]
     fn redis_ctx() {
-        let socket = {
-            let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
-            env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)
-        };
-        let mut rctx = RedisCtx::new(&socket).unwrap();
+        let mut rctx = RedisCtx::open(redis_url(), &[NameSpaceSelector::Free]).unwrap();
         rctx.set_value("int value", 42).unwrap();
         assert_eq!(rctx.value("int value").unwrap(), "42".to_owned());
-
         rctx.set_value("string value", "moep").unwrap();
         assert_eq!(rctx.value("string value").unwrap(), "moep".to_owned());
+        let mut aha =
+            RedisCtx::open(redis_url(), &[NameSpaceSelector::Key("string value")]).unwrap();
+        assert_eq!(aha.db, rctx.db);
         rctx.delete_namespace().unwrap();
+        aha.delete_namespace().unwrap();
     }
 
     #[test]
     fn integration_test_nvtcache() -> RedisSinkResult<()> {
-        let socket = {
-            let redis_default_socket = |_| "unix:///run/redis/redis-server.sock".to_string();
-            env::var("REDIS_SOCKET").unwrap_or_else(redis_default_socket)
-        };
-        let nvtcache = RedisCache::init(&socket)?;
+        let nvtcache = RedisCache::init(redis_url(), &[NameSpaceSelector::Free])?;
 
         let commands = [
             NVT(Version("202212101125".to_owned())),
@@ -66,11 +66,6 @@ mod test {
                 "22".to_owned(),
             ])),
             NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()])),
-            NVT(Reference(NvtRef {
-                class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
-                id: "URL".to_owned(),
-                text: None,
-            })),
             NVT(ExcludedKeys(vec![
                 "Settings/disable_cgi_scanning".to_owned(),
                 "bla/bla".to_owned(),
@@ -79,11 +74,18 @@ mod test {
                 "Services/udp/unknown".to_owned(),
                 "17".to_owned(),
             ])),
-            NVT(Reference(NvtRef {
-                class: "cve".to_owned(),
-                id: "CVE-1999-0524".to_owned(),
-                text: None,
-            })),
+            NVT(Reference(vec![
+                NvtRef {
+                    class: "cve".to_owned(),
+                    id: "CVE-1999-0524".to_owned(),
+                    text: None,
+                },
+                NvtRef {
+                    class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
+                    id: "URL".to_owned(),
+                    text: None,
+                },
+            ])),
             NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
             NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
             NVT(Preference(NvtPreference {
@@ -153,18 +155,18 @@ mod test {
             ),
             (
                 NVTKey::Reference,
-                vec![
-                    NVT(Reference(NvtRef {
+                vec![NVT(Reference(vec![
+                    NvtRef {
                         class: "cve".to_owned(),
                         id: "CVE-1999-0524".to_owned(),
                         text: None,
-                    })),
-                    NVT(Reference(NvtRef {
+                    },
+                    NvtRef {
                         class: "URL".to_owned(),
                         id: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
                         text: None,
-                    })),
-                ],
+                    },
+                ]))],
             ),
             (
                 NVTKey::Preference,

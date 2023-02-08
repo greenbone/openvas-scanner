@@ -222,7 +222,7 @@ Those ports must be found and open. Otherwise it will be skipped."### =>
     r###"Preferences that can be set by a User"### =>
     Preference(NvtPreference),
     r###"Reference either cve, bid, ..."### =>
-    Reference(NvtRef),
+    Reference(Vec<NvtRef>),
     r###"Category of a plugin
 
 Category will be used to identify the type of the NASL plugin."### =>
@@ -257,6 +257,27 @@ pub struct NvtRef {
     pub text: Option<String>,
 }
 
+impl From<(&str, &str)> for NvtRef {
+    fn from(value: (&str, &str)) -> Self {
+        let (class, id) = value;
+        Self {
+            class: class.to_owned(),
+            id: id.to_owned(),
+            text: None,
+        }
+    }
+}
+
+impl From<(&str, String)> for NvtRef {
+    fn from(value: (&str, String)) -> Self {
+        let (class, id) = value;
+        Self {
+            class: class.to_owned(),
+            id,
+            text: None,
+        }
+    }
+}
 impl NvtRef {
     pub fn new(class: String, id: String, text: Option<String>) -> Self {
         Self { class, id, text }
