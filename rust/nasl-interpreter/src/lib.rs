@@ -32,6 +32,7 @@ mod operator;
 pub use context::ContextType;
 pub use context::Register;
 pub use error::InterpretError;
+pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
 pub use loader::*;
 pub use logger::{DefaultLogger, Mode, NaslLogger};

@@ -132,7 +132,9 @@ fn get_named_parameter<'a>(
     }
 }
 
-fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+type Transform = Result<NVTField, FunctionError>;
+
+fn as_timeout_field(arguments: &[&NaslValue]) -> Transform {
     Ok(NVTField::Preference(NvtPreference {
         id: Some(0),
         name: "timeout".to_owned(),
@@ -141,7 +143,7 @@ fn as_timeout_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError>
     }))
 }
 
-fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_category_field(arguments: &[&NaslValue]) -> Transform {
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(NVTField::Category(*cat)),
         a => Err(FunctionError::new(
@@ -151,80 +153,89 @@ fn as_category_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError
     }
 }
 
-fn as_name_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_name_field(arguments: &[&NaslValue]) -> Transform {
     Ok(NVTField::Name(arguments[0].to_string()))
 }
 
-fn as_oid_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_oid_field(arguments: &[&NaslValue]) -> Transform {
     Ok(NVTField::Oid(arguments[0].to_string()))
 }
 
-fn as_family_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_family_field(arguments: &[&NaslValue]) -> Transform {
     Ok(NVTField::Family(arguments[0].to_string()))
 }
 
-fn as_noop(_arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_noop(_arguments: &[&NaslValue]) -> Transform {
     Ok(NVTField::NoOp)
 }
 
-fn as_dependencies_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_dependencies_field(arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(NVTField::Dependencies(values))
 }
 
-fn as_exclude_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_exclude_keys_field(arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(NVTField::ExcludedKeys(values))
 }
 
-fn as_mandatory_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_mandatory_keys_field(arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
-    Ok(NVTField::MandatoryKeys(values))
+    match values.clone().last().and_then(|x| x.rsplit_once('=')) {
+        Some((remove, _)) => {
+            let values: Vec<String> = values
+                .into_iter()
+                .filter(|x| !x.starts_with(remove) || x.contains('='))
+                .collect();
+            Ok(NVTField::MandatoryKeys(values))
+        }
+        None => Ok(NVTField::MandatoryKeys(values)),
+    }
 }
 
-fn as_require_ports_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_require_ports_field(arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(NVTField::RequiredPorts(values))
 }
 
-fn as_require_udp_ports_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_require_udp_ports_field(arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(NVTField::RequiredUdpPorts(values))
 }
 
-fn as_require_keys_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_require_keys_field(arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(NVTField::RequiredKeys(values))
 }
 
-fn as_cve_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
-    Ok(NVTField::Reference(NvtRef {
-        class: "cve".to_owned(),
-        id: arguments[0].to_string(),
-        text: None,
-    }))
+fn as_cve_field(arguments: &[&NaslValue]) -> Transform {
+    let result = arguments
+        .iter()
+        .map(|x| ("cve", x.to_string()).into())
+        .collect();
+    Ok(NVTField::Reference(result))
 }
 
-fn as_tag_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_tag_field(arguments: &[&NaslValue]) -> Transform {
     let key: TagKey = arguments[0].to_string().parse()?;
     Ok(NVTField::Tag(key, arguments[1].to_string()))
 }
 
-fn as_xref_field(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_xref_field(arguments: &[&NaslValue]) -> Transform {
     if arguments.len() != 2 {
         return Err(FunctionError::new(
             "script_xref",
             FunctionErrorKind::MissingArguments(vec!["name".to_owned(), "csv".to_owned()]),
         ));
     }
-    Ok(NVTField::Reference(NvtRef {
+    Ok(NVTField::Reference(vec![NvtRef {
         class: arguments[1].to_string(),
         id: arguments[0].to_string(),
         text: None,
-    }))
+    }]))
 }
 
-fn as_preference(arguments: &[&NaslValue]) -> Result<NVTField, FunctionError> {
+fn as_preference(arguments: &[&NaslValue]) -> Transform {
     if arguments.len() < 3 {
         return Err(FunctionError::new(
             "script_add_preference",
@@ -263,10 +274,10 @@ make_storage_function! {
   script_oid as_oid_field => [1],
   script_dependencies as_dependencies_field => [0],
   script_exclude_keys as_exclude_keys_field => [0],
-  script_mandatory_keys as_mandatory_keys_field => [ 0],
-  script_require_ports as_require_ports_field => [ 0],
-  script_require_udp_ports as_require_udp_ports_field => [ 0],
-  script_require_keys as_require_keys_field => [ 0],
+  script_mandatory_keys as_mandatory_keys_field => [0] ? (re),
+  script_require_ports as_require_ports_field => [0],
+  script_require_udp_ports as_require_udp_ports_field => [0],
+  script_require_keys as_require_keys_field => [0],
   script_cve_id as_cve_field => [0],
   script_tag as_tag_field => (name: value),
   script_xref as_xref_field => (name: value),

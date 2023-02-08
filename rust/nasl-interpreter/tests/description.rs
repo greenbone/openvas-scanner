@@ -60,7 +60,7 @@ if(description)
         let storage = DefaultSink::new(true);
         let loader = NoOpLoader::default();
         let key = "test.nasl";
-        let initial = vec![(
+        let initial = [(
             "description".to_owned(),
             ContextType::Value(NaslValue::Number(1)),
         )];
@@ -70,7 +70,7 @@ if(description)
                 sink::Dispatch::NVT(sink::nvt::NVTField::FileName(key.to_owned())),
             )
             .expect("storage should work");
-        let mut register = Register::root_initial(initial);
+        let mut register = Register::root_initial(&initial);
         let mut interpreter = Interpreter::new(key, &storage, &loader, &mut register);
         let results = parse(code)
             .map(|stmt| match stmt {
@@ -106,11 +106,11 @@ if(description)
                     "22".to_owned()
                 ])),
                 NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()])),
-                NVT(Reference(NvtRef {
+                NVT(Reference(vec![NvtRef {
                     class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
                     id: "URL".to_owned(),
                     text: None
-                })),
+                }])),
                 NVT(ExcludedKeys(vec![
                     "Settings/disable_cgi_scanning".to_owned(),
                     "bla/bla".to_owned()
@@ -119,11 +119,11 @@ if(description)
                     "Services/udp/unknown".to_owned(),
                     "17".to_owned()
                 ])),
-                NVT(Reference(NvtRef {
+                NVT(Reference(vec![NvtRef {
                     class: "cve".to_owned(),
                     id: "CVE-1999-0524".to_owned(),
                     text: None
-                })),
+                }])),
                 NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
                 NVT(Preference(NvtPreference {
                     id: Some(2),

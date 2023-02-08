@@ -22,6 +22,12 @@ pub enum Dispatch {
     NVT(NVTField),
 }
 
+impl From<NVTField> for Dispatch {
+    fn from(value: NVTField) -> Self {
+        Self::NVT(value)
+    }
+}
+
 /// Retrieve command for a given Field
 ///
 /// Defines what kind of information needs to be gathered.
@@ -53,10 +59,10 @@ pub enum SinkError {
 impl Display for SinkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SinkError::Retry(p) => write!(f, "There was a temporary issue while reading {}.", p),
-            SinkError::ConnectionLost(p) => write!(f, "Connection lost {}.", p),
-            SinkError::UnexpectedData(p) => write!(f, "Unexpected data {}", p),
-            SinkError::Dirty(p) => write!(f, "Unexpected issue {}", p),
+            SinkError::Retry(p) => write!(f, "There was a temporary issue while reading {p}."),
+            SinkError::ConnectionLost(p) => write!(f, "Connection lost {p}."),
+            SinkError::UnexpectedData(p) => write!(f, "Unexpected data {p}"),
+            SinkError::Dirty(p) => write!(f, "Unexpected issue {p}"),
         }
     }
 }

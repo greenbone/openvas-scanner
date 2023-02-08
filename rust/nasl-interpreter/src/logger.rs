@@ -1,9 +1,11 @@
 /// Modes that are used by the default logger
 #[derive(PartialEq, PartialOrd)]
+#[derive(Default)]
 pub enum Mode {
     /// Debug Mode, enables all logging
     Debug = 0,
     /// Info Mode, enables Info, Warning and Error Messages
+    #[default]
     Info,
     /// Warning Mde, enables Warning and Error Messages
     Warning,
@@ -30,6 +32,7 @@ pub trait NaslLogger {
 /// basic mode system and color scheme for printing. The mode order is
 /// debug > info > warning > error > nothing. Printing normal messages is meant
 /// to be used by the display function therefore it cannot be disabled
+#[derive(Default)]
 pub struct DefaultLogger {
     mode: Mode,
 }

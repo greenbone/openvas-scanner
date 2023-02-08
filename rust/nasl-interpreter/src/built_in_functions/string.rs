@@ -289,7 +289,6 @@ fn stridx(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
 fn display(buf: &str, sink: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     register
         .logger()
-        .as_ref()
         .print(string(buf, sink, register)?.to_string());
     Ok(NaslValue::Null)
 }
@@ -497,12 +496,12 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok((-1 as i64).into())));
-        assert_eq!(parser.next(), Some(Ok((1 as i64).into())));
-        assert_eq!(parser.next(), Some(Ok((0 as i64).into())));
-        assert_eq!(parser.next(), Some(Ok((0 as i64).into())));
-        assert_eq!(parser.next(), Some(Ok((1 as i64).into())));
-        assert_eq!(parser.next(), Some(Ok((-1 as i64).into())));
+        assert_eq!(parser.next(), Some(Ok((-1_i64).into())));
+        assert_eq!(parser.next(), Some(Ok(1_i64.into())));
+        assert_eq!(parser.next(), Some(Ok(0_i64.into())));
+        assert_eq!(parser.next(), Some(Ok(0_i64.into())));
+        assert_eq!(parser.next(), Some(Ok(1_i64.into())));
+        assert_eq!(parser.next(), Some(Ok((-1_i64).into())));
     }
 
     #[test]
