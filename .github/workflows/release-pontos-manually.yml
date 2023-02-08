@@ -1,4 +1,4 @@
-name: Manually release gvm-libs with pontos
+name: Manually release openvas-scanner with pontos
 
 on:
   workflow_dispatch:
