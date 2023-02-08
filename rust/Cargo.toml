@@ -1,2 +1,2 @@
 [workspace]
-members = ["nasl-syntax", "nasl-interpreter", "nasl-cli", "sink", "redis-sink" ]
+members = ["nasl-syntax", "nasl-interpreter", "nasl-cli", "sink", "redis-sink", "feed-verifier" ]

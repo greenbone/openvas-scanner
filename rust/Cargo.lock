@@ -428,6 +428,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "feed-verifier"
+version = "0.1.0"
+dependencies = [
+ "redis",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
