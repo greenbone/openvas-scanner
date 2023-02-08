@@ -9,14 +9,14 @@ use std::{fs::File, io::Read, time::UNIX_EPOCH};
 use sink::Sink;
 
 use crate::{error::{FunctionError, FunctionErrorKind}, ContextType, NaslFunction, NaslValue, Register};
-use flate2::{read::DeflateDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
+use flate2::{read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
 
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
 fn random_impl() -> Result<i64, FunctionError> {
-    let mut rng = File::open("/dev/urandom")
-        .map_err(|e| FunctionError::new("randr", e.kind().into()))?;
+    let mut rng =
+        File::open("/dev/urandom").map_err(|e| FunctionError::new("randr", e.kind().into()))?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
         .map(|_| i64::from_be_bytes(buffer))
@@ -73,7 +73,6 @@ pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
     };
     let headformat = match register.named("headformat") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        Some(ContextType::Value(NaslValue::Null)) => "noheaderformat",
         _ => "noheaderformat",
     };
 
@@ -101,6 +100,23 @@ pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
     }
 }
 
+/// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
+pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let data = match register.named("data") {
+        //Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
+        Some(ContextType::Value(x)) => Vec::<u8>::from(x),
+        _ => return Err(FunctionError::new("gzip", ("data", "data").into())),
+    };
+
+    //let mut deflater = ZlibDecoder::new(&*data);
+    let mut uncompress = ZlibDecoder::new(&data[..]);
+    let mut uncompressed = String::new();
+    match uncompress.read_to_string(&mut uncompressed) {
+        Ok(_) => Ok(NaslValue::String(uncompressed)),
+        Err(_) => Ok(NaslValue::Null),
+    }
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -110,6 +126,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "isnull" => Some(isnull),
         "unixtime" => Some(unixtime),
         "gzip" => Some(gzip),
+        "gunzip" => Some(gunzip),
         _ => None,
     }
 }
@@ -221,6 +238,24 @@ mod tests {
             parser.next(),
             Some(Ok(NaslValue::Data(
                 [120, 156, 171, 2, 0, 0, 123, 0, 123].into()
+            )))
+        );
+    }
+
+    #[test]
+    fn gunzip() {
+        let code = r###"
+        gunzip(data: raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b));
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("z".into()
             )))
         );
     }
