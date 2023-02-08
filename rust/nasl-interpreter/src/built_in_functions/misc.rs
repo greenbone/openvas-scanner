@@ -9,7 +9,7 @@ use std::{fs::File, io::Read, time::UNIX_EPOCH};
 use sink::Sink;
 
 use crate::{error::{FunctionError, FunctionErrorKind}, ContextType, NaslFunction, NaslValue, Register};
-use flate2::{read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
+use flate2::{read::ZlibDecoder, read::GzDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
 
 #[inline]
 #[cfg(unix)]
@@ -112,9 +112,17 @@ pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
     let mut uncompress = ZlibDecoder::new(&data[..]);
     let mut uncompressed = String::new();
     match uncompress.read_to_string(&mut uncompressed) {
-        Ok(_) => Ok(NaslValue::String(uncompressed)),
-        Err(_) => Ok(NaslValue::Null),
-    }
+        Ok(_) => return Ok(NaslValue::String(uncompressed)),
+        Err(_) => (),
+    };
+
+    let mut uncompress = GzDecoder::new(&data[..]);
+    let mut uncompressed = String::new();
+    match uncompress.read_to_string(&mut uncompressed) {
+        Ok(_) => return Ok(NaslValue::String(uncompressed)),
+        Err(_) => (),
+    };
+    return Ok(NaslValue::Null);
 }
 
 /// Returns found function for key or None when not found
@@ -245,7 +253,15 @@ mod tests {
     #[test]
     fn gunzip() {
         let code = r###"
-        gunzip(data: raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b));
+        z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);
+        gunzip(data: z);
+        # With Header Format and data is data
+        gz = gzip(data: 'gz', headformat: "gzip");
+        gunzip(data: gz);
+        # Without Header format and data is a string
+        ngz = gzip(data: "ngz");
+        gunzip(data: ngz);
+
         "###;
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
@@ -253,9 +269,22 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::String("z".into()
+            )))
+        );
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("gz".into()
+            )))
+        );
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("ngz".into()
             )))
         );
     }
