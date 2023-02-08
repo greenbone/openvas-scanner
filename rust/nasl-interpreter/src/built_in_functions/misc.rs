@@ -9,6 +9,7 @@ use std::{fs::File, io::Read, time::UNIX_EPOCH};
 use sink::Sink;
 
 use crate::{error::{FunctionError, FunctionErrorKind}, ContextType, NaslFunction, NaslValue, Register};
+use flate2::{read::DeflateDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
 
 #[inline]
 #[cfg(unix)]
@@ -40,6 +41,7 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     }
 }
 
+
 /// Returns true when the given unnamed argument is null.
 pub fn isnull (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
@@ -62,6 +64,43 @@ pub fn unixtime(_: &str, _: &dyn Sink, _: &Register) -> Result<NaslValue, Functi
     }
 }
 
+/// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
+pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let data = match register.named("data") {
+        Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
+        Some(ContextType::Value(x)) => Vec::<u8>::from(x),
+        _ => return Err(FunctionError::new("gzip", ("data", "data").into())),
+    };
+    let headformat = match register.named("headformat") {
+        Some(ContextType::Value(NaslValue::String(x))) => x,
+        Some(ContextType::Value(NaslValue::Null)) => "noheaderformat",
+        _ => "noheaderformat",
+    };
+
+    match headformat.to_string().eq_ignore_ascii_case("gzip") {
+        true => {
+            let mut e = GzEncoder::new(Vec::new(), Compression::default());
+            match e.write_all(&data) {
+                Ok(_) => match e.finish() {
+                    Ok(compress) => Ok(NaslValue::Data(compress)),
+                    Err(_) => return Ok(NaslValue::Null),
+                },
+                Err(_) => return Ok(NaslValue::Null),
+            }
+        }
+        false => {
+            let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+            match e.write_all(&data) {
+                Ok(_) => match e.finish() {
+                    Ok(compress) => Ok(NaslValue::Data(compress)),
+                    Err(_) => return Ok(NaslValue::Null),
+                },
+                Err(_) => return Ok(NaslValue::Null),
+            }
+        }
+    }
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -70,6 +109,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "dec2str" => Some(dec2str),
         "isnull" => Some(isnull),
         "unixtime" => Some(unixtime),
+        "gzip" => Some(gzip),
         _ => None,
     }
 }
@@ -156,5 +196,32 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
+    }
+
+    #[test]
+    fn gzip() {
+        let code = r###"
+        gzip(data: 'z', headformat: "gzip");
+        gzip(data: 'z');
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(
+                [31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0]
+                    .into()
+            )))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(
+                [120, 156, 171, 2, 0, 0, 123, 0, 123].into()
+            )))
+        );
     }
 }
