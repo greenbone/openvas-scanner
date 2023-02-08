@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 
@@ -143,6 +143,17 @@ impl From<&NaslValue> for i64 {
             &NaslValue::Return(_) => -1,
             &NaslValue::Continue => 0,
             &NaslValue::Break => 0,
+        }
+    }
+}
+
+impl From<&NaslValue> for Vec<u8> {
+    fn from(value: &NaslValue) -> Vec<u8> {
+        match value {
+            NaslValue::String(x) => x.as_bytes().to_vec(),
+            &NaslValue::Number(x) => x.to_ne_bytes().to_vec(),
+            NaslValue::Data(x) => x.to_vec(),
+            _ => Vec::new(),
         }
     }
 }
