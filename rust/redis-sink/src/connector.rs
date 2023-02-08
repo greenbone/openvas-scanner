@@ -153,7 +153,7 @@ impl NameSpaceSelector {
 }
 
 /// Default selector for a feed-update run
-const FEEDUPDATE_SELECTOR: &[NameSpaceSelector] =
+pub const FEEDUPDATE_SELECTOR: &[NameSpaceSelector] =
     &[NameSpaceSelector::Key(CACHE_KEY), NameSpaceSelector::Free];
 
 impl RedisCtx {
@@ -171,21 +171,9 @@ impl RedisCtx {
         Err(DbError::NoAvailDbErr)
     }
 
-    fn set_namespace(&mut self, db_index: u32) -> RedisSinkResult<()> {
-        Cmd::new()
-            .arg("SELECT")
-            .arg(db_index.to_string())
-            .query(&mut self.kb)?;
-
-        self.db = db_index;
-        Ok(())
-    }
-
     /// Delete an entry from the in-use namespace's list
     fn release_namespace(&mut self) -> RedisSinkResult<()> {
-        // Get the current db index first, the one to be released
         // Remove the entry from the hash list
-        self.set_namespace(0)?;
         self.kb.hdel(DB_INDEX, self.db)?;
         Ok(())
     }
@@ -275,14 +263,13 @@ impl RedisCtx {
             family,
             name,
         ];
-
-        self.kb.rpush(key_name, &values)?;
+        self.kb.rpush(&key_name, &values)?;
 
         // Add preferences
         let prefs = nvt.prefs();
         if !prefs.is_empty() {
             let key_name = format!("oid:{oid}:prefs");
-            self.kb.lpush(key_name, prefs)?;
+            self.kb.lpush(&key_name, prefs)?;
         }
 
         Ok(())
