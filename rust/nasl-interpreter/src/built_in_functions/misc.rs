@@ -112,15 +112,16 @@ pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
     let mut uncompressed = String::new();
     match uncompress.read_to_string(&mut uncompressed) {
         Ok(_) => return Ok(NaslValue::String(uncompressed)),
-        Err(_) => (),
+        Err(_) => {
+            let mut uncompress = GzDecoder::new(&data[..]);
+            let mut uncompressed = String::new();
+            match uncompress.read_to_string(&mut uncompressed) {
+                Ok(_) => return Ok(NaslValue::String(uncompressed)),
+                Err(_) => (),
+            };
+        }
     };
 
-    let mut uncompress = GzDecoder::new(&data[..]);
-    let mut uncompressed = String::new();
-    match uncompress.read_to_string(&mut uncompressed) {
-        Ok(_) => return Ok(NaslValue::String(uncompressed)),
-        Err(_) => (),
-    };
     return Ok(NaslValue::Null);
 }
 
