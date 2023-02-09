@@ -223,9 +223,19 @@ impl<'a> Lexer<'a> {
         if end == End::Continue {
             return Err(unclosed_statement!(condition));
         }
-        let (end, update) = self
-            .statement(0, &|c| c == &Category::RightParen)
-            .map_err(Self::map_syntax_error_to_unclosed_left_paren)?;
+        let (end, update) = match self.peek() {
+            // no update statement provided
+            Some(Token {
+                category: Category::RightParen,
+                position: _,
+            }) => {
+                self.token();
+                (End::Done(Category::RightParen), Statement::NoOp(None))
+            }
+            _ => self
+                .statement(0, &|c| c == &Category::RightParen)
+                .map_err(Self::map_syntax_error_to_unclosed_left_paren)?,
+        };
         if !matches!(end, End::Done(Category::RightParen)) {
             return Err(unclosed_token!(Token {
                 category: Category::LeftParen,
@@ -523,10 +533,7 @@ mod test {
         ];
         for call in test_cases {
             assert!(
-                matches!(
-                    parse(&format!("{call};")).next().unwrap().unwrap(),
-                    Exit(_),
-                ),
+                matches!(parse(&format!("{call};")).next().unwrap().unwrap(), Exit(_),),
                 "{}",
                 call
             );
@@ -557,6 +564,11 @@ mod test {
     #[test]
     fn for_loop() {
         let code = "for (i = 0; i < 10; i++) display('hi');";
+        assert!(matches!(
+            parse(code).next().unwrap().unwrap(),
+            For(_, _, _, _)
+        ));
+        let code = "for (i = 0; i < 10; ) i = 10;";
         assert!(matches!(
             parse(code).next().unwrap().unwrap(),
             For(_, _, _, _)

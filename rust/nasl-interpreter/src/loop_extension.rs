@@ -189,6 +189,25 @@ mod tests {
     }
 
     #[test]
+    fn for_loop_without_update() {
+        let code = r###"
+        a = 0;
+        for ( a = 1; a < 5; ) {
+            a += 1;
+        }
+        a;
+        "###;
+        let storage = DefaultSink::default();
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        assert_eq!(interpreter.next(), Some(Ok(0.into())));
+        assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(interpreter.next(), Some(Ok(5.into())));
+    }
+
+    #[test]
     fn for_each_loop_test() {
         let code = r###"
         arr[0] = 3;
