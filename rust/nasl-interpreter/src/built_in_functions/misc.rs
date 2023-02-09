@@ -69,7 +69,7 @@ pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(FunctionError::new("gzip", ("data", "data").into())),
+        _ => return Err(FunctionError::new("gzip", ("data").into())),
     };
     let headformat = match register.named("headformat") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
@@ -103,12 +103,11 @@ pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
 /// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
 pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let data = match register.named("data") {
-        //Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
+        Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(FunctionError::new("gzip", ("data", "data").into())),
+        _ => return Err(FunctionError::new("gzip", ("data").into())),
     };
 
-    //let mut deflater = ZlibDecoder::new(&*data);
     let mut uncompress = ZlibDecoder::new(&data[..]);
     let mut uncompressed = String::new();
     match uncompress.read_to_string(&mut uncompressed) {
@@ -261,7 +260,6 @@ mod tests {
         # Without Header format and data is a string
         ngz = gzip(data: "ngz");
         gunzip(data: ngz);
-
         "###;
         let storage = DefaultSink::new(false);
         let mut register = Register::default();

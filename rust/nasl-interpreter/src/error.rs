@@ -26,6 +26,13 @@ impl From<(&str, &str, &str)> for FunctionErrorKind {
     }
 }
 
+impl From<&str> for FunctionErrorKind {
+    fn from(value: &str) -> Self {
+        FunctionErrorKind::MissingArguments(vec![format!("Missing Argument {value}")])
+    }
+}
+
+
 impl From<(&str, &str)> for FunctionErrorKind {
     fn from(value: (&str, &str)) -> Self {
         let (expected, got) = value;
