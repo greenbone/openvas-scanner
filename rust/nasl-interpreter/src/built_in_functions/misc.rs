@@ -4,7 +4,7 @@
 
 //! Defines NASL miscellaneous functions
 
-use std::{fs::File, io::Read};
+use std::{fs::File, io::Read, time::UNIX_EPOCH};
 
 use sink::Sink;
 
@@ -54,6 +54,13 @@ pub fn isnull (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     }
 }
 
+/// Returns the seconds counted from 1st January 1970 as an integer.
+pub fn unixtime(_: &str, _: &dyn Sink, _: &Register) -> Result<NaslValue, FunctionError> {
+    match std::time::SystemTime::now().duration_since(UNIX_EPOCH){
+        Ok (t) => Ok(NaslValue::Number(t.as_secs() as i64)),
+        Err(_) => Err(FunctionError::new("unixtime", ("0", "numeric").into())),
+    }
+}
 
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
@@ -62,6 +69,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "get_byte_order" => Some(get_byte_order),
         "dec2str" => Some(dec2str),
         "isnull" => Some(isnull),
+        "unixtime" => Some(unixtime),
         _ => None,
     }
 }
@@ -134,5 +142,19 @@ mod tests {
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(true))));
+    }
+
+    #[test]
+    fn unixtime() {
+        let code = r###"
+        unixtime();
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
     }
 }
