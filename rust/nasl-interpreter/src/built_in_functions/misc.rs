@@ -4,7 +4,7 @@
 
 //! Defines NASL miscellaneous functions
 
-use std::{fs::File, io::Read, time::UNIX_EPOCH};
+use std::{fs::File, io::{Read, Write}, time::UNIX_EPOCH};
 
 use sink::Sink;
 
