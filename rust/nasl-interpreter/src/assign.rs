@@ -167,6 +167,10 @@ impl<'a> Interpreter<'a> {
                 NaslValue::String(idx) => {
                     self.handle_dict(ridx, key, idx, left, right, order, result)
                 }
+                NaslValue::Data(idx) => {
+                    let idx = idx.into_iter().map(|x| x as char).collect();
+                    self.handle_dict(ridx, key, idx, left, right, order, result)
+                }
                 _ => match left {
                     NaslValue::Dict(_) => {
                         self.handle_dict(ridx, key, idx.to_string(), left, right, order, result)

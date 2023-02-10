@@ -33,7 +33,9 @@ impl fmt::Display for DbError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             DbError::NoAvailDbErr(e) => write!(f, "No DB available: {}", e),
-            DbError::ConfigurationError(e) => write!(f, "Unable to use redis due to wrong configuration: {}", e),
+            DbError::ConfigurationError(e) => {
+                write!(f, "Unable to use redis due to wrong configuration: {}", e)
+            }
             DbError::SystemError(e) => write!(f, "Operation system of redis has issues: {}", e),
             DbError::LibraryError(e) => write!(f, "Library issue: {}", e),
             DbError::ConnectionLost(e) => write!(f, "Connection lost: {}", e),
@@ -69,7 +71,6 @@ impl From<RedisError> for DbError {
     }
 }
 
-
 impl From<DbError> for SinkError {
     fn from(err: DbError) -> Self {
         match err {
@@ -83,4 +84,3 @@ impl From<DbError> for SinkError {
         }
     }
 }
-

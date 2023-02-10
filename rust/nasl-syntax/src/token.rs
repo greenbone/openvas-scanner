@@ -10,19 +10,6 @@ use crate::ACT;
 ///! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
 
-/// Identifies if a string is quotable or unquotable
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum StringCategory {
-    /// Defines a string as capable of quoting
-    ///
-    /// Quotable strings will interpret \n\t...
-    Quotable, // '..\''
-    /// Defines a string as incapable of quoting
-    ///
-    /// Unquotable strings will use escaped characters as is instead of interpreting them.
-    Unquotable, // "..\"
-}
-
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Base {
@@ -78,7 +65,8 @@ impl Base {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnclosedCategory {
     /// Is a unclosed String.
-    String(StringCategory),
+    String,
+    Data,
 }
 
 macro_rules! make_keyword_matcher {
@@ -295,8 +283,16 @@ pub enum Category {
     GreaterGreaterGreaterEqual,
     /// `x` is a special functionality to redo a function call n times.E.g. `send_packet( udp, pcap_active:FALSE ) x 200;`
     X,
-    /// A String can be either Quotable (') or Unquotable (") both can be multiline
+    /// A String (")
+    ///
+    /// Strings can be over multiple lines and are not escapable (`a = "a\";` is valid).
+    /// A string type will be cast to utf8 string.
     String(String),
+    /// Data is defined Quotable (')
+    ///
+    /// Data can be over multiple lines and are escaped (`a = "a\";` is valid).
+    /// Unlike string the data types are stored in bytes.
+    Data(Vec<u8>),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(i64),
     /// We currently just support 127.0.0.1 notation
@@ -378,6 +374,7 @@ impl Display for Category {
             Category::Unclosed(_) => write!(f, "Unclosed"),
             Category::UnknownBase => write!(f, "UnknownBase"),
             Category::UnknownSymbol => write!(f, "UnknownSymbol"),
+            Category::Data(_) => write!(f, "Data"),
         }
     }
 }
@@ -514,41 +511,58 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Skips initial and ending string identifier ' || " and verifies that a string is closed
+    // Skips initial and ending data identifier ' and verifies that a string is closed
     #[inline(always)]
-    fn tokenize_string(
-        &mut self,
-        string_category: StringCategory,
-        predicate: impl FnMut(char) -> bool,
-    ) -> Category {
-        // we don't want the lookup to contain "
+    fn tokenize_string(&mut self) -> Category {
+        //'"' => self.tokenize_string(StringCategory::Unquotable, |c| c != '"'),
         let start = self.cursor.len_consumed();
-        self.cursor.skip_while(predicate);
+        self.cursor.skip_while(|c| c != '"');
         if self.cursor.is_eof() {
-            Category::Unclosed(UnclosedCategory::String(string_category))
+            Category::Unclosed(UnclosedCategory::String)
         } else {
-            let result = {
-                let raw = &self.code[Range {
-                    start,
-                    end: self.cursor.len_consumed(),
-                }];
-                match string_category {
-                    StringCategory::Quotable => raw.to_owned(),
-                    StringCategory::Unquotable => {
-                        let mut string = raw.to_string();
-                        string = string.replace(r#"\n"#, "\n");
-                        string = string.replace(r#"\\"#, "\\");
-                        string = string.replace(r#"\""#, "\"");
-                        string = string.replace(r#"\'"#, "'");
-                        string = string.replace(r#"\r"#, "\r");
-                        string = string.replace(r#"\t"#, "\t");
-                        string
-                    }
-                }
-            };
+            let mut result = self.code[Range {
+                start,
+                end: self.cursor.len_consumed(),
+            }]
+            .to_owned();
+            result = result.replace(r#"\n"#, "\n");
+            result = result.replace(r#"\\"#, "\\");
+            result = result.replace(r#"\""#, "\"");
+            result = result.replace(r#"\'"#, "'");
+            result = result.replace(r#"\r"#, "\r");
+            result = result.replace(r#"\t"#, "\t");
             // skip ""
             self.cursor.advance();
             Category::String(result)
+        }
+    }
+
+    // Skips initial and ending string identifier ' || " and verifies that a string is closed
+    #[inline(always)]
+    fn tokenize_data(&mut self) -> Category {
+        // we don't want the lookup to contain "
+        let start = self.cursor.len_consumed();
+        let mut back_slash = false;
+        self.cursor.skip_while(|c| {
+            if !back_slash && c == '\'' {
+                false
+            } else {
+                back_slash = !back_slash && c == '\\';
+                true
+            }
+        });
+        if self.cursor.is_eof() {
+            Category::Unclosed(UnclosedCategory::Data)
+        } else {
+            let raw = self.code[Range {
+                start,
+                end: self.cursor.len_consumed(),
+            }]
+            .as_bytes()
+            .to_vec();
+
+            self.cursor.advance();
+            Category::Data(raw)
         }
     }
     #[inline(always)]
@@ -727,18 +741,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
-            '"' => self.tokenize_string(StringCategory::Unquotable, |c| c != '"'),
-            '\'' => {
-                let mut back_slash = false;
-                self.tokenize_string(StringCategory::Quotable, |c| {
-                    if !back_slash && c == '\'' {
-                        false
-                    } else {
-                        back_slash = !back_slash && c == '\\';
-                        true
-                    }
-                })
-            }
+            '"' => self.tokenize_string(),
+            '\'' => self.tokenize_data(),
 
             current if ('0'..='9').contains(&current) => self.tokenize_number(start, current),
             current if current.is_alphabetic() || current == '_' => self.tokenize_identifier(start),
@@ -845,7 +849,6 @@ mod tests {
 
     #[test]
     fn unquotable_string() {
-        use StringCategory::*;
         let code = "\"hello I am a closed string\\\"";
         verify_tokens!(
             code,
@@ -858,26 +861,21 @@ mod tests {
         let code = "\"hello I am a unclosed string\\";
         verify_tokens!(
             code,
-            vec![(
-                Category::Unclosed(UnclosedCategory::String(Unquotable)),
-                1,
-                1,
-            )]
+            vec![(Category::Unclosed(UnclosedCategory::String), 1, 1,)]
         );
     }
 
     #[test]
     fn quotable_string() {
-        use StringCategory::*;
         let code = "'Hello \\'you\\'!'";
         verify_tokens!(
             code,
-            vec![(Category::String("Hello \\'you\\'!".to_owned()), 1, 1)]
+            vec![(Category::Data("Hello \\'you\\'!".as_bytes().to_vec()), 1, 1)]
         );
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
             code,
-            vec![(Category::Unclosed(UnclosedCategory::String(Quotable)), 1, 1)]
+            vec![(Category::Unclosed(UnclosedCategory::Data), 1, 1)]
         );
     }
 
@@ -964,14 +962,17 @@ mod tests {
         use Category::*;
         verify_tokens!(
             r###"'webapps\\appliance\\'"###,
-            vec![(String("webapps\\\\appliance\\\\".to_owned()), 1, 1)]
+            vec![(Data("webapps\\\\appliance\\\\".as_bytes().to_vec()), 1, 1)]
         );
     }
 
     #[test]
     fn simplified_ipv4_address() {
         use Category::*;
-        verify_tokens!("10.187.76.12", vec![(IPv4Address("10.187.76.12".to_owned()), 1, 1)]);
+        verify_tokens!(
+            "10.187.76.12",
+            vec![(IPv4Address("10.187.76.12".to_owned()), 1, 1)]
+        );
     }
 
     #[test]

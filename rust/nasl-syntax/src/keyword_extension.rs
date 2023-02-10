@@ -414,7 +414,7 @@ mod test {
                         position: (1, 18)
                     },
                     vec![Primitive(Token {
-                        category: String("1".to_owned()),
+                        category: Data(vec![49]),
                         position: (1, 29)
                     })]
                 )),
@@ -424,7 +424,7 @@ mod test {
                         position: (1, 40)
                     },
                     vec![Primitive(Token {
-                        category: String("hi".to_owned()),
+                        category: Data(vec![104, 105]),
                         position: (1, 48)
                     })]
                 )))

@@ -4,16 +4,16 @@
 
 //! Is a crate to use Statements from nasl-syntax and execute them.
 #![warn(missing_docs)]
-mod naslvalue;
 mod built_in_functions;
+mod naslvalue;
 use built_in_functions::array;
 use built_in_functions::description;
 mod error;
+use built_in_functions::cryptography;
 use built_in_functions::function;
 use built_in_functions::hostname;
 use built_in_functions::misc;
 use built_in_functions::string;
-use built_in_functions::cryptography;
 
 use error::FunctionError;
 
@@ -34,8 +34,8 @@ pub use context::Register;
 pub use error::InterpretError;
 pub use interpreter::Interpreter;
 pub use loader::*;
+pub use logger::{DefaultLogger, Mode, NaslLogger};
 pub use naslvalue::NaslValue;
-pub use logger::{Mode, NaslLogger, DefaultLogger};
 use sink::Sink;
 
 // Is a type definition for built-in functions
@@ -49,4 +49,3 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
         .or_else(|| function::lookup(function_name))
         .or_else(|| cryptography::lookup(function_name))
 }
-

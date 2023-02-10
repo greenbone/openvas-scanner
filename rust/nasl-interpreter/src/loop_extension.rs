@@ -4,7 +4,7 @@
 
 use nasl_syntax::{IdentifierType, Statement, Token, TokenCategory};
 
-use crate::{interpreter::InterpretResult, InterpretError, Interpreter, NaslValue, ContextType};
+use crate::{interpreter::InterpretResult, ContextType, InterpretError, Interpreter, NaslValue};
 
 /// Extension to handle the interpretation of NASL loops
 pub(crate) trait LoopExtension {
@@ -90,7 +90,7 @@ impl<'a> LoopExtension for Interpreter<'a> {
             self.resolve(update)?;
         }
 
-       Ok(NaslValue::Null)
+        Ok(NaslValue::Null)
     }
 
     fn for_each_loop(
@@ -102,15 +102,12 @@ impl<'a> LoopExtension for Interpreter<'a> {
         // Get name of the iteration variable
         let iter_name = match variable.category() {
             TokenCategory::Identifier(IdentifierType::Undefined(name)) => name,
-            o => {
-                return Err(InterpretError::wrong_category(o))
-            }
+            o => return Err(InterpretError::wrong_category(o)),
         };
         // Iterate through the iterable Statement
         for val in Vec::<NaslValue>::from(self.resolve(iterable)?) {
             // Change the value of the iteration variable after each iteration
-            self.registrat
-                .add_local(iter_name, ContextType::Value(val));
+            self.registrat.add_local(iter_name, ContextType::Value(val));
 
             // Execute loop body
             let ret = self.resolve(body)?;
@@ -169,8 +166,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, NoOpLoader};
-
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
 
     #[test]
     fn for_loop_test() {
@@ -185,7 +181,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut interpreter =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(10.into())));
@@ -206,7 +203,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut interpreter =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(3.into())));
         assert_eq!(interpreter.next(), Some(Ok(5.into())));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
@@ -231,7 +229,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut interpreter =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(4.into())));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Boolean(true))));
@@ -257,7 +256,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut interpreter =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(10.into())));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
@@ -288,7 +288,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut interpreter =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
         assert_eq!(interpreter.next(), Some(Ok(5.into())));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
@@ -296,4 +297,3 @@ mod tests {
         assert_eq!(interpreter.next(), Some(Ok(1.into())));
     }
 }
-

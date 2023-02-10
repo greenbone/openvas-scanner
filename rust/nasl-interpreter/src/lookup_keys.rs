@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-
 //! This crate has definitions of internally used lookup keys
 //!
 //! A lookup key is used to gather script internal information that are not shared
@@ -14,5 +13,5 @@ pub const FC_ANON_ARGS: &str = "_FCT_ANON_ARGS";
 ///
 /// In the current version of openvas this information is stored into redis.
 /// In the current state of the rust implementation (2023-01-23) we don't have the interface to store data between different script runs.
-// Therefore it is currently stored within the register with this key. 
+// Therefore it is currently stored within the register with this key.
 pub const TARGET: &str = "_OPENVAS_TARGET";

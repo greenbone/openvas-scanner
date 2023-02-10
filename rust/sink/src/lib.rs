@@ -6,7 +6,10 @@
 //! NASL Sink defines technology independent sink traits, structs ..{w;
 
 pub mod nvt;
-use std::{sync::{Arc, Mutex}, fmt::Display};
+use std::{
+    fmt::Display,
+    sync::{Arc, Mutex},
+};
 
 use nvt::{NVTField, NVTKey};
 

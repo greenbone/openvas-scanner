@@ -51,11 +51,15 @@ fn raw_string(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
 
 fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionError> {
     match value {
-        NaslValue::String(x) => write!(s, "{}", x),
+        NaslValue::String(x) => write!(s, "{x}"),
+        NaslValue::Data(x) => {
+            let x = x.iter().map(|x| *x as char).collect::<String>();
+            write!(s, "{x}")
+        }
         NaslValue::Number(x) => {
             let c = *x as u8 as char;
             if c.is_ascii_graphic() {
-                write!(s, "{}", c)
+                write!(s, "{c}")
             } else {
                 write!(s, ".")
             }
@@ -117,6 +121,12 @@ fn toupper(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Func
     let positional = resolve_positional_arguments(register);
     Ok(match positional.get(0) {
         Some(NaslValue::String(x)) => x.to_uppercase().into(),
+        Some(NaslValue::Data(x)) => x
+            .iter()
+            .map(|x| *x as char)
+            .collect::<String>()
+            .to_uppercase()
+            .into(),
         _ => NaslValue::Null,
     })
 }
@@ -128,6 +138,12 @@ fn tolower(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Func
     let positional = resolve_positional_arguments(register);
     Ok(match positional.get(0) {
         Some(NaslValue::String(x)) => x.to_lowercase().into(),
+        Some(NaslValue::Data(x)) => x
+            .iter()
+            .map(|x| *x as char)
+            .collect::<String>()
+            .to_lowercase()
+            .into(),
         _ => NaslValue::Null,
     })
 }
@@ -139,6 +155,7 @@ fn strlen(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     let positional = resolve_positional_arguments(register);
     Ok(match positional.get(0) {
         Some(NaslValue::String(x)) => x.len().into(),
+        Some(NaslValue::Data(x)) => x.len().into(),
         _ => 0_i64.into(),
     })
 }
@@ -178,16 +195,18 @@ fn substr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
 /// It only uses the first positional argument and when it is not a NaslValue:String than it returns NaslValue::Null.
 fn hexstr(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
-    Ok(match positional.get(0) {
-        Some(NaslValue::String(x)) => {
-            let mut s = String::with_capacity(2 * x.len());
-            for byte in x.as_bytes() {
-                write!(s, "{:02X}", byte).map_err(|e| FunctionError::new("randr", e.into()))?
-            }
-            s.into()
+    let hexler = |x: &str| -> Result<NaslValue, FunctionError> {
+        let mut s = String::with_capacity(2 * x.len());
+        for byte in x.as_bytes() {
+            write!(s, "{byte:02X}").map_err(|e| FunctionError::new("hexstr", e.into()))?
         }
-        _ => NaslValue::Null,
-    })
+        Ok(s.into())
+    };
+    match positional.get(0) {
+        Some(NaslValue::String(x)) => hexler(x),
+        Some(NaslValue::Data(x)) => hexler(&x.iter().map(|x| *x as char).collect::<String>()),
+        _ => Ok(NaslValue::Null),
+    }
 }
 
 /// NASL function to return a buffer of required length with repeated occurrences of a specified string
@@ -227,7 +246,14 @@ fn crap(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Functio
 fn chomp(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     match positional.get(0) {
-        Some(NaslValue::String(x)) => Ok(NaslValue::String(x.trim_end().to_owned())),
+        Some(NaslValue::String(x)) => Ok(x.trim_end().to_owned().into()),
+        Some(NaslValue::Data(x)) => Ok(x
+            .iter()
+            .map(|x| *x as char)
+            .collect::<String>()
+            .trim_end()
+            .to_owned()
+            .into()),
         x => Err(FunctionError::new("chomp", ("0", "string", x).into())),
     }
 }
@@ -249,7 +275,7 @@ fn stridx(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Funct
     };
     let offset = match positional.get(2) {
         Some(NaslValue::Number(x)) => *x as usize,
-        _ => 0 as usize,
+        _ => 0_usize,
     };
     Ok(match &haystack[offset..].find(needle) {
         Some(index) => NaslValue::Number(*index as i64),

@@ -85,7 +85,12 @@ impl<'a> OperatorExtension for Interpreter<'a> {
             TokenCategory::Plus => self.execute(stmts, |a, b| match a {
                 NaslValue::String(x) => {
                     let right = b.map(|x| x.to_string()).unwrap_or_default();
-                    Ok(NaslValue::String(format!("{}{}", x, right)))
+                    Ok(NaslValue::String(format!("{x}{right}")))
+                }
+                NaslValue::Data(x) => {
+                    let right: String = b.map(|x| x.to_string()).unwrap_or_default();
+                    let x: String = x.into_iter().map(|b| b as char).collect();
+                    Ok(NaslValue::String(format!("{x}{right}")))
                 }
                 left => {
                     let right = b.map(|x| i64::from(&x)).unwrap_or_default();
@@ -95,6 +100,11 @@ impl<'a> OperatorExtension for Interpreter<'a> {
             TokenCategory::Minus => self.execute(stmts, |a, b| match a {
                 NaslValue::String(x) => {
                     let right: String = b.map(|x| x.to_string()).unwrap_or_default();
+                    Ok(NaslValue::String(x.replacen(&right, "", 1)))
+                }
+                NaslValue::Data(x) => {
+                    let right: String = b.map(|x| x.to_string()).unwrap_or_default();
+                    let x: String = x.into_iter().map(|b| b as char).collect();
                     Ok(NaslValue::String(x.replacen(&right, "", 1)))
                 }
                 left => {
@@ -227,9 +237,11 @@ mod tests {
     }
     create_test! {
         numeric_plus: "1+2;" => 3.into(),
-        string_plus: "'hello ' + 'world!';" => "hello world!".into(),
+        string_plus: "\"hello \" + \"world!\";" => "hello world!".into(),
+        string_minus : "\"hello \" - 'o ';" => "hell".into(),
+        data_plus: "'hello ' + 'world!';" => "hello world!".into(),
+        data_minus: "'hello ' - 'o ';" => "hell".into(),
         numeric_minus : "1 - 2;" => NaslValue::Number(-1),
-        string_minus : "'hello ' - 'o ';" => "hell".into(),
         multiplication: "1*2;" => 2.into(),
         division: "512/2;" => 256.into(),
         modulo: "512%2;" => 0.into(),

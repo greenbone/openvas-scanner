@@ -14,7 +14,7 @@ use crate::{
     loader::Loader,
     loop_extension::LoopExtension,
     operator::OperatorExtension,
-    NaslValue, InterpretError,
+    InterpretError, NaslValue,
 };
 
 /// Used to interpret a Statement

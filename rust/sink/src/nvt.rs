@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Defines NVT 
+//! Defines NVT
 use std::str::FromStr;
 
 use crate::SinkError;
@@ -74,7 +74,7 @@ impl FromStr for ACT {
             "8" => ACT::KillHost,
             "9" => ACT::Flood,
             "10" => ACT::End,
-            _ => return Err(SinkError::UnexpectedData(s.to_owned()) ),
+            _ => return Err(SinkError::UnexpectedData(s.to_owned())),
         })
     }
 }

@@ -15,7 +15,6 @@ use crate::{
     unexpected_statement, unexpected_token, Statement,
 };
 
-
 /// Is used to parse Token to Statement
 pub struct Lexer<'a> {
     tokenizer: Tokenizer<'a>,
@@ -63,7 +62,7 @@ impl<'a> Lexer<'a> {
 
     /// Returns peeks token of tokenizer
     pub(crate) fn peek(&mut self) -> Option<Token> {
-        for token in self.tokenizer.clone(){
+        for token in self.tokenizer.clone() {
             if token.category() == &Category::Comment {
                 continue;
             }
@@ -107,13 +106,14 @@ impl<'a> Lexer<'a> {
         }
 
         let mut end_statement = End::Continue;
-        while let Some(token) = self.peek(){
+        while let Some(token) = self.peek() {
             if abort(token.category()) {
                 self.token();
                 end_statement = End::Done(token.category().clone());
                 break;
             }
-            let op = Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
+            let op =
+                Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
 
             if self.needs_postfix(op.clone()) {
                 let (end, stmt) = self

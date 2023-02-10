@@ -13,19 +13,18 @@ mod lexer;
 mod operation;
 mod postfix_extension;
 mod prefix_extension;
+mod statement;
 mod token;
 mod variable_extension;
-mod statement;
 
-pub use error::{SyntaxError, ErrorKind};
+pub use error::{ErrorKind, SyntaxError};
+pub use lexer::Lexer;
+pub use sink::nvt::ACT;
 pub use statement::*;
-pub use token::Category as TokenCategory;
-pub use token::Token;
-pub use token::StringCategory;
 pub use token::Base as NumberBase;
+pub use token::Category as TokenCategory;
 pub use token::IdentifierType;
-pub use sink::nvt::ACT as ACT;
-pub use lexer::Lexer as Lexer;
+pub use token::Token;
 pub use token::Tokenizer;
 
 /// Parses given code and returns found Statements and Errors
@@ -48,7 +47,7 @@ mod tests {
     use crate::{
         cursor::Cursor,
         token::{Category, IdentifierType, Token, Tokenizer},
-        Statement, SyntaxError, AssignOrder,
+        AssignOrder, Statement, SyntaxError,
     };
 
     #[test]
@@ -78,7 +77,7 @@ mod tests {
                     position: (1, 17)
                 },
                 Token {
-                    category: Category::String("World!".to_owned()),
+                    category: Category::Data("World!".as_bytes().to_vec()),
                     position: (1, 19)
                 },
                 Token {
