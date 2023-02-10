@@ -6,7 +6,6 @@
 
 use std::{fmt::Display, fs, path::Path};
 
-
 /// Defines abstract Loader error cases
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LoadError {
@@ -30,7 +29,6 @@ impl Display for LoadError {
         }
     }
 }
-
 
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
 pub trait Loader {

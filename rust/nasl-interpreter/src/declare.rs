@@ -33,9 +33,7 @@ impl<'a> DeclareFunctionExtension for Interpreter<'a> {
                     let param_name = &Self::identifier(token)?;
                     names.push(param_name.to_owned());
                 }
-                _ => {
-                    return Err(InterpretError::unsupported(a, "variable"))
-                }
+                _ => return Err(InterpretError::unsupported(a, "variable")),
             }
         }
         self.registrat
@@ -74,9 +72,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{
-        context::Register, loader::NoOpLoader, Interpreter, NaslValue,
-    };
+    use crate::{context::Register, loader::NoOpLoader, Interpreter, NaslValue};
 
     #[test]
     fn declare_local() {
@@ -93,9 +89,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| 
-            interpreter.resolve(&x.expect("unexpected parse error"))
-        );
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Null)))); // not found
@@ -113,7 +108,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut parser = parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));
     }

@@ -52,8 +52,7 @@ impl<'a> Cursor<'a> {
                 self.col += 1;
                 Some(c)
             }
-            None => None
-
+            None => None,
         }
     }
 

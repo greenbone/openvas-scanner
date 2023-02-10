@@ -25,9 +25,7 @@ fn resolve_hostname(function: &str, register: &Register) -> Result<String, Funct
     );
 
     match target.parse() {
-        Ok(addr) => {
-            lookup_addr(&addr).map_err(|x| FunctionError::new(function, x.kind().into()))
-        }
+        Ok(addr) => lookup_addr(&addr).map_err(|x| FunctionError::new(function, x.kind().into())),
         // assumes that target is already a hostname
         Err(_) => Ok(target),
     }

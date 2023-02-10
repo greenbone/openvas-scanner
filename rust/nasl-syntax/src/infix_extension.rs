@@ -161,12 +161,11 @@ fn first_element_as_named_parameter(
 mod test {
 
     use super::*;
-    
-    
+
     use crate::token::Category::*;
     use crate::token::Token;
-    use Statement::*;
     use crate::IdentifierType::Undefined;
+    use Statement::*;
 
     // simplified resolve method to verify a calculate with a given statement
     fn resolve(code: &str, s: Statement) -> i64 {
@@ -305,7 +304,7 @@ mod test {
                         position: (1, 1),
                     }),
                     Primitive(Token {
-                        category: String("1".to_owned()),
+                        category: Data(vec![49]),
                         position: (1, (6 + shift) as usize),
                     }),
                 ],

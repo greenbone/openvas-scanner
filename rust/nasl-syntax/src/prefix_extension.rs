@@ -129,10 +129,7 @@ mod test {
     #[test]
     fn single_statement() {
         assert_eq!(result("1;"), Primitive(token(Number(1), 1, 1)));
-        assert_eq!(
-            result("'a';"),
-            Primitive(token(String("a".to_owned()), 1, 1))
-        );
+        assert_eq!(result("'a';"), Primitive(token(Data(vec![97]), 1, 1)));
     }
 
     #[test]

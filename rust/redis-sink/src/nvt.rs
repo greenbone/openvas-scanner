@@ -4,7 +4,7 @@
 
 use crate::dberror::RedisSinkResult;
 use chrono::prelude::*;
-use sink::nvt::{NvtRef, NvtPreference, ACT};
+use sink::nvt::{NvtPreference, NvtRef, ACT};
 
 ///Alias for time stamps
 type TimeT = i64;
@@ -39,7 +39,6 @@ pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
     ret
 }
 
-
 /// Structure to store NVT Severities
 // Severities are stored in redis under the Tag item
 // Currently not used
@@ -59,8 +58,6 @@ pub struct NvtSeverity {
     value: String,
 }
 
-
-
 #[derive(Clone, Debug)]
 /// Structure to hold a NVT
 pub struct Nvt {
@@ -68,19 +65,19 @@ pub struct Nvt {
     name: String,
     filename: String,
     tag: Vec<(String, String)>,
-    cvss_base: String, //Stored in redis under Tag item. Not in use.
-    summary: String,          //Stored in redis under Tag item. Not in use.
-    insight: String,          //Stored in redis under Tag item. Not in use.
-    affected: String,         //Stored in redis under Tag item. Not in use.
-    impact: String,           //Stored in redis under Tag item. Not in use.
-    creation_time: TimeT,     //Stored in redis under Tag item. Not in use.
-    modification_time: TimeT, //Stored in redis under Tag item. Not in use.
-    solution: String,         //Stored in redis under Tag item. Not in use.
-    solution_type: String,    //Stored in redis under Tag item. Not in use.
-    solution_method: String,  //Stored in redis under Tag item. Not in use.
-    detection: String, //Stored in redis under Tag item. Not in use.
-    qod_type: String,  //Stored in redis under Tag item. Not in use.
-    qod: String,       //Stored in redis under Tag item. Not in use.
+    cvss_base: String,            //Stored in redis under Tag item. Not in use.
+    summary: String,              //Stored in redis under Tag item. Not in use.
+    insight: String,              //Stored in redis under Tag item. Not in use.
+    affected: String,             //Stored in redis under Tag item. Not in use.
+    impact: String,               //Stored in redis under Tag item. Not in use.
+    creation_time: TimeT,         //Stored in redis under Tag item. Not in use.
+    modification_time: TimeT,     //Stored in redis under Tag item. Not in use.
+    solution: String,             //Stored in redis under Tag item. Not in use.
+    solution_type: String,        //Stored in redis under Tag item. Not in use.
+    solution_method: String,      //Stored in redis under Tag item. Not in use.
+    detection: String,            //Stored in redis under Tag item. Not in use.
+    qod_type: String,             //Stored in redis under Tag item. Not in use.
+    qod: String,                  //Stored in redis under Tag item. Not in use.
     severities: Vec<NvtSeverity>, //Stored in redis under Tag item. Not in use.
     dependencies: Vec<String>,
     required_keys: Vec<String>,

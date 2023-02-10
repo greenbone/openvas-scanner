@@ -35,7 +35,8 @@ impl<'a> CommaGroup for Lexer<'a> {
                 end = End::Done(category);
                 break;
             }
-            let (stmtend, param) = self.statement(0, &|c| c == &category || c == &Category::Comma)?;
+            let (stmtend, param) =
+                self.statement(0, &|c| c == &category || c == &Category::Comma)?;
             match param {
                 Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
                 param => params.push(param),
@@ -56,7 +57,10 @@ impl<'a> CommaGroup for Lexer<'a> {
 
 impl<'a> Variables for Lexer<'a> {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        if !matches!(token.category(), Category::Identifier(crate::IdentifierType::Undefined(_))) {
+        if !matches!(
+            token.category(),
+            Category::Identifier(crate::IdentifierType::Undefined(_))
+        ) {
             return Err(unexpected_token!(token));
         }
         use End::*;
@@ -69,10 +73,7 @@ impl<'a> Variables for Lexer<'a> {
                     if end == End::Continue {
                         return Err(unclosed_token!(nt));
                     }
-                    return Ok((
-                        Continue,
-                        Statement::Call(token, params),
-                    ));
+                    return Ok((Continue, Statement::Call(token, params)));
                 }
                 Category::LeftBrace => {
                     self.token();
@@ -84,7 +85,7 @@ impl<'a> Variables for Lexer<'a> {
                         return Ok((Continue, Statement::Array(token, Some(Box::new(lookup)))));
                     }
                 }
-                _ => {},
+                _ => {}
             }
         }
         Ok((Continue, Statement::Variable(token)))
@@ -94,15 +95,14 @@ impl<'a> Variables for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        {AssignOrder, Statement},
         parse,
         token::{Category, Token},
+        {AssignOrder, Statement},
     };
 
-    
+    use crate::IdentifierType::*;
     use Category::*;
     use Statement::*;
-    use crate::IdentifierType::*;
 
     fn token(category: Category, start: usize, end: usize) -> Token {
         Token {
@@ -117,7 +117,10 @@ mod test {
 
     #[test]
     fn variables() {
-        assert_eq!(result("a;"), Variable(token(Identifier(Undefined("a".to_owned())), 1, 1)));
+        assert_eq!(
+            result("a;"),
+            Variable(token(Identifier(Undefined("a".to_owned())), 1, 1))
+        );
     }
 
     #[test]
@@ -277,5 +280,4 @@ mod test {
             )
         );
     }
-
 }

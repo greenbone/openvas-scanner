@@ -11,10 +11,9 @@ use std::collections::HashMap;
 
 use sink::Sink;
 
-use crate::{Register, NaslValue, error::FunctionError, NaslFunction};
+use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
-
 
 /// NASL function to create a dictionary out of an even number of arguments
 ///
@@ -26,7 +25,7 @@ pub fn make_array(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValu
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
         if idx % 2 == 1 {
-            values.insert(positional[idx -1].to_string(), val.clone());
+            values.insert(positional[idx - 1].to_string(), val.clone());
         }
     }
     Ok(values.into())
@@ -47,7 +46,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Register, NoOpLoader, Interpreter, NaslValue};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
 
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {

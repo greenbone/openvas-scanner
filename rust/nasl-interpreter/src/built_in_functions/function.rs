@@ -4,7 +4,6 @@
 
 //! Defines various built-in functions for NASL functions.
 
-
 use sink::Sink;
 
 use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register};

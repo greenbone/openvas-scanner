@@ -84,7 +84,7 @@ mod tests {
             interpreter.next(),
             Some(Ok(NaslValue::Dict(HashMap::from([(
                 "hello".to_owned(),
-                NaslValue::String("world".to_owned())
+                NaslValue::Data("world".as_bytes().into())
             )]))))
         );
     }

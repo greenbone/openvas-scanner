@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::{Register, NaslValue, ContextType, lookup_keys::FC_ANON_ARGS};
+use crate::{lookup_keys::FC_ANON_ARGS, ContextType, NaslValue, Register};
 
+pub mod array;
+pub mod cryptography;
 pub mod description;
+pub mod function;
 pub mod hostname;
 pub mod misc;
 pub mod string;
-pub mod array;
-pub mod function;
-pub mod cryptography;
 
 pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
     match register.named(FC_ANON_ARGS).cloned() {
@@ -18,5 +18,3 @@ pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue
         _ => vec![],
     }
 }
-
-

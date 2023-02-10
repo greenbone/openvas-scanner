@@ -10,7 +10,7 @@ pub enum Mode {
     /// Error Mode, enables only Error Messages
     Error,
     /// Disabled, no Messages are logged
-    Nothing
+    Nothing,
 }
 /// A interface for a logger for the NASL interpreter
 pub trait NaslLogger {
@@ -53,30 +53,29 @@ impl NaslLogger for DefaultLogger {
         }
         println!("\x1b[38;5;8mDEBUG: \x1b[0m{}", msg);
     }
-    
+
     fn info(&self, msg: String) {
         if self.mode > Mode::Info {
             return;
         }
         println!("\x1b[38;5;2mINFO : \x1b[0m{}", msg);
     }
-    
+
     fn warning(&self, msg: String) {
         if self.mode > Mode::Warning {
             return;
         }
         println!("\x1b[38;5;3mWARN : \x1b[0m{}", msg);
     }
-    
+
     fn error(&self, msg: String) {
         if self.mode > Mode::Error {
             return;
         }
         println!("\x1b[38;5;1mERROR: \x1b[0m{}", msg);
     }
-    
+
     fn print(&self, msg: String) {
         println!("{}", msg);
     }
-    
 }

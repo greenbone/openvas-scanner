@@ -4,12 +4,21 @@
 
 //! Defines NASL miscellaneous functions
 
-use std::{fs::File, io::{Read, Write}, time::UNIX_EPOCH};
+use std::{
+    fs::File,
+    io::{Read, Write},
+    time::UNIX_EPOCH,
+};
 
 use sink::Sink;
 
-use crate::{error::{FunctionError, FunctionErrorKind}, ContextType, NaslFunction, NaslValue, Register};
-use flate2::{read::ZlibDecoder, read::GzDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
+use crate::{
+    error::{FunctionError, FunctionErrorKind},
+    ContextType, NaslFunction, NaslValue, Register,
+};
+use flate2::{
+    read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
+};
 
 #[inline]
 #[cfg(unix)]
@@ -41,14 +50,17 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     }
 }
 
-
 /// Returns true when the given unnamed argument is null.
-pub fn isnull (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn isnull(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
-    if positional.len() == 0 {
+    if positional.is_empty() {
         return Err(FunctionError::new(
             "isnull",
-            FunctionErrorKind::MissingPositionalArguments{ expected: 1, got: positional.len()}));
+            FunctionErrorKind::MissingPositionalArguments {
+                expected: 1,
+                got: positional.len(),
+            },
+        ));
     }
     match positional[0] {
         NaslValue::Null => Ok(NaslValue::Boolean(true)),
@@ -58,8 +70,8 @@ pub fn isnull (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
 
 /// Returns the seconds counted from 1st January 1970 as an integer.
 pub fn unixtime(_: &str, _: &dyn Sink, _: &Register) -> Result<NaslValue, FunctionError> {
-    match std::time::SystemTime::now().duration_since(UNIX_EPOCH){
-        Ok (t) => Ok(NaslValue::Number(t.as_secs() as i64)),
+    match std::time::SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(t) => Ok(NaslValue::Number(t.as_secs() as i64)),
         Err(_) => Err(FunctionError::new("unixtime", ("0", "numeric").into())),
     }
 }
@@ -82,9 +94,9 @@ pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
             match e.write_all(&data) {
                 Ok(_) => match e.finish() {
                     Ok(compress) => Ok(NaslValue::Data(compress)),
-                    Err(_) => return Ok(NaslValue::Null),
+                    Err(_) => Ok(NaslValue::Null),
                 },
-                Err(_) => return Ok(NaslValue::Null),
+                Err(_) => Ok(NaslValue::Null),
             }
         }
         false => {
@@ -92,9 +104,9 @@ pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
             match e.write_all(&data) {
                 Ok(_) => match e.finish() {
                     Ok(compress) => Ok(NaslValue::Data(compress)),
-                    Err(_) => return Ok(NaslValue::Null),
+                    Err(_) => Ok(NaslValue::Null),
                 },
-                Err(_) => return Ok(NaslValue::Null),
+                Err(_) => Ok(NaslValue::Null),
             }
         }
     }
@@ -111,18 +123,17 @@ pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
     let mut uncompress = ZlibDecoder::new(&data[..]);
     let mut uncompressed = String::new();
     match uncompress.read_to_string(&mut uncompressed) {
-        Ok(_) => return Ok(NaslValue::String(uncompressed)),
+        Ok(_) => Ok(NaslValue::String(uncompressed)),
         Err(_) => {
             let mut uncompress = GzDecoder::new(&data[..]);
             let mut uncompressed = String::new();
-            match uncompress.read_to_string(&mut uncompressed) {
-                Ok(_) => return Ok(NaslValue::String(uncompressed)),
-                Err(_) => (),
-            };
+            if uncompress.read_to_string(&mut uncompressed).is_ok() {
+                Ok(NaslValue::String(uncompressed))
+            } else {
+                Ok(NaslValue::Null)
+            }
         }
-    };
-
-    return Ok(NaslValue::Null);
+    }
 }
 
 /// Returns found function for key or None when not found
@@ -269,22 +280,10 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::String("z".into()
-            )))
-        );
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("z".into()))));
         parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::String("gz".into()
-            )))
-        );
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("gz".into()))));
         parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::String("ngz".into()
-            )))
-        );
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("ngz".into()))));
     }
 }

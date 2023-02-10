@@ -5,7 +5,6 @@
 #[cfg(test)]
 mod test {
 
-    
     use nasl_syntax::parse;
 
     #[test]

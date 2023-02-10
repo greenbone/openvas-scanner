@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 
@@ -172,6 +172,7 @@ impl TryFrom<&Token> for NaslValue {
             TokenCategory::String(category) | TokenCategory::IPv4Address(category) => {
                 Ok(NaslValue::String(category.clone()))
             }
+            TokenCategory::Data(data) => Ok(NaslValue::Data(data.clone())),
             TokenCategory::Identifier(IdentifierType::Undefined(id)) => {
                 Ok(NaslValue::String(id.clone()))
             }
@@ -184,13 +185,14 @@ impl TryFrom<&Token> for NaslValue {
     }
 }
 
+// is used for loops, maybe refactor
 impl From<NaslValue> for Vec<NaslValue> {
     fn from(value: NaslValue) -> Self {
         match value {
             NaslValue::Array(ret) => ret,
             NaslValue::Dict(ret) => ret.values().cloned().collect(),
-            NaslValue::Boolean(_) => vec![value],
-            NaslValue::Number(_) => vec![value],
+            NaslValue::Boolean(_) | NaslValue::Number(_) => vec![value],
+            NaslValue::Data(ret) => ret.into_iter().map(|x| NaslValue::Data(vec![x])).collect(),
             NaslValue::String(ret) => ret
                 .chars()
                 .map(|x| NaslValue::String(x.to_string()))

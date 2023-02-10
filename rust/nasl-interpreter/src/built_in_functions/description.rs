@@ -6,8 +6,8 @@ use std::str::FromStr;
 
 use crate::{
     context::{ContextType, Register},
-    NaslFunction, NaslValue,
-    FunctionError, error::FunctionErrorKind
+    error::FunctionErrorKind,
+    FunctionError, NaslFunction, NaslValue,
 };
 
 use sink::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey};
