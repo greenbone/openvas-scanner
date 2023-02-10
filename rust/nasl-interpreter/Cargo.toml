@@ -12,3 +12,12 @@ regex = "1"
 # used for get-hostnames; an alternative implementation without dependency can be found in:
 # ee3f7e1ed6da946e5eace08d074b320f80087a3c
 dns-lookup = "1.0.8"
+hmac = "0.12.1"
+hex = "0.4.3"
+digest = "0.10.6"
+md2 = "0.10.2"
+md-5 = "0.10.5"
+ripemd = "0.1.3"
+sha1 = "0.10.5"
+sha2 = "0.10.6"
+flate2 = "1.0.25"

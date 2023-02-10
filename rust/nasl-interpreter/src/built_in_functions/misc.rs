@@ -4,18 +4,19 @@
 
 //! Defines NASL miscellaneous functions
 
-use std::{fs::File, io::Read};
+use std::{fs::File, io::{Read, Write}, time::UNIX_EPOCH};
 
 use sink::Sink;
 
-use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register};
+use crate::{error::{FunctionError, FunctionErrorKind}, ContextType, NaslFunction, NaslValue, Register};
+use flate2::{read::ZlibDecoder, read::GzDecoder, write::GzEncoder, write::ZlibEncoder, Compression};
 
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
 fn random_impl() -> Result<i64, FunctionError> {
-    let mut rng = File::open("/dev/urandom")
-        .map_err(|e| FunctionError::new("randr", e.kind().into()))?;
+    let mut rng =
+        File::open("/dev/urandom").map_err(|e| FunctionError::new("randr", e.kind().into()))?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
         .map(|_| i64::from_be_bytes(buffer))
@@ -40,12 +41,100 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     }
 }
 
+
+/// Returns true when the given unnamed argument is null.
+pub fn isnull (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = register.positional();
+    if positional.len() == 0 {
+        return Err(FunctionError::new(
+            "isnull",
+            FunctionErrorKind::MissingPositionalArguments{ expected: 1, got: positional.len()}));
+    }
+    match positional[0] {
+        NaslValue::Null => Ok(NaslValue::Boolean(true)),
+        _ => Ok(NaslValue::Boolean(false)),
+    }
+}
+
+/// Returns the seconds counted from 1st January 1970 as an integer.
+pub fn unixtime(_: &str, _: &dyn Sink, _: &Register) -> Result<NaslValue, FunctionError> {
+    match std::time::SystemTime::now().duration_since(UNIX_EPOCH){
+        Ok (t) => Ok(NaslValue::Number(t.as_secs() as i64)),
+        Err(_) => Err(FunctionError::new("unixtime", ("0", "numeric").into())),
+    }
+}
+
+/// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
+pub fn gzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let data = match register.named("data") {
+        Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
+        Some(ContextType::Value(x)) => Vec::<u8>::from(x),
+        _ => return Err(FunctionError::new("gzip", ("data").into())),
+    };
+    let headformat = match register.named("headformat") {
+        Some(ContextType::Value(NaslValue::String(x))) => x,
+        _ => "noheaderformat",
+    };
+
+    match headformat.to_string().eq_ignore_ascii_case("gzip") {
+        true => {
+            let mut e = GzEncoder::new(Vec::new(), Compression::default());
+            match e.write_all(&data) {
+                Ok(_) => match e.finish() {
+                    Ok(compress) => Ok(NaslValue::Data(compress)),
+                    Err(_) => return Ok(NaslValue::Null),
+                },
+                Err(_) => return Ok(NaslValue::Null),
+            }
+        }
+        false => {
+            let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+            match e.write_all(&data) {
+                Ok(_) => match e.finish() {
+                    Ok(compress) => Ok(NaslValue::Data(compress)),
+                    Err(_) => return Ok(NaslValue::Null),
+                },
+                Err(_) => return Ok(NaslValue::Null),
+            }
+        }
+    }
+}
+
+/// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
+pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let data = match register.named("data") {
+        Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
+        Some(ContextType::Value(x)) => Vec::<u8>::from(x),
+        _ => return Err(FunctionError::new("gzip", ("data").into())),
+    };
+
+    let mut uncompress = ZlibDecoder::new(&data[..]);
+    let mut uncompressed = String::new();
+    match uncompress.read_to_string(&mut uncompressed) {
+        Ok(_) => return Ok(NaslValue::String(uncompressed)),
+        Err(_) => {
+            let mut uncompress = GzDecoder::new(&data[..]);
+            let mut uncompressed = String::new();
+            match uncompress.read_to_string(&mut uncompressed) {
+                Ok(_) => return Ok(NaslValue::String(uncompressed)),
+                Err(_) => (),
+            };
+        }
+    };
+
+    return Ok(NaslValue::Null);
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "rand" => Some(rand),
         "get_byte_order" => Some(get_byte_order),
         "dec2str" => Some(dec2str),
+        "isnull" => Some(isnull),
+        "unixtime" => Some(unixtime),
+        "gzip" => Some(gzip),
+        "gunzip" => Some(gunzip),
         _ => None,
     }
 }
@@ -102,5 +191,100 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("23".into())));
+    }
+
+    #[test]
+    fn isnull() {
+        let code = r###"
+        isnull(42);
+        isnull(Null);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(true))));
+    }
+
+    #[test]
+    fn unixtime() {
+        let code = r###"
+        unixtime();
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
+    }
+
+    #[test]
+    fn gzip() {
+        let code = r###"
+        gzip(data: 'z', headformat: "gzip");
+        gzip(data: 'z');
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(
+                [31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0]
+                    .into()
+            )))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(
+                [120, 156, 171, 2, 0, 0, 123, 0, 123].into()
+            )))
+        );
+    }
+
+    #[test]
+    fn gunzip() {
+        let code = r###"
+        z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);
+        gunzip(data: z);
+        # With Header Format and data is data
+        gz = gzip(data: 'gz', headformat: "gzip");
+        gunzip(data: gz);
+        # Without Header format and data is a string
+        ngz = gzip(data: "ngz");
+        gunzip(data: ngz);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("z".into()
+            )))
+        );
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("gz".into()
+            )))
+        );
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("ngz".into()
+            )))
+        );
     }
 }

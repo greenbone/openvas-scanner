@@ -13,6 +13,7 @@ use built_in_functions::function;
 use built_in_functions::hostname;
 use built_in_functions::misc;
 use built_in_functions::string;
+use built_in_functions::cryptography;
 
 use error::FunctionError;
 
@@ -46,5 +47,6 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
         .or_else(|| string::lookup(function_name))
         .or_else(|| array::lookup(function_name))
         .or_else(|| function::lookup(function_name))
+        .or_else(|| cryptography::lookup(function_name))
 }
 
