@@ -37,11 +37,26 @@ pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue
     Ok(NaslValue::Array(arr))
 }
 
+/// NASL function to return the length of an array|dict.
+pub fn max_index(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = register.positional();
+    if positional.is_empty() {
+        return Ok(NaslValue::Null)
+    };
+    
+    match &positional[0] {
+        NaslValue::Dict(x) => Ok(NaslValue::Number(x.len() as i64)),
+        NaslValue::Array(x) => Ok(NaslValue::Number(x.len() as i64)),
+        _ => Ok(NaslValue::Null),
+    }
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "make_array" => Some(make_array),
         "make_list" => Some(make_list),
+        "max_index" => Some(max_index),
         _ => None,
     }
 }
@@ -111,4 +126,27 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Array([].into()))));
 
     }
+
+    #[test]
+    fn max_index() {
+        let code = r###"
+        l = [1,2,3,4,5]
+        max_index(l);
+        max_index(make_array(1,2,3,4,5,6,7));
+        max_index(make_list(1, 0));
+        max_index(make_list());
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(5))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
+    }
+
 }
