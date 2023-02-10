@@ -1,0 +1,138 @@
+name: rs
+
+on:
+  push:
+    branches: [ main, stable, oldstable ]
+  pull_request:
+
+env: 
+  CARGO_TERM_COLOR: always
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo test
+  clippy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable && rustup component add clippy
+      - run: cargo clippy
+  audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable
+      - run: cargo install cargo-audit
+      - run: cargo audit
+  typos:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable
+      - run: cargo install typos-cli
+      - run: typos
+  formatting:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    strategy:
+      matrix:
+        crates:
+          # we verify each dir separately to make it easier to verify formatting issues or even ignore
+          # crates we deem not important for checking (e.g. feed-verifier)
+          - nasl-syntax
+          - sink
+          - nasl-interpreter
+          - redis-sink
+          - nasl-cli
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustfmt --check ${{ matrix.crates }}/**/*.rs
+  build-releases:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v3
+      - name: cache build
+        id: cache-release
+        uses: actions/cache@v3
+        with:
+          path: rust/target
+          key: ${{ github.sha }}-target
+      - run: rustup update beta && rustup default beta
+      - run: cargo build --release
+  feed:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v3
+      - name: cache feed
+        id: cache-feed
+        uses: actions/cache@v3
+        with:
+          path: rust/feed
+          key: ${{ runner.os }}-feed
+      - name: download feed
+        if: steps.cache-feed.outputs.cache-hit != 'true'
+        uses: greenbone/actions/download-artifact@v2
+        with:
+          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          repository: "greenbone/vulnerability-tests"
+          workflow: feed-deployment.yml
+          name: vulnerability-tests-community-main
+          path: rust
+      - name: extract feed
+        if: steps.cache-feed.outputs.cache-hit != 'true'
+        run: tar -xf vulnerability-tests-community-main.tar.xz
+      - name: simplify feed structure
+        if: steps.cache-feed.outputs.cache-hit != 'true'
+        run: rm -rf feed && mkdir feed && mv ./community/vulnerability-feed/$(ls ./community/vulnerability-feed/ | sort -r | head -n 1)/vt-data/nasl/* feed/
+  verify-syntax:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    needs: [build-releases, feed]
+    steps:
+      - uses: actions/checkout@v3
+      - name: cache feed
+        id: cache-feed
+        uses: actions/cache@v3
+        with:
+          path: rust/feed
+          key: ${{ runner.os }}-feed
+      - name: cache build
+        id: cache-release
+        uses: actions/cache@v3
+        with:
+          path: rust/target
+          key: ${{ github.sha }}-target
+      - name: verify syntax parsing
+        run: ./target/release/nasl-cli syntax -p feed/ --no-progress

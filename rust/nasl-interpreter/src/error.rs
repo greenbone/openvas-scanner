@@ -137,11 +137,11 @@ pub enum InterpretErrorKind {
     /// Regex parsing went wrong.
     InvalidRegex(String),
     /// An SyntaxError while including another script
-    IncludeSyntaxError { 
+    IncludeSyntaxError {
         /// The name of the file trying to include
-        filename: String, 
+        filename: String,
         /// The syntactical error that occurred
-        err: SyntaxError 
+        err: SyntaxError,
     },
     /// SyntaxError
     SyntaxError(SyntaxError),
