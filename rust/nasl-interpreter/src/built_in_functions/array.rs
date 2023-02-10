@@ -31,10 +31,17 @@ pub fn make_array(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValu
     Ok(values.into())
 }
 
+/// NASL function to create a list out of a number of unnamed arguments
+pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let arr = resolve_positional_arguments(register);
+    Ok(NaslValue::Array(arr))
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "make_array" => Some(make_array),
+        "make_list" => Some(make_list),
         _ => None,
     }
 }
@@ -82,5 +89,26 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
         assert_eq!(parser.next(), Some(Ok(make_dict!())));
         assert_eq!(parser.next(), Some(Ok(make_dict!())));
+    }
+
+        #[test]
+    fn make_list() {
+        let code = r###"
+        a = [2,4]
+        make_list(1, 0);
+        make_list();
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(),
+                   Some(Ok(NaslValue::Array(vec![NaslValue::Number(2),NaslValue::Number(4)]))));
+        assert_eq!(parser.next(),
+                   Some(Ok(NaslValue::Array(vec![NaslValue::Number(1),NaslValue::Number(0)]))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Array([].into()))));
+
     }
 }
