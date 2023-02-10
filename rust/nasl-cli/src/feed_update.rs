@@ -52,8 +52,10 @@ fn run_single(
 
     // the key is the filename without the root dir and is used to set the filename
     // when script_oid is called in the redis sink implementation
-    let key = entry.to_str().map(|x|&x[root_dir_len..]).unwrap_or_default();
-    
+    let key = entry
+        .to_str()
+        .map(|x| &x[root_dir_len..])
+        .unwrap_or_default();
 
     let mut interpreter = Interpreter::new(key, storage, loader, &mut register);
     if verbose {
@@ -121,15 +123,18 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
     let root_dir = path.clone();
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
-    let root_dir_len = path.to_str().map(|x|{
-        if x.ends_with('/') {
-            x.len() 
-        } else {
-            // we need to skip `/` when the given path
-            // does not end with it
-            x.len() + 1
-        }
-    }).unwrap_or_default();
+    let root_dir_len = path
+        .to_str()
+        .map(|x| {
+            if x.ends_with('/') {
+                x.len()
+            } else {
+                // we need to skip `/` when the given path
+                // does not end with it
+                x.len() + 1
+            }
+        })
+        .unwrap_or_default();
     let loader: FSPluginLoader =
         root_dir
             .as_path()

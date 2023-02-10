@@ -1,6 +1,5 @@
 /// Modes that are used by the default logger
-#[derive(PartialEq, PartialOrd)]
-#[derive(Default)]
+#[derive(PartialEq, PartialOrd, Default)]
 pub enum Mode {
     /// Debug Mode, enables all logging
     Debug = 0,

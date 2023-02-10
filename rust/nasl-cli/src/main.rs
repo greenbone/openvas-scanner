@@ -30,6 +30,9 @@ enum Command {
         /// Prints all parsed statements instead of just errors
         #[arg(short, long, default_value_t = false)]
         verbose: bool,
+        /// Disables printing of progress
+        #[arg(long, default_value_t = false)]
+        no_progress: bool,
     },
     /// Controls the feed
     Feed {
@@ -78,12 +81,13 @@ impl RunAction<()> for FeedAction {
                         filename: String::new(),
                         kind,
                     })?;
-                let redis = RedisCache::init(&update_config.redis_url, redis_sink::FEEDUPDATE_SELECTOR)
-                    .map_err(SinkError::from)
-                    .map_err(|e| CliError {
-                        kind: e.into(),
-                        filename: format!("{path:?}"),
-                    })?;
+                let redis =
+                    RedisCache::init(&update_config.redis_url, redis_sink::FEEDUPDATE_SELECTOR)
+                        .map_err(SinkError::from)
+                        .map_err(|e| CliError {
+                            kind: e.into(),
+                            filename: format!("{path:?}"),
+                        })?;
                 redis
                     .reset()
                     .map_err(SinkError::from)
@@ -101,7 +105,11 @@ impl RunAction<()> for Command {
     type Error = CliError;
     fn run(&self, _: bool) -> Result<(), Self::Error> {
         match self {
-            Command::Syntax { path, verbose } => syntax_check::run(path, *verbose),
+            Command::Syntax {
+                path,
+                verbose,
+                no_progress,
+            } => syntax_check::run(path, *verbose, *no_progress),
             Command::Feed { verbose, action } => action.run(*verbose),
         }
     }
