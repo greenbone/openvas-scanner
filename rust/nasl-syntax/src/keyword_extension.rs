@@ -211,7 +211,7 @@ impl<'a> Lexer<'a> {
     fn parse_for(&mut self) -> Result<(End, Statement), SyntaxError> {
         self.jump_to_left_parenthesis()?;
         let (end, assignment) = self.statement(0, &|c| c == &Category::Semicolon)?;
-        if !matches!(assignment, Statement::Assign(_, _, _, _)) {
+        if !matches!(assignment, Statement::Assign(_, _, _, _) | Statement::NoOp(_)) {
             return Err(unexpected_statement!(assignment));
         }
         if end == End::Continue {
