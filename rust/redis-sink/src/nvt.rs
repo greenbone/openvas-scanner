@@ -3,40 +3,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use crate::dberror::RedisSinkResult;
-use chrono::prelude::*;
 use sink::nvt::{NvtPreference, NvtRef, ACT};
+use sink::time::AsUnixTimeStamp;
 
 ///Alias for time stamps
 type TimeT = i64;
 
-const SUPPORTED_FORMATS: &[&str] = &[
-    "%F %T %z",
-    "$Date: %F %T %z",
-    "%a %b %d %T %Y %z",
-    "$Date: %a, %d %b %Y %T %z",
-    "$Date: %a %b %d %T %Y %z",
-];
-
 /// Convert an Nvt Timestamp string to a time since epoch.
 /// If it fails the conversion, return 0
 pub fn parse_nvt_timestamp(str_time: &str) -> TimeT {
-    // Remove the ending $
-    let timestamp: Vec<&str> = str_time.split(" $").collect();
-    // Remove the date in parenthesis
-    let timestamp: Vec<&str> = timestamp[0].split(" (").collect();
-
-    let mut ret = 0;
-    for f in SUPPORTED_FORMATS {
-        let res = DateTime::parse_from_str(timestamp[0], f);
-        match res {
-            Ok(ok) => {
-                ret = ok.timestamp();
-                break;
-            }
-            Err(_) => continue,
-        }
-    }
-    ret
+    str_time.as_timestamp().unwrap_or_default()
 }
 
 #[derive(Clone, Debug)]

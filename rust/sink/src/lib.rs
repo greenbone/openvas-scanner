@@ -6,6 +6,7 @@
 //! NASL Sink defines technology independent sink traits, structs ..{w;
 
 pub mod nvt;
+pub mod time;
 use std::{
     fmt::Display,
     sync::{Arc, Mutex},
