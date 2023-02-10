@@ -192,7 +192,7 @@ mod tests {
     fn for_loop_without_update() {
         let code = r###"
         a = 0;
-        for ( a = 1; a < 5; ) {
+        for (; a < 5; ) {
             a += 1;
         }
         a;
