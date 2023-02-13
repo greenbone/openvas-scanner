@@ -9,4 +9,5 @@ members = [
   "json-storage",
   "feed",
   "feed-verifier",
+  "scanner-api",
 ]
