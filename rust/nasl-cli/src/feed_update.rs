@@ -45,13 +45,14 @@ fn run_single(
     entry: &Path,
     storage: &dyn Sink,
     loader: &dyn Loader,
+    root_dir_len: usize,
 ) -> Result<(), CliErrorKind> {
     let code = FSPluginLoader::load_non_utf8_path(entry)?;
     let mut register = Register::root_initial(initial);
 
     // the key is the filename without the root dir and is used to set the filename
     // when script_oid is called in the redis sink implementation
-    let key = entry.file_name().and_then(|x|x.to_str()).unwrap_or_default();
+    let key = entry.to_str().map(|x|&x[root_dir_len..]).unwrap_or_default();
     
 
     let mut interpreter = Interpreter::new(key, storage, loader, &mut register);
@@ -118,6 +119,17 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
         ("OPENVAS_VERSION".to_owned(), "1".into()),
     ];
     let root_dir = path.clone();
+    // needed to strip the root path so that we can build a relative path
+    // e.g. 2006/something.nasl
+    let root_dir_len = path.to_str().map(|x|{
+        if x.ends_with('/') {
+            x.len() 
+        } else {
+            // we need to skip `/` when the given path
+            // does not end with it
+            x.len() + 1
+        }
+    }).unwrap_or_default();
     let loader: FSPluginLoader =
         root_dir
             .as_path()
@@ -145,6 +157,7 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
                 entry.path(),
                 storage,
                 &loader,
+                root_dir_len,
             )
             .map_err(|kind| CliError {
                 filename: entry.path().to_str().unwrap_or_default().to_owned(),
