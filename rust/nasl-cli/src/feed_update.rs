@@ -41,7 +41,6 @@ fn retry_interpret(
 
 fn run_single(
     verbose: bool,
-    root_dir_len: usize,
     initial: &[(String, ContextType)],
     entry: &Path,
     storage: &dyn Sink,
@@ -52,8 +51,8 @@ fn run_single(
 
     // the key is the filename without the root dir and is used to set the filename
     // when script_oid is called in the redis sink implementation
-    let key = entry.to_str().unwrap_or_default();
-    let key = &key[root_dir_len..];
+    let key = entry.file_name().and_then(|x|x.to_str()).unwrap_or_default();
+    
 
     let mut interpreter = Interpreter::new(key, storage, loader, &mut register);
     if verbose {
@@ -127,18 +126,6 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
                 kind: e.into(),
                 filename: root_dir.to_str().unwrap_or_default().to_owned(),
             })?;
-    // we use the length of the root_dir to remove it from the used key
-    let root_dir_len = root_dir
-        .to_str()
-        .map(|x| {
-            // if the path does not end with '/' than add +1 to remove it from the relative path
-            if !x.ends_with('/') {
-                x.len() + 1
-            } else {
-                x.len()
-            }
-        })
-        .unwrap_or_default();
 
     // load feed version
     add_feed_version_to_storage(&loader, storage)?;
@@ -154,7 +141,6 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
         if matches!(ext.as_str(), "nasl") {
             run_single(
                 verbose,
-                root_dir_len,
                 &initial,
                 entry.path(),
                 storage,
