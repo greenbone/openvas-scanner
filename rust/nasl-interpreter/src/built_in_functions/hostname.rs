@@ -11,8 +11,8 @@ use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, 
 ///
 /// It does lookup TARGET and when not found falls back to 127.0.0.1 to resolve.
 /// If the TARGET is not a IP address than we assume that it already is a fqdn or a hostname and will return that instead.
-fn resolve_hostname(function: &str, register: &Register) -> Result<String, FunctionError> {
-    use dns_lookup::lookup_addr;
+fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
+    use std::net::ToSocketAddrs;
 
     let default_ip = "127.0.0.1";
     // currently we use shadow variables as _FC_ANON_ARGS; the original openvas uses redis for that purpose.
@@ -24,8 +24,8 @@ fn resolve_hostname(function: &str, register: &Register) -> Result<String, Funct
         },
     );
 
-    match target.parse() {
-        Ok(addr) => lookup_addr(&addr).map_err(|x| FunctionError::new(function, x.kind().into())),
+    match target.to_socket_addrs() {
+        Ok(mut addr) => Ok(addr.next().map_or_else(String::new, |x|x.to_string())),
         // assumes that target is already a hostname
         Err(_) => Ok(target),
     }
@@ -40,7 +40,7 @@ pub fn get_host_names(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-    resolve_hostname("get_host_names", register)
+    resolve_hostname(register)
         .map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -53,7 +53,7 @@ pub fn get_host_name(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-    resolve_hostname("get_host_name", register).map(NaslValue::String)
+    resolve_hostname(register).map(NaslValue::String)
 }
 
 /// Returns found function for key or None when not found
