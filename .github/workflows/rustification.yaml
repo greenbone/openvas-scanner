@@ -70,69 +70,106 @@ jobs:
           - nasl-cli
     steps:
       - uses: actions/checkout@v3
-      - run: rustfmt --check ${{ matrix.crates }}/**/*.rs
-  build-releases:
-    runs-on: ubuntu-latest
+  releases:
+    runs-on:
+   # uses ubuntu 20.4 for lib 2.31 so that we can easily identify issues for
+   # this libc version because we are using debian:stable within our docker image
+     - ubuntu-20.04
     defaults:
       run:
         working-directory: rust
     steps:
+      # install rustup
       - uses: actions/checkout@v3
+        # use cache to spped up compile time
       - name: cache build
         id: cache-release
         uses: actions/cache@v3
         with:
           path: rust/target
-          key: ${{ github.sha }}-target
-      - run: rustup update beta && rustup default beta
-      - run: cargo build --release
-  feed:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      - uses: actions/checkout@v3
-      - name: cache feed
-        id: cache-feed
-        uses: actions/cache@v3
+          key: cargo-target
+      - run: cargo build --lib --release
+      - run: cargo build --bins --release
+      - name: archive nasl-cli
+        uses: actions/upload-artifact@v3
         with:
-          path: rust/feed
-          key: ${{ runner.os }}-feed
+          name: nasl-cli
+          path: rust/target/release/nasl-cli
+          retention-days: 1
+      - name: archive feed-verifier
+        uses: actions/upload-artifact@v3
+        with:
+          name: feed-verifier
+          path: rust/target/release/feed-verifier
+          retention-days: 1
+  verify-syntax:
+    runs-on: ubuntu-latest
+    needs: [releases]
+    steps:
       - name: download feed
-        if: steps.cache-feed.outputs.cache-hit != 'true'
         uses: greenbone/actions/download-artifact@v2
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           repository: "greenbone/vulnerability-tests"
           workflow: feed-deployment.yml
           name: vulnerability-tests-community-main
-          path: rust
-      - name: extract feed
-        if: steps.cache-feed.outputs.cache-hit != 'true'
-        run: tar -xf vulnerability-tests-community-main.tar.xz
       - name: simplify feed structure
-        if: steps.cache-feed.outputs.cache-hit != 'true'
-        run: rm -rf feed && mkdir feed && mv ./community/vulnerability-feed/$(ls ./community/vulnerability-feed/ | sort -r | head -n 1)/vt-data/nasl/* feed/
-  verify-syntax:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    needs: [build-releases, feed]
-    steps:
-      - uses: actions/checkout@v3
-      - name: cache feed
-        id: cache-feed
-        uses: actions/cache@v3
+        run: |
+          tar -xf vulnerability-tests-community-main.tar.xz
+          rm -rf feed 
+          mkdir feed 
+          mv ./community/vulnerability-feed/$(ls ./community/vulnerability-feed/ | sort -r | head -n 1)/vt-data/nasl/* feed/
+      - uses: actions/download-artifact@v3
         with:
-          path: rust/feed
-          key: ${{ runner.os }}-feed
-      - name: cache build
-        id: cache-release
-        uses: actions/cache@v3
-        with:
-          path: rust/target
-          key: ${{ github.sha }}-target
+          name: nasl-cli
+      - run: ls -las
       - name: verify syntax parsing
-        run: ./target/release/nasl-cli syntax feed/ --quiet
+        run: chmod a+x ./nasl-cli && ./nasl-cli syntax --quiet feed/
+  verify-feed-update:
+    runs-on: ubuntu-latest
+    needs: [releases]
+    container:
+      # maybe better to use builder, build openvas to have
+      # the version of this checkout rather than a dataed official one?
+      image: greenbone/openvas-scanner:unstable
+      options: --privileged
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: download feed
+        uses: greenbone/actions/download-artifact@v2
+        with:
+          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          repository: "greenbone/vulnerability-tests"
+          workflow: feed-deployment.yml
+          name: vulnerability-tests-community-main
+      - name: simplify feed structure
+        run: |
+          # we need xz to extract, probably better to put in image?
+          apt update
+          apt install -y xz-utils
+          tar -xvf vulnerability-tests-community-main.tar.xz
+          rm -rf feed 
+          mkdir feed 
+          mv ./community/vulnerability-feed/$(ls ./community/vulnerability-feed/ | sort -r | head -n 1)/vt-data/nasl/* feed/
+      - uses: actions/download-artifact@v3
+        with:
+          name: nasl-cli
+      - uses: actions/download-artifact@v3
+        with:
+          name: feed-verifier
+      - name: prepare setup
+        run: |
+          install -m 755 feed-verifier /usr/local/bin/
+          install -m 755 nasl-cli /usr/local/bin/
+          echo "db_address = tcp://redis:6379" >> /etc/openvas/openvas.conf
+          mv ./feed/* "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
+      - run: openvas -s
+      - run: feed-verifier || (cat /var/log/gvm/openvas.log && false)
+      

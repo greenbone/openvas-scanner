@@ -140,6 +140,8 @@ fn main() {
             .expect("openvas -s must contain db_address");
         if dba.starts_with("redis://") || dba.starts_with("unix://") {
             dba
+        } else if dba.starts_with("tcp://") {
+            dba.replace("tcp://", "redis://")
         } else {
             format!("unix://{dba}")
         }
