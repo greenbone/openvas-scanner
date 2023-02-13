@@ -54,7 +54,7 @@ pub fn run(path: &PathBuf, verbose: bool) -> Result<(), CliError> {
     let mut parsed: usize = 0;
     let mut skipped: usize = 0;
     let mut errors: usize = 0;
-    println!("verifiying NASL syntax in {path:?}.");
+    println!("verifying NASL syntax in {path:?}.");
     if path.as_path().is_dir() {
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
             print!("\rparsing {parsed}th file");

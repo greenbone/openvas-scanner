@@ -1,6 +1,6 @@
 # nasl-cli
 
-Is a program to use the rust nasl impelmentation.
+Is a program to use the rust nasl implementation.
 
 
 Usage: nasl-cli <COMMAND>
