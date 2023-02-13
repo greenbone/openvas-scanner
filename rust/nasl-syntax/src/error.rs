@@ -239,13 +239,13 @@ mod tests {
 
     #[test]
     fn missing_semicolon_call() {
-        let code = "calle(me)";
+        let code = "called(me)";
         test_for_missing_semicolon(code);
     }
 
     #[test]
     fn missing_right_paren() {
-        test_for_unclosed_token("calle(me;", TokenCategory::LeftParen);
+        test_for_unclosed_token("called(me;", TokenCategory::LeftParen);
         test_for_unclosed_token("foreach a(x { a = 2;", TokenCategory::LeftParen);
         test_for_unclosed_token("for (i = 0; i < 10; i++ ;", TokenCategory::LeftParen);
         test_for_unclosed_token("while (TRUE ;", TokenCategory::LeftParen);

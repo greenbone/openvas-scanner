@@ -916,8 +916,8 @@ mod tests {
         use Category::*;
         use IdentifierType::*;
         verify_tokens!(
-            "hel_lo",
-            vec![(Identifier(Undefined("hel_lo".to_owned())), 1, 1)]
+            "help_lo",
+            vec![(Identifier(Undefined("help_lo".to_owned())), 1, 1)]
         );
         verify_tokens!(
             "_hello",
