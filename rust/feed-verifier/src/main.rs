@@ -161,7 +161,7 @@ fn main() {
     for (key, left_vals) in left {
         // we don't store filename: since it is an unused function within ospd-openvas
         // it was used to get the modification time of a nvt plugin and put into the
-        // artificial hash calulation.
+        // artificial hash calculation.
         // However that proved to be error prone and was dismissed without ever removing the functionality
         // within openvas.
         if key.starts_with("filename:") {
