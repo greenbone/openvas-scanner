@@ -125,6 +125,7 @@ impl NameSpaceSelector {
                 Ok(*dbi)
             }
             NameSpaceSelector::Free => {
+                Self::select_namespace(kb, 0)?;
                 for dbi in 1..max_db {
                     match kb.hset_nx(DB_INDEX, dbi, 1) {
                         Ok(1) => {
