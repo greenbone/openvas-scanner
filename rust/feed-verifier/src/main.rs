@@ -1,12 +1,13 @@
+use configparser::ini::Ini;
 use redis::{Commands, RedisResult};
 
-use std::env;
 use std::process::Command;
 use std::time::{Duration, Instant};
 use std::{
     collections::HashMap,
     io::{Error, ErrorKind},
 };
+use std::{env, process};
 fn get_all(con: &mut redis::Connection) -> RedisResult<HashMap<String, Vec<String>>> {
     let keys: Vec<String> = con.keys("*")?;
     Ok(keys
@@ -123,7 +124,28 @@ fn print_error(t: &str) -> i32 {
 }
 
 fn main() {
-    let client = redis::Client::open("unix:///run/redis/redis.sock").unwrap();
+    let oconfig = process::Command::new("openvas")
+        .arg("-s")
+        .output()
+        .expect("openvas -s should function");
+
+    let mut config = Ini::new();
+    let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
+    config
+        .read(oconfig)
+        .expect("openvas -s output should be ini format.");
+    let redis_url = {
+        let dba = config
+            .get("default", "db_address")
+            .expect("openvas -s must contain db_address");
+        if dba.starts_with("redis://") || dba.starts_with("unix://") {
+            dba
+        } else {
+            format!("unix://{dba}")
+        }
+    };
+
+    let client = redis::Client::open(redis_url).unwrap();
     let mut kb = client.get_connection().unwrap();
     let (od, openvas) = run_get(&mut kb, "openvas -u").expect("results");
 
@@ -148,8 +170,8 @@ fn main() {
     }
 
     let (left, right) = {
-        println!("nasl-cli: {}", nasl_cli.len());
-        println!("openvas: {}", openvas.len());
+        println!("nasl-cli: {} entries", nasl_cli.len());
+        println!("openvas: {} entries", openvas.len());
         if nasl_cli.len() > openvas.len() {
             println!("nasl-cli is left");
             (nasl_cli, openvas)

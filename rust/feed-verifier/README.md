@@ -9,7 +9,7 @@ openvas -u
 and 
 
 ```
-nasl-cli feed
+nasl-cli feed update
 ```
 
 do have the same output within redis.
