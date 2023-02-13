@@ -431,6 +431,7 @@ dependencies = [
 name = "feed-verifier"
 version = "0.1.0"
 dependencies = [
+ "configparser",
  "redis",
 ]
 
