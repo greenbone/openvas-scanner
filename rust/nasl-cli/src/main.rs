@@ -1,15 +1,17 @@
 // Copyright (C) 2023 Greenbone Networks GmbH
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
-
-use std::{
-    fs, io,
-    path::{Path, PathBuf},
-};
+mod error;
+mod feed_update;
+mod syntax_check;
 
 use clap::{Parser, Subcommand};
-use nasl_syntax::{Statement, SyntaxError};
-use walkdir::WalkDir;
+use configparser::ini::Ini;
+pub use error::*;
+
+use redis_sink::connector::RedisCache;
+use sink::SinkError;
+use std::{path::PathBuf, process};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -20,98 +22,164 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Subcommand to print the raw statements of a file.
-    ///
-    /// It is mostly for debug purposes and verification if the nasl-syntax-parser is working as expected.
+    /// Checks nasl-file or a directory of for syntax errors.
     Syntax {
         /// The path for the file or dir to parse
         #[arg(short, long)]
         path: PathBuf,
-        /// prints the parsed statements
+        /// Prints all parsed statements instead of just errors
         #[arg(short, long, default_value_t = false)]
         verbose: bool,
     },
+    /// Controls the feed
+    Feed {
+        /// Prints the interpret filename and elapsed time for each
+        #[arg(short, long, default_value_t = false)]
+        verbose: bool,
+        /// The action to perform on a feed
+        #[command(subcommand)]
+        action: FeedAction,
+    },
 }
 
-fn load_file<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
-    // unfortunately NASL is not UTF-8 so we need to map it manually
-    fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect())
+#[derive(clap::Subcommand, Debug, Clone)]
+enum FeedAction {
+    /// Updates feed data into redis.
+    Update {
+        /// Redis address inform of tcp (redis://) or unix socket (unix://).
+        ///
+        /// It must be the complete redis address in either the form of a unix socket or tcp.
+        /// For tcp provide the address in the form of: `redis://host:port`.
+        /// For unix socket provide the path to the socket in the form of: `unix://path/to/redis.sock`.
+        /// When not provided the DefaultSink will be used instead.
+        /// When it is skipped it will be obtained via `openvas -s`
+        #[arg(short, long)]
+        redis: Option<String>,
+        /// The path to the NASL plugins.
+        ///
+        /// When it is skipped it will be obtained via `openvas -s`
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
 }
 
-fn read_errors<P: AsRef<Path>>(path: P) -> Result<Vec<SyntaxError>, SyntaxError> {
-    let code = load_file(path)?;
-    Ok(nasl_syntax::parse(&code)
-        .filter_map(|r| match r {
-            Ok(_) => None,
-            Err(err) => Some(err),
-        })
-        .collect())
+trait RunAction<T> {
+    type Error;
+    fn run(&self, verbose: bool) -> Result<T, Self::Error>;
 }
 
-fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, SyntaxError> {
-    let code = load_file(path)?;
-    Ok(nasl_syntax::parse(&code).collect())
-}
-
-fn print_results(path: &Path, verbose: bool) -> usize {
-    let mut errors = 0;
-
-    if verbose {
-        println!("# {:?}", path);
-        let results = read(path).unwrap();
-        for r in results {
-            match r {
-                Ok(stmt) => println!("{:?}", stmt),
-                Err(err) => eprintln!("{}", err),
+impl RunAction<()> for FeedAction {
+    type Error = CliError;
+    fn run(&self, verbose: bool) -> Result<(), Self::Error> {
+        match self {
+            FeedAction::Update { redis: _, path } => {
+                let update_config: FeedUpdateConfiguration =
+                    self.as_config().map_err(|kind| CliError {
+                        filename: String::new(),
+                        kind,
+                    })?;
+                let redis = RedisCache::init(&update_config.redis_url, redis_sink::FEEDUPDATE_SELECTOR)
+                    .map_err(SinkError::from)
+                    .map_err(|e| CliError {
+                        kind: e.into(),
+                        filename: format!("{path:?}"),
+                    })?;
+                redis
+                    .reset()
+                    .map_err(SinkError::from)
+                    .map_err(|e| CliError {
+                        kind: e.into(),
+                        filename: format!("{path:?}"),
+                    })?;
+                feed_update::run(&redis, update_config.plugin_path, verbose)
             }
         }
-    } else {
-        let err = read_errors(&path).unwrap();
-        if !err.is_empty() {
-            eprintln!("# Error in {:?}", path);
-        }
-        errors += err.len();
-        err.iter().for_each(|r| eprintln!("{}", r));
     }
-    errors
 }
 
-fn syntax_check(path: PathBuf, verbose: bool) {
-    let mut parsed: usize = 0;
-    let mut skipped: usize = 0;
-    let mut errors: usize = 0;
-    println!("verifiying NASL syntax in {:?}.", path);
-    if path.as_path().is_dir() {
-        for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            print!("\rparsing {}th file", parsed);
-            let ext = {
-                if let Some(ext) = entry.path().extension() {
-                    ext.to_str().unwrap().to_owned()
-                } else {
-                    "".to_owned()
-                }
-            };
-            if !matches!(ext.as_str(), "nasl" | "inc") {
-                skipped += 1;
-            } else {
-                errors += print_results(entry.path(), verbose);
-                parsed += 1;
+impl RunAction<()> for Command {
+    type Error = CliError;
+    fn run(&self, _: bool) -> Result<(), Self::Error> {
+        match self {
+            Command::Syntax { path, verbose } => syntax_check::run(path, *verbose),
+            Command::Feed { verbose, action } => action.run(*verbose),
+        }
+    }
+}
+
+trait AsConfig<T> {
+    fn as_config(&self) -> Result<T, CliErrorKind>;
+}
+
+/// Is the configuration required to run feed related operations.
+struct FeedUpdateConfiguration {
+    /// Plugin path is required for either
+    plugin_path: PathBuf,
+    redis_url: String,
+}
+
+impl AsConfig<FeedUpdateConfiguration> for FeedAction {
+    fn as_config(&self) -> Result<FeedUpdateConfiguration, CliErrorKind> {
+        match self.clone() {
+            FeedAction::Update {
+                redis: Some(redis_url),
+                path: Some(plugin_path),
+            } => Ok(FeedUpdateConfiguration {
+                redis_url,
+                plugin_path,
+            }),
+            FeedAction::Update { redis, path } => {
+                // This is only valid as long as we don't have a proper configuration file and rely on openvas.
+                let oconfig = process::Command::new("openvas")
+                    .arg("-s")
+                    .output()
+                    .map_err(|e| CliErrorKind::Openvas {
+                        args: "-s".to_owned().into(),
+                        err_msg: format!("{e:?}"),
+                    })?;
+
+                let mut config = Ini::new();
+                let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
+                config.read(oconfig).map_err(|e| CliErrorKind::Openvas {
+                    args: None,
+                    err_msg: format!("{e:?}"),
+                })?;
+                let redis_url = {
+                    if let Some(rp) = redis {
+                        rp
+                    } else {
+                        let dba = config
+                            .get("default", "db_address")
+                            .expect("openvas -s must contain db_address");
+                        if dba.starts_with("redis://") || dba.starts_with("unix://") {
+                            dba
+                        } else {
+                            format!("unix://{dba}")
+                        }
+                    }
+                };
+
+                let plugin_path = {
+                    if let Some(p) = path {
+                        p
+                    } else {
+                        PathBuf::from(
+                            config
+                                .get("default", "plugins_folder")
+                                .expect("openvas -s must contain plugins_folder"),
+                        )
+                    }
+                };
+                Ok(FeedUpdateConfiguration {
+                    plugin_path,
+                    redis_url,
+                })
             }
         }
-        println!();
-    } else {
-        errors += print_results(path.as_path(), verbose);
-        parsed += 1;
     }
-    println!(
-        "skipped: {} files; parsed: {} files; errors: {}",
-        skipped, parsed, errors
-    );
 }
 
 fn main() {
     let cli = Cli::parse();
-    match cli.command {
-        Command::Syntax { path, verbose } => syntax_check(path, verbose),
-    }
+    cli.command.run(false).unwrap();
 }
