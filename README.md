@@ -76,6 +76,6 @@ at GitHub](https://github.com/greenbone/openvas-scanner/issues) first.
 ## License
 
 This module is licensed under the [GNU General Public License v2.0
-only](COPYING.GPLv2). Single files, however, are licensed either the GNU General
+only](COPYING). Single files, however, are licensed either the GNU General
 Public License v2.0 only or under GNU General Public License v2.0 or later,
-please see the [COPYING](COPYING) file for details.
+please see the [license-details.md](license-details.md) file for details.
