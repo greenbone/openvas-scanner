@@ -7,7 +7,7 @@ Single files, however, are licensed either
 under GNU General Public License Version 2 (GNU GPL-2)
 or under "GNU GPLv2 or any later version" (GNU GPL-2+).
 
-GPL-2: See file [COPYING GPLv2](COPYING.GPLv2)
+GPL-2: See file [COPYING](COPYING)
 
 The following list was created using the 'licensecheck'
 tool with the following command:
