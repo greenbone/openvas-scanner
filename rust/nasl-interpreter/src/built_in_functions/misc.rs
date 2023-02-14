@@ -50,6 +50,25 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     }
 }
 
+/// Returns the type of given unnamed argument.
+// typeof is a reserved keyword, therefore it is prefixed with "nasl_"
+pub fn nasl_typeof (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = register.positional();
+    if positional.len() == 0 {
+        return Ok(NaslValue::Null);
+    }
+    match positional[0] {
+        NaslValue::Null => Ok(NaslValue::String("undef".to_string())),
+        NaslValue::String(_) => Ok(NaslValue::String("string".to_string())),
+        NaslValue::Array(_) => Ok(NaslValue::String("array".to_string())),
+        NaslValue::Dict(_) => Ok(NaslValue::String("array".to_string())),
+        NaslValue::Boolean(_) => Ok(NaslValue::String("int".to_string())),
+        NaslValue::Number(_) => Ok(NaslValue::String("int".to_string())),
+        NaslValue::Data(_) => Ok(NaslValue::String("data".to_string())),
+        _ => Ok(NaslValue::String("unknown".to_string()))
+    }
+}
+
 /// Returns true when the given unnamed argument is null.
 pub fn isnull(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
@@ -142,6 +161,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "rand" => Some(rand),
         "get_byte_order" => Some(get_byte_order),
         "dec2str" => Some(dec2str),
+        "typeof" => Some(nasl_typeof),
         "isnull" => Some(isnull),
         "unixtime" => Some(unixtime),
         "gzip" => Some(gzip),
@@ -202,6 +222,36 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("23".into())));
+    }
+
+    #[test]
+    fn nasl_typeof() {
+        let code = r###"
+        typeof("AA");
+        typeof(1);
+        typeof('AA');
+        typeof(make_array());
+        d['test'] = 2;
+        typeof(d);
+        typeof(NULL);
+        typeof(a);
+        typeof(23,76);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("string".into()))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("int".into()))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("data".into()))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("array".into()))));
+        parser.next();
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("array".into()))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("undef".into()))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("undef".into()))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::String("int".into()))));
     }
 
     #[test]
