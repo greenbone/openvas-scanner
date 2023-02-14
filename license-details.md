@@ -1,5 +1,4 @@
-License information about openvas-scanner
-------------------------------------------
+# License information about openvas-scanner
 
 The effective license of the modules as a whole
 is the GNU General Public License Version 2 (GNU GPL-2).
@@ -8,12 +7,14 @@ Single files, however, are licensed either
 under GNU General Public License Version 2 (GNU GPL-2)
 or under "GNU GPLv2 or any later version" (GNU GPL-2+).
 
-GPL-2: See file COPYING.GPLv2
+GPL-2: See file [COPYING GPLv2](COPYING.GPLv2)
 
 The following list was created using the 'licensecheck'
 tool with the following command:
 
-  licensecheck -r --deb-fmt <directory>
+```
+licensecheck -r --deb-fmt <directory>
+```
 
 src/CMakeLists.txt: GPL-2+
 src/attack.c: GPL-2
