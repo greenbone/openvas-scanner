@@ -31,7 +31,7 @@ use crate::SinkError;
 /// - End
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ACT {
     /// Defines a initializer
     Init = 0,

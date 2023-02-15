@@ -31,8 +31,10 @@ pub fn make_array(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValu
     Ok(values.into())
 }
 
+
+
 /// NASL function to create a list out of a number of unnamed arguments
-pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionError> {
     let arr = resolve_positional_arguments(register);
     let mut values = Vec::<NaslValue>::new();
     for val in arr.iter() {
@@ -43,6 +45,18 @@ pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue
             x => values.push(x.clone())
         }
     }
+    Ok(values)
+}
+/// NASL function to create a list out of a number of unnamed arguments
+pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let values = nasl_make_list(register)?;
+    Ok(NaslValue::Array(values))
+}
+
+/// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
+pub fn nasl_sort(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let mut values = nasl_make_list(register)?;
+    values.sort_by(|a, b| a.cmp(&b));
     Ok(NaslValue::Array(values))
 }
 
@@ -65,6 +79,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "make_array" => Some(make_array),
         "make_list" => Some(make_list),
+        "sort" => Some(nasl_sort),
         "max_index" => Some(max_index),
         _ => None,
     }
@@ -115,14 +130,14 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(make_dict!())));
     }
 
-        #[test]
+    #[test]
     fn make_list() {
         let code = r###"
         a = [2,4]
         make_list(1, 0);
         make_list();
         make_list(1,NULL,2);
-        b = make_array(5, 6, 7, 8);
+        b = make_array("el", 6);
         make_list(1, 0, b);
         make_list(1, 0, a);
         "###;
@@ -144,14 +159,41 @@ mod tests {
                    Some(Ok(NaslValue::Array(vec![
                        NaslValue::Number(1),
                        NaslValue::Number(0),
-                       NaslValue::Number(6),
-                       NaslValue::Number(8)]))));
+                       NaslValue::Number(6)]))));
         assert_eq!(parser.next(),
                    Some(Ok(NaslValue::Array(vec![
                        NaslValue::Number(1),
                        NaslValue::Number(0),
                        NaslValue::Number(2),
                        NaslValue::Number(4)]))));
+    }
+
+    #[test]
+    fn sort() {
+        let code = r###"
+        a = make_array(5, 6, 7, 8);
+        l = make_list("abbb", 1, "aaaa", 0, a);
+        s = sort(l);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        parser.next();
+        let a = parser.next();
+        let b = Some(Ok(NaslValue::Array(vec![
+                       NaslValue::Number(0),
+                       NaslValue::Number(1),
+                       NaslValue::Number(6),
+                       NaslValue::Number(8),
+                       NaslValue::String("aaaa".to_string()),
+                       NaslValue::String("abbb".to_string())])));
+        assert_eq!(a, b);
+        println!("Sort {:?}", a);       
+        println!("Sort {:?}", b);       
     }
 
     #[test]
