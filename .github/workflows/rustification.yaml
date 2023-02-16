@@ -135,4 +135,4 @@ jobs:
           path: rust/target
           key: ${{ github.sha }}-target
       - name: verify syntax parsing
-        run: ./target/release/nasl-cli syntax -p feed/ --no-progress
+        run: ./target/release/nasl-cli syntax feed/ --quiet
