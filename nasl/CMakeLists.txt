@@ -37,28 +37,33 @@ pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 # for 'nasl' binary
 pkg_check_modules (LIBSSH REQUIRED libssh>=0.6.0)
 
+
 set (KSBA_MIN_VERSION "1.0.7")
-message (STATUS "Looking for ksba >= ${KSBA_MIN_VERSION}...")
-find_library (KSBA ksba)
-message (STATUS "Looking for ksba >= ${KSBA_MIN_VERSION}... ${KSBA}")
-if (NOT KSBA)
-  message (SEND_ERROR "The ksba library is required.")
-else (NOT KSBA)
-  execute_process (COMMAND ksba-config --version
-    OUTPUT_VARIABLE KSBA_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message (STATUS "Found ksba ${KSBA_VERSION}...")
-  if (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
-    message (SEND_ERROR "The ksba library >= ${KSBA_MIN_VERSION} is required.")
-  else (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
-    execute_process (COMMAND ksba-config --libs
-      OUTPUT_VARIABLE KSBA_LDFLAGS
+# try with package config
+pkg_check_modules (KSBA REQUIRED ksba>=1.0.7)
+if (NOT KSBA_FOUND)
+  # try with find library
+  find_library (KSBA ksba)
+  message (STATUS "Looking for ksba >= ${KSBA_MIN_VERSION}...")
+  if (NOT KSBA)
+    message (SEND_ERROR "The ksba library is required.")
+  else (NOT KSBA)
+    execute_process (COMMAND ksba-config --version
+      OUTPUT_VARIABLE KSBA_VERSION
       OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process (COMMAND ksba-config --cflags
-      OUTPUT_VARIABLE KSBA_CFLAGS
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-  endif (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
-endif (NOT KSBA)
+    message (STATUS "Found ksba ${KSBA_VERSION}...")
+    if (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
+      message (SEND_ERROR "The ksba library >= ${KSBA_MIN_VERSION} is required.")
+    else (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
+      execute_process (COMMAND ksba-config --libs
+        OUTPUT_VARIABLE KSBA_LDFLAGS
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+      execute_process (COMMAND ksba-config --cflags
+        OUTPUT_VARIABLE KSBA_CFLAGS
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
+  endif (NOT KSBA)
+endif (NOT KSBA_FOUND)
 
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
@@ -155,9 +160,9 @@ if (NOT OPENVAS_WMICLIENT_FOUND)
   set (FILES smb_interface_stub.c wmi_interface_stub.c ${FILES})
 endif (NOT OPENVAS_WMICLIENT_FOUND)
 
-if (KSBA)
+if (KSBA OR KSBA_FOUND)
   add_definitions (-DHAVE_LIBKSBA)
-endif (KSBA)
+endif (KSBA OR KSBA_FOUND)
 
 if (OPENVAS_CONF)
   add_definitions (-DOPENVAS_CONF="${OPENVAS_CONF}")
