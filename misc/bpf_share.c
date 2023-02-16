@@ -85,12 +85,16 @@ bpf_open_live (char *iface, char *filter)
   if (ret == NULL)
     {
       g_message ("%s", errbuf);
+      if (alldevsp != NULL)
+        pcap_freealldevs (alldevsp);
       return -1;
     }
 
   if (pcap_lookupnet (iface, &network, &netmask, errbuf) < 0)
     {
       g_message ("pcap_lookupnet failed: %s", errbuf);
+      if (alldevsp != NULL)
+        pcap_freealldevs (alldevsp);
       pcap_close (ret);
       return -1;
     }
@@ -100,6 +104,8 @@ bpf_open_live (char *iface, char *filter)
       char buffer[2048];
       snprintf (buffer, sizeof (buffer), "pcap_compile: Filter \"%s\"", filter);
       print_pcap_error (ret, buffer);
+      if (alldevsp != NULL)
+        pcap_freealldevs (alldevsp);
       pcap_close (ret);
       return -1;
     }
@@ -114,6 +120,9 @@ bpf_open_live (char *iface, char *filter)
   if (pcap_setfilter (ret, &filter_prog) < 0)
     {
       print_pcap_error (ret, "pcap_setfilter\n");
+      if (alldevsp != NULL)
+        pcap_freealldevs (alldevsp);
+      pcap_freecode (&filter_prog);
       pcap_close (ret);
       return -1;
     }
