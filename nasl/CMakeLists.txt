@@ -68,18 +68,21 @@ endif (NOT KSBA_FOUND)
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
 
-find_library (GPGME gpgme)
-message (STATUS "Looking for gpgme... ${GPGME}")
-if (NOT GPGME)
-  message (SEND_ERROR "The gpgme library is required.")
-endif (NOT GPGME)
+pkg_check_modules (GPGME REQUIRED gpgme)
+if (NOT GPGME_FOUND)
+  find_library (GPGME gpgme)
+  message (STATUS "Looking for gpgme... ${GPGME}")
+  if (NOT GPGME)
+    message (SEND_ERROR "The gpgme library is required.")
+  endif (NOT GPGME)
 
-execute_process (COMMAND gpgme-config --libs
-  OUTPUT_VARIABLE GPGME_LDFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process (COMMAND gpgme-config --cflags
-  OUTPUT_VARIABLE GPGME_CFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND gpgme-config --libs
+    OUTPUT_VARIABLE GPGME_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND gpgme-config --cflags
+    OUTPUT_VARIABLE GPGME_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif (NOT GPGME_FOUND)
 
 message (STATUS "Looking for netsnmp...")
 find_library (SNMP netsnmp)
