@@ -374,7 +374,7 @@ the amount of data to be transferred significantly.
 ## SEE ALSO
 
 **gvmd(8)**, **gsad(8)**, **ospd-openvas(8)**, **[openvas-nasl(1)](../nasl/openvas-nasl.md)**,
-**[openvas-nasl-lint(1)](../nasl/openvas-nasl-lint.md)**, **[greenbone-nvt-sync(1)](../greenbone-nvt-sync.md)**
+**[openvas-nasl-lint(1)](../nasl/openvas-nasl-lint.md)**
 
 ## MORE INFORMATION
 

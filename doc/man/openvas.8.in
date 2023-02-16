@@ -23,12 +23,12 @@ The second part of the interface is the redis store where the parameters about a
 need to be placed and from where the results can be retrieved.
 
 .SH OPTIONS
-.TP 
+.TP
 .BI "-c " <config-file> ", --config-file=" <config-file>
-Use the alternate configuration file instead of 
+Use the alternate configuration file instead of
 .I @OPENVAS_CONF@
 
-.TP 
+.TP
 .B "-V, --version"
 Prints the version number and exits
 

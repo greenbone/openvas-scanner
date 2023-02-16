@@ -147,12 +147,10 @@ Setting up an openvas requires the following steps:
    your NVT collection will be empty. It is recommended that you synchronize
    with an NVT feed service before starting openvas for the first time.
 
-   Simply execute the following command to retrieve the initial NVT collection:
+   Simply follow the instructions at https://github.com/greenbone/greenbone-feed-sync/#installation
+   and run the listed command below to retrieve the initial NVT collection:
 
-       greenbone-nvt-sync
-
-   This tool will use the Greenbone Security Feed in case a Greenbone
-   subscription key is present. Else, the Community Feed will be used.
+       greenbone-feed-sync --type nvt
 
    Please note that you will need the `rsync` tool for a successful synchronization.
 
