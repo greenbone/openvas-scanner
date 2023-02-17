@@ -235,6 +235,8 @@ mod tests {
     fn missing_semicolon_assignment() {
         let code = "a = 12";
         test_for_missing_semicolon(code);
+        let code = "a = [1, 2, 4]";
+        test_for_missing_semicolon(code);
     }
 
     #[test]
