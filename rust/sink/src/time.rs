@@ -8,7 +8,7 @@ use time::{format_description, OffsetDateTime};
 fn parse_or_panic(input: &str) -> Vec<time::format_description::FormatItem> {
     match format_description::parse(input) {
         Ok(x) => x,
-        Err(e) => panic!("expected {input} to be parseable: {e:?}"),
+        Err(e) => panic!("expected {input} to be parsable: {e:?}"),
     }
 }
 
