@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn make_list() {
         let code = r###"
-        a = [2,4]
+        a = [2,4];
         make_list(1, 0);
         make_list();
         make_list(1,NULL,2);
@@ -207,8 +207,6 @@ mod tests {
                        NaslValue::String("aaaa".to_string()),
                        NaslValue::String("abbb".to_string())])));
         assert_eq!(a, b);
-        println!("Sort {:?}", a);       
-        println!("Sort {:?}", b);       
     }
 
     #[test]
@@ -233,14 +231,12 @@ mod tests {
                        NaslValue::Number(1)])));
 
         assert_eq!(a, b);
-        println!("keys {:?}", a);       
-        println!("keys {:?}", b);       
     }
 
     #[test]
     fn max_index() {
         let code = r###"
-        l = [1,2,3,4,5]
+        l = [1,2,3,4,5];
         max_index(l);
         max_index(make_array(1,2,3,4,5,6,7));
         max_index(make_list(1, 0));
