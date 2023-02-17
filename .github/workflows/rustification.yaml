@@ -81,14 +81,7 @@ jobs:
     steps:
       # install rustup
       - uses: actions/checkout@v3
-        # use cache to spped up compile time
-      - name: cache build
-        id: cache-release
-        uses: actions/cache@v3
-        with:
-          path: rust/target
-          key: cargo-target
-      - run: rustup update stable && rustup default stable && rustup component add clippy
+      - run: rustup update stable && rustup default stable
       - run: cargo build --lib --release
       - run: cargo build --bins --release
       - name: archive nasl-cli
