@@ -72,8 +72,6 @@ jobs:
       - uses: actions/checkout@v3
   releases:
     runs-on:
-   # uses ubuntu 20.4 for lib 2.31 so that we can easily identify issues for
-   # this libc version because we are using debian:stable within our docker image
      - ubuntu-20.04
     defaults:
       run:
@@ -81,7 +79,16 @@ jobs:
     steps:
       # install rustup
       - uses: actions/checkout@v3
-      - run: rustup update stable && rustup default stable
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: rustup update beta && rustup default beta
       - run: cargo build --lib --release
       - run: cargo build --bins --release
       - name: archive nasl-cli
