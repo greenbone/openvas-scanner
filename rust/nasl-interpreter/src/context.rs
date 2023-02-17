@@ -108,7 +108,6 @@ impl Register {
         let mut defined = HashMap::with_capacity(initial.len());
         for (k, v) in initial {
             defined.insert(k.to_owned(), v.to_owned());
-
         }
         let root = NaslContext {
             defined,

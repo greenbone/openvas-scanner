@@ -201,7 +201,8 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
-        let mut interpreter = parse(code).map(|x|interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut interpreter =
+            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(5.into())));

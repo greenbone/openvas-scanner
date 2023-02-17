@@ -52,7 +52,7 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
 
 /// Returns the type of given unnamed argument.
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
-pub fn nasl_typeof (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn nasl_typeof(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.len() == 0 {
         return Ok(NaslValue::Null);
@@ -65,7 +65,7 @@ pub fn nasl_typeof (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVa
         NaslValue::Boolean(_) => Ok(NaslValue::String("int".to_string())),
         NaslValue::Number(_) => Ok(NaslValue::String("int".to_string())),
         NaslValue::Data(_) => Ok(NaslValue::String("data".to_string())),
-        _ => Ok(NaslValue::String("unknown".to_string()))
+        _ => Ok(NaslValue::String("unknown".to_string())),
     }
 }
 

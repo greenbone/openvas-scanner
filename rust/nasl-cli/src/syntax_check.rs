@@ -50,14 +50,16 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     Ok(errors)
 }
 
-pub fn run(path: &PathBuf, verbose: bool) -> Result<(), CliError> {
+pub fn run(path: &PathBuf, verbose: bool, no_progress: bool) -> Result<(), CliError> {
     let mut parsed: usize = 0;
     let mut skipped: usize = 0;
     let mut errors: usize = 0;
     println!("verifying NASL syntax in {path:?}.");
     if path.as_path().is_dir() {
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            print!("\rparsing {parsed}th file");
+            if !no_progress {
+                print!("\rparsing {parsed}th file");
+            }
             let ext = {
                 if let Some(ext) = entry.path().extension() {
                     ext.to_str().unwrap().to_owned()
