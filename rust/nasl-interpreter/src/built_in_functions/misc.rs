@@ -7,8 +7,9 @@
 use std::{
     fs::File,
     io::{Read, Write},
-    time::UNIX_EPOCH,
+    time::UNIX_EPOCH, collections::HashMap,
 };
+use chrono::{self, TimeZone, Local, Utc, LocalResult};
 
 use sink::Sink;
 
@@ -155,6 +156,85 @@ pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
     }
 }
 
+/// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
+pub fn localtime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let named = register.named("utc");
+    let utc_flag;
+    match named {
+        Some(ContextType::Value(NaslValue::Number(x))) => {utc_flag = *x != 0i64;},
+        Some(ContextType::Value(NaslValue::Boolean(x))) => {utc_flag = *x;},
+        _ => {utc_flag = false;},
+    };
+        
+    let mut tictac_local: chrono::DateTime<Local> = Local::now();
+    let mut tictac_utc: chrono::DateTime<Utc> = Utc::now();
+    let tictac: Vec<&str>;
+    let mut secs: i64 = 0;
+    let positional = register.positional();
+    if !(positional.is_empty()) && positional[0] != NaslValue::Number(0)
+    {
+        match &positional[0] {
+            NaslValue::Number(x) => {
+                if *x > 0 {
+                    secs = *x as i64;
+                }
+                else {
+                    return Err(FunctionError::new("localtime", ("0", "numeric").into()));
+                };
+            },
+            NaslValue::String(x) => {
+                let secstr: Vec<&str> = x.split(".").collect();
+                let r_secs = secstr[0].to_string().parse::<i64>();
+                match r_secs {
+                    Ok(x) => secs = x as i64,
+                    Err(_) => return Err(FunctionError::new("localtime", ("0", "numeric").into())),
+                }
+            },
+            _ => return Err(FunctionError::new("localtime", ("0", "numeric").into())),
+        }
+    }
+
+    let strfmt;
+    if utc_flag {
+        if secs != 0 {
+            match Utc.timestamp_opt(secs, 0) {
+                LocalResult::Single(x) => {tictac_utc = x;},
+                _ => (),
+            };
+        }
+        strfmt = tictac_utc.format("%S %M %H %d %m %Y %w %j").to_string();
+        tictac = strfmt.split(" ").collect();
+        
+    }
+    else {
+        if secs != 0 {
+            match Local.timestamp_opt(secs, 0) {
+                LocalResult::Single(x) => {tictac_local = x;},
+                _ => (),
+            };
+        }
+        strfmt = tictac_local.format("%S %M %H %d %m %Y %w %j").to_string();
+        tictac = strfmt.split(" ").collect();
+
+    }
+
+    let mut date: HashMap::<String, NaslValue> = HashMap::new();
+    date.insert("sec".to_string(), NaslValue::from(tictac[0].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("min".to_string(), NaslValue::from(tictac[1].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("hour".to_string(), NaslValue::from(tictac[2].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("mday".to_string(), NaslValue::from(tictac[3].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("mon".to_string(), NaslValue::from(tictac[4].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("year".to_string(), NaslValue::from(tictac[5].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("wday".to_string(), NaslValue::from(tictac[6].to_string().parse::<i64>().unwrap_or(0)));
+    date.insert("yday".to_string(), NaslValue::from(tictac[7].to_string().parse::<i64>().unwrap_or(0)));
+    // TODO: fix isdst
+    date.insert("isdst".to_string(), NaslValue::from(0));
+    
+    Ok(NaslValue::Dict(date))
+
+}
+    
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -164,6 +244,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "typeof" => Some(nasl_typeof),
         "isnull" => Some(isnull),
         "unixtime" => Some(unixtime),
+        "localtime" => Some(localtime),
         "gzip" => Some(gzip),
         "gunzip" => Some(gunzip),
         _ => None,
@@ -335,5 +416,79 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("gz".into()))));
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("ngz".into()))));
+    }
+
+    #[test]
+    fn localtime() {
+        let code = r###"
+        a = localtime(1676900372, utc: TRUE);
+        b = localtime(1676900372, utc: FALSE);
+        c = localtime(utc: TRUE);
+        d = localtime(utc: FALSE);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let date_a = parser.next();
+        assert!(matches!(date_a, Some(Ok(NaslValue::Dict(_)))));
+        match date_a.unwrap().unwrap() {
+            NaslValue::Dict(x) => {
+                assert_eq!(x["sec"], NaslValue::Number(32));
+                assert_eq!(x["min"], NaslValue::Number(39));
+                assert_eq!(x["hour"], NaslValue::Number(13));
+                assert_eq!(x["mday"], NaslValue::Number(20));
+                assert_eq!(x["mon"], NaslValue::Number(2));
+                assert_eq!(x["year"], NaslValue::Number(2023));
+                assert_eq!(x["wday"], NaslValue::Number(1));
+                assert_eq!(x["yday"], NaslValue::Number(51));
+                assert_eq!(x["isdst"], NaslValue::Number(0));
+                
+            },
+            _ => panic!("NO DICT"),
+        }
+
+        let date_b = parser.next();
+        assert!(matches!(date_b, Some(Ok(NaslValue::Dict(_)))));
+        match date_b.unwrap().unwrap() {
+            NaslValue::Dict(x) => {
+                assert_eq!(x["sec"], NaslValue::Number(32));
+                assert_eq!(x["min"], NaslValue::Number(39));
+                assert_eq!(x["hour"], NaslValue::Number(14));
+                assert_eq!(x["mday"], NaslValue::Number(20));
+                assert_eq!(x["mon"], NaslValue::Number(2));
+                assert_eq!(x["year"], NaslValue::Number(2023));
+                assert_eq!(x["wday"], NaslValue::Number(1));
+                assert_eq!(x["yday"], NaslValue::Number(51));
+                assert_eq!(x["isdst"], NaslValue::Number(0));
+                
+            },
+            _ => panic!("NO DICT"),
+        }
+
+        let date_c = parser.next().unwrap().unwrap();
+        let date_d = parser.next().unwrap().unwrap();
+        let hour_c: i64;
+        let hour_d: i64;
+        let min_c: i64;
+        let min_d: i64;
+        match date_c {
+            NaslValue::Dict(x) => {
+                hour_c = i64::from(x["hour"].to_owned());
+                min_c = i64::from(x["min"].to_owned());
+            },
+            _ => panic!("NO DICT"),
+        }
+        match date_d {
+            NaslValue::Dict(x) => {
+                hour_d = i64::from(x["hour"].to_owned());
+                min_d = i64::from(x["min"].to_owned());
+            },
+            _ => panic!("NO DICT"),
+        }
+        let offset = chrono::Local::now().offset().local_minus_utc();
+        assert_ne!(hour_c * 60 + min_c, hour_d * 60 + min_d - offset as i64);
     }
 }
