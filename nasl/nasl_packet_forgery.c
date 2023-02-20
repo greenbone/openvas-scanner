@@ -2547,6 +2547,8 @@ nasl_send_capture (lex_ctxt *lexic)
   if (bpf < 0)
     {
       nasl_perror (lexic, "pcap_next: Could not get a bpf\n");
+      if (alldevsp != NULL)
+        pcap_freealldevs (alldevsp);
       return NULL;
     }
   else
@@ -2615,6 +2617,8 @@ nasl_send_capture (lex_ctxt *lexic)
         }
       else
         {
+          if (alldevsp != NULL)
+            pcap_freealldevs (alldevsp);
           bpf_close (bpf);
           return NULL;
         }
