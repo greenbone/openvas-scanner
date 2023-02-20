@@ -9,9 +9,6 @@ nasl-syntax = {path = "../nasl-syntax"}
 sink = {path = "../sink"}
 # used for !~ =~ string regex operations
 regex = "1"
-# used for get-hostnames; an alternative implementation without dependency can be found in:
-# ee3f7e1ed6da946e5eace08d074b320f80087a3c
-dns-lookup = "1.0.8"
 hmac = "0.12.1"
 hex = "0.4.3"
 digest = "0.10.6"

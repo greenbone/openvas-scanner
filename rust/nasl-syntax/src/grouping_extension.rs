@@ -70,9 +70,7 @@ impl<'a> Grouping for Lexer<'a> {
             Category::LeftCurlyBracket => self
                 .parse_block(token)
                 .map(|stmt| (End::Done(Category::LeftCurlyBracket), stmt)),
-            Category::LeftBrace => self
-                .parse_brace(token)
-                .map(|stmt| (End::Done(Category::LeftBrace), stmt)),
+            Category::LeftBrace => self.parse_brace(token).map(|stmt| (End::Continue, stmt)),
             _ => Err(unexpected_token!(token)),
         }
     }

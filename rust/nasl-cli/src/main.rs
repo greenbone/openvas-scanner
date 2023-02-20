@@ -5,7 +5,6 @@ mod error;
 mod feed_update;
 mod syntax_check;
 
-use clap::{Parser, Subcommand};
 use configparser::ini::Ini;
 pub use error::*;
 
@@ -13,39 +12,29 @@ use redis_sink::connector::RedisCache;
 use sink::SinkError;
 use std::{path::PathBuf, process};
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Command,
-}
+use clap::{arg, value_parser, Arg, ArgAction, Command};
 
-#[derive(Subcommand, Debug)]
-enum Command {
+#[derive(Debug)]
+enum Commands {
     /// Checks nasl-file or a directory of for syntax errors.
     Syntax {
         /// The path for the file or dir to parse
-        #[arg(short, long)]
         path: PathBuf,
         /// Prints all parsed statements instead of just errors
-        #[arg(short, long, default_value_t = false)]
         verbose: bool,
         /// Disables printing of progress
-        #[arg(long, default_value_t = false)]
         no_progress: bool,
     },
     /// Controls the feed
     Feed {
         /// Prints the interpret filename and elapsed time for each
-        #[arg(short, long, default_value_t = false)]
         verbose: bool,
         /// The action to perform on a feed
-        #[command(subcommand)]
         action: FeedAction,
     },
 }
 
-#[derive(clap::Subcommand, Debug, Clone)]
+#[derive(Debug, Clone)]
 enum FeedAction {
     /// Updates feed data into redis.
     Update {
@@ -56,12 +45,10 @@ enum FeedAction {
         /// For unix socket provide the path to the socket in the form of: `unix://path/to/redis.sock`.
         /// When not provided the DefaultSink will be used instead.
         /// When it is skipped it will be obtained via `openvas -s`
-        #[arg(short, long)]
         redis: Option<String>,
         /// The path to the NASL plugins.
         ///
         /// When it is skipped it will be obtained via `openvas -s`
-        #[arg(short, long)]
         path: Option<PathBuf>,
     },
 }
@@ -101,16 +88,16 @@ impl RunAction<()> for FeedAction {
     }
 }
 
-impl RunAction<()> for Command {
+impl RunAction<()> for Commands {
     type Error = CliError;
     fn run(&self, _: bool) -> Result<(), Self::Error> {
         match self {
-            Command::Syntax {
+            Commands::Syntax {
                 path,
                 verbose,
                 no_progress,
             } => syntax_check::run(path, *verbose, *no_progress),
-            Command::Feed { verbose, action } => action.run(*verbose),
+            Commands::Feed { verbose, action } => action.run(*verbose),
         }
     }
 }
@@ -161,6 +148,8 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
                             .expect("openvas -s must contain db_address");
                         if dba.starts_with("redis://") || dba.starts_with("unix://") {
                             dba
+                        } else if dba.starts_with("tcp://") {
+                            dba.replace("tcp://", "redis://")
                         } else {
                             format!("unix://{dba}")
                         }
@@ -188,6 +177,60 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
 }
 
 fn main() {
-    let cli = Cli::parse();
-    cli.command.run(false).unwrap();
+    let matches = Command::new("nasl-cli")
+        .version("1.0")
+        .about("Is CLI tool around NASL.")
+        .arg(arg!(-v --verbose ... "Prints more details while running").required(false).action(ArgAction::SetTrue))
+        .subcommand_required(true)
+        .subcommand(
+            Command::new("feed")
+                .about("Runs through the feed as description run")
+                .subcommand_required(true)
+                .subcommand(Command::new("update")
+
+                .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
+                    .value_parser(value_parser!(PathBuf)))
+                .arg(arg!(-r --redis <VALUE> "Redis url. Must either start `unix://` or `redis://`.").required(false))
+                )
+        )
+        .subcommand(
+            Command::new("syntax")
+                .about("Verifies syntax of NASL files in given dir or file.")
+                .arg(Arg::new("path").required(true)
+                    .value_parser(value_parser!(PathBuf)))
+                .arg(arg!(-q --quiet "Prints only error output and no progress.").required(false).action(ArgAction::SetTrue))
+        )
+        .get_matches();
+    let verbose = matches
+        .get_one::<bool>("verbose")
+        .cloned()
+        .unwrap_or_default();
+    let command = match matches.subcommand() {
+        Some(("feed", args)) => match args.subcommand() {
+            Some(("update", args)) => {
+                let path = args.get_one::<PathBuf>("path").cloned();
+                let redis = args.get_one::<String>("redis").cloned();
+                Commands::Feed {
+                    verbose,
+                    action: FeedAction::Update { redis, path },
+                }
+            }
+            _ => unreachable!("subcommand_required prevents None"),
+        },
+        Some(("syntax", args)) => {
+            let path = match args.get_one::<PathBuf>("path").cloned() {
+                Some(path) => path,
+                _ => unreachable!("path is set to required"),
+            };
+            let quiet = args.get_one::<bool>("quiet").cloned().unwrap_or_default();
+            Commands::Syntax {
+                path,
+                verbose,
+                no_progress: quiet,
+            }
+        }
+        _ => unreachable!("subcommand_required prevents None"),
+    };
+
+    command.run(verbose).unwrap();
 }

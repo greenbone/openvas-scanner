@@ -168,16 +168,16 @@ mod test {
     use Statement::*;
 
     // simplified resolve method to verify a calculate with a given statement
-    fn resolve(code: &str, s: Statement) -> i64 {
+    fn resolve(s: Statement) -> i64 {
         let callable = |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
             let right = stmts.pop().unwrap();
             let left = stmts.pop().unwrap();
-            calculus(resolve(code, left), resolve(code, right))
+            calculus(resolve(left), resolve(right))
         };
         let single_callable =
             |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64) -> i64>| -> i64 {
                 let left = stmts.pop().unwrap();
-                calculus(resolve(code, left))
+                calculus(resolve(left))
             };
         match s {
             Primitive(token) => match token.category() {
@@ -236,7 +236,7 @@ mod test {
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
             let expr = crate::parse($code).next().unwrap().unwrap();
-            assert_eq!(resolve($code, expr), $expected);
+            assert_eq!(resolve(expr), $expected);
         };
     }
 

@@ -2,21 +2,22 @@ pub trait AsUnixTimeStamp {
     fn as_timestamp(&self) -> Option<i64>;
 }
 
-use time::macros::format_description;
-use time::OffsetDateTime;
+use time::{format_description, OffsetDateTime};
+
+// the function panics because the support formats are hardcoded and therefore the user cannot change anything
+fn parse_or_panic(input: &str) -> Vec<time::format_description::FormatItem> {
+    match format_description::parse(input) {
+        Ok(x) => x,
+        Err(e) => panic!("expected {input} to be parsable: {e:?}"),
+    }
+}
 
 // for more information see:
 // https://time-rs.github.io/book/api/format-description.html
-const SUPPORTED_FORMATS: &[&[time::format_description::FormatItem]] = &[
-    format_description!(
-       "[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour][offset_minute]"
-    ),
-    format_description!(
-       "[weekday repr:short] [month repr:short] [day] [hour]:[minute]:[second] [year] [offset_hour][offset_minute]"
-    ),
-    format_description!(
-       "[weekday repr:short], [day] [month repr:short] [year] [hour]:[minute]:[second] [offset_hour][offset_minute]"
-    ),
+const SUPPORTED_FORMATS: &[&str] = &[
+"[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour][offset_minute]",
+"[weekday repr:short] [month repr:short] [day] [hour]:[minute]:[second] [year] [offset_hour][offset_minute]",
+"[weekday repr:short], [day] [month repr:short] [year] [hour]:[minute]:[second] [offset_hour][offset_minute]",
 ];
 
 impl AsUnixTimeStamp for &str {
@@ -29,9 +30,11 @@ impl AsUnixTimeStamp for &str {
                 .find(|x| !x.is_empty())
                 .unwrap_or_default()
         };
+
         SUPPORTED_FORMATS
             .iter()
-            .filter_map(|x| OffsetDateTime::parse(to_parse, x).ok())
+            .map(|x| parse_or_panic(x))
+            .filter_map(|x| OffsetDateTime::parse(to_parse, &x).ok())
             .map(|x| x.unix_timestamp())
             .next()
     }

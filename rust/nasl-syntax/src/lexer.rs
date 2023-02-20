@@ -163,7 +163,8 @@ impl<'a> Iterator for Lexer<'a> {
                 if matches!(stmt, Statement::NoOp(_)) {
                     Some(Ok(stmt))
                 } else {
-                    println!("here?");
+                    // This verifies if a statement was not finished yet; this can happen on assignments
+                    // and missing semicolons.
                     Some(Err(unexpected_statement!(stmt)))
                 }
             }

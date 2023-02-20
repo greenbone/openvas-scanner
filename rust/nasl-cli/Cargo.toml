@@ -8,7 +8,7 @@ license = "GPL-2.0-or-later"
 
 [dependencies]
 # argument parsing
-clap = { version = "~4", features = ["derive"] }
+clap = { version = "~4" }
 # read openvas conifuration; until we use own toml file
 configparser = "3"
 # recursively walk through a dir
