@@ -1,11 +1,12 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, cmp::Ordering};
 
 use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 
 use crate::InterpretError;
 
+
 /// Represents a valid Value of NASL
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NaslValue {
     /// String value
     String(String),
@@ -31,6 +32,22 @@ pub enum NaslValue {
     Break,
     /// Exit value of the script
     Exit(i64),
+}
+    
+impl PartialOrd for NaslValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let a: Vec<u8> = self.into();
+        let b: Vec<u8> = other.into();
+        Some(a.cmp(&b))
+    }
+}
+
+impl Ord for NaslValue {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let a: Vec<u8> = self.into();
+        let b: Vec<u8> = other.into();
+        a.cmp(&b)
+    }
 }
 
 impl Display for NaslValue {
