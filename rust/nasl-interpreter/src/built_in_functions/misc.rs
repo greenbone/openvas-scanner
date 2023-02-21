@@ -155,6 +155,54 @@ pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
         }
     }
 }
+/// Takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
+pub fn mktime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+
+    let sec;
+    match register.named("sec") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {sec = *x as u32},
+        _ => {sec = 0;},
+    };
+    let min;
+    match register.named("min") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {min = *x as u32},
+        _ => {min = 0;},
+    };
+    let hour;
+    match register.named("hour") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {hour = *x as u32},
+        _ => {hour = 0;},
+    };
+    let mday;
+    match register.named("mday") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {mday = *x as u32},
+        _ => {mday = 0;},
+    };
+    let mon;
+    match register.named("mon") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {mon = *x as u32},
+        _ => {mon = 1;},
+    };
+    let year;
+    match register.named("year") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {year = *x as i32},
+        _ => {year = 0;},
+    };
+
+    // TODO: fix isdst
+    let isdst;
+    match register.named("isdst") {
+        Some(ContextType::Value(NaslValue::Number(x))) => {isdst = *x as i32},
+        _ => {isdst = -1;},
+    };
+
+    let r_dt = Local.with_ymd_and_hms(year, mon, mday, hour, min, sec);
+    match r_dt {
+        LocalResult::Single(x) => Ok(NaslValue::Number(x.timestamp())),
+        _ => Ok(NaslValue::Null),
+    }
+}
+
 
 /// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
 pub fn localtime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
@@ -245,6 +293,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "isnull" => Some(isnull),
         "unixtime" => Some(unixtime),
         "localtime" => Some(localtime),
+        "mktime" => Some(mktime),
         "gzip" => Some(gzip),
         "gunzip" => Some(gunzip),
         _ => None,
@@ -490,5 +539,19 @@ mod tests {
         }
         let offset = chrono::Local::now().offset().local_minus_utc();
         assert_ne!(hour_c * 60 + min_c, hour_d * 60 + min_d - offset as i64);
+    }
+
+     #[test]
+    fn maketime() {
+        let code = r###"
+        mktime(sec: 01, min: 02, hour: 03, mday: 04, mon: 05, year: 2023);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1683162121))));
     }
 }
