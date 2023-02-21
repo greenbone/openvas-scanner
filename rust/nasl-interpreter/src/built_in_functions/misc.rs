@@ -7,7 +7,8 @@
 use std::{
     fs::File,
     io::{Read, Write},
-    time::UNIX_EPOCH, collections::HashMap,
+    thread,
+    time::{Instant, UNIX_EPOCH, Duration}, collections::HashMap,
 };
 use chrono::{self, TimeZone, Local, Utc, LocalResult};
 
@@ -48,6 +49,31 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
     match register.named("num") {
         Some(ContextType::Value(NaslValue::Number(x))) => Ok(NaslValue::String(x.to_string())),
         x => Err(FunctionError::new("dec2str", ("0", "numeric", x).into())),
+    }
+}
+
+/// takes an integer and sleeps the amount of seconds
+pub fn sleep(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = register.positional();
+    match positional[0] {
+        NaslValue::Number(x) => {
+            thread::sleep(Duration::new(x as u64, 0));
+            Ok(NaslValue::Null)
+        },
+        _ => Ok(NaslValue::Null)
+    }
+}
+
+
+/// takes an integer and sleeps the amount of microseconds
+pub fn usleep(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+    let positional = register.positional();
+    match positional[0] {
+        NaslValue::Number(x) => {
+            thread::sleep(Duration::new(0, (1000 * x) as u32));
+            Ok(NaslValue::Null)
+        },
+        _ => Ok(NaslValue::Null)
     }
 }
 
@@ -294,6 +320,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "unixtime" => Some(unixtime),
         "localtime" => Some(localtime),
         "mktime" => Some(mktime),
+        "usleep" => Some(usleep),
+        "sleep" => Some(sleep),
         "gzip" => Some(gzip),
         "gunzip" => Some(gunzip),
         _ => None,
@@ -302,6 +330,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
@@ -553,5 +583,37 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1683162121))));
+    }
+
+    #[test]
+    fn sleep() {
+        let code = r###"
+        sleep(1);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let now = Instant::now();
+        parser.next();
+        assert!(now.elapsed().as_secs() >= 1);
+    }
+
+    #[test]
+    fn usleep() {
+        let code = r###"
+        usleep(1000);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let now = Instant::now();
+        parser.next();
+        assert!(now.elapsed().as_micros() >= 1000);
     }
 }
