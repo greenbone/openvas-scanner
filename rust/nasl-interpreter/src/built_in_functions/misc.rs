@@ -8,9 +8,10 @@ use std::{
     fs::File,
     io::{Read, Write},
     thread,
-    time::{Instant, UNIX_EPOCH, Duration}, collections::HashMap,
+    time::{UNIX_EPOCH, Duration}, collections::HashMap,
 };
-use chrono::{self, TimeZone, Local, Utc, LocalResult};
+
+use chrono::{self, TimeZone, Local, Utc, LocalResult, Offset};
 
 use sink::Sink;
 
@@ -222,12 +223,14 @@ pub fn mktime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
         _ => {isdst = -1;},
     };
 
-    let r_dt = Local.with_ymd_and_hms(year, mon, mday, hour, min, sec);
+    let offset = chrono::Local::now().offset().fix().local_minus_utc();
+    let r_dt = Utc.with_ymd_and_hms(year, mon, mday, hour, min, sec);
     match r_dt {
-        LocalResult::Single(x) => Ok(NaslValue::Number(x.timestamp())),
+        LocalResult::Single(x) => Ok(NaslValue::Number(x.naive_local().timestamp() - offset as i64)),
         _ => Ok(NaslValue::Null),
     }
 }
+
 
 
 /// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
@@ -331,10 +334,9 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use std::time::Instant;
-
     use nasl_syntax::parse;
     use sink::DefaultSink;
-
+    use chrono::{Offset, offset};
     use crate::{Interpreter, NaslValue, NoOpLoader, Register};
 
     #[test]
@@ -511,6 +513,8 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+
+        let offset = chrono::Local::now().offset().fix().local_minus_utc();
         let date_a = parser.next();
         assert!(matches!(date_a, Some(Ok(NaslValue::Dict(_)))));
         match date_a.unwrap().unwrap() {
@@ -535,7 +539,7 @@ mod tests {
             NaslValue::Dict(x) => {
                 assert_eq!(x["sec"], NaslValue::Number(32));
                 assert_eq!(x["min"], NaslValue::Number(39));
-                assert_eq!(x["hour"], NaslValue::Number(14));
+                assert_eq!(x["hour"], NaslValue::Number(13 + (offset/3600) as i64));
                 assert_eq!(x["mday"], NaslValue::Number(20));
                 assert_eq!(x["mon"], NaslValue::Number(2));
                 assert_eq!(x["year"], NaslValue::Number(2023));
@@ -567,14 +571,13 @@ mod tests {
             },
             _ => panic!("NO DICT"),
         }
-        let offset = chrono::Local::now().offset().local_minus_utc();
-        assert_ne!(hour_c * 60 + min_c, hour_d * 60 + min_d - offset as i64);
+        assert_eq!(hour_c * 60 + min_c, hour_d * 60 + min_d - (offset/60) as i64);
     }
 
      #[test]
-    fn maketime() {
+    fn mktime() {
         let code = r###"
-        mktime(sec: 01, min: 02, hour: 03, mday: 04, mon: 05, year: 2023);
+        mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);
         "###;
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
@@ -582,7 +585,9 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1683162121))));
+        let offset = chrono::Local::now().offset().fix().local_minus_utc();
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(10921 - offset as i64))));
+
     }
 
     #[test]
