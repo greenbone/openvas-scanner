@@ -185,42 +185,35 @@ pub fn gunzip(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
 /// Takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
 pub fn mktime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
 
-    let sec;
-    match register.named("sec") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {sec = *x as u32},
-        _ => {sec = 0;},
+    let sec = match register.named("sec") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
+        _ => 0,
     };
-    let min;
-    match register.named("min") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {min = *x as u32},
-        _ => {min = 0;},
+    let min = match register.named("min") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
+        _ => 0,
     };
-    let hour;
-    match register.named("hour") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {hour = *x as u32},
-        _ => {hour = 0;},
+    let hour = match register.named("hour") {
+        Some(ContextType::Value(NaslValue::Number(x))) =>  *x as u32,
+        _ => 0,
     };
-    let mday;
-    match register.named("mday") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {mday = *x as u32},
-        _ => {mday = 0;},
+    let mday = match register.named("mday") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
+        _ => 0,
     };
-    let mon;
-    match register.named("mon") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {mon = *x as u32},
-        _ => {mon = 1;},
+    let mon = match register.named("mon") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
+        _ => 1,
     };
-    let year;
-    match register.named("year") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {year = *x as i32},
-        _ => {year = 0;},
+    let year = match register.named("year") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
+        _ => 0,
     };
 
     // TODO: fix isdst
-    let isdst;
-    match register.named("isdst") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {isdst = *x as i32},
-        _ => {isdst = -1;},
+    let isdst = match register.named("isdst") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
+        _ => -1,
     };
 
     let offset = chrono::Local::now().offset().fix().local_minus_utc();
@@ -230,87 +223,6 @@ pub fn mktime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
         _ => Ok(NaslValue::Null),
     }
 }
-
-
-
-/// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
-pub fn localtime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
-    let named = register.named("utc");
-    let utc_flag;
-    match named {
-        Some(ContextType::Value(NaslValue::Number(x))) => {utc_flag = *x != 0i64;},
-        Some(ContextType::Value(NaslValue::Boolean(x))) => {utc_flag = *x;},
-        _ => {utc_flag = false;},
-    };
-        
-    let mut tictac_local: chrono::DateTime<Local> = Local::now();
-    let mut tictac_utc: chrono::DateTime<Utc> = Utc::now();
-    let tictac: Vec<&str>;
-    let mut secs: i64 = 0;
-    let positional = register.positional();
-    if !(positional.is_empty()) && positional[0] != NaslValue::Number(0)
-    {
-        match &positional[0] {
-            NaslValue::Number(x) => {
-                if *x > 0 {
-                    secs = *x as i64;
-                }
-                else {
-                    return Err(FunctionError::new("localtime", ("0", "numeric").into()));
-                };
-            },
-            NaslValue::String(x) => {
-                let secstr: Vec<&str> = x.split(".").collect();
-                let r_secs = secstr[0].to_string().parse::<i64>();
-                match r_secs {
-                    Ok(x) => secs = x as i64,
-                    Err(_) => return Err(FunctionError::new("localtime", ("0", "numeric").into())),
-                }
-            },
-            _ => return Err(FunctionError::new("localtime", ("0", "numeric").into())),
-        }
-    }
-
-    let strfmt;
-    if utc_flag {
-        if secs != 0 {
-            match Utc.timestamp_opt(secs, 0) {
-                LocalResult::Single(x) => {tictac_utc = x;},
-                _ => (),
-            };
-        }
-        strfmt = tictac_utc.format("%S %M %H %d %m %Y %w %j").to_string();
-        tictac = strfmt.split(" ").collect();
-        
-    }
-    else {
-        if secs != 0 {
-            match Local.timestamp_opt(secs, 0) {
-                LocalResult::Single(x) => {tictac_local = x;},
-                _ => (),
-            };
-        }
-        strfmt = tictac_local.format("%S %M %H %d %m %Y %w %j").to_string();
-        tictac = strfmt.split(" ").collect();
-
-    }
-
-    let mut date: HashMap::<String, NaslValue> = HashMap::new();
-    date.insert("sec".to_string(), NaslValue::from(tictac[0].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("min".to_string(), NaslValue::from(tictac[1].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("hour".to_string(), NaslValue::from(tictac[2].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("mday".to_string(), NaslValue::from(tictac[3].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("mon".to_string(), NaslValue::from(tictac[4].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("year".to_string(), NaslValue::from(tictac[5].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("wday".to_string(), NaslValue::from(tictac[6].to_string().parse::<i64>().unwrap_or(0)));
-    date.insert("yday".to_string(), NaslValue::from(tictac[7].to_string().parse::<i64>().unwrap_or(0)));
-    // TODO: fix isdst
-    date.insert("isdst".to_string(), NaslValue::from(0));
-    
-    Ok(NaslValue::Dict(date))
-
-}
-    
 
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
