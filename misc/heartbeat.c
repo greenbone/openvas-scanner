@@ -25,19 +25,16 @@
 
 #include "../misc/heartbeat.h"
 
-#include "../misc/plugutils.h"  /* for kb_item_set_int_with_main_kb_check */
-#include "../misc/scanneraux.h" /* for struct scan_globals */
+#include "../misc/plugutils.h" /* for kb_item_set_int_with_main_kb_check */
 
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/boreas/cli.h> /* for is_host_alive() */
-
 
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib log domain.
  */
 #define G_LOG_DOMAIN "sd   main"
-
 
 /**
  * @brief Check if the hosts is still alive and set it as dead if not.
@@ -69,7 +66,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
     }
   else
     {
-      g_warning ("%s: Max VTs timeout has been reached, but Boreas is not "
+      g_warning ("%s: Trying to perform an alive test, but Boreas is not "
                  "enabled. Heartbeat check for %s will not be performed",
                  __func__, hostname);
       return -1;

@@ -24,6 +24,7 @@
 #include "nasl_misc_funcs.h"
 
 #include "../misc/ftp_funcs.h"     /* for ftp_log_in */
+#include "../misc/heartbeat.h"     /* plug_get_host_open_port */
 #include "../misc/network.h"       /* read_stream_connection_min */
 #include "../misc/plugutils.h"     /* plug_get_host_open_port */
 #include "../misc/vendorversion.h" /* for vendor_version_get */
@@ -245,6 +246,7 @@ nasl_end_denial (lex_ctxt *lexic)
   int soc;
   int to = lexic->recv_timeout;
   struct script_infos *script_infos = lexic->script_infos;
+  kb_t kb = plug_get_kb (script_infos);
   tree_cell *retc = NULL;
   char *bogus_data;
 
@@ -287,7 +289,12 @@ nasl_end_denial (lex_ctxt *lexic)
         }
     }
 
-  retc->x.i_val = 0;
+  // Services seem to not respond.
+  // Last test with boreas
+  if (check_host_still_alive (kb, plug_current_vhost ()) == 1)
+    retc->x.i_val = 1;
+  else
+    retc->x.i_val = 0;
   return retc;
 }
 
