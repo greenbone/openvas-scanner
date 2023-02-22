@@ -90,7 +90,6 @@ impl Statement {
     ///
     /// Since nasl is a dynamic, typeless language there is no guarantee.
     /// In uncertain things like a function it returns true.
-    #[inline(always)]
     pub fn is_returnable(&self) -> bool {
         matches!(
             self,
@@ -110,7 +109,6 @@ impl Statement {
     }
 
     /// Returns Self when it is returnable otherwise a unexpected statement error
-    #[inline(always)]
     pub fn as_returnable_or_err(self) -> Result<Self, SyntaxError> {
         if self.is_returnable() {
             Ok(self)
@@ -119,7 +117,6 @@ impl Statement {
         }
     }
 
-    #[inline(always)]
     fn first_stmts_token(stmts: &[Statement]) -> Option<&Token> {
         match stmts.first() {
             Some(stmt) => stmt.as_token(),
@@ -131,7 +128,6 @@ impl Statement {
     ///
     /// If a Statement contains multiple Statements (e.g. Declare) than just the first one is returned.
     /// Returns None on EoF, when a slice of vectors is empty or on AttackCategory
-    #[inline(always)]
     pub fn as_token(&self) -> Option<&Token> {
         match self {
             Statement::Primitive(token) => Some(token),

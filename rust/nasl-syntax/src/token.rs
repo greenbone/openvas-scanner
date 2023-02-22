@@ -442,7 +442,6 @@ impl<'a> Tokenizer<'a> {
     // >>>=
     // >!<
     // most operators don't have triple or tuple variant
-    #[inline(always)]
     fn tokenize_greater(&mut self) -> Category {
         use Category::*;
         let next = self.cursor.peek(0);
@@ -487,7 +486,6 @@ impl<'a> Tokenizer<'a> {
     // we break out of the macro since < can be parsed to:
     // <<=
     // most operators don't have triple or tuple variant
-    #[inline(always)]
     fn tokenize_less(&mut self) -> Category {
         use Category::*;
         let next = self.cursor.peek(0);
@@ -512,7 +510,6 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Skips initial and ending data identifier ' and verifies that a string is closed
-    #[inline(always)]
     fn tokenize_string(&mut self) -> Category {
         //'"' => self.tokenize_string(StringCategory::Unquotable, |c| c != '"'),
         let start = self.cursor.len_consumed();
@@ -538,7 +535,6 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Skips initial and ending string identifier ' || " and verifies that a string is closed
-    #[inline(always)]
     fn tokenize_data(&mut self) -> Category {
         // we don't want the lookup to contain "
         let start = self.cursor.len_consumed();
@@ -565,7 +561,6 @@ impl<'a> Tokenizer<'a> {
             Category::Data(raw)
         }
     }
-    #[inline(always)]
     fn may_parse_ipv4(&mut self, base: Base, start: usize) -> Option<Category> {
         use Base::*;
         // IPv4Address start as Base10
@@ -605,7 +600,6 @@ impl<'a> Tokenizer<'a> {
     }
 
     // checks if a number is binary, octal, base10 or hex
-    #[inline(always)]
     fn tokenize_number(&mut self, mut start: usize, current: char) -> Category {
         use Base::*;
         let may_base = {
@@ -666,7 +660,6 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Checks if an identifier is a Keyword or not
-    #[inline(always)]
     fn tokenize_identifier(&mut self, start: usize) -> Category {
         self.cursor
             .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
