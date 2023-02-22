@@ -5,15 +5,17 @@ ARG REPOSITORY=greenbone/openvas-scanner
 FROM greenbone/openvas-smb AS openvas-smb
 
 FROM ${REPOSITORY}-build:$VERSION AS build
-
 COPY . /source
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
-
 RUN cmake -DCMAKE_BUILD_TYPE=Release -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
-FROM greenbone/gvm-libs:$VERSION
+FROM rust AS build-nasl-cli
+COPY ./rust /source
+WORKDIR /source
+RUN cargo build --release
 
+FROM greenbone/gvm-libs:$VERSION
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
     libjson-glib-1.0-0 \
@@ -38,12 +40,12 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libhdb9-heimdal \
     libpopt0 \
     && rm -rf /var/lib/apt/lists/*
-
 COPY .docker/openvas.conf /etc/openvas/
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
-
+COPY --from=build-nasl-cli /source/target/release/nasl-cli /usr/local/bin/
+RUN chmod a+x /usr/local/bin/nasl-cli
 RUN ldconfig
 # allow openvas to access raw sockets and all kind of network related tasks
 RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
