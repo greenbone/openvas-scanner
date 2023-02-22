@@ -233,7 +233,7 @@ pub fn mktime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, F
 
 
 
-/// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
+/// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
 pub fn localtime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let named = register.named("utc");
     let utc_flag;
