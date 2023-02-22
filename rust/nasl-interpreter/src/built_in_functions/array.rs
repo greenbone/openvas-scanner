@@ -54,7 +54,7 @@ pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
 pub fn nasl_sort(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let mut values = nasl_make_list(register)?;
-    values.sort_by(|a, b| a.cmp(&b));
+    values.sort();
     Ok(NaslValue::Array(values))
 }
 
@@ -66,7 +66,7 @@ pub fn keys(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
         match val {
             NaslValue::Dict(x) => keys.extend(x.keys().map(|a| NaslValue::from(a.to_string()))),
             NaslValue::Array(x) =>
-                keys.extend((0..(x.len() as i64)).map(|a| NaslValue::from(a))),
+                keys.extend((0..(x.len() as i64)).map(NaslValue::from)),
             _ => return Ok(NaslValue::Null)
         }
     }
