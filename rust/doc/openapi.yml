@@ -126,33 +126,6 @@ paths:
           description: "Scan not found"
         "406":
           description: "A scan that has not started, does not contain results"
-    post:
-      description: "Get results from a scan and delete them"
-      operationId: "pop_results"
-      tags:
-        - "scan"
-        - "result"
-      parameters:
-        - $ref: "#/components/parameters/ID"
-        - name: range
-          in: query
-          description: Get a specific range of results
-          required: false
-          schema:
-            type: "string"
-      responses:
-        "200":
-          description: "A list of results."
-          content:
-            application/json:
-              schema:
-                type: "array"
-                items:
-                  $ref: "#/components/schemas/Result"
-        "404":
-          description: "Scan not found"
-        "406":
-          description: "A scan that has not started, does not contain results"
 
   /scan/{id}/result/{num}:
     get:
@@ -516,17 +489,15 @@ components:
           description: "In which phase the scan is currently in."
           type: "string"
           enum:
-            - created
-            - queued
-            - init
+            - requested
             - running
             - stopped
-            - interrupted
-            - finished
-        total_vts:
-          description: "The number of total vts run per host."
-          type: "integer"
-          format: "int32"
+            - failed
+            - succeeded
+        #     total_vts:
+        #       description: "The number of selected VTs for this scan."
+        #       type: "integer"
+        #       format: "int32"
         host_info:
           $ref: "#/components/schemas/HostInfo"
       required:
@@ -543,10 +514,6 @@ components:
           format: "int32"
         excluded:
           description: "The number of hosts excluded from the scan."
-          type: "integer"
-          format: "int32"
-        total:
-          description: "The number of total hosts to be scanned."
           type: "integer"
           format: "int32"
         dead:
@@ -566,23 +533,14 @@ components:
           type: "integer"
           format: "int32"
         scanning:
-          description: "The hosts that are currently scanned."
-          type: "object"
-          properties:
-            ip:
-              description: "The IP address of the host."
-              type: "string"
-            vts_done:
-              description: "The number of already executed VTs"
-              type: "integer"
-              format: "int32"
-            required:
-              - ip
-              - vts_done
+          description: "The IPs of the currently scanned hosts."
+          type: "array"
+          items:
+            type: "string"
+
       required:
         - all
         - excluded
-        - total
         - dead
         - alive
         - queued
