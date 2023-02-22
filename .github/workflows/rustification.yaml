@@ -88,7 +88,7 @@ jobs:
             ~/.cargo/git/db/
             rust/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: rustup update beta && rustup default beta
+      - run: rustup update stable && rustup default stable
       - run: cargo build --lib --release
       - run: cargo build --bins --release
       - name: archive nasl-cli
