@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: rustup update stable && rustup default stable && rustup component add clippy
-      - run: cargo clippy
+      - run: cargo clippy -- -D warnings
   audit:
     runs-on: ubuntu-latest
     defaults:
