@@ -29,11 +29,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clean
+          working-directory: rust
       - name: Build target
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
+          working-directory: rust
           args: --release --target ${{ matrix.target }}
       - name: archive nasl-cli
         uses: actions/upload-artifact@v3
