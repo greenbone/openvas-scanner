@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy: 
       matrix:
-        target: [ aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+        target: [ aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu ]
     steps:
       - name: Checkout
         uses: actions/checkout@v1
