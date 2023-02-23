@@ -88,7 +88,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: nasl-cli-${{ matrix.platform }}
-      - run: ls -las
+          path: bin/nasl-cli
+      - run: ls -las bin/
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
