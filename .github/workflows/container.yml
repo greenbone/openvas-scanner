@@ -11,40 +11,38 @@ on:
 
 jobs:
   nasl-cli-release:
-    runs-on: ubuntu-latest
-    strategy: 
-      matrix:
-        target: [ aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu ]
+    runs-on:
+     - ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: prepare that mess
-        run: rm -rf doc
-      - name: why-no-working-directory-in-uses
-        run: mv rust/* .
-      - name: Install rust
-        uses: actions-rs/toolchain@v1
+      # install rustup
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          target: ${{ matrix.target }}
-      - name: Build target
-        uses: actions-rs/cargo@v1
-        with:
-          command: clean
-      - name: Build target
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.target }}
-      - name: archive nasl-cli
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: rustup update stable && rustup default stable
+      - run: cargo install cross
+      - run: cross build --release --target aarch64-unknown-linux-gnu
+      - run: cross build --release --target x86_64-unknown-linux-gnu
+      - name: archive nasl-cli aarch64-unknown-linux-gnu
         uses: actions/upload-artifact@v3
         with:
-          # reuse docker platform notation
-          name: nasl-cli-${{ matrix.target }}
-          path: target/${{ matrix.target }}release/nasl-cli
+          name: nasl-cli-aarch64
+          path: rust/target/aarch64-unknown-linux-gnu/release/nasl-cli
+          retention-days: 1
+      - name: archive nasl-cli x86_64-unknown-linux-gnu
+        uses: actions/upload-artifact@v3
+        with:
+          name: nasl-cli-x86_64
+          path: rust/target/x86_64-unknown-linux-gnu/release/nasl-cli
           retention-days: 1
   production-image:
     name: "Upload production image"
