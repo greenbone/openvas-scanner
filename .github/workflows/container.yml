@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: why-no-working-directory-in-uses
+        run: mv rust/* .
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
@@ -29,20 +31,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clean
-          working-directory: rust
       - name: Build target
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          working-directory: rust
           args: --release --target ${{ matrix.target }}
       - name: archive nasl-cli
         uses: actions/upload-artifact@v3
         with:
           # reuse docker platform notation
           name: nasl-cli-${{ matrix.target }}
-          path: rust/target/${{ matrix.target }}release/nasl-cli
+          path: target/${{ matrix.target }}release/nasl-cli
           retention-days: 1
   production-image:
     name: "Upload production image"
