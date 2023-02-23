@@ -10,45 +10,6 @@ on:
   repository_dispatch:
 
 jobs:
-  # due to the long build time we prebuild the binaries
-  # for x86_64 and aarch64 linux.
-  nasl-cli-release:
-    runs-on:
-     - ubuntu-20.04
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      # install rustup
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            rust/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: rustup update stable && rustup default stable
-      - run: rustup target add x86_64-unknown-linux-gnu
-      - run: rustup target add aarch64-unknown-linux-gnu
-      - run: cargo build --release --target x86_64-unknown-linux-gnu
-      - run: cargo build --release --target aarch64-unknown-linux-gnu
-      - name: archive nasl-cli x86_64
-        uses: actions/upload-artifact@v3
-        with:
-          # reuse docker platform notation
-          name: nasl-cli-amd64
-          path: rust/target/x86_64-unknown-linux-gnu/release/nasl-cli
-          retention-days: 1
-      - name: archive nasl-cli aarch64
-        uses: actions/upload-artifact@v3
-        with:
-          # reuse docker platform notation
-          name: nasl-cli-aarch64
-          path: rust/target/aarch64-unknown-linux-gnu/release/nasl-cli
-          retention-days: 1
   main:
     name: "Upload production image"
     runs-on: ubuntu-latest
