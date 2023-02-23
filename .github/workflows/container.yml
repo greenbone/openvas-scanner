@@ -28,7 +28,6 @@ jobs:
       - name: Build target
         uses: actions-rs/cargo@v1
         with:
-          use-cross: true
           command: clean
       - name: Build target
         uses: actions-rs/cargo@v1
