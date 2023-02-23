@@ -18,8 +18,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: prepare that mess
+        run: rm -rf doc
       - name: why-no-working-directory-in-uses
-        run: mv -f rust/* .
+        run: mv rust/* .
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
