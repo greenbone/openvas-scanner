@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libpopt0 \
     && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
-# must be prebuilt within the rust dir and moved to the bin dir
+# must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
 COPY bin/nasl-cli /usr/local/bin/nasl-cli

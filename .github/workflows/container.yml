@@ -89,7 +89,6 @@ jobs:
         with:
           name: nasl-cli-${{ matrix.platform }}
           path: bin/nasl-cli
-      - run: ls -las bin/
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
