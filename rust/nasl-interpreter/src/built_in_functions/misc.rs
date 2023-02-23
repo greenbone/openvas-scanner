@@ -54,7 +54,7 @@ pub fn dec2str(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, 
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
 pub fn nasl_typeof(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
-    if positional.len() == 0 {
+    if positional.is_empty() {
         return Ok(NaslValue::Null);
     }
     match positional[0] {

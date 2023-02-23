@@ -23,7 +23,6 @@ pub(crate) trait AssignExtension {
     ) -> InterpretResult;
 }
 
-#[inline(always)]
 fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
     let idx = i64::from(idx) as usize;
     let mut arr: Vec<NaslValue> = match left {
@@ -39,7 +38,6 @@ fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
     (idx, arr)
 }
 
-#[inline(always)]
 fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     match left {
         NaslValue::Array(x) => x
@@ -54,14 +52,12 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
 }
 
 impl<'a> Interpreter<'a> {
-    #[inline(always)]
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
         self.registrat
             .add_to_index(idx, key, ContextType::Value(value))
             .unwrap();
     }
 
-    #[inline(always)]
     fn named_value(&self, key: &str) -> Result<(usize, NaslValue), InterpretError> {
         match self
             .registrat()
@@ -73,7 +69,6 @@ impl<'a> Interpreter<'a> {
         }
     }
     #[allow(clippy::too_many_arguments)]
-    #[inline(always)]
     fn handle_dict(
         &mut self,
         ridx: usize,
@@ -104,7 +99,6 @@ impl<'a> Interpreter<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[inline(always)]
     fn handle_array(
         &mut self,
         ridx: usize,
@@ -133,7 +127,6 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    #[inline(always)]
     fn store_return(
         &mut self,
         key: &str,
@@ -144,7 +137,6 @@ impl<'a> Interpreter<'a> {
         self.dynamic_return(key, &AssignOrder::AssignReturn, lookup, right, result)
     }
 
-    #[inline(always)]
     fn dynamic_return(
         &mut self,
         key: &str,
@@ -181,7 +173,6 @@ impl<'a> Interpreter<'a> {
         };
         Ok(result)
     }
-    #[inline(always)]
     fn without_right(
         &mut self,
         order: &AssignOrder,

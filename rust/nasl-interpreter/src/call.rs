@@ -16,7 +16,6 @@ pub(crate) trait CallExtension {
 }
 
 impl<'a> CallExtension for Interpreter<'a> {
-    #[inline(always)]
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context

@@ -14,7 +14,6 @@ pub(crate) trait OperatorExtension {
 }
 
 impl<'a> Interpreter<'a> {
-    #[inline(always)]
     fn execute(
         &mut self,
         stmts: &[Statement],
@@ -35,7 +34,6 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-#[inline(always)]
 fn as_i64(left: NaslValue, right: Option<NaslValue>) -> (i64, i64) {
     (
         i64::from(&left),
