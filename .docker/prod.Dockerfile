@@ -13,7 +13,8 @@ RUN DESTDIR=/install cmake --build /build -- install
 FROM rust AS build-nasl-cli
 COPY ./rust /source
 WORKDIR /source
-RUN cargo build --release
+RUN cargo build --lib --release
+RUN cargo build --bins --release
 
 FROM greenbone/gvm-libs:$VERSION
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
