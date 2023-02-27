@@ -1,12 +1,8 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-    time::Instant,
-};
+use std::{io, path::PathBuf};
 
 use nasl_interpreter::{
-    ContextType, FSPluginLoader, InterpretError, InterpretErrorKind, Interpreter, LoadError,
-    Loader, NaslValue, Register,
+    FSPluginLoader, InterpretError, InterpretErrorKind, Interpreter, LoadError, Loader, NaslValue,
+    Register,
 };
 use nasl_syntax::Statement;
 use sink::{nvt::NVTField, Sink, SinkError};
@@ -37,37 +33,6 @@ fn retry_interpret(
             _ => Err(e),
         },
     }
-}
-
-fn run_single(
-    verbose: bool,
-    initial: &[(String, ContextType)],
-    entry: &Path,
-    storage: &dyn Sink,
-    loader: &dyn Loader,
-    root_dir_len: usize,
-) -> Result<(), CliErrorKind> {
-    let code = FSPluginLoader::load_non_utf8_path(entry)?;
-    let mut register = Register::root_initial(initial);
-
-    // the key is the filename without the root dir and is used to set the filename
-    // when script_oid is called in the redis sink implementation
-    let key = entry
-        .to_str()
-        .map(|x| &x[root_dir_len..])
-        .unwrap_or_default();
-
-    let mut interpreter = Interpreter::new(key, storage, loader, &mut register);
-    if verbose {
-        print!("{key};");
-        let start = Instant::now();
-        let result = execute_description_run(&mut interpreter, storage, &code, key)?;
-        let elapsed = start.elapsed();
-        println!("{result};{elapsed:?}");
-    } else {
-        execute_description_run(&mut interpreter, storage, &code, key)?;
-    }
-    Ok(())
 }
 
 fn load_code(loader: &dyn Loader, key: &str) -> Result<String, CliError> {
@@ -116,10 +81,6 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
     if verbose {
         println!("description run syntax in {path:?}.");
     }
-    let initial = [
-        ("description".to_owned(), true.into()),
-        ("OPENVAS_VERSION".to_owned(), "1".into()),
-    ];
     let root_dir = path.clone();
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
@@ -146,6 +107,7 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
 
     // load feed version
     add_feed_version_to_storage(&loader, storage)?;
+    let updater = feed::Update::new("1", 5, &loader, storage);
 
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         let ext = {
@@ -156,41 +118,28 @@ pub fn run(storage: &dyn Sink, path: PathBuf, verbose: bool) -> Result<(), CliEr
             }
         };
         if matches!(ext.as_str(), "nasl") {
-            run_single(
-                verbose,
-                &initial,
-                entry.path(),
-                storage,
-                &loader,
-                root_dir_len,
-            )
-            .map_err(|kind| CliError {
-                filename: entry.path().to_str().unwrap_or_default().to_owned(),
-                kind,
-            })?;
+            updater
+                .single(&feed::Key::NASLPath {
+                    path: entry.path(),
+                    root_dir_len,
+                })
+                .map_err(|e| CliError {
+                    filename: entry.path().to_str().unwrap_or_default().to_owned(),
+                    kind: e.into(),
+                })?;
         }
     }
     Ok(())
 }
 
-fn execute_description_run(
-    interpreter: &mut Interpreter,
-    storage: &dyn Sink,
-    code: &str,
-    key: &str,
-) -> Result<NaslValue, CliErrorKind> {
-    for stmt in nasl_syntax::parse(code) {
-        match retry_interpret(interpreter, &stmt?) {
-            Ok(NaslValue::Exit(i)) => {
-                storage.on_exit()?;
-                return Ok(NaslValue::Exit(i));
-            }
-            Ok(_) => {}
-            Err(e) => return Err(e.into()),
+impl From<feed::UpdateError> for CliErrorKind {
+    fn from(value: feed::UpdateError) -> Self {
+        match value {
+            feed::UpdateError::InterpretError(e) => CliErrorKind::InterpretError(e),
+            feed::UpdateError::SyntaxError(e) => CliErrorKind::SyntaxError(e),
+            feed::UpdateError::SinkError(e) => CliErrorKind::SinkError(e),
+            feed::UpdateError::LoadError(e) => CliErrorKind::LoadError(e),
+            feed::UpdateError::MissingExit { key } => CliErrorKind::NoExitCall(key),
         }
     }
-    // each description run must end with exit call.
-    // otherwise the whole nasl plugin will be executed
-    // that's why we escalate on those cases.
-    Err(CliErrorKind::NoExitCall(key.to_owned()))
 }

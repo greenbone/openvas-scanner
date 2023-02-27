@@ -398,6 +398,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "feed"
+version = "0.1.0"
+dependencies = [
+ "nasl-interpreter",
+ "nasl-syntax",
+ "sink",
+]
+
+[[package]]
 name = "feed-verifier"
 version = "0.1.0"
 dependencies = [
@@ -659,6 +668,7 @@ version = "0.1.0"
 dependencies = [
  "clap 4.1.6",
  "configparser",
+ "feed",
  "nasl-interpreter",
  "nasl-syntax",
  "redis-sink",

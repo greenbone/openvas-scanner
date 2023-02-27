@@ -1,5 +1,5 @@
 [package]
-name = "nasl-cli"
+name = "feed"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-2.0-or-later"
@@ -7,16 +7,6 @@ license = "GPL-2.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# argument parsing
-clap = { version = "~4" }
-# read openvas conifuration; until we use own toml file
-configparser = "3"
-# recursively walk through a dir
-walkdir = "2"
-
-feed = {path = "../feed"}
 nasl-syntax = { path = "../nasl-syntax" }
 nasl-interpreter = { path = "../nasl-interpreter" }
 sink = { path = "../sink" }
-redis-sink = { path = "../redis-sink" }
-

@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::io;
+
 use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
-use sink::Sink;
+use sink::{Sink, SinkError};
 
 use crate::{
     assign::AssignExtension,
@@ -14,7 +16,7 @@ use crate::{
     loader::Loader,
     loop_extension::LoopExtension,
     operator::OperatorExtension,
-    InterpretError, NaslValue,
+    InterpretError, InterpretErrorKind, LoadError, NaslValue,
 };
 
 /// Used to interpret a Statement
@@ -50,6 +52,36 @@ impl<'a> Interpreter<'a> {
         match token.category() {
             TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
             cat => Err(InterpretError::wrong_category(cat)),
+        }
+    }
+
+    /// Tries to interpret a statement and retries n times on a retry error
+    ///
+    /// When encountering a retryavle error:
+    /// - LoadError(Retry(_))
+    /// - SinkError(Retry(_))
+    /// - IOError(Interrupted(_))
+    ///
+    /// then it retries the statement for a given max_attempts times.
+    ///
+    /// When max_attempts is set to 0 it will it execute it once.
+    pub fn retry_resolve(&mut self, stmt: &Statement, max_attempts: usize) -> InterpretResult {
+        match self.resolve(stmt) {
+            Ok(x) => Ok(x),
+            Err(e) => {
+                if max_attempts > 0 {
+                    match e.kind {
+                        InterpretErrorKind::LoadError(LoadError::Retry(_))
+                        | InterpretErrorKind::IOError(io::ErrorKind::Interrupted)
+                        | InterpretErrorKind::SinkError(SinkError::Retry(_)) => {
+                            self.retry_resolve(stmt, max_attempts - 1)
+                        }
+                        _ => Err(e),
+                    }
+                } else {
+                    Err(e)
+                }
+            }
         }
     }
 
