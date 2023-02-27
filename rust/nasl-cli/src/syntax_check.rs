@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use nasl_interpreter::FSPluginLoader;
+use nasl_interpreter::load_non_utf8_path;
 use nasl_syntax::{Statement, SyntaxError};
 use walkdir::WalkDir;
 
 use crate::{CliError, CliErrorKind};
 
 fn read_errors<P: AsRef<Path>>(path: P) -> Result<Vec<SyntaxError>, CliErrorKind> {
-    let code = FSPluginLoader::load_non_utf8_path(path.as_ref())?;
+    let code = load_non_utf8_path(path.as_ref())?;
     Ok(nasl_syntax::parse(&code)
         .filter_map(|r| match r {
             Ok(_) => None,
@@ -17,7 +17,7 @@ fn read_errors<P: AsRef<Path>>(path: P) -> Result<Vec<SyntaxError>, CliErrorKind
 }
 
 fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, CliErrorKind> {
-    let code = FSPluginLoader::load_non_utf8_path(path.as_ref())?;
+    let code = load_non_utf8_path(path.as_ref())?;
     Ok(nasl_syntax::parse(&code).collect())
 }
 

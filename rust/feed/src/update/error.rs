@@ -2,13 +2,23 @@ use nasl_interpreter::{InterpretError, LoadError};
 use nasl_syntax::SyntaxError;
 use sink::SinkError;
 
+use crate::verify;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Errors within feed handling
 pub enum Error {
+    /// An InterpretError occurred while interpreting
     InterpretError(InterpretError),
+    /// NASL script contains an SyntaxError
     SyntaxError(SyntaxError),
+    /// Sink is unable to handle operation
     SinkError(SinkError),
+    /// Loader is unable to handle operation
     LoadError(LoadError),
-    MissingExit { key: String },
+    /// Description if block without exit
+    MissingExit(String),
+    /// Describes an error while verifying the file
+    VerifyError(verify::Error),
 }
 
 impl From<LoadError> for Error {

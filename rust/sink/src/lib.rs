@@ -91,6 +91,19 @@ pub trait Sink {
     ///
     /// Some database require a cleanup therefore this method is called when a script finishes.
     fn on_exit(&self) -> Result<(), SinkError>;
+
+    fn retry_dispatch(&self, retries: usize, key: &str, scope: Dispatch) -> Result<(), SinkError> {
+        match self.dispatch(key, scope.clone()) {
+            Ok(r) => Ok(r),
+            Err(e) => {
+                if retries > 0 && matches!(e, SinkError::Retry(_)) {
+                    self.retry_dispatch(retries - 1, key, scope)
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
 }
 
 /// Contains a Vector of all stored items.

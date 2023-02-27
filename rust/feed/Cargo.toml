@@ -10,3 +10,5 @@ license = "GPL-2.0-or-later"
 nasl-syntax = { path = "../nasl-syntax" }
 nasl-interpreter = { path = "../nasl-interpreter" }
 sink = { path = "../sink" }
+sha2 = "0.10.6"
+hex = "0.4.3"

@@ -401,8 +401,10 @@ dependencies = [
 name = "feed"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "nasl-interpreter",
  "nasl-syntax",
+ "sha2",
  "sink",
 ]
 
