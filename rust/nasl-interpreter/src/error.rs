@@ -20,6 +20,7 @@ pub enum FunctionErrorKind {
     WrongArgument(String),
     // Diagnostic string is informational and the second arg is the return value for the user
     Diagnostic(String, Option<NaslValue>),
+    GeneralError(String),
 }
 
 impl From<(&str, &str, &str)> for FunctionErrorKind {
