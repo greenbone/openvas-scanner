@@ -22,3 +22,6 @@ chrono = { version = "0.4.23", default-features = false, features = ["clock"]}
 pcap = "1.0.0"
 pnet_base = "0.33.0"
 pnet = "0.33.0"
+aes = "0.8.2"
+cbc-mac = "0.1.1"
+cbc = "0.1.2"
