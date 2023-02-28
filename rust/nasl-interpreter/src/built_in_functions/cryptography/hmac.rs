@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Defines NASL functions that deal with cryptography
-
 use digest::{
     block_buffer::Eager,
     core_api::{BufferKindUser, CoreProxy, FixedOutputCore, UpdateCore},
