@@ -7,7 +7,10 @@
 use core::fmt::Write;
 
 use crate::{
-    context::ContextType, error::FunctionError, Context, NaslFunction, NaslValue, Register,
+    context::ContextType,
+    error::FunctionError,
+    helper::{decode_hex, encode_hex},
+    Context, NaslFunction, NaslValue, Register,
 };
 
 use super::resolve_positional_arguments;
@@ -210,6 +213,58 @@ fn hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
     }
 }
 
+/// NASL function to convert a hexadecimal representation into byte data.
+///
+/// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
+fn hexstr_to_data<K>(
+    _: &str,
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionError> {
+    match resolve_positional_arguments(register).get(0) {
+        Some(NaslValue::String(x)) => match decode_hex(x) {
+            Ok(y) => Ok(NaslValue::Data(y)),
+            Err(_) => Err(FunctionError::new(
+                "hexstr_to_data",
+                (
+                    "first positional argument",
+                    "a string only containing 0-9a-fA-F of a even length",
+                    x.as_str(),
+                )
+                    .into(),
+            )),
+        },
+        Some(x) => Err(FunctionError::new(
+            "hexstr_to_data",
+            (
+                "first positional argument",
+                "string",
+                x.to_string().as_str(),
+            )
+                .into(),
+        )),
+        None => Err(FunctionError::new("hexstr_to_data", "0".into())),
+    }
+}
+
+/// NASL function to convert byte data into hexadecimal representation as lower case string.
+///
+/// The first positional argument must be byte data, all other arguments are ignored. If either the no argument was given or the first positional is not byte data, a error is returned.
+fn data_to_hexstr<K>(
+    _: &str,
+    register: &Register,
+    _: Context<K>,
+) -> Result<NaslValue, FunctionError> {
+    match resolve_positional_arguments(register).get(0) {
+        Some(NaslValue::Data(x)) => Ok(encode_hex(x).into()),
+        Some(x) => Err(FunctionError::new(
+            "data_to_hexstr",
+            ("first positional argument", "data", x.to_string().as_str()).into(),
+        )),
+        None => Err(FunctionError::new("data_to_hexstr", "0".into())),
+    }
+}
+
 /// NASL function to return a buffer of required length with repeated occurrences of a specified string
 ///
 /// Length argument is required and can be a named argument or a positional argument.
@@ -308,6 +363,8 @@ pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
         "chomp" => Some(chomp),
         "stridx" => Some(stridx),
         "display" => Some(display),
+        "hexstr_to_data" => Some(hexstr_to_data),
+        "data_to_hexstr" => Some(data_to_hexstr),
         _ => None,
     }
 }
@@ -516,5 +573,31 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+    }
+
+    #[test]
+    fn hexstr_to_data() {
+        let code = r###"
+        a = hexstr_to_data("4bb3c4a4f893ad8c9bdc833c325d62b3");
+        data_to_hexstr(a);
+        "###;
+        let mut register = Register::default();
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(vec![
+                75, 179, 196, 164, 248, 147, 173, 140, 155, 220, 131, 60, 50, 93, 98, 179
+            ])))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String(
+                "4bb3c4a4f893ad8c9bdc833c325d62b3".to_string()
+            )))
+        );
     }
 }
