@@ -11,6 +11,7 @@ pub mod function;
 pub mod hostname;
 pub mod misc;
 pub mod string;
+pub mod frame_forgery;
 
 pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
     match register.named(FC_ANON_ARGS).cloned() {
