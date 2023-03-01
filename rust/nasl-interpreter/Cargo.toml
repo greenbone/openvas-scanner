@@ -19,3 +19,6 @@ sha1 = "0.10.5"
 sha2 = "0.10.6"
 flate2 = "1.0.25"
 chrono = { version = "0.4.23", default-features = false, features = ["clock"]}
+pcap = "1.0.0"
+pnet_base = "0.33.0"
+pnet = "0.33.0"
