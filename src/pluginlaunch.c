@@ -25,6 +25,7 @@
 
 #include "pluginlaunch.h"
 
+#include "../misc/heartbeat.h" /* for check_host_still_alive */
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h" /* for ACT_SCANNER */
 #include "../misc/plugutils.h"      /* for get_plugin_preference */
