@@ -31,6 +31,7 @@ pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
+pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=22.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 
@@ -87,7 +88,7 @@ include_directories (${GLIB_INCLUDE_DIRS} ${GLIB_JSON_INCLUDE_DIRS}
 
 set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
      scan_id.c strutils.c table_driven_lsc.c ipc.c ipc_openvas.c ipc_pipe.c
-     user_agent.c scanneraux.c kb_cache.c)
+     user_agent.c scanneraux.c kb_cache.c heartbeat.c)
 
 # On windows we are always PIC and stack-protector is replaces by DEP
 # Also stack protection needs a shared library to work
@@ -102,8 +103,10 @@ set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
 set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 
-target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS} ${PCAP_LDFLAGS}
+target_link_libraries (openvas_misc_shared LINK_PRIVATE
+                       ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
+                       ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS}
+                       ${PCAP_LDFLAGS} ${LIBGVM_BOREAS_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 if (OPENVAS_STATE_DIR)
