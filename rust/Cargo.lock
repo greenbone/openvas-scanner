@@ -819,6 +819,7 @@ dependencies = [
  "cbc",
  "ccm",
  "chrono",
+ "ctr",
  "digest",
  "flate2",
  "hex",
