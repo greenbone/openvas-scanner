@@ -236,7 +236,10 @@ where
         ("mday".to_string(), NaslValue::from(date.day() as i64)),
         ("mon".to_string(), NaslValue::from(date.month() as i64)),
         ("year".to_string(), NaslValue::from(date.year() as i64)),
-        ("wday".to_string(), NaslValue::from(date.weekday() as i64 + 1)),
+        (
+            "wday".to_string(),
+            NaslValue::from(date.weekday() as i64 + 1),
+        ),
         ("yday".to_string(), NaslValue::from(date.ordinal() as i64)),
         // TODO: fix isdst
         ("isdst".to_string(), NaslValue::from(0)),
@@ -258,13 +261,13 @@ pub fn localtime(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue
     let date = match (utc_flag, secs) {
         (true, 0) => create_localtime_map(Utc::now()),
         (true, secs) => match Utc.timestamp_opt(secs, 0) {
-                LocalResult::Single(x) => create_localtime_map(x),
+            LocalResult::Single(x) => create_localtime_map(x),
             _ => create_localtime_map(Utc::now()),
-        }
+        },
         (false, 0) => create_localtime_map(Local::now()),
         (false, secs) => match Local.timestamp_opt(secs, 0) {
             LocalResult::Single(x) => create_localtime_map(x),
-            _ => create_localtime_map(Local::now())
+            _ => create_localtime_map(Local::now()),
         },
     };
 
@@ -293,7 +296,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use crate::{Interpreter, NaslValue, NoOpLoader, Register};
-    use chrono::{Offset};
+    use chrono::Offset;
     use nasl_syntax::parse;
     use sink::DefaultSink;
     use std::time::Instant;

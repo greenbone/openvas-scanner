@@ -39,8 +39,11 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionError> 
         match val {
             NaslValue::Dict(x) => values.extend(x.values().cloned().collect::<Vec<NaslValue>>()),
             NaslValue::Array(x) => values.extend(x.clone()),
-            NaslValue::Null => println!("{:?}", FunctionError::new("make_list", ("0", "NaslValue").into())),
-            x => values.push(x.clone())
+            NaslValue::Null => println!(
+                "{:?}",
+                FunctionError::new("make_list", ("0", "NaslValue").into())
+            ),
+            x => values.push(x.clone()),
         }
     }
     Ok(values)
@@ -65,9 +68,8 @@ pub fn keys(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
     for val in positional.iter() {
         match val {
             NaslValue::Dict(x) => keys.extend(x.keys().map(|a| NaslValue::from(a.to_string()))),
-            NaslValue::Array(x) =>
-                keys.extend((0..(x.len() as i64)).map(NaslValue::from)),
-            _ => return Ok(NaslValue::Null)
+            NaslValue::Array(x) => keys.extend((0..(x.len() as i64)).map(NaslValue::from)),
+            _ => return Ok(NaslValue::Null),
         }
     }
 
@@ -78,9 +80,9 @@ pub fn keys(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
 pub fn max_index(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Ok(NaslValue::Null)
+        return Ok(NaslValue::Null);
     };
-    
+
     match &positional[0] {
         NaslValue::Dict(x) => Ok(NaslValue::Number(x.len() as i64)),
         NaslValue::Array(x) => Ok(NaslValue::Number(x.len() as i64)),
@@ -162,25 +164,46 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
-        assert_eq!(parser.next(),
-                   Some(Ok(NaslValue::Array(vec![NaslValue::Number(2),NaslValue::Number(4)]))));
-        assert_eq!(parser.next(),
-                   Some(Ok(NaslValue::Array(vec![NaslValue::Number(1),NaslValue::Number(0)]))));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(2),
+                NaslValue::Number(4)
+            ])))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(1),
+                NaslValue::Number(0)
+            ])))
+        );
         assert_eq!(parser.next(), Some(Ok(NaslValue::Array([].into()))));
-        assert_eq!(parser.next(),
-                   Some(Ok(NaslValue::Array(vec![NaslValue::Number(1),NaslValue::Number(2)]))));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(1),
+                NaslValue::Number(2)
+            ])))
+        );
         parser.next();
-        assert_eq!(parser.next(),
-                   Some(Ok(NaslValue::Array(vec![
-                       NaslValue::Number(1),
-                       NaslValue::Number(0),
-                       NaslValue::Number(6)]))));
-        assert_eq!(parser.next(),
-                   Some(Ok(NaslValue::Array(vec![
-                       NaslValue::Number(1),
-                       NaslValue::Number(0),
-                       NaslValue::Number(2),
-                       NaslValue::Number(4)]))));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(1),
+                NaslValue::Number(0),
+                NaslValue::Number(6)
+            ])))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(1),
+                NaslValue::Number(0),
+                NaslValue::Number(2),
+                NaslValue::Number(4)
+            ])))
+        );
     }
 
     #[test]
@@ -200,12 +223,13 @@ mod tests {
         parser.next();
         let a = parser.next();
         let b = Some(Ok(NaslValue::Array(vec![
-                       NaslValue::Number(0),
-                       NaslValue::Number(1),
-                       NaslValue::Number(6),
-                       NaslValue::Number(8),
-                       NaslValue::String("aaaa".to_string()),
-                       NaslValue::String("abbb".to_string())])));
+            NaslValue::Number(0),
+            NaslValue::Number(1),
+            NaslValue::Number(6),
+            NaslValue::Number(8),
+            NaslValue::String("aaaa".to_string()),
+            NaslValue::String("abbb".to_string()),
+        ])));
         assert_eq!(a, b);
     }
 
@@ -226,9 +250,10 @@ mod tests {
         parser.next();
         let a = parser.next();
         let b = Some(Ok(NaslValue::Array(vec![
-                       NaslValue::String("a".to_string()),
-                       NaslValue::Number(0),
-                       NaslValue::Number(1)])));
+            NaslValue::String("a".to_string()),
+            NaslValue::Number(0),
+            NaslValue::Number(1),
+        ])));
 
         assert_eq!(a, b);
     }
@@ -254,5 +279,4 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(0))));
     }
-
 }
