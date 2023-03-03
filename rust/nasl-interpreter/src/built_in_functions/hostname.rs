@@ -25,7 +25,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
     );
 
     match target.to_socket_addrs() {
-        Ok(mut addr) => Ok(addr.next().map_or_else(String::new, |x|x.to_string())),
+        Ok(mut addr) => Ok(addr.next().map_or_else(String::new, |x| x.to_string())),
         // assumes that target is already a hostname
         Err(_) => Ok(target),
     }
@@ -40,8 +40,7 @@ pub fn get_host_names(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-    resolve_hostname(register)
-        .map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
+    resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
 /// NASL function to get the current hostname

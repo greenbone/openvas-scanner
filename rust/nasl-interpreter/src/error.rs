@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{io, convert::Infallible};
+use std::{convert::Infallible, io};
 
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
 use sink::SinkError;
@@ -78,16 +78,18 @@ impl From<(&str, &NaslValue)> for FunctionErrorKind {
     }
 }
 
-pub fn explore_diagnostic (err: FunctionErrorKind) -> (String, NaslValue) {
+pub fn explore_diagnostic(err: FunctionErrorKind) -> (String, NaslValue) {
     match err {
-        FunctionErrorKind::Diagnostic(a,b) => (a, match b {
-            Some(nv) => nv,
-            _ => NaslValue::Null,
-        }),
-        _ => ("".to_string() , NaslValue::Null)       
+        FunctionErrorKind::Diagnostic(a, b) => (
+            a,
+            match b {
+                Some(nv) => nv,
+                _ => NaslValue::Null,
+            },
+        ),
+        _ => ("".to_string(), NaslValue::Null),
     }
 }
-
 
 impl From<SinkError> for FunctionErrorKind {
     fn from(se: SinkError) -> Self {

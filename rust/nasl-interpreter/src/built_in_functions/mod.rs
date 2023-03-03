@@ -7,11 +7,11 @@ use crate::{lookup_keys::FC_ANON_ARGS, ContextType, NaslValue, Register};
 pub mod array;
 pub mod cryptography;
 pub mod description;
+pub mod frame_forgery;
 pub mod function;
 pub mod hostname;
 pub mod misc;
 pub mod string;
-pub mod frame_forgery;
 
 pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
     match register.named(FC_ANON_ARGS).cloned() {
