@@ -6,6 +6,7 @@
 use pnet::datalink::{interfaces, NetworkInterface};
 use pnet_base::MacAddr;
 use std::fmt;
+use std::net::{ToSocketAddrs, Ipv6Addr};
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     str::FromStr,
@@ -26,6 +27,8 @@ const ETHERTYPE_ARP: u16 = 0x0806;
 const ETH_ALEN: u8 = 0x0006;
 const ARP_PROTO_LEN: u8 = 0x0004;
 const ARPOP_REQUEST: u16 = 0x0001;
+
+const DEFAULT_TIMEOUT: i32 = 5000;
 
 #[derive(Debug)]
 pub struct Frame {
@@ -210,6 +213,31 @@ impl From<ArpFrame> for Vec<u8> {
     }
 }
 
+
+fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
+    let mut frame = Frame::new();
+    frame.set_srchaddr(eth_src);
+    frame.set_dsthaddr(MacAddr::broadcast());
+    frame.set_ethertype(ETHERTYPE_ARP.to_be());
+
+    let mut arp_frame = ArpFrame::new();
+    arp_frame.set_srchaddr(eth_src);
+    arp_frame.set_srcip(src_ip);
+    arp_frame.set_dsthaddr(MacAddr::broadcast());
+    arp_frame.set_dstip(dst_ip);
+
+    frame.set_payload(arp_frame.into());
+    frame.into()
+}
+fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -> Vec<u8> {
+    let mut frame = Frame::new();
+    frame.set_srchaddr(src);
+    frame.set_dsthaddr(dst);
+    frame.set_ethertype(ether_proto.to_be());
+    frame.set_payload(payload);
+    frame.into()
+}
+
 fn convert_vec_into_mac_address(v: &Vec<u8>) -> Result<MacAddr, FunctionError> {
     if v.len() != 6 {
         Err(FunctionError::new(
@@ -246,33 +274,9 @@ fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErro
     }
 }
 
-fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
-    let mut frame = Frame::new();
-    frame.set_srchaddr(eth_src);
-    frame.set_dsthaddr(MacAddr::broadcast());
-    frame.set_ethertype(ETHERTYPE_ARP.to_be());
-
-    let mut arp_frame = ArpFrame::new();
-    arp_frame.set_srchaddr(eth_src);
-    arp_frame.set_srcip(src_ip);
-    arp_frame.set_dsthaddr(MacAddr::broadcast());
-    arp_frame.set_dstip(dst_ip);
-
-    frame.set_payload(arp_frame.into());
-    frame.into()
-}
-fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -> Vec<u8> {
-    let mut frame = Frame::new();
-    frame.set_srchaddr(src);
-    frame.set_dsthaddr(dst);
-    frame.set_ethertype(ether_proto.to_be());
-    frame.set_payload(payload);
-    frame.into()
-}
-
 /// Return the macaddr, given the iface name
-fn get_local_mac_address(name: String) -> Option<MacAddr> {
-    match interfaces().into_iter().filter(|x| x.name == name).next() {
+fn get_local_mac_address(name: &String) -> Option<MacAddr> {
+    match interfaces().into_iter().filter(|x| x.name == *name).next() {
         Some(dev) => dev.mac,
         _ => None,
     }
@@ -287,27 +291,34 @@ fn get_interface_by_name(name: String) -> Option<Device> {
 }
 
 /// Get the interface from the local ip
-fn get_interface_by_ip(local_addr: IpAddr) -> Result<Device, FunctionError> {
+fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionError> {
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
     // doesn't have an associated address.
-    let fake_ip = Address {
-        addr: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+
+
+    let fake_ip = match local_address {
+        V4 => IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+        V6 => IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+    };
+    
+    let fake_addr = Address {
+        addr: fake_ip,
         broadcast_addr: None,
         netmask: None,
         dst_addr: None,
     };
 
-    let ip_match = |ip: &Address| ip.addr.eq(&local_addr);
+    let ip_match = |ip: &Address| ip.addr.eq(&local_address);
 
     let dev = match Device::list() {
         Ok(devices) => devices
             .into_iter()
             .filter(|x| {
-                local_addr
+                local_address
                     == (x.addresses.clone().into_iter().filter(ip_match))
                         .next()
-                        .unwrap_or(fake_ip.to_owned())
+                        .unwrap_or(fake_addr.to_owned())
                         .addr
             })
             .next(),
@@ -323,21 +334,41 @@ fn get_interface_by_ip(local_addr: IpAddr) -> Result<Device, FunctionError> {
     }
 }
 
-fn get_source_ip(dst: IpAddr, port: u32) -> Option<SocketAddr> {
-    let local_socket = UdpSocket::bind("0.0.0.0:0").expect("Error binding");
+fn bind_local_socket (dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
+    let fe = Err(FunctionError::new(
+                "get_source_ip",
+                FunctionErrorKind::Diagnostic("Error binding".to_string(), None),
+            ));
+    match dst { 
+        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
+        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
+    }
+}
+    
+fn get_source_ip(dst: SocketAddr, port: u32) -> Result<IpAddr, FunctionError> {
+
+    
+    let target = dst.ip();
     let sd = format!("{}:{}", dst, port);
+    let local_socket = bind_local_socket(&dst)?;
     match local_socket.connect(sd) {
         Ok(_) => match local_socket.local_addr() {
-            Ok(l_addr) => Some(l_addr),
-            Err(_) => {
-                println!("Error binding");
-                None
+            Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
+                Ok(x) => Ok(x),
+                Err(_) => Err(FunctionError::new(
+                    "get_source_ip",
+                    FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+                )),
             }
+            Err(_) => Err(FunctionError::new(
+                "get_source_ip",
+                FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+            )),
         },
-        Err(_) => {
-            println!("Error binding");
-            None
-        }
+        Err(_) => Err(FunctionError::new(
+                "get_source_ip",
+                FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+            )),
     }
 }
 
@@ -357,31 +388,42 @@ fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &String) -> Result<Frame,
 fn send_frame(
     frame: &[u8],
     iface: &Device,
+    pcap_active: &bool,
     filter: Option<&String>,
-) -> Result<Frame, FunctionError> {
+    timeout: i32,
+) -> Result<Option<Frame>, FunctionError> {
     let mut capture_dev = match Capture::from_device(iface.clone()) {
-        Ok(c) => match c.promisc(true).timeout(10).snaplen(5000).open() {
+        Ok(c) => match c.promisc(true).timeout(10).snaplen(timeout).open() {
             Ok(mut capture) => {
                 capture.sendpacket(frame);
                 capture
             }
-            Err(_) => return Ok(Frame::new()),
+            Err(_) => return Ok(None),
         },
-        Err(_) => return Ok(Frame::new()),
+        Err(_) => return Ok(None),
     };
-
-    // if pcap enabled and a filter was given
+    
+    if *pcap_active == true {
+        return Ok(None);
+    }
+        
+    // if pcap enabled use the filter or get first received frame.
     match filter {
         Some(f) => {
             let frame = recv_frame(&mut capture_dev, f)?;
-            Ok(frame)
+            Ok(Some(frame))
         }
-        _ => Ok(Frame::new()),
+        _ => {
+            let frame = recv_frame(&mut capture_dev, &String::from(""))?;
+            Ok(Some(frame))
+        }
+    
     }
 }
 
-fn ipstr2ipaddr(ip_addr: String) -> Result<IpAddr, FunctionError> {
-    match IpAddr::from_str(&ip_addr) {
+
+fn ipstr2ipaddr(ip_addr: &String) -> Result<IpAddr, FunctionError> {
+    match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
         Err(_) => Err(FunctionError::new(
             "ipstr2ipaddr",
@@ -399,7 +441,63 @@ fn nasl_send_arp_request(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-    Ok(NaslValue::Null)
+
+    let timeout = match register.named("filter") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32 , // to miliseconds
+        Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
+        _ => {
+            return Err(FunctionError::new(
+                "send_frame",
+                ("Integer", "Invalid timeout value").into(),
+            ))
+        }
+    };    
+
+    // TODO: implement plug_get_host_ip(). I use fake target ip here
+    let target_ip = SocketAddr::from_str("0.0.0.0").unwrap();
+    if target_ip.is_ipv6() {
+        return Err(FunctionError::new(
+            "send_arp_request",
+                ("IPv4", "IPv6 does not support ARP protocol.").into(),
+            ))
+    }
+    let local_ip = get_source_ip(target_ip, 50000u32)?;
+    let iface = get_interface_by_local_ip(local_ip)?;
+    let local_mac_address = match get_local_mac_address(&iface.name){
+        Some(x) => x,
+        _ => return Err(FunctionError::new(
+            "send_arp_request",
+                ("No possible to get a src mac address.").into(),
+            ))
+    };
+
+    let src_ip = match Ipv4Addr::from_str(&local_ip.to_string()) {
+        Ok(x) => x,
+        Err(_) =>  return Err(FunctionError::new(
+            "send_arp_request",
+                ("No possible to parse the src IP address.").into(),
+        )),        
+    };
+
+    let dst_ip = match Ipv4Addr::from_str(&target_ip.to_string()) {
+        Ok(x) => x,
+        Err(_) =>  return Err(FunctionError::new(
+            "send_arp_request",
+                ("No possible to parse the dst IP address.").into(),
+        )),        
+    };
+
+    let arp_frame = forge_arp_frame(
+        local_mac_address,
+        src_ip,
+        dst_ip);
+
+    let filter = String::from(format!("arp and src host {}", local_ip.to_string()));
+    // send the frame and get a response if pcap_active enabled
+    match send_frame(&arp_frame, &iface, &true, Some(&filter), timeout)? {
+        Some(f) => Ok(NaslValue::Data(f.into())),
+        None => Ok(NaslValue::Null),
+    }
 }
 
 /// Get the MAC address of a local IP address.
@@ -416,13 +514,11 @@ fn nasl_get_local_mac_address_from_ip(
 
     match &positional[0] {
         NaslValue::String(x) => {
-            let ip = ipstr2ipaddr(x.to_string())?;
-            let iface = get_interface_by_ip(ip)?;
-            match get_local_mac_address(iface.name) {
+            let ip = ipstr2ipaddr(x)?;
+            let iface = get_interface_by_local_ip(ip)?;
+            match get_local_mac_address(&iface.name) {
                 Some(mac) => Ok(NaslValue::String(mac.to_string())),
-                _ => {
-                    return Ok(NaslValue::Null);
-                }
+                _ => {return Ok(NaslValue::Null);}
             }
         }
         _ => Err(FunctionError::new(
@@ -463,6 +559,7 @@ fn nasl_forge_frame(
     )))
 }
 
+
 ///Send a frame to the currently scanned host with the option to listen to the answer.
 /// This function receives the following named parameters
 /// - frame: the frame to send, created with forge_frame
@@ -470,8 +567,62 @@ fn nasl_forge_frame(
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
 fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
-    Ok(NaslValue::Null)
+    let frame = match register.named("frame") {
+        Some(ContextType::Value(NaslValue::Data(x))) => x,
+        _ => {
+            return Err(FunctionError::new(
+                "send_frame",
+                ("Data", "Invalid data type").into(),
+            ))
+        }
+    };
+
+    let pcap_active = match register.named("pcap_active") {
+        Some(ContextType::Value(NaslValue::Boolean(x))) => x,
+        _ => {
+            return Err(FunctionError::new(
+                "send_frame",
+                ("Boolean", "Invalid pcap_active value").into(),
+            ))
+        }
+    };
+
+    let filter = match register.named("filter") {
+        Some(ContextType::Value(NaslValue::String(x))) => Some(x),
+        Some(ContextType::Value(NaslValue::Null)) => None,
+        _ => {
+            return Err(FunctionError::new(
+                "send_frame",
+                ("String", "Invalid pcap_filter value").into(),
+            ))
+        }
+    };
+
+    let timeout = match register.named("filter") {
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32 , // to miliseconds
+        Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
+        _ => {
+            return Err(FunctionError::new(
+                "send_frame",
+                ("Integer", "Invalid timeout value").into(),
+            ))
+        }
+    };
+
+    // TODO: implement plug_get_host_ip(). I use fake target ip here
+    let target_ip = SocketAddr::from_str("0.0.0.0").unwrap();
+
+    let local_ip = get_source_ip(target_ip, 50000u32)?;
+    let iface = get_interface_by_local_ip(local_ip)?;
+         
+    // send the frame and get a response if pcap_active enabled
+    match send_frame(frame, &iface, pcap_active, filter, timeout)? {
+        Some(f) => Ok(NaslValue::Data(f.into())),
+        None => Ok(NaslValue::Null),
+    }
+    
 }
+
 
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
@@ -560,6 +711,7 @@ mod tests {
         let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
         parser.next();
         assert_eq!(
             parser.next(),
