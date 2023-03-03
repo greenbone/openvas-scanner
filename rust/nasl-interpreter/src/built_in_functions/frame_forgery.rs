@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //! Defines NASL frame forgery and arp functions
-
+use std::fmt;
 use std::{net::{IpAddr, Ipv4Addr, UdpSocket, SocketAddr, ToSocketAddrs}, str::FromStr};
 use pnet_base::MacAddr;
 use pnet::datalink::{interfaces, NetworkInterface};
@@ -14,7 +14,7 @@ use sink::Sink;
 
 use crate::{
     error::{FunctionError, FunctionErrorKind},
-    ContextType, NaslFunction, NaslValue, Register,
+    ContextType, NaslFunction, NaslValue, Register, InterpretError, DefaultLogger, NaslLogger,
 };
 
 
@@ -75,14 +75,60 @@ impl From<Frame> for Vec<u8> {
     }
 }
 
-impl From<Vec<u8>> for Frame {
-    fn from(f: Vec<u8>) -> Frame {
-        let mut frame = Frame::new();
-        frame.set_dsthaddr(MacAddr(f[0], f[1], f[2], f[3], f[4], f[5]));
-        frame.set_srchaddr(MacAddr(f[6], f[7], f[8], f[9], f[10], f[11]));
-        frame.set_ethertype(u16::from_be_bytes([f[12], f[13]]));
-        frame.set_payload(f[14..].to_vec());
-        frame
+impl From<&Frame> for Vec<u8> {
+    fn from(f: &Frame) -> Vec<u8> {
+        let mut raw_frame = vec![];
+        raw_frame.extend(f.dsthaddr.octets());
+        raw_frame.extend(f.srchaddr.octets());
+        raw_frame.extend(f.ethertype.to_be_bytes());
+        raw_frame.extend(f.payload.clone());
+        raw_frame
+    }
+}
+
+impl TryFrom<Vec<u8>> for Frame {
+    type Error = FunctionError;
+    
+    fn try_from(f: Vec<u8>) -> Result<Self, Self::Error> {
+        if f.len() < 14 {
+            Err(FunctionError::new("get_local_mac_address_from_ip",
+                                          ("valid ip address").into()))
+        } else {
+            let mut frame = Frame::new();
+            frame.set_dsthaddr(MacAddr(f[0], f[1], f[2], f[3], f[4], f[5]));
+            frame.set_srchaddr(MacAddr(f[6], f[7], f[8], f[9], f[10], f[11]));
+            frame.set_ethertype(u16::from_be_bytes([f[12], f[13]]));
+            if f.len() >= 15 {
+                frame.set_payload(f[14..].to_vec());
+            }
+            Ok(frame)
+        }
+    }
+}
+
+impl fmt::Display for Frame {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
+        let mut s: String = "".to_string();
+
+        let vector: Vec<u8> = self.into();
+        
+        let mut count = 0;
+        for e in vector  {
+            s.push_str(&format!("{:02x}",&e));
+            count+=1;
+            if count%2 == 0 {
+                s.push_str(" ");
+            }
+            if count%16 == 0 {
+                s.push_str("\n");
+            }
+        }
+        write!(f, "{}", s)
     }
 }
 
@@ -188,7 +234,7 @@ fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -
     
 }
 
-// Return the macaddr, given the iface name
+/// Return the macaddr, given the iface name
 fn get_local_mac_address(name: String) -> Option<MacAddr> {
     match interfaces().into_iter().filter(|x| x.name == name).next() {
         Some(dev) => dev.mac,
@@ -196,7 +242,7 @@ fn get_local_mac_address(name: String) -> Option<MacAddr> {
     }
 }
 
-// Return a Device, given the name
+/// Return a Device, given the name
 fn get_interface_by_name(name: String) -> Option<Device> {
 
     match Device::list() {
@@ -206,7 +252,7 @@ fn get_interface_by_name(name: String) -> Option<Device> {
 }
 
 /// Get the interface from the local ip
-fn get_interface_by_ip (local_addr: IpAddr) -> Option<Device> {
+fn get_interface_by_ip (local_addr: IpAddr) -> Result<Device, FunctionError> {
 
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
@@ -220,12 +266,18 @@ fn get_interface_by_ip (local_addr: IpAddr) -> Option<Device> {
     
     let ip_match = |ip: &Address| ip.addr.eq(&local_addr);
 
-    match Device::list() {
+    let dev = match Device::list() {
         Ok(devices) => devices.into_iter()
             .filter(|x| local_addr == (x.addresses.clone().into_iter().
                                        filter(ip_match)).next().
                     unwrap_or(fake_ip.to_owned()).addr).next(),
-        _ => None
+        Err(_) => None,
+    };
+
+    match dev {
+        Some(dev) => Ok(dev),
+        _ => Err(FunctionError::new("get_local_mac_address_from_ip", FunctionErrorKind::Diagnostic(
+                                    "Invalid ip address".to_string(), None))),
     }
 }
 
@@ -249,27 +301,28 @@ fn get_source_ip(dst: IpAddr, port: u32) -> Option<SocketAddr>{
     }
 }
 
-fn recv_frame (cap: &mut Capture<pcap::Active>, filter: &String) -> Frame {
+fn recv_frame (cap: &mut Capture<pcap::Active>, filter: &String) ->
+    Result<Frame, FunctionError> {
 
     let f = Frame::new();
 
     let p = match cap.filter(filter, true){
         Ok(_) => cap.next_packet(),
         Err(e) => {
-            println!("rf er {:?}", e);
-            return f
+            return Ok(f)
         }
     }; 
     match p {
         Ok(packet) => {
-            println!("rf {:?}", packet);
-            packet.data.to_vec().into()},
-        _ => f,
+            packet.data.to_vec().try_into()
+        },
+        _ => Ok(f),
     }
 
 }
 
-fn send_frame(frame: &[u8], iface: &Device, filter: Option<&String> ) -> Frame
+fn send_frame(frame: &[u8], iface: &Device, filter: Option<&String> )
+              -> Result<Frame, FunctionError>
 {
     let mut capture_dev = match Capture::from_device(iface.clone()) {
         Ok(c) => match c.promisc(true).timeout(10).snaplen(5000).open() {
@@ -277,22 +330,27 @@ fn send_frame(frame: &[u8], iface: &Device, filter: Option<&String> ) -> Frame
                 capture.sendpacket(frame);
                 capture
             }
-            Err(_) => return Frame::new(),
+            Err(_) => return Ok(Frame::new()),
         }
-        Err(_) => return Frame::new(),
+        Err(_) => return Ok(Frame::new()),
     };
 
     // if pcap enabled and a filter was given
     match filter {
-        Some(f) => recv_frame (&mut capture_dev, f),
-        _ => Frame::new()
+        Some(f) => {
+            let frame = recv_frame (&mut capture_dev, f)?;
+            Ok(frame)
+        },
+        _ => Ok(Frame::new())
     }    
 }
 
-fn ipstr2ipaddr(ip_addr: String) -> IpAddr {
+fn ipstr2ipaddr(ip_addr: String) -> Result<IpAddr, FunctionError> {
     match IpAddr::from_str(&ip_addr){
-        Ok(ip) => ip,
-        Err(_) => IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+        Ok(ip) => Ok(ip),
+        Err (_) => Err(FunctionError::new("ipstr2ipaddr",
+                                          FunctionErrorKind::Diagnostic(
+                                              "Invalid IP address".to_string(), Some(NaslValue::Null)))),
     }  
 }
 
@@ -313,21 +371,19 @@ fn nasl_get_local_mac_address_from_ip (_: &str, _: &dyn Sink, register: &Registe
     if positional.is_empty() {
         return Ok(NaslValue::Null);
     }
-    let local_ip = match &positional[0] {
-        NaslValue::String(x) => ipstr2ipaddr(x.to_string()),
-        _ => return Err(FunctionError::new("get_local_mac_address_from_ip", ("string").into())),
-    };
 
-   let macaddr =  match get_interface_by_ip (local_ip) {
-       Some(iface) => match get_local_mac_address (iface.name){
-           Some(mac) => mac,
-           _ => {return Ok(NaslValue::Null);}
-           
-       }
-       _ => {return Ok(NaslValue::Null);}
-    };
-
-    Ok(NaslValue::String(macaddr.to_string()))
+    match &positional[0] {
+        NaslValue::String(x) => {
+            let ip = ipstr2ipaddr(x.to_string())?;
+            let iface = get_interface_by_ip (ip)?;
+            match get_local_mac_address (iface.name) {
+                Some(mac) => Ok(NaslValue::String(mac.to_string())),
+                _ => {return Ok(NaslValue::Null);}
+            }
+        }
+        _ => Err(FunctionError::new("get_local_mac_address_from_ip", FunctionErrorKind::WrongArgument(
+                                    "valid ip address".to_string()))),
+    }
 }
 
 ///This function forges a datalink layer frame.
@@ -342,7 +398,7 @@ fn nasl_forge_frame (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslV
                 Ok(macaddr) => macaddr,
                 Err(_) => {return Err(FunctionError::new("forge_frame",("mac addres", "invalid mac addres").into()));}
             }
-        _ => { return Err(FunctionError::new("forge_frame", ("mac addres", "invalid mac addres").into()));},
+        _ => { return Err(FunctionError::new("forge_frame", ("mac address", "invalid mac addres").into()));},
     };
     let dst_haddr = match register.named("dst_haddr") {
         Some(ContextType::Value(NaslValue::String(x))) =>
@@ -350,7 +406,7 @@ fn nasl_forge_frame (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslV
                 Ok(macaddr) => macaddr,
                 Err(_) => {return Err(FunctionError::new("forge_frame",("mac addres", "invalid mac addres").into()));}
             }
-        _ => { return Err(FunctionError::new("forge_frame", ("mac addres", "invalid mac addres").into()));},
+        _ => { return Err(FunctionError::new("forge_frame", ("mac address", "invalid mac addres").into()));},
     };
     
     let ether_proto = match register.named("ether_proto") {
@@ -383,11 +439,16 @@ fn nasl_send_frame (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVa
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
 /// This function is meant to be used for debugging.
 fn nasl_dump_frame (_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
-
+    
+    let frame: Frame = match register.named("frame") {
+        Some(ContextType::Value(NaslValue::Data(x))) => x.clone().try_into()?,
+        _ => return Err(FunctionError::new("forge_frame", ("mac addres", "invalid mac addres").into())),
+    };
+    
+    println!("{}",frame);
     Ok(NaslValue::Null)
+        
 }
-
-
 
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
@@ -401,13 +462,13 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use crate::{Interpreter, NaslValue, NoOpLoader, Register};
     use sink::DefaultSink;
     use nasl_syntax::parse;
+
+    use super::{Frame, dump_frame};
 
     #[test]
     fn get_local_mac_address_from_ip() {
@@ -415,8 +476,6 @@ mod tests {
         get_local_mac_address_from_ip(127.0.0.1);
         get_local_mac_address_from_ip("127.0.0.1");
         get_local_mac_address_from_ip("::1");
-        get_local_mac_address_from_ip(10.0.0.200);
-        get_local_mac_address_from_ip(".0.0.200");
         "###;
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
@@ -427,8 +486,24 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string()))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string()))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string()))));
-        assert!(matches!(parser.next(), Some(Ok(NaslValue::Null))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string()))));
-
     }
+    
+    #[test]
+    fn forge_frame() {
+        let code = r###"
+        src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
+        a = forge_frame(src_haddr: , dst_haddr: "0a:0b:0c:0d:0e:0f",
+    ether_proto: 0x0806, payload: "abcd" );
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Data(vec![
+            0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03,
+            0x04, 0x05, 0x06, 0x08, 0x06, 0x61, 0x62, 0x63, 0x64]))));
+    }
+    
 }
