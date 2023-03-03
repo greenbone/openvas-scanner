@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::io;
+use std::{io, convert::Infallible};
 
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
 use sink::SinkError;
@@ -15,8 +15,11 @@ pub enum FunctionErrorKind {
     MissingArguments(Vec<String>),
     FMTError(std::fmt::Error),
     SinkError(SinkError),
+    Infallible(Infallible),
     IOError(io::ErrorKind),
     WrongArgument(String),
+    // Diagnostic string is informational and the second arg is the return value for the user
+    Diagnostic(String, Option<NaslValue>),
 }
 
 impl From<(&str, &str, &str)> for FunctionErrorKind {
@@ -75,9 +78,26 @@ impl From<(&str, &NaslValue)> for FunctionErrorKind {
     }
 }
 
+pub fn explore_diagnostic (err: FunctionErrorKind) -> (String, NaslValue) {
+    match err {
+        FunctionErrorKind::Diagnostic(a,b) => (a, match b {
+            Some(nv) => nv,
+            _ => NaslValue::Null,
+        }),
+        _ => ("".to_string() , NaslValue::Null)       
+    }
+}
+
+
 impl From<SinkError> for FunctionErrorKind {
     fn from(se: SinkError) -> Self {
         Self::SinkError(se)
+    }
+}
+
+impl From<Infallible> for FunctionErrorKind {
+    fn from(se: Infallible) -> Self {
+        Self::Infallible(se)
     }
 }
 
@@ -110,6 +130,12 @@ impl FunctionError {
 
 impl From<SinkError> for FunctionError {
     fn from(e: SinkError) -> Self {
+        Self::new("", e.into())
+    }
+}
+
+impl From<Infallible> for FunctionError {
+    fn from(e: Infallible) -> Self {
         Self::new("", e.into())
     }
 }
