@@ -7,6 +7,7 @@ use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register
 pub mod aes_cbc;
 pub mod aes_ccm;
 pub mod aes_ctr;
+pub mod aes_gcm;
 pub mod hmac;
 
 enum Crypt {
@@ -19,6 +20,7 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
         .or_else(|| hmac::lookup(function_name))
         .or_else(|| aes_cbc::lookup(function_name))
         .or_else(|| aes_ctr::lookup(function_name))
+        .or_else(|| aes_gcm::lookup(function_name))
 }
 
 fn get_named_data<'a>(
