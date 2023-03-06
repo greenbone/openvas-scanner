@@ -6,7 +6,7 @@
 use pnet::datalink::{interfaces, NetworkInterface};
 use pnet_base::MacAddr;
 use std::fmt;
-use std::net::{ToSocketAddrs, Ipv6Addr};
+use std::net::{Ipv6Addr, ToSocketAddrs};
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     str::FromStr,
@@ -16,6 +16,7 @@ use pcap::{Address, Capture, Device};
 
 use sink::Sink;
 
+use crate::lookup_keys::TARGET;
 use crate::{
     error::{FunctionError, FunctionErrorKind},
     ContextType, DefaultLogger, NaslFunction, NaslLogger, NaslValue, Register,
@@ -208,7 +209,6 @@ impl From<ArpFrame> for Vec<u8> {
     }
 }
 
-
 fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
     let mut frame = Frame::new();
     frame.set_srchaddr(eth_src);
@@ -291,12 +291,11 @@ fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionEr
     // during the search of the interface in case an interface
     // doesn't have an associated address.
 
-
     let fake_ip = match local_address {
         V4 => IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         V6 => IpAddr::V6(Ipv6Addr::UNSPECIFIED),
     };
-    
+
     let fake_addr = Address {
         addr: fake_ip,
         broadcast_addr: None,
@@ -329,20 +328,18 @@ fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionEr
     }
 }
 
-fn bind_local_socket (dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
+fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
     let fe = Err(FunctionError::new(
-                "get_source_ip",
-                FunctionErrorKind::Diagnostic("Error binding".to_string(), None),
-            ));
-    match dst { 
+        "get_source_ip",
+        FunctionErrorKind::Diagnostic("Error binding".to_string(), None),
+    ));
+    match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
         SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
     }
 }
-    
-fn get_source_ip(dst: SocketAddr, port: u32) -> Result<IpAddr, FunctionError> {
 
-    
+fn get_source_ip(dst: SocketAddr, port: u32) -> Result<IpAddr, FunctionError> {
     let target = dst.ip();
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&dst)?;
@@ -354,16 +351,16 @@ fn get_source_ip(dst: SocketAddr, port: u32) -> Result<IpAddr, FunctionError> {
                     "get_source_ip",
                     FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
                 )),
-            }
+            },
             Err(_) => Err(FunctionError::new(
                 "get_source_ip",
                 FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
             )),
         },
         Err(_) => Err(FunctionError::new(
-                "get_source_ip",
-                FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
-            )),
+            "get_source_ip",
+            FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+        )),
     }
 }
 
@@ -397,11 +394,11 @@ fn send_frame(
         },
         Err(_) => return Ok(None),
     };
-    
+
     if *pcap_active == true {
         return Ok(None);
     }
-        
+
     // if pcap enabled use the filter or get first received frame.
     match filter {
         Some(f) => {
@@ -412,10 +409,8 @@ fn send_frame(
             let frame = recv_frame(&mut capture_dev, &String::from(""))?;
             Ok(Some(frame))
         }
-    
     }
 }
-
 
 fn ipstr2ipaddr(ip_addr: &String) -> Result<IpAddr, FunctionError> {
     match IpAddr::from_str(ip_addr) {
@@ -423,6 +418,26 @@ fn ipstr2ipaddr(ip_addr: &String) -> Result<IpAddr, FunctionError> {
         Err(_) => Err(FunctionError::new(
             "ipstr2ipaddr",
             FunctionErrorKind::Diagnostic("Invalid IP address".to_string(), Some(NaslValue::Null)),
+        )),
+    }
+}
+
+fn get_host_ip(register: &Register) -> Result<SocketAddr, FunctionError> {
+    let default_ip = "127.0.0.1";
+    // currently we use shadow variables as _FC_ANON_ARGS; the original openvas uses redis for that purpose.
+    let r_sock_addr = register.named(TARGET).map_or_else(
+        || SocketAddr::from_str(default_ip),
+        |x| match x {
+            crate::ContextType::Value(NaslValue::String(x)) => SocketAddr::from_str(x),
+            _ => SocketAddr::from_str(default_ip),
+        },
+    );
+
+    match r_sock_addr {
+        Ok(x) => Ok(x),
+        Err(x) => Err(FunctionError::new(
+            "get_host_ip",
+            ("IP address", "Invalid IP address").into(),
         )),
     }
 }
@@ -436,9 +451,8 @@ fn nasl_send_arp_request(
     _: &dyn Sink,
     register: &Register,
 ) -> Result<NaslValue, FunctionError> {
-
     let timeout = match register.named("filter") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32 , // to miliseconds
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to miliseconds
         Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
         _ => {
             return Err(FunctionError::new(
@@ -446,46 +460,48 @@ fn nasl_send_arp_request(
                 ("Integer", "Invalid timeout value").into(),
             ))
         }
-    };    
+    };
 
-    // TODO: implement plug_get_host_ip(). I use fake target ip here
-    let target_ip = SocketAddr::from_str("0.0.0.0").unwrap();
+    let target_ip = get_host_ip(register)?;
     if target_ip.is_ipv6() {
         return Err(FunctionError::new(
             "send_arp_request",
-                ("IPv4", "IPv6 does not support ARP protocol.").into(),
-            ))
+            ("IPv4", "IPv6 does not support ARP protocol.").into(),
+        ));
     }
     let local_ip = get_source_ip(target_ip, 50000u32)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-    let local_mac_address = match get_local_mac_address(&iface.name){
+    let local_mac_address = match get_local_mac_address(&iface.name) {
         Some(x) => x,
-        _ => return Err(FunctionError::new(
-            "send_arp_request",
+        _ => {
+            return Err(FunctionError::new(
+                "send_arp_request",
                 ("No possible to get a src mac address.").into(),
             ))
+        }
     };
 
     let src_ip = match Ipv4Addr::from_str(&local_ip.to_string()) {
         Ok(x) => x,
-        Err(_) =>  return Err(FunctionError::new(
-            "send_arp_request",
+        Err(_) => {
+            return Err(FunctionError::new(
+                "send_arp_request",
                 ("No possible to parse the src IP address.").into(),
-        )),        
+            ))
+        }
     };
 
     let dst_ip = match Ipv4Addr::from_str(&target_ip.to_string()) {
         Ok(x) => x,
-        Err(_) =>  return Err(FunctionError::new(
-            "send_arp_request",
+        Err(_) => {
+            return Err(FunctionError::new(
+                "send_arp_request",
                 ("No possible to parse the dst IP address.").into(),
-        )),        
+            ))
+        }
     };
 
-    let arp_frame = forge_arp_frame(
-        local_mac_address,
-        src_ip,
-        dst_ip);
+    let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
 
     let filter = String::from(format!("arp and src host {}", local_ip.to_string()));
     // send the frame and get a response if pcap_active enabled
@@ -513,7 +529,9 @@ fn nasl_get_local_mac_address_from_ip(
             let iface = get_interface_by_local_ip(ip)?;
             match get_local_mac_address(&iface.name) {
                 Some(mac) => Ok(NaslValue::String(mac.to_string())),
-                _ => {return Ok(NaslValue::Null);}
+                _ => {
+                    return Ok(NaslValue::Null);
+                }
             }
         }
         _ => Err(FunctionError::new(
@@ -554,7 +572,6 @@ fn nasl_forge_frame(
     )))
 }
 
-
 ///Send a frame to the currently scanned host with the option to listen to the answer.
 /// This function receives the following named parameters
 /// - frame: the frame to send, created with forge_frame
@@ -594,7 +611,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
     };
 
     let timeout = match register.named("filter") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32 , // to miliseconds
+        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to miliseconds
         Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
         _ => {
             return Err(FunctionError::new(
@@ -604,20 +621,17 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
         }
     };
 
-    // TODO: implement plug_get_host_ip(). I use fake target ip here
-    let target_ip = SocketAddr::from_str("0.0.0.0").unwrap();
+    let target_ip = get_host_ip(register)?;
 
     let local_ip = get_source_ip(target_ip, 50000u32)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-         
+
     // send the frame and get a response if pcap_active enabled
     match send_frame(frame, &iface, pcap_active, filter, timeout)? {
         Some(f) => Ok(NaslValue::Data(f.into())),
         None => Ok(NaslValue::Null),
     }
-    
 }
-
 
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
@@ -655,9 +669,12 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
-    use std::{str::FromStr, net::Ipv4Addr};
+    use std::{net::Ipv4Addr, str::FromStr};
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register, built_in_functions::frame_forgery::forge_arp_frame};
+    use crate::{
+        built_in_functions::frame_forgery::forge_arp_frame, Interpreter, NaslValue, NoOpLoader,
+        Register,
+    };
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
     use sink::DefaultSink;
@@ -733,14 +750,14 @@ mod tests {
         let local_ip = Ipv4Addr::new(192, 168, 0, 10);
         let current_target = Ipv4Addr::new(192, 168, 0, 1);
         let arp_frame = forge_arp_frame(src, local_ip, current_target);
-        let raw_arp_frame = vec![0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0x01u8, 0x02u8,
-                                 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0x08u8, 0x06u8, 0x00u8, 0x01u8,
-                                 0x08u8, 0x00u8, 0x06u8, 0x04u8, 0x00u8, 0x01u8, 0x01u8, 0x02u8,
-                                 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0xc0u8, 0xa8u8, 0x00u8, 0x0au8,
-                                 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xc0u8, 0xa8u8,
-                                 0x00u8, 0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
-                                 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
-                                 0x00u8, 0x00u8, 0x00u8, 0x00u8];
+        let raw_arp_frame = vec![
+            0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0x01u8, 0x02u8, 0x03u8, 0x04u8, 0x05u8,
+            0x06u8, 0x08u8, 0x06u8, 0x00u8, 0x01u8, 0x08u8, 0x00u8, 0x06u8, 0x04u8, 0x00u8, 0x01u8,
+            0x01u8, 0x02u8, 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0xc0u8, 0xa8u8, 0x00u8, 0x0au8, 0xffu8,
+            0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xc0u8, 0xa8u8, 0x00u8, 0x01u8, 0x00u8, 0x00u8,
+            0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
+            0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
+        ];
         assert_eq!(arp_frame, raw_arp_frame);
     }
 }
