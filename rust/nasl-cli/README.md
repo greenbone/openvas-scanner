@@ -1,6 +1,6 @@
 # nasl-cli
 
-Is a program to use the rust nasl implementation.
+Is CLI frontend to use the rust NASL implementation.
 
 
 Usage: nasl-cli <COMMAND>
@@ -15,3 +15,10 @@ Options:
 - `-h, --help`     Print help information
 -  `-V, --version`  Print version information
 
+## Build
+
+Run `cargo test` to test and `cargo build --release` to build it.
+
+## Install
+
+`cargo install --path .`

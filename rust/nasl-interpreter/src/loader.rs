@@ -59,7 +59,8 @@ pub trait AsBufReader<P> {
 }
 
 #[derive(Default)]
-pub(crate) struct NoOpLoader {}
+/// NoOpLoader is a loader for test purposes.
+pub struct NoOpLoader {}
 
 /// Is a no operation loader for test purposes.
 impl Loader for NoOpLoader {

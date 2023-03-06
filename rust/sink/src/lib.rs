@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//#![warn(missing_docs)]
-//! NASL Sink defines technology independent sink traits, structs ..{w;
+#![doc = include_str!("../README.md")]
+#![warn(missing_docs)]
 
 pub mod nvt;
 pub mod time;
@@ -92,6 +92,7 @@ pub trait Sink {
     /// Some database require a cleanup therefore this method is called when a script finishes.
     fn on_exit(&self) -> Result<(), SinkError>;
 
+    /// Retries a dispatch for the amount of retries when a retrieable error occurs.
     fn retry_dispatch(&self, retries: usize, key: &str, scope: Dispatch) -> Result<(), SinkError> {
         match self.dispatch(key, scope.clone()) {
             Ok(r) => Ok(r),

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Is a crate to use Statements from nasl-syntax and execute them.
+#![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 mod built_in_functions;
 mod naslvalue;

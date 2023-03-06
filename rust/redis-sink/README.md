@@ -1,3 +1,5 @@
-# NVTCache
+# redis-sink
 
-Library for initializing and loading up the NVT Cache for OpenVAS Scanner written in rust.
+Is the redis implementation for [sink](../sink/).
+
+It is written in a downwards compatible way so that `ospd-openvas` is capable of reading and writing the data.

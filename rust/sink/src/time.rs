@@ -1,4 +1,8 @@
+//! Defines time implementation for sink usages
+
+/// Is an extension to add as_timestamp method for various types
 pub trait AsUnixTimeStamp {
+    /// Returns a i64 unix time stamp when parseable otherwise None
     fn as_timestamp(&self) -> Option<i64>;
 }
 
