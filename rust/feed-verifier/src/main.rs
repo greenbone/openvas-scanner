@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 use configparser::ini::Ini;
 use redis::{Commands, RedisResult};
 

@@ -380,7 +380,7 @@ impl Display for Category {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-/// Contains the TokenType as well as the position in form of Range<usize>
+/// Contains the TokenType as well as the position.
 pub struct Token {
     /// The category or kind of a token
     pub category: Category,

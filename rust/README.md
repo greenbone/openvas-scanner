@@ -1,5 +1,67 @@
-# Rust implementation of nasl
+# Implementation of Network Attack Scripting Language
 
-This multi cargo workspace contains
-- nasl-syntax - to parse nasl for further processing
-- nasl-interpreter - to interpret nasl statements
+The goal is to have rust based implementation of NASL.
+
+NASL is a domain-specific language (DSL) used by OpenVAS Scanner to write vulnerability tests and other security checks.
+
+The decision to rewrite certain parts in rust was mainly to have an easier way to maintain it in the future the decision for rust is based on the interoperability between rust and c source code so that we can integrate our rust code in openvas and vice versa when it is required to do so.
+
+The implementation is split into multiple parts that are reflected in the directory layout.
+
+The core parts are:
+
+- [nasl-syntax](./nasl-syntax/) - to tokenize a NASL script and return `Statements`
+- [sink](./sink/) - an Storage abstraction used to implement multiple storage solutions.
+- [nasl-interpreter](./nasl-interpreter/) - to execute the `Statements` by also utilizing `sink`
+- [feed](./feed) - a feed related abstraction for a front end (e.g. `nasl-cli`).
+
+Additional implementation:
+- [redis-sink](./redis-sink/) - a `ospd-openvas` compatible redis implementation of `sink`.
+- [nasl-cli](./nasl-cli/) - a CLI front end for the NASL implementation.
+
+Tests:
+- [feed-verifier](./feed-verifier) - verifies that the feed update functionality is comparable with `openvas -u` and that `nasl-cli feed update` is faster than `openvas -u`.
+
+# Architecture Overview
+
+The architecture is a layered architecture to make it easy to extend or modify it.
+
+This is done by providing specialized crates by task and abstraction of data base technologies and business logic.
+
+It roughly follows the pattern of:
+
+```text
+Frontend (e.g. nasl-cli) -> 
+specialized task (e.g. feed/update) ->
+interpreter ->
+sink ->
+storage specific implementation (e.g. redis-sink)
+```
+
+## Requirements
+
+Currently only `cargo` within `rust-toolchain` is required.
+
+## Contribution
+
+If you are unsure how to start or want to discuss an improvement or feature feel free to create an issue.
+
+Feel invited to create a draft PR and open a discussions about a new feature, improves or even architectural changes if you want to discuss based on concrete examples.
+
+If you want to help we are very happy about:
+
+- built in functions implementations
+- documentation improvements
+
+Additionally we want to:
+
+- do improvements in the built in function handling as we want to be more modular
+- clean up the sink interface as it is very misleading currently because it enforced implementations of retrieve and dispatch.
+- extend `nasl-cli` with a `openvas-nasl` like functionality so that we can test scripts
+- implement multithreading of interpreter
+- implement scheduling for a multi script run
+- create an http frontend based on [openapi definition](./doc/openapi.yml)
+
+## Current status
+
+This is an very early status and not yet in a stable condition.

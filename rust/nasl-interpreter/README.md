@@ -1,5 +1,47 @@
-# nasl-built-in
+# nasl-interpreter
 
-`nasl-interpreter` is a library to run NASL.
 
-TBD
+Is a library that is utilizing [nasl-syntax](../nasl-syntax/) and [sink](../sink/) to execute statements.
+
+The core part is written in [interpreter.rs](./src/interpreter.rs) and is separated into various extensions to execute a given `Statement` when `resolve` is called.
+
+Each resolve call will result in a [NaslValue](./src/naslvalue.rs) or an [InterpretError](./src/error.rs) return value.
+
+An interpreter requires:
+
+- key: &str - is used to identify the key-value store. It is usually either an OID or a filename (on description runs). 
+- storage: &dyn Sink - the sink implementation to be used,
+- loader: &'a dyn Loader - is used to load script dependencies on `include`,
+- register: &'a mut Register - to hold all the available data like functions or variables
+
+## Example
+
+```
+use nasl_interpreter::{Interpreter, NoOpLoader, Register};
+use sink::DefaultSink;
+let storage = DefaultSink::new(false);
+let mut register = Register::default();
+let loader = NoOpLoader::default();
+let oid = "0.0.0.0.0.0";
+let code = "display('hi');";
+let mut interpreter = Interpreter::new(oid, &storage, &loader, &mut register);
+let mut parser =
+    nasl_syntax::parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+```
+
+
+## Built in functions
+
+It provides a set of builtin functionality within [built_in_functions](./src/built_in_functions/) to add a new functionality you have to enhance the lookup function within [lib.rs](./src/lib.rs).
+
+Each builtin function follow the syntax of:
+
+```text
+fn(&str, &dyn Sink, &Register) -> Result<NaslValue, FunctionError>
+```
+
+An example of how to write a new builtin function can be found in [misc](./src/built_in_functions/misc.rs).
+
+## Build
+
+Run `cargo test` to test and `cargo build --release` to build it.

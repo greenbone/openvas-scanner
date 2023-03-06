@@ -279,35 +279,43 @@ impl From<(&str, String)> for NvtRef {
     }
 }
 impl NvtRef {
+    /// Creates a new NvtRef
     pub fn new(class: String, id: String, text: Option<String>) -> Self {
         Self { class, id, text }
     }
+    /// Returns class
     pub fn class(&self) -> &str {
         self.class.as_ref()
     }
 
+    /// Returns id
     pub fn id(&self) -> &str {
         self.id.as_ref()
     }
 
+    /// Returns text
     pub fn text(&self) -> Option<&String> {
         self.text.as_ref()
     }
 }
 
 impl NvtPreference {
+    /// Returns id
     pub fn id(&self) -> Option<i32> {
         self.id
     }
 
+    /// Returns class
     pub fn class(&self) -> PreferenceType {
         self.class
     }
 
+    /// Returns name
     pub fn name(&self) -> &str {
         self.name.as_ref()
     }
 
+    /// Returns default
     pub fn default(&self) -> &str {
         self.default.as_ref()
     }

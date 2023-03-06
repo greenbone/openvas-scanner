@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#![doc = include_str!("../README.md")]
 /// Module with structures and methods to access redis.
 pub mod connector;
 /// Module to handle custom errors
