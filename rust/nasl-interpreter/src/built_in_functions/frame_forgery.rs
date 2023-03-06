@@ -336,9 +336,10 @@ fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
     }
 }
 
-fn get_source_ip(dst: SocketAddr, port: u32) -> Result<IpAddr, FunctionError> {
+fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionError> {
+    let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
-    let local_socket = bind_local_socket(&dst)?;
+    let local_socket = bind_local_socket(&socket)?;
     match local_socket.connect(sd) {
         Ok(_) => match local_socket.local_addr() {
             Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
@@ -393,7 +394,7 @@ fn send_frame(
         Err(_) => return Ok(None),
     };
 
-    if *pcap_active {
+    if !(*pcap_active) {
         return Ok(None);
     }
 
@@ -420,22 +421,21 @@ fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionError> {
     }
 }
 
-fn get_host_ip(register: &Register) -> Result<SocketAddr, FunctionError> {
+fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionError> {
     let default_ip = "127.0.0.1";
-    // currently we use shadow variables as _FC_ANON_ARGS; the original openvas uses redis for that purpose.
     let r_sock_addr = register.named(TARGET).map_or_else(
-        || SocketAddr::from_str(default_ip),
+        || IpAddr::from_str(default_ip),
         |x| match x {
-            crate::ContextType::Value(NaslValue::String(x)) => SocketAddr::from_str(x),
-            _ => SocketAddr::from_str(default_ip),
+            crate::ContextType::Value(NaslValue::String(x)) => IpAddr::from_str(x),
+            _ => IpAddr::from_str(default_ip),
         },
     );
 
     match r_sock_addr {
         Ok(x) => Ok(x),
-        Err(_) => Err(FunctionError::new(
+        Err(e) => Err(FunctionError::new(
             "get_host_ip",
-            ("IP address", "Invalid IP address").into(),
+            ("IP address", e.to_string().as_str()).into(),
         )),
     }
 }
@@ -467,7 +467,7 @@ fn nasl_send_arp_request(
             ("IPv4", "IPv6 does not support ARP protocol.").into(),
         ));
     }
-    let local_ip = get_source_ip(target_ip, 50000u32)?;
+    let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
     let local_mac_address = match get_local_mac_address(&iface.name) {
         Some(x) => x,
@@ -587,6 +587,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 
     let pcap_active = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => x,
+        None => &true,
         _ => {
             return Err(FunctionError::new(
                 "send_frame",
@@ -597,7 +598,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 
     let filter = match register.named("filter") {
         Some(ContextType::Value(NaslValue::String(x))) => Some(x),
-        Some(ContextType::Value(NaslValue::Null)) => None,
+        None => None,
         _ => {
             return Err(FunctionError::new(
                 "send_frame",
@@ -606,9 +607,9 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
         }
     };
 
-    let timeout = match register.named("filter") {
+    let timeout = match register.named("timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
-        Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
+        None => DEFAULT_TIMEOUT,
         _ => {
             return Err(FunctionError::new(
                 "send_frame",
@@ -619,7 +620,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 
     let target_ip = get_host_ip(register)?;
 
-    let local_ip = get_source_ip(target_ip, 50000u32)?;
+    let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
     // send the frame and get a response if pcap_active enabled
@@ -755,5 +756,37 @@ mod tests {
             0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
         ];
         assert_eq!(arp_frame, raw_arp_frame);
+    }
+
+    #[test]
+    fn send_frame() {
+        let code = r###"
+        src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
+        dst = "0a:0b:0c:0d:0e:0f";
+        a = forge_frame(src_haddr: src , dst_haddr: dst,
+        ether_proto: 0x0806, payload: "abcd" );
+        send_frame(frame: a, pcap_active: FALSE);
+        send_frame(frame: a, pcap_active: TRUE);
+        send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(vec![
+                0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
+                0x61, 0x62, 0x63, 0x64
+            ])))
+        );
+
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
     }
 }
