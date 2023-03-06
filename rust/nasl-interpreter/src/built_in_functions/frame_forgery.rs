@@ -115,15 +115,10 @@ impl TryFrom<Vec<u8>> for Frame {
 impl fmt::Display for Frame {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
         let mut s: String = "".to_string();
-
         let vector: Vec<u8> = self.into();
-
         let mut count = 0;
+
         for e in vector {
             s.push_str(&format!("{:02x}", &e));
             count += 1;
@@ -660,9 +655,9 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use std::{str::FromStr, net::Ipv4Addr};
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register, built_in_functions::frame_forgery::forge_arp_frame};
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
     use sink::DefaultSink;
@@ -730,5 +725,22 @@ mod tests {
         let data = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
         let mac = MacAddr::from_str("1:2:3:4:5:6").unwrap();
         assert_eq!(convert_vec_into_mac_address(&data), Ok(mac));
+    }
+
+    #[test]
+    fn forge_arpframe() {
+        let src = MacAddr(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
+        let local_ip = Ipv4Addr::new(192, 168, 0, 10);
+        let current_target = Ipv4Addr::new(192, 168, 0, 1);
+        let arp_frame = forge_arp_frame(src, local_ip, current_target);
+        let raw_arp_frame = vec![0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0x01u8, 0x02u8,
+                                 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0x08u8, 0x06u8, 0x00u8, 0x01u8,
+                                 0x08u8, 0x00u8, 0x06u8, 0x04u8, 0x00u8, 0x01u8, 0x01u8, 0x02u8,
+                                 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0xc0u8, 0xa8u8, 0x00u8, 0x0au8,
+                                 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xc0u8, 0xa8u8,
+                                 0x00u8, 0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
+                                 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
+                                 0x00u8, 0x00u8, 0x00u8, 0x00u8];
+        assert_eq!(arp_frame, raw_arp_frame);
     }
 }
