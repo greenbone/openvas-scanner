@@ -94,10 +94,10 @@ impl From<&Frame> for Vec<u8> {
     }
 }
 
-impl TryFrom<Vec<u8>> for Frame {
+impl TryFrom<&[u8]> for Frame {
     type Error = FunctionError;
 
-    fn try_from(f: Vec<u8>) -> Result<Self, Self::Error> {
+    fn try_from(f: &[u8]) -> Result<Self, Self::Error> {
         if f.len() < 14 {
             Err(FunctionError::new(
                 "get_local_mac_address_from_ip",
@@ -369,7 +369,7 @@ fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, Fu
         Err(_) => return Ok(f),
     };
     match p {
-        Ok(packet) => packet.data.to_vec().try_into(),
+        Ok(packet) => packet.data.try_into(),
         _ => Ok(f),
     }
 }
@@ -635,7 +635,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 /// This function is meant to be used for debugging.
 fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let frame: Frame = match register.named("frame") {
-        Some(ContextType::Value(NaslValue::Data(x))) => x.clone().try_into()?,
+        Some(ContextType::Value(NaslValue::Data(x))) => <&[u8]>::from(x).try_into()?,
         _ => {
             return Err(FunctionError::new(
                 "forge_frame",
