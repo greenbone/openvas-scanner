@@ -139,19 +139,19 @@ impl fmt::Display for Frame {
 
 #[derive(Debug)]
 struct ArpHeader {
-    ar_hrd: u16,
-    ar_pro: u16,
-    ar_hln: u8,
-    ar_pln: u8,
-    ar_op: u16,
+    hrd: u16,
+    pro: u16,
+    hln: u8,
+    pln: u8,
+    op: u16,
 }
 
 const ARP_HEADER: ArpHeader = ArpHeader {
-    ar_hrd: ARPHRD_ETHER,
-    ar_pro: ETHERTYPE_IP,
-    ar_hln: ETH_ALEN,
-    ar_pln: ARP_PROTO_LEN,
-    ar_op: ARPOP_REQUEST,
+    hrd: ARPHRD_ETHER,
+    pro: ETHERTYPE_IP,
+    hln: ETH_ALEN,
+    pln: ARP_PROTO_LEN,
+    op: ARPOP_REQUEST,
 };
 
 #[derive(Debug)]
@@ -204,11 +204,11 @@ impl Default for ArpFrame {
 impl From<ArpFrame> for Vec<u8> {
     fn from(f: ArpFrame) -> Vec<u8> {
         let mut arp_frame = vec![];
-        arp_frame.extend(f.arphdr.ar_hrd.to_be_bytes());
-        arp_frame.extend(f.arphdr.ar_pro.to_be_bytes());
-        arp_frame.extend(f.arphdr.ar_hln.to_be_bytes());
-        arp_frame.extend(f.arphdr.ar_pln.to_be_bytes());
-        arp_frame.extend(f.arphdr.ar_op.to_be_bytes());
+        arp_frame.extend(f.arphdr.hrd.to_be_bytes());
+        arp_frame.extend(f.arphdr.pro.to_be_bytes());
+        arp_frame.extend(f.arphdr.hln.to_be_bytes());
+        arp_frame.extend(f.arphdr.pln.to_be_bytes());
+        arp_frame.extend(f.arphdr.op.to_be_bytes());
         arp_frame.extend(f.srchaddr.octets());
         arp_frame.extend(f.srcip.octets());
         arp_frame.extend(f.dsthaddr.octets());
@@ -635,7 +635,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 /// This function is meant to be used for debugging.
 fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
     let frame: Frame = match register.named("frame") {
-        Some(ContextType::Value(NaslValue::Data(x))) => <&[u8]>::from(x).try_into()?,
+        Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
         _ => {
             return Err(FunctionError::new(
                 "forge_frame",
@@ -644,11 +644,7 @@ fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
         }
     };
 
-    // TODO: make NaslLogger to get a generic value, not only string
-    //let logger = DefaultLogger::new();
-    //logger.set_mode(Mode::Debug);
-    //logger.info(frame);
-    println!("Frame:\n{}", frame);
+    register.logger().info(format!("Frame:\n{}", frame));
     Ok(NaslValue::Null)
 }
 
