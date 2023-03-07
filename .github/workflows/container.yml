@@ -30,8 +30,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - run: rustup update stable && rustup default stable
       - run: cargo install cross
-      - run: cross build --release --target aarch64-unknown-linux-gnu
-      - run: cross build --release --target x86_64-unknown-linux-gnu
+      - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
+      - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
       - name: archive nasl-cli aarch64-unknown-linux-gnu
         uses: actions/upload-artifact@v3
         with:
