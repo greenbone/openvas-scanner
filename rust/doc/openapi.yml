@@ -39,7 +39,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScanID"
-        "401":
+        "400":
           description: "Bad Request body"
 
   /scan/{id}:
@@ -76,7 +76,7 @@ paths:
       responses:
         "200":
           description: "Action performed"
-        "401":
+        "400":
           description: "Bad request body"
         "404":
           description: "Scan not found"
@@ -120,7 +120,7 @@ paths:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/Result"
-        "401":
+        "400":
           description: "Bad range format"
         "404":
           description: "Scan not found"
@@ -195,7 +195,7 @@ paths:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/VT"
-        "401":
+        "400":
           description: "Bad query format"
 
   /vt/{id}:
