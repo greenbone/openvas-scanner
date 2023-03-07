@@ -277,7 +277,7 @@ fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErro
 }
 
 /// Return the macaddr, given the iface name
-fn get_local_mac_address(name: &String) -> Option<MacAddr> {
+fn get_local_mac_address(name: &str) -> Option<MacAddr> {
     match interfaces().into_iter().find(|x| x.name == *name) {
         Some(dev) => dev.mac,
         _ => None,
@@ -669,7 +669,7 @@ mod tests {
     use std::{net::Ipv4Addr, str::FromStr};
 
     use crate::{
-        built_in_functions::frame_forgery::forge_arp_frame, Interpreter, NaslValue, NoOpLoader,
+        built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address}, Interpreter, NaslValue, NoOpLoader,
         Register,
     };
     use nasl_syntax::parse;
@@ -788,5 +788,10 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+    }
+
+    #[test]
+    fn get_local_mac() {
+        assert_eq!(get_local_mac_address("lo"), Some(MacAddr::zero()));
     }
 }
