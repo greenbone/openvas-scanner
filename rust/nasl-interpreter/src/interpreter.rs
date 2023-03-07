@@ -57,7 +57,7 @@ impl<'a> Interpreter<'a> {
 
     /// Tries to interpret a statement and retries n times on a retry error
     ///
-    /// When encountering a retryavle error:
+    /// When encountering a retrievable error:
     /// - LoadError(Retry(_))
     /// - SinkError(Retry(_))
     /// - IOError(Interrupted(_))

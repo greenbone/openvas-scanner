@@ -22,9 +22,7 @@ mod test {
         };
         let loader = FSPluginLoader::new(&root);
         let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
-        let files = verifier
-            .filter_map(|x| x.ok())
-            .collect::<Vec<String>>();
+        let files = verifier.filter_map(|x| x.ok()).collect::<Vec<String>>();
         assert_eq!(
             &files,
             &[
@@ -52,10 +50,11 @@ mod test {
         let storage = DefaultSink::new(true);
         let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
         let updater = Update::init("1", 1, loader.clone(), storage, verifier);
-        let files = updater
-            .filter_map(|x| x.ok())
-            .collect::<Vec<String>>();
+        let files = updater.filter_map(|x| x.ok()).collect::<Vec<String>>();
         // feed version and filename of script
-        assert_eq!(&files, &["plugin_feed_info.inc".to_owned(), "test.nasl".to_owned()]);
+        assert_eq!(
+            &files,
+            &["test.nasl".to_owned(), "plugin_feed_info.inc".to_owned()]
+        );
     }
 }

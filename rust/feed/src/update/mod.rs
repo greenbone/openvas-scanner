@@ -41,10 +41,11 @@ where
 {
     /// Creates an updater. This updater is implemented as a iterator.
     ///
-    /// When calling the first .next() it will handle the corresponding plugin_feed_info.inc and
-    /// set the feed version with it. Afterwards it will iterate through the given Verifier and
-    /// execute the found .nasl file in description mode.
-    /// This is usually done to update the feed.
+    /// It will iterate through the filenames retrieved by the verifier and execute each found
+    /// `.nasl` script in description mode. When there is no filename left than it will handle the
+    /// corresponding `plugin_feed_info.inc` to set the feed version. This is done after each file
+    /// has run in description mode because some legacy systems consider a feed update done when
+    /// the version is set.
     pub fn init(
         openvas_version: &str,
         max_retry: usize,
@@ -129,21 +130,21 @@ where
     type Item = Result<String, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.feed_version_set {
-            let result = self.plugin_feed_info();
-            self.feed_version_set = true;
-            return Some(result);
-        }
-        let r = self.verifier.find(|x| {
+        match self.verifier.find(|x| {
             if let Ok(x) = x {
                 x.ends_with(".nasl")
             } else {
                 true
             }
-        })?;
-        match r {
-            Ok(k) => self.single(&k).map(|_| k).into(),
-            Err(e) => Some(Err(e.into())),
+        }) {
+            Some(Ok(k)) => self.single(&k).map(|_| k).into(),
+            Some(Err(e)) => Some(Err(e.into())),
+            None if !self.feed_version_set => {
+                let result = self.plugin_feed_info();
+                self.feed_version_set = true;
+                Some(result)
+            }
+            None => None,
         }
     }
 }
