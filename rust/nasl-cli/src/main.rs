@@ -82,7 +82,8 @@ impl RunAction<()> for FeedAction {
                         kind: e.into(),
                         filename: format!("{path:?}"),
                     })?;
-                feed_update::run(&redis, update_config.plugin_path, verbose)
+
+                feed_update::run(redis, update_config.plugin_path, verbose)
             }
         }
     }

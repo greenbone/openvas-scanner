@@ -4,7 +4,12 @@
 
 //! This crate is used to load NASL code based on a name.
 
-use std::{fmt::Display, fs, path::Path};
+use std::{
+    fmt::Display,
+    fs::{self, File},
+    io,
+    path::Path,
+};
 
 /// Defines abstract Loader error cases
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,10 +35,27 @@ impl Display for LoadError {
     }
 }
 
+/// Loads the content of the path to String by parsing each byte to a character.
+///
+/// Unfortunately the feed is not completely written in utf8 enforcing us to parse the content
+/// bytewise.
+pub fn load_non_utf8_path(path: &Path) -> Result<String, LoadError> {
+    let result = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect());
+    match result {
+        Ok(result) => Ok(result),
+        Err(err) => Err((path.to_str().unwrap_or_default(), err).into()),
+    }
+}
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
 pub trait Loader {
     /// Resolves the given key to nasl code
     fn load(&self, key: &str) -> Result<String, LoadError>;
+}
+
+/// Returns given key as BufReader
+pub trait AsBufReader<P> {
+    /// Returns given key as BufReader
+    fn as_bufreader(&self, key: &str) -> Result<io::BufReader<P>, LoadError>;
 }
 
 #[derive(Default)]
@@ -53,58 +75,61 @@ impl Loader for NoOpLoader {
 ///
 /// So when the root path is `/var/lib/openvas/plugins` than it will be extended to
 /// `/var/lib/openvas/plugins/plugin_feed_info.inc`.
-pub struct FSPluginLoader<'a> {
-    root: &'a Path,
+#[derive(Clone)]
+pub struct FSPluginLoader<P>
+where
+    P: AsRef<Path>,
+{
+    root: P,
 }
 
-impl<'a> TryFrom<&'a Path> for FSPluginLoader<'a> {
-    type Error = LoadError;
+impl From<(&Path, std::io::Error)> for LoadError {
+    fn from(value: (&Path, std::io::Error)) -> Self {
+        let (pstr, value) = value;
+        (pstr.to_str().unwrap_or_default(), value).into()
+    }
+}
 
-    fn try_from(value: &'a Path) -> Result<Self, Self::Error> {
-        if !value.is_dir() {
-            Err(LoadError::NotFound(
-                value.to_str().unwrap_or_default().to_owned(),
-            ))
-        } else {
-            Ok(Self::new(value))
+impl From<(&str, std::io::Error)> for LoadError {
+    fn from(value: (&str, std::io::Error)) -> Self {
+        let (pstr, value) = value;
+        match value.kind() {
+            std::io::ErrorKind::NotFound => LoadError::NotFound(pstr.to_owned()),
+            std::io::ErrorKind::PermissionDenied => LoadError::PermissionDenied(pstr.to_owned()),
+            std::io::ErrorKind::TimedOut => LoadError::Retry(format!("{} timed out.", pstr)),
+            std::io::ErrorKind::Interrupted => LoadError::Retry(format!("{} interrupted.", pstr)),
+            _ => LoadError::Dirty(format!("{}: {:?}", pstr, value)),
         }
     }
 }
 
-impl<'a> FSPluginLoader<'a> {
+impl<P> FSPluginLoader<P>
+where
+    P: AsRef<Path>,
+{
     /// Creates a new file system plugin loader based on the given root path
-    pub fn new(root: &'a Path) -> Self {
+    pub fn new(root: P) -> Self {
         Self { root }
     }
+}
 
-    /// Reads content from a path
-    ///
-    /// Opens given path and reads it content by transforming bytes to char and collect to a String.  
-    pub fn load_non_utf8_path(path: &Path) -> Result<String, LoadError> {
-        let result = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect());
-        match result {
-            Ok(result) => Ok(result),
-            Err(err) => {
-                let pstr = path.to_str().unwrap_or_default().to_string();
-                match err.kind() {
-                    std::io::ErrorKind::NotFound => Err(LoadError::NotFound(pstr)),
-                    std::io::ErrorKind::PermissionDenied => Err(LoadError::PermissionDenied(pstr)),
-                    std::io::ErrorKind::TimedOut => {
-                        Err(LoadError::Retry(format!("{} timed out.", pstr)))
-                    }
-                    std::io::ErrorKind::Interrupted => {
-                        Err(LoadError::Retry(format!("{} interrupted.", pstr)))
-                    }
-                    _ => Err(LoadError::Dirty(format!("{}: {:?}", pstr, err))),
-                }
-            }
-        }
+impl<P> AsBufReader<File> for FSPluginLoader<P>
+where
+    P: AsRef<Path>,
+{
+    fn as_bufreader(&self, key: &str) -> Result<io::BufReader<File>, LoadError> {
+        let file =
+            File::open(self.root.as_ref().join(key)).map_err(|e| LoadError::from((key, e)))?;
+        Ok(io::BufReader::new(file))
     }
 }
 
-impl<'a> Loader for FSPluginLoader<'a> {
+impl<P> Loader for FSPluginLoader<P>
+where
+    P: AsRef<Path>,
+{
     fn load(&self, key: &str) -> Result<String, LoadError> {
-        let path = self.root.join(key);
+        let path = self.root.as_ref().join(key);
         if !path.is_file() {
             return Err(LoadError::NotFound(format!(
                 "{} does not exist or is not accessible.",
@@ -112,6 +137,6 @@ impl<'a> Loader for FSPluginLoader<'a> {
             )));
         }
         // unfortunately nasl is still in iso-8859-1
-        Self::load_non_utf8_path(path.as_path())
+        load_non_utf8_path(path.as_path())
     }
 }
