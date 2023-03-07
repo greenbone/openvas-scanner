@@ -1,22 +1,19 @@
-openapi: "3.1.0"
+openapi: "3.0.3"
 info:
-  title: "OpenSight Scanner"
-  summary: "A Vulnerability Scan Manager."
+  title: "Scanner"
   description: "Manage vulnerability scans for OpenVAS and Notus scanner."
   contact:
     name: "Open Source project contribution"
     url: "https://github.com/greenbone/openvas-scanner/issues"
   license:
     name: "GPL-2.0-or-later"
-    identifier: "GPL-2.0-or-later"
+    url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
   version: "1.0"
 servers:
   - url: /
 tags:
   - name: scan
     description: Scan resource
-  - name: result
-    description: Result management
   - name: feed
     description: Feed related
 paths:
@@ -102,7 +99,6 @@ paths:
       operationId: "get_results"
       tags:
         - "scan"
-        - "result"
       parameters:
         - $ref: "#/components/parameters/ID"
         - name: range
@@ -133,7 +129,6 @@ paths:
       operationId: "get_result"
       tags:
         - "scan"
-        - "result"
       parameters:
         - $ref: "#/components/parameters/ID"
         - name: num
@@ -254,9 +249,6 @@ components:
             $ref: "#/components/schemas/Parameter"
         vts:
           $ref: "#/components/schemas/VTs"
-        required:
-          - target
-          - vts
 
     Target:
       description: "A target is a list of hosts to scan, including their UDP and TCP ports. Additionally for further access to the systems credentials can be given."
@@ -278,9 +270,6 @@ components:
           type: "array"
           items:
             $ref: "#/components/schemas/Credential"
-        required:
-          - hosts
-          - ports
 
     PortRange:
       description: "A port range for either UDP or TCP ports"
@@ -494,15 +483,10 @@ components:
             - stopped
             - failed
             - succeeded
-        #     total_vts:
-        #       description: "The number of selected VTs for this scan."
-        #       type: "integer"
-        #       format: "int32"
         host_info:
           $ref: "#/components/schemas/HostInfo"
       required:
         - status
-        - total_vts
 
     HostInfo:
       description: "Information about the progress for each host of the scan."
