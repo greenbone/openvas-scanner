@@ -107,23 +107,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [releases]
     steps:
-      - name: download feed
-        uses: greenbone/actions/download-artifact@v2
-        with:
-          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
-          repository: "greenbone/vulnerability-tests"
-          workflow: feed-deployment.yml
-          name: vulnerability-tests-community-main
-      - name: simplify feed structure
-        run: |
-          tar -xf vulnerability-tests-community-main.tar.xz
-          rm -rf feed 
-          mkdir feed 
-          mv ./community/vulnerability-feed/$(ls ./community/vulnerability-feed/ | sort -r | head -n 1)/vt-data/nasl/* feed/
+      - uses: actions/checkout@v3
+      - run: FEED_DIR="feed/" sh .github/prepare-feed.sh
       - uses: actions/download-artifact@v3
         with:
           name: nasl-cli
-      - run: ls -las
       - name: verify syntax parsing
         run: chmod a+x ./nasl-cli && ./nasl-cli syntax --quiet feed/
   verify-feed-update:
@@ -143,22 +131,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - name: download feed
-        uses: greenbone/actions/download-artifact@v2
-        with:
-          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
-          repository: "greenbone/vulnerability-tests"
-          workflow: feed-deployment.yml
-          name: vulnerability-tests-community-main
-      - name: simplify feed structure
-        run: |
-          # we need xz to extract, probably better to put in image?
-          apt update
-          apt install -y xz-utils
-          tar -xvf vulnerability-tests-community-main.tar.xz
-          rm -rf feed 
-          mkdir feed 
-          mv ./community/vulnerability-feed/$(ls ./community/vulnerability-feed/ | sort -r | head -n 1)/vt-data/nasl/* feed/
+      - uses: actions/checkout@v3
+      - run: apt-get update && apt-get install -y docker.io
+      - run: FEED_DIR="feed/" sh .github/prepare-feed.sh
       - uses: actions/download-artifact@v3
         with:
           name: nasl-cli
