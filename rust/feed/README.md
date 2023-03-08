@@ -3,7 +3,7 @@
 Is a specialized crate to handle `feed` related tasks.
 
 A `feed` is a directory of nasl scripts that has at least:
-- `sha256sums` - a list of files and sha256sums (usually crated by executing sha256sum * > sha256sums) and is used to load the various scripts to be updated.
+- `sha256sums` - a list of files and sha256sums (usually created by executing sha256sum * > sha256sums) and is used to load the various scripts to be updated.
 - `plugin_feed_info.inc` - feed related information that are read in before running the description mode.
 
 A `plugin_feed_info.inc` defines the variables:

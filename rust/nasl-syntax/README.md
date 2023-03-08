@@ -4,7 +4,7 @@
 
 It will return an Iterator with either a [statement](./src/statement.rs) for further execution or an [error](./src/error.rs) if the given code was incorrect.
 
-Each statement is self contained and it is ecpected to be executed iteratively and therefore there is no visitor implementation.
+Each statement is self contained and it is expected to be executed iteratively and therefore there is no visitor implementation.
 
 
 ## Usage
