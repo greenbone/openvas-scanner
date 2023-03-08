@@ -21,20 +21,31 @@ use crate::{
     ContextType, NaslFunction, NaslValue, Register,
 };
 
+/// Hardware type ethernet
 const ARPHRD_ETHER: u16 = 0x0001;
+/// Protocol type IP
 const ETHERTYPE_IP: u16 = 0x0800;
+/// Protocol type ARP
 const ETHERTYPE_ARP: u16 = 0x0806;
+/// Length in bytes of an ethernet mac address
 const ETH_ALEN: u8 = 0x0006;
+/// Protocol length for ARP
 const ARP_PROTO_LEN: u8 = 0x0004;
+/// ARP operation request
 const ARPOP_REQUEST: u16 = 0x0001;
-
+/// Default Timeout for received
 const DEFAULT_TIMEOUT: i32 = 5000;
 
 #[derive(Debug)]
+/// Structure to hold a datalink layer frame
 pub struct Frame {
+    /// Source MAC address
     srchaddr: MacAddr,
+    /// Destination MAC address
     dsthaddr: MacAddr,
+    /// Protocol type to defined the type of the payload data
     ethertype: u16,
+    /// Carries the data from the network layer.
     payload: Vec<u8>,
 }
 
@@ -138,11 +149,17 @@ impl fmt::Display for Frame {
 }
 
 #[derive(Debug)]
+/// Structure to hold an ARP header
 struct ArpHeader {
+    /// Hardware type
     hrd: u16,
+    /// Protocol type
     pro: u16,
+    /// Hardware length
     hln: u8,
+    /// Protocol length
     pln: u8,
+    /// operation: request, reply
     op: u16,
 }
 
@@ -155,12 +172,19 @@ const ARP_HEADER: ArpHeader = ArpHeader {
 };
 
 #[derive(Debug)]
+/// Struct to hold a ARP network packet
 pub struct ArpFrame {
+    /// ARP header
     arphdr: ArpHeader,
+    /// Source ethernet MAC address
     srchaddr: MacAddr,
+    /// Source IP address
     srcip: Ipv4Addr,
+    /// Destination ethernet MAC address (broadcast)
     dsthaddr: MacAddr,
+    /// Destination IP address
     dstip: Ipv4Addr,
+    /// Padding
     zero_padding: [u8; 18],
 }
 
@@ -173,7 +197,7 @@ impl ArpFrame {
             dsthaddr: MacAddr::zero(),
             dstip: Ipv4Addr::UNSPECIFIED,
             zero_padding: [0u8; 18],
-        }        
+        }
     }
 
     pub fn set_srchaddr(&mut self, srchaddr: MacAddr) -> &ArpFrame {
@@ -195,11 +219,10 @@ impl ArpFrame {
 }
 
 impl Default for ArpFrame {
-     fn default() -> Self {
-         Self::new()
-     }
- }
-
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl From<ArpFrame> for Vec<u8> {
     fn from(f: ArpFrame) -> Vec<u8> {
@@ -218,6 +241,7 @@ impl From<ArpFrame> for Vec<u8> {
     }
 }
 
+/// Forge a data link layer frame with an ARP request in the payload
 fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
     let mut frame = Frame::new();
     frame.set_srchaddr(eth_src);
@@ -233,6 +257,8 @@ fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<
     frame.set_payload(arp_frame.into());
     frame.into()
 }
+
+/// Forge a datalink layer frame with data in the payload
 fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -> Vec<u8> {
     let mut frame = Frame::new();
     frame.set_srchaddr(src);
@@ -269,14 +295,14 @@ fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErro
                 ("mac address", "invalid mac address").into(),
             )),
         },
-        _ =>  Err(FunctionError::new(
+        _ => Err(FunctionError::new(
             "forge_frame",
             ("mac address", "invalid mac address").into(),
         )),
     }
 }
 
-/// Return the macaddr, given the iface name
+/// Return the MAC address, given the interface name
 fn get_local_mac_address(name: &str) -> Option<MacAddr> {
     match interfaces().into_iter().find(|x| x.name == *name) {
         Some(dev) => dev.mac,
@@ -305,14 +331,12 @@ fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionEr
     let ip_match = |ip: &Address| ip.addr.eq(&local_address);
 
     let dev = match Device::list() {
-        Ok(devices) => devices
-            .into_iter()
-            .find(|x| {
-                local_address
-                    == (x.addresses.clone().into_iter().find(ip_match))
-                        .unwrap_or_else(|| fake_addr.to_owned())
-                        .addr
-            }),
+        Ok(devices) => devices.into_iter().find(|x| {
+            local_address
+                == (x.addresses.clone().into_iter().find(ip_match))
+                    .unwrap_or_else(|| fake_addr.to_owned())
+                    .addr
+        }),
         Err(_) => None,
     };
 
@@ -336,6 +360,7 @@ fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
     }
 }
 
+/// Return the source IP address given the destination IP address
 fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionError> {
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
@@ -361,6 +386,8 @@ fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionError> {
     }
 }
 
+/// Return a frame given a capture device and a filter. It returns an empty frame in case
+/// there was no response or anything was filtered.
 fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, FunctionError> {
     let f = Frame::new();
 
@@ -374,6 +401,7 @@ fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, Fu
     }
 }
 
+/// Send a frame. If pcap_active flag is given, it returns a captured frame, or an empty one.
 fn send_frame(
     frame: &[u8],
     iface: &Device,
@@ -383,12 +411,10 @@ fn send_frame(
 ) -> Result<Option<Frame>, FunctionError> {
     let mut capture_dev = match Capture::from_device(iface.clone()) {
         Ok(c) => match c.promisc(true).timeout(10).snaplen(timeout).open() {
-            Ok(mut capture) => {
-                match capture.sendpacket(frame){
-                    Ok(_) => capture,
-                    Err(_) => return Ok(None),
-                }
-            }
+            Ok(mut capture) => match capture.sendpacket(frame) {
+                Ok(_) => capture,
+                Err(_) => return Ok(None),
+            },
             Err(_) => return Ok(None),
         },
         Err(_) => return Ok(None),
@@ -421,6 +447,7 @@ fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionError> {
     }
 }
 
+/// Return the target's IP address or 127.0.0.1 if not set.
 fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionError> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = register.named(TARGET).map_or_else(
@@ -665,8 +692,8 @@ mod tests {
     use std::{net::Ipv4Addr, str::FromStr};
 
     use crate::{
-        built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address}, Interpreter, NaslValue, NoOpLoader,
-        Register,
+        built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address},
+        Interpreter, NaslValue, NoOpLoader, Register,
     };
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
