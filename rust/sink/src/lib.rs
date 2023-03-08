@@ -82,10 +82,6 @@ pub trait Sink {
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
     fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError>;
-    /// Get scopes found by key
-    ///
-    /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Dispatch>, SinkError>;
 
     /// On exit is called when a script exit
     ///
@@ -138,19 +134,11 @@ impl DefaultSink {
         data.clear();
         data.shrink_to_fit();
     }
-}
 
-impl Sink for DefaultSink {
-    fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError> {
-        let mut data = Arc::as_ref(&self.data).lock().unwrap();
-        match data.iter_mut().find(|(k, _)| k.as_str() == key) {
-            Some((_, v)) => v.push(scope),
-            None => data.push((key.to_owned(), vec![scope])),
-        }
-        Ok(())
-    }
-
-    fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Dispatch>, SinkError> {
+    /// Get scopes found by key
+    ///
+    /// A key is usually a OID that was given when starting a script but in description run it is the filename.
+    pub fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Dispatch>, SinkError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
@@ -198,6 +186,17 @@ impl Sink for DefaultSink {
             },
             None => Ok(vec![]),
         }
+    }
+}
+
+impl Sink for DefaultSink {
+    fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError> {
+        let mut data = Arc::as_ref(&self.data).lock().unwrap();
+        match data.iter_mut().find(|(k, _)| k.as_str() == key) {
+            Some((_, v)) => v.push(scope),
+            None => data.push((key.to_owned(), vec![scope])),
+        }
+        Ok(())
     }
 
     fn on_exit(&self) -> Result<(), SinkError> {

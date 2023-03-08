@@ -3,9 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //! Defines NVT
-use std::str::FromStr;
+use std::{
+    fmt::Display,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
-use crate::SinkError;
+use crate::{time::AsUnixTimeStamp, Dispatch, Sink, SinkError};
 
 /// Attack Category either set by script_category
 ///
@@ -31,10 +35,10 @@ use crate::SinkError;
 /// - End
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default)]
 pub enum ACT {
     /// Defines a initializer
-    Init = 0,
+    Init,
     /// Defines a port scanner
     Scanner,
     /// Defines a settings configurator
@@ -54,9 +58,11 @@ pub enum ACT {
     /// Exhausting attack should not be considered safe to execute
     Flood,
     /// Should be executed at the end
+    #[default]
     End,
 }
 
+// TODO generalize and use name rather than number
 impl FromStr for ACT {
     type Err = SinkError;
 
@@ -115,8 +121,13 @@ macro_rules! make_str_lookup_enum {
                 }
             }
         }
-
     };
+}
+
+impl Display for TagKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
 }
 
 make_str_lookup_enum! {
@@ -197,7 +208,7 @@ The filename is set on a description run and is not read from the NASL script." 
 
 The version is read from plugins_version.inc." => Version(String),
     "Name of a plugin" => Name(String),
-    "Tags of a plugin" => Tag(TagKey, String),
+    "Tags of a plugin" => Tag(TagKey, TagValue),
         "Dependencies of other scripts that must be run upfront" => Dependencies(Vec<String>),
     r###"Required keys
 
@@ -318,6 +329,161 @@ impl NvtPreference {
     /// Returns default
     pub fn default(&self) -> &str {
         self.default.as_ref()
+    }
+}
+
+/// Represent a value of the key
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TagValue {
+    /// A tag with a free form field
+    String(String),
+    /// Timestamp value
+    UnixTimeStamp(i64),
+}
+
+impl Display for TagValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TagValue::String(s) => write!(f, "{s}"),
+            TagValue::UnixTimeStamp(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+impl TagValue {
+    /// Parhse the given Value based on the key to TagValue
+    pub fn parse<V: ToString>(key: TagKey, value: V) -> Option<Self> {
+        match key {
+            TagKey::CreationDate | TagKey::LastModification | TagKey::SeverityDate => {
+                Some(Self::UnixTimeStamp(
+                    (&value.to_string() as &str)
+                        .as_timestamp()
+                        .unwrap_or_default(),
+                ))
+            }
+            TagKey::CvssBase => None,
+            _ => Some(Self::String(value.to_string())),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+/// Structure to hold a NVT
+pub struct Nvt {
+    /// The ID of the nvt.
+    pub oid: String,
+    /// The name of the nvt.
+    pub name: String,
+    /// The filename of the nvt.
+    pub filename: String,
+    /// The tags of the nvt.
+    pub tag: Vec<(TagKey, TagValue)>,
+    /// The direct dependencies of the nvt.
+    pub dependencies: Vec<String>,
+    /// The required keys to run the NVT.
+    pub required_keys: Vec<String>,
+    /// The Mandatory keys to run the NVT.
+    pub mandatory_keys: Vec<String>,
+    /// The keys to prevent to run the NVT.
+    pub excluded_keys: Vec<String>,
+    /// The verified ports necessary to run the NVT.
+    pub required_ports: Vec<String>,
+    /// The verified ports necessary to run the NVT.
+    pub required_udp_ports: Vec<String>,
+    /// References
+    pub references: Vec<NvtRef>,
+    /// Preferences
+    pub preferences: Vec<NvtPreference>,
+    /// Category
+    pub category: ACT,
+    /// Family
+    pub family: String,
+}
+
+/// Is a specialized Dispatcher for NVT information within the description block.
+pub trait NvtDispatcher {
+    /// Dispatches the feed version as well as NVT.
+    ///
+    /// The NVT is collected when a description run is finished.
+    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), SinkError>;
+    /// Dispatches the feed_version.
+    ///
+    /// Feed version is usually read once.
+    fn dispatch_feed_version(&self, version: String) -> Result<(), SinkError>;
+}
+
+/// Collects the information while being in a description run and calls the dispatch method
+/// on exit.
+pub struct PerNVTSink<S>
+where
+    S: NvtDispatcher,
+{
+    nvt: Arc<Mutex<Option<Nvt>>>,
+    dispatcher: S,
+}
+
+impl<S> PerNVTSink<S>
+where
+    S: NvtDispatcher,
+{
+    /// Creates a new NvtDispatcher without a feed_version and nvt.
+    pub fn new(dispatcher: S) -> Self {
+        Self {
+            nvt: Arc::new(Mutex::new(None)),
+            dispatcher,
+        }
+    }
+
+    fn store_nvt_field(&self, f: NVTField) -> Result<(), SinkError> {
+        let mut data = Arc::as_ref(&self.nvt)
+            .lock()
+            .map_err(|x| SinkError::Dirty(format!("{x}")))?;
+        let mut nvt = data.clone().unwrap_or_default();
+
+        // TODO optimize
+        match f {
+            NVTField::Oid(oid) => nvt.oid = oid,
+            NVTField::FileName(s) => nvt.filename = s,
+            NVTField::Version(s) => {
+                return self.dispatcher.dispatch_feed_version(s);
+            }
+            NVTField::Name(s) => nvt.name = s,
+            NVTField::Tag(key, name) => nvt.tag.push((key, name)),
+            NVTField::Dependencies(s) => nvt.dependencies.extend(s),
+            NVTField::RequiredKeys(s) => nvt.required_keys.extend(s),
+            NVTField::MandatoryKeys(s) => nvt.mandatory_keys.extend(s),
+            NVTField::ExcludedKeys(s) => nvt.excluded_keys.extend(s),
+            NVTField::RequiredPorts(s) => nvt.required_ports.extend(s),
+            NVTField::RequiredUdpPorts(s) => nvt.required_udp_ports.extend(s),
+            NVTField::Preference(s) => nvt.preferences.push(s),
+            NVTField::Reference(s) => nvt.references.extend(s),
+            NVTField::Category(s) => nvt.category = s,
+            NVTField::Family(s) => nvt.family = s,
+            NVTField::NoOp => {}
+        };
+        *data = Some(nvt);
+        Ok(())
+    }
+}
+
+impl<S> Sink for PerNVTSink<S>
+where
+    S: NvtDispatcher,
+{
+    fn dispatch(&self, _: &str, scope: crate::Dispatch) -> Result<(), SinkError> {
+        match scope {
+            Dispatch::NVT(nvt) => self.store_nvt_field(nvt),
+        }
+    }
+
+    fn on_exit(&self) -> Result<(), SinkError> {
+        let mut data = Arc::as_ref(&self.nvt)
+            .lock()
+            .map_err(|x| SinkError::Dirty(format!("{x}")))?;
+        self.dispatcher
+            .dispatch_nvt(data.clone().unwrap_or_default())?;
+        *data = None;
+        Ok(())
     }
 }
 
