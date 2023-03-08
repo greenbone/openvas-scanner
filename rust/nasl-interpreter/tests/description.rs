@@ -17,17 +17,16 @@ impl Loader for NoOpLoader {
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::{ContextType, InterpretError, NaslValue, DefaultLogger};
-    use nasl_interpreter::{Interpreter, Register, Context};
+    use nasl_interpreter::{Context, Interpreter, Register};
+    use nasl_interpreter::{ContextType, DefaultLogger, InterpretError, NaslValue};
 
     use nasl_syntax::parse;
-    use sink::nvt::NvtRef;
     use sink::nvt::TagKey::*;
     use sink::nvt::ACT::*;
     use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
+    use sink::nvt::{NvtRef, TagValue};
     use sink::DefaultSink;
     use sink::Dispatch::NVT;
-    use sink::Sink;
 
     use crate::NoOpLoader;
 
@@ -59,17 +58,10 @@ if(description)
         "###;
         let storage = DefaultSink::new(true);
         let loader = NoOpLoader::default();
-        let key = "test.nasl";
         let initial = [(
             "description".to_owned(),
             ContextType::Value(NaslValue::Number(1)),
         )];
-        storage
-            .dispatch(
-                key,
-                sink::Dispatch::NVT(sink::nvt::NVTField::FileName(key.to_owned())),
-            )
-            .expect("storage should work");
         let mut register = Register::root_initial(&initial);
         let logger = DefaultLogger::new();
         let ctxconfigs = Context::new("test.nasl", &storage, &loader, &logger);
@@ -84,17 +76,14 @@ if(description)
             .unwrap_or(Ok(NaslValue::Exit(0)));
         assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
-            &storage
+            storage
                 .retrieve("test.nasl", sink::Retrieve::NVT(None))
                 .unwrap(),
-            &vec![
-                NVT(FileName("test.nasl".to_owned())),
+            vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
+                NVT(FileName("test.nasl".to_owned())),
                 NVT(NoOp),
-                NVT(Tag(
-                    CreationDate,
-                    "2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)".to_owned()
-                )),
+                NVT(Tag(CreationDate, TagValue::UnixTimeStamp(1366091481))),
                 NVT(Name("that is a very long and descriptive name".to_owned())),
                 NVT(Category(Denial)),
                 NVT(NoOp),

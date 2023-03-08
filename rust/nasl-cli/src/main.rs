@@ -10,7 +10,7 @@ use configparser::ini::Ini;
 pub use error::*;
 
 use redis_sink::connector::RedisCache;
-use sink::SinkError;
+use sink::{nvt::PerNVTSink, SinkError};
 use std::{path::PathBuf, process};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
@@ -83,8 +83,9 @@ impl RunAction<()> for FeedAction {
                         kind: e.into(),
                         filename: format!("{path:?}"),
                     })?;
+                let dispatcher = PerNVTSink::new(redis);
 
-                feed_update::run(redis, update_config.plugin_path, verbose)
+                feed_update::run(dispatcher, update_config.plugin_path, verbose)
             }
         }
     }
