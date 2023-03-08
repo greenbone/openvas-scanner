@@ -6,7 +6,6 @@ use nasl_syntax::Statement;
 
 use crate::{
     error::InterpretError,
-    logger::{DefaultLogger, NaslLogger},
     lookup_keys::FC_ANON_ARGS,
     NaslValue,
 };
@@ -91,7 +90,6 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// deleted by calling drop_last when the context runs out of scope.
 pub struct Register {
     blocks: Vec<NaslContext>,
-    logger: Box<dyn NaslLogger>,
 }
 
 impl Register {
@@ -99,7 +97,6 @@ impl Register {
     pub fn new() -> Self {
         Self {
             blocks: vec![NaslContext::default()],
-            logger: Box::new(DefaultLogger::new()),
         }
     }
 
@@ -115,18 +112,7 @@ impl Register {
         };
         Self {
             blocks: vec![root],
-            logger: Box::<DefaultLogger>::default(),
         }
-    }
-
-    /// Get the logger to print messages
-    pub fn logger(&self) -> &dyn NaslLogger {
-        &*self.logger
-    }
-
-    /// Set a new logger
-    pub fn set_logger(&mut self, logger: Box<dyn NaslLogger>) {
-        self.logger = logger;
     }
 
     /// Returns the next index

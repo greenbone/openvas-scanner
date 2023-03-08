@@ -16,10 +16,12 @@ use built_in_functions::hostname;
 use built_in_functions::misc;
 use built_in_functions::string;
 
+use ctx_configs::CtxConfigs;
 use error::FunctionError;
 
 mod assign;
 mod call;
+mod ctx_configs;
 mod context;
 mod declare;
 mod include;
@@ -41,7 +43,7 @@ pub use naslvalue::NaslValue;
 use sink::Sink;
 
 // Is a type definition for built-in functions
-pub(crate) type NaslFunction = fn(&str, &dyn Sink, &Register) -> Result<NaslValue, FunctionError>;
+pub(crate) type NaslFunction = fn(&str, &dyn Sink, &Register, &CtxConfigs) -> Result<NaslValue, FunctionError>;
 pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
     description::lookup(function_name)
         .or_else(|| hostname::lookup(function_name))
