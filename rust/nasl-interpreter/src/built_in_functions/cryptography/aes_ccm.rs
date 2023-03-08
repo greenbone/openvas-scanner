@@ -16,29 +16,6 @@ use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 
 use super::{get_named_data, Crypt};
 
-macro_rules! ccm_call_typed {
-    ($($t1: ty => $($t2: ty),*);*) => {
-        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8])
-        where D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit
-        {
-            match tag_size {
-                $(
-                    <$t1>::to_usize() => {
-                        match iv_size {
-                            $(
-                                <$t2>::to_usize() => {
-                                    ccm_iv_len::<D, $t1, $t2>(crypt, key, nonce, data);
-                                }
-                            ),*
-                        }
-                    }
-                );*
-                other => panic!("unexpected type: {}", other)
-            }
-         }
-     }
- }
-
 /// Function to create cipher object and en-/decrypt data. Can throw error in case of authentication failure.
 fn ccm_iv_len<D, M, N>(
     crypt: Crypt,
@@ -191,14 +168,38 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
     }
 }
 
+macro_rules! ccm_call_typed {
+    ($(($t1s: expr, $t1: ty) => $(($t2s: expr, $t2: ty)),*);*) => {
+        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8]) -> Result<Vec<u8>, aError>
+        where D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit
+        {
+            match tag_size {
+                $(
+                    $t1s => {
+                        match iv_size {
+                            $(
+                                $t2s => {
+                                    ccm_iv_len::<D, $t1, $t2>(crypt, key, nonce, data)
+                                }
+                            ),*
+                            other => todo!("probably best to return an error since iv_size is a given parameter")
+                        }
+                    }
+                ),*
+                other => todo!("probably best to return an error since tag_size is a given parameter")
+            }
+         }
+     }
+ }
+
 ccm_call_typed!(
-    U4 => (U7, U8, U9, U10, U11, U12, U13);
-    U6 => (U7, U8, U9, U10, U11, U12, U13);
-    U8 => (U7, U8, U9, U10, U11, U12, U13);
-    U10 => (U7, U8, U9, U10, U11, U12, U13);
-    U12 => (U7, U8, U9, U10, U11, U12, U13);
-    U14 => (U7, U8, U9, U10, U11, U12, U13);
-    U16 => (U7, U8, U9, U10, U11, U12, U13)
+    (4, U4) => (7, U7), (8, U8), (9, U9), (10, U10), (11, U11), (12, U12), (13, U13);
+    (6, U6) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13) ;
+    (8, U8) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13) ;
+    (10, U10) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13) ;
+    (12, U12) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13) ;
+    (14, U14) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13) ;
+    (16, U16) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13)
 );
 
 #[cfg(test)]
