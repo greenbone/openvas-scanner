@@ -11,7 +11,7 @@ The implementation is split into multiple parts that are reflected in the direct
 The core parts are:
 
 - [nasl-syntax](./nasl-syntax/) - to tokenize a NASL script and return `Statements`
-- [sink](./sink/) - an Storage abstraction used to implement multiple storage solutions.
+- [sink](./sink/) - a storage abstraction used to implement multiple storage solutions.
 - [nasl-interpreter](./nasl-interpreter/) - to execute the `Statements` by also utilizing `sink`
 - [feed](./feed) - a feed related abstraction for a front end (e.g. `nasl-cli`).
 
@@ -46,7 +46,7 @@ Currently only `cargo` within `rust-toolchain` is required.
 
 If you are unsure how to start or want to discuss an improvement or feature feel free to create an issue.
 
-Feel invited to create a draft PR and open a discussions about a new feature, improves or even architectural changes if you want to discuss based on concrete examples.
+Feel invited to create a draft PR and open a discussions about a new feature, improvements or even architectural changes if you want to discuss based on concrete examples.
 
 If you want to help we are very happy about:
 
@@ -60,7 +60,7 @@ Additionally we want to:
 - extend `nasl-cli` with a `openvas-nasl` like functionality so that we can test scripts
 - implement multithreading of interpreter
 - implement scheduling for a multi script run
-- create an http frontend based on [openapi definition](./doc/openapi.yml)
+- create an http frontend based on [OpenAPI definition](./doc/openapi.yml)
 
 ## Current status
 
