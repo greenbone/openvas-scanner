@@ -19,8 +19,6 @@ use ripemd::Ripemd160;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use sink::Sink;
-
 use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register, CtxConfigs};
 
 fn hmac<D>(register: &Register, function: &str) -> Result<NaslValue, FunctionError>
@@ -61,42 +59,37 @@ where
 }
 
 /// NASL function to get HMAC MD2 string
-pub fn hmac_md2(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn hmac_md2(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Md2>(register, "HMAC_MD2")
 }
 
 /// NASL function to get HMAC MD5 string
-pub fn hmac_md5(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn hmac_md5(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Md5>(register, "HMAC_MD5")
 }
 
 /// NASL function to get HMAC RIPEMD160 string
-pub fn hmac_ripemd160(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-    _: &CtxConfigs,
-) -> Result<NaslValue, FunctionError> {
+pub fn hmac_ripemd160(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Ripemd160>(register, "HMAC_RIPEMD160")
 }
 
 /// NASL function to get HMAC SHA1 string
-pub fn hmac_sha1(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha1(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Sha1>(register, "HMAC_SHA1")
 }
 
 /// NASL function to get HMAC SHA256 string
-pub fn hmac_sha256(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha256(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Sha256>(register, "HMAC_SHA256")
 }
 
 /// NASL function to get HMAC SHA384 string
-pub fn hmac_sha384(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha384(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Sha384>(register, "HMAC_SHA384")
 }
 
 /// NASL function to get HMAC SHA512 string
-pub fn hmac_sha512(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha512(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     hmac::<Sha512>(register, "HMAC_SHA512")
 }
 
@@ -119,18 +112,19 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NoOpLoader, Register, CtxConfigs};
+    use crate::{Interpreter, NoOpLoader, Register, CtxConfigs, DefaultLogger};
 
     #[test]
     fn hmac_md2() {
         let code = r###"
         HMAC_MD2(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -144,11 +138,12 @@ mod tests {
         let code = r###"
         HMAC_MD5(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -162,11 +157,12 @@ mod tests {
         let code = r###"
         HMAC_RIPEMD160(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -180,11 +176,12 @@ mod tests {
         let code = r###"
         HMAC_SHA1(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -198,11 +195,12 @@ mod tests {
         let code = r###"
         HMAC_SHA256(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -218,11 +216,12 @@ mod tests {
         let code = r###"
         HMAC_SHA384(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -236,11 +235,12 @@ mod tests {
         let code = r###"
         HMAC_SHA512(key: "my_shared?key", data: "so much wow");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let storage = DefaultSink::new(false);
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(

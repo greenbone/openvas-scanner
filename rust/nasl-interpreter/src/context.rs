@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
+use sink::{Sink};
 
 use crate::{
     error::InterpretError,
     lookup_keys::FC_ANON_ARGS,
-    NaslValue,
+    logger::{NaslLogger},
+    NaslValue, Loader,
 };
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -258,3 +260,46 @@ impl NaslContext {
         }
     }
 }
+
+/// Configurations
+///
+/// This struct includes all objects that a nasl function requires.
+/// New objects must be added here in
+pub struct CtxConfigs<'a> {
+    /// key for this context. A name or an OID
+    pub(crate) key: &'a str,
+    /// Default Sink
+    pub(crate) storage: &'a dyn Sink,
+    /// Default Loader
+    pub(crate) loader: &'a dyn Loader,
+    /// Default logger.
+    logger: Box<dyn NaslLogger>,
+}
+
+impl<'a> CtxConfigs<'a> {
+    /// Creates an empty configuration
+    pub fn new(
+        key: &'a str,
+        storage: &'a dyn Sink,
+        loader: &'a dyn Loader,
+        logger: Box<dyn NaslLogger>,
+    ) -> Self {
+        Self {
+            key,
+            storage,
+            loader,
+            logger,
+        }
+    }
+
+    /// Get the logger to print messages
+    pub fn logger(&self) -> &dyn NaslLogger {
+        &*self.logger
+    }
+
+    /// Set a new logger
+    pub fn set_logger(&mut self, logger: Box<dyn NaslLogger>) {
+        self.logger = logger;
+    }
+}
+

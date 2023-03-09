@@ -17,7 +17,7 @@ impl Loader for NoOpLoader {
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::{ContextType, InterpretError, NaslValue};
+    use nasl_interpreter::{ContextType, InterpretError, NaslValue, DefaultLogger};
     use nasl_interpreter::{Interpreter, Register, CtxConfigs};
 
     use nasl_syntax::parse;
@@ -71,8 +71,9 @@ if(description)
             )
             .expect("storage should work");
         let mut register = Register::root_initial(&initial);
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("test.nasl", &storage, &loader, &mut register, &mut ctxconfigs);
+        let logger = Box::new(DefaultLogger::new());
+        let ctxconfigs = CtxConfigs::new("test.nasl", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {
                 Ok(stmt) => interpreter.resolve(&stmt),

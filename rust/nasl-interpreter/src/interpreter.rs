@@ -5,16 +5,14 @@
 use std::io;
 
 use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
-use sink::{Sink, SinkError};
+use sink::{SinkError};
 
 use crate::{
     assign::AssignExtension,
     call::CallExtension,
-    context::{ContextType, Register},
-    ctx_configs::CtxConfigs,
+    context::{ContextType, Register, CtxConfigs},
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     include::IncludeExtension,
-    loader::Loader,
     loop_extension::LoopExtension,
     operator::OperatorExtension,
     InterpretError, InterpretErrorKind, LoadError, NaslValue,
@@ -22,11 +20,8 @@ use crate::{
 
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
-    pub(crate) key: &'a str,
     pub(crate) registrat: &'a mut Register,
-    pub(crate) storage: &'a dyn Sink,
-    pub(crate) loader: &'a dyn Loader,
-    pub(crate) ctxconfigs: &'a mut CtxConfigs,
+    pub(crate) ctxconfigs: &'a CtxConfigs<'a>,
     
 }
 
@@ -38,17 +33,11 @@ pub type InterpretResult = Result<NaslValue, InterpretError>;
 impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
     pub fn new(
-        key: &'a str,
-        storage: &'a dyn Sink,
-        loader: &'a dyn Loader,
         register: &'a mut Register,
-        ctxconfigs: &'a mut CtxConfigs,
+        ctxconfigs: &'a CtxConfigs,
     ) -> Self {
         Interpreter {
-            key,
             registrat: register,
-            storage,
-            loader,
             ctxconfigs,
         }
     }

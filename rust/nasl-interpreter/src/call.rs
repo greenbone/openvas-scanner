@@ -43,7 +43,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         let result = match lookup(name) {
             // Built-In Function
             Some(function) => {
-                function(self.key, self.storage, self.registrat, self.ctxconfigs).map_err(|x| x.into())
+                function(self.registrat, self.ctxconfigs).map_err(|x| x.into())
             }
             // Check for user defined function
             None => {
@@ -84,7 +84,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{context::Register, loader::NoOpLoader, ctx_configs::CtxConfigs, Interpreter, NaslValue};
+    use crate::{context::Register, loader::NoOpLoader, context::CtxConfigs, Interpreter, NaslValue, DefaultLogger};
 
     #[test]
     fn default_null_on_user_defined_functions() {
@@ -96,11 +96,12 @@ mod tests {
         test(a: 1);
         test();
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
+        let storage = DefaultSink::default();
         let loader = NoOpLoader::default();
-        let mut ctxconfigs = CtxConfigs::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
+        let logger = Box::new(DefaultLogger::new());
+        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));

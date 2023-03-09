@@ -5,14 +5,12 @@
 use std::str::FromStr;
 
 use crate::{
-    ctx_configs::CtxConfigs,
-    context::{ContextType, Register},
+    context::{CtxConfigs, ContextType, Register},
     error::FunctionErrorKind,
     FunctionError, NaslFunction, NaslValue,
 };
 
 use sink::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey};
-use sink::Sink;
 
 /// Makes a storage function based on a very small DSL.
 ///
@@ -58,10 +56,8 @@ macro_rules! make_storage_function {
         ///
         /// Returns NaslValue::Null on success.
         pub fn $name(
-            key: &str,
-            storage: &dyn Sink,
             registrat: &Register,
-            _: &CtxConfigs,
+            ctxconfigs: &CtxConfigs,
         ) -> Result<NaslValue, FunctionError> {
             let mut variables = vec![];
             $(
@@ -91,7 +87,7 @@ macro_rules! make_storage_function {
             )+
             )?
             let db_arg = $transform(&variables)?;
-            storage.dispatch(key, sink::Dispatch::NVT(db_arg))?;
+            ctxconfigs.storage.dispatch(ctxconfigs.key, sink::Dispatch::NVT(db_arg))?;
             Ok(NaslValue::Null)
         }
         )*
