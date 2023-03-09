@@ -61,16 +61,38 @@ where
 
     // Mode Encrypt or Decrypt
     match crypt {
-        Crypt::Encrypt => Ok(Encryptor::<D>::new_from_slices(key, iv)
-            .unwrap()
-            .encrypt_padded_vec_mut::<ZeroPadding>(data)
-            .into()),
-        Crypt::Decrypt => Ok(Decryptor::<D>::new_from_slices(key, iv)
-            .unwrap()
-            .decrypt_padded_vec_mut::<NoPadding>(data)
-            .unwrap()[..len]
-            .to_vec()
-            .into()),
+        Crypt::Encrypt => {
+            let res = Encryptor::<D>::new_from_slices(key, iv);
+            match res {
+                Ok(encryptor) => {
+                    return Ok(encryptor.encrypt_padded_vec_mut::<ZeroPadding>(data).into())
+                }
+                Err(e) => {
+                    return Err(FunctionError::new(
+                        function,
+                        crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
+                    ))
+                }
+            };
+        }
+        Crypt::Decrypt => {
+            let res = Decryptor::<D>::new_from_slices(key, iv);
+            match res {
+                Ok(decryptor) => {
+                    return Ok(
+                        decryptor.decrypt_padded_vec_mut::<NoPadding>(data).unwrap()[..len]
+                            .to_vec()
+                            .into(),
+                    )
+                }
+                Err(e) => {
+                    return Err(FunctionError::new(
+                        function,
+                        crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
+                    ))
+                }
+            };
+        }
     }
 }
 
@@ -281,5 +303,30 @@ mod tests {
                 decode_hex("014730f80ac625fe84f026c60bfd547d").unwrap()
             )))
         );
+    }
+
+    #[test]
+    fn padding() {
+        let code = r###"
+        key = hexstr_to_data("00000000000000000000000000000000");
+        data1 = hexstr_to_data("f34481ec3cc627bacd5dc3fb08f2");
+        data2 = hexstr_to_data("f34481ec3cc627bacd5dc3fb08f20000");
+        iv = hexstr_to_data("00000000000000000000000000000000");
+        aes128_cbc_encrypt(key: key, data: data1, iv: iv);
+        aes128_cbc_encrypt(key: key, data: data2, iv: iv);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        parser.next();
+        parser.next();
+        parser.next();
+        let crypt1 = parser.next();
+        let crypt2 = parser.next();
+        assert_eq!(crypt1, crypt2);
     }
 }
