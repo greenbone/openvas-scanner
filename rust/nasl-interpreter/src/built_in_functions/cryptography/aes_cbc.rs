@@ -254,8 +254,8 @@ mod tests {
     #[test]
     fn aes256_cbc_crypt() {
         let code = r###"
-        key = hexstr_to_data("00000000000000000000000000000000");
-        data = hexstr_to_data("f34481ec3cc627bacd5dc3fb08f273e6");
+        key = hexstr_to_data("0000000000000000000000000000000000000000000000000000000000000000");
+        data = hexstr_to_data("014730f80ac625fe84f026c60bfd547d");
         iv = hexstr_to_data("00000000000000000000000000000000");
         crypt = aes256_cbc_encrypt(key: key, data: data, iv: iv);
         aes256_cbc_decrypt(key: key, data: crypt, iv: iv);
@@ -272,13 +272,13 @@ mod tests {
         assert_eq!(
             parser.next(),
             Some(Ok(crate::NaslValue::Data(
-                decode_hex("0336763e966d92595a567cc9ce537f5e").unwrap()
+                decode_hex("5c9d844ed46f9885085e5d6a4f94c7d7").unwrap()
             )))
         );
         assert_eq!(
             parser.next(),
             Some(Ok(crate::NaslValue::Data(
-                decode_hex("f34481ec3cc627bacd5dc3fb08f273e6").unwrap()
+                decode_hex("014730f80ac625fe84f026c60bfd547d").unwrap()
             )))
         );
     }
