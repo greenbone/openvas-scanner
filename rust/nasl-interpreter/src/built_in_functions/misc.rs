@@ -16,7 +16,7 @@ use chrono::{self, Datelike, Local, LocalResult, Offset, TimeZone, Timelike, Utc
 
 use crate::{
     error::{FunctionError, FunctionErrorKind},
-    ContextType, NaslFunction, NaslValue, Register, CtxConfigs,
+    ContextType, NaslFunction, NaslValue, Register, Context,
 };
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
@@ -35,17 +35,17 @@ fn random_impl() -> Result<i64, FunctionError> {
 }
 
 /// NASL function to get random number
-pub fn rand(_: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn rand(_: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     random_impl().map(NaslValue::Number)
 }
 
 /// NASL function to get host byte order
-pub fn get_byte_order(_: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn get_byte_order(_: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     Ok(NaslValue::Boolean(cfg!(target_endian = "little")))
 }
 
 /// NASL function to convert given number to string
-pub fn dec2str(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn dec2str(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     match register.named("num") {
         Some(ContextType::Value(NaslValue::Number(x))) => Ok(NaslValue::String(x.to_string())),
         x => Err(FunctionError::new("dec2str", ("0", "numeric", x).into())),
@@ -53,7 +53,7 @@ pub fn dec2str(register: &Register, _: &CtxConfigs) -> Result<NaslValue, Functio
 }
 
 /// takes an integer and sleeps the amount of seconds
-pub fn sleep(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn sleep(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     match positional[0] {
         NaslValue::Number(x) => {
@@ -65,7 +65,7 @@ pub fn sleep(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionE
 }
 
 /// takes an integer and sleeps the amount of microseconds
-pub fn usleep(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn usleep(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     match positional[0] {
         NaslValue::Number(x) => {
@@ -78,7 +78,7 @@ pub fn usleep(register: &Register, _: &CtxConfigs) -> Result<NaslValue, Function
 
 /// Returns the type of given unnamed argument.
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
-pub fn nasl_typeof(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn nasl_typeof(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -96,7 +96,7 @@ pub fn nasl_typeof(register: &Register, _: &CtxConfigs) -> Result<NaslValue, Fun
 }
 
 /// Returns true when the given unnamed argument is null.
-pub fn isnull(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn isnull(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Err(FunctionError::new(
@@ -114,7 +114,7 @@ pub fn isnull(register: &Register, _: &CtxConfigs) -> Result<NaslValue, Function
 }
 
 /// Returns the seconds counted from 1st January 1970 as an integer.
-pub fn unixtime(_: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn unixtime(_: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     match std::time::SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(NaslValue::Number(t.as_secs() as i64)),
         Err(_) => Err(FunctionError::new("unixtime", ("0", "numeric").into())),
@@ -122,7 +122,7 @@ pub fn unixtime(_: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError
 }
 
 /// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
-pub fn gzip(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn gzip(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
@@ -158,7 +158,7 @@ pub fn gzip(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionEr
 }
 
 /// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
-pub fn gunzip(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn gunzip(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
@@ -181,7 +181,7 @@ pub fn gunzip(register: &Register, _: &CtxConfigs) -> Result<NaslValue, Function
     }
 }
 /// Takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
-pub fn mktime(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn mktime(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let sec = match register.named("sec") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
         _ => 0,
@@ -245,7 +245,7 @@ where
 }
 
 /// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
-pub fn localtime(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn localtime(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let utc_flag = match register.named("utc") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x != 0,
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
@@ -293,7 +293,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register, CtxConfigs, DefaultLogger};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register, Context, DefaultLogger};
     use chrono::Offset;
     use nasl_syntax::parse;
     use sink::DefaultSink;
@@ -309,7 +309,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -329,7 +329,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -345,7 +345,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -369,7 +369,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -394,7 +394,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -411,7 +411,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -428,7 +428,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -463,7 +463,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -487,7 +487,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -562,7 +562,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -582,7 +582,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -600,7 +600,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));

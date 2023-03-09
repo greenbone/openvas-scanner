@@ -244,7 +244,7 @@ impl NaslContext {
         self.defined.insert(name.to_owned(), value);
     }
 
-    /// Retrieves a definition by name
+    /// Retrives a definition by name
     fn named<'a>(
         &'a self,
         registrat: &'a Register,
@@ -265,7 +265,7 @@ impl NaslContext {
 ///
 /// This struct includes all objects that a nasl function requires.
 /// New objects must be added here in
-pub struct CtxConfigs<'a> {
+pub struct Context<'a> {
     /// key for this context. A name or an OID
     pub(crate) key: &'a str,
     /// Default Sink
@@ -276,7 +276,7 @@ pub struct CtxConfigs<'a> {
     logger: Box<dyn NaslLogger>,
 }
 
-impl<'a> CtxConfigs<'a> {
+impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
         key: &'a str,

@@ -5,7 +5,7 @@
 use std::str::FromStr;
 
 use crate::{
-    context::{CtxConfigs, ContextType, Register},
+    context::{Context, ContextType, Register},
     error::FunctionErrorKind,
     FunctionError, NaslFunction, NaslValue,
 };
@@ -57,7 +57,7 @@ macro_rules! make_storage_function {
         /// Returns NaslValue::Null on success.
         pub fn $name(
             registrat: &Register,
-            ctxconfigs: &CtxConfigs,
+            ctxconfigs: &Context,
         ) -> Result<NaslValue, FunctionError> {
             let mut variables = vec![];
             $(

@@ -213,7 +213,7 @@ mod tests {
     use sink::DefaultSink;
 
     use crate::{Interpreter, NaslValue};
-    use crate::{NoOpLoader, Register, CtxConfigs, DefaultLogger};
+    use crate::{NoOpLoader, Register, Context, DefaultLogger};
 
     macro_rules! create_test {
         ($($name:tt: $code:expr => $result:expr),*) => {
@@ -225,7 +225,7 @@ mod tests {
                 let logger = Box::new(DefaultLogger::new());
                 let loader = NoOpLoader::default();
                 let storage = DefaultSink::new(false);
-                let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+                let ctxconfigs = Context::new("1", &storage, &loader, logger);
                 let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
                 let mut parser = parse($code).map(|x|
                     interpreter.resolve(&x.expect("unexpected parse error"))

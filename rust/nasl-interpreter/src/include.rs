@@ -40,7 +40,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{context::Register, Interpreter, LoadError, Loader, NaslValue, CtxConfigs, DefaultLogger};
+    use crate::{context::Register, Interpreter, LoadError, Loader, NaslValue, Context, DefaultLogger};
 
     struct FakeInclude<'a> {
         plugins: &'a HashMap<String, String>,
@@ -75,7 +75,7 @@ mod tests {
         let mut register = Register::default();
         let storage = DefaultSink::new(false);
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, loader, logger);
+        let ctxconfigs = Context::new("1", &storage, loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));

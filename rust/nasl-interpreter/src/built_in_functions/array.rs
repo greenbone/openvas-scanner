@@ -9,7 +9,7 @@
 
 use std::collections::HashMap;
 
-use crate::{error::FunctionError, NaslFunction, NaslValue, Register, CtxConfigs};
+use crate::{error::FunctionError, NaslFunction, NaslValue, Register, Context};
 
 use super::resolve_positional_arguments;
 
@@ -18,7 +18,7 @@ use super::resolve_positional_arguments;
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-pub fn make_array(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn make_array(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
@@ -47,20 +47,20 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionError> 
     Ok(values)
 }
 /// NASL function to create a list out of a number of unnamed arguments
-pub fn make_list(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn make_list(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let values = nasl_make_list(register)?;
     Ok(NaslValue::Array(values))
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-pub fn nasl_sort(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let mut values = nasl_make_list(register)?;
     values.sort();
     Ok(NaslValue::Array(values))
 }
 
 /// Returns an array with the keys of a dict
-pub fn keys(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn keys(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut keys = Vec::<NaslValue>::new();
     for val in positional.iter() {
@@ -75,7 +75,7 @@ pub fn keys(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionEr
 }
 
 /// NASL function to return the length of an array|dict.
-pub fn max_index(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn max_index(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -107,7 +107,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, CtxConfigs, DefaultLogger, NoOpLoader};
+    use crate::{Interpreter, NaslValue, Register, Context, DefaultLogger, NoOpLoader};
 
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {
@@ -137,7 +137,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -162,7 +162,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -219,7 +219,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -248,7 +248,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -277,7 +277,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));

@@ -166,7 +166,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register, CtxConfigs, DefaultLogger};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register, Context, DefaultLogger};
 
     #[test]
     fn for_loop_test() {
@@ -180,7 +180,7 @@ mod tests {
         let storage = DefaultSink::default();
         let loader = NoOpLoader::default();
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut register = Register::default();
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter =
@@ -203,7 +203,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -227,7 +227,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -255,7 +255,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -284,7 +284,7 @@ mod tests {
         let mut register = Register::default();
         let loader = NoOpLoader::default();
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -318,7 +318,7 @@ mod tests {
         let storage = DefaultSink::default();
         let loader = NoOpLoader::default();
         let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));

@@ -30,7 +30,7 @@ mod lookup_keys;
 mod loop_extension;
 mod operator;
 
-pub use context::CtxConfigs;
+pub use context::Context;
 pub use context::ContextType;
 pub use context::Register;
 pub use error::InterpretError;
@@ -41,7 +41,7 @@ pub use logger::{DefaultLogger, Mode, NaslLogger};
 pub use naslvalue::NaslValue;
 
 // Is a type definition for built-in functions
-pub(crate) type NaslFunction<'a> = fn(&Register, &CtxConfigs) -> Result<NaslValue, FunctionError>;
+pub(crate) type NaslFunction<'a> = fn(&Register, &Context) -> Result<NaslValue, FunctionError>;
 pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
     description::lookup(function_name)
         .or_else(|| hostname::lookup(function_name))

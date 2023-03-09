@@ -4,7 +4,7 @@
 
 //! Defines various built-in functions for NASL functions.
 
-use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register, CtxConfigs};
+use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register, Context};
 
 use super::resolve_positional_arguments;
 
@@ -15,7 +15,7 @@ use super::resolve_positional_arguments;
 /// Returns NaslValue::Boolean(true) when defined NaslValue::Boolean(false) otherwise.
 pub fn defined_func(
     register: &Register,
-    _: &CtxConfigs,
+    _: &Context,
 ) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
 
@@ -42,7 +42,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, CtxConfigs, DefaultLogger, NoOpLoader};
+    use crate::{Interpreter, NaslValue, Register, Context, DefaultLogger, NoOpLoader};
 
     #[test]
     fn defined_func() {
@@ -58,7 +58,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));

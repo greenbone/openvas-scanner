@@ -10,7 +10,7 @@ use sink::{SinkError};
 use crate::{
     assign::AssignExtension,
     call::CallExtension,
-    context::{ContextType, Register, CtxConfigs},
+    context::{ContextType, Register, Context},
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     include::IncludeExtension,
     loop_extension::LoopExtension,
@@ -21,7 +21,7 @@ use crate::{
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
     pub(crate) registrat: &'a mut Register,
-    pub(crate) ctxconfigs: &'a CtxConfigs<'a>,
+    pub(crate) ctxconfigs: &'a Context<'a>,
     
 }
 
@@ -34,7 +34,7 @@ impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
     pub fn new(
         register: &'a mut Register,
-        ctxconfigs: &'a CtxConfigs,
+        ctxconfigs: &'a Context,
     ) -> Self {
         Interpreter {
             registrat: register,

@@ -4,7 +4,7 @@
 
 use std::str;
 
-use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, Register, CtxConfigs};
+use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, Register, Context};
 
 /// Resolves IP address of target to hostname
 ///
@@ -34,7 +34,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_names(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -42,7 +42,7 @@ pub fn get_host_names(register: &Register, _: &CtxConfigs) -> Result<NaslValue, 
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_name(register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
+pub fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     resolve_hostname(register).map(NaslValue::String)
 }
 
@@ -60,7 +60,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, CtxConfigs, DefaultLogger, NoOpLoader};
+    use crate::{Interpreter, NaslValue, Register, Context, DefaultLogger, NoOpLoader};
 
     #[test]
     fn get_host_name() {
@@ -72,7 +72,7 @@ mod tests {
         let logger = Box::new(DefaultLogger::new());
         let loader = NoOpLoader::default();
         let storage = DefaultSink::new(false);
-        let ctxconfigs = CtxConfigs::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
