@@ -5,6 +5,7 @@
 use std::str::FromStr;
 
 use crate::{
+    ctx_configs::CtxConfigs,
     context::{ContextType, Register},
     error::FunctionErrorKind,
     FunctionError, NaslFunction, NaslValue,
@@ -60,6 +61,7 @@ macro_rules! make_storage_function {
             key: &str,
             storage: &dyn Sink,
             registrat: &Register,
+            _: &CtxConfigs,
         ) -> Result<NaslValue, FunctionError> {
             let mut variables = vec![];
             $(

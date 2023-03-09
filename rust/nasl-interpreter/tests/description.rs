@@ -18,7 +18,7 @@ impl Loader for NoOpLoader {
 mod tests {
 
     use nasl_interpreter::{ContextType, InterpretError, NaslValue};
-    use nasl_interpreter::{Interpreter, Register};
+    use nasl_interpreter::{Interpreter, Register, CtxConfigs};
 
     use nasl_syntax::parse;
     use sink::nvt::NvtRef;
@@ -71,7 +71,8 @@ if(description)
             )
             .expect("storage should work");
         let mut register = Register::root_initial(&initial);
-        let mut interpreter = Interpreter::new(key, &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("test.nasl", &storage, &loader, &mut register, &mut ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {
                 Ok(stmt) => interpreter.resolve(&stmt),

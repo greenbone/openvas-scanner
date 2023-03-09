@@ -6,7 +6,7 @@
 
 use sink::Sink;
 
-use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register, CtxConfigs};
 
 use super::resolve_positional_arguments;
 
@@ -19,6 +19,7 @@ pub fn defined_func(
     _: &str,
     _: &dyn Sink,
     register: &Register,
+    _: &CtxConfigs,
 ) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
 
@@ -45,7 +46,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register, CtxConfigs};
 
     #[test]
     fn defined_func() {
@@ -60,7 +61,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null))); // defining function b

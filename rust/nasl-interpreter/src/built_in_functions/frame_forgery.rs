@@ -15,6 +15,7 @@ use pcap::{Address, Capture, Device};
 
 use sink::Sink;
 
+use crate::CtxConfigs;
 use crate::lookup_keys::TARGET;
 use crate::{
     error::{FunctionError, FunctionErrorKind},
@@ -475,6 +476,7 @@ fn nasl_send_arp_request(
     _: &str,
     _: &dyn Sink,
     register: &Register,
+    _: &CtxConfigs,
 ) -> Result<NaslValue, FunctionError> {
     let timeout = match register.named("filter") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
@@ -542,6 +544,7 @@ fn nasl_get_local_mac_address_from_ip(
     _: &str,
     _: &dyn Sink,
     register: &Register,
+    _: &CtxConfigs,
 ) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
@@ -573,6 +576,7 @@ fn nasl_forge_frame(
     _: &str,
     _: &dyn Sink,
     register: &Register,
+    _: &CtxConfigs,
 ) -> Result<NaslValue, FunctionError> {
     let src_haddr = validate_mac_address(register.named("src_haddr"))?;
     let dst_haddr = validate_mac_address(register.named("dst_haddr"))?;
@@ -601,7 +605,7 @@ fn nasl_forge_frame(
 /// - pcap_active: option to capture the answer, default is TRUE
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
-fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => {
@@ -660,7 +664,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
 /// This function is meant to be used for debugging.
-fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register, configs: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
         _ => {
@@ -671,7 +675,7 @@ fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
         }
     };
 
-    register.logger().info(format!("Frame:\n{}", frame));
+    configs.logger().info(format!("Frame:\n{}", frame));
     Ok(NaslValue::Null)
 }
 
@@ -693,7 +697,7 @@ mod tests {
 
     use crate::{
         built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address},
-        Interpreter, NaslValue, NoOpLoader, Register,
+        Interpreter, NaslValue, NoOpLoader, Register, CtxConfigs
     };
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
@@ -711,7 +715,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -740,7 +745,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -795,7 +801,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();

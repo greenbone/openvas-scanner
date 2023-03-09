@@ -166,7 +166,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register, CtxConfigs};
 
     #[test]
     fn for_loop_test() {
@@ -180,7 +180,8 @@ mod tests {
         let storage = DefaultSink::default();
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
@@ -200,7 +201,8 @@ mod tests {
         let storage = DefaultSink::default();
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
@@ -222,7 +224,8 @@ mod tests {
         let storage = DefaultSink::default();
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(3.into())));
@@ -248,7 +251,8 @@ mod tests {
         let storage = DefaultSink::default();
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(4.into())));
@@ -275,7 +279,8 @@ mod tests {
         let storage = DefaultSink::default();
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(10.into())));
@@ -307,7 +312,8 @@ mod tests {
         let storage = DefaultSink::default();
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));

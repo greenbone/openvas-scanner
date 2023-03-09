@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use sink::Sink;
 
-use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionError, NaslFunction, NaslValue, Register, CtxConfigs};
 
 use super::resolve_positional_arguments;
 
@@ -20,7 +20,7 @@ use super::resolve_positional_arguments;
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-pub fn make_array(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn make_array(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
@@ -49,20 +49,20 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionError> 
     Ok(values)
 }
 /// NASL function to create a list out of a number of unnamed arguments
-pub fn make_list(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn make_list(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let values = nasl_make_list(register)?;
     Ok(NaslValue::Array(values))
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-pub fn nasl_sort(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn nasl_sort(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let mut values = nasl_make_list(register)?;
     values.sort();
     Ok(NaslValue::Array(values))
 }
 
 /// Returns an array with the keys of a dict
-pub fn keys(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn keys(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut keys = Vec::<NaslValue>::new();
     for val in positional.iter() {
@@ -77,7 +77,7 @@ pub fn keys(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, Fun
 }
 
 /// NASL function to return the length of an array|dict.
-pub fn max_index(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+pub fn max_index(_: &str, _: &dyn Sink, register: &Register, _: &CtxConfigs) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -109,7 +109,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
+    use crate::{Interpreter, NaslValue, NoOpLoader, Register, CtxConfigs};
 
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {
@@ -138,7 +138,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
@@ -161,7 +162,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -216,7 +218,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -243,7 +246,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -270,7 +274,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();

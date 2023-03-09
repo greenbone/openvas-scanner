@@ -72,7 +72,7 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{context::Register, loader::NoOpLoader, Interpreter, NaslValue};
+    use crate::{context::Register, loader::NoOpLoader, ctx_configs::CtxConfigs, Interpreter, NaslValue};
 
     #[test]
     fn declare_local() {
@@ -88,7 +88,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
@@ -107,7 +108,8 @@ mod tests {
         let storage = DefaultSink::new(false);
         let mut register = Register::default();
         let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut ctxconfigs = CtxConfigs::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register, &mut ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
