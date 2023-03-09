@@ -47,7 +47,18 @@ where
     let cipher = AesGcm::<D, U12>::new(key.into());
 
     let res = match crypt {
-        Crypt::Encrypt => cipher.encrypt(iv.into(), data),
+        Crypt::Encrypt => {
+            if data.len() % 16 != 0 {
+                let blocks_len = data.len() + 16 - data.len() % 16;
+                let mut vec = data.to_vec();
+                while vec.len() < blocks_len {
+                    vec.push(0);
+                }
+                cipher.encrypt(iv.into(), vec.as_slice())
+            } else {
+                cipher.encrypt(iv.into(), data)
+            }
+        }
         Crypt::Decrypt => cipher.decrypt(iv.into(), data),
     };
     match res {
@@ -284,5 +295,30 @@ mod tests {
                 decode_hex("2db5168e932556f8089a0622981d017d").unwrap()
             )))
         );
+    }
+
+    #[test]
+    fn padding() {
+        let code = r###"
+        key = hexstr_to_data("7fddb57453c241d03efbed3ac44e371c");
+        data1 = hexstr_to_data("d5de42b461646c255c87bd29");
+        data2 = hexstr_to_data("d5de42b461646c255c87bd2900000000");
+        iv = hexstr_to_data("ee283a3fc75575e33efd4887");
+        aes128_gcm_encrypt(key: key, data: data1, iv: iv);
+        aes128_gcm_encrypt(key: key, data: data2, iv: iv);
+        "###;
+        let storage = DefaultSink::new(false);
+        let mut register = Register::default();
+        let loader = NoOpLoader::default();
+        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        parser.next();
+        parser.next();
+        parser.next();
+        let crypt1 = parser.next();
+        let crypt2 = parser.next();
+        assert_eq!(crypt1, crypt2);
     }
 }
