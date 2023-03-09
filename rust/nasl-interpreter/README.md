@@ -14,11 +14,6 @@ An interpreter requires:
 - loader: &'a dyn Loader - is used to load script dependencies on `include`,
 - register: &'a mut Register - to hold all the available data like functions or variables
 
-## Requirements
-
-`nasl-interpreter` has dependencies on the following C libraries:
-
-- `libpcap-dev`
 
 ## Example
 
@@ -49,5 +44,10 @@ fn(&str, &dyn Sink, &Register) -> Result<NaslValue, FunctionError>
 An example of how to write a new builtin function can be found in [misc](./src/built_in_functions/misc.rs).
 
 ## Build
+
+### Requirements
+
+**Note:** It depends on pcap that cannot be installed via cargo. See [pcap#installing-dependencies](https://github.com/rust-pcap/pcap#installing-dependencies) for further details.
+`nasl-interpreter` has dependencies on the following C libraries:
 
 Run `cargo test` to test and `cargo build --release` to build it.
