@@ -22,6 +22,7 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v3
+      - run: sudo apt update && sudo apt-get install -y libpcap-dev
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo test
   clippy:
@@ -88,6 +89,7 @@ jobs:
             ~/.cargo/git/db/
             rust/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: sudo apt update && sudo apt-get install -y libpcap-dev
       - run: rustup update stable && rustup default stable
       - run: cargo build --lib --release
       - run: cargo build --bins --release

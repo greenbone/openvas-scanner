@@ -7,6 +7,7 @@ use crate::{lookup_keys::FC_ANON_ARGS, ContextType, NaslValue, Register};
 pub mod array;
 pub mod cryptography;
 pub mod description;
+pub mod frame_forgery;
 pub mod function;
 pub mod hostname;
 pub mod misc;
