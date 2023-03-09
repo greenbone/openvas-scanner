@@ -14,6 +14,12 @@ An interpreter requires:
 - loader: &'a dyn Loader - is used to load script dependencies on `include`,
 - register: &'a mut Register - to hold all the available data like functions or variables
 
+## Requirements
+
+`nasl-interpreter` has dependencies on the following C libraries:
+
+- `libpcap-dev`
+
 ## Example
 
 ```
