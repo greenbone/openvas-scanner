@@ -11,6 +11,7 @@ use crate::{
     assign::AssignExtension,
     call::CallExtension,
     context::{ContextType, Register},
+    ctx_configs::CtxConfigs,
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     include::IncludeExtension,
     loader::Loader,
@@ -25,6 +26,8 @@ pub struct Interpreter<'a> {
     pub(crate) registrat: &'a mut Register,
     pub(crate) storage: &'a dyn Sink,
     pub(crate) loader: &'a dyn Loader,
+    pub(crate) ctxconfigs: &'a mut CtxConfigs,
+    
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -39,12 +42,14 @@ impl<'a> Interpreter<'a> {
         storage: &'a dyn Sink,
         loader: &'a dyn Loader,
         register: &'a mut Register,
+        ctxconfigs: &'a mut CtxConfigs,
     ) -> Self {
         Interpreter {
             key,
             registrat: register,
             storage,
             loader,
+            ctxconfigs,
         }
     }
 

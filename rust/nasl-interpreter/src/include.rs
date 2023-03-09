@@ -18,7 +18,7 @@ impl<'a> IncludeExtension for Interpreter<'a> {
             NaslValue::String(key) => {
                 let code = self.loader.load(&key)?;
                 let storage = DefaultSink::new(false);
-                let mut inter = Interpreter::new(self.key, &storage, self.loader, self.registrat);
+                let mut inter = Interpreter::new(self.key, &storage, self.loader, self.registrat, self.ctxconfigs);
                 let result = parse(&code)
                     .map(|parsed| match parsed {
                         Ok(stmt) => inter.resolve(&stmt),

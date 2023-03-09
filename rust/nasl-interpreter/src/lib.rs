@@ -16,7 +16,6 @@ use built_in_functions::hostname;
 use built_in_functions::misc;
 use built_in_functions::string;
 
-use ctx_configs::CtxConfigs;
 use error::FunctionError;
 
 mod assign;
@@ -32,6 +31,7 @@ mod lookup_keys;
 mod loop_extension;
 mod operator;
 
+pub use ctx_configs::CtxConfigs;
 pub use context::ContextType;
 pub use context::Register;
 pub use error::InterpretError;

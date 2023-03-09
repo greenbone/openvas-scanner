@@ -43,7 +43,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         let result = match lookup(name) {
             // Built-In Function
             Some(function) => {
-                function(self.key, self.storage, self.registrat).map_err(|x| x.into())
+                function(self.key, self.storage, self.registrat, self.ctxconfigs).map_err(|x| x.into())
             }
             // Check for user defined function
             None => {
