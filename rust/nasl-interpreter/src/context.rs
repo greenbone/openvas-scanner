@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
-use sink::{DefaultSink, Sink};
+use sink::Sink;
 
 use crate::{
-    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, DefaultLogger, Loader,
-    NaslValue, NoOpLoader,
+    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader,
+    NaslValue,
 };
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -306,6 +306,7 @@ impl<'a> Context<'a> {
     }
 }
 /// Can be used as DefaultContext::default().as_context() within tests
+#[derive(Default)]
 pub struct DefaultContext {
     /// key for the default context. A name or an OID
     key: String,
@@ -325,17 +326,6 @@ impl DefaultContext {
             storage: &*self.storage,
             loader: &*self.loader,
             logger: &*self.logger,
-        }
-    }
-}
-
-impl Default for DefaultContext {
-    fn default() -> Self {
-        Self {
-            key: Default::default(),
-            storage: Box::<DefaultSink>::default(),
-            loader: Box::<NoOpLoader>::default(),
-            logger: Box::<DefaultLogger>::default(),
         }
     }
 }

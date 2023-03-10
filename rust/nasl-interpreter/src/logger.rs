@@ -82,3 +82,8 @@ impl NaslLogger for DefaultLogger {
     }
 }
 
+impl Default for Box<dyn NaslLogger> {
+    fn default() -> Self {
+        Box::<DefaultLogger>::default()
+    }
+}

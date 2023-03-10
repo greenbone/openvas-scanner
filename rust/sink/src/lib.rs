@@ -209,6 +209,12 @@ impl Sink for DefaultSink {
     }
 }
 
+impl Default for Box<dyn Sink> {
+    fn default() -> Self {
+        Box::<DefaultSink>::default()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Dispatch::*;
