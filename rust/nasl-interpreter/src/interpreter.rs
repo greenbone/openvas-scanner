@@ -5,12 +5,12 @@
 use std::io;
 
 use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
-use sink::{SinkError};
+use sink::SinkError;
 
 use crate::{
     assign::AssignExtension,
     call::CallExtension,
-    context::{ContextType, Register, Context},
+    context::{Context, ContextType, Register},
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     include::IncludeExtension,
     loop_extension::LoopExtension,
@@ -21,8 +21,7 @@ use crate::{
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
     pub(crate) registrat: &'a mut Register,
-    pub(crate) ctxconfigs: &'a Context,
-    
+    pub(crate) ctxconfigs: &'a Context<'a>,
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -32,10 +31,7 @@ pub type InterpretResult = Result<NaslValue, InterpretError>;
 
 impl<'a> Interpreter<'a> {
     /// Creates a new Interpreter.
-    pub fn new(
-        register: &'a mut Register,
-        ctxconfigs: &'a Context,
-    ) -> Self {
+    pub fn new(register: &'a mut Register, ctxconfigs: &'a Context) -> Self {
         Interpreter {
             registrat: register,
             ctxconfigs,

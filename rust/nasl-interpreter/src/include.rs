@@ -15,7 +15,7 @@ impl<'a> IncludeExtension for Interpreter<'a> {
     fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name)? {
             NaslValue::String(key) => {
-                let code = self.ctxconfigs.loader.load(&key)?;
+                let code = self.ctxconfigs.loader().load(&key)?;
                 let mut inter = Interpreter::new(self.registrat, self.ctxconfigs);
                 let result = parse(&code)
                     .map(|parsed| match parsed {
@@ -40,7 +40,9 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{context::Register, Interpreter, LoadError, Loader, NaslValue, Context, DefaultLogger};
+    use crate::{
+        context::Register, Context, DefaultLogger, Interpreter, LoadError, Loader, NaslValue,
+    };
 
     struct FakeInclude<'a> {
         plugins: &'a HashMap<String, String>,

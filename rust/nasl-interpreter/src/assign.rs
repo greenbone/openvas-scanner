@@ -255,7 +255,12 @@ mod tests {
     use nasl_syntax::parse;
     use sink::DefaultSink;
 
-    use crate::{context::Register, loader::NoOpLoader, context::Context, Interpreter, NaslValue, DefaultLogger};
+    use crate::{
+        context::Register,
+        context::{Context, DefaultContext},
+        loader::NoOpLoader,
+        DefaultLogger, Interpreter, NaslValue,
+    };
 
     #[test]
     fn variables() {
@@ -274,12 +279,9 @@ mod tests {
         a--;
         --a;
         "###;
-        let storage = DefaultSink::default();
-        let loader = NoOpLoader::default();
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut register = Register::default();
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let ctxconfigs = DefaultContext::default();
+        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs.as_context());
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(12.into())));
