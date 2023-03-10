@@ -40,9 +40,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, Context, DefaultLogger, NoOpLoader};
+    use crate::{Interpreter, NaslValue, Register, DefaultContext};
 
     #[test]
     fn defined_func() {
@@ -55,11 +54,9 @@ mod tests {
         defined_func(a);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null))); // defining function b

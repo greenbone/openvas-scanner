@@ -31,6 +31,7 @@ mod loop_extension;
 mod operator;
 
 pub use context::Context;
+pub use context::DefaultContext;
 pub use context::ContextType;
 pub use context::Register;
 pub use error::InterpretError;

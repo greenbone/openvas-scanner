@@ -25,9 +25,9 @@ use sink::DefaultSink;
 let storage = DefaultSink::new(false);
 let mut register = Register::default();
 let loader = NoOpLoader::default();
-let logger = Box::new(DefaultLogger::new());
+let logger = DefaultLogger::new();
 let oid = "0.0.0.0.0.0";
-let context = Context::new(oid, &storage, &loader, logger);
+let context = Context::new(oid, &storage, &loader, &logger);
 let code = "display('hi');";
 let mut interpreter = Interpreter::new(&mut register, &context);
 let mut parser =

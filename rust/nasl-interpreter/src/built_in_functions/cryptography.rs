@@ -110,9 +110,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{Interpreter, NoOpLoader, Register, Context, DefaultLogger};
+    use crate::{Interpreter, Register, DefaultContext};
 
     #[test]
     fn hmac_md2() {
@@ -120,11 +119,9 @@ mod tests {
         HMAC_MD2(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -139,11 +136,9 @@ mod tests {
         HMAC_MD5(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -158,11 +153,9 @@ mod tests {
         HMAC_RIPEMD160(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -177,11 +170,9 @@ mod tests {
         HMAC_SHA1(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -196,11 +187,9 @@ mod tests {
         HMAC_SHA256(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -217,11 +206,9 @@ mod tests {
         HMAC_SHA384(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -236,11 +223,9 @@ mod tests {
         HMAC_SHA512(key: "my_shared?key", data: "so much wow");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(

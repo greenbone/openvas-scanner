@@ -103,11 +103,9 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, Context, DefaultLogger, NoOpLoader};
+    use crate::{Interpreter, NaslValue, Register, DefaultContext};
 
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {
@@ -134,11 +132,9 @@ mod tests {
         make_array();
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
@@ -159,11 +155,9 @@ mod tests {
         make_list(1, 0, a);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -216,11 +210,9 @@ mod tests {
         s = sort(l);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -245,11 +237,9 @@ mod tests {
         keys(a,l);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -274,11 +264,9 @@ mod tests {
         max_index(make_list());
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();

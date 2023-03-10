@@ -81,3 +81,4 @@ impl NaslLogger for DefaultLogger {
         println!("{}", msg);
     }
 }
+

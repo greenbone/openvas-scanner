@@ -82,9 +82,8 @@ impl<'a> CallExtension for Interpreter<'a> {
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{context::Register, loader::NoOpLoader, context::Context, Interpreter, NaslValue, DefaultLogger};
+    use crate::{context::Register, context::DefaultContext, Interpreter, NaslValue};
 
     #[test]
     fn default_null_on_user_defined_functions() {
@@ -97,8 +96,9 @@ mod tests {
         test();
         "###;
         let mut register = Register::default();
-        let ctxconfigs = Context::default();
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));

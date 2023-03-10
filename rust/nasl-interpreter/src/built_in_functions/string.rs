@@ -313,9 +313,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, Register, Context, DefaultLogger, NoOpLoader};
+    use crate::{Interpreter, NaslValue, Register, DefaultContext};
 
     #[test]
     fn hexstr() {
@@ -327,11 +326,9 @@ mod tests {
         hexstr();
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -348,11 +345,9 @@ mod tests {
         raw_string(0x7B, 1, "Hallo");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(vec![123].into())));
@@ -369,11 +364,9 @@ mod tests {
         tolower('HALLO');
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
@@ -386,11 +379,9 @@ mod tests {
         toupper('hallo');
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
@@ -403,11 +394,9 @@ mod tests {
         strlen('hallo');
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(0i64.into())));
@@ -422,11 +411,9 @@ mod tests {
         string(0x7B, 1, NULL, "Hallo");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("123".into())));
@@ -443,11 +430,9 @@ mod tests {
         substr("hello", 6);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("ello".into())));
@@ -463,11 +448,9 @@ mod tests {
         crap(data: "ab", length: 5);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
@@ -484,11 +467,9 @@ mod tests {
         chomp("abc\n\t\r ");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
@@ -508,11 +489,9 @@ mod tests {
         stridx("blahbc", "abc", 2);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok((-1_i64).into())));
@@ -529,11 +508,9 @@ mod tests {
         display("abc");
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));

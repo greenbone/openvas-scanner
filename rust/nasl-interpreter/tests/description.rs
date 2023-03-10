@@ -71,8 +71,8 @@ if(description)
             )
             .expect("storage should work");
         let mut register = Register::root_initial(&initial);
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("test.nasl", &storage, &loader, logger);
+        let logger = DefaultLogger::new();
+        let ctxconfigs = Context::new("test.nasl", &storage, &loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {

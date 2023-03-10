@@ -210,10 +210,9 @@ impl<'a> OperatorExtension for Interpreter<'a> {
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
     use crate::{Interpreter, NaslValue};
-    use crate::{NoOpLoader, Register, Context, DefaultLogger};
+    use crate::{Register, DefaultContext};
 
     macro_rules! create_test {
         ($($name:tt: $code:expr => $result:expr),*) => {
@@ -222,11 +221,9 @@ mod tests {
             #[test]
             fn $name() {
                 let mut register = Register::default();
-                let logger = Box::new(DefaultLogger::new());
-                let loader = NoOpLoader::default();
-                let storage = DefaultSink::new(false);
-                let ctxconfigs = Context::new("1", &storage, &loader, logger);
-                let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+                let binding = DefaultContext::default();
+                let context = binding.as_context();
+                let mut interpreter = Interpreter::new(&mut register, &context);
                 let mut parser = parse($code).map(|x|
                     interpreter.resolve(&x.expect("unexpected parse error"))
                 );

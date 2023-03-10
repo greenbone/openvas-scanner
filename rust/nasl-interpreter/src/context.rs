@@ -292,28 +292,33 @@ impl<'a> Context<'a> {
     pub fn logger(&self) -> &dyn NaslLogger {
         &*self.logger
     }
-
+    /// Get the Key
     pub fn key(&self) -> &str {
         self.key
     }
-
+    /// Get the storage
     pub fn storage(&self) -> &dyn Sink {
         self.storage
     }
-
+    /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
     }
 }
-// Can be used as DefaultContext::default().as_context() within tests
+/// Can be used as DefaultContext::default().as_context() within tests
 pub struct DefaultContext {
+    /// key for the default context. A name or an OID
     key: String,
+    /// Default Storage
     storage: Box<dyn Sink>,
+    /// Default Loader
     loader: Box<dyn Loader>,
+    /// Default logger
     logger: Box<dyn NaslLogger>,
 }
 
 impl DefaultContext {
+    /// Converts a DefaultContext to Context
     pub fn as_context(&self) -> Context {
         Context {
             key: &self.key,
@@ -328,9 +333,9 @@ impl Default for DefaultContext {
     fn default() -> Self {
         Self {
             key: Default::default(),
-            storage: Box::new(DefaultSink::default()),
-            loader: Box::new(NoOpLoader::default()),
-            logger: Box::new(DefaultLogger::default()),
+            storage: Box::<DefaultSink>::default(),
+            loader: Box::<NoOpLoader>::default(),
+            logger: Box::<DefaultLogger>::default(),
         }
     }
 }

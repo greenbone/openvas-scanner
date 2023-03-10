@@ -293,10 +293,9 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register, Context, DefaultLogger};
+    use crate::{Interpreter, NaslValue, Register, DefaultContext};
     use chrono::Offset;
     use nasl_syntax::parse;
-    use sink::DefaultSink;
     use std::time::Instant;
 
     #[test]
@@ -306,11 +305,9 @@ mod tests {
         rand();
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         let first = parser.next();
@@ -326,11 +323,9 @@ mod tests {
         get_byte_order();
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Boolean(_)))));
@@ -342,11 +337,9 @@ mod tests {
         dec2str(num: 23);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok("23".into())));
@@ -366,11 +359,9 @@ mod tests {
         typeof(23,76);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("string".into()))));
@@ -391,11 +382,9 @@ mod tests {
         isnull(Null);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
@@ -408,11 +397,9 @@ mod tests {
         unixtime();
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
@@ -425,11 +412,9 @@ mod tests {
         gzip(data: 'z');
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -460,11 +445,9 @@ mod tests {
         gunzip(data: ngz);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -484,11 +467,9 @@ mod tests {
         d = localtime(utc: FALSE);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
 
@@ -559,11 +540,9 @@ mod tests {
         mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
@@ -579,11 +558,9 @@ mod tests {
         sleep(1);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         let now = Instant::now();
@@ -597,11 +574,9 @@ mod tests {
         usleep(1000);
         "###;
         let mut register = Register::default();
-        let logger = Box::new(DefaultLogger::new());
-        let loader = NoOpLoader::default();
-        let storage = DefaultSink::new(false);
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         let now = Instant::now();

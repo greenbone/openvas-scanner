@@ -41,7 +41,7 @@ mod tests {
     use sink::DefaultSink;
 
     use crate::{
-        context::Register, Context, DefaultLogger, Interpreter, LoadError, Loader, NaslValue,
+        context::Register, Context, DefaultLogger, Interpreter, LoadError, Loader, NaslValue
     };
 
     struct FakeInclude<'a> {
@@ -76,9 +76,9 @@ mod tests {
         "###;
         let mut register = Register::default();
         let storage = DefaultSink::new(false);
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("1", &storage, loader, logger);
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let logger = DefaultLogger::new();
+        let context = Context::new("1", &storage, loader, &logger);
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));

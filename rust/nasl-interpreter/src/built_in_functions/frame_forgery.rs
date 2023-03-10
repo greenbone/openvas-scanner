@@ -679,11 +679,10 @@ mod tests {
 
     use crate::{
         built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address},
-        Interpreter, NaslValue, Register, Context, NoOpLoader, DefaultLogger
+        Interpreter, NaslValue, Register, DefaultContext,
     };
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
-    use sink::DefaultSink;
 
     use super::convert_vec_into_mac_address;
 
@@ -694,12 +693,10 @@ mod tests {
         get_local_mac_address_from_ip("127.0.0.1");
         get_local_mac_address_from_ip("::1");
         "###;
-        let storage = DefaultSink::default();
-        let loader = NoOpLoader::default();
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut register = Register::default();
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -725,12 +722,10 @@ mod tests {
         ether_proto: 0x0806, payload: "abcd" );
         dump_frame(frame:a);
         "###;
-        let storage = DefaultSink::default();
-        let loader = NoOpLoader::default();
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
         let mut register = Register::default();
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -782,9 +777,10 @@ mod tests {
         send_frame(frame: a, pcap_active: TRUE);
         send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
         "###;
-        let ctxconfigs = Context::default();
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
         let mut register = Register::default();
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
