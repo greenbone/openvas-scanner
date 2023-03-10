@@ -290,7 +290,7 @@ impl<'a> Context<'a> {
 
     /// Get the logger to print messages
     pub fn logger(&self) -> &dyn NaslLogger {
-        &*self.logger
+        self.logger
     }
     /// Get the Key
     pub fn key(&self) -> &str {
@@ -325,7 +325,7 @@ impl DefaultContext {
             key: &self.key,
             storage: &*self.storage,
             loader: &*self.loader,
-            logger: &*self.logger,
+            logger: self.logger.as_ref(),
         }
     }
 }
