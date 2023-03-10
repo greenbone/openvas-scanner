@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use ::aes::{Aes128, Aes192, Aes256};
-use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
+use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, Unsigned};
 use ccm::{
     aead::{Aead, Error as aError},
-    consts::{U10, U11, U12, U13, U16, U7, U8, U9},
+    consts::{U10, U11, U12, U13, U14, U16, U4, U6, U7, U8, U9},
     Ccm, KeyInit, NonceSize, TagSize,
 };
 use digest::generic_array::ArrayLength;
@@ -15,6 +15,29 @@ use sink::Sink;
 use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 
 use super::{get_named_data, Crypt};
+
+macro_rules! ccm_call_typed {
+    ($($t1: ty => $($t2: ty),*);*) => {
+        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8])
+        where D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit
+        {
+            match tag_size {
+                $(
+                    <$t1>::to_usize() => {
+                        match iv_size {
+                            $(
+                                <$t2>::to_usize() => {
+                                    ccm_iv_len::<D, $t1, $t2>(crypt, key, nonce, data);
+                                }
+                            ),*
+                        }
+                    }
+                );*
+                other => panic!("unexpected type: {}", other)
+            }
+         }
+     }
+ }
 
 /// Function to create cipher object and en-/decrypt data. Can throw error in case of authentication failure.
 fn ccm_iv_len<D, M, N>(
@@ -65,6 +88,9 @@ where
             ))
         }
     };
+
+    U4::to_usize();
+
     // Error handling
     match res {
         Ok(x) => Ok(NaslValue::Data(x)),
@@ -164,6 +190,16 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         _ => None,
     }
 }
+
+ccm_call_typed!(
+    U4 => (U7, U8, U9, U10, U11, U12, U13);
+    U6 => (U7, U8, U9, U10, U11, U12, U13);
+    U8 => (U7, U8, U9, U10, U11, U12, U13);
+    U10 => (U7, U8, U9, U10, U11, U12, U13);
+    U12 => (U7, U8, U9, U10, U11, U12, U13);
+    U14 => (U7, U8, U9, U10, U11, U12, U13);
+    U16 => (U7, U8, U9, U10, U11, U12, U13)
+);
 
 #[cfg(test)]
 mod tests {
