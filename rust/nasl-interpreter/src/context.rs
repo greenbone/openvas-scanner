@@ -244,7 +244,7 @@ impl NaslContext {
         self.defined.insert(name.to_owned(), value);
     }
 
-    /// Retrives a definition by name
+    /// Retrieves a definition by name
     fn named<'a>(
         &'a self,
         registrat: &'a Register,

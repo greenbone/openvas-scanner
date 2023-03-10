@@ -7,7 +7,7 @@ pub use error::Error;
 
 use std::fs::File;
 
-use nasl_interpreter::{AsBufReader, ContextType, Interpreter, Loader, NaslValue, Register};
+use nasl_interpreter::{AsBufReader, ContextType, Interpreter, Loader, NaslValue, Register, Context, DefaultLogger};
 use sink::{nvt::NVTField, Sink};
 
 use crate::verify;
@@ -77,7 +77,9 @@ where
         let feed_info_key = "plugin_feed_info.inc";
         let code = self.loader.load(feed_info_key)?;
         let mut register = Register::default();
-        let mut interpreter = Interpreter::new("inc", &self.sink, &self.loader, &mut register);
+        let logger = Box::new(DefaultLogger::new());
+        let context = Context::new("inc", &self.sink, &self.loader, logger);
+        let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
                 Ok(stmt) => interpreter.retry_resolve(&stmt, self.max_retry)?,
@@ -105,8 +107,10 @@ where
         let code = self.loader.load(key.as_ref())?;
 
         let mut register = Register::root_initial(&self.initial);
+        let logger = Box::new(DefaultLogger::new());
+        let context = Context::new(key.as_ref(), &self.sink, &self.loader, logger);
         let mut interpreter =
-            Interpreter::new(key.as_ref(), &self.sink, &self.loader, &mut register);
+            Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match interpreter.retry_resolve(&stmt?, self.max_retry) {
                 Ok(NaslValue::Exit(i)) => {
