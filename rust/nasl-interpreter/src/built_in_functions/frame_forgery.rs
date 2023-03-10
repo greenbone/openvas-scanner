@@ -782,10 +782,7 @@ mod tests {
         send_frame(frame: a, pcap_active: TRUE);
         send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
         "###;
-        let storage = DefaultSink::default();
-        let loader = NoOpLoader::default();
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::default();
         let mut register = Register::default();
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =

@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
-use sink::Sink;
+use sink::{Sink, DefaultSink};
 
 use crate::{
     error::InterpretError,
     lookup_keys::FC_ANON_ARGS,
     logger::NaslLogger,
-    NaslValue, Loader,
+    NaslValue, Loader, NoOpLoader, DefaultLogger,
 };
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -265,23 +265,23 @@ impl NaslContext {
 ///
 /// This struct includes all objects that a nasl function requires.
 /// New objects must be added here in
-pub struct Context<'a> {
+pub struct Context {
     /// key for this context. A name or an OID
-    pub(crate) key: &'a str,
+    pub(crate) key: String,
     /// Default Sink
-    pub(crate) storage: &'a dyn Sink,
+    pub(crate) storage: Box<dyn Sink>,
     /// Default Loader
-    pub(crate) loader: &'a dyn Loader,
+    pub(crate) loader: Box<dyn Loader>,
     /// Default logger.
     logger: Box<dyn NaslLogger>,
 }
 
-impl<'a> Context<'a> {
+impl Context {
     /// Creates an empty configuration
     pub fn new(
-        key: &'a str,
-        storage: &'a dyn Sink,
-        loader: &'a dyn Loader,
+        key: String,
+        storage: Box<dyn Sink>,
+        loader: Box<dyn Loader>,
         logger: Box<dyn NaslLogger>,
     ) -> Self {
         Self {
@@ -303,3 +303,13 @@ impl<'a> Context<'a> {
     }
 }
 
+impl Default for Context {
+    fn default() -> Self {
+        Self::new(
+            "nasl.file".to_string(),
+            Box::new(DefaultSink::new(false)),
+            Box::<NoOpLoader>::default(),
+            Box::new(DefaultLogger::new())
+        )
+    }
+}

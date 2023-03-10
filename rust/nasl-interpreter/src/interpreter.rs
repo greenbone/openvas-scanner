@@ -21,7 +21,7 @@ use crate::{
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
     pub(crate) registrat: &'a mut Register,
-    pub(crate) ctxconfigs: &'a Context<'a>,
+    pub(crate) ctxconfigs: &'a Context,
     
 }
 
