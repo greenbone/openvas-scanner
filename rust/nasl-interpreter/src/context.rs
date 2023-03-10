@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
-use sink::{Sink};
+use sink::Sink;
 
 use crate::{
     error::InterpretError,
     lookup_keys::FC_ANON_ARGS,
-    logger::{NaslLogger},
+    logger::NaslLogger,
     NaslValue, Loader,
 };
 
