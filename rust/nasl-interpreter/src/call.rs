@@ -97,10 +97,7 @@ mod tests {
         test();
         "###;
         let mut register = Register::default();
-        let storage = DefaultSink::default();
-        let loader = NoOpLoader::default();
-        let logger = Box::new(DefaultLogger::new());
-        let ctxconfigs = Context::new("1", &storage, &loader, logger);
+        let ctxconfigs = Context::default();
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));

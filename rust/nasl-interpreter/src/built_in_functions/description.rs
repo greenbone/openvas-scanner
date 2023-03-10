@@ -87,7 +87,7 @@ macro_rules! make_storage_function {
             )+
             )?
             let db_arg = $transform(&variables)?;
-            ctxconfigs.storage.dispatch(ctxconfigs.key, sink::Dispatch::NVT(db_arg))?;
+            ctxconfigs.storage().dispatch(&ctxconfigs.key(), sink::Dispatch::NVT(db_arg))?;
             Ok(NaslValue::Null)
         }
         )*

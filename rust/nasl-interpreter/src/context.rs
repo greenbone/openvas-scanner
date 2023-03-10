@@ -3,13 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
-use sink::Sink;
+use sink::{DefaultSink, Sink};
 
 use crate::{
-    error::InterpretError,
-    lookup_keys::FC_ANON_ARGS,
-    logger::NaslLogger,
-    NaslValue, Loader,
+    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, DefaultLogger, Loader,
+    NaslValue, NoOpLoader,
 };
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -112,9 +110,7 @@ impl Register {
             defined,
             ..Default::default()
         };
-        Self {
-            blocks: vec![root],
-        }
+        Self { blocks: vec![root] }
     }
 
     /// Returns the next index
@@ -267,13 +263,13 @@ impl NaslContext {
 /// New objects must be added here in
 pub struct Context<'a> {
     /// key for this context. A name or an OID
-    pub(crate) key: &'a str,
+    key: &'a str,
     /// Default Sink
-    pub(crate) storage: &'a dyn Sink,
+    storage: &'a dyn Sink,
     /// Default Loader
-    pub(crate) loader: &'a dyn Loader,
+    loader: &'a dyn Loader,
     /// Default logger.
-    logger: Box<dyn NaslLogger>,
+    logger: &'a dyn NaslLogger,
 }
 
 impl<'a> Context<'a> {
@@ -282,7 +278,7 @@ impl<'a> Context<'a> {
         key: &'a str,
         storage: &'a dyn Sink,
         loader: &'a dyn Loader,
-        logger: Box<dyn NaslLogger>,
+        logger: &'a dyn NaslLogger,
     ) -> Self {
         Self {
             key,
@@ -297,9 +293,44 @@ impl<'a> Context<'a> {
         &*self.logger
     }
 
-    /// Set a new logger
-    pub fn set_logger(&mut self, logger: Box<dyn NaslLogger>) {
-        self.logger = logger;
+    pub fn key(&self) -> &str {
+        self.key
+    }
+
+    pub fn storage(&self) -> &dyn Sink {
+        self.storage
+    }
+
+    pub fn loader(&self) -> &dyn Loader {
+        self.loader
+    }
+}
+// Can be used as DefaultContext::default().as_context() within tests
+pub struct DefaultContext {
+    key: String,
+    storage: Box<dyn Sink>,
+    loader: Box<dyn Loader>,
+    logger: Box<dyn NaslLogger>,
+}
+
+impl DefaultContext {
+    pub fn as_context(&self) -> Context {
+        Context {
+            key: &self.key,
+            storage: &*self.storage,
+            loader: &*self.loader,
+            logger: &*self.logger,
+        }
     }
 }
 
+impl Default for DefaultContext {
+    fn default() -> Self {
+        Self {
+            key: Default::default(),
+            storage: Box::new(DefaultSink::default()),
+            loader: Box::new(NoOpLoader::default()),
+            logger: Box::new(DefaultLogger::default()),
+        }
+    }
+}
