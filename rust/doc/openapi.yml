@@ -278,9 +278,29 @@ components:
           type: "array"
           items:
             $ref: "#/components/schemas/Credential"
+        alive_test_ports:
+          description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas is enabled."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/PortRange"
+        alive_test_methods:
+          description: "List of alive test to be performed against the target. Can be one or a combination of icmp, tcp_syn, tcp_ack, arp, consider_alive methods"
+          type: "array"
+          items:
+            $ref: "#/components/schemas/AliveTestMethod"
         required:
           - hosts
           - ports
+
+    AliveTestMethod:
+      description: "Alive test method to be performed against the target"
+      type: "string"
+      enum:
+        - icmp
+        - tcp_syn
+        - tcp_ack
+        - arp
+        - consider_alive
 
     PortRange:
       description: "A port range for either UDP or TCP ports"
