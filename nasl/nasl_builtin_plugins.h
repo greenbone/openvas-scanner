@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022 Greenbone Networks GmbH
+/* Copyright (C) 2010-2022 Greenbone AG
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *

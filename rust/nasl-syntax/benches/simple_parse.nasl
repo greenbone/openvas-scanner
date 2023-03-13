@@ -7,7 +7,7 @@
 # Philipp Eder <philipp.eder@greenbone.com>
 #
 # Copyright:
-# Copyright (C) 2022 Greenbone Networks GmbH, http://www.greenbone.net
+# Copyright (C) 2022 Greenbone AG, http://www.greenbone.net
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2
@@ -35,7 +35,7 @@ if(description)
 
   script_category(ACT_DENIAL);
   script_tag(name:"qod_type", value:"remote_vul");
-  script_copyright("Copyright (C) 2022 Greenbone Networks GmbH");
+  script_copyright("Copyright (C) 2022 Greenbone AG");
   script_family("Denial of Service");
   script_dependencies("ssh_detect.nasl");
   script_require_ports("Services/ssh", 22);

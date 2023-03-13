@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Greenbone Networks GmbH
+// Copyright (C) 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -42,7 +42,7 @@ if(description)
   script_tag(name:"creation_date", value:"2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)");
   script_name("that is a very long and descriptive name");
   script_category(ACT_DENIAL);
-  script_copyright("Copyright (C) 2022 Greenbone Networks GmbH");
+  script_copyright("Copyright (C) 2022 Greenbone AG");
   script_family("Denial of Service");
   script_dependencies("ssh_detect.nasl", "ssh2.nasl");
   script_require_ports("Services/ssh", 22);
