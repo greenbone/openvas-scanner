@@ -69,6 +69,13 @@ impl Loader for NoOpLoader {
     }
 }
 
+impl Default for Box<dyn Loader> {
+    fn default() -> Self {
+        Box::<NoOpLoader>::default()
+    }
+}
+
+
 /// Is a plugin loader based on a root dir.
 ///
 /// When load is called with e.g. plugin_feed_info.inc than the FSPluginLoader

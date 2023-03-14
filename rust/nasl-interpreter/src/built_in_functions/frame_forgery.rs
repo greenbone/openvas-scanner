@@ -13,12 +13,10 @@ use std::{
 
 use pcap::{Address, Capture, Device};
 
-use sink::Sink;
-
 use crate::lookup_keys::TARGET;
 use crate::{
     error::{FunctionError, FunctionErrorKind},
-    ContextType, NaslFunction, NaslValue, Register,
+    ContextType, NaslFunction, NaslValue, Register, context::Context,
 };
 
 /// Hardware type ethernet
@@ -471,11 +469,7 @@ fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionError> {
 ///  
 /// It takes the following argument:
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
-fn nasl_send_arp_request(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn nasl_send_arp_request(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let timeout = match register.named("filter") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
@@ -538,11 +532,7 @@ fn nasl_send_arp_request(
 
 /// Get the MAC address of a local IP address.
 /// The first positional argument is a local IP address as string.
-fn nasl_get_local_mac_address_from_ip(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn nasl_get_local_mac_address_from_ip(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -569,11 +559,7 @@ fn nasl_get_local_mac_address_from_ip(
 /// - dst_haddr: is a string containing the destination MAC address
 /// -ether_proto: is an int containing the ethernet type (normally given as hexadecimal). It is optional and its default value is 0x0800. A list of Types can be e.g. looked up here.
 /// -payload: is any data, which is then attached as payload to the frame.
-fn nasl_forge_frame(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let src_haddr = validate_mac_address(register.named("src_haddr"))?;
     let dst_haddr = validate_mac_address(register.named("dst_haddr"))?;
     let ether_proto = match register.named("ether_proto") {
@@ -601,7 +587,7 @@ fn nasl_forge_frame(
 /// - pcap_active: option to capture the answer, default is TRUE
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
-fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+fn nasl_send_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => {
@@ -660,7 +646,7 @@ fn nasl_send_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
 /// This function is meant to be used for debugging.
-fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslValue, FunctionError> {
+fn nasl_dump_frame(register: &Register, configs: &Context) -> Result<NaslValue, FunctionError> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
         _ => {
@@ -671,7 +657,7 @@ fn nasl_dump_frame(_: &str, _: &dyn Sink, register: &Register) -> Result<NaslVal
         }
     };
 
-    register.logger().info(format!("Frame:\n{}", frame));
+    configs.logger().info(format!("Frame:\n{}", frame));
     Ok(NaslValue::Null)
 }
 
@@ -693,11 +679,10 @@ mod tests {
 
     use crate::{
         built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address},
-        Interpreter, NaslValue, NoOpLoader, Register,
+        Interpreter, NaslValue, Register, DefaultContext,
     };
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
-    use sink::DefaultSink;
 
     use super::convert_vec_into_mac_address;
 
@@ -708,10 +693,10 @@ mod tests {
         get_local_mac_address_from_ip("127.0.0.1");
         get_local_mac_address_from_ip("::1");
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(
@@ -737,10 +722,10 @@ mod tests {
         ether_proto: 0x0806, payload: "abcd" );
         dump_frame(frame:a);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -792,10 +777,10 @@ mod tests {
         send_frame(frame: a, pcap_active: TRUE);
         send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
         "###;
-        let storage = DefaultSink::new(false);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();

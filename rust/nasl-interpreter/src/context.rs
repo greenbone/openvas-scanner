@@ -3,11 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
+use sink::Sink;
 
 use crate::{
-    error::InterpretError,
-    logger::{DefaultLogger, NaslLogger},
-    lookup_keys::FC_ANON_ARGS,
+    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader,
     NaslValue,
 };
 
@@ -91,7 +90,6 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// deleted by calling drop_last when the context runs out of scope.
 pub struct Register {
     blocks: Vec<NaslContext>,
-    logger: Box<dyn NaslLogger>,
 }
 
 impl Register {
@@ -99,7 +97,6 @@ impl Register {
     pub fn new() -> Self {
         Self {
             blocks: vec![NaslContext::default()],
-            logger: Box::new(DefaultLogger::new()),
         }
     }
 
@@ -113,20 +110,7 @@ impl Register {
             defined,
             ..Default::default()
         };
-        Self {
-            blocks: vec![root],
-            logger: Box::<DefaultLogger>::default(),
-        }
-    }
-
-    /// Get the logger to print messages
-    pub fn logger(&self) -> &dyn NaslLogger {
-        &*self.logger
-    }
-
-    /// Set a new logger
-    pub fn set_logger(&mut self, logger: Box<dyn NaslLogger>) {
-        self.logger = logger;
+        Self { blocks: vec![root] }
     }
 
     /// Returns the next index
@@ -269,6 +253,79 @@ impl NaslContext {
                 Some(parent) => registrat.blocks[parent].named(registrat, name),
                 None => None,
             },
+        }
+    }
+}
+
+/// Configurations
+///
+/// This struct includes all objects that a nasl function requires.
+/// New objects must be added here in
+pub struct Context<'a> {
+    /// key for this context. A name or an OID
+    key: &'a str,
+    /// Default Sink
+    storage: &'a dyn Sink,
+    /// Default Loader
+    loader: &'a dyn Loader,
+    /// Default logger.
+    logger: &'a dyn NaslLogger,
+}
+
+impl<'a> Context<'a> {
+    /// Creates an empty configuration
+    pub fn new(
+        key: &'a str,
+        storage: &'a dyn Sink,
+        loader: &'a dyn Loader,
+        logger: &'a dyn NaslLogger,
+    ) -> Self {
+        Self {
+            key,
+            storage,
+            loader,
+            logger,
+        }
+    }
+
+    /// Get the logger to print messages
+    pub fn logger(&self) -> &dyn NaslLogger {
+        self.logger
+    }
+    /// Get the Key
+    pub fn key(&self) -> &str {
+        self.key
+    }
+    /// Get the storage
+    pub fn storage(&self) -> &dyn Sink {
+        self.storage
+    }
+    /// Get the loader
+    pub fn loader(&self) -> &dyn Loader {
+        self.loader
+    }
+}
+/// Can be used as DefaultContext::default().as_context() within tests
+#[derive(Default)]
+pub struct DefaultContext {
+    /// key for the default context. A name or an OID
+    key: String,
+    /// Default Storage
+    storage: Box<dyn Sink>,
+    /// Default Loader
+    loader: Box<dyn Loader>,
+    /// Default logger
+    logger: Box<dyn NaslLogger>,
+}
+
+impl DefaultContext {
+    /// Converts a DefaultContext to Context
+    pub fn as_context(&self) -> Context {
+        Context {
+            key: &self.key,
+            storage: &*self.storage,
+            loader: &*self.loader,
+            logger: self.logger.as_ref(),
         }
     }
 }

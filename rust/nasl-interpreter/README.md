@@ -9,23 +9,27 @@ Each resolve call will result in a [NaslValue](./src/naslvalue.rs) or an [Interp
 
 An interpreter requires:
 
-- key: &str - is used to identify the key-value store. It is usually either an OID or a filename (on description runs). 
-- storage: &dyn Sink - the sink implementation to be used,
-- loader: &'a dyn Loader - is used to load script dependencies on `include`,
 - register: &'a mut Register - to hold all the available data like functions or variables
+- context: &'a Context - to hold all configuration regarding to the current context:
+ - key: &str - is used to identify the key-value store. It is usually either an OID or a filename (on description runs). 
+ - storage: &dyn Sink - the sink implementation to be used,
+ - loader: &'a dyn Loader - is used to load script dependencies on `include`,
+ - logger: Box<dyn NaslLogger> - the default logger
 
 
 ## Example
 
 ```
-use nasl_interpreter::{Interpreter, NoOpLoader, Register};
+use nasl_interpreter::{Interpreter, NoOpLoader, Register, Context, DefaultLogger};
 use sink::DefaultSink;
 let storage = DefaultSink::new(false);
 let mut register = Register::default();
 let loader = NoOpLoader::default();
+let logger = DefaultLogger::new();
 let oid = "0.0.0.0.0.0";
+let context = Context::new(oid, &storage, &loader, &logger);
 let code = "display('hi');";
-let mut interpreter = Interpreter::new(oid, &storage, &loader, &mut register);
+let mut interpreter = Interpreter::new(&mut register, &context);
 let mut parser =
     nasl_syntax::parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
 ```

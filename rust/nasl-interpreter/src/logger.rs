@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /// Modes that are used by the default logger
 #[derive(Eq, PartialEq, PartialOrd, Default)]
 pub enum Mode {
@@ -79,5 +83,11 @@ impl NaslLogger for DefaultLogger {
 
     fn print(&self, msg: String) {
         println!("{}", msg);
+    }
+}
+
+impl Default for Box<dyn NaslLogger> {
+    fn default() -> Self {
+        Box::<DefaultLogger>::default()
     }
 }

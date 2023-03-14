@@ -334,7 +334,6 @@ impl RedisCache {
             let dependencies = cache.lindex(&rkey, key as isize)?;
             Ok(dependencies
                 .split(", ")
-                .into_iter()
                 .map(|s| s.to_owned())
                 .collect())
         };

@@ -33,13 +33,11 @@ impl Base {
     }
 
     fn verify_base10(peeked: char) -> bool {
-        ('0'..='9').contains(&peeked)
+        peeked.is_ascii_digit()
     }
 
     fn verify_hex(peeked: char) -> bool {
-        ('0'..='9').contains(&peeked)
-            || ('A'..='F').contains(&peeked)
-            || ('a'..='f').contains(&peeked)
+        peeked.is_ascii_hexdigit()
     }
     pub(crate) fn verifier(self) -> impl Fn(char) -> bool {
         match self {
@@ -737,7 +735,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             '"' => self.tokenize_string(),
             '\'' => self.tokenize_data(),
 
-            current if ('0'..='9').contains(&current) => self.tokenize_number(start, current),
+            current if current.is_ascii_digit() => self.tokenize_number(start, current),
             current if current.is_alphabetic() || current == '_' => self.tokenize_identifier(start),
             _ => UnknownSymbol,
         };

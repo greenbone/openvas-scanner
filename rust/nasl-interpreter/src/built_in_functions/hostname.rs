@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use sink::Sink;
 use std::str;
 
-use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, Register, Context};
 
 /// Resolves IP address of target to hostname
 ///
@@ -35,11 +34,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_names(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+pub fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -47,11 +42,7 @@ pub fn get_host_names(
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_name(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+pub fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
     resolve_hostname(register).map(NaslValue::String)
 }
 
@@ -67,9 +58,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{Interpreter, NaslValue, NoOpLoader, Register};
+    use crate::{Interpreter, NaslValue, Register, DefaultContext};
 
     #[test]
     fn get_host_name() {
@@ -77,10 +67,10 @@ mod tests {
         get_host_name();
         get_host_names();
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::String(_)))));
