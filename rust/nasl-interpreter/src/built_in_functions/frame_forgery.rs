@@ -15,8 +15,9 @@ use pcap::{Address, Capture, Device};
 
 use crate::lookup_keys::TARGET;
 use crate::{
+    context::Context,
     error::{FunctionError, FunctionErrorKind},
-    ContextType, NaslFunction, NaslValue, Register, context::Context,
+    ContextType, NaslFunction, NaslValue, Register,
 };
 
 /// Hardware type ethernet
@@ -532,7 +533,10 @@ fn nasl_send_arp_request(register: &Register, _: &Context) -> Result<NaslValue, 
 
 /// Get the MAC address of a local IP address.
 /// The first positional argument is a local IP address as string.
-fn nasl_get_local_mac_address_from_ip(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+fn nasl_get_local_mac_address_from_ip(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -679,7 +683,7 @@ mod tests {
 
     use crate::{
         built_in_functions::frame_forgery::{forge_arp_frame, get_local_mac_address},
-        Interpreter, NaslValue, Register, DefaultContext,
+        DefaultContext, Interpreter, NaslValue, Register,
     };
     use nasl_syntax::parse;
     use pnet_base::MacAddr;
@@ -800,6 +804,10 @@ mod tests {
 
     #[test]
     fn get_local_mac() {
-        assert_eq!(get_local_mac_address("lo"), Some(MacAddr::zero()));
+        if cfg!(target_os = "macos") {
+            assert_eq!(get_local_mac_address("lo"), None);
+        } else {
+            assert_eq!(get_local_mac_address("lo"), Some(MacAddr::zero()));
+        }
     }
 }
