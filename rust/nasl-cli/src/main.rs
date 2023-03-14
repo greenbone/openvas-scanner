@@ -9,9 +9,8 @@ mod syntax_check;
 use configparser::ini::Ini;
 pub use error::*;
 
-use redis_sink::connector::RedisCache;
-use sink::{nvt::PerNVTSink, SinkError};
-use std::{path::PathBuf, process};
+use sink::SinkError;
+use std::{io, path::PathBuf, process};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 
@@ -52,6 +51,15 @@ enum FeedAction {
         /// When it is skipped it will be obtained via `openvas -s`
         path: Option<PathBuf>,
     },
+    /// Transforms the feed into stdout
+    ///
+    Transform {
+        /// The path to the NASL plugins.
+        ///
+        /// When it is skipped it will be obtained via `openvas -s`
+        path: Option<PathBuf>,
+        // TODO format  like json or fields
+    },
 }
 
 trait RunAction<T> {
@@ -69,23 +77,31 @@ impl RunAction<()> for FeedAction {
                         filename: String::new(),
                         kind,
                     })?;
-                let redis =
-                    RedisCache::init(&update_config.redis_url, redis_sink::FEEDUPDATE_SELECTOR)
-                        .map_err(SinkError::from)
-                        .map_err(|e| CliError {
-                            kind: e.into(),
-                            filename: format!("{path:?}"),
-                        })?;
-                redis
-                    .reset()
+                let dispatcher = redis_sink::NvtDispatcher::as_sink(&update_config.redis_url)
                     .map_err(SinkError::from)
                     .map_err(|e| CliError {
                         kind: e.into(),
                         filename: format!("{path:?}"),
                     })?;
-                let dispatcher = PerNVTSink::new(redis);
-
                 feed_update::run(dispatcher, update_config.plugin_path, verbose)
+            }
+            FeedAction::Transform { path } => {
+                let transform_config: TransformConfiguration =
+                    self.as_config().map_err(|kind| CliError {
+                        filename: format!("{path:?}"),
+                        kind,
+                    })?;
+
+                let mut o = json_sink::ArrayWrapper::new(io::stdout());
+                let dispatcher = json_sink::NvtDispatcher::as_sink(&mut o);
+                match feed_update::run(dispatcher, transform_config.plugin_path, verbose) {
+                    Ok(_) => o
+                        .end()
+                        .map_err(SinkError::from)
+                        .map_err(CliErrorKind::from)
+                        .map_err(CliError::from),
+                    Err(e) => Err(e),
+                }
             }
         }
     }
@@ -116,6 +132,46 @@ struct FeedUpdateConfiguration {
     redis_url: String,
 }
 
+struct TransformConfiguration {
+    plugin_path: PathBuf,
+}
+
+fn read_openvas_config() -> Result<Ini, CliErrorKind> {
+    let oconfig = process::Command::new("openvas")
+        .arg("-s")
+        .output()
+        .map_err(|e| CliErrorKind::Openvas {
+            args: "-s".to_owned().into(),
+            err_msg: format!("{e:?}"),
+        })?;
+
+    let mut config = Ini::new();
+    let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
+    config.read(oconfig).map_err(|e| CliErrorKind::Openvas {
+        args: None,
+        err_msg: format!("{e:?}"),
+    })?;
+    Ok(config)
+}
+
+impl AsConfig<TransformConfiguration> for FeedAction {
+    fn as_config(&self) -> Result<TransformConfiguration, CliErrorKind> {
+        match self {
+            FeedAction::Transform { path } => {
+                if let Some(path) = path {
+                    Ok(TransformConfiguration {
+                        plugin_path: path.clone(),
+                    })
+                } else {
+                    let plugin_path = get_path_from_openvas(read_openvas_config()?);
+                    Ok(TransformConfiguration { plugin_path })
+                }
+            }
+            _ => unreachable!("only transform can be TransformConfiguration"),
+        }
+    }
+}
+
 impl AsConfig<FeedUpdateConfiguration> for FeedAction {
     fn as_config(&self) -> Result<FeedUpdateConfiguration, CliErrorKind> {
         match self.clone() {
@@ -128,20 +184,7 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
             }),
             FeedAction::Update { redis, path } => {
                 // This is only valid as long as we don't have a proper configuration file and rely on openvas.
-                let oconfig = process::Command::new("openvas")
-                    .arg("-s")
-                    .output()
-                    .map_err(|e| CliErrorKind::Openvas {
-                        args: "-s".to_owned().into(),
-                        err_msg: format!("{e:?}"),
-                    })?;
-
-                let mut config = Ini::new();
-                let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
-                config.read(oconfig).map_err(|e| CliErrorKind::Openvas {
-                    args: None,
-                    err_msg: format!("{e:?}"),
-                })?;
+                let config = read_openvas_config()?;
                 let redis_url = {
                     if let Some(rp) = redis {
                         rp
@@ -163,11 +206,7 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
                     if let Some(p) = path {
                         p
                     } else {
-                        PathBuf::from(
-                            config
-                                .get("default", "plugins_folder")
-                                .expect("openvas -s must contain plugins_folder"),
-                        )
+                        get_path_from_openvas(config)
                     }
                 };
                 Ok(FeedUpdateConfiguration {
@@ -175,8 +214,17 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
                     redis_url,
                 })
             }
+            _ => unreachable!("only update can be converted to FeedUpdateConfiguration"),
         }
     }
+}
+
+fn get_path_from_openvas(config: Ini) -> PathBuf {
+    PathBuf::from(
+        config
+            .get("default", "plugins_folder")
+            .expect("openvas -s must contain plugins_folder"),
+    )
 }
 
 fn main() {
@@ -190,10 +238,13 @@ fn main() {
                 .about("Runs through the feed as description run")
                 .subcommand_required(true)
                 .subcommand(Command::new("update")
-
                 .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
                     .value_parser(value_parser!(PathBuf)))
                 .arg(arg!(-r --redis <VALUE> "Redis url. Must either start `unix://` or `redis://`.").required(false))
+                )
+                .subcommand(Command::new("transform")
+                .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
+                    .value_parser(value_parser!(PathBuf)))
                 )
         )
         .subcommand(
@@ -218,6 +269,13 @@ fn main() {
                     action: FeedAction::Update { redis, path },
                 }
             }
+            Some(("transform", args)) => {
+                let path = args.get_one::<PathBuf>("path").cloned();
+                Commands::Feed {
+                    verbose,
+                    action: FeedAction::Transform { path },
+                }
+            }
             _ => unreachable!("subcommand_required prevents None"),
         },
         Some(("syntax", args)) => {
@@ -235,5 +293,14 @@ fn main() {
         _ => unreachable!("subcommand_required prevents None"),
     };
 
-    command.run(verbose).unwrap();
+    match command.run(verbose) {
+        Ok(_) => {}
+        Err(e) => match e.kind {
+            CliErrorKind::SinkError(SinkError::UnexpectedData(x)) => match &x as &str {
+                "BrokenPipe" => {}
+                _ => panic!("Unexpected data within sink: {x}"),
+            },
+            _ => panic!("{e:?}"),
+        },
+    }
 }

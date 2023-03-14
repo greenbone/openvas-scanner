@@ -237,7 +237,6 @@ fn as_xref_field(_: &str, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Reference(vec![NvtRef {
         class: arguments[1].to_string(),
         id: arguments[0].to_string(),
-        text: None,
     }])])
 }
 

@@ -100,7 +100,6 @@ if(description)
                 NVT(Reference(vec![NvtRef {
                     class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
                     id: "URL".to_owned(),
-                    text: None
                 }])),
                 NVT(ExcludedKeys(vec![
                     "Settings/disable_cgi_scanning".to_owned(),
@@ -113,7 +112,6 @@ if(description)
                 NVT(Reference(vec![NvtRef {
                     class: "cve".to_owned(),
                     id: "CVE-1999-0524".to_owned(),
-                    text: None
                 }])),
                 NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
                 NVT(Preference(NvtPreference {

@@ -602,6 +602,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "json-sink"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sink",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -696,6 +704,7 @@ dependencies = [
  "clap 4.1.8",
  "configparser",
  "feed",
+ "json-sink",
  "nasl-interpreter",
  "nasl-syntax",
  "redis-sink",
@@ -1124,6 +1133,7 @@ dependencies = [
 name = "sink"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "time",
 ]
 

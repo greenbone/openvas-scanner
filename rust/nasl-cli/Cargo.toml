@@ -19,4 +19,4 @@ nasl-syntax = { path = "../nasl-syntax" }
 nasl-interpreter = { path = "../nasl-interpreter" }
 sink = { path = "../sink" }
 redis-sink = { path = "../redis-sink" }
-
+json-sink = {path = "../json-sink"}
