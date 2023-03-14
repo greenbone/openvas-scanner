@@ -4,6 +4,7 @@
 
 //! Defines NVT
 use std::{
+    collections::HashMap,
     fmt::Display,
     str::FromStr,
     sync::{Arc, Mutex},
@@ -35,7 +36,12 @@ use crate::{time::AsUnixTimeStamp, Dispatch, Sink, SinkError};
 /// - End
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum ACT {
     /// Defines a initializer
     Init,
@@ -88,7 +94,8 @@ impl FromStr for ACT {
 macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "serde_support" , derive(serde::Serialize, serde::Deserialize))]
         pub enum $enum_name {
             $(
              #[doc = concat!(stringify!($matcher))]
@@ -246,6 +253,10 @@ Category will be used to identify the type of the NASL plugin."### =>
 
 /// Preferences that can be set by a user when running a script.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct NvtPreference {
     /// Preference ID
     pub id: Option<i32>,
@@ -259,13 +270,15 @@ pub struct NvtPreference {
 
 /// References defines where the information for that vulnerability attack is from.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
     pub class: String,
     /// Actual reference ID ("CVE-2018-1234", etc)
     pub id: String,
-    /// Optional additional text
-    pub text: Option<String>,
 }
 
 impl From<(&str, &str)> for NvtRef {
@@ -274,7 +287,6 @@ impl From<(&str, &str)> for NvtRef {
         Self {
             class: class.to_owned(),
             id: id.to_owned(),
-            text: None,
         }
     }
 }
@@ -285,15 +297,10 @@ impl From<(&str, String)> for NvtRef {
         Self {
             class: class.to_owned(),
             id,
-            text: None,
         }
     }
 }
 impl NvtRef {
-    /// Creates a new NvtRef
-    pub fn new(class: String, id: String, text: Option<String>) -> Self {
-        Self { class, id, text }
-    }
     /// Returns class
     pub fn class(&self) -> &str {
         self.class.as_ref()
@@ -302,11 +309,6 @@ impl NvtRef {
     /// Returns id
     pub fn id(&self) -> &str {
         self.id.as_ref()
-    }
-
-    /// Returns text
-    pub fn text(&self) -> Option<&String> {
-        self.text.as_ref()
     }
 }
 
@@ -334,6 +336,11 @@ impl NvtPreference {
 
 /// Represent a value of the key
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+#[cfg_attr(feature = "serde_support", serde(untagged))]
 pub enum TagValue {
     /// A tag with a free form field
     String(String),
@@ -367,7 +374,11 @@ impl TagValue {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// Structure to hold a NVT
 pub struct Nvt {
     /// The ID of the nvt.
@@ -377,7 +388,7 @@ pub struct Nvt {
     /// The filename of the nvt.
     pub filename: String,
     /// The tags of the nvt.
-    pub tag: Vec<(TagKey, TagValue)>,
+    pub tag: HashMap<TagKey, TagValue>,
     /// The direct dependencies of the nvt.
     pub dependencies: Vec<String>,
     /// The required keys to run the NVT.
@@ -448,7 +459,9 @@ where
                 return self.dispatcher.dispatch_feed_version(s);
             }
             NVTField::Name(s) => nvt.name = s,
-            NVTField::Tag(key, name) => nvt.tag.push((key, name)),
+            NVTField::Tag(key, name) => {
+                nvt.tag.insert(key, name);
+            }
             NVTField::Dependencies(s) => nvt.dependencies.extend(s),
             NVTField::RequiredKeys(s) => nvt.required_keys.extend(s),
             NVTField::MandatoryKeys(s) => nvt.mandatory_keys.extend(s),

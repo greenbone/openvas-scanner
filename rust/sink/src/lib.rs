@@ -9,7 +9,8 @@ pub mod nvt;
 pub mod time;
 use std::{
     fmt::Display,
-    sync::{Arc, Mutex},
+    io,
+    sync::{Arc, Mutex, PoisonError},
 };
 
 use nvt::{NVTField, NVTKey};
@@ -55,6 +56,37 @@ pub enum SinkError {
     ///
     /// An example would be that there is no free db left on redis and that it needs to be cleaned up.
     Dirty(String),
+}
+
+impl<S> From<PoisonError<S>> for SinkError {
+    fn from(value: PoisonError<S>) -> Self {
+        Self::Dirty(format!("{value:?}"))
+    }
+}
+
+impl From<io::Error> for SinkError {
+    fn from(value: io::Error) -> Self {
+        let msg = format!("{:?}", value.kind());
+        match value.kind() {
+            io::ErrorKind::NotFound
+            | io::ErrorKind::PermissionDenied
+            | io::ErrorKind::ConnectionRefused
+            | io::ErrorKind::NotConnected
+            | io::ErrorKind::BrokenPipe
+            | io::ErrorKind::AlreadyExists
+            | io::ErrorKind::AddrInUse
+            | io::ErrorKind::AddrNotAvailable
+            | io::ErrorKind::InvalidInput
+            | io::ErrorKind::InvalidData
+            | io::ErrorKind::UnexpectedEof
+            | io::ErrorKind::Unsupported => SinkError::UnexpectedData(msg),
+            io::ErrorKind::ConnectionReset
+            | io::ErrorKind::ConnectionAborted
+            | io::ErrorKind::TimedOut
+            | io::ErrorKind::Interrupted => SinkError::Retry(msg),
+            _ => SinkError::Dirty(msg),
+        }
+    }
 }
 
 impl Display for SinkError {

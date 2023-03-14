@@ -5,6 +5,7 @@ members = [
   "nasl-cli",
   "sink",
   "redis-sink",
+  "json-sink",
   "feed",
   "feed-verifier",
 ]

@@ -16,7 +16,7 @@ use chrono::{self, Datelike, Local, LocalResult, Offset, TimeZone, Timelike, Utc
 
 use crate::{
     error::{FunctionError, FunctionErrorKind},
-    ContextType, NaslFunction, NaslValue, Register, Context,
+    Context, ContextType, NaslFunction, NaslValue, Register,
 };
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
@@ -293,7 +293,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Interpreter, NaslValue, Register, DefaultContext};
+    use crate::{DefaultContext, Interpreter, NaslValue, Register};
     use chrono::Offset;
     use nasl_syntax::parse;
     use std::time::Instant;

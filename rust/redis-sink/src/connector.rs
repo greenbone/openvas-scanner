@@ -10,7 +10,6 @@ use crate::dberror::RedisSinkResult;
 use redis::*;
 
 use sink::nvt::Nvt;
-use sink::nvt::NvtDispatcher;
 use sink::nvt::NvtPreference;
 use sink::nvt::NvtRef;
 use sink::nvt::PerNVTSink;
@@ -343,14 +342,14 @@ impl RedisCtx {
 /// In this case we need to wait until we get the OID so that we can build the key additionally
 /// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
-pub struct RedisCache<R>
+pub struct NvtDispatcher<R>
 where
     R: RedisWrapper + RedisAddNvt,
 {
     cache: Arc<Mutex<R>>,
 }
 
-impl RedisCache<RedisCtx> {
+impl NvtDispatcher<RedisCtx> {
     /// Initialize and return an NVT Cache Object
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
@@ -358,19 +357,21 @@ impl RedisCache<RedisCtx> {
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisSinkResult<RedisCache<RedisCtx>> {
+    ) -> RedisSinkResult<NvtDispatcher<RedisCtx>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
-        Ok(RedisCache {
+        Ok(NvtDispatcher {
             cache: Arc::new(Mutex::new(rctx)),
         })
     }
 
-    pub fn as_sink(
-        redis_url: &str,
-        selector: &[NameSpaceSelector],
-    ) -> RedisSinkResult<PerNVTSink<RedisCache<RedisCtx>>> {
-        let cache = Self::init(redis_url, selector)?;
+    /// Creates a sink to be used to update the feed for a ospd service
+    ///
+    /// Initializes a redis cache based on the given selecter and url and clears the namespace
+    /// before returning the underlying cache as a Sink.
+    pub fn as_sink(redis_url: &str) -> RedisSinkResult<PerNVTSink<NvtDispatcher<RedisCtx>>> {
+        let cache = Self::init(redis_url, FEEDUPDATE_SELECTOR)?;
+        cache.reset()?;
         Ok(PerNVTSink::new(cache))
     }
 
@@ -381,7 +382,7 @@ impl RedisCache<RedisCtx> {
     }
 }
 
-impl<S> NvtDispatcher for RedisCache<S>
+impl<S> sink::nvt::NvtDispatcher for NvtDispatcher<S>
 where
     S: RedisWrapper + RedisAddNvt,
 {
@@ -405,7 +406,7 @@ mod tests {
     use sink::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use sink::Sink;
 
-    use super::{RedisAddNvt, RedisCache, RedisWrapper};
+    use super::{NvtDispatcher, RedisAddNvt, RedisWrapper};
 
     #[derive(Clone)]
     struct FakeRedis {
@@ -467,12 +468,10 @@ mod tests {
                 NvtRef {
                     class: "cve".to_owned(),
                     id: "CVE-1999-0524".to_owned(),
-                    text: None,
                 },
                 NvtRef {
                     class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
                     id: "URL".to_owned(),
-                    text: None,
                 },
             ])),
             NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
@@ -487,7 +486,7 @@ mod tests {
         let (sender, rx) = mpsc::channel();
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
-        let rcache = RedisCache { cache };
+        let rcache = NvtDispatcher { cache };
         let dispatcher = PerNVTSink::new(rcache);
         for c in commands {
             dispatcher.dispatch("test.nasl", c).unwrap();

@@ -4,7 +4,8 @@
 
 #![doc = include_str!("../README.md")]
 /// Module with structures and methods to access redis.
-pub mod connector;
+mod connector;
+pub use connector::NvtDispatcher;
 /// Module to handle custom errors
 pub mod dberror;
 /// Module to handle Nvt metadata. The Nvt structure is defined here as well
