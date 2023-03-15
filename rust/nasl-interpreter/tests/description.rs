@@ -83,7 +83,7 @@ if(description)
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
                 NVT(FileName("test.nasl".to_owned())),
                 NVT(NoOp),
-                NVT(Tag(CreationDate, TagValue::UnixTimeStamp(1366091481))),
+                NVT(Tag(CreationDate, TagValue::Number(1366091481))),
                 NVT(Name("that is a very long and descriptive name".to_owned())),
                 NVT(Category(Denial)),
                 NVT(NoOp),

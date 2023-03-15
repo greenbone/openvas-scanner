@@ -37,7 +37,7 @@ where
     ///
     /// This is to ensure that an enclosed `]` is printed.
     pub fn end(&mut self) -> io::Result<()> {
-        self.w.write_all(&[']' as u8])
+        self.w.write_all(&[b']'])
     }
 }
 
@@ -51,10 +51,10 @@ where
 
     fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
         if self.first {
-            self.w.write_all(&['[' as u8])?;
+            self.w.write_all(&[b'['])?;
             self.first = false;
         } else {
-            self.w.write_all(&[',' as u8])?;
+            self.w.write_all(&[b','])?;
         }
         self.w.write_all(buf)?;
         Ok(())
@@ -95,7 +95,7 @@ where
     S: Write,
 {
     fn dispatch_nvt(&self, nvt: sink::nvt::Nvt) -> Result<(), sink::SinkError> {
-        let mut context = self.w.lock().map_err(|e| SinkError::from(e))?;
+        let mut context = self.w.lock().map_err(SinkError::from)?;
         serde_json::to_vec(&nvt)
             .map_err(|e| SinkError::Dirty(format!("{e:?}")))
             .and_then(|x| context.write_all(&x).map_err(SinkError::from))
@@ -109,7 +109,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, io::BufWriter};
+    use std::{collections::HashMap};
 
     use sink::nvt::{Nvt, NvtDispatcher, ACT};
 
@@ -117,7 +117,7 @@ mod tests {
 
     fn name_to_oid_fake(name: &str) -> String {
         name.as_bytes()
-            .into_iter()
+            .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
             .join(".")
@@ -126,46 +126,36 @@ mod tests {
     fn generate_tags() -> HashMap<sink::nvt::TagKey, sink::nvt::TagValue> {
         use sink::nvt::TagKey::*;
         use sink::nvt::TagValue;
+        let ts = "2012-09-23 02:15:34 -0400";
         HashMap::from([
             (Affected, TagValue::parse(Affected, "Affected").unwrap()),
-            (CreationDate, TagValue::parse(CreationDate, "").unwrap()),
-            (CreationTime, TagValue::parse(CreationTime, "").unwrap()),
+            (CreationDate, TagValue::parse(CreationDate, ts).unwrap()),
             (
                 CvssBaseVector,
-                TagValue::parse(CvssBaseVector, "CvssBaseVector").unwrap(),
+                // TODO use proper Cvss2
+                TagValue::parse(CvssBaseVector, "AV:N/AC:H/PR:N/UI:N/S:C/C:N/I:H/A:N").unwrap(),
             ),
-            (
-                Deprecated,
-                TagValue::parse(Deprecated, "Deprecated").unwrap(),
-            ),
-            (Detection, TagValue::parse(Detection, "Detection").unwrap()),
+            (Deprecated, TagValue::parse(Deprecated, "TRUE").unwrap()),
             (Impact, TagValue::parse(Impact, "Impact").unwrap()),
             (Insight, TagValue::parse(Insight, "Insight").unwrap()),
             (
                 LastModification,
-                TagValue::parse(LastModification, "").unwrap(),
+                TagValue::parse(LastModification, ts).unwrap(),
             ),
-            (
-                ModificationTime,
-                TagValue::parse(ModificationTime, "ModificationTime").unwrap(),
-            ),
-            (Qod, TagValue::parse(Qod, "Qod").unwrap()),
-            (QodType, TagValue::parse(QodType, "QodType").unwrap()),
-            (
-                Severities,
-                TagValue::parse(Severities, "Severities").unwrap(),
-            ),
-            (
-                SeverityDate,
-                TagValue::parse(SeverityDate, "SeverityDate").unwrap(),
-            ),
+            (Qod, TagValue::parse(Qod, "30").unwrap()),
+            (QodType, TagValue::parse(QodType, "exploit").unwrap()),
+            (SeverityDate, TagValue::parse(SeverityDate, ts).unwrap()),
             (
                 SeverityOrigin,
                 TagValue::parse(SeverityOrigin, "SeverityOrigin").unwrap(),
             ),
             (
                 SeverityVector,
-                TagValue::parse(SeverityVector, "SeverityVector").unwrap(),
+                TagValue::parse(
+                    SeverityVector,
+                    "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:N/I:H/A:N",
+                )
+                .unwrap(),
             ),
             (Solution, TagValue::parse(Solution, "Solution").unwrap()),
             (
@@ -174,7 +164,7 @@ mod tests {
             ),
             (
                 SolutionType,
-                TagValue::parse(SolutionType, "SolutionType").unwrap(),
+                TagValue::parse(SolutionType, "Mitigation").unwrap(),
             ),
             (Summary, TagValue::parse(Summary, "Summary").unwrap()),
             (Vuldetect, TagValue::parse(Vuldetect, "Vuldetect").unwrap()),
@@ -237,6 +227,8 @@ mod tests {
         let single_json = String::from_utf8(buf).unwrap();
         let result: Nvt = serde_json::from_str(&single_json).unwrap();
         assert_eq!(result, nvt);
+        println!("\n\n{single_json}\n\n");
+        assert_eq!(single_json, "");
     }
 
     #[test]
