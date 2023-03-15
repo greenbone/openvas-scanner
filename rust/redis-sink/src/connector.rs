@@ -443,7 +443,7 @@ mod tests {
     fn transform_nvt() {
         let commands = [
             NVT(Version("202212101125".to_owned())),
-            NVT(Tag(TagKey::CreationDate, TagValue::UnixTimeStamp(23))),
+            NVT(Tag(TagKey::CreationDate, TagValue::Number(23))),
             NVT(Name("fancy name".to_owned())),
             NVT(Category(ACT::Denial)),
             NVT(Family("Denial of Service".to_owned())),

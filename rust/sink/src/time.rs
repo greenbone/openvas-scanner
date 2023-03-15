@@ -27,6 +27,12 @@ const SUPPORTED_FORMATS: &[&str] = &[
 "[weekday repr:short], [day] [month repr:short] [year] [hour]:[minute]:[second] [offset_hour][offset_minute]",
 ];
 
+impl AsUnixTimeStamp for String {
+    fn as_timestamp(&self) -> Option<i64> {
+        (self as &str).as_timestamp()
+    }
+}
+
 impl AsUnixTimeStamp for &str {
     fn as_timestamp(&self) -> Option<i64> {
         let to_parse = {

@@ -6,8 +6,6 @@ To be able to introduce new distribution implementations the [Sink](src/lib.rs#L
 
 The [Dispatch](src/lib.rs#L21) enum required by `dispatch` method describes fields to be distributed.
 
-The [Retrieve](src/lib.rs#L36) enum required by `retrieve` method also describes the fields to be retrieved.
-
 The reason that it uses field descriptions rather than structs are two fold:
 1. it allows the usage of streaming distribution
 2. it makes it easier to store information immediately on execution

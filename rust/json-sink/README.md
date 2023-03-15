@@ -1,30 +1,37 @@
-```text
+# json-sink
+
+Is a sink implementation that transforms NVTs to json.
+
+It supports single json transformation as well as array.
+
+To use it you need to create a writer instance of your choice in the examples we will use a vector.
+
+## NVT
+
+Transforms a NVT to the json structure:
+```
 {
   "oid": "116.101.115.116",
   "name": "zeroone",
   "filename": "zeroone.nasl",
   "tag": {
-    "CreationTime": "",
-    "Impact": "Impact",
-    "Deprecated": "Deprecated",
-    "ModificationTime": "ModificationTime",
-    "SeverityVector": "SeverityVector",
-    "SolutionType": "SolutionType",
-    "Summary": "Summary",
-    "CvssBaseVector": "CvssBaseVector",
-    "Detection": "Detection",
-    "LastModification": 0,
-    "SeverityOrigin": "SeverityOrigin",
-    "Qod": "Qod",
-    "Insight": "Insight",
-    "Affected": "Affected",
-    "Solution": "Solution",
-    "CreationDate": 0,
-    "Vuldetect": "Vuldetect",
-    "QodType": "QodType",
-    "SolutionMethod": "SolutionMethod",
-    "Severities": "Severities",
-    "SeverityDate": 0
+    "solution": "Solution",
+    "solution_method": "SolutionMethod",
+    "last_modification": 1348380934,
+    "solution_type": "Mitigation",
+    "creation_date": 1348380934,
+    "severity_origin": "SeverityOrigin",
+    "qod_type": "exploit",
+    "impact": "Impact",
+    "insight": "Insight",
+    "qod": 30,
+    "severity_date": 1348380934,
+    "summary": "Summary",
+    "vuldetect": "Vuldetect",
+    "affected": "Affected",
+    "deprecated": true,
+    "severity_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:N/I:H/A:N",
+    "cvss_base_vector": "AV:N/AC:H/PR:N/UI:N/S:C/C:N/I:H/A:N"
   },
   "dependencies": [
     "zero.nasl"
@@ -53,42 +60,52 @@
   "preferences": [
     {
       "id": 0,
-      "class": "CheckBox",
+      "class": "check_box",
       "name": "0",
       "default": "0"
-    },
-    {
-      "id": 1,
-      "class": "Entry",
-      "name": "1",
-      "default": "1"
-    },
-    {
-      "id": 2,
-      "class": "File",
-      "name": "2",
-      "default": "2"
-    },
-    {
-      "id": 3,
-      "class": "Password",
-      "name": "3",
-      "default": "3"
-    },
-    {
-      "id": 4,
-      "class": "Radio",
-      "name": "4",
-      "default": "4"
-    },
-    {
-      "id": 5,
-      "class": "SSHLogin",
-      "name": "5",
-      "default": "5"
     }
   ],
-  "category": "Attack", // can be ...
+  "category": "destructive_attack",
   "family": "family"
 }
+```
+
+### Element
+
+To create a single json element per dispatch you can use the NvtDispatcher with a writer of your choice:
+
+```
+let mut buf = Vec::with_capacity(1208);
+let dispatcher = json_sink::NvtDispatcher::as_sink(&mut buf);
+```
+
+### Array
+
+To create an array for elements per dispatch call:
+
+```
+let mut buf = Vec::with_capacity(1208);
+let mut ja = json_sink::ArrayWrapper::new(&mut buf);
+let dispatcher = json_sink::NvtDispatcher::as_sink(&mut ja);
+// do your work
+ja.end();
+```
+
+This will convert each dispatched NVT to an json element in an array:
+
+```test
+[
+  {
+    "oid": "48",
+    ...
+  },
+  {
+    "oid": "49",
+    ...
+  },
+  {
+    "oid": "49.48",
+    ...
+  }
+]
 ```

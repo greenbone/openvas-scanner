@@ -40,7 +40,8 @@ use crate::{time::AsUnixTimeStamp, Dispatch, Sink, SinkError};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default)]
 #[cfg_attr(
     feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
 )]
 pub enum ACT {
     /// Defines a initializer
@@ -95,7 +96,10 @@ macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-        #[cfg_attr(feature = "serde_support" , derive(serde::Serialize, serde::Deserialize))]
+        #[cfg_attr(feature = "serde_support",
+                   derive(serde::Serialize, serde::Deserialize),
+                   serde(rename_all = "snake_case")
+        )]
         pub enum $enum_name {
             $(
              #[doc = concat!(stringify!($matcher))]
@@ -112,7 +116,7 @@ macro_rules! make_str_lookup_enum {
                     $(
                     stringify!($matcher) => Ok($key),
                     )*
-                    _ => Err(SinkError::UnexpectedData(s.to_owned())),
+                    _ => Err(SinkError::UnexpectedData(format!("{}: {}", stringify!($enum_name), s.to_owned()))),
                 }
             }
         }
@@ -141,26 +145,50 @@ make_str_lookup_enum! {
     TagKey: "Allowed keys for a tag" => {
         affected => Affected,
         creation_date => CreationDate,
-        creation_time => CreationTime,
         cvss_base => CvssBase,
         cvss_base_vector => CvssBaseVector,
         deprecated => Deprecated,
-        detection => Detection,
         impact => Impact,
         insight => Insight,
         last_modification => LastModification,
-        modification_time => ModificationTime,
         qod => Qod,
         qod_type => QodType,
-        severities => Severities,
         severity_date => SeverityDate,
         severity_origin => SeverityOrigin,
         severity_vector => SeverityVector,
         solution => Solution,
-        solution_method => SolutionMethod,
+        solution_method => SolutionMethod, // legacy can probably removed in the next feed
         solution_type => SolutionType,
         summary => Summary,
         vuldetect => Vuldetect
+    }
+}
+
+make_str_lookup_enum! {
+    SolutionType: "SolutionType is set via script_tag 'solution_type' and allows only the defined values" => {
+        Mitigation => Mitigation,
+        NoneAvailable => NoneAvailable,
+        VendorFix => VendorFix,
+        WillNotFix => WillNotFix,
+        Workaround => Workaround
+    }
+}
+
+make_str_lookup_enum! {
+    QodType: "QODType is set via script_tag 'qod_type' and allows only the defined values" => {
+        executable_version => ExecutableVersion,
+        executable_version_unreliable => ExecutableVersionUnreliable,
+        exploit => Exploit,
+        general_note => GeneralNote,
+        package => Package,
+        registry => Registry,
+        remote_active => RemoteActive,
+        remote_analysis => RemoteAnalysis,
+        remote_app => RemoteApp,
+        remote_banner => RemoteBanner,
+        remote_banner_unreliable => RemoteBannerUnreliable,
+        remote_probe => RemoteProbe,
+        remote_vul => RemoteVul
     }
 }
 
@@ -255,7 +283,8 @@ Category will be used to identify the type of the NASL plugin."### =>
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
 )]
 pub struct NvtPreference {
     /// Preference ID
@@ -272,7 +301,8 @@ pub struct NvtPreference {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
 )]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
@@ -338,38 +368,73 @@ impl NvtPreference {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+    derive(serde::Serialize, serde::Deserialize),
+    serde(untagged)
 )]
-#[cfg_attr(feature = "serde_support", serde(untagged))]
 pub enum TagValue {
     /// A tag with a free form field
     String(String),
     /// Timestamp value
-    UnixTimeStamp(i64),
+    Number(i64),
+    /// Boolean value
+    Boolean(bool),
+    /// Values that are ignored
+    Ignore,
+}
+
+impl From<String> for TagValue {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl From<i64> for TagValue {
+    fn from(value: i64) -> Self {
+        Self::Number(value)
+    }
 }
 
 impl Display for TagValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TagValue::String(s) => write!(f, "{s}"),
-            TagValue::UnixTimeStamp(s) => write!(f, "{s}"),
+            TagValue::Number(s) => write!(f, "{s}"),
+            TagValue::Boolean(true) => write!(f, "1"),
+            TagValue::Boolean(false) => write!(f, "0"),
+            TagValue::Ignore => Ok(()),
         }
     }
 }
 
 impl TagValue {
     /// Parhse the given Value based on the key to TagValue
-    pub fn parse<V: ToString>(key: TagKey, value: V) -> Option<Self> {
+    // TODO move naslvalue out of syntax to own crate so we can use it here
+    pub fn parse<V: ToString>(key: TagKey, value: V) -> Result<Self, SinkError> {
+        let error = || SinkError::UnexpectedData(format!("{key:?} => {}", value.to_string()));
         match key {
-            TagKey::CreationDate | TagKey::LastModification | TagKey::SeverityDate => {
-                Some(Self::UnixTimeStamp(
-                    (&value.to_string() as &str)
-                        .as_timestamp()
-                        .unwrap_or_default(),
-                ))
-            }
-            TagKey::CvssBase => None,
-            _ => Some(Self::String(value.to_string())),
+            TagKey::CreationDate | TagKey::LastModification | TagKey::SeverityDate => value
+                .to_string()
+                .as_timestamp()
+                .ok_or_else(error)
+                .map(Self::from),
+            // is set to be ignored
+            TagKey::CvssBase => Ok(TagValue::Ignore),
+            TagKey::Deprecated => match value.to_string().as_str() {
+                "TRUE" | "true" | "1" => Ok(TagValue::Boolean(true)),
+                "FALSE" | "false" | "0" => Ok(TagValue::Boolean(false)),
+                _ => Err(error()),
+            },
+            TagKey::SolutionType => SolutionType::from_str(value.to_string().as_str())
+                .map(|x| TagValue::String(x.as_ref().to_owned())),
+            TagKey::QodType => QodType::from_str(value.to_string().as_str())
+                .map(|x| TagValue::String(x.as_ref().to_owned())),
+            TagKey::Qod => value
+                .to_string()
+                .as_str()
+                .parse::<i64>()
+                .map(Self::from)
+                .map_err(|_| error()),
+            _ => Ok(Self::from(value.to_string())),
         }
     }
 }
@@ -377,7 +442,8 @@ impl TagValue {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
 )]
 /// Structure to hold a NVT
 pub struct Nvt {
@@ -521,18 +587,18 @@ mod tests {
     assert_tag_key! {
         affected => Affected,
         creation_date => CreationDate,
-        creation_time => CreationTime,
+        //creation_time => CreationTime,
         cvss_base => CvssBase,
         cvss_base_vector => CvssBaseVector,
         deprecated => Deprecated,
-        detection => Detection,
+        //detection => Detection,
         impact => Impact,
         insight => Insight,
         last_modification => LastModification,
-        modification_time => ModificationTime,
+        //modification_time => ModificationTime,
         qod => Qod,
         qod_type => QodType,
-        severities => Severities,
+        //severities => Severities,
         severity_date => SeverityDate,
         severity_origin => SeverityOrigin,
         severity_vector => SeverityVector,
