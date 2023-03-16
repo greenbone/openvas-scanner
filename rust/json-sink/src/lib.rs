@@ -109,7 +109,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap};
+    use std::collections::HashMap;
 
     use sink::nvt::{Nvt, NvtDispatcher, ACT};
 
@@ -179,7 +179,7 @@ mod tests {
             PreferenceType::File,
             PreferenceType::Password,
             PreferenceType::Radio,
-            PreferenceType::SSHLogin,
+            PreferenceType::SshLogin,
         ]
         .into_iter()
         .enumerate()
@@ -227,8 +227,6 @@ mod tests {
         let single_json = String::from_utf8(buf).unwrap();
         let result: Nvt = serde_json::from_str(&single_json).unwrap();
         assert_eq!(result, nvt);
-        println!("\n\n{single_json}\n\n");
-        assert_eq!(single_json, "");
     }
 
     #[test]

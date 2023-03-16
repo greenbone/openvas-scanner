@@ -2,18 +2,178 @@
 
 Is CLI frontend to use the rust NASL implementation.
 
-
-Usage: nasl-cli <COMMAND>
-
-Commands:
-- `syntax`  Checks nasl-file or a directory of for syntax errors
-- `feed`    Controls the feed
-  - `update`  Updates feed data into redis
-- `help`    Print this message or the help of the given subcommand(s)
+Usage: `nasl-cli [OPTIONS] <COMMAND>`
 
 Options:
-- `-h, --help`     Print help information
--  `-V, --version`  Print version information
+
+- `-v`, `--verbose`: Prints more details while running
+- `-h`, `--help`:    Print help
+- `-V`, `--version`: Print version
+
+## Commands
+
+### feed
+
+Handles feed related tasks.
+
+Usage: `nasl-cli feed <COMMAND>`
+
+#### update
+
+Runs nasl scripts in description mode and updates data into redis so that ospd-openvas can read the data.
+
+When either path or redis is not set it will get the defaults by calling `openvas -s`.
+
+Usage `nasl-cli feed update [OPTIONS]`
+
+Options:
+- `-p`, `--path <FILE>`:   Path to the feed.
+- `-r`, `--redis <VALUE>`: Redis url. Must either start `unix://` or `redis://`.
+
+
+On `feed update` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
+
+#### transform
+Runs nasl scripts in description mode and returns it as a json array into stdout.
+
+
+When path is not set it will get the defaults by calling `openvas -s`.
+
+Usage `nasl-cli feed transform [OPTIONS]`
+
+Options:
+- `-p`, `--path <FILE>`:   Path to the feed.
+
+
+On `feed transform` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
+
+It will produce a json array in stdout in the format described within [json-sink](../json-sink/README.md).
+
+##### NVT
+
+Describes meta information for a nasl script. Each nasl script must have a description block that may looks something like:
+
+```text
+if (description)
+{
+  script_oid("0.0.0.0.0.0.0.0.0.1");
+  script_version("2023-02-23T13:33:44+0000");
+  script_tag(name:"last_modification", value:"2020-12-07 13:33:44 +0000 (Mon, 07 Dec 2020)");
+  script_tag(name:"creation_date", value:"2009-05-12 22:04:51 +0200 (Tue, 12 May 2009)");
+  script_tag(name:"cvss_base_vector", value:"AV:N/AC:L/Au:N/C:N/I:N/A:N");
+  script_name("Application Server Detection (HTTP)");
+  script_category(ACT_GATHER_INFO);
+  script_tag(name:"qod_type", value:"remote_banner");
+  script_family("Product detection");
+  script_copyright("Copyright (C) 2023 Greenbone AG");
+  script_dependencies("find_service.nasl", "httpver.nasl", "global_settings.nasl");
+  script_require_ports("Services/www", 6262);
+  script_exclude_keys("Settings/disable_cgi_scanning");
+  script_tag(name:"summary", value:"HTTP AS detection");
+  script_xref(name:"URL", value:"https://greenbone.net");
+  exit(0);
+}
+...
+exit(42);
+```
+
+Based on the requirement that each description block must have an `exit(0);` call in it the script can be safely run with `description = 1`. to update / create so called meta-data.
+
+###### oid
+
+The script id, following roughly the oid pattern. Each oid must be unique within a feed.
+
+###### name
+
+The name of the script. A freely choosable text.
+###### filename
+
+The relative filename of the script. It does not include the feed path and is relative to the feed directory.
+
+###### tag
+
+A struct that contain multiple information set via `script_tag`.
+
+- `solution` - a string.
+- `solution_method` - a string,
+- `last_modification` - unix timestamp as a number,
+- `solution_type` - either: `Mitigation`, `NoneAvailable`, `VendorFix`, `WillNotFix`, `Workaround`
+- `creation_date` - unix timestamp as a number,
+- `severity_origin` - a string,
+- `qod_type` - either: `executable_version`, `executable_version_unreliable`, `exploit`, `general_note`, `package`, `registry`, `remote_active`, `remote_analysis`, `remote_app`, `remote_banner`, `remote_banner_unreliable`, `remote_probe`, `remote_vul`
+- `impact` - a string,
+- `insight` - a string,
+- `qod` - a number,
+- `severity_date` - unix timestamp as a number,
+- `summary` - a string,
+- `vuldetect` - a string,
+- `affected` - a string,
+- `deprecated` - bool either true or false,
+- `severity_vector` - a string,
+- `cvss_base_vector` - a string
+
+###### dependencies
+A list of dependencies as a string representing a relative path a nasl file.
+###### required_keys
+A list of keys in the `kb` that a required for that nasl script to run.
+###### mandatory_keys
+A list of keys in the `kb` that a mandatory for that nasl script to run.
+###### excluded_keys
+A list of keys in the `kb` that prevent that nasl script to run.
+###### required_ports
+A list of required ports as string.
+###### required_udp_ports
+A list of required udp ports as string.
+###### references
+
+A list of references:
+
+- `class` - string, the class of a reference
+- `id` - the type of reference 
+
+###### preferences
+
+A list of preferences.
+
+- `id` - string, the id of a preference,
+- `class` - either: `check_box`, `entry`, `file`, `password`, `radio`, `ssh_login`
+- `name` - string, the name of the preference,
+- `default` - string, default value of the preference
+
+###### category
+
+The script category; can either be:
+
+- `attack` - will be run within the attack stage
+- `denial` - will be run within the denial stage
+- `destructive_attack` - will be run within the destructive_attack stage
+- `end` - will be run within the end stage
+- `flood` - will be run within the flood stage
+- `gather_info` - will be run within the gather_info stage
+- `init` - will be run within the init stage
+- `kill_host` - will be run within the kill_host stage
+- `mixed_attack` - will be run within the mixed_attack stage
+- `scanner` - will be run within the scanner stage
+- `settings` - will be run within the settings stage
+
+###### family
+
+The family a script belongs to. Is a freely choosable string.
+
+### syntax
+
+```text
+Verifies syntax of NASL files in given dir or file.
+
+Usage: nasl-cli syntax [OPTIONS] <path>
+
+Arguments:
+  <path>
+
+Options:
+  -q, --quiet  Prints only error output and no progress.
+  -h, --help   Print help
+```
 
 ## Build
 
