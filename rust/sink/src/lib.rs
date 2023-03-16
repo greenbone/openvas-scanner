@@ -7,6 +7,7 @@
 
 pub mod nvt;
 pub mod time;
+pub mod types;
 use std::{
     fmt::Display,
     io,
@@ -14,6 +15,20 @@ use std::{
 };
 
 use nvt::{NVTField, NVTKey};
+use types::Primitive;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+/// Structure to hold a knowledge base item
+pub struct Kb {
+    pub key: String,
+    pub value: Primitive,
+    pub expire: Option<i64>,
+}
 
 /// Dispatch command for a given Field
 ///
@@ -22,11 +37,19 @@ use nvt::{NVTField, NVTKey};
 pub enum Dispatch {
     /// Metadata of the NASL script.
     NVT(NVTField),
+    /// Knowledge Base item
+    KB(Kb),
 }
 
 impl From<NVTField> for Dispatch {
     fn from(value: NVTField) -> Self {
         Self::NVT(value)
+    }
+}
+
+impl From<Kb> for Dispatch {
+    fn from(value: Kb) -> Self {
+        Self::KB(value)
     }
 }
 
@@ -37,6 +60,8 @@ impl From<NVTField> for Dispatch {
 pub enum Retrieve {
     /// Metadata of the NASL script.
     NVT(Option<NVTKey>),
+    /// Knowledge Base item
+    KB(String),
 }
 
 /// Defines abstract SinkError cases
@@ -113,6 +138,7 @@ pub trait Sink {
     /// Stores given scope to key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
+    // TODO extend key to Option<host> - key
     fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError>;
 
     /// On exit is called when a script exit
@@ -175,7 +201,11 @@ impl DefaultSink {
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
             Some((_, v)) => match scope {
-                Retrieve::NVT(None) => Ok(v.clone()),
+                Retrieve::NVT(None) => Ok(v
+                    .clone()
+                    .into_iter()
+                    .filter(|x| matches!(x, Dispatch::NVT(_)))
+                    .collect()),
                 Retrieve::NVT(Some(nkey)) => {
                     let results: Vec<Dispatch> = v
                         .clone()
@@ -215,6 +245,18 @@ impl DefaultSink {
                         .collect();
                     Ok(results)
                 }
+                Retrieve::KB(s) => Ok(v
+                    .clone()
+                    .into_iter()
+                    .filter(|x| match x {
+                        Dispatch::NVT(_) => false,
+                        Dispatch::KB(Kb {
+                            key,
+                            value: _,
+                            expire: _,
+                        }) => key == &s,
+                    })
+                    .collect()),
             },
             None => Ok(vec![]),
         }

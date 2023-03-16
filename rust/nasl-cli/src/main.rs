@@ -58,7 +58,6 @@ enum FeedAction {
         ///
         /// When it is skipped it will be obtained via `openvas -s`
         path: Option<PathBuf>,
-        // TODO format  like json or fields
     },
 }
 
