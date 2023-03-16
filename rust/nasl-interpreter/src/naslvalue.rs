@@ -33,6 +33,22 @@ pub enum NaslValue {
     Exit(i64),
 }
 
+impl NaslValue {
+    /// Transform NASLValue to sink::types::Primitive
+    pub fn as_primitive(self) -> sink::types::Primitive {
+        use sink::types::Primitive::*;
+        match self {
+            Self::String(s) => String(s),
+            Self::Data(x) => Data(x),
+            Self::Number(x) => Number(x),
+            Self::Array(x) => Array(x.into_iter().map(|x| x.as_primitive()).collect()),
+            Self::Dict(x) => Dict(x.into_iter().map(|(k, v)| (k, v.as_primitive())).collect()),
+            Self::Boolean(x) => Boolean(x),
+            _ => Null,
+        }
+    }
+}
+
 impl PartialOrd for NaslValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let a: Vec<u8> = self.into();
@@ -223,6 +239,21 @@ impl From<NaslValue> for Vec<NaslValue> {
                 .map(|x| NaslValue::String(x.to_string()))
                 .collect(),
             _ => vec![],
+        }
+    }
+}
+
+impl From<sink::types::Primitive> for NaslValue {
+    fn from(value: sink::types::Primitive) -> Self {
+        use sink::types::Primitive::*;
+        match value {
+            String(x) => Self::String(x),
+            Data(x) => Self::Data(x),
+            Number(x) => Self::Number(x),
+            Array(x) => Self::Array(x.into_iter().map(Self::from).collect()),
+            Dict(x) => Self::Dict(x.into_iter().map(|(k, v)| (k, Self::from(v))).collect()),
+            Boolean(x) => Self::Boolean(x),
+            Null => todo!(),
         }
     }
 }

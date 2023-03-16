@@ -12,7 +12,7 @@ use redis::*;
 use sink::nvt::Nvt;
 use sink::nvt::NvtPreference;
 use sink::nvt::NvtRef;
-use sink::nvt::PerNVTSink;
+use sink::nvt::PerNVTDispatcher;
 use sink::SinkError;
 
 enum KbNvtPos {
@@ -369,10 +369,10 @@ impl NvtDispatcher<RedisCtx> {
     ///
     /// Initializes a redis cache based on the given selecter and url and clears the namespace
     /// before returning the underlying cache as a Sink.
-    pub fn as_sink(redis_url: &str) -> RedisSinkResult<PerNVTSink<NvtDispatcher<RedisCtx>>> {
+    pub fn as_sink(redis_url: &str) -> RedisSinkResult<PerNVTDispatcher<NvtDispatcher<RedisCtx>>> {
         let cache = Self::init(redis_url, FEEDUPDATE_SELECTOR)?;
         cache.reset()?;
-        Ok(PerNVTSink::new(cache))
+        Ok(PerNVTDispatcher::new(cache))
     }
 
     /// Reset the NVT Cache and release the redis namespace
@@ -402,7 +402,7 @@ mod tests {
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
-    use sink::nvt::PerNVTSink;
+    use sink::nvt::PerNVTDispatcher;
     use sink::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use sink::Sink;
 
@@ -487,7 +487,7 @@ mod tests {
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
         let rcache = NvtDispatcher { cache };
-        let dispatcher = PerNVTSink::new(rcache);
+        let dispatcher = PerNVTDispatcher::new(rcache);
         for c in commands {
             dispatcher.dispatch("test.nasl", c).unwrap();
         }

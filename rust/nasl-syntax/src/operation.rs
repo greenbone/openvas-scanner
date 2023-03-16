@@ -7,7 +7,6 @@ use crate::token::{Category, IdentifierType, Token};
 
 /// Is defining different OPerations to control the infix, postfix or infix handling.
 #[derive(Clone, Debug, PartialEq, Eq)]
-// TODO maybe transform tokencategory to operation category
 pub(crate) enum Operation {
     /// Operator are mostly used in infix.
     ///

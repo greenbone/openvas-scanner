@@ -877,8 +877,6 @@ mod tests {
         verify_tokens!("0", vec![(Number(0), 1, 1)]);
         verify_tokens!("0b01", vec![(Number(1), 1, 1)]);
         verify_tokens!("1234567890", vec![(Number(1234567890), 1, 1)]);
-        // TODO remove float
-        //verify_tokens!("0.123456789", vec![(Number(Base10), 1, 1)]);
         verify_tokens!("012345670", vec![(Number(2739128), 1, 1)]);
         verify_tokens!(
             "0x1234567890ABCDEF",

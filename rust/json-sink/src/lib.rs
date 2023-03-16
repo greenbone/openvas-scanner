@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use sink::{self, nvt::PerNVTSink, SinkError};
+use sink::{self, nvt::PerNVTDispatcher, SinkError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -85,8 +85,8 @@ where
     }
 
     /// Returns a new instance as a Sink
-    pub fn as_sink(w: S) -> PerNVTSink<Self> {
-        PerNVTSink::new(Self::new(w))
+    pub fn as_sink(w: S) -> PerNVTDispatcher<Self> {
+        PerNVTDispatcher::new(Self::new(w))
     }
 }
 

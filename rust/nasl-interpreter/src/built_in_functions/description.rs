@@ -222,7 +222,7 @@ fn as_cve_field(_: &str, arguments: &[&NaslValue]) -> Transform {
 fn as_tag_field(_: &str, arguments: &[&NaslValue]) -> Transform {
     let key: TagKey = arguments[0].to_string().parse()?;
     Ok(vec![match TagValue::parse(key, arguments[1])? {
-        TagValue::Ignore => NVTField::NoOp,
+        TagValue::Null => NVTField::NoOp,
         x => NVTField::Tag(key, x),
     }])
 }

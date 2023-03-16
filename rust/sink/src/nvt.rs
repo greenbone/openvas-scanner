@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{time::AsUnixTimeStamp, Dispatch, Sink, SinkError};
+use crate::{time::AsUnixTimeStamp, types, Dispatch, Kb, Sink, SinkError};
 
 /// Attack Category either set by script_category
 ///
@@ -203,7 +203,7 @@ make_str_lookup_enum! {
     }
 }
 
-macro_rules! make_fields {
+macro_rules! make_nvt_fields {
 
     ($($doc:expr => $name:ident $( ($($value:ident$(<$st:ident>)?),*) )?),* ) => {
         /// Fields are used to represent a NVT.
@@ -234,7 +234,7 @@ macro_rules! make_fields {
     };
 }
 
-make_fields! {
+make_nvt_fields! {
     "Is an identifying field" => Oid(String),
     "The filename of the NASL Plugin
 
@@ -364,47 +364,8 @@ impl NvtPreference {
     }
 }
 
-/// Represent a value of the key
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(untagged)
-)]
-pub enum TagValue {
-    /// A tag with a free form field
-    String(String),
-    /// Timestamp value
-    Number(i64),
-    /// Boolean value
-    Boolean(bool),
-    /// Values that are ignored
-    Ignore,
-}
-
-impl From<String> for TagValue {
-    fn from(value: String) -> Self {
-        Self::String(value)
-    }
-}
-
-impl From<i64> for TagValue {
-    fn from(value: i64) -> Self {
-        Self::Number(value)
-    }
-}
-
-impl Display for TagValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TagValue::String(s) => write!(f, "{s}"),
-            TagValue::Number(s) => write!(f, "{s}"),
-            TagValue::Boolean(true) => write!(f, "1"),
-            TagValue::Boolean(false) => write!(f, "0"),
-            TagValue::Ignore => Ok(()),
-        }
-    }
-}
+/// TagValue is a type containing value types of script_tag
+pub type TagValue = types::Primitive;
 
 impl TagValue {
     /// Parhse the given Value based on the key to TagValue
@@ -418,7 +379,7 @@ impl TagValue {
                 .ok_or_else(error)
                 .map(Self::from),
             // is set to be ignored
-            TagKey::CvssBase => Ok(TagValue::Ignore),
+            TagKey::CvssBase => Ok(TagValue::Null),
             TagKey::Deprecated => match value.to_string().as_str() {
                 "TRUE" | "true" | "1" => Ok(TagValue::Boolean(true)),
                 "FALSE" | "false" | "0" => Ok(TagValue::Boolean(false)),
@@ -487,11 +448,21 @@ pub trait NvtDispatcher {
     ///
     /// Feed version is usually read once.
     fn dispatch_feed_version(&self, version: String) -> Result<(), SinkError>;
+    /// Dispatches a knowledge base item.
+    ///
+    /// Usually the NvtDispatcher is used on description = 1 runs were no KB item should occur. But
+    /// to have the possibility to have shared run this interface should allow to handle it
+    /// accordingly.
+    /// The default is set to return `Ok(())` without doing something to net enforce every
+    /// NvtDispatcher to implement it.
+    fn dispatch_kb(&self, _: Kb) -> Result<(), SinkError> {
+        Ok(())
+    }
 }
 
 /// Collects the information while being in a description run and calls the dispatch method
 /// on exit.
-pub struct PerNVTSink<S>
+pub struct PerNVTDispatcher<S>
 where
     S: NvtDispatcher,
 {
@@ -499,7 +470,7 @@ where
     dispatcher: S,
 }
 
-impl<S> PerNVTSink<S>
+impl<S> PerNVTDispatcher<S>
 where
     S: NvtDispatcher,
 {
@@ -545,13 +516,14 @@ where
     }
 }
 
-impl<S> Sink for PerNVTSink<S>
+impl<S> Sink for PerNVTDispatcher<S>
 where
     S: NvtDispatcher,
 {
     fn dispatch(&self, _: &str, scope: crate::Dispatch) -> Result<(), SinkError> {
         match scope {
             Dispatch::NVT(nvt) => self.store_nvt_field(nvt),
+            Dispatch::KB(kb) => self.dispatcher.dispatch_kb(kb),
         }
     }
 
