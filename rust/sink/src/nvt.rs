@@ -199,7 +199,7 @@ make_str_lookup_enum! {
        file => File,
        password => Password,
        radio => Radio,
-       sshlogin => SSHLogin
+       sshlogin => SshLogin
     }
 }
 

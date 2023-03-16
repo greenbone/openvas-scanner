@@ -9,7 +9,7 @@ To use it you need to create a writer instance of your choice in the examples we
 ## NVT
 
 Transforms a NVT to the json structure:
-```
+```text
 {
   "oid": "116.101.115.116",
   "name": "zeroone",
