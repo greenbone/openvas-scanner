@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{time::AsUnixTimeStamp, types, Field, Kb, Sink, SinkError};
+use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, SinkError};
 
 /// Attack Category either set by script_category
 ///
@@ -520,7 +520,7 @@ where
     }
 }
 
-impl<S, K> Sink<K> for PerNVTDispatcher<S, K>
+impl<S, K> Dispatcher<K> for PerNVTDispatcher<S, K>
 where
     K: AsRef<str>,
     S: NvtDispatcher<K>,

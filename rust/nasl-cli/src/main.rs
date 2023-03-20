@@ -43,7 +43,6 @@ enum FeedAction {
         /// It must be the complete redis address in either the form of a unix socket or tcp.
         /// For tcp provide the address in the form of: `redis://host:port`.
         /// For unix socket provide the path to the socket in the form of: `unix://path/to/redis.sock`.
-        /// When not provided the DefaultSink will be used instead.
         /// When it is skipped it will be obtained via `openvas -s`
         redis: Option<String>,
         /// The path to the NASL plugins.

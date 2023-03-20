@@ -37,9 +37,7 @@ pub struct Kb {
     pub expire: Option<i64>,
 }
 
-/// Dispatch command for a given Field
-///
-/// Defines what kind of information needs to be distributed.
+/// Describes various Fields of supported items.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Field {
     /// Metadata of the NASL script.
@@ -132,20 +130,11 @@ impl Display for SinkError {
     }
 }
 
-/// Defines the Sink interface to distribute Scope
-///
-/// In NASL there are three different kind of data:
-/// 1. nvt metadata handled as NVT
-/// 2. knowledgebase, not implemented yet
-/// 3. log (results), not implemented yet
-///
-/// While the knowledgebase lifetime is limited to the run of a scan
-/// NVT as well as Log are consumed by our clients.
-pub trait Sink<K> {
-    /// Stores given scope to key
+/// Defines the Dispatcher interface to distribute fields
+pub trait Dispatcher<K> {
+    /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    // TODO extend key to Option<host> - key
     fn dispatch(&self, key: &K, scope: Field) -> Result<(), SinkError>;
 
     /// On exit is called when a script exit
@@ -173,9 +162,9 @@ pub trait Sink<K> {
 /// The first String statement is the used key while the Vector of Scope are the values.
 type StoreItem = Vec<(String, Vec<Field>)>;
 
-/// Is a in-memory sink that behaves like a Storage.
+/// Is a in-memory dispatcher that behaves like a Storage.
 #[derive(Default)]
-pub struct DefaultSink<K> {
+pub struct DefaultDispatcher<K> {
     /// If dirty it will not clean the data on_exit
     dirty: bool,
     key: PhantomData<K>,
@@ -185,8 +174,8 @@ pub struct DefaultSink<K> {
     data: Arc<Mutex<StoreItem>>,
 }
 
-impl<K> DefaultSink<K> {
-    /// Creates a new DefaultSink
+impl<K> DefaultDispatcher<K> {
+    /// Creates a new DefaultDispatcher
     pub fn new(dirty: bool) -> Self {
         Self {
             dirty,
@@ -272,7 +261,7 @@ impl<K> DefaultSink<K> {
     }
 }
 
-impl<K> Sink<K> for DefaultSink<K>
+impl<K> Dispatcher<K> for DefaultDispatcher<K>
 where
     K: AsRef<str> + Display + Default + From<String>,
 {
@@ -294,12 +283,12 @@ where
     }
 }
 
-impl<K> Default for Box<dyn Sink<K>>
+impl<K> Default for Box<dyn Dispatcher<K>>
 where
     K: AsRef<str> + Display + Default + From<String> + 'static,
 {
     fn default() -> Self {
-        Box::<DefaultSink<K>>::default()
+        Box::<DefaultDispatcher<K>>::default()
     }
 }
 
@@ -311,7 +300,7 @@ mod tests {
 
     #[test]
     pub fn default_storage() -> Result<(), SinkError> {
-        let storage = DefaultSink::default();
+        let storage = DefaultDispatcher::default();
         storage.dispatch(&"moep".to_owned(), NVT(Oid("moep".to_owned())))?;
         assert_eq!(
             storage.retrieve("moep", Retrieve::NVT(None))?,

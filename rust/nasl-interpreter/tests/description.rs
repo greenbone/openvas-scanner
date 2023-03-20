@@ -25,7 +25,7 @@ mod tests {
     use sink::nvt::ACT::*;
     use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
     use sink::nvt::{NvtRef, TagValue};
-    use sink::DefaultSink;
+    use sink::DefaultDispatcher;
     use sink::Field::NVT;
 
     use crate::NoOpLoader;
@@ -56,7 +56,7 @@ if(description)
   exit(rc);
 }
         "###;
-        let storage = DefaultSink::new(true);
+        let storage = DefaultDispatcher::new(true);
         let loader = NoOpLoader::default();
         let initial = [(
             "description".to_owned(),
