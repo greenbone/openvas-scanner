@@ -27,6 +27,7 @@ mod tests {
     use storage::nvt::{NvtRef, TagValue};
     use storage::DefaultDispatcher;
     use storage::Field::NVT;
+    use storage::Retriever;
 
     use crate::NoOpLoader;
 
@@ -78,7 +79,7 @@ if(description)
         assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
             storage
-                .retrieve(&key, storage::Retrieve::NVT(None))
+                .retrieve(&key, &storage::Retrieve::NVT(None))
                 .unwrap(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
