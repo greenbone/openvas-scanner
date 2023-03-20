@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{time::AsUnixTimeStamp, types, Dispatch, Kb, Sink, SinkError};
+use crate::{time::AsUnixTimeStamp, types, Field, Kb, Sink, SinkError};
 
 /// Attack Category either set by script_category
 ///
@@ -525,10 +525,10 @@ where
     K: AsRef<str>,
     S: NvtDispatcher<K>,
 {
-    fn dispatch(&self, key: &K, scope: crate::Dispatch) -> Result<(), SinkError> {
+    fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), SinkError> {
         match scope {
-            Dispatch::NVT(nvt) => self.store_nvt_field(nvt),
-            Dispatch::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
+            Field::NVT(nvt) => self.store_nvt_field(nvt),
+            Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
         }
     }
 
