@@ -25,9 +25,9 @@ use storage::DefaultDispatcher;
 let storage = DefaultDispatcher::new(false);
 let mut register = Register::default();
 let loader = NoOpLoader::default();
-let logger = DefaultLogger::new();
+let logger = DefaultLogger::default();
 let oid = "0.0.0.0.0.0".to_owned();
-let context = Context::new(&oid, &storage, &loader, &logger);
+let context = Context::new(&oid, &storage, &storage, &loader, &logger);
 let code = "display('hi');";
 let mut interpreter = Interpreter::new(&mut register, &context);
 let mut parser =

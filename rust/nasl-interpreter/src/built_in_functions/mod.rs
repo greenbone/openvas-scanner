@@ -25,6 +25,13 @@ pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue
     }
 }
 
+/// gets a named parameter
+///
+/// The function name is required for the error cases that can occur when either the found
+/// parameter is a function or when required is set to true and no parameter was found.
+///
+/// Additionally when a parameter is not required it will return Exit(0) instead of Null. This is
+/// done to allow differentiation between a parameter that is set to Null on purpose.
 pub(crate) fn get_named_parameter<'a>(
     function: &'a str,
     registrat: &'a Register,
@@ -39,7 +46,8 @@ pub(crate) fn get_named_parameter<'a>(
                     FunctionErrorKind::MissingArguments(vec![key.to_owned()]),
                 ))
             } else {
-                // we missuse exit here because a named value can be intentionally set to null
+                // we use exit because a named value can be intentionally set to null and may be
+                // treated differently when it is not set compared to set but null.
                 Ok(&NaslValue::Exit(0))
             }
         }
