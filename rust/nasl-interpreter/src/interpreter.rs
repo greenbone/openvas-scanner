@@ -19,9 +19,9 @@ use crate::{
 };
 
 /// Used to interpret a Statement
-pub struct Interpreter<'a> {
+pub struct Interpreter<'a, K> {
     pub(crate) registrat: &'a mut Register,
-    pub(crate) ctxconfigs: &'a Context<'a>,
+    pub(crate) ctxconfigs: &'a Context<'a, K>,
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -29,9 +29,12 @@ pub struct Interpreter<'a> {
 /// When a result does not contain a value than NaslValue::Null must be returned.
 pub type InterpretResult = Result<NaslValue, InterpretError>;
 
-impl<'a> Interpreter<'a> {
+impl<'a, K> Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     /// Creates a new Interpreter.
-    pub fn new(register: &'a mut Register, ctxconfigs: &'a Context) -> Self {
+    pub fn new(register: &'a mut Register, ctxconfigs: &'a Context<K>) -> Self {
         Interpreter {
             registrat: register,
             ctxconfigs,

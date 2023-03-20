@@ -76,7 +76,7 @@ To create a single json element per dispatch you can use the NvtDispatcher with 
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let dispatcher = json_sink::NvtDispatcher::as_sink(&mut buf);
+let dispatcher = json_sink::NvtDispatcher::as_sink::<String>(&mut buf);
 ```
 
 ### Array
@@ -86,7 +86,7 @@ To create an array for elements per dispatch call:
 ```
 let mut buf = Vec::with_capacity(1208);
 let mut ja = json_sink::ArrayWrapper::new(&mut buf);
-let dispatcher = json_sink::NvtDispatcher::as_sink(&mut ja);
+let dispatcher = json_sink::NvtDispatcher::as_sink::<String>(&mut ja);
 // do your work
 ja.end();
 ```

@@ -6,6 +6,7 @@
 use std::{
     collections::HashMap,
     fmt::Display,
+    marker::PhantomData,
     str::FromStr,
     sync::{Arc, Mutex},
 };
@@ -439,7 +440,7 @@ pub struct Nvt {
 }
 
 /// Is a specialized Dispatcher for NVT information within the description block.
-pub trait NvtDispatcher {
+pub trait NvtDispatcher<K> {
     /// Dispatches the feed version as well as NVT.
     ///
     /// The NVT is collected when a description run is finished.
@@ -455,30 +456,33 @@ pub trait NvtDispatcher {
     /// accordingly.
     /// The default is set to return `Ok(())` without doing something to net enforce every
     /// NvtDispatcher to implement it.
-    fn dispatch_kb(&self, _: Kb) -> Result<(), SinkError> {
+    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), SinkError> {
         Ok(())
     }
 }
 
 /// Collects the information while being in a description run and calls the dispatch method
 /// on exit.
-pub struct PerNVTDispatcher<S>
+pub struct PerNVTDispatcher<S, K>
 where
-    S: NvtDispatcher,
+    S: NvtDispatcher<K>,
 {
     nvt: Arc<Mutex<Option<Nvt>>>,
     dispatcher: S,
+    phantom: PhantomData<K>,
 }
 
-impl<S> PerNVTDispatcher<S>
+impl<S, K> PerNVTDispatcher<S, K>
 where
-    S: NvtDispatcher,
+    K: AsRef<str>,
+    S: NvtDispatcher<K>,
 {
     /// Creates a new NvtDispatcher without a feed_version and nvt.
     pub fn new(dispatcher: S) -> Self {
         Self {
             nvt: Arc::new(Mutex::new(None)),
             dispatcher,
+            phantom: PhantomData,
         }
     }
 
@@ -516,14 +520,15 @@ where
     }
 }
 
-impl<S> Sink for PerNVTDispatcher<S>
+impl<S, K> Sink<K> for PerNVTDispatcher<S, K>
 where
-    S: NvtDispatcher,
+    K: AsRef<str>,
+    S: NvtDispatcher<K>,
 {
-    fn dispatch(&self, _: &str, scope: crate::Dispatch) -> Result<(), SinkError> {
+    fn dispatch(&self, key: &K, scope: crate::Dispatch) -> Result<(), SinkError> {
         match scope {
             Dispatch::NVT(nvt) => self.store_nvt_field(nvt),
-            Dispatch::KB(kb) => self.dispatcher.dispatch_kb(kb),
+            Dispatch::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
         }
     }
 

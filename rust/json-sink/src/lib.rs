@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use sink::{self, nvt::PerNVTDispatcher, SinkError};
+use sink::{self, nvt::PerNVTDispatcher, Kb, SinkError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -85,24 +85,35 @@ where
     }
 
     /// Returns a new instance as a Sink
-    pub fn as_sink(w: S) -> PerNVTDispatcher<Self> {
+    pub fn as_sink<K>(w: S) -> PerNVTDispatcher<Self, K>
+    where
+        K: AsRef<str>,
+    {
         PerNVTDispatcher::new(Self::new(w))
     }
-}
 
-impl<S> sink::nvt::NvtDispatcher for NvtDispatcher<S>
-where
-    S: Write,
-{
-    fn dispatch_nvt(&self, nvt: sink::nvt::Nvt) -> Result<(), sink::SinkError> {
+    fn as_json(&self, nvt: sink::nvt::Nvt) -> Result<(), sink::SinkError> {
         let mut context = self.w.lock().map_err(SinkError::from)?;
         serde_json::to_vec(&nvt)
             .map_err(|e| SinkError::Dirty(format!("{e:?}")))
             .and_then(|x| context.write_all(&x).map_err(SinkError::from))
     }
+}
+
+impl<S, K> sink::nvt::NvtDispatcher<K> for NvtDispatcher<S>
+where
+    S: Write,
+{
+    fn dispatch_nvt(&self, nvt: sink::nvt::Nvt) -> Result<(), sink::SinkError> {
+        self.as_json(nvt)
+    }
 
     fn dispatch_feed_version(&self, _: String) -> Result<(), sink::SinkError> {
         // the feed information are currently not within the output json
+        Ok(())
+    }
+
+    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), SinkError> {
         Ok(())
     }
 }
@@ -111,7 +122,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use sink::nvt::{Nvt, NvtDispatcher, ACT};
+    use sink::nvt::{Nvt, ACT};
 
     use super::*;
 
@@ -223,7 +234,7 @@ mod tests {
         let nvt = generate_nvt("test", ACT::DestructiveAttack);
         let mut buf = Vec::with_capacity(1208);
         let dispatcher = super::NvtDispatcher::new(&mut buf);
-        dispatcher.dispatch_nvt(nvt.clone()).unwrap();
+        dispatcher.as_json(nvt.clone()).unwrap();
         let single_json = String::from_utf8(buf).unwrap();
         let result: Nvt = serde_json::from_str(&single_json).unwrap();
         assert_eq!(result, nvt);
@@ -251,7 +262,7 @@ mod tests {
         .enumerate()
         .map(|(i, c)| generate_nvt(&i.to_string(), c))
         {
-            dispatcher.dispatch_nvt(nvt).unwrap();
+            dispatcher.as_json(nvt).unwrap();
         }
         ja.end().unwrap();
 

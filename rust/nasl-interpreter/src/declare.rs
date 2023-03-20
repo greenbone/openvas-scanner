@@ -18,7 +18,10 @@ pub(crate) trait DeclareFunctionExtension {
     ) -> InterpretResult;
 }
 
-impl<'a> DeclareFunctionExtension for Interpreter<'a> {
+impl<'a, K> DeclareFunctionExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn declare_function(
         &mut self,
         name: &Token,
@@ -46,7 +49,7 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &DeclareScope, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a> DeclareVariableExtension for Interpreter<'a> {
+impl<'a, K> DeclareVariableExtension for Interpreter<'a, K> {
     fn declare_variable(&mut self, scope: &DeclareScope, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
@@ -71,7 +74,7 @@ impl<'a> DeclareVariableExtension for Interpreter<'a> {
 mod tests {
     use nasl_syntax::parse;
 
-    use crate::{context::Register, Interpreter, NaslValue, DefaultContext};
+    use crate::{context::Register, DefaultContext, Interpreter, NaslValue};
 
     #[test]
     fn declare_local() {

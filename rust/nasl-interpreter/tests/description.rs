@@ -64,7 +64,8 @@ if(description)
         )];
         let mut register = Register::root_initial(&initial);
         let logger = DefaultLogger::new();
-        let ctxconfigs = Context::new("test.nasl", &storage, &loader, &logger);
+        let key = "test.nasl".to_owned();
+        let ctxconfigs = Context::new(&key, &storage, &loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {
@@ -76,12 +77,10 @@ if(description)
             .unwrap_or(Ok(NaslValue::Exit(0)));
         assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
-            storage
-                .retrieve("test.nasl", sink::Retrieve::NVT(None))
-                .unwrap(),
+            storage.retrieve(&key, sink::Retrieve::NVT(None)).unwrap(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
-                NVT(FileName("test.nasl".to_owned())),
+                NVT(FileName(key)),
                 NVT(NoOp),
                 NVT(Tag(CreationDate, TagValue::Number(1366091481))),
                 NVT(Name("that is a very long and descriptive name".to_owned())),

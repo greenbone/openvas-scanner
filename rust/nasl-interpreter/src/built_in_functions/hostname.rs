@@ -4,7 +4,9 @@
 
 use std::str;
 
-use crate::{error::FunctionError, lookup_keys::TARGET, NaslFunction, NaslValue, Register, Context};
+use crate::{
+    error::FunctionError, lookup_keys::TARGET, Context, NaslFunction, NaslValue, Register,
+};
 
 /// Resolves IP address of target to hostname
 ///
@@ -34,7 +36,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn get_host_names<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -42,12 +44,12 @@ pub fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, Fun
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn get_host_name<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     resolve_hostname(register).map(NaslValue::String)
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
     match key {
         "get_host_name" => Some(get_host_name),
         "get_host_names" => Some(get_host_names),
@@ -59,7 +61,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 mod tests {
     use nasl_syntax::parse;
 
-    use crate::{Interpreter, NaslValue, Register, DefaultContext};
+    use crate::{DefaultContext, Interpreter, NaslValue, Register};
 
     #[test]
     fn get_host_name() {

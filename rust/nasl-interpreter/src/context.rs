@@ -6,8 +6,7 @@ use nasl_syntax::Statement;
 use sink::Sink;
 
 use crate::{
-    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader,
-    NaslValue,
+    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue,
 };
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -261,22 +260,22 @@ impl NaslContext {
 ///
 /// This struct includes all objects that a nasl function requires.
 /// New objects must be added here in
-pub struct Context<'a> {
+pub struct Context<'a, K> {
     /// key for this context. A name or an OID
-    key: &'a str,
+    key: &'a K,
     /// Default Sink
-    storage: &'a dyn Sink,
+    storage: &'a dyn Sink<K>,
     /// Default Loader
     loader: &'a dyn Loader,
     /// Default logger.
     logger: &'a dyn NaslLogger,
 }
 
-impl<'a> Context<'a> {
+impl<'a, K> Context<'a, K> {
     /// Creates an empty configuration
     pub fn new(
-        key: &'a str,
-        storage: &'a dyn Sink,
+        key: &'a K,
+        storage: &'a dyn Sink<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
     ) -> Self {
@@ -293,11 +292,11 @@ impl<'a> Context<'a> {
         self.logger
     }
     /// Get the Key
-    pub fn key(&self) -> &str {
+    pub fn key(&self) -> &K {
         self.key
     }
     /// Get the storage
-    pub fn storage(&self) -> &dyn Sink {
+    pub fn storage(&self) -> &dyn Sink<K> {
         self.storage
     }
     /// Get the loader
@@ -309,18 +308,18 @@ impl<'a> Context<'a> {
 #[derive(Default)]
 pub struct DefaultContext {
     /// key for the default context. A name or an OID
-    key: String,
+    pub key: String,
     /// Default Storage
-    storage: Box<dyn Sink>,
+    pub storage: Box<dyn Sink<String>>,
     /// Default Loader
-    loader: Box<dyn Loader>,
+    pub loader: Box<dyn Loader>,
     /// Default logger
-    logger: Box<dyn NaslLogger>,
+    pub logger: Box<dyn NaslLogger>,
 }
 
 impl DefaultContext {
     /// Converts a DefaultContext to Context
-    pub fn as_context(&self) -> Context {
+    pub fn as_context(&self) -> Context<String> {
         Context {
             key: &self.key,
             storage: &*self.storage,

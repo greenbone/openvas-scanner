@@ -13,7 +13,10 @@ pub(crate) trait OperatorExtension {
     fn operator(&mut self, category: &TokenCategory, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a> Interpreter<'a> {
+impl<'a, K> Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn execute(
         &mut self,
         stmts: &[Statement],
@@ -76,7 +79,10 @@ fn not_match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult 
     Ok(NaslValue::Boolean(!bool::from(result)))
 }
 
-impl<'a> OperatorExtension for Interpreter<'a> {
+impl<'a, K> OperatorExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn operator(&mut self, category: &TokenCategory, stmts: &[Statement]) -> InterpretResult {
         match category {
             // number and string
@@ -211,8 +217,8 @@ impl<'a> OperatorExtension for Interpreter<'a> {
 mod tests {
     use nasl_syntax::parse;
 
+    use crate::{DefaultContext, Register};
     use crate::{Interpreter, NaslValue};
-    use crate::{Register, DefaultContext};
 
     macro_rules! create_test {
         ($($name:tt: $code:expr => $result:expr),*) => {

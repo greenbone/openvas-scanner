@@ -59,7 +59,10 @@ pub(crate) trait LoopExtension {
 
 /// Implementation for the Loop extension. Note that for all loops, we do not
 /// change the context, as the current NASL also does not change it too.
-impl<'a> LoopExtension for Interpreter<'a> {
+impl<'a, K> LoopExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn for_loop(
         &mut self,
         assignment: &Statement,
@@ -165,7 +168,7 @@ impl<'a> LoopExtension for Interpreter<'a> {
 mod tests {
     use nasl_syntax::parse;
 
-    use crate::{Interpreter, NaslValue, Register, DefaultContext};
+    use crate::{DefaultContext, Interpreter, NaslValue, Register};
 
     #[test]
     fn for_loop_test() {

@@ -4,7 +4,7 @@
 
 //! Defines various built-in functions for NASL functions.
 
-use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register, Context};
+use crate::{error::FunctionError, Context, ContextType, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
 
@@ -13,16 +13,16 @@ use super::resolve_positional_arguments;
 /// Uses the first positional argument to verify if a function is defined.
 /// This argument must be a string everything else will return False per default.
 /// Returns NaslValue::Boolean(true) when defined NaslValue::Boolean(false) otherwise.
-pub fn defined_func(
-    register: &Register,
-    _: &Context,
-) -> Result<NaslValue, FunctionError> {
+pub fn defined_func<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError>
+where
+    K: AsRef<str>,
+{
     let positional = resolve_positional_arguments(register);
 
     Ok(match positional.get(0) {
         Some(NaslValue::String(x)) => match register.named(x) {
             Some(ContextType::Function(_, _)) => true.into(),
-            None => crate::lookup(x).is_some().into(),
+            None => crate::lookup::<K>(x).is_some().into(),
             _ => false.into(),
         },
         _ => false.into(),
@@ -30,7 +30,10 @@ pub fn defined_func(
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>>
+where
+    K: AsRef<str>,
+{
     match key {
         "defined_func" => Some(defined_func),
         _ => None,
@@ -41,7 +44,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 mod tests {
     use nasl_syntax::parse;
 
-    use crate::{Interpreter, NaslValue, Register, DefaultContext};
+    use crate::{DefaultContext, Interpreter, NaslValue, Register};
 
     #[test]
     fn defined_func() {
