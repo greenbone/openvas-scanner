@@ -1,11 +1,11 @@
 openapi: "3.1.0"
 info:
-  title: "OpenSight Scanner"
+  title: "Scanner"
   summary: "A Vulnerability Scan Manager."
-  description: "Manage vulnerability scans for OpenVAS and Notus scanner."
+  description: "Control vulnerability scans for OpenVAS and Notus scanner."
   contact:
-    name: "Open Source project contribution"
-    url: "https://github.com/greenbone/openvas-scanner/issues"
+    name: "Greenbone AG"
+    url: "https://www.greenbone.net/"
   license:
     name: "GPL-2.0-or-later"
     identifier: "GPL-2.0-or-later"
@@ -15,8 +15,6 @@ servers:
 tags:
   - name: scan
     description: Scan resource
-  - name: result
-    description: Result management
   - name: feed
     description: Feed related
 paths:
@@ -27,7 +25,7 @@ paths:
       tags:
         - "scan"
       requestBody:
-        description: "Scan to add."
+        description: "Scan to add"
         content:
           application/json:
             schema:
@@ -82,7 +80,7 @@ paths:
           description: "Scan not found"
 
     delete:
-      description: "Delete a scan from the scan manager. A running scan cannot be deleted."
+      description: "Delete a scan from the scan manager."
       operationId: "delete_scan"
       tags:
         - "scan"
@@ -125,7 +123,7 @@ paths:
         "404":
           description: "Scan not found"
         "406":
-          description: "A scan that has not started, does not contain results"
+          description: "A scan, that has not started, does not contain results"
 
   /scan/{id}/result/{num}:
     get:
@@ -175,52 +173,21 @@ paths:
 
   /vt:
     get:
-      description: "Get meta information about VTs."
+      description: "Get a list of all available VTs (OIDs)."
       operationId: "get_vts"
       tags:
         - "feed"
-      parameters:
-        - name: query
-          in: query
-          description: "Query for requesting VTs. If not given all VTs are returned."
-          required: false
-          schema:
-            type: "string"
       responses:
         "200":
-          description: "A list of requested VTs"
+          description: "A list of available VTs."
           content:
             application/json:
               schema:
                 type: "array"
                 items:
-                  $ref: "#/components/schemas/VT"
-        "400":
-          description: "Bad query format"
-
-  /vt/{id}:
-    get:
-      description: "Get meta information about a specific VT."
-      operationId: "get_vt"
-      tags:
-        - "feed"
-      parameters:
-        - name: id
-          in: path
-          description: "An OID corresponding to a VT."
-          required: true
-          schema:
-            type: "string"
-
-      responses:
-        "200":
-          description: "The requested VT"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VT"
-        "404":
-          description: "VT not found"
+                  type: "string"
+        "503":
+          description: "The list of OIDs is currently updated. Please try again later."
 
 components:
   parameters:
@@ -234,7 +201,7 @@ components:
 
   schemas:
     ScanID:
-      description: "A scan ID to identify a scan, normally UUIDv4 is used."
+      description: "A scan ID to identify a scan."
       type: "string"
 
     Scan:
@@ -253,7 +220,10 @@ components:
           items:
             $ref: "#/components/schemas/Parameter"
         vts:
-          $ref: "#/components/schemas/VTs"
+          type: "array"
+          description: "A collection of VTs, which are run for the given target."
+          items:
+            $ref: "#/components/schemas/VT"
         required:
           - target
           - vts
@@ -313,7 +283,7 @@ components:
             - udp
             - tcp
         range:
-          description: "Can be either a single port or a range given like 1-10. Multiple ports can be given in a comma-separated list."
+          description: "A comma separated list of port options. A port option is either a single port or a port range given with two numbers with a hyphen."
           type: "string"
       required:
         - range
@@ -400,36 +370,20 @@ components:
             - des
 
     Parameter:
-      description: "Consists of a parameter name and its value"
+      description: "Consists of a parameter ID and its value."
       type: "object"
       properties:
-        name:
-          description: "Name of the parameter to set."
-          type: "string"
+        id:
+          description: "ID of the parameter to set."
+          type: "integer"
+          format: "int32"
         value:
           description: "Value of the parameter."
           type: "string"
       required:
-        - name
         - value
 
-    VTs:
-      description: "A collection of VTs, which are run for the given target."
-      type: "object"
-      properties:
-        vt_single:
-          description: "A list of single VTs with the option to set their parameters."
-          type: "array"
-          items:
-            $ref: "#/components/schemas/VTSingle"
-        vt_group:
-          description: "A list of VT collections defined with a query."
-          type: "array"
-          items:
-            description: "A query for filtering VTs."
-            type: "string"
-
-    VTSingle:
+    VT:
       description: "A single VT and its parameters."
       type: "object"
       properties:
@@ -448,16 +402,11 @@ components:
       properties:
         id:
           description: "An ID, which is unique for the scan. It is auto incremental and starts at 0 for the first result."
-        name:
-          description: "A name given to the result."
-          type: "string"
+          type: "integer"
+          format: "int32"
         result_type:
           description: "The type of the result."
           type: "string"
-        severity:
-          description: "The severity of the result"
-          type: "number"
-          format: "float"
         ip_address:
           description: "The IP of the target the result was found."
           type: "string"
@@ -477,14 +426,10 @@ components:
           enum:
             - udp
             - tcp
-        qod:
-          description: "Quality of detection."
-          type: "integer"
-          format: "int32"
         uri:
-          description: "A Uniform Resource Identifier for the result."
+          description: "A location, where the vulnerability was detected."
           type: "string"
-        description:
+        message:
           description: "Additional information about the result."
           type: "string"
       required:
@@ -566,59 +511,6 @@ components:
         - queued
         - finished
         - scanning
-
-    VT:
-      description: "A representation of a Vulnerability Test's metadata."
-      type: "object"
-      properties:
-        oid:
-          description: "An identifier for the vulnerability test."
-          type: "string"
-        name:
-          description: "Name of the VT."
-          type: "string"
-        references:
-          description: "A list of references."
-          type: "array"
-          items:
-            $ref: "#/components/schemas/Reference"
-        creation_time:
-          description: "A UNIX time format describing when the script was created."
-          type: "integer"
-          format: "int32"
-        modification_time:
-          description: "A UNIX time format describing when the script was last modified."
-          type: "integer"
-          format: "int32"
-        summary:
-          description: "A summary of the VT."
-          type: "string"
-        affected:
-          description: "Information what is affected in case of a vulnerability."
-          type: "string"
-        insight:
-          description: "Contains more information about the vulnerability."
-          type: "string"
-        solution:
-          description: "Information about fixing the vulnerability."
-          type: "string"
-        detection:
-          description: "Information about how the vulnerability is detected."
-        severities:
-          description: "A list of different severity versions."
-          type: "array"
-          items:
-            $ref: "#/components/schemas/Severity"
-        filename:
-          description: "Name of the file, which contains this VT."
-          type: "string"
-        family:
-          description: "The family this VT belongs to."
-          type: "string"
-        category:
-          description: "The category of a VT determines in which phase it is executed during a scan."
-          type: "integer"
-          format: "int32"
 
     Reference:
       description: "A reference for a VT."
