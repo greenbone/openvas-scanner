@@ -5,12 +5,14 @@
 use std::str::FromStr;
 
 use crate::{
-    context::{Context, ContextType, Register},
+    context::{Context, Register},
     error::FunctionErrorKind,
     FunctionError, NaslFunction, NaslValue,
 };
 
 use storage::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
+
+use super::get_named_parameter;
 
 /// Makes a storage function based on a very small DSL.
 ///
@@ -103,33 +105,6 @@ macro_rules! make_storage_function {
             }
         }
     };
-}
-
-fn get_named_parameter<'a>(
-    function: &'a str,
-    registrat: &'a Register,
-    key: &'a str,
-    required: bool,
-) -> Result<&'a NaslValue, FunctionError> {
-    match registrat.named(key) {
-        None => {
-            if required {
-                Err(FunctionError::new(
-                    function,
-                    FunctionErrorKind::MissingArguments(vec![key.to_owned()]),
-                ))
-            } else {
-                Ok(&NaslValue::Exit(0))
-            }
-        }
-        Some(ct) => match ct {
-            ContextType::Value(value) => Ok(value),
-            _ => Err(FunctionError::new(
-                function,
-                (key, "value", "function").into(),
-            )),
-        },
-    }
 }
 
 type Transform = Result<Vec<NVTField>, FunctionError>;

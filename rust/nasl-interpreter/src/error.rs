@@ -119,11 +119,13 @@ impl FunctionError {
 }
 
 impl From<StorageError> for FunctionError {
+    // TODO remove
     fn from(e: StorageError) -> Self {
         Self::new("", e.into())
     }
 }
 
+// TODO remove
 impl From<Infallible> for FunctionError {
     fn from(e: Infallible) -> Self {
         Self::new("", e.into())
