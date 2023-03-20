@@ -414,7 +414,7 @@ mod tests {
 
     use sink::nvt::PerNVTDispatcher;
     use sink::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
-    use sink::Sink;
+    use sink::Dispatcher;
 
     use super::{NvtDispatcher, RedisAddNvt, RedisWrapper};
 

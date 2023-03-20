@@ -21,8 +21,8 @@ An interpreter requires:
 
 ```
 use nasl_interpreter::{Interpreter, NoOpLoader, Register, Context, DefaultLogger};
-use sink::DefaultSink;
-let storage = DefaultSink::new(false);
+use sink::DefaultDispatcher;
+let storage = DefaultDispatcher::new(false);
 let mut register = Register::default();
 let loader = NoOpLoader::default();
 let logger = DefaultLogger::new();

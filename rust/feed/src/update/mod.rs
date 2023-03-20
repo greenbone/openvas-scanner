@@ -10,7 +10,7 @@ use std::{fmt::Display, fs::File, marker::PhantomData};
 use nasl_interpreter::{
     AsBufReader, Context, ContextType, DefaultLogger, Interpreter, Loader, NaslValue, Register,
 };
-use sink::{nvt::NVTField, Sink};
+use sink::{nvt::NVTField, Dispatcher};
 
 use crate::verify;
 
@@ -38,7 +38,7 @@ impl From<verify::Error> for Error {
 
 impl<S, L, V, K> Update<S, L, V, K>
 where
-    S: Sync + Send + Sink<K>,
+    S: Sync + Send + Dispatcher<K>,
     K: AsRef<str> + Display + Default + From<String>,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<String, verify::Error>>,
@@ -126,7 +126,7 @@ where
 
 impl<S, L, V, K> Iterator for Update<S, L, V, K>
 where
-    S: Sync + Send + Sink<K>,
+    S: Sync + Send + Dispatcher<K>,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<String, verify::Error>>,
     K: AsRef<str> + Display + Default + From<String>,

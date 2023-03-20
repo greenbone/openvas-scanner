@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 
 use nasl_interpreter::FSPluginLoader;
-use sink::Sink;
+use sink::Dispatcher;
 
 use crate::CliError;
 
 pub fn run<S>(storage: S, path: PathBuf, verbose: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Sink<String>,
+    S: Sync + Send + Dispatcher<String>,
 {
     if verbose {
         eprintln!("description run syntax in {path:?}.");
