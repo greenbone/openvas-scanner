@@ -17,6 +17,6 @@ walkdir = "2"
 feed = {path = "../feed"}
 nasl-syntax = { path = "../nasl-syntax" }
 nasl-interpreter = { path = "../nasl-interpreter" }
-sink = { path = "../sink" }
-redis-sink = { path = "../redis-sink" }
-json-sink = {path = "../json-sink"}
+storage = { path = "../storage" }
+redis-storage = { path = "../redis-storage" }
+json-storage = {path = "../json-storage"}

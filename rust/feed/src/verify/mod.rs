@@ -6,9 +6,7 @@
 //! If you want to manipulate the feed you have to create a new hashsum file otherwise the modificated data will not
 //! be loaded
 
-use std::{
-    io::{self, BufRead, BufReader, Read},
-};
+use std::io::{self, BufRead, BufReader, Read};
 
 use hex::encode;
 use nasl_interpreter::{AsBufReader, LoadError};

@@ -1,7 +1,7 @@
 // Copyright (C) 2023 Greenbone Networks GmbH
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
-//! Defines time implementation for sink usages
+//! Defines time implementation for storage usages
 
 /// Is an extension to add as_timestamp method for various types
 pub trait AsUnixTimeStamp {

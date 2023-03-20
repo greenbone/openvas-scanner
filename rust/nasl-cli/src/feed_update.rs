@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use nasl_interpreter::FSPluginLoader;
-use sink::Dispatcher;
+use storage::Dispatcher;
 
 use crate::CliError;
 

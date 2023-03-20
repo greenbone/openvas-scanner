@@ -10,7 +10,7 @@ use crate::{
     FunctionError, NaslFunction, NaslValue,
 };
 
-use sink::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
+use storage::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
 
 /// Makes a storage function based on a very small DSL.
 ///
@@ -88,7 +88,7 @@ macro_rules! make_storage_function {
             )?
             let db_args = $transform(ctxconfigs.key(), &variables)?;
             for db_arg in db_args {
-              ctxconfigs.storage().dispatch(ctxconfigs.key(), sink::Field::NVT(db_arg))?;
+              ctxconfigs.storage().dispatch(ctxconfigs.key(), storage::Field::NVT(db_arg))?;
             }
             Ok(NaslValue::Null)
         }

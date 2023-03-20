@@ -7,14 +7,14 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::dberror::DbError;
-use crate::dberror::RedisSinkResult;
+use crate::dberror::RedisStorageResult;
 use redis::*;
 
-use sink::nvt::Nvt;
-use sink::nvt::NvtPreference;
-use sink::nvt::NvtRef;
-use sink::nvt::PerNVTDispatcher;
-use sink::SinkError;
+use storage::nvt::Nvt;
+use storage::nvt::NvtPreference;
+use storage::nvt::NvtRef;
+use storage::nvt::PerNVTDispatcher;
+use storage::StorageError;
 
 enum KbNvtPos {
     Filename,
@@ -29,24 +29,24 @@ enum KbNvtPos {
     Name,
 }
 
-impl TryFrom<sink::nvt::NVTKey> for KbNvtPos {
-    type Error = SinkError;
+impl TryFrom<storage::nvt::NVTKey> for KbNvtPos {
+    type Error = StorageError;
 
-    fn try_from(value: sink::nvt::NVTKey) -> Result<Self, Self::Error> {
+    fn try_from(value: storage::nvt::NVTKey) -> Result<Self, Self::Error> {
         Ok(match value {
-            sink::nvt::NVTKey::FileName => Self::Filename,
-            sink::nvt::NVTKey::Name => Self::Name,
-            sink::nvt::NVTKey::Dependencies => Self::Dependencies,
-            sink::nvt::NVTKey::RequiredKeys => Self::RequiredKeys,
-            sink::nvt::NVTKey::MandatoryKeys => Self::MandatoryKeys,
-            sink::nvt::NVTKey::ExcludedKeys => Self::ExcludedKeys,
-            sink::nvt::NVTKey::RequiredPorts => Self::RequiredPorts,
-            sink::nvt::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
-            sink::nvt::NVTKey::Category => Self::Category,
-            sink::nvt::NVTKey::Family => Self::Family,
+            storage::nvt::NVTKey::FileName => Self::Filename,
+            storage::nvt::NVTKey::Name => Self::Name,
+            storage::nvt::NVTKey::Dependencies => Self::Dependencies,
+            storage::nvt::NVTKey::RequiredKeys => Self::RequiredKeys,
+            storage::nvt::NVTKey::MandatoryKeys => Self::MandatoryKeys,
+            storage::nvt::NVTKey::ExcludedKeys => Self::ExcludedKeys,
+            storage::nvt::NVTKey::RequiredPorts => Self::RequiredPorts,
+            storage::nvt::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
+            storage::nvt::NVTKey::Category => Self::Category,
+            storage::nvt::NVTKey::Family => Self::Family,
             // tags must also be handled manually due to differentiation
             _ => {
-                return Err(SinkError::UnexpectedData(format!(
+                return Err(StorageError::UnexpectedData(format!(
                     "{value:?} is not a redis position and must be handled differently"
                 )))
             }
@@ -91,7 +91,7 @@ const CACHE_KEY: &str = "nvticache";
 const DB_INDEX: &str = "GVM.__GlobalDBIndex";
 
 impl NameSpaceSelector {
-    fn max_db(kb: &mut redis::Connection) -> RedisSinkResult<u32> {
+    fn max_db(kb: &mut redis::Connection) -> RedisStorageResult<u32> {
         Cmd::new()
             .arg("CONFIG")
             .arg("GET")
@@ -101,7 +101,7 @@ impl NameSpaceSelector {
             .map_err(|e| e.into())
     }
 
-    fn select_namespace(kb: &mut redis::Connection, idx: u32) -> RedisSinkResult<()> {
+    fn select_namespace(kb: &mut redis::Connection, idx: u32) -> RedisStorageResult<()> {
         Cmd::new()
             .arg("SELECT")
             .arg(idx)
@@ -109,7 +109,7 @@ impl NameSpaceSelector {
             .map_err(|e| e.into())
     }
 
-    fn select(&self, kb: &mut redis::Connection) -> RedisSinkResult<u32> {
+    fn select(&self, kb: &mut redis::Connection) -> RedisStorageResult<u32> {
         let max_db = Self::max_db(kb)?;
         match self {
             NameSpaceSelector::Fix(dbi) => {
@@ -150,20 +150,20 @@ pub const FEEDUPDATE_SELECTOR: &[NameSpaceSelector] =
     &[NameSpaceSelector::Key(CACHE_KEY), NameSpaceSelector::Free];
 
 pub trait RedisWrapper {
-    fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()>;
-    fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()>;
+    fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()>;
+    fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()>;
 }
 
 impl RedisWrapper for RedisCtx {
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
-    fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()> {
+    fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
         self.kb.rpush(key, val).map_err(|e| e.into())
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
-    fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()> {
+    fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
         self.kb.lpush(key, val).map_err(|e| e.into())
     }
 }
@@ -240,7 +240,7 @@ pub trait RedisAddNvt: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisSinkResult<()> {
+    fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisStorageResult<()> {
         let oid = nvt.oid;
         let name = nvt.name;
         let required_keys = nvt.required_keys.join(", ");
@@ -296,7 +296,7 @@ pub trait RedisAddNvt: RedisWrapper {
 impl RedisAddNvt for RedisCtx {}
 
 impl RedisCtx {
-    pub fn open(address: &str, selector: &[NameSpaceSelector]) -> RedisSinkResult<Self> {
+    pub fn open(address: &str, selector: &[NameSpaceSelector]) -> RedisStorageResult<Self> {
         let client = redis::Client::open(address)?;
 
         let mut kb = client.get_connection()?;
@@ -311,25 +311,25 @@ impl RedisCtx {
     }
 
     /// Delete an entry from the in-use namespace's list
-    fn release_namespace(&mut self) -> RedisSinkResult<()> {
+    fn release_namespace(&mut self) -> RedisStorageResult<()> {
         // Remove the entry from the hash list
         self.kb.hdel(DB_INDEX, self.db)?;
         Ok(())
     }
 
     /// Delete all keys in the namespace and release the it
-    pub fn delete_namespace(&mut self) -> RedisSinkResult<()> {
+    pub fn delete_namespace(&mut self) -> RedisStorageResult<()> {
         Cmd::new().arg("FLUSHDB").query(&mut self.kb)?;
         self.release_namespace()?;
         Ok(())
     }
     //Wrapper function to avoid accessing kb member directly.
-    pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisSinkResult<()> {
+    pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
         self.kb.set(key, val)?;
         Ok(())
     }
 
-    pub fn value(&mut self, key: &str) -> RedisSinkResult<String> {
+    pub fn value(&mut self, key: &str) -> RedisStorageResult<String> {
         let ret: RedisValueHandler = self.kb.get(key)?;
         Ok(ret.v)
     }
@@ -362,7 +362,7 @@ where
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisSinkResult<NvtDispatcher<RedisCtx, K>> {
+    ) -> RedisStorageResult<NvtDispatcher<RedisCtx, K>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
         Ok(NvtDispatcher {
@@ -371,36 +371,36 @@ where
         })
     }
 
-    /// Creates a sink to be used to update the feed for a ospd service
+    /// Creates a dispatcher to be used to update the feed for a ospd service
     ///
     /// Initializes a redis cache based on the given selecter and url and clears the namespace
-    /// before returning the underlying cache as a Sink.
-    pub fn as_sink(
+    /// before returning the underlying cache as a Dispatcher.
+    pub fn as_dispatcher(
         redis_url: &str,
-    ) -> RedisSinkResult<PerNVTDispatcher<NvtDispatcher<RedisCtx, K>, K>> {
+    ) -> RedisStorageResult<PerNVTDispatcher<NvtDispatcher<RedisCtx, K>, K>> {
         let cache = Self::init(redis_url, FEEDUPDATE_SELECTOR)?;
         cache.reset()?;
         Ok(PerNVTDispatcher::new(cache))
     }
 
     /// Reset the NVT Cache and release the redis namespace
-    pub fn reset(&self) -> RedisSinkResult<()> {
+    pub fn reset(&self) -> RedisStorageResult<()> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         cache.delete_namespace()
     }
 }
 
-impl<S, K> sink::nvt::NvtDispatcher<K> for NvtDispatcher<S, K>
+impl<S, K> storage::nvt::NvtDispatcher<K> for NvtDispatcher<S, K>
 where
     S: RedisWrapper + RedisAddNvt,
     K: AsRef<str>,
 {
-    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), SinkError> {
+    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         cache.redis_add_nvt(nvt).map_err(|e| e.into())
     }
 
-    fn dispatch_feed_version(&self, version: String) -> Result<(), SinkError> {
+    fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
     }
@@ -412,9 +412,9 @@ mod tests {
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
-    use sink::nvt::PerNVTDispatcher;
-    use sink::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
-    use sink::Dispatcher;
+    use storage::nvt::PerNVTDispatcher;
+    use storage::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
+    use storage::Dispatcher;
 
     use super::{NvtDispatcher, RedisAddNvt, RedisWrapper};
 
@@ -427,7 +427,7 @@ mod tests {
             &mut self,
             key: &str,
             val: T,
-        ) -> crate::dberror::RedisSinkResult<()> {
+        ) -> crate::dberror::RedisStorageResult<()> {
             self.sender
                 .send((key.to_owned(), val.to_redis_args()))
                 .unwrap();
@@ -438,7 +438,7 @@ mod tests {
             &mut self,
             key: &str,
             val: T,
-        ) -> crate::dberror::RedisSinkResult<()> {
+        ) -> crate::dberror::RedisStorageResult<()> {
             self.sender
                 .send((key.to_owned(), val.to_redis_args()))
                 .unwrap();
@@ -447,8 +447,8 @@ mod tests {
     }
     impl RedisAddNvt for FakeRedis {}
 
-    use sink::nvt::NVTField::*;
-    use sink::Field::NVT;
+    use storage::nvt::NVTField::*;
+    use storage::Field::NVT;
     #[test]
     fn transform_nvt() {
         let commands = [

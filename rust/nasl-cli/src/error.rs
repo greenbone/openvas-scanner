@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use feed::VerifyError;
 use nasl_interpreter::{InterpretError, LoadError};
 use nasl_syntax::SyntaxError;
-use sink::SinkError;
+use storage::StorageError;
 
 #[derive(Debug, Clone)]
 pub enum CliErrorKind {
@@ -17,7 +17,7 @@ pub enum CliErrorKind {
     NoExitCall(String),
     InterpretError(InterpretError),
     LoadError(LoadError),
-    SinkError(SinkError),
+    StorageError(StorageError),
     SyntaxError(SyntaxError),
     Corrupt(VerifyError),
 }
@@ -40,9 +40,9 @@ impl From<InterpretError> for CliErrorKind {
     }
 }
 
-impl From<SinkError> for CliErrorKind {
-    fn from(value: SinkError) -> Self {
-        Self::SinkError(value)
+impl From<StorageError> for CliErrorKind {
+    fn from(value: StorageError) -> Self {
+        Self::StorageError(value)
     }
 }
 
@@ -52,16 +52,17 @@ impl From<SyntaxError> for CliErrorKind {
     }
 }
 
-impl From<feed::UpdateError> for CliError{
+impl From<feed::UpdateError> for CliError {
     fn from(value: feed::UpdateError) -> Self {
         match value {
             feed::UpdateError::InterpretError(e) => CliErrorKind::InterpretError(e),
             feed::UpdateError::SyntaxError(e) => CliErrorKind::SyntaxError(e),
-            feed::UpdateError::SinkError(e) => CliErrorKind::SinkError(e),
+            feed::UpdateError::StorageError(e) => CliErrorKind::StorageError(e),
             feed::UpdateError::LoadError(e) => CliErrorKind::LoadError(e),
             feed::UpdateError::MissingExit(key) => CliErrorKind::NoExitCall(key),
             feed::UpdateError::VerifyError(e) => CliErrorKind::Corrupt(e),
-        }.into()
+        }
+        .into()
     }
 }
 
@@ -77,7 +78,10 @@ impl From<feed::VerifyError> for CliError {
             } => key.to_owned(),
         };
 
-        CliError {filename, kind: CliErrorKind::Corrupt(value)}
+        CliError {
+            filename,
+            kind: CliErrorKind::Corrupt(value),
+        }
     }
 }
 
@@ -106,11 +110,11 @@ impl From<CliErrorKind> for CliError {
             //TODO update error needs to enrich with filename
             CliErrorKind::InterpretError(_) => "missing".to_owned(),
             CliErrorKind::LoadError(le) => load_error_to_string(le),
-            CliErrorKind::SinkError(s) => match s {
-                SinkError::Retry(f) => f,
-                SinkError::ConnectionLost(f) => f,
-                SinkError::UnexpectedData(f) => f,
-                SinkError::Dirty(f) => f,
+            CliErrorKind::StorageError(s) => match s {
+                StorageError::Retry(f) => f,
+                StorageError::ConnectionLost(f) => f,
+                StorageError::UnexpectedData(f) => f,
+                StorageError::Dirty(f) => f,
             }
             .to_owned(),
             // TODO update error needs to enrich with filename

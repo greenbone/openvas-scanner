@@ -405,7 +405,7 @@ dependencies = [
  "nasl-interpreter",
  "nasl-syntax",
  "sha2",
- "sink",
+ "storage",
 ]
 
 [[package]]
@@ -602,11 +602,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "json-sink"
+name = "json-storage"
 version = "0.1.0"
 dependencies = [
  "serde_json",
- "sink",
+ "storage",
 ]
 
 [[package]]
@@ -704,11 +704,11 @@ dependencies = [
  "clap 4.1.8",
  "configparser",
  "feed",
- "json-sink",
+ "json-storage",
  "nasl-interpreter",
  "nasl-syntax",
- "redis-sink",
- "sink",
+ "redis-storage",
+ "storage",
  "walkdir",
 ]
 
@@ -731,7 +731,7 @@ dependencies = [
  "ripemd",
  "sha1",
  "sha2",
- "sink",
+ "storage",
 ]
 
 [[package]]
@@ -739,7 +739,7 @@ name = "nasl-syntax"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "sink",
+ "storage",
 ]
 
 [[package]]
@@ -996,11 +996,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "redis-sink"
+name = "redis-storage"
 version = "0.1.0"
 dependencies = [
  "redis",
- "sink",
+ "storage",
 ]
 
 [[package]]
@@ -1130,7 +1130,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sink"
+name = "storage"
 version = "0.1.0"
 dependencies = [
  "serde",

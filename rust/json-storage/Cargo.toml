@@ -1,12 +1,10 @@
 [package]
-name = "redis-sink"
+name = "json-storage"
 version = "0.1.0"
 edition = "2021"
-license = "GPL-2.0-or-later"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-redis = "0.22.1"
-sink = { path = "../sink" }
-
+storage = { path = "../storage", features = ["serde_support"] }
+serde_json = "1.0"

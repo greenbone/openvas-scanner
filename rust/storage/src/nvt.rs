@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, SinkError};
+use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, StorageError};
 
 /// Attack Category either set by script_category
 ///
@@ -72,7 +72,7 @@ pub enum ACT {
 
 // TODO generalize and use name rather than number
 impl FromStr for ACT {
-    type Err = SinkError;
+    type Err = StorageError;
 
     // Iis defined as a numeric value instead of string representations due to downwards compatible reasons.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -88,7 +88,7 @@ impl FromStr for ACT {
             "8" => ACT::KillHost,
             "9" => ACT::Flood,
             "10" => ACT::End,
-            _ => return Err(SinkError::UnexpectedData(s.to_owned())),
+            _ => return Err(StorageError::UnexpectedData(s.to_owned())),
         })
     }
 }
@@ -109,7 +109,7 @@ macro_rules! make_str_lookup_enum {
         }
 
         impl FromStr for $enum_name {
-            type Err = SinkError;
+            type Err = StorageError;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 use $enum_name::*;
@@ -117,7 +117,7 @@ macro_rules! make_str_lookup_enum {
                     $(
                     stringify!($matcher) => Ok($key),
                     )*
-                    _ => Err(SinkError::UnexpectedData(format!("{}: {}", stringify!($enum_name), s.to_owned()))),
+                    _ => Err(StorageError::UnexpectedData(format!("{}: {}", stringify!($enum_name), s.to_owned()))),
                 }
             }
         }
@@ -371,8 +371,8 @@ pub type TagValue = types::Primitive;
 impl TagValue {
     /// Parhse the given Value based on the key to TagValue
     // TODO move naslvalue out of syntax to own crate so we can use it here
-    pub fn parse<V: ToString>(key: TagKey, value: V) -> Result<Self, SinkError> {
-        let error = || SinkError::UnexpectedData(format!("{key:?} => {}", value.to_string()));
+    pub fn parse<V: ToString>(key: TagKey, value: V) -> Result<Self, StorageError> {
+        let error = || StorageError::UnexpectedData(format!("{key:?} => {}", value.to_string()));
         match key {
             TagKey::CreationDate | TagKey::LastModification | TagKey::SeverityDate => value
                 .to_string()
@@ -444,11 +444,11 @@ pub trait NvtDispatcher<K> {
     /// Dispatches the feed version as well as NVT.
     ///
     /// The NVT is collected when a description run is finished.
-    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), SinkError>;
+    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError>;
     /// Dispatches the feed_version.
     ///
     /// Feed version is usually read once.
-    fn dispatch_feed_version(&self, version: String) -> Result<(), SinkError>;
+    fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError>;
     /// Dispatches a knowledge base item.
     ///
     /// Usually the NvtDispatcher is used on description = 1 runs were no KB item should occur. But
@@ -456,7 +456,7 @@ pub trait NvtDispatcher<K> {
     /// accordingly.
     /// The default is set to return `Ok(())` without doing something to net enforce every
     /// NvtDispatcher to implement it.
-    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), SinkError> {
+    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
         Ok(())
     }
 }
@@ -486,10 +486,10 @@ where
         }
     }
 
-    fn store_nvt_field(&self, f: NVTField) -> Result<(), SinkError> {
+    fn store_nvt_field(&self, f: NVTField) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.nvt)
             .lock()
-            .map_err(|x| SinkError::Dirty(format!("{x}")))?;
+            .map_err(|x| StorageError::Dirty(format!("{x}")))?;
         let mut nvt = data.clone().unwrap_or_default();
 
         // TODO optimize
@@ -525,17 +525,17 @@ where
     K: AsRef<str>,
     S: NvtDispatcher<K>,
 {
-    fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), SinkError> {
+    fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
         }
     }
 
-    fn on_exit(&self) -> Result<(), SinkError> {
+    fn on_exit(&self) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.nvt)
             .lock()
-            .map_err(|x| SinkError::Dirty(format!("{x}")))?;
+            .map_err(|x| StorageError::Dirty(format!("{x}")))?;
         self.dispatcher
             .dispatch_nvt(data.clone().unwrap_or_default())?;
         *data = None;

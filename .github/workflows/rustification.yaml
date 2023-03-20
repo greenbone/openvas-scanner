@@ -65,9 +65,10 @@ jobs:
           # we verify each dir separately to make it easier to verify formatting issues or even ignore
           # crates we deem not important for checking (e.g. feed-verifier)
           - nasl-syntax
-          - sink
+          - storage
           - nasl-interpreter
-          - redis-sink
+          - redis-storage
+          - json-storage
           - nasl-cli
     steps:
       - uses: actions/checkout@v3

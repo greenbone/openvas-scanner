@@ -9,8 +9,8 @@ mod syntax_check;
 use configparser::ini::Ini;
 pub use error::*;
 
-use sink::SinkError;
 use std::{io, path::PathBuf, process};
+use storage::StorageError;
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 
@@ -75,12 +75,13 @@ impl RunAction<()> for FeedAction {
                         filename: String::new(),
                         kind,
                     })?;
-                let dispatcher = redis_sink::NvtDispatcher::as_sink(&update_config.redis_url)
-                    .map_err(SinkError::from)
-                    .map_err(|e| CliError {
-                        kind: e.into(),
-                        filename: format!("{path:?}"),
-                    })?;
+                let dispatcher =
+                    redis_storage::NvtDispatcher::as_dispatcher(&update_config.redis_url)
+                        .map_err(StorageError::from)
+                        .map_err(|e| CliError {
+                            kind: e.into(),
+                            filename: format!("{path:?}"),
+                        })?;
                 feed_update::run(dispatcher, update_config.plugin_path, verbose)
             }
             FeedAction::Transform { path } => {
@@ -90,12 +91,12 @@ impl RunAction<()> for FeedAction {
                         kind,
                     })?;
 
-                let mut o = json_sink::ArrayWrapper::new(io::stdout());
-                let dispatcher = json_sink::NvtDispatcher::as_sink(&mut o);
+                let mut o = json_storage::ArrayWrapper::new(io::stdout());
+                let dispatcher = json_storage::NvtDispatcher::as_dispatcher(&mut o);
                 match feed_update::run(dispatcher, transform_config.plugin_path, verbose) {
                     Ok(_) => o
                         .end()
-                        .map_err(SinkError::from)
+                        .map_err(StorageError::from)
                         .map_err(CliErrorKind::from)
                         .map_err(CliError::from),
                     Err(e) => Err(e),
@@ -296,9 +297,9 @@ fn main() {
     match command.run(verbose) {
         Ok(_) => {}
         Err(e) => match e.kind {
-            CliErrorKind::SinkError(SinkError::UnexpectedData(x)) => match &x as &str {
+            CliErrorKind::StorageError(StorageError::UnexpectedData(x)) => match &x as &str {
                 "BrokenPipe" => {}
-                _ => panic!("Unexpected data within sink: {x}"),
+                _ => panic!("Unexpected data within dispatcher: {x}"),
             },
             _ => panic!("{e:?}"),
         },
