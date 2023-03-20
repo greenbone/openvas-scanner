@@ -1,36 +1,9 @@
-// ## ERRORS
-
-// parameter *name* is missing
-
-// parameter *value* is missing
-
-// parameter *value* is *int* and its value is -1
-
-// parameter *expire* is -1
-
-// ## EXAMPLES
-
-// **1**: Create an entry, which expires after 10 minutes
-// ```cpp
-// set_kb_item(name: "foo", value: "bar", expire: 600);
-// ```
-
-// **2**: Create an entry, which does not expire
-// ```cpp
-// set_kb_item(name: "age", value: "42");
-// ```
-
-// **3**: Create a list
-// ```cpp
-// set_kb_item(name: "hosts", value: "foo");
-// set_kb_item(name: "hosts", value: "bar");
-// ```
-// get_kb_item("foo");
+// Copyright (C) 2023 Greenbone Networks GmbH
 //
-
+// SPDX-License-Identifier: GPL-2.0-or-later
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use storage::{Field, Kb};
+use storage::{Field, Kb, Retrieve};
 
 use crate::{
     error::{FunctionError, FunctionErrorKind},
@@ -77,10 +50,41 @@ fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
         .map_err(|e| FunctionError::new("set_kb_item", e.into()))
 }
 
+/// NASL function to get a knowledge base
+fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionError> {
+    match register.positional() {
+        [x] => c
+            .retriever()
+            .retrieve(c.key(), &Retrieve::KB(x.to_string()))
+            .map(|r| {
+                r.into_iter().find_map(|x| match x {
+                    Field::NVT(_) => None,
+                    Field::KB(kb) => kb.value.into(),
+                })
+            })
+            .map(|x| match x {
+                Some(x) => x.into(),
+                None => NaslValue::Null,
+            })
+            .map_err(|e| FunctionError {
+                function: "get_kb_item".to_owned(),
+                kind: e.into(),
+            }),
+        x => Err(FunctionError::new(
+            "get_kb_item",
+            FunctionErrorKind::Diagnostic(
+                format!("expected one positional argument but got: {}", x.len()),
+                None,
+            ),
+        )),
+    }
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
     match key {
         "set_kb_item" => Some(set_kb_item),
+        "get_kb_item" => Some(get_kb_item),
         _ => None,
     }
 }
@@ -106,6 +110,23 @@ mod tests {
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert!(matches!(parser.next(), Some(Err(_))));
+        assert!(matches!(parser.next(), Some(Err(_))));
+    }
+    #[test]
+    fn get_kb_item() {
+        let code = r###"
+        set_kb_item(name: "test", value: 1);
+        get_kb_item("test");
+        get_kb_item("test", 1);
+        "###;
+        let mut register = Register::default();
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));
         assert!(matches!(parser.next(), Some(Err(_))));
     }
 }

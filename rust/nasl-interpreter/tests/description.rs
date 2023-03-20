@@ -64,9 +64,9 @@ if(description)
             ContextType::Value(NaslValue::Number(1)),
         )];
         let mut register = Register::root_initial(&initial);
-        let logger = DefaultLogger::new();
+        let logger = DefaultLogger::default();
         let key = "test.nasl".to_owned();
-        let ctxconfigs = Context::new(&key, &storage, &loader, &logger);
+        let ctxconfigs = Context::new(&key, &storage, &storage, &loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {

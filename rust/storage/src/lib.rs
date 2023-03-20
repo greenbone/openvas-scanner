@@ -277,15 +277,6 @@ where
     }
 }
 
-impl<K> Default for Box<dyn Dispatcher<K>>
-where
-    K: AsRef<str> + Display + Default + From<String> + 'static,
-{
-    fn default() -> Self {
-        Box::<DefaultDispatcher<K>>::default()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::Field::*;

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
-use storage::Dispatcher;
+use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
 use crate::{
     error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue,
@@ -265,6 +265,8 @@ pub struct Context<'a, K> {
     key: &'a K,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher<K>,
+    /// Default Retriever
+    retriever: &'a dyn Retriever<K>,
     /// Default Loader
     loader: &'a dyn Loader,
     /// Default logger.
@@ -276,12 +278,14 @@ impl<'a, K> Context<'a, K> {
     pub fn new(
         key: &'a K,
         dispatcher: &'a dyn Dispatcher<K>,
+        retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
     ) -> Self {
         Self {
             key,
             dispatcher,
+            retriever,
             loader,
             logger,
         }
@@ -299,6 +303,10 @@ impl<'a, K> Context<'a, K> {
     pub fn dispatcher(&self) -> &dyn Dispatcher<K> {
         self.dispatcher
     }
+    /// Get the storage
+    pub fn retriever(&self) -> &dyn Retriever<K> {
+        self.retriever
+    }
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
@@ -310,7 +318,7 @@ pub struct DefaultContext {
     /// key for the default context. A name or an OID
     pub key: String,
     /// Default Storage
-    pub storage: Box<dyn Dispatcher<String>>,
+    pub dispatcher: Box<DefaultDispatcher<String>>,
     /// Default Loader
     pub loader: Box<dyn Loader>,
     /// Default logger
@@ -322,7 +330,8 @@ impl DefaultContext {
     pub fn as_context(&self) -> Context<String> {
         Context {
             key: &self.key,
-            dispatcher: &*self.storage,
+            dispatcher: &*self.dispatcher,
+            retriever: &*self.dispatcher,
             loader: &*self.loader,
             logger: self.logger.as_ref(),
         }

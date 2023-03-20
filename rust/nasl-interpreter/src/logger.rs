@@ -41,9 +41,9 @@ pub struct DefaultLogger {
 }
 
 impl DefaultLogger {
-    /// Create a new DefaultLogger in the Info mode
-    pub fn new() -> Self {
-        Self { mode: Mode::Info }
+    /// Create a new DefaultLogger
+    pub fn new(mode: Mode) -> Self {
+        Self { mode }
     }
 
     /// Change the mode of the Logger
