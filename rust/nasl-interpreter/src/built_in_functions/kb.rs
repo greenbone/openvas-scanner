@@ -65,7 +65,7 @@ fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
             Err(_) => 0,
         }
     });
-    c.storage()
+    c.dispatcher()
         .dispatch(
             c.key(),
             Field::KB(Kb {

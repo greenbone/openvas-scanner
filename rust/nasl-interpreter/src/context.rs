@@ -296,7 +296,7 @@ impl<'a, K> Context<'a, K> {
         self.key
     }
     /// Get the storage
-    pub fn storage(&self) -> &dyn Dispatcher<K> {
+    pub fn dispatcher(&self) -> &dyn Dispatcher<K> {
         self.dispatcher
     }
     /// Get the loader
