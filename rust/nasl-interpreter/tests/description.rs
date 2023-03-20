@@ -26,7 +26,7 @@ mod tests {
     use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
     use sink::nvt::{NvtRef, TagValue};
     use sink::DefaultSink;
-    use sink::Dispatch::NVT;
+    use sink::Field::NVT;
 
     use crate::NoOpLoader;
 

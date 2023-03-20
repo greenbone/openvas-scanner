@@ -448,7 +448,7 @@ mod tests {
     impl RedisAddNvt for FakeRedis {}
 
     use sink::nvt::NVTField::*;
-    use sink::Dispatch::NVT;
+    use sink::Field::NVT;
     #[test]
     fn transform_nvt() {
         let commands = [

@@ -41,20 +41,20 @@ pub struct Kb {
 ///
 /// Defines what kind of information needs to be distributed.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Dispatch {
+pub enum Field {
     /// Metadata of the NASL script.
     NVT(NVTField),
     /// Knowledge Base item
     KB(Kb),
 }
 
-impl From<NVTField> for Dispatch {
+impl From<NVTField> for Field {
     fn from(value: NVTField) -> Self {
         Self::NVT(value)
     }
 }
 
-impl From<Kb> for Dispatch {
+impl From<Kb> for Field {
     fn from(value: Kb) -> Self {
         Self::KB(value)
     }
@@ -146,7 +146,7 @@ pub trait Sink<K> {
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
     // TODO extend key to Option<host> - key
-    fn dispatch(&self, key: &K, scope: Dispatch) -> Result<(), SinkError>;
+    fn dispatch(&self, key: &K, scope: Field) -> Result<(), SinkError>;
 
     /// On exit is called when a script exit
     ///
@@ -154,7 +154,7 @@ pub trait Sink<K> {
     fn on_exit(&self) -> Result<(), SinkError>;
 
     /// Retries a dispatch for the amount of retries when a retrieable error occurs.
-    fn retry_dispatch(&self, retries: usize, key: &K, scope: Dispatch) -> Result<(), SinkError> {
+    fn retry_dispatch(&self, retries: usize, key: &K, scope: Field) -> Result<(), SinkError> {
         match self.dispatch(key, scope.clone()) {
             Ok(r) => Ok(r),
             Err(e) => {
@@ -171,7 +171,7 @@ pub trait Sink<K> {
 /// Contains a Vector of all stored items.
 ///
 /// The first String statement is the used key while the Vector of Scope are the values.
-type StoreItem = Vec<(String, Vec<Dispatch>)>;
+type StoreItem = Vec<(String, Vec<Field>)>;
 
 /// Is a in-memory sink that behaves like a Storage.
 #[derive(Default)]
@@ -205,7 +205,7 @@ impl<K> DefaultSink<K> {
     /// Get scopes found by key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    pub fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Dispatch>, SinkError> {
+    pub fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Field>, SinkError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
@@ -213,43 +213,43 @@ impl<K> DefaultSink<K> {
                 Retrieve::NVT(None) => Ok(v
                     .clone()
                     .into_iter()
-                    .filter(|x| matches!(x, Dispatch::NVT(_)))
+                    .filter(|x| matches!(x, Field::NVT(_)))
                     .collect()),
                 Retrieve::NVT(Some(nkey)) => {
-                    let results: Vec<Dispatch> = v
+                    let results: Vec<Field> = v
                         .clone()
                         .into_iter()
                         .filter(|v| match nkey {
-                            NVTKey::Oid => matches!(v, Dispatch::NVT(NVTField::Oid(_))),
-                            NVTKey::FileName => matches!(v, Dispatch::NVT(NVTField::FileName(_))),
-                            NVTKey::Version => matches!(v, Dispatch::NVT(NVTField::Version(_))),
-                            NVTKey::Name => matches!(v, Dispatch::NVT(NVTField::Name(_))),
-                            NVTKey::Tag => matches!(v, Dispatch::NVT(NVTField::Tag(_, _))),
+                            NVTKey::Oid => matches!(v, Field::NVT(NVTField::Oid(_))),
+                            NVTKey::FileName => matches!(v, Field::NVT(NVTField::FileName(_))),
+                            NVTKey::Version => matches!(v, Field::NVT(NVTField::Version(_))),
+                            NVTKey::Name => matches!(v, Field::NVT(NVTField::Name(_))),
+                            NVTKey::Tag => matches!(v, Field::NVT(NVTField::Tag(_, _))),
                             NVTKey::Dependencies => {
-                                matches!(v, Dispatch::NVT(NVTField::Dependencies(_)))
+                                matches!(v, Field::NVT(NVTField::Dependencies(_)))
                             }
                             NVTKey::RequiredKeys => {
-                                matches!(v, Dispatch::NVT(NVTField::RequiredKeys(_)))
+                                matches!(v, Field::NVT(NVTField::RequiredKeys(_)))
                             }
                             NVTKey::MandatoryKeys => {
-                                matches!(v, Dispatch::NVT(NVTField::MandatoryKeys(_)))
+                                matches!(v, Field::NVT(NVTField::MandatoryKeys(_)))
                             }
                             NVTKey::ExcludedKeys => {
-                                matches!(v, Dispatch::NVT(NVTField::ExcludedKeys(_)))
+                                matches!(v, Field::NVT(NVTField::ExcludedKeys(_)))
                             }
                             NVTKey::RequiredPorts => {
-                                matches!(v, Dispatch::NVT(NVTField::RequiredPorts(_)))
+                                matches!(v, Field::NVT(NVTField::RequiredPorts(_)))
                             }
                             NVTKey::RequiredUdpPorts => {
-                                matches!(v, Dispatch::NVT(NVTField::RequiredUdpPorts(_)))
+                                matches!(v, Field::NVT(NVTField::RequiredUdpPorts(_)))
                             }
                             NVTKey::Preference => {
-                                matches!(v, Dispatch::NVT(NVTField::Preference(_)))
+                                matches!(v, Field::NVT(NVTField::Preference(_)))
                             }
-                            NVTKey::Reference => matches!(v, Dispatch::NVT(NVTField::Reference(_))),
-                            NVTKey::Category => matches!(v, Dispatch::NVT(NVTField::Category(_))),
-                            NVTKey::Family => matches!(v, Dispatch::NVT(NVTField::Family(_))),
-                            NVTKey::NoOp => matches!(v, Dispatch::NVT(NVTField::NoOp)),
+                            NVTKey::Reference => matches!(v, Field::NVT(NVTField::Reference(_))),
+                            NVTKey::Category => matches!(v, Field::NVT(NVTField::Category(_))),
+                            NVTKey::Family => matches!(v, Field::NVT(NVTField::Family(_))),
+                            NVTKey::NoOp => matches!(v, Field::NVT(NVTField::NoOp)),
                         })
                         .collect();
                     Ok(results)
@@ -258,8 +258,8 @@ impl<K> DefaultSink<K> {
                     .clone()
                     .into_iter()
                     .filter(|x| match x {
-                        Dispatch::NVT(_) => false,
-                        Dispatch::KB(Kb {
+                        Field::NVT(_) => false,
+                        Field::KB(Kb {
                             key,
                             value: _,
                             expire: _,
@@ -276,7 +276,7 @@ impl<K> Sink<K> for DefaultSink<K>
 where
     K: AsRef<str> + Display + Default + From<String>,
 {
-    fn dispatch(&self, key: &K, scope: Dispatch) -> Result<(), SinkError> {
+    fn dispatch(&self, key: &K, scope: Field) -> Result<(), SinkError> {
         let mut data = Arc::as_ref(&self.data).lock().unwrap();
         match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
             Some((_, v)) => v.push(scope),
@@ -305,7 +305,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::Dispatch::*;
+    use super::Field::*;
     use super::NVTField::*;
     use super::*;
 
