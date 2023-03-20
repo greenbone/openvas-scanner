@@ -19,7 +19,7 @@ use ripemd::Ripemd160;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::{error::FunctionError, ContextType, NaslFunction, NaslValue, Register, Context};
+use crate::{error::FunctionError, Context, ContextType, NaslFunction, NaslValue, Register};
 
 fn hmac<D>(register: &Register, function: &str) -> Result<NaslValue, FunctionError>
 where
@@ -59,42 +59,42 @@ where
 }
 
 /// NASL function to get HMAC MD2 string
-pub fn hmac_md2(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_md2<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Md2>(register, "HMAC_MD2")
 }
 
 /// NASL function to get HMAC MD5 string
-pub fn hmac_md5(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_md5<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Md5>(register, "HMAC_MD5")
 }
 
 /// NASL function to get HMAC RIPEMD160 string
-pub fn hmac_ripemd160(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_ripemd160<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Ripemd160>(register, "HMAC_RIPEMD160")
 }
 
 /// NASL function to get HMAC SHA1 string
-pub fn hmac_sha1(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha1<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Sha1>(register, "HMAC_SHA1")
 }
 
 /// NASL function to get HMAC SHA256 string
-pub fn hmac_sha256(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha256<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Sha256>(register, "HMAC_SHA256")
 }
 
 /// NASL function to get HMAC SHA384 string
-pub fn hmac_sha384(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha384<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Sha384>(register, "HMAC_SHA384")
 }
 
 /// NASL function to get HMAC SHA512 string
-pub fn hmac_sha512(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn hmac_sha512<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     hmac::<Sha512>(register, "HMAC_SHA512")
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
     match key {
         "HMAC_MD2" => Some(hmac_md2),
         "HMAC_MD5" => Some(hmac_md5),
@@ -111,7 +111,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 mod tests {
     use nasl_syntax::parse;
 
-    use crate::{Interpreter, Register, DefaultContext};
+    use crate::{DefaultContext, Interpreter, Register};
 
     #[test]
     fn hmac_md2() {

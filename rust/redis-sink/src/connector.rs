@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -342,14 +343,18 @@ impl RedisCtx {
 /// In this case we need to wait until we get the OID so that we can build the key additionally
 /// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
-pub struct NvtDispatcher<R>
+pub struct NvtDispatcher<R, K>
 where
     R: RedisWrapper + RedisAddNvt,
 {
     cache: Arc<Mutex<R>>,
+    phanton: PhantomData<K>,
 }
 
-impl NvtDispatcher<RedisCtx> {
+impl<K> NvtDispatcher<RedisCtx, K>
+where
+    K: AsRef<str>,
+{
     /// Initialize and return an NVT Cache Object
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
@@ -357,11 +362,12 @@ impl NvtDispatcher<RedisCtx> {
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisSinkResult<NvtDispatcher<RedisCtx>> {
+    ) -> RedisSinkResult<NvtDispatcher<RedisCtx, K>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
         Ok(NvtDispatcher {
             cache: Arc::new(Mutex::new(rctx)),
+            phanton: PhantomData,
         })
     }
 
@@ -369,7 +375,9 @@ impl NvtDispatcher<RedisCtx> {
     ///
     /// Initializes a redis cache based on the given selecter and url and clears the namespace
     /// before returning the underlying cache as a Sink.
-    pub fn as_sink(redis_url: &str) -> RedisSinkResult<PerNVTDispatcher<NvtDispatcher<RedisCtx>>> {
+    pub fn as_sink(
+        redis_url: &str,
+    ) -> RedisSinkResult<PerNVTDispatcher<NvtDispatcher<RedisCtx, K>, K>> {
         let cache = Self::init(redis_url, FEEDUPDATE_SELECTOR)?;
         cache.reset()?;
         Ok(PerNVTDispatcher::new(cache))
@@ -382,9 +390,10 @@ impl NvtDispatcher<RedisCtx> {
     }
 }
 
-impl<S> sink::nvt::NvtDispatcher for NvtDispatcher<S>
+impl<S, K> sink::nvt::NvtDispatcher<K> for NvtDispatcher<S, K>
 where
     S: RedisWrapper + RedisAddNvt,
+    K: AsRef<str>,
 {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), SinkError> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
@@ -399,6 +408,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::marker::PhantomData;
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
@@ -486,10 +496,13 @@ mod tests {
         let (sender, rx) = mpsc::channel();
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
-        let rcache = NvtDispatcher { cache };
+        let rcache = NvtDispatcher {
+            cache,
+            phanton: PhantomData,
+        };
         let dispatcher = PerNVTDispatcher::new(rcache);
         for c in commands {
-            dispatcher.dispatch("test.nasl", c).unwrap();
+            dispatcher.dispatch(&"test.nasl", c).unwrap();
         }
         dispatcher.on_exit().unwrap();
         let mut results = 0;

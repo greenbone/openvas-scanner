@@ -31,8 +31,8 @@ mod loop_extension;
 mod operator;
 
 pub use context::Context;
-pub use context::DefaultContext;
 pub use context::ContextType;
+pub use context::DefaultContext;
 pub use context::Register;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
@@ -42,8 +42,12 @@ pub use logger::{DefaultLogger, Mode, NaslLogger};
 pub use naslvalue::NaslValue;
 
 // Is a type definition for built-in functions
-pub(crate) type NaslFunction<'a> = fn(&Register, &Context) -> Result<NaslValue, FunctionError>;
-pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
+pub(crate) type NaslFunction<'a, K> =
+    fn(&Register, &Context<K>) -> Result<NaslValue, FunctionError>;
+pub(crate) fn lookup<K>(function_name: &str) -> Option<NaslFunction<K>>
+where
+    K: AsRef<str>,
+{
     description::lookup(function_name)
         .or_else(|| hostname::lookup(function_name))
         .or_else(|| misc::lookup(function_name))

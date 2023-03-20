@@ -11,7 +11,10 @@ pub(crate) trait IncludeExtension {
     fn include(&mut self, name: &Statement) -> InterpretResult;
 }
 
-impl<'a> IncludeExtension for Interpreter<'a> {
+impl<'a, K> IncludeExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name)? {
             NaslValue::String(key) => {
@@ -38,17 +41,14 @@ mod tests {
     use std::collections::HashMap;
 
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{
-        context::Register, Context, DefaultLogger, Interpreter, LoadError, Loader, NaslValue
-    };
+    use crate::{context::Register, DefaultContext, Interpreter, LoadError, Loader, NaslValue};
 
-    struct FakeInclude<'a> {
-        plugins: &'a HashMap<String, String>,
+    struct FakeInclude {
+        plugins: HashMap<String, String>,
     }
 
-    impl<'a> Loader for FakeInclude<'a> {
+    impl Loader for FakeInclude {
         fn load(&self, key: &str) -> Result<String, LoadError> {
             self.plugins
                 .get(key)
@@ -68,17 +68,19 @@ mod tests {
         "#
         .to_string();
         let plugins = HashMap::from([("example.inc".to_string(), example)]);
-        let loader = &FakeInclude { plugins: &plugins };
+        let loader = FakeInclude { plugins };
         let code = r###"
         include("example.inc");
         a;
         test();
         "###;
         let mut register = Register::default();
-        let storage = DefaultSink::new(false);
-        let logger = DefaultLogger::new();
-        let context = Context::new("1", &storage, loader, &logger);
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let context = DefaultContext {
+            loader: Box::new(loader),
+            ..Default::default()
+        };
+        let fuck = context.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &fuck);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));

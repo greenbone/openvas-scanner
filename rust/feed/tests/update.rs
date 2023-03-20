@@ -47,7 +47,7 @@ mod test {
             Err(x) => panic!("expected to contain current_exe: {x:?}"),
         };
         let loader = FSPluginLoader::new(&root);
-        let storage = DefaultSink::new(true);
+        let storage: DefaultSink<String> = DefaultSink::new(true);
         let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
         let updater = Update::init("1", 1, loader.clone(), storage, verifier);
         let files = updater.filter_map(|x| x.ok()).collect::<Vec<String>>();

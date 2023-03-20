@@ -9,7 +9,7 @@
 
 use std::collections::HashMap;
 
-use crate::{error::FunctionError, NaslFunction, NaslValue, Register, Context};
+use crate::{error::FunctionError, Context, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
 
@@ -18,7 +18,7 @@ use super::resolve_positional_arguments;
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-pub fn make_array(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn make_array<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
@@ -47,20 +47,20 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionError> 
     Ok(values)
 }
 /// NASL function to create a list out of a number of unnamed arguments
-pub fn make_list(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn make_list<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     let values = nasl_make_list(register)?;
     Ok(NaslValue::Array(values))
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-pub fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn nasl_sort<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     let mut values = nasl_make_list(register)?;
     values.sort();
     Ok(NaslValue::Array(values))
 }
 
 /// Returns an array with the keys of a dict
-pub fn keys(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn keys<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     let positional = resolve_positional_arguments(register);
     let mut keys = Vec::<NaslValue>::new();
     for val in positional.iter() {
@@ -75,7 +75,7 @@ pub fn keys(register: &Register, _: &Context) -> Result<NaslValue, FunctionError
 }
 
 /// NASL function to return the length of an array|dict.
-pub fn max_index(register: &Register, _: &Context) -> Result<NaslValue, FunctionError> {
+pub fn max_index<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -89,7 +89,7 @@ pub fn max_index(register: &Register, _: &Context) -> Result<NaslValue, Function
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
     match key {
         "make_array" => Some(make_array),
         "make_list" => Some(make_list),
@@ -102,10 +102,10 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use nasl_syntax::parse;
+    use std::collections::HashMap;
 
-    use crate::{Interpreter, NaslValue, Register, DefaultContext};
+    use crate::{DefaultContext, Interpreter, NaslValue, Register};
 
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {

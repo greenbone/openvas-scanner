@@ -15,7 +15,10 @@ pub(crate) trait CallExtension {
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult;
 }
 
-impl<'a> CallExtension for Interpreter<'a> {
+impl<'a, K> CallExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context
@@ -42,9 +45,7 @@ impl<'a> CallExtension for Interpreter<'a> {
         self.registrat.create_root_child(named);
         let result = match lookup(name) {
             // Built-In Function
-            Some(function) => {
-                function(self.registrat, self.ctxconfigs).map_err(|x| x.into())
-            }
+            Some(function) => function(self.registrat, self.ctxconfigs).map_err(|x| x.into()),
             // Check for user defined function
             None => {
                 let found = self
@@ -83,7 +84,7 @@ impl<'a> CallExtension for Interpreter<'a> {
 mod tests {
     use nasl_syntax::parse;
 
-    use crate::{context::Register, context::DefaultContext, Interpreter, NaslValue};
+    use crate::{context::DefaultContext, context::Register, Interpreter, NaslValue};
 
     #[test]
     fn default_null_on_user_defined_functions() {

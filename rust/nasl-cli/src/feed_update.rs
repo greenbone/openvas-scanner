@@ -7,7 +7,7 @@ use crate::CliError;
 
 pub fn run<S>(storage: S, path: PathBuf, verbose: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Sink,
+    S: Sync + Send + Sink<String>,
 {
     if verbose {
         eprintln!("description run syntax in {path:?}.");

@@ -5,7 +5,7 @@ mod error;
 
 pub use error::Error;
 
-use std::fs::File;
+use std::{fmt::Display, fs::File, marker::PhantomData};
 
 use nasl_interpreter::{
     AsBufReader, Context, ContextType, DefaultLogger, Interpreter, Loader, NaslValue, Register,
@@ -16,7 +16,7 @@ use crate::verify;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
-pub struct Update<S, L, V> {
+pub struct Update<S, L, V, K> {
     /// Is used to store data
     sink: S,
     /// Is used to load nasl plugins by a relative path
@@ -27,6 +27,7 @@ pub struct Update<S, L, V> {
     max_retry: usize,
     verifier: V,
     feed_version_set: bool,
+    phanton: PhantomData<K>,
 }
 
 impl From<verify::Error> for Error {
@@ -35,9 +36,10 @@ impl From<verify::Error> for Error {
     }
 }
 
-impl<S, L, V> Update<S, L, V>
+impl<S, L, V, K> Update<S, L, V, K>
 where
-    S: Sync + Send + Sink,
+    S: Sync + Send + Sink<K>,
+    K: AsRef<str> + Display + Default + From<String>,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<String, verify::Error>>,
 {
@@ -66,6 +68,7 @@ where
             sink: storage,
             verifier,
             feed_version_set: false,
+            phanton: PhantomData,
         }
     }
 
@@ -80,7 +83,8 @@ where
         let code = self.loader.load(feed_info_key)?;
         let mut register = Register::default();
         let logger = DefaultLogger::new();
-        let context = Context::new("inc", &self.sink, &self.loader, &logger);
+        let k: K = Default::default();
+        let context = Context::new(&k, &self.sink, &self.loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
@@ -93,24 +97,18 @@ where
             .named("PLUGIN_SET")
             .map(|x| x.to_string())
             .unwrap_or_else(|| "0".to_owned());
-        self.sink.retry_dispatch(
-            self.max_retry,
-            feed_info_key,
-            NVTField::Version(feed_version).into(),
-        )?;
+        self.sink
+            .retry_dispatch(self.max_retry, &k, NVTField::Version(feed_version).into())?;
         Ok(feed_info_key.into())
     }
 
     /// Runs a single plugin in description mode.
-    fn single<K>(&self, key: K) -> Result<i64, Error>
-    where
-        K: AsRef<str> + ToString,
-    {
+    fn single(&self, key: &K) -> Result<i64, Error> {
         let code = self.loader.load(key.as_ref())?;
 
         let mut register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::new();
-        let context = Context::new(key.as_ref(), &self.sink, &self.loader, &logger);
+        let context = Context::new(key, &self.sink, &self.loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match interpreter.retry_resolve(&stmt?, self.max_retry) {
@@ -126,11 +124,12 @@ where
     }
 }
 
-impl<S, L, V> Iterator for Update<S, L, V>
+impl<S, L, V, K> Iterator for Update<S, L, V, K>
 where
-    S: Sync + Send + Sink,
+    S: Sync + Send + Sink<K>,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<String, verify::Error>>,
+    K: AsRef<str> + Display + Default + From<String>,
 {
     type Item = Result<String, Error>;
 
@@ -142,7 +141,10 @@ where
                 true
             }
         }) {
-            Some(Ok(k)) => self.single(&k).map(|_| k).into(),
+            Some(Ok(k)) => {
+                let k: K = k.into();
+                self.single(&k).map(|_| k.as_ref().into()).into()
+            }
             Some(Err(e)) => Some(Err(e.into())),
             None if !self.feed_version_set => {
                 let result = self.plugin_feed_info();

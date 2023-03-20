@@ -11,6 +11,7 @@ pub mod types;
 use std::{
     fmt::Display,
     io,
+    marker::PhantomData,
     sync::{Arc, Mutex, PoisonError},
 };
 
@@ -25,8 +26,14 @@ use types::Primitive;
 )]
 /// Structure to hold a knowledge base item
 pub struct Kb {
+    /// Key of the knowledge base entry
     pub key: String,
+    /// Value of the knowledge base entry
     pub value: Primitive,
+    /// If set it is the seconds the KB entry will expire
+    ///
+    /// When an entry expires `get_kb` will not find that entry anymore.
+    /// When it is Null the KB entry will stay the whole run.
     pub expire: Option<i64>,
 }
 
@@ -134,12 +141,12 @@ impl Display for SinkError {
 ///
 /// While the knowledgebase lifetime is limited to the run of a scan
 /// NVT as well as Log are consumed by our clients.
-pub trait Sink {
+pub trait Sink<K> {
     /// Stores given scope to key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
     // TODO extend key to Option<host> - key
-    fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError>;
+    fn dispatch(&self, key: &K, scope: Dispatch) -> Result<(), SinkError>;
 
     /// On exit is called when a script exit
     ///
@@ -147,7 +154,7 @@ pub trait Sink {
     fn on_exit(&self) -> Result<(), SinkError>;
 
     /// Retries a dispatch for the amount of retries when a retrieable error occurs.
-    fn retry_dispatch(&self, retries: usize, key: &str, scope: Dispatch) -> Result<(), SinkError> {
+    fn retry_dispatch(&self, retries: usize, key: &K, scope: Dispatch) -> Result<(), SinkError> {
         match self.dispatch(key, scope.clone()) {
             Ok(r) => Ok(r),
             Err(e) => {
@@ -168,21 +175,23 @@ type StoreItem = Vec<(String, Vec<Dispatch>)>;
 
 /// Is a in-memory sink that behaves like a Storage.
 #[derive(Default)]
-pub struct DefaultSink {
+pub struct DefaultSink<K> {
     /// If dirty it will not clean the data on_exit
     dirty: bool,
+    key: PhantomData<K>,
     /// The data storage
     ///
     /// The memory access is managed via an Arc while the Mutex ensures that only one consumer at a time is accessing it.
     data: Arc<Mutex<StoreItem>>,
 }
 
-impl DefaultSink {
+impl<K> DefaultSink<K> {
     /// Creates a new DefaultSink
     pub fn new(dirty: bool) -> Self {
         Self {
             dirty,
             data: Default::default(),
+            key: PhantomData,
         }
     }
 
@@ -263,12 +272,15 @@ impl DefaultSink {
     }
 }
 
-impl Sink for DefaultSink {
-    fn dispatch(&self, key: &str, scope: Dispatch) -> Result<(), SinkError> {
+impl<K> Sink<K> for DefaultSink<K>
+where
+    K: AsRef<str> + Display + Default + From<String>,
+{
+    fn dispatch(&self, key: &K, scope: Dispatch) -> Result<(), SinkError> {
         let mut data = Arc::as_ref(&self.data).lock().unwrap();
-        match data.iter_mut().find(|(k, _)| k.as_str() == key) {
+        match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
             Some((_, v)) => v.push(scope),
-            None => data.push((key.to_owned(), vec![scope])),
+            None => data.push((key.as_ref().to_owned(), vec![scope])),
         }
         Ok(())
     }
@@ -282,9 +294,12 @@ impl Sink for DefaultSink {
     }
 }
 
-impl Default for Box<dyn Sink> {
+impl<K> Default for Box<dyn Sink<K>>
+where
+    K: AsRef<str> + Display + Default + From<String> + 'static,
+{
     fn default() -> Self {
-        Box::<DefaultSink>::default()
+        Box::<DefaultSink<K>>::default()
     }
 }
 
@@ -297,7 +312,7 @@ mod tests {
     #[test]
     pub fn default_storage() -> Result<(), SinkError> {
         let storage = DefaultSink::default();
-        storage.dispatch("moep", NVT(Oid("moep".to_owned())))?;
+        storage.dispatch(&"moep".to_owned(), NVT(Oid("moep".to_owned())))?;
         assert_eq!(
             storage.retrieve("moep", Retrieve::NVT(None))?,
             vec![NVT(Oid("moep".to_owned()))]
