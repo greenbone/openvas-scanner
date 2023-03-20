@@ -7,7 +7,7 @@ license = "GPL-2.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sink = { path = "../sink" }
+storage = { path = "../storage" }
 
 [dev-dependencies]
 criterion = "0.4"

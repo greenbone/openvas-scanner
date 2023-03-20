@@ -3,14 +3,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use redis::*;
-use sink::SinkError;
 use std::fmt;
+use storage::StorageError;
 
-pub type RedisSinkResult<T> = std::result::Result<T, DbError>;
+pub type RedisStorageResult<T> = std::result::Result<T, DbError>;
 
 /// Error cases while working with redis.
-///
-/// Redis-sink does not use SinkError immediately to be a bit more expressive.
 #[derive(Debug)]
 pub enum DbError {
     /// The redis-library does not know about this error kind
@@ -71,16 +69,16 @@ impl From<RedisError> for DbError {
     }
 }
 
-impl From<DbError> for SinkError {
+impl From<DbError> for StorageError {
     fn from(err: DbError) -> Self {
         match err {
             DbError::Unknown(_)
             | DbError::ConfigurationError(_)
             | DbError::SystemError(_)
-            | DbError::NoAvailDbErr => SinkError::Dirty(err.to_string()),
-            DbError::ConnectionLost(_) => SinkError::ConnectionLost(err.to_string()),
-            DbError::Retry(_) => SinkError::Retry(err.to_string()),
-            DbError::LibraryError(_) => SinkError::UnexpectedData(err.to_string()),
+            | DbError::NoAvailDbErr => StorageError::Dirty(err.to_string()),
+            DbError::ConnectionLost(_) => StorageError::ConnectionLost(err.to_string()),
+            DbError::Retry(_) => StorageError::Retry(err.to_string()),
+            DbError::LibraryError(_) => StorageError::UnexpectedData(err.to_string()),
         }
     }
 }

@@ -4,7 +4,7 @@ mod test {
 
     use feed::{HashSumNameLoader, Update};
     use nasl_interpreter::FSPluginLoader;
-    use sink::DefaultDispatcher;
+    use storage::DefaultDispatcher;
 
     #[test]
     fn verify_hashsums() {

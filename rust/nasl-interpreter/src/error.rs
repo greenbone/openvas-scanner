@@ -5,7 +5,7 @@
 use std::{convert::Infallible, io};
 
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
-use sink::SinkError;
+use storage::StorageError;
 
 use crate::{ContextType, LoadError, NaslValue};
 
@@ -14,7 +14,7 @@ pub enum FunctionErrorKind {
     MissingPositionalArguments { expected: usize, got: usize },
     MissingArguments(Vec<String>),
     FMTError(std::fmt::Error),
-    SinkError(SinkError),
+    StorageError(StorageError),
     Infallible(Infallible),
     IOError(io::ErrorKind),
     WrongArgument(String),
@@ -78,9 +78,9 @@ impl From<(&str, &NaslValue)> for FunctionErrorKind {
     }
 }
 
-impl From<SinkError> for FunctionErrorKind {
-    fn from(se: SinkError) -> Self {
-        Self::SinkError(se)
+impl From<StorageError> for FunctionErrorKind {
+    fn from(se: StorageError) -> Self {
+        Self::StorageError(se)
     }
 }
 
@@ -117,8 +117,8 @@ impl FunctionError {
     }
 }
 
-impl From<SinkError> for FunctionError {
-    fn from(e: SinkError) -> Self {
+impl From<StorageError> for FunctionError {
+    fn from(e: StorageError) -> Self {
         Self::new("", e.into())
     }
 }
@@ -162,9 +162,9 @@ pub enum InterpretErrorKind {
     SyntaxError(SyntaxError),
     /// When the given key was not found in the context
     NotFound(String),
-    /// A SinkError occurred
-    SinkError(SinkError),
-    /// A SinkError occurred
+    /// A StorageError occurred
+    StorageError(StorageError),
+    /// A LoadError occurred
     LoadError(LoadError),
     /// A Formatting error occurred
     FMTError(std::fmt::Error),
@@ -273,9 +273,9 @@ impl From<SyntaxError> for InterpretError {
     }
 }
 
-impl From<SinkError> for InterpretError {
-    fn from(se: SinkError) -> Self {
-        Self::new(InterpretErrorKind::SinkError(se), None)
+impl From<StorageError> for InterpretError {
+    fn from(se: StorageError) -> Self {
+        Self::new(InterpretErrorKind::StorageError(se), None)
     }
 }
 
@@ -307,7 +307,7 @@ impl From<FunctionError> for InterpretError {
     fn from(fe: FunctionError) -> Self {
         match fe.kind {
             FunctionErrorKind::FMTError(fe) => fe.into(),
-            FunctionErrorKind::SinkError(se) => se.into(),
+            FunctionErrorKind::StorageError(se) => se.into(),
             FunctionErrorKind::IOError(ie) => ie.into(),
             _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),
         }

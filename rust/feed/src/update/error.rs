@@ -1,6 +1,6 @@
 use nasl_interpreter::{InterpretError, LoadError};
 use nasl_syntax::SyntaxError;
-use sink::SinkError;
+use storage::StorageError;
 
 use crate::verify;
 
@@ -11,8 +11,8 @@ pub enum Error {
     InterpretError(InterpretError),
     /// NASL script contains an SyntaxError
     SyntaxError(SyntaxError),
-    /// Sink is unable to handle operation
-    SinkError(SinkError),
+    /// Storage is unable to handle operation
+    StorageError(StorageError),
     /// Loader is unable to handle operation
     LoadError(LoadError),
     /// Description if block without exit
@@ -27,9 +27,9 @@ impl From<LoadError> for Error {
     }
 }
 
-impl From<SinkError> for Error {
-    fn from(value: SinkError) -> Self {
-        Error::SinkError(value)
+impl From<StorageError> for Error {
+    fn from(value: StorageError) -> Self {
+        Error::StorageError(value)
     }
 }
 

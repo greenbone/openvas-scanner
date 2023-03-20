@@ -19,8 +19,8 @@ mod variable_extension;
 
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
-pub use sink::nvt::ACT;
 pub use statement::*;
+pub use storage::nvt::ACT;
 pub use token::Base as NumberBase;
 pub use token::Category as TokenCategory;
 pub use token::IdentifierType;

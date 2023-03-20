@@ -6,7 +6,7 @@ license = "GPL-2.0-or-later"
 
 [dependencies]
 nasl-syntax = {path = "../nasl-syntax"}
-sink = {path = "../sink"}
+storage = {path = "../storage"}
 # used for !~ =~ string regex operations
 regex = "1"
 hmac = "0.12.1"

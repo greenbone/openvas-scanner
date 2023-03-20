@@ -3,9 +3,9 @@ members = [
   "nasl-syntax",
   "nasl-interpreter",
   "nasl-cli",
-  "sink",
-  "redis-sink",
-  "json-sink",
+  "storage",
+  "redis-storage",
+  "json-storage",
   "feed",
   "feed-verifier",
 ]

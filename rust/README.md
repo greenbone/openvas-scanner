@@ -11,12 +11,12 @@ The implementation is split into multiple parts that are reflected in the direct
 The core parts are:
 
 - [nasl-syntax](./nasl-syntax/) - to tokenize a NASL script and return `Statements`
-- [sink](./sink/) - a storage abstraction used to implement multiple storage solutions.
-- [nasl-interpreter](./nasl-interpreter/) - to execute the `Statements` by also utilizing `sink`
+- [storage](./storage/) - a storage abstraction used to implement multiple storage solutions.
+- [nasl-interpreter](./nasl-interpreter/) - to execute the `Statements` by also utilizing `storage`
 - [feed](./feed) - a feed related abstraction for a front end (e.g. `nasl-cli`).
 
 Additional implementation:
-- [redis-sink](./redis-sink/) - a `ospd-openvas` compatible redis implementation of `sink`.
+- [redis-storage](./redis-storage/) - a `ospd-openvas` compatible redis implementation of `storage`.
 - [nasl-cli](./nasl-cli/) - a CLI front end for the NASL implementation.
 
 Tests:
@@ -34,8 +34,8 @@ It roughly follows the pattern of:
 Frontend (e.g. nasl-cli) -> 
 specialized task (e.g. feed/update) ->
 interpreter ->
-sink ->
-storage specific implementation (e.g. redis-sink)
+storage ->
+storage specific implementation (e.g. redis-storage)
 ```
 
 ## Requirements
@@ -56,7 +56,7 @@ If you want to help we are very happy about:
 Additionally we want to:
 
 - do improvements in the built in function handling as we want to be more modular
-- clean up the sink interface as it is very misleading currently because it enforced implementations of retrieve and dispatch.
+- clean up the storage interface as it is very misleading currently because it enforced implementations of retrieve and dispatch.
 - extend `nasl-cli` with a `openvas-nasl` like functionality so that we can test scripts
 - implement multithreading of interpreter
 - implement scheduling for a multi script run

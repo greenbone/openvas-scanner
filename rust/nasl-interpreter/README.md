@@ -1,7 +1,7 @@
 # nasl-interpreter
 
 
-Is a library that is utilizing [nasl-syntax](../nasl-syntax/) and [sink](../sink/) to execute statements.
+Is a library that is utilizing [nasl-syntax](../nasl-syntax/) and [storage](../storage/) to execute statements.
 
 The core part is written in [interpreter.rs](./src/interpreter.rs) and is separated into various extensions to execute a given `Statement` when `resolve` is called.
 
@@ -12,7 +12,7 @@ An interpreter requires:
 - register: &'a mut Register - to hold all the available data like functions or variables
 - context: &'a Context - to hold all configuration regarding to the current context:
  - key: &str - is used to identify the key-value store. It is usually either an OID or a filename (on description runs). 
- - storage: &dyn Sink - the sink implementation to be used,
+ - storage: &dyn storage - the storage implementation to be used,
  - loader: &'a dyn Loader - is used to load script dependencies on `include`,
  - logger: Box<dyn NaslLogger> - the default logger
 
@@ -21,7 +21,7 @@ An interpreter requires:
 
 ```
 use nasl_interpreter::{Interpreter, NoOpLoader, Register, Context, DefaultLogger};
-use sink::DefaultDispatcher;
+use storage::DefaultDispatcher;
 let storage = DefaultDispatcher::new(false);
 let mut register = Register::default();
 let loader = NoOpLoader::default();
@@ -42,7 +42,7 @@ It provides a set of builtin functionality within [built_in_functions](./src/bui
 Each builtin function follow the syntax of:
 
 ```text
-fn(&str, &dyn Sink, &Register) -> Result<NaslValue, FunctionError>
+fn(&str, &dyn storage, &Register) -> Result<NaslValue, FunctionError>
 ```
 
 An example of how to write a new builtin function can be found in [misc](./src/built_in_functions/misc.rs).

@@ -69,16 +69,16 @@ pub enum Retrieve {
     KB(String),
 }
 
-/// Defines abstract SinkError cases
+/// Defines abstract error cases
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum SinkError {
+pub enum StorageError {
     /// Informs the caller to retry the call
     Retry(String),
     /// The connection to a DB was lost.
     ///
     /// The default solution in those cases are most of the times to try a reconnect.
     ConnectionLost(String),
-    /// The sink did expected a different kind of data and is unable to fulfil the request.
+    /// Did expected a different kind of data and is unable to fulfil the request.
     ///
     /// This is usually a usage error.
     UnexpectedData(String),
@@ -88,13 +88,13 @@ pub enum SinkError {
     Dirty(String),
 }
 
-impl<S> From<PoisonError<S>> for SinkError {
+impl<S> From<PoisonError<S>> for StorageError {
     fn from(value: PoisonError<S>) -> Self {
         Self::Dirty(format!("{value:?}"))
     }
 }
 
-impl From<io::Error> for SinkError {
+impl From<io::Error> for StorageError {
     fn from(value: io::Error) -> Self {
         let msg = format!("{:?}", value.kind());
         match value.kind() {
@@ -109,23 +109,23 @@ impl From<io::Error> for SinkError {
             | io::ErrorKind::InvalidInput
             | io::ErrorKind::InvalidData
             | io::ErrorKind::UnexpectedEof
-            | io::ErrorKind::Unsupported => SinkError::UnexpectedData(msg),
+            | io::ErrorKind::Unsupported => StorageError::UnexpectedData(msg),
             io::ErrorKind::ConnectionReset
             | io::ErrorKind::ConnectionAborted
             | io::ErrorKind::TimedOut
-            | io::ErrorKind::Interrupted => SinkError::Retry(msg),
-            _ => SinkError::Dirty(msg),
+            | io::ErrorKind::Interrupted => StorageError::Retry(msg),
+            _ => StorageError::Dirty(msg),
         }
     }
 }
 
-impl Display for SinkError {
+impl Display for StorageError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SinkError::Retry(p) => write!(f, "There was a temporary issue while reading {p}."),
-            SinkError::ConnectionLost(p) => write!(f, "Connection lost {p}."),
-            SinkError::UnexpectedData(p) => write!(f, "Unexpected data {p}"),
-            SinkError::Dirty(p) => write!(f, "Unexpected issue {p}"),
+            StorageError::Retry(p) => write!(f, "There was a temporary issue while reading {p}."),
+            StorageError::ConnectionLost(p) => write!(f, "Connection lost {p}."),
+            StorageError::UnexpectedData(p) => write!(f, "Unexpected data {p}"),
+            StorageError::Dirty(p) => write!(f, "Unexpected issue {p}"),
         }
     }
 }
@@ -135,19 +135,19 @@ pub trait Dispatcher<K> {
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), SinkError>;
+    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError>;
 
     /// On exit is called when a script exit
     ///
     /// Some database require a cleanup therefore this method is called when a script finishes.
-    fn on_exit(&self) -> Result<(), SinkError>;
+    fn on_exit(&self) -> Result<(), StorageError>;
 
     /// Retries a dispatch for the amount of retries when a retrieable error occurs.
-    fn retry_dispatch(&self, retries: usize, key: &K, scope: Field) -> Result<(), SinkError> {
+    fn retry_dispatch(&self, retries: usize, key: &K, scope: Field) -> Result<(), StorageError> {
         match self.dispatch(key, scope.clone()) {
             Ok(r) => Ok(r),
             Err(e) => {
-                if retries > 0 && matches!(e, SinkError::Retry(_)) {
+                if retries > 0 && matches!(e, StorageError::Retry(_)) {
                     self.retry_dispatch(retries - 1, key, scope)
                 } else {
                     Err(e)
@@ -194,7 +194,7 @@ impl<K> DefaultDispatcher<K> {
     /// Get scopes found by key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    pub fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Field>, SinkError> {
+    pub fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Field>, StorageError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
 
         match data.iter().find(|(k, _)| k.as_str() == key) {
@@ -265,7 +265,7 @@ impl<K> Dispatcher<K> for DefaultDispatcher<K>
 where
     K: AsRef<str> + Display + Default + From<String>,
 {
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), SinkError> {
+    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.data).lock().unwrap();
         match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
             Some((_, v)) => v.push(scope),
@@ -274,7 +274,7 @@ where
         Ok(())
     }
 
-    fn on_exit(&self) -> Result<(), SinkError> {
+    fn on_exit(&self) -> Result<(), StorageError> {
         if !self.dirty {
             self.cleanse();
         }
@@ -299,7 +299,7 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn default_storage() -> Result<(), SinkError> {
+    pub fn default_storage() -> Result<(), StorageError> {
         let storage = DefaultDispatcher::default();
         storage.dispatch(&"moep".to_owned(), NVT(Oid("moep".to_owned())))?;
         assert_eq!(

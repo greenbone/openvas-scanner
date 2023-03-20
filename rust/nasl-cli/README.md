@@ -47,7 +47,7 @@ Options:
 
 On `feed transform` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
 
-It will produce a json array in stdout in the format described within [json-sink](../json-sink/README.md).
+It will produce a json array in stdout in the format described within [json-storage](../json-storage/README.md).
 
 ##### NVT
 

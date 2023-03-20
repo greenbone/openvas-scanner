@@ -21,12 +21,12 @@ mod tests {
     use nasl_interpreter::{ContextType, DefaultLogger, InterpretError, NaslValue};
 
     use nasl_syntax::parse;
-    use sink::nvt::TagKey::*;
-    use sink::nvt::ACT::*;
-    use sink::nvt::{NVTField::*, NvtPreference, PreferenceType};
-    use sink::nvt::{NvtRef, TagValue};
-    use sink::DefaultDispatcher;
-    use sink::Field::NVT;
+    use storage::nvt::TagKey::*;
+    use storage::nvt::ACT::*;
+    use storage::nvt::{NVTField::*, NvtPreference, PreferenceType};
+    use storage::nvt::{NvtRef, TagValue};
+    use storage::DefaultDispatcher;
+    use storage::Field::NVT;
 
     use crate::NoOpLoader;
 
@@ -77,7 +77,9 @@ if(description)
             .unwrap_or(Ok(NaslValue::Exit(0)));
         assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
-            storage.retrieve(&key, sink::Retrieve::NVT(None)).unwrap(),
+            storage
+                .retrieve(&key, storage::Retrieve::NVT(None))
+                .unwrap(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
                 NVT(FileName(key)),

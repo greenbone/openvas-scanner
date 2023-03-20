@@ -75,7 +75,6 @@ impl Default for Box<dyn Loader> {
     }
 }
 
-
 /// Is a plugin loader based on a root dir.
 ///
 /// When load is called with e.g. plugin_feed_info.inc than the FSPluginLoader

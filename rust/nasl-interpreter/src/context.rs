@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_syntax::Statement;
-use sink::Dispatcher;
+use storage::Dispatcher;
 
 use crate::{
     error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue,
@@ -263,8 +263,8 @@ impl NaslContext {
 pub struct Context<'a, K> {
     /// key for this context. A name or an OID
     key: &'a K,
-    /// Default Sink
-    storage: &'a dyn Dispatcher<K>,
+    /// Default Dispatcher
+    dispatcher: &'a dyn Dispatcher<K>,
     /// Default Loader
     loader: &'a dyn Loader,
     /// Default logger.
@@ -275,13 +275,13 @@ impl<'a, K> Context<'a, K> {
     /// Creates an empty configuration
     pub fn new(
         key: &'a K,
-        storage: &'a dyn Dispatcher<K>,
+        dispatcher: &'a dyn Dispatcher<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
     ) -> Self {
         Self {
             key,
-            storage,
+            dispatcher,
             loader,
             logger,
         }
@@ -297,7 +297,7 @@ impl<'a, K> Context<'a, K> {
     }
     /// Get the storage
     pub fn storage(&self) -> &dyn Dispatcher<K> {
-        self.storage
+        self.dispatcher
     }
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
@@ -322,7 +322,7 @@ impl DefaultContext {
     pub fn as_context(&self) -> Context<String> {
         Context {
             key: &self.key,
-            storage: &*self.storage,
+            dispatcher: &*self.storage,
             loader: &*self.loader,
             logger: self.logger.as_ref(),
         }

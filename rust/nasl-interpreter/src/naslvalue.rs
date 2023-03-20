@@ -34,9 +34,9 @@ pub enum NaslValue {
 }
 
 impl NaslValue {
-    /// Transform NASLValue to sink::types::Primitive
-    pub fn as_primitive(self) -> sink::types::Primitive {
-        use sink::types::Primitive::*;
+    /// Transform NASLValue to storage::types::Primitive
+    pub fn as_primitive(self) -> storage::types::Primitive {
+        use storage::types::Primitive::*;
         match self {
             Self::String(s) => String(s),
             Self::Data(x) => Data(x),
@@ -243,9 +243,9 @@ impl From<NaslValue> for Vec<NaslValue> {
     }
 }
 
-impl From<sink::types::Primitive> for NaslValue {
-    fn from(value: sink::types::Primitive) -> Self {
-        use sink::types::Primitive::*;
+impl From<storage::types::Primitive> for NaslValue {
+    fn from(value: storage::types::Primitive) -> Self {
+        use storage::types::Primitive::*;
         match value {
             String(x) => Self::String(x),
             Data(x) => Self::Data(x),

@@ -1,6 +1,6 @@
-# json-sink
+# json-storage
 
-Is a sink implementation that transforms NVTs to json.
+Is a storage implementation that transforms NVTs to json.
 
 It supports single json transformation as well as array.
 
@@ -76,7 +76,7 @@ To create a single json element per dispatch you can use the NvtDispatcher with 
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let dispatcher = json_sink::NvtDispatcher::as_sink::<String>(&mut buf);
+let dispatcher = json_storage::NvtDispatcher::as_dispatcher::<String>(&mut buf);
 ```
 
 ### Array
@@ -85,8 +85,8 @@ To create an array for elements per dispatch call:
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let mut ja = json_sink::ArrayWrapper::new(&mut buf);
-let dispatcher = json_sink::NvtDispatcher::as_sink::<String>(&mut ja);
+let mut ja = json_storage::ArrayWrapper::new(&mut buf);
+let dispatcher = json_storage::NvtDispatcher::as_dispatcher::<String>(&mut ja);
 // do your work
 ja.end();
 ```

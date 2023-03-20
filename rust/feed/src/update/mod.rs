@@ -10,7 +10,7 @@ use std::{fmt::Display, fs::File, marker::PhantomData};
 use nasl_interpreter::{
     AsBufReader, Context, ContextType, DefaultLogger, Interpreter, Loader, NaslValue, Register,
 };
-use sink::{nvt::NVTField, Dispatcher};
+use storage::{nvt::NVTField, Dispatcher};
 
 use crate::verify;
 
@@ -18,7 +18,7 @@ use crate::verify;
 /// information
 pub struct Update<S, L, V, K> {
     /// Is used to store data
-    sink: S,
+    dispatcher: S,
     /// Is used to load nasl plugins by a relative path
     loader: L,
     /// Initial data, usually set in new.
@@ -65,7 +65,7 @@ where
             initial,
             max_retry,
             loader,
-            sink: storage,
+            dispatcher: storage,
             verifier,
             feed_version_set: false,
             phanton: PhantomData,
@@ -77,14 +77,14 @@ where
     /// Usually a plugin_feed_info.inc is setup as a listing of keys.
     /// The feed_version is loaded from that inc file.
     /// Therefore we need to load the plugin_feed_info and extract the feed_version
-    /// to put into the corresponding sink.
+    /// to put into the corresponding dispatcher.
     fn plugin_feed_info(&self) -> Result<String, Error> {
         let feed_info_key = "plugin_feed_info.inc";
         let code = self.loader.load(feed_info_key)?;
         let mut register = Register::default();
         let logger = DefaultLogger::new();
         let k: K = Default::default();
-        let context = Context::new(&k, &self.sink, &self.loader, &logger);
+        let context = Context::new(&k, &self.dispatcher, &self.loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
@@ -97,8 +97,11 @@ where
             .named("PLUGIN_SET")
             .map(|x| x.to_string())
             .unwrap_or_else(|| "0".to_owned());
-        self.sink
-            .retry_dispatch(self.max_retry, &k, NVTField::Version(feed_version).into())?;
+        self.dispatcher.retry_dispatch(
+            self.max_retry,
+            &k,
+            NVTField::Version(feed_version).into(),
+        )?;
         Ok(feed_info_key.into())
     }
 
@@ -108,12 +111,12 @@ where
 
         let mut register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::new();
-        let context = Context::new(key, &self.sink, &self.loader, &logger);
+        let context = Context::new(key, &self.dispatcher, &self.loader, &logger);
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match interpreter.retry_resolve(&stmt?, self.max_retry) {
                 Ok(NaslValue::Exit(i)) => {
-                    self.sink.on_exit()?;
+                    self.dispatcher.on_exit()?;
                     return Ok(i);
                 }
                 Ok(_) => {}

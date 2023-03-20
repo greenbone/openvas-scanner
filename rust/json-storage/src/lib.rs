@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use sink::{self, nvt::PerNVTDispatcher, Kb, SinkError};
+use storage::{self, nvt::PerNVTDispatcher, Kb, StorageError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -84,36 +84,36 @@ where
         }
     }
 
-    /// Returns a new instance as a Sink
-    pub fn as_sink<K>(w: S) -> PerNVTDispatcher<Self, K>
+    /// Returns a new instance as a Dispatcher
+    pub fn as_dispatcher<K>(w: S) -> PerNVTDispatcher<Self, K>
     where
         K: AsRef<str>,
     {
         PerNVTDispatcher::new(Self::new(w))
     }
 
-    fn as_json(&self, nvt: sink::nvt::Nvt) -> Result<(), sink::SinkError> {
-        let mut context = self.w.lock().map_err(SinkError::from)?;
+    fn as_json(&self, nvt: storage::nvt::Nvt) -> Result<(), storage::StorageError> {
+        let mut context = self.w.lock().map_err(StorageError::from)?;
         serde_json::to_vec(&nvt)
-            .map_err(|e| SinkError::Dirty(format!("{e:?}")))
-            .and_then(|x| context.write_all(&x).map_err(SinkError::from))
+            .map_err(|e| StorageError::Dirty(format!("{e:?}")))
+            .and_then(|x| context.write_all(&x).map_err(StorageError::from))
     }
 }
 
-impl<S, K> sink::nvt::NvtDispatcher<K> for NvtDispatcher<S>
+impl<S, K> storage::nvt::NvtDispatcher<K> for NvtDispatcher<S>
 where
     S: Write,
 {
-    fn dispatch_nvt(&self, nvt: sink::nvt::Nvt) -> Result<(), sink::SinkError> {
+    fn dispatch_nvt(&self, nvt: storage::nvt::Nvt) -> Result<(), storage::StorageError> {
         self.as_json(nvt)
     }
 
-    fn dispatch_feed_version(&self, _: String) -> Result<(), sink::SinkError> {
+    fn dispatch_feed_version(&self, _: String) -> Result<(), storage::StorageError> {
         // the feed information are currently not within the output json
         Ok(())
     }
 
-    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), SinkError> {
+    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
         Ok(())
     }
 }
@@ -122,7 +122,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use sink::nvt::{Nvt, ACT};
+    use storage::nvt::{Nvt, ACT};
 
     use super::*;
 
@@ -134,9 +134,9 @@ mod tests {
             .join(".")
     }
 
-    fn generate_tags() -> HashMap<sink::nvt::TagKey, sink::nvt::TagValue> {
-        use sink::nvt::TagKey::*;
-        use sink::nvt::TagValue;
+    fn generate_tags() -> HashMap<storage::nvt::TagKey, storage::nvt::TagValue> {
+        use storage::nvt::TagKey::*;
+        use storage::nvt::TagValue;
         let ts = "2012-09-23 02:15:34 -0400";
         HashMap::from([
             (Affected, TagValue::parse(Affected, "Affected").unwrap()),
@@ -181,9 +181,9 @@ mod tests {
             (Vuldetect, TagValue::parse(Vuldetect, "Vuldetect").unwrap()),
         ])
     }
-    fn generate_preferences() -> Vec<sink::nvt::NvtPreference> {
-        use sink::nvt::NvtPreference;
-        use sink::nvt::PreferenceType;
+    fn generate_preferences() -> Vec<storage::nvt::NvtPreference> {
+        use storage::nvt::NvtPreference;
+        use storage::nvt::PreferenceType;
         [
             PreferenceType::CheckBox,
             PreferenceType::Entry,
@@ -221,8 +221,8 @@ mod tests {
         }
     }
 
-    fn generate_references() -> Vec<sink::nvt::NvtRef> {
-        use sink::nvt::NvtRef;
+    fn generate_references() -> Vec<storage::nvt::NvtRef> {
+        use storage::nvt::NvtRef;
         vec![NvtRef {
             class: "URL".to_owned(),
             id: "unix:///var/lib/really.sock".to_owned(),

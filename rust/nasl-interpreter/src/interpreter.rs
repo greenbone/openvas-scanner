@@ -5,7 +5,7 @@
 use std::io;
 
 use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
-use sink::SinkError;
+use storage::StorageError;
 
 use crate::{
     assign::AssignExtension,
@@ -52,7 +52,7 @@ where
     ///
     /// When encountering a retrievable error:
     /// - LoadError(Retry(_))
-    /// - SinkError(Retry(_))
+    /// - StorageError(Retry(_))
     /// - IOError(Interrupted(_))
     ///
     /// then it retries the statement for a given max_attempts times.
@@ -66,7 +66,7 @@ where
                     match e.kind {
                         InterpretErrorKind::LoadError(LoadError::Retry(_))
                         | InterpretErrorKind::IOError(io::ErrorKind::Interrupted)
-                        | InterpretErrorKind::SinkError(SinkError::Retry(_)) => {
+                        | InterpretErrorKind::StorageError(StorageError::Retry(_)) => {
                             self.retry_resolve(stmt, max_attempts - 1)
                         }
                         _ => Err(e),
