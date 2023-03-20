@@ -30,11 +30,11 @@ pub struct Kb {
     pub key: String,
     /// Value of the knowledge base entry
     pub value: Primitive,
-    /// If set it is the seconds the KB entry will expire
+    /// If set it is the unix timestamp the KB entry will expire
     ///
     /// When an entry expires `get_kb` will not find that entry anymore.
     /// When it is Null the KB entry will stay the whole run.
-    pub expire: Option<i64>,
+    pub expire: Option<u64>,
 }
 
 /// Describes various Fields of supported items.
