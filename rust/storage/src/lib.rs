@@ -6,6 +6,8 @@
 #![warn(missing_docs)]
 
 pub mod nvt;
+mod retrieve;
+pub use retrieve::*;
 pub mod time;
 pub mod types;
 use std::{
@@ -56,17 +58,6 @@ impl From<Kb> for Field {
     fn from(value: Kb) -> Self {
         Self::KB(value)
     }
-}
-
-/// Retrieve command for a given Field
-///
-/// Defines what kind of information needs to be gathered.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Retrieve {
-    /// Metadata of the NASL script.
-    NVT(Option<NVTKey>),
-    /// Knowledge Base item
-    KB(String),
 }
 
 /// Defines abstract error cases
@@ -190,14 +181,39 @@ impl<K> DefaultDispatcher<K> {
         data.clear();
         data.shrink_to_fit();
     }
+}
 
-    /// Get scopes found by key
-    ///
-    /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    pub fn retrieve(&self, key: &str, scope: Retrieve) -> Result<Vec<Field>, StorageError> {
+impl<K> Dispatcher<K> for DefaultDispatcher<K>
+where
+    K: AsRef<str> + Display + Default + From<String>,
+{
+    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
+        let mut data = Arc::as_ref(&self.data).lock().unwrap();
+        match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
+            Some((_, v)) => v.push(scope),
+            None => data.push((key.as_ref().to_owned(), vec![scope])),
+        }
+        Ok(())
+    }
+
+    fn on_exit(&self) -> Result<(), StorageError> {
+        if !self.dirty {
+            self.cleanse();
+        }
+
+        Ok(())
+    }
+}
+
+impl<K> Retriever<K> for DefaultDispatcher<K>
+where
+    K: AsRef<str> + Display + Default,
+{
+    fn retrieve(&self, key: &K, scope: &Retrieve) -> Result<Vec<Field>, StorageError> {
         let data = Arc::as_ref(&self.data).lock().unwrap();
+        let skey = key.to_string();
 
-        match data.iter().find(|(k, _)| k.as_str() == key) {
+        match data.iter().find(|(k, _)| k == &skey) {
             Some((_, v)) => match scope {
                 Retrieve::NVT(None) => Ok(v
                     .clone()
@@ -252,34 +268,12 @@ impl<K> DefaultDispatcher<K> {
                             key,
                             value: _,
                             expire: _,
-                        }) => key == &s,
+                        }) => key == s,
                     })
                     .collect()),
             },
             None => Ok(vec![]),
         }
-    }
-}
-
-impl<K> Dispatcher<K> for DefaultDispatcher<K>
-where
-    K: AsRef<str> + Display + Default + From<String>,
-{
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.data).lock().unwrap();
-        match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
-            Some((_, v)) => v.push(scope),
-            None => data.push((key.as_ref().to_owned(), vec![scope])),
-        }
-        Ok(())
-    }
-
-    fn on_exit(&self) -> Result<(), StorageError> {
-        if !self.dirty {
-            self.cleanse();
-        }
-
-        Ok(())
     }
 }
 
@@ -301,17 +295,18 @@ mod tests {
     #[test]
     pub fn default_storage() -> Result<(), StorageError> {
         let storage = DefaultDispatcher::default();
-        storage.dispatch(&"moep".to_owned(), NVT(Oid("moep".to_owned())))?;
+        let key: String = Default::default();
+        storage.dispatch(&key, NVT(Oid("moep".to_owned())))?;
         assert_eq!(
-            storage.retrieve("moep", Retrieve::NVT(None))?,
+            storage.retrieve(&key, &Retrieve::NVT(None))?,
             vec![NVT(Oid("moep".to_owned()))]
         );
         assert_eq!(
-            storage.retrieve("moep", Retrieve::NVT(Some(NVTKey::Oid)))?,
+            storage.retrieve(&key, &Retrieve::NVT(Some(NVTKey::Oid)))?,
             vec![NVT(Oid("moep".to_owned()))]
         );
         assert_eq!(
-            storage.retrieve("moep", Retrieve::NVT(Some(NVTKey::Family)))?,
+            storage.retrieve(&key, &Retrieve::NVT(Some(NVTKey::Family)))?,
             vec![]
         );
         Ok(())

@@ -52,8 +52,7 @@ fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
                 FunctionErrorKind::Diagnostic(
                     format!("expected expires to be a number but is {x}."),
                     None,
-                )
-                .into(),
+                ),
             ))
         }
         Err(e) => return Err(e),
