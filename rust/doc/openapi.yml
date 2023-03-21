@@ -1,23 +1,34 @@
-openapi: "3.1.0"
+openapi: "3.0.3"
 info:
   title: "Scanner"
-  summary: "A Vulnerability Scan Manager."
   description: "Control vulnerability scans for OpenVAS and Notus scanner."
   contact:
     name: "Greenbone AG"
     url: "https://www.greenbone.net/"
   license:
     name: "GPL-2.0-or-later"
-    identifier: "GPL-2.0-or-later"
+    url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
   version: "1.0"
 servers:
   - url: /
 tags:
+  - name: general
+    description: General requests
   - name: scan
     description: Scan resource
   - name: feed
     description: Feed related
 paths:
+  /:
+    head:
+      description: "Get the response header. It contains the API version, feed version and authentication methods available."
+      operationId: "get_info"
+      tags:
+        - "general"
+      responses:
+        "200":
+          description: "Header"
+
   /scan:
     post:
       description: "Add a new scan to the scan manager."
@@ -224,9 +235,9 @@ components:
           description: "A collection of VTs, which are run for the given target."
           items:
             $ref: "#/components/schemas/VT"
-        required:
-          - target
-          - vts
+      required:
+        - target
+        - vts
 
     Target:
       description: "A target is a list of hosts to scan, including their UDP and TCP ports. Additionally for further access to the systems credentials can be given."
@@ -258,9 +269,15 @@ components:
           type: "array"
           items:
             $ref: "#/components/schemas/AliveTestMethod"
-        required:
-          - hosts
-          - ports
+        reverse_lookup_unify:
+          description: "If multiple IP addresses resolve to the same DNS name the DNS name will only get scanned once."
+          type: "boolean"
+        reverse_lookup_only:
+          description: "Only scan IP addresses that can be resolved into a DNS name."
+          type: "boolean"
+      required:
+        - hosts
+        - ports
 
     AliveTestMethod:
       description: "Alive test method to be performed against the target"
@@ -382,6 +399,7 @@ components:
           type: "string"
       required:
         - value
+        - id
 
     VT:
       description: "A single VT and its parameters."
@@ -558,3 +576,9 @@ components:
           enum:
             - start
             - stop
+      required:
+        - "action"
+
+externalDocs:
+  description: "Additional information about authentication and response header."
+  url: "https://github.com/greenbone/openvas-scanner/blob/main/rust/doc/api.md"
