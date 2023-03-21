@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use ::aes::{Aes128, Aes192, Aes256};
-use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, Unsigned};
+use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
 use ccm::{
     aead::{Aead, Error as aError},
     consts::{U10, U11, U12, U13, U14, U16, U4, U6, U7, U8, U9},
@@ -14,7 +14,7 @@ use sink::Sink;
 
 use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 
-use super::{get_named_data, Crypt};
+use super::{get_named_data, get_named_number, Crypt};
 
 /// Function to create cipher object and en-/decrypt data. Can throw error in case of authentication failure.
 fn ccm_iv_len<D, M, N>(
@@ -44,29 +44,24 @@ where
     let key = get_named_data(register, "key", true, function)?.unwrap();
     let data = get_named_data(register, "data", true, function)?.unwrap();
     let nonce = get_named_data(register, "iv", true, function)?.unwrap();
-    // Switch mode dependent on iv length
-    let res = match nonce.len() {
-        7 => ccm_iv_len::<D, U16, U7>(crypt, key, nonce, data),
-        8 => ccm_iv_len::<D, U16, U8>(crypt, key, nonce, data),
-        9 => ccm_iv_len::<D, U16, U9>(crypt, key, nonce, data),
-        10 => ccm_iv_len::<D, U16, U10>(crypt, key, nonce, data),
-        11 => ccm_iv_len::<D, U16, U11>(crypt, key, nonce, data),
-        12 => ccm_iv_len::<D, U16, U12>(crypt, key, nonce, data),
-        13 => ccm_iv_len::<D, U16, U13>(crypt, key, nonce, data),
-        _ => {
-            return Err(FunctionError::new(
-                function,
-                (
-                    "length of iv",
-                    "between 7 and 13",
-                    nonce.len().to_string().as_str(),
-                )
-                    .into(),
-            ))
-        }
+    let tag_size = match get_named_number(register, "tag_size", false, function)? {
+        Some(x) => match usize::try_from(x) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(FunctionError::new(
+                    function,
+                    crate::error::FunctionErrorKind::GeneralError(format!(
+                        "System only supports numbers between {:?} and {:?}",
+                        usize::MIN,
+                        usize::MAX
+                    )),
+                ))
+            }
+        },
+        None => 16,
     };
-
-    U4::to_usize();
+    // Switch mode dependent on iv length
+    let res = ccm_typed::<D>(tag_size, nonce.len(), crypt, key, nonce, data, function)?;
 
     // Error handling
     match res {
@@ -170,7 +165,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 macro_rules! ccm_call_typed {
     ($(($t1s: expr, $t1: ty) => $(($t2s: expr, $t2: ty)),*);*) => {
-        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8]) -> Result<Vec<u8>, aError>
+        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8], function: &str) -> Result<Result<Vec<u8>, aError>, FunctionError>
         where D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit
         {
             match tag_size {
@@ -179,14 +174,14 @@ macro_rules! ccm_call_typed {
                         match iv_size {
                             $(
                                 $t2s => {
-                                    ccm_iv_len::<D, $t1, $t2>(crypt, key, nonce, data)
+                                    Ok(ccm_iv_len::<D, $t1, $t2>(crypt, key, nonce, data))
                                 }
                             ),*
-                            other => todo!("probably best to return an error since iv_size is a given parameter")
+                            other => Err(FunctionError::new(function, ("iv", "between 7 and 13", other.to_string().as_str()).into()))
                         }
                     }
                 ),*
-                other => todo!("probably best to return an error since tag_size is a given parameter")
+                other => Err(FunctionError::new(function, ("tag_size", "4, 6, 8, 10, 12, 14 or 16", other.to_string().as_str()).into()))
             }
          }
      }
