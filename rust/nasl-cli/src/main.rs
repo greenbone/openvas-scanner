@@ -4,6 +4,7 @@
 #![doc = include_str!("../README.md")]
 mod error;
 mod feed_update;
+mod interpret;
 mod syntax_check;
 
 use configparser::ini::Ini;
@@ -32,6 +33,17 @@ enum Commands {
         /// The action to perform on a feed
         action: FeedAction,
     },
+    Execute {
+        db: Db,
+        feed: Option<PathBuf>,
+        script: String,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum Db {
+    Redis(String),
+    InMemory,
 }
 
 #[derive(Debug, Clone)]
@@ -108,7 +120,7 @@ impl RunAction<()> for FeedAction {
 
 impl RunAction<()> for Commands {
     type Error = CliError;
-    fn run(&self, _: bool) -> Result<(), Self::Error> {
+    fn run(&self, verbose: bool) -> Result<(), Self::Error> {
         match self {
             Commands::Syntax {
                 path,
@@ -116,6 +128,9 @@ impl RunAction<()> for Commands {
                 no_progress,
             } => syntax_check::run(path, *verbose, *no_progress),
             Commands::Feed { verbose, action } => action.run(*verbose),
+            Commands::Execute { db, feed, script } => {
+                interpret::run(db, feed.clone(), script.to_string(), verbose)
+            }
         }
     }
 }
@@ -255,6 +270,15 @@ fn main() {
                     .value_parser(value_parser!(PathBuf)))
                 .arg(arg!(-q --quiet "Prints only error output and no progress.").required(false).action(ArgAction::SetTrue))
         )
+        .subcommand(
+            Command::new("execute")
+                .about("Executes a nasl-script.
+A script can either be a file to be executed or an ID.
+When ID is used than a valid feed path must be given within the path parameter.")
+                .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
+                    .value_parser(value_parser!(PathBuf)))
+                .arg(Arg::new("script").required(true))
+        )
         .get_matches();
     let verbose = matches
         .get_one::<bool>("verbose")
@@ -289,6 +313,18 @@ fn main() {
                 path,
                 verbose,
                 no_progress: quiet,
+            }
+        }
+        Some(("execute", args)) => {
+            let feed = args.get_one::<PathBuf>("path").cloned();
+            let script = match args.get_one::<String>("script").cloned() {
+                Some(path) => path,
+                _ => unreachable!("path is set to required"),
+            };
+            Commands::Execute {
+                db: Db::InMemory,
+                feed,
+                script,
             }
         }
         _ => unreachable!("subcommand_required prevents None"),

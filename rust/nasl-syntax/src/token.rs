@@ -83,20 +83,19 @@ impl IdentifierType {
     }
 
 }
+impl Display for IdentifierType {
 
-impl ToString for IdentifierType {
-    fn to_string(&self) -> String {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         $(
-        // special case that is not defined via macro_call
-        if let IdentifierType::Undefined(r) = self {
-            return r.clone();
-        }
-        // cannot use match here because define is an expression
         if self == &$define {
-            return stringify!($matcher).to_owned();
+            return write!(f, stringify!($matcher));
         }
         )*
-        return "".to_owned();
+        if let IdentifierType::Undefined(r) = self {
+            return write!(f, "{r}");
+        } else {
+            return Ok(());
+        }
     }
 }
     };
@@ -314,65 +313,65 @@ pub enum Category {
 impl Display for Category {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Category::LeftParen => write!(f, "LeftParen"),
-            Category::RightParen => write!(f, "RightParen"),
-            Category::LeftBrace => write!(f, "LeftBrace"),
-            Category::RightBrace => write!(f, "RightBrace"),
-            Category::LeftCurlyBracket => write!(f, "LeftCurlyBracket"),
-            Category::RightCurlyBracket => write!(f, "RightCurlyBracket"),
-            Category::Comma => write!(f, "Comma"),
-            Category::Dot => write!(f, "Dot"),
-            Category::Percent => write!(f, "Percent"),
-            Category::PercentEqual => write!(f, "PercentEqual"),
-            Category::Semicolon => write!(f, "Semicolon"),
-            Category::DoublePoint => write!(f, "DoublePoint"),
-            Category::Tilde => write!(f, "Tilde"),
-            Category::Caret => write!(f, "Caret"),
-            Category::Ampersand => write!(f, "Ampersand"),
-            Category::AmpersandAmpersand => write!(f, "AmpersandAmpersand"),
-            Category::Pipe => write!(f, "Pipe"),
-            Category::PipePipe => write!(f, "PipePipe"),
-            Category::Bang => write!(f, "Bang"),
-            Category::BangEqual => write!(f, "BangEqual"),
-            Category::BangTilde => write!(f, "BangTilde"),
-            Category::Equal => write!(f, "Equal"),
-            Category::EqualEqual => write!(f, "EqualEqual"),
-            Category::EqualTilde => write!(f, "EqualTilde"),
-            Category::Greater => write!(f, "Greater"),
-            Category::GreaterGreater => write!(f, "GreaterGreater"),
-            Category::GreaterEqual => write!(f, "GreaterEqual"),
-            Category::GreaterLess => write!(f, "GreaterLess"),
-            Category::Less => write!(f, "Less"),
-            Category::LessLess => write!(f, "LessLess"),
-            Category::LessEqual => write!(f, "LessEqual"),
-            Category::Minus => write!(f, "Minus"),
-            Category::MinusMinus => write!(f, "MinusMinus"),
-            Category::MinusEqual => write!(f, "MinusEqual"),
-            Category::Plus => write!(f, "Plus"),
-            Category::PlusEqual => write!(f, "PlusEqual"),
-            Category::PlusPlus => write!(f, "PlusPlus"),
-            Category::Slash => write!(f, "Slash"),
-            Category::SlashEqual => write!(f, "SlashEqual"),
-            Category::Star => write!(f, "Star"),
-            Category::StarStar => write!(f, "StarStar"),
-            Category::StarEqual => write!(f, "StarEqual"),
-            Category::GreaterGreaterGreater => write!(f, "GreaterGreaterGreater"),
-            Category::GreaterGreaterEqual => write!(f, "GreaterGreaterEqual"),
-            Category::LessLessEqual => write!(f, "LessLessEqual"),
-            Category::GreaterBangLess => write!(f, "GreaterBangLess"),
-            Category::GreaterGreaterGreaterEqual => write!(f, "GreaterGreaterGreaterEqual"),
+            Category::LeftParen => write!(f, "("),
+            Category::RightParen => write!(f, ")"),
+            Category::LeftBrace => write!(f, "["),
+            Category::RightBrace => write!(f, "]"),
+            Category::LeftCurlyBracket => write!(f, "{{"),
+            Category::RightCurlyBracket => write!(f, "}}"),
+            Category::Comma => write!(f, ","),
+            Category::Dot => write!(f, "."),
+            Category::Percent => write!(f, "%"),
+            Category::PercentEqual => write!(f, "%="),
+            Category::Semicolon => write!(f, ";"),
+            Category::DoublePoint => write!(f, ":"),
+            Category::Tilde => write!(f, "~"),
+            Category::Caret => write!(f, "^"),
+            Category::Ampersand => write!(f, "&"),
+            Category::AmpersandAmpersand => write!(f, "&&"),
+            Category::Pipe => write!(f, "|"),
+            Category::PipePipe => write!(f, "||"),
+            Category::Bang => write!(f, "!"),
+            Category::BangEqual => write!(f, "!="),
+            Category::BangTilde => write!(f, "!~"),
+            Category::Equal => write!(f, "="),
+            Category::EqualEqual => write!(f, "=="),
+            Category::EqualTilde => write!(f, "=~"),
+            Category::Greater => write!(f, ">"),
+            Category::GreaterGreater => write!(f, ">>"),
+            Category::GreaterEqual => write!(f, ">="),
+            Category::GreaterLess => write!(f, "><"),
+            Category::Less => write!(f, "<"),
+            Category::LessLess => write!(f, "<<"),
+            Category::LessEqual => write!(f, "<="),
+            Category::Minus => write!(f, "-"),
+            Category::MinusMinus => write!(f, "--"),
+            Category::MinusEqual => write!(f, "-="),
+            Category::Plus => write!(f, "+"),
+            Category::PlusEqual => write!(f, "+="),
+            Category::PlusPlus => write!(f, "++"),
+            Category::Slash => write!(f, "/"),
+            Category::SlashEqual => write!(f, "/="),
+            Category::Star => write!(f, "*"),
+            Category::StarStar => write!(f, "**"),
+            Category::StarEqual => write!(f, "*="),
+            Category::GreaterGreaterGreater => write!(f, ">>>"),
+            Category::GreaterGreaterEqual => write!(f, ">>="),
+            Category::LessLessEqual => write!(f, "<<="),
+            Category::GreaterBangLess => write!(f, ">!<"),
+            Category::GreaterGreaterGreaterEqual => write!(f, ">>>="),
             Category::X => write!(f, "X"),
-            Category::String(_) => write!(f, "String"),
-            Category::Number(_) => write!(f, "Number"),
+            Category::String(x) => write!(f, "\"{x}\""),
+            Category::Number(x) => write!(f, "{x}"),
             Category::IPv4Address(_) => write!(f, "IPv4Address"),
             Category::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
             Category::IllegalNumber(_) => write!(f, "IllegalNumber"),
             Category::Comment => write!(f, "Comment"),
-            Category::Identifier(_) => write!(f, "Identifier"),
-            Category::Unclosed(_) => write!(f, "Unclosed"),
+            Category::Identifier(x) => write!(f, "{}", x),
+            Category::Unclosed(x) => write!(f, "{x:?}"),
             Category::UnknownBase => write!(f, "UnknownBase"),
             Category::UnknownSymbol => write!(f, "UnknownSymbol"),
-            Category::Data(_) => write!(f, "Data"),
+            Category::Data(x) => write!(f, "{x:?}"),
         }
     }
 }

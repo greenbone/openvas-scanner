@@ -12,6 +12,31 @@ Options:
 
 ## Commands
 
+### execute
+
+Executes a nasl script using a in memory data base.
+
+It executes either a script via a path or an OID. When an OID is provided it requires the `-p` option to be valid feed to find the script belonging to that OID, otherwise the `-p` is optional and when set does not need to have a sha256sums.
+
+When `-v` is set it is printing the statements to be executed as well as the returned NaslValue.
+
+As examples executing: `nasl-cli execute examples/hello.nasl` returns:
+```
+Hello, world!
+```
+while executing `nasl-cli -v execute examples/hello.nasl` returns:
+
+```
+> if (description == 1) {{ ... }}
+=> Null
+> display(Hello, world!)
+Hello, world!
+=> Null
+```
+
+Usage: `nasl-cli execute [OPTIONS] <script>`
+
+
 ### feed
 
 Handles feed related tasks.

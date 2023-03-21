@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, StorageError};
+use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Retriever, StorageError};
 
 /// Attack Category either set by script_category
 ///
@@ -528,6 +528,7 @@ where
     fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
+            // TODO change here to store other fields instead
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
         }
     }
@@ -540,6 +541,16 @@ where
             .dispatch_nvt(data.clone().unwrap_or_default())?;
         *data = None;
         Ok(())
+    }
+}
+
+impl<S, K> Retriever<K> for PerNVTDispatcher<S, K>
+where
+    K: AsRef<str>,
+    S: NvtDispatcher<K> + Retriever<K>,
+{
+    fn retrieve(&self, key: &K, scope: &crate::Retrieve) -> Result<Vec<Field>, StorageError> {
+        self.dispatcher.retrieve(key, scope)
     }
 }
 

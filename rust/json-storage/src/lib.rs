@@ -71,6 +71,7 @@ where
     W: Write,
 {
     w: Arc<Mutex<W>>,
+    kbs: Arc<Mutex<Vec<Kb>>>,
 }
 impl<S> NvtDispatcher<S>
 where
@@ -81,6 +82,7 @@ where
     pub fn new(w: S) -> Self {
         Self {
             w: Arc::new(Mutex::new(w)),
+            kbs: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -113,8 +115,37 @@ where
         Ok(())
     }
 
-    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
+    fn dispatch_kb(&self, _: &K, kb: Kb) -> Result<(), StorageError> {
+        let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
+        let mut context = self.w.lock().map_err(StorageError::from)?;
+        serde_json::to_vec(&kb)
+            .map_err(|e| StorageError::Dirty(format!("{e:?}")))
+            .and_then(|x| context.write_all(&x).map_err(StorageError::from))?;
+        kbs.push(kb);
         Ok(())
+    }
+}
+
+impl<S, K> storage::Retriever<K> for NvtDispatcher<S>
+where
+    S: Write,
+{
+    fn retrieve(
+        &self,
+        _: &K,
+        scope: &storage::Retrieve,
+    ) -> Result<Vec<storage::Field>, StorageError> {
+        Ok(match scope {
+            // currently not supported
+            storage::Retrieve::NVT(_) => Vec::new(),
+            storage::Retrieve::KB(s) => {
+                let kbs = self.kbs.lock().map_err(StorageError::from)?;
+                kbs.iter()
+                    .filter(|x| &x.key == s)
+                    .map(|x| storage::Field::KB(x.clone()))
+                    .collect()
+            }
+        })
     }
 }
 
