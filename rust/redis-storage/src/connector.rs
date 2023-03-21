@@ -14,6 +14,7 @@ use storage::nvt::Nvt;
 use storage::nvt::NvtPreference;
 use storage::nvt::NvtRef;
 use storage::nvt::PerNVTDispatcher;
+use storage::Kb;
 use storage::StorageError;
 
 enum KbNvtPos {
@@ -348,6 +349,7 @@ where
     R: RedisWrapper + RedisAddNvt,
 {
     cache: Arc<Mutex<R>>,
+    kbs: Arc<Mutex<Vec<Kb>>>,
     phanton: PhantomData<K>,
 }
 
@@ -367,6 +369,7 @@ where
 
         Ok(NvtDispatcher {
             cache: Arc::new(Mutex::new(rctx)),
+            kbs: Arc::new(Mutex::new(Vec::new())),
             phanton: PhantomData,
         })
     }
@@ -403,6 +406,35 @@ where
     fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
         cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
+    }
+
+    fn dispatch_kb(&self, _: &K, kb: storage::Kb) -> Result<(), StorageError> {
+        let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
+        kbs.push(kb);
+        Ok(())
+    }
+}
+
+impl<S, K> storage::Retriever<K> for NvtDispatcher<S, K>
+where
+    S: RedisWrapper + RedisAddNvt,
+{
+    fn retrieve(
+        &self,
+        _: &K,
+        scope: &storage::Retrieve,
+    ) -> Result<Vec<storage::Field>, StorageError> {
+        Ok(match scope {
+            // currently not supported
+            storage::Retrieve::NVT(_) => Vec::new(),
+            storage::Retrieve::KB(s) => {
+                let kbs = self.kbs.lock().map_err(StorageError::from)?;
+                kbs.iter()
+                    .filter(|x| &x.key == s)
+                    .map(|x| storage::Field::KB(x.clone()))
+                    .collect()
+            }
+        })
     }
 }
 
@@ -496,8 +528,10 @@ mod tests {
         let (sender, rx) = mpsc::channel();
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
+        let kbs = Arc::new(Mutex::new(Vec::new()));
         let rcache = NvtDispatcher {
             cache,
+            kbs,
             phanton: PhantomData,
         };
         let dispatcher = PerNVTDispatcher::new(rcache);

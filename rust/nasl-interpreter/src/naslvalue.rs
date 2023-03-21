@@ -93,7 +93,7 @@ impl Display for NaslValue {
             NaslValue::Null => write!(f, "\0"),
             NaslValue::Exit(rc) => write!(f, "exit({})", rc),
             NaslValue::AttackCategory(category) => {
-                write!(f, "{}", IdentifierType::ACT(*category).to_string())
+                write!(f, "{}", IdentifierType::ACT(*category))
             }
             NaslValue::Return(rc) => write!(f, "return({:?})", *rc),
             NaslValue::Continue => write!(f, "continue"),

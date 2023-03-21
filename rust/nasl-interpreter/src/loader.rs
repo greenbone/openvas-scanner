@@ -39,11 +39,14 @@ impl Display for LoadError {
 ///
 /// Unfortunately the feed is not completely written in utf8 enforcing us to parse the content
 /// bytewise.
-pub fn load_non_utf8_path(path: &Path) -> Result<String, LoadError> {
+pub fn load_non_utf8_path<P>(path: &P) -> Result<String, LoadError>
+where
+    P: AsRef<Path> + ?Sized,
+{
     let result = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect());
     match result {
         Ok(result) => Ok(result),
-        Err(err) => Err((path.to_str().unwrap_or_default(), err).into()),
+        Err(err) => Err((path.as_ref().to_str().unwrap_or_default(), err).into()),
     }
 }
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )

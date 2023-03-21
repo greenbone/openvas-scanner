@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use core::fmt;
+use std::fmt::Display;
 
 use crate::ACT;
 
@@ -24,6 +25,15 @@ pub enum DeclareScope {
     Global,
     /// Variable is locally reachable
     Local,
+}
+
+impl Display for DeclareScope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DeclareScope::Global => write!(f, "global_var"),
+            DeclareScope::Local => write!(f, "local_var"),
+        }
+    }
 }
 
 /// Is a executable step.
@@ -160,31 +170,63 @@ impl Statement {
 
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let as_str_list = |v: &[Statement]| {
+            v.iter()
+                .map(|x| x.to_string())
+                .reduce(|a, b| format!("{a}, {b}"))
+                .unwrap_or_default()
+        };
         match self {
-            Statement::Primitive(_) => write!(f, "Primitive"),
-            Statement::AttackCategory(_) => write!(f, "AttackCategory"),
-            Statement::Variable(_) => write!(f, "Variable"),
-            Statement::Array(_, _) => write!(f, "Array"),
-            Statement::Call(_, _) => write!(f, "Call"),
-            Statement::Exit(_) => write!(f, "Exit"),
-            Statement::Return(_) => write!(f, "Return"),
-            Statement::Include(_) => write!(f, "Include"),
-            Statement::Declare(_, _) => write!(f, "Declare"),
-            Statement::Parameter(_) => write!(f, "Parameter"),
-            Statement::NamedParameter(_, _) => write!(f, "NamedParameter"),
-            Statement::Assign(_, _, _, _) => write!(f, "Assign"),
-            Statement::Operator(_, _) => write!(f, "Operator"),
-            Statement::If(_, _, _) => write!(f, "If"),
-            Statement::For(_, _, _, _) => write!(f, "For"),
-            Statement::While(_, _) => write!(f, "While"),
-            Statement::Repeat(_, _) => write!(f, "Repeat"),
-            Statement::ForEach(_, _, _) => write!(f, "ForEach"),
-            Statement::Block(_) => write!(f, "Block"),
-            Statement::FunctionDeclaration(_, _, _) => write!(f, "FunctionDeclaration"),
+            Statement::Primitive(x) => write!(f, "{}", x.category()),
+            Statement::AttackCategory(x) => write!(f, "{x:?}"),
+            Statement::Variable(x) => write!(f, "{}", x.category()),
+            Statement::Array(x, e) => match e {
+                Some(e) => {
+                    write!(f, "{}[{e}]", x.category())
+                }
+                None => write!(f, "{}", x.category()),
+            },
+            Statement::Call(name, args) => {
+                write!(f, "{}({})", name.category(), as_str_list(args))
+            }
+            Statement::Exit(x) => write!(f, "exit({x})"),
+            Statement::Return(x) => write!(f, "return {x}"),
+            Statement::Include(x) => write!(f, "include({x})"),
+            Statement::Declare(s, x) => {
+                write!(f, "{s} {}", as_str_list(x),)
+            }
+            Statement::Parameter(x) => write!(f, "({})", as_str_list(x),),
+            Statement::NamedParameter(n, s) => write!(f, "{}: {s}", n.category()),
+            Statement::Assign(c, o, l, r) => match (o, &**r) {
+                (AssignOrder::AssignReturn, Statement::NoOp(_)) => write!(f, "{c}{l}"),
+                (AssignOrder::ReturnAssign, Statement::NoOp(_)) => write!(f, "{l}{c}"),
+                _ => write!(f, "{l} {c} {r}"),
+            },
+            Statement::Operator(o, args) => match &args[..] {
+                [l, r] => write!(f, "{l} {o} {r}"),
+                [l] => write!(f, "{o}{l}"),
+                _ => write!(f, "({o} ({}))", as_str_list(args)),
+            },
+            Statement::If(c, x, e) => {
+                let r = write!(f, "if ({c}) {{{x}}}");
+                if let Some(e) = e {
+                    write!(f, " else {{{e}}}")
+                } else {
+                    r
+                }
+            }
+            Statement::For(i, c, u, e) => write!(f, "for ({i}; {c}; {u}) {{ {e} }}"),
+            Statement::While(c, e) => write!(f, "while ({c}) {{{e}}}"),
+            Statement::Repeat(e, c) => write!(f, "repeat {e} until {c}"),
+            Statement::ForEach(v, a, e) => write!(f, "foreach {}({a}) {{{e}}}", v.category()),
+            Statement::Block(_) => write!(f, "{{ ... }}"),
+            Statement::FunctionDeclaration(n, p, _) => {
+                write!(f, "function {}({}) {{ ... }}", n.category(), as_str_list(p))
+            }
             Statement::NoOp(_) => write!(f, "NoOp"),
             Statement::EoF => write!(f, "EoF"),
-            Statement::Break => write!(f, "Break"),
-            Statement::Continue => write!(f, "Continue"),
+            Statement::Break => write!(f, "break"),
+            Statement::Continue => write!(f, "continue"),
         }
     }
 }
