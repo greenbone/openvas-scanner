@@ -15,7 +15,10 @@ enum Crypt {
     Decrypt,
 }
 
-pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
+pub(crate) fn lookup<K>(function_name: &str) -> Option<NaslFunction<K>>
+where
+    K: AsRef<str>,
+{
     aes_ccm::lookup(function_name)
         .or_else(|| hmac::lookup(function_name))
         .or_else(|| aes_cbc::lookup(function_name))

@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::error::FunctionErrorKind::GeneralError;
+use crate::{error::FunctionErrorKind::GeneralError, Context};
 use aes::{
     cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit},
     Aes128, Aes192, Aes256,
 };
 use aes_gcm::{aead::Aead, AesGcm};
 use digest::typenum::{U12, U16};
-use sink::Sink;
 
 use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
 
@@ -85,11 +84,7 @@ where
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes128_gcm_encrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes128_gcm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     gcm::<Aes128>(register, Crypt::Encrypt, "aes128_gcm_encrypt")
 }
 
@@ -102,11 +97,7 @@ fn aes128_gcm_encrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes128_gcm_decrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes128_gcm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     gcm::<Aes128>(register, Crypt::Decrypt, "aes128_gcm_decrypt")
 }
 
@@ -119,11 +110,7 @@ fn aes128_gcm_decrypt(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes192_gcm_encrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes192_gcm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     gcm::<Aes192>(register, Crypt::Encrypt, "aes192_gcm_encrypt")
 }
 
@@ -136,11 +123,7 @@ fn aes192_gcm_encrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes192_gcm_decrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes192_gcm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     gcm::<Aes192>(register, Crypt::Decrypt, "aes192_gcm_decrypt")
 }
 
@@ -153,11 +136,7 @@ fn aes192_gcm_decrypt(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes256_gcm_encrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes256_gcm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     gcm::<Aes256>(register, Crypt::Encrypt, "aes256_gcm_encrypt")
 }
 
@@ -170,15 +149,11 @@ fn aes256_gcm_encrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes256_gcm_decrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes256_gcm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     gcm::<Aes256>(register, Crypt::Decrypt, "aes256_gcm_decrypt")
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
     match key {
         "aes128_gcm_encrypt" => Some(aes128_gcm_encrypt),
         "aes128_gcm_decrypt" => Some(aes128_gcm_decrypt),
@@ -194,9 +169,8 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 mod tests {
 
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{helper::decode_hex, Interpreter, NoOpLoader, Register};
+    use crate::{helper::decode_hex, DefaultContext, Interpreter, Register};
 
     #[test]
     fn aes128_gcm_crypt() {
@@ -207,10 +181,10 @@ mod tests {
         crypt = aes128_gcm_encrypt(key: key, data: data, iv: iv);
         aes128_gcm_decrypt(key: key, data: crypt, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -240,10 +214,10 @@ mod tests {
         crypt = aes192_gcm_encrypt(key: key, data: data, iv: iv);
         aes192_gcm_decrypt(key: key, data: crypt, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -273,10 +247,10 @@ mod tests {
         crypt = aes256_gcm_encrypt(key: key, data: data, iv: iv);
         aes256_gcm_decrypt(key: key, data: crypt, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -307,10 +281,10 @@ mod tests {
         aes128_gcm_encrypt(key: key, data: data1, iv: iv);
         aes128_gcm_encrypt(key: key, data: data2, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();

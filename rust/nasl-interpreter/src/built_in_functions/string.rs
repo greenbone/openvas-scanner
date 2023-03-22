@@ -216,11 +216,7 @@ fn hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
 /// NASL function to convert a hexadecimal representation into byte data.
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
-fn hexstr_to_data<K>(
-    _: &str,
-    register: &Register,
-    _: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+fn hexstr_to_data<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     match resolve_positional_arguments(register).get(0) {
         Some(NaslValue::String(x)) => match decode_hex(x) {
             Ok(y) => Ok(NaslValue::Data(y)),
@@ -250,11 +246,7 @@ fn hexstr_to_data<K>(
 /// NASL function to convert byte data into hexadecimal representation as lower case string.
 ///
 /// The first positional argument must be byte data, all other arguments are ignored. If either the no argument was given or the first positional is not byte data, a error is returned.
-fn data_to_hexstr<K>(
-    _: &str,
-    register: &Register,
-    _: Context<K>,
-) -> Result<NaslValue, FunctionError> {
+fn data_to_hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     match resolve_positional_arguments(register).get(0) {
         Some(NaslValue::Data(x)) => Ok(encode_hex(x).into()),
         Some(x) => Err(FunctionError::new(
