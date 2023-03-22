@@ -10,9 +10,8 @@ use ccm::{
     Ccm, KeyInit, NonceSize, TagSize,
 };
 use digest::generic_array::ArrayLength;
-use sink::Sink;
 
-use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionError, Context, NaslFunction, NaslValue, Register};
 
 use super::{get_named_data, get_named_number, Crypt};
 
@@ -78,11 +77,7 @@ where
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
-fn aes128_ccm_encrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes128_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     ccm::<Aes128>(register, Crypt::Encrypt, "aes128_ccm_encrypt")
 }
 
@@ -91,11 +86,7 @@ fn aes128_ccm_encrypt(
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
-fn aes128_ccm_decrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes128_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     ccm::<Aes128>(register, Crypt::Decrypt, "aes128_ccm_decrypt")
 }
 
@@ -104,11 +95,7 @@ fn aes128_ccm_decrypt(
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 /// - The length of the key should be 24 bytes long
 /// - The iv must have a length of 7-13 bytes
-fn aes192_ccm_encrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes192_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     ccm::<Aes192>(register, Crypt::Encrypt, "aes192_ccm_encrypt")
 }
 
@@ -117,11 +104,7 @@ fn aes192_ccm_encrypt(
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 /// - The length of the key should be 24 bytes long
 /// - The iv must have a length of 7-13 bytes
-fn aes192_ccm_decrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes192_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     ccm::<Aes192>(register, Crypt::Decrypt, "aes192_ccm_decrypt")
 }
 
@@ -130,11 +113,7 @@ fn aes192_ccm_decrypt(
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 /// - The length of the key should be 32 bytes long
 /// - The iv must have a length of 7-13 bytes
-fn aes256_ccm_encrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes256_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     ccm::<Aes256>(register, Crypt::Encrypt, "aes256_ccm_encrypt")
 }
 
@@ -143,15 +122,11 @@ fn aes256_ccm_encrypt(
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 /// - The length of the key should be 32 bytes long
 /// - The iv must have a length of 7-13 bytes
-fn aes256_ccm_decrypt(
-    _: &str,
-    _: &dyn Sink,
-    register: &Register,
-) -> Result<NaslValue, FunctionError> {
+fn aes256_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
     ccm::<Aes256>(register, Crypt::Decrypt, "aes256_ccm_decrypt")
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
     match key {
         "aes128_ccm_encrypt" => Some(aes128_ccm_encrypt),
         "aes128_ccm_decrypt" => Some(aes128_ccm_decrypt),
@@ -200,9 +175,8 @@ ccm_call_typed!(
 #[cfg(test)]
 mod tests {
     use nasl_syntax::parse;
-    use sink::DefaultSink;
 
-    use crate::{helper::decode_hex, Interpreter, NoOpLoader, Register};
+    use crate::{helper::decode_hex, DefaultContext, Interpreter, Register};
 
     #[test]
     fn aes128_ccm_crypt() {
@@ -213,10 +187,10 @@ mod tests {
         crypt = aes128_ccm_encrypt(key: key, data: data, iv: iv);
         aes128_ccm_decrypt(key: key, data: crypt, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -245,10 +219,10 @@ mod tests {
         crypt = aes192_ccm_encrypt(key: key, data: data, iv: iv);
         aes192_ccm_decrypt(key: key, data: crypt, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
@@ -277,10 +251,10 @@ mod tests {
         crypt = aes256_ccm_encrypt(key: key, data: data, iv: iv);
         aes256_ccm_decrypt(key: key, data: crypt, iv: iv);
         "###;
-        let storage = DefaultSink::new(false);
         let mut register = Register::default();
-        let loader = NoOpLoader::default();
-        let mut interpreter = Interpreter::new("1", &storage, &loader, &mut register);
+        let binding = DefaultContext::default();
+        let context = binding.as_context();
+        let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
