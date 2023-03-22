@@ -15,6 +15,7 @@ mod function;
 mod hostname;
 mod kb;
 mod misc;
+mod ssh;
 mod string;
 
 pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
