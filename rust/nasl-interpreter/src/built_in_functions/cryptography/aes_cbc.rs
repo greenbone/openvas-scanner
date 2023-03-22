@@ -12,12 +12,9 @@ use aes::{
 };
 use cbc::{Decryptor, Encryptor};
 
-use crate::{
-    error::{FunctionError, FunctionErrorKind::GeneralError},
-    Context, NaslFunction, NaslValue, Register,
-};
+use crate::{error::FunctionError, Context, NaslFunction, NaslValue, Register};
 
-use super::{get_named_data, get_named_number, Crypt};
+use super::{get_data, get_iv, get_key, get_len, Crypt};
 
 /// Base function for en- and decrypting Cipher Block Chaining (CBC) mode
 fn cbc<D>(register: &Register, crypt: Crypt, function: &str) -> Result<NaslValue, FunctionError>
@@ -25,72 +22,52 @@ where
     D: BlockCipher + BlockEncrypt + BlockDecrypt + KeyInit,
 {
     // Get Arguments
-    let key = get_named_data(register, "key", true, function)?.unwrap();
-    let data = get_named_data(register, "data", true, function)?.unwrap();
-    let iv = get_named_data(register, "iv", true, function)?.unwrap();
-    let len = match get_named_number(register, "len", false, function)? {
-        Some(x) => match usize::try_from(x) {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(FunctionError::new(
-                    function,
-                    GeneralError(format!(
-                        "System only supports numbers between {:?} and {:?}",
-                        usize::MIN,
-                        usize::MAX
-                    )),
-                ))
-            }
-        },
-        None => data.len(),
-    };
-
-    // len should not be more than the length of the data
-    if len > data.len() {
-        return Err(FunctionError::new(
-            function,
-            (
-                "len",
-                format!("<={:?}", data.len()).as_str(),
-                len.to_string().as_str(),
-            )
-                .into(),
-        ));
-    }
+    let key = get_key(register, function)?;
+    let data = get_data(register, function)?;
+    let iv = get_iv(register, function)?;
 
     // Mode Encrypt or Decrypt
     match crypt {
         Crypt::Encrypt => {
             let res = Encryptor::<D>::new_from_slices(key, iv);
             match res {
-                Ok(encryptor) => {
-                    return Ok(encryptor.encrypt_padded_vec_mut::<ZeroPadding>(data).into())
-                }
-                Err(e) => {
-                    return Err(FunctionError::new(
-                        function,
-                        crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
-                    ))
-                }
-            };
+                Ok(encryptor) => Ok(encryptor.encrypt_padded_vec_mut::<ZeroPadding>(data).into()),
+                Err(e) => Err(FunctionError::new(
+                    function,
+                    crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
+                )),
+            }
         }
         Crypt::Decrypt => {
+            // length for encrypted data
+            let len = match get_len(register, function)? {
+                Some(x) => x,
+                None => data.len(),
+            };
+
+            // len should not be more than the length of the data
+            if len > data.len() {
+                return Err(FunctionError::new(
+                    function,
+                    (
+                        "len",
+                        format!("<={:?}", data.len()).as_str(),
+                        len.to_string().as_str(),
+                    )
+                        .into(),
+                ));
+            }
             let res = Decryptor::<D>::new_from_slices(key, iv);
             match res {
-                Ok(decryptor) => {
-                    return Ok(
-                        decryptor.decrypt_padded_vec_mut::<NoPadding>(data).unwrap()[..len]
-                            .to_vec()
-                            .into(),
-                    )
-                }
-                Err(e) => {
-                    return Err(FunctionError::new(
-                        function,
-                        crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
-                    ))
-                }
-            };
+                Ok(decryptor) => Ok(decryptor.decrypt_padded_vec_mut::<NoPadding>(data).unwrap()
+                    [..len]
+                    .to_vec()
+                    .into()),
+                Err(e) => Err(FunctionError::new(
+                    function,
+                    crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
+                )),
+            }
         }
     }
 }
