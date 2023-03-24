@@ -32,8 +32,8 @@ pub use error::InterpretErrorKind;
 
 pub use interpreter::Interpreter;
 pub use loader::*;
-pub use nasl_ssh::*;
 pub use logger::{DefaultLogger, Mode, NaslLogger};
+pub use nasl_ssh::*;
 pub use naslvalue::NaslValue;
 
 // Is a type definition for built-in functions

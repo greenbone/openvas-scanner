@@ -5,6 +5,7 @@
 use nasl_syntax::Statement;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
+
 use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -196,7 +197,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -261,6 +262,7 @@ impl<'a, K> Context<'a, K> {
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
+        //        session_handler: &'a dyn SessionTable,
     ) -> Self {
         Self {
             key,
