@@ -5,6 +5,7 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 mod built_in_functions;
+
 mod error;
 mod naslvalue;
 
@@ -19,6 +20,8 @@ mod loader;
 mod logger;
 mod lookup_keys;
 mod loop_extension;
+mod nasl_sessions;
+mod nasl_ssh;
 mod operator;
 
 pub use context::Context;

@@ -13,70 +13,97 @@ use std::{env, time::Duration};
 use crate::{
     error::{FunctionError, FunctionErrorKind},
     Context, NaslValue,
+    nasl_sessions::*,
 };
-
+/// Max open session for host
 const SESSION_TABLE_SIZE: usize = 10;
 
-pub struct SessionTable<'a> {
-    sessions: Vec<Option<&'a SshSession<'a>>>,
+/// Stores all open sessions.
+pub struct SshSessionTable {
+    sessions: Vec<Box<dyn SshSessionHandler>>,
 }
 
-impl<'a> SessionTable<'a> {
-    pub fn new() -> SessionTable<'a> {
-        SessionTable {
-            sessions: vec![None; SESSION_TABLE_SIZE],
-        }
+impl<S> SessionTableHandler<S> for SshSessionTable
+where
+    S: SshSessionHandler + 'static,
+{
+    
+    fn add_session(&mut self, s: S) -> Option<usize> {
+        self.sessions.push(Box::new(s));
+        Some(self.sessions.len() - 1)
+    }    
+   
+    fn del_session(&self, _session: i32) -> Option<()> {
+        Some(())
     }
 
-    pub fn add(&mut self, s: &'a SshSession) -> Option<usize> {
-        for (pos, slot) in self.sessions.iter().enumerate() {
-            if slot.is_none() {
-                self.sessions[pos] = Some(s);
-                return Some(pos);
-            }
-        }
-        None
-    }
-
-    pub fn get_session_by_position(&self, pos: usize) -> Option<&SshSession> {
-        self.sessions[pos]
-    }
-
-    pub fn get_session_by_id(&self, id: i32) -> Option<&SshSession> {
-        for s in self.sessions.iter() {
-            let session = match s {
-                Some(session) => {
-                    if *session.session_id == id {
-                        Some(*session)
-                    } else {
-                        None
-                    }
-                }
-                None => None,
-            };
-            if session.is_some() {
-                return session;
-            }
-        }
+    fn get_session_by_position(&self, _pos: usize) -> Option<&S> {
+        //self.sessions[pos]
         None
     }
 }
 
-pub struct SshSession<'a> {
-    session: &'a mut Session,
-    authmethods_valid: &'a mut i64,
-    user_set: &'a mut i64,
-    verbose: &'a mut i32,
-    session_id: &'a mut i32,
+
+impl SshSessionTable {
+    fn new() -> SessionTable {
+        SessionTable::Ssh(
+            SshSessionTable { 
+                sessions: vec![],
+            }
+        )
+    }
+    
+    //fn get_session_by_position(&self, pos: usize) -> Option<&SshSession> {
+    //    self.sessions[pos]
+    //}
+
+    //fn get_session_by_id(&self, id: i32) -> Option<&SshSession> {
+    //    for s in self.sessions.iter() {
+    //        let session = match s {
+    //            Some(session) => {
+    //                if *session.session_id == id {
+    //                    Some(*session)
+    //                } else {
+    //                    None
+    //                }
+    //            }
+    //            None => None,
+    //        };
+    //        if session.is_some() {
+    //            return session;
+    //        }
+    //    }
+    //    None
+    //}
 }
 
-impl<'a> SshSession<'a> {
-    pub fn new(
-        session: &'a mut Session,
-        authmethods_valid: &'a mut i64,
-        user_set: &'a mut i64,
-        verbose: &'a mut i32,
-        session_id: &'a mut i32,
+pub struct SshSession {
+    session: Session,
+    authmethods_valid: i64,
+    user_set: i64,
+    verbose: i32,
+    session_id: i32,
+}
+
+pub trait SshSessionHandler {
+    fn new(
+        &self,
+        session: Session,
+        authmethods_valid: i64,
+        user_set: i64,
+        verbose: i32,
+        session_id: i32,
+    ) -> SshSession;
+}
+
+impl SshSessionHandler for SshSession {
+    fn new(
+        &self,
+        session: Session,
+        authmethods_valid: i64,
+        user_set: i64,
+        verbose: i32,
+        session_id: i32,
     ) -> Self {
         Self {
             session,
@@ -87,6 +114,26 @@ impl<'a> SshSession<'a> {
         }
     }
 }
+
+//impl SshSession {
+//    pub fn new(
+//        session: Session,
+//        authmethods_valid: i64,
+//        user_set: i64,
+//        verbose: i32,
+//        session_id: i32,
+//    ) -> Self {
+//        Self {
+//            session,
+//            authmethods_valid,
+//            user_set,
+//            verbose,
+//            session_id,
+//        }
+//    }
+//}
+
+
 
 /// Establish an ssh session to the host.
 pub fn connect<K>(
@@ -276,48 +323,47 @@ pub fn connect<K>(
     let mut authmethods_valid: i64 = 0;
     let mut user_set: i64 = 0;
     let mut session_id = 9000; //TODO: implement next_session_id()
-    let s = SshSession::new(
-        &mut session,
-        &mut authmethods_valid,
-        &mut user_set,
-        &mut verbose,
-        &mut session_id,
-    );
-    let mut st = SessionTable::new();
-    let pos = match st.add(&s) {
-        Some(p) => p,
-        _ => return Ok(NaslValue::Null),
+    let mut s = SshSession{
+        session,
+        authmethods_valid,
+        user_set,
+        verbose,
+        session_id,
     };
+    let mut st = SshSessionTable::new();
+    ctx.sessions().add_table(st);
+    //let pos = st.add_session(s);
 
-    let se = match st.get_session_by_position(pos) {
-        Some(s) => s,
-        _ => return Ok(NaslValue::Null),
-    };
+    Ok(NaslValue::Null)
+//    let se = match st.get_session_by_position(pos) {
+//        Some(s) => s,
+//        _ => return Ok(NaslValue::Null),
+//    };
+// 
+//    if *se.verbose > 0 {
+//        ctx.logger().info(format!(
+//            "Connecting to SSH server '{}' (port {}, sock {})",
+//            ip_str, port, sock
+//        ));
+//    }
 
-    if *se.verbose > 0 {
-        ctx.logger().info(format!(
-            "Connecting to SSH server '{}' (port {}, sock {})",
-            ip_str, port, sock
-        ));
-    }
-
-    match se.session.connect() {
-        Ok(_) => Ok(NaslValue::Number(session_id as i64)),
-        Err(e) => {
-            se.session.disconnect();
-            st.sessions[pos] = None;
-            Err(FunctionError {
-                function: "connect".to_string(),
-                kind: FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Failed to connect to SSH server '{}' (port {}, sock {}, f={}): {}",
-                        ip_str, port, sock, forced_sock, e
-                    ),
-                    Some(NaslValue::Null),
-                ),
-            })
-        }
-    }
+//    match se.session.connect() {
+//        Ok(_) => Ok(NaslValue::Number(session_id as i64)),
+//        Err(e) => {
+//            se.session.disconnect();
+//            st.sessions[pos] = None;
+//            Err(FunctionError {
+//                function: "connect".to_string(),
+//                kind: FunctionErrorKind::Diagnostic(
+//                    format!(
+//                        "Failed to connect to SSH server '{}' (port {}, sock {}, f={}): {}",
+//                        ip_str, port, sock, forced_sock, e
+//                    ),
+//                    Some(NaslValue::Null),
+//                ),
+//            })
+//        }
+//    }
 }
 
 /// Closes an SSH Session and releases from the SessionTable

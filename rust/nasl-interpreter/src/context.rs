@@ -5,7 +5,6 @@
 use nasl_syntax::Statement;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
-
 use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -197,7 +196,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap};
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -252,6 +251,8 @@ pub struct Context<'a, K> {
     loader: &'a dyn Loader,
     /// Default logger.
     logger: &'a dyn NaslLogger,
+    /// Default logger.
+    sessions: &'a dyn SessionsHandler,
 }
 
 impl<'a, K> Context<'a, K> {
@@ -262,7 +263,7 @@ impl<'a, K> Context<'a, K> {
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
-        //        session_handler: &'a dyn SessionTable,
+        sessions: &'a dyn SessionsHandler,
     ) -> Self {
         Self {
             key,
@@ -270,6 +271,7 @@ impl<'a, K> Context<'a, K> {
             retriever,
             loader,
             logger,
+            sessions,
         }
     }
 
@@ -293,10 +295,14 @@ impl<'a, K> Context<'a, K> {
     pub fn loader(&self) -> &dyn Loader {
         self.loader
     }
+    /// Get the sessions
+    pub fn sessions(&self) -> &dyn SessionsHandler {
+        self.sessions
+    }
 }
 /// Can be used as DefaultContext::default().as_context() within tests
 #[derive(Default)]
-pub struct DefaultContext {
+pub struct DefaultContext{
     /// key for the default context. A name or an OID
     pub key: String,
     /// Default Storage
@@ -305,6 +311,8 @@ pub struct DefaultContext {
     pub loader: Box<dyn Loader>,
     /// Default logger
     pub logger: Box<dyn NaslLogger>,
+    /// Default logger
+    pub sessions: Box<dyn SessionsHandler>,
 }
 
 impl DefaultContext {
@@ -316,6 +324,7 @@ impl DefaultContext {
             retriever: &*self.dispatcher,
             loader: &*self.loader,
             logger: self.logger.as_ref(),
+            sessions: self.sessions.as_ref(),
         }
     }
 }
