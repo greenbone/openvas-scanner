@@ -75,6 +75,11 @@ fn get_iv(register: &Register) -> Result<&[u8], FunctionErrorKind> {
     get_required_named_data(register, "iv")
 }
 
+/// Get the required iv argument or error.
+fn get_aad<'a>(register: &'a Register) -> Result<&'a [u8], FunctionErrorKind> {
+    Ok(get_named_data(register, "aad", true)?.unwrap())
+}
+
 /// Get the optional len argument with proper error handling.
 fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
     let buf = get_optional_named_number(register, "len")?;
