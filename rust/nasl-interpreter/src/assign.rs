@@ -57,8 +57,7 @@ where
 {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
         self.registrat
-            .add_to_index(idx, key, ContextType::Value(value))
-            .unwrap();
+            .add_to_index(idx, key, ContextType::Value(value));
     }
 
     fn named_value(&self, key: &str) -> Result<(usize, NaslValue), InterpretError> {

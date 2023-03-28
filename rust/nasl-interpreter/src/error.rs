@@ -4,10 +4,16 @@
 
 use std::{convert::Infallible, io};
 
+use aes::cipher::block_padding::UnpadError;
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
 use storage::StorageError;
 
 use crate::{ContextType, LoadError, NaslValue};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CryptErrorKind {
+    Unpad,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FunctionErrorKind {
@@ -21,6 +27,13 @@ pub enum FunctionErrorKind {
     // Diagnostic string is informational and the second arg is the return value for the user
     Diagnostic(String, Option<NaslValue>),
     GeneralError(String),
+    CryptError(CryptErrorKind),
+}
+
+impl From<UnpadError> for FunctionErrorKind {
+    fn from(_: UnpadError) -> Self {
+        FunctionErrorKind::CryptError(CryptErrorKind::Unpad)
+    }
 }
 
 impl From<(&str, &str, &str)> for FunctionErrorKind {

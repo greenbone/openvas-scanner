@@ -5,9 +5,7 @@
 use nasl_syntax::Statement;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
-use crate::{
-    error::InterpretError, logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue,
-};
+use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -118,53 +116,39 @@ impl Register {
     }
 
     /// Creates a child context
-    pub fn create_child(&mut self, parent: &NaslContext, defined: Named) -> &NaslContext {
+    pub fn create_child(&mut self, parent: &NaslContext, defined: Named) {
         let result = NaslContext {
             parent: Some(parent.id),
             id: self.index(),
             defined,
         };
         self.blocks.push(result);
-        return self.blocks.last_mut().unwrap();
     }
 
     /// Creates a child context for the root context.
     ///
     /// This is used to function calls to prevent that the called function can access the
     /// context of the caller.
-    pub fn create_root_child(&mut self, defined: Named) -> &NaslContext {
+    pub fn create_root_child(&mut self, defined: Named) {
         let result = NaslContext {
             parent: Some(0),
             id: self.index(),
             defined,
         };
         self.blocks.push(result);
-        return self.blocks.last_mut().unwrap();
-    }
-
-    /// Returns the last created context.
-    ///
-    /// The idea is that since NASL is an iterative language the last context is also the current
-    /// one.
-    fn last(&self) -> &NaslContext {
-        let last = self.blocks.last();
-        last.unwrap()
     }
 
     /// Finds a named ContextType
     pub fn named<'a>(&'a self, name: &'a str) -> Option<&ContextType> {
-        self.last().named(self, name).map(|(_, val)| val)
+        self.blocks
+            .last()
+            .and_then(|x| x.named(self, name))
+            .map(|(_, val)| val)
     }
 
     /// Finds a named ContextType with index
     pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &ContextType)> {
-        self.last().named(self, name)
-    }
-
-    /// Returns a mutable reference of the current context
-    pub fn last_mut(&mut self) -> &mut NaslContext {
-        let last = self.blocks.last_mut();
-        last.unwrap()
+        self.blocks.last().and_then(|x| x.named(self, name))
     }
 
     /// Adds a named parameter to the root context
@@ -174,24 +158,19 @@ impl Register {
     }
 
     /// Adds a named parameter to the root context
-    pub fn add_to_index(
-        &mut self,
-        idx: usize,
-        name: &str,
-        value: ContextType,
-    ) -> Result<(), InterpretError> {
+    pub fn add_to_index(&mut self, idx: usize, name: &str, value: ContextType) {
         if idx >= self.blocks.len() {
             panic!("The given index should be retrieved by named_value. Therefore this should not happen.");
         } else {
             let global = &mut self.blocks[idx];
             global.add_named(name, value);
-            Ok(())
         }
     }
     /// Adds a named parameter to the last context
     pub fn add_local(&mut self, name: &str, value: ContextType) {
-        let last = &mut self.last_mut();
-        last.add_named(name, value);
+        if let Some(last) = self.blocks.last_mut() {
+            last.add_named(name, value);
+        }
     }
 
     /// Retrieves all positional definitions

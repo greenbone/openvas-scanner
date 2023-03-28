@@ -33,22 +33,15 @@ where
 /// In case the argument is required, the returned value is either an Error or the Option is always
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some
 /// or None.
-fn get_named_data<'a>(
+fn get_required_named_data<'a>(
     register: &'a Register,
     key: &'a str,
-    required: bool,
-) -> Result<Option<&'a [u8]>, FunctionErrorKind> {
+) -> Result<&'a [u8], FunctionErrorKind> {
     match register.named(key) {
-        Some(ContextType::Value(NaslValue::Data(x))) => Ok(Some(x.as_slice())),
-        Some(ContextType::Value(NaslValue::String(x))) => Ok(Some(x.as_bytes())),
+        Some(ContextType::Value(NaslValue::Data(x))) => Ok(x.as_slice()),
+        Some(ContextType::Value(NaslValue::String(x))) => Ok(x.as_bytes()),
         Some(x) => Err((key, "a String or Data Value", format!("{:?}", x).as_str()).into()),
-        _ => {
-            if required {
-                Err((key).into())
-            } else {
-                Ok(None)
-            }
-        }
+        _ => Err((key).into()),
     }
 }
 
@@ -56,42 +49,35 @@ fn get_named_data<'a>(
 /// In case the argument is required, the returned value is either an Error or the Option is always
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some
 /// or None.
-fn get_named_number(
+fn get_optional_named_number(
     register: &Register,
     key: &str,
-    required: bool,
 ) -> Result<Option<i64>, FunctionErrorKind> {
     match register.named(key) {
         Some(ContextType::Value(NaslValue::Number(x))) => Ok(Some(*x)),
         Some(x) => Err((key, "a Number Value", format!("{:?}", x).as_str()).into()),
-        _ => {
-            if required {
-                Err((key).into())
-            } else {
-                Ok(None)
-            }
-        }
+        _ => Ok(None),
     }
 }
 
 /// Get the required key argument or error.
 fn get_key(register: &Register) -> Result<&[u8], FunctionErrorKind> {
-    Ok(get_named_data(register, "key", true)?.unwrap())
+    get_required_named_data(register, "key")
 }
 
 /// Get the required data argument or error.
 fn get_data(register: &Register) -> Result<&[u8], FunctionErrorKind> {
-    Ok(get_named_data(register, "data", true)?.unwrap())
+    get_required_named_data(register, "data")
 }
 
 /// Get the required iv argument or error.
 fn get_iv(register: &Register) -> Result<&[u8], FunctionErrorKind> {
-    Ok(get_named_data(register, "iv", true)?.unwrap())
+    get_required_named_data(register, "iv")
 }
 
 /// Get the optional len argument with proper error handling.
 fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
-    let buf = get_named_number(register, "len", false)?;
+    let buf = get_optional_named_number(register, "len")?;
     match buf {
         None => Ok(None),
         Some(x) => match x.try_into() {
