@@ -76,8 +76,8 @@ fn get_iv(register: &Register) -> Result<&[u8], FunctionErrorKind> {
 }
 
 /// Get the required iv argument or error.
-fn get_aad<'a>(register: &'a Register) -> Result<&'a [u8], FunctionErrorKind> {
-    Ok(get_named_data(register, "aad", true)?.unwrap())
+fn get_aad(register: &Register) -> Result<&[u8], FunctionErrorKind> {
+    get_required_named_data(register, "aad")
 }
 
 /// Get the optional len argument with proper error handling.
