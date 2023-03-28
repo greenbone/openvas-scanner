@@ -196,7 +196,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::{collections::HashMap};
+use std::collections::HashMap;
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -252,7 +252,7 @@ pub struct Context<'a, K> {
     /// Default logger.
     logger: &'a dyn NaslLogger,
     /// Default logger.
-    sessions: &'a dyn SessionsHandler,
+    sessions: &'a Sessions,
 }
 
 impl<'a, K> Context<'a, K> {
@@ -263,7 +263,7 @@ impl<'a, K> Context<'a, K> {
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
-        sessions: &'a dyn SessionsHandler,
+        sessions: &'a Sessions,
     ) -> Self {
         Self {
             key,
@@ -296,13 +296,13 @@ impl<'a, K> Context<'a, K> {
         self.loader
     }
     /// Get the sessions
-    pub fn sessions(&self) -> &dyn SessionsHandler {
+    pub fn sessions(&self) -> &Sessions {
         self.sessions
     }
 }
 /// Can be used as DefaultContext::default().as_context() within tests
 #[derive(Default)]
-pub struct DefaultContext{
+pub struct DefaultContext {
     /// key for the default context. A name or an OID
     pub key: String,
     /// Default Storage
@@ -312,7 +312,7 @@ pub struct DefaultContext{
     /// Default logger
     pub logger: Box<dyn NaslLogger>,
     /// Default logger
-    pub sessions: Box<dyn SessionsHandler>,
+    pub sessions: Sessions,
 }
 
 impl DefaultContext {
@@ -324,7 +324,7 @@ impl DefaultContext {
             retriever: &*self.dispatcher,
             loader: &*self.loader,
             logger: self.logger.as_ref(),
-            sessions: self.sessions.as_ref(),
+            sessions: &self.sessions,
         }
     }
 }

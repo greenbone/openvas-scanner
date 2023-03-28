@@ -17,7 +17,7 @@ impl Loader for NoOpLoader {
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::{Context, Interpreter, Register};
+    use nasl_interpreter::{Context, Interpreter, Register, Sessions};
     use nasl_interpreter::{ContextType, DefaultLogger, InterpretError, NaslValue};
 
     use nasl_syntax::parse;
@@ -66,7 +66,8 @@ if(description)
         let mut register = Register::root_initial(&initial);
         let logger = DefaultLogger::default();
         let key = "test.nasl".to_owned();
-        let ctxconfigs = Context::new(&key, &storage, &storage, &loader, &logger);
+        let sessions = Sessions::default();
+        let ctxconfigs = Context::new(&key, &storage, &storage, &loader, &logger, &sessions);
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {

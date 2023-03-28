@@ -5,9 +5,8 @@
 //! Defines NASL ssh and sftp functions
 
 use crate::{
-    error::{FunctionError, FunctionErrorKind},
-    lookup_keys::TARGET,
-    nasl_ssh, Context, ContextType, NaslFunction, NaslValue, Register,
+    error::FunctionErrorKind, lookup_keys::TARGET, Context, ContextType, NaslFunction, NaslValue,
+    Register,
 };
 use std::time::Duration;
 
@@ -43,7 +42,10 @@ use std::time::Duration;
 /// seconds (defined by libssh internally) if not given.
 ///
 /// nasl return An integer to identify the ssh session. Zero on error.
-fn nasl_ssh_connect<K>(register: &Register, ctx: &Context<K>) -> Result<NaslValue, FunctionError> {
+fn nasl_ssh_connect<K>(
+    register: &Register,
+    ctx: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     let sock = match register.named("socket") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         _ => 0i64,
@@ -83,8 +85,8 @@ fn nasl_ssh_connect<K>(register: &Register, ctx: &Context<K>) -> Result<NaslValu
         _ => String::new(),
     };
 
-    nasl_ssh::connect(
-        sock, ip_str, port, timeout, &key_type, &csciphers, &scciphers, ctx,
+    ctx.sessions().connect(
+        sock, ip_str, port, timeout, &key_type, &csciphers, &scciphers,
     )?;
 
     Ok(NaslValue::Null)
@@ -103,23 +105,19 @@ fn nasl_ssh_connect<K>(register: &Register, ctx: &Context<K>) -> Result<NaslValu
 fn nasl_ssh_disconnect<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_disconnect",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
-    }
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
+    };
 
     match &positional[0] {
-        NaslValue::Number(x) => nasl_ssh::disconnect(*x as i32, ctx),
-        _ => Err(FunctionError::new(
-            "nasl_ssh_disconnect",
-            FunctionErrorKind::WrongArgument(("Invalid Session ID").to_string()),
+        NaslValue::Number(session_id) => ctx.sessions().disconnect_ssh_session(*session_id as i32),
+        _ => Err(FunctionErrorKind::WrongArgument(
+            ("Invalid Session ID").to_string(),
         )),
     }
 }
@@ -133,23 +131,19 @@ fn nasl_ssh_disconnect<K>(
 fn nasl_ssh_session_id_from_sock<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_session_if_from_sock",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     match &positional[0] {
-        NaslValue::Number(x) => nasl_ssh::session_id_from_sock(*x as i32, ctx),
-        _ => Err(FunctionError::new(
-            "nasl_ssh_session_id_from_sock",
-            FunctionErrorKind::WrongArgument(("Invalid socket FD").to_string()),
+        NaslValue::Number(x) => ctx.sessions().session_id_from_sock(*x as i32),
+        _ => Err(FunctionErrorKind::WrongArgument(
+            ("Invalid socket FD").to_string(),
         )),
     }
 }
@@ -163,23 +157,22 @@ fn nasl_ssh_session_id_from_sock<K>(
 /// - An SSH session id.
 ///  
 /// return An integer representing the socket or -1 on error.
-fn nasl_ssh_get_sock<K>(register: &Register, ctx: &Context<K>) -> Result<NaslValue, FunctionError> {
+fn nasl_ssh_get_sock<K>(
+    register: &Register,
+    ctx: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_get_sock",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     match &positional[0] {
-        NaslValue::Number(x) => nasl_ssh::get_sock(*x as i32, ctx),
-        _ => Err(FunctionError::new(
-            "nasl_ssh_get_sock",
-            FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+        NaslValue::Number(x) => ctx.sessions().get_sock(*x as i32),
+        _ => Err(FunctionErrorKind::WrongArgument(
+            ("Invalid session ID").to_string(),
         )),
     }
 }
@@ -205,39 +198,30 @@ fn nasl_ssh_get_sock<K>(register: &Register, ctx: &Context<K>) -> Result<NaslVal
 fn nasl_ssh_set_login<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_set_login",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
-    let sid = match &positional[0] {
+    let session_id = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_set_login",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
     let login = match register.named("login") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_set_login",
-                FunctionErrorKind::from("login"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("login")),
     };
 
-    nasl_ssh::set_login(sid, login, ctx)
+    ctx.sessions().set_ssh_login(session_id, login)
 }
 
 /// Authenticate a user on an ssh connection
@@ -288,36 +272,30 @@ fn nasl_ssh_set_login<K>(
 /// - passphrase: A string with the passphrase used to unprotect privatekey.
 ///  
 /// return An integer as status value; 0 indicates success.
-fn nasl_ssh_userauth<K>(register: &Register, ctx: &Context<K>) -> Result<NaslValue, FunctionError> {
+fn nasl_ssh_userauth<K>(
+    register: &Register,
+    ctx: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_userauth",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_userauth",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
     let login = match register.named("login") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_userauth",
-                FunctionErrorKind::from("login"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("login")),
     };
 
     let password = match register.named("password") {
@@ -338,7 +316,8 @@ fn nasl_ssh_userauth<K>(register: &Register, ctx: &Context<K>) -> Result<NaslVal
         //TODO: Get values from KB
     }
 
-    nasl_ssh::userauth(sid, login, &password, &privatekey, &passphrase, ctx)
+    ctx.sessions()
+        .set_ssh_userauth(sid, login, &password, &privatekey, &passphrase)
 }
 
 /// Run a command via ssh.
@@ -387,59 +366,40 @@ fn nasl_ssh_userauth<K>(register: &Register, ctx: &Context<K>) -> Result<NaslVal
 fn nasl_ssh_request_exec<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_request_exec",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_request_exec",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
     let cmd = match register.named("cmd") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_request_exec",
-                FunctionErrorKind::from("cmd"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("cmd")),
     };
 
     let stdout = match register.named("stdout ") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_request_exec",
-                FunctionErrorKind::from("stdout"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("stdout")),
     };
 
     let stderr = match register.named("stderr") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_request_exec",
-                FunctionErrorKind::from("stderr"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("stderr")),
     };
 
-    nasl_ssh::request_exec(sid, cmd, stdout, stderr, ctx)
+    ctx.sessions().request_exec(sid, cmd, stdout, stderr)
 }
 
 /// Request an ssh shell.
@@ -456,24 +416,20 @@ fn nasl_ssh_request_exec<K>(
 fn nasl_ssh_shell_open<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_shell_open",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_shell_open",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
@@ -483,7 +439,7 @@ fn nasl_ssh_shell_open<K>(
         _ => false,
     };
 
-    nasl_ssh::shell_open(sid, pty, ctx)
+    ctx.sessions().shell_open(sid, pty)
 }
 
 /// Read the output of an ssh shell.
@@ -498,24 +454,20 @@ fn nasl_ssh_shell_open<K>(
 fn nasl_ssh_shell_read<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_shell_read",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_shell_read",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
@@ -525,7 +477,7 @@ fn nasl_ssh_shell_read<K>(
         _ => Duration::from_secs(0),
     };
 
-    nasl_ssh::shell_read(sid, timeout, ctx)
+    ctx.sessions().shell_read(sid, timeout)
 }
 
 /// Write string to ssh shell.
@@ -541,39 +493,30 @@ fn nasl_ssh_shell_read<K>(
 fn nasl_ssh_shell_write<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_shell_write",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_shell_write",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
     let cmd = match register.named("cmd") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_shell_write",
-                FunctionErrorKind::from("cmd"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("cmd")),
     };
 
-    nasl_ssh::shell_write(sid, cmd, ctx)
+    ctx.sessions().shell_write(sid, cmd)
 }
 
 /// Close an ssh shell.
@@ -583,29 +526,25 @@ fn nasl_ssh_shell_write<K>(
 fn nasl_ssh_shell_close<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_shell_close",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_shell_close",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
-    nasl_ssh::shell_close(sid, ctx)
+    ctx.sessions().shell_close(sid)
 }
 /// Authenticate a user on an ssh connection
 ///  
@@ -627,39 +566,30 @@ fn nasl_ssh_shell_close<K>(
 fn nasl_ssh_login_interactive<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_login_interactive",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_login_interactive",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
     let login = match register.named("login") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_login_interactive",
-                FunctionErrorKind::from("login"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("login")),
     };
 
-    nasl_ssh::login_interactive(sid, login, ctx)
+    ctx.sessions().login_interactive(sid, login)
 }
 
 /// Authenticate a user on an ssh connection
@@ -684,38 +614,29 @@ fn nasl_ssh_login_interactive<K>(
 fn nasl_ssh_login_interactive_pass<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_login_interactive_pass",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_login_interactive_pass",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
 
     let pass = match register.named("pass") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_login_interactive_pass",
-                FunctionErrorKind::from("pass"),
-            ))
-        }
+        _ => return Err(FunctionErrorKind::from("pass")),
     };
-    nasl_ssh::login_interactive_pass(sid, pass, ctx)
+    ctx.sessions().login_interactive_pass(sid, pass)
 }
 
 /// Get the issue banner
@@ -732,28 +653,24 @@ fn nasl_ssh_login_interactive_pass<K>(
 fn nasl_ssh_get_issue_banner<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_get_issue_banner",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_get_issue_banner",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
-    nasl_ssh::get_issue_banner(sid, ctx)
+    ctx.sessions().get_issue_banner(sid)
 }
 
 /// Get the server banner
@@ -769,28 +686,24 @@ fn nasl_ssh_get_issue_banner<K>(
 fn nasl_ssh_get_server_banner<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_get_server_banner",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_get_server_banner",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
-    nasl_ssh::get_server_banner(sid, ctx)
+    ctx.sessions().get_server_banner(sid)
 }
 
 /// Get the list of authmethods
@@ -808,28 +721,24 @@ fn nasl_ssh_get_server_banner<K>(
 fn nasl_ssh_get_auth_methods<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_get_auth_methods",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_get_auth_methods",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
-    nasl_ssh::get_auth_methods(sid, ctx)
+    ctx.sessions().get_auth_methods(sid)
 }
 
 /// Get the host key
@@ -844,28 +753,24 @@ fn nasl_ssh_get_auth_methods<K>(
 fn nasl_ssh_get_host_key<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_get_server_banner",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_get_server_banner",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
-    nasl_ssh::get_host_key(sid, ctx)
+    ctx.sessions().get_host_key(sid)
 }
 
 /// Check if the SFTP subsystem is enabled on the remote SSH server.
@@ -880,28 +785,24 @@ fn nasl_ssh_get_host_key<K>(
 fn nasl_sftp_enabled_check<K>(
     register: &Register,
     ctx: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "nasl_ssh_get_server_banner",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 0,
+            got: 1,
+        });
     }
 
     let sid = match &positional[0] {
         NaslValue::Number(x) => *x as i32,
         _ => {
-            return Err(FunctionError::new(
-                "nasl_ssh_get_server_banner",
-                FunctionErrorKind::WrongArgument(("Invalid session ID").to_string()),
+            return Err(FunctionErrorKind::WrongArgument(
+                ("Invalid session ID").to_string(),
             ))
         }
     };
-    nasl_ssh::sftp_enabled_check(sid, ctx)
+    ctx.sessions().sftp_enabled_check(sid)
 }
 
 /// Returns found function for key or None when not found
