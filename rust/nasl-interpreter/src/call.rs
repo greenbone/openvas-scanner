@@ -5,7 +5,10 @@
 use nasl_syntax::{Statement, Statement::*, Token};
 
 use crate::{
-    error::InterpretError, interpreter::InterpretResult, lookup, lookup_keys::FC_ANON_ARGS,
+    error::{FunctionError, InterpretError},
+    interpreter::InterpretResult,
+    lookup,
+    lookup_keys::FC_ANON_ARGS,
     ContextType, Interpreter, NaslValue,
 };
 use std::collections::HashMap;
@@ -45,7 +48,8 @@ where
         self.registrat.create_root_child(named);
         let result = match lookup(name) {
             // Built-In Function
-            Some(function) => function(self.registrat, self.ctxconfigs).map_err(|x| x.into()),
+            Some(function) => function(self.registrat, self.ctxconfigs)
+                .map_err(|x| FunctionError::new(name, x).into()),
             // Check for user defined function
             None => {
                 let found = self

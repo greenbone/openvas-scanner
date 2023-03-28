@@ -5,27 +5,21 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use storage::{Field, Kb, Retrieve};
 
-use crate::{
-    error::{FunctionError, FunctionErrorKind},
-    Context, NaslFunction, NaslValue, Register,
-};
+use crate::{error::FunctionErrorKind, Context, NaslFunction, NaslValue, Register};
 
 use super::get_named_parameter;
 
 /// NASL function to set a knowledge base
-fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionError> {
-    let name = get_named_parameter("set_kb_item", register, "name", true)?;
-    let value = get_named_parameter("set_kb_item", register, "value", true)?;
-    let expires = match get_named_parameter("set_kb_item", register, "expires", false) {
+fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+    let name = get_named_parameter(register, "name", true)?;
+    let value = get_named_parameter(register, "value", true)?;
+    let expires = match get_named_parameter(register, "expires", false) {
         Ok(NaslValue::Number(x)) => Some(*x),
         Ok(NaslValue::Exit(0)) => None,
         Ok(x) => {
-            return Err(FunctionError::new(
-                "set_kb_item",
-                FunctionErrorKind::Diagnostic(
-                    format!("expected expires to be a number but is {x}."),
-                    None,
-                ),
+            return Err(FunctionErrorKind::Diagnostic(
+                format!("expected expires to be a number but is {x}."),
+                None,
             ))
         }
         Err(e) => return Err(e),
@@ -47,11 +41,11 @@ fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
             }),
         )
         .map(|_| NaslValue::Null)
-        .map_err(|e| FunctionError::new("set_kb_item", e.into()))
+        .map_err(|e| e.into())
 }
 
 /// NASL function to get a knowledge base
-fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionError> {
+fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     match register.positional() {
         [x] => c
             .retriever()
@@ -66,16 +60,10 @@ fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
                 Some(x) => x.into(),
                 None => NaslValue::Null,
             })
-            .map_err(|e| FunctionError {
-                function: "get_kb_item".to_owned(),
-                kind: e.into(),
-            }),
-        x => Err(FunctionError::new(
-            "get_kb_item",
-            FunctionErrorKind::Diagnostic(
-                format!("expected one positional argument but got: {}", x.len()),
-                None,
-            ),
+            .map_err(|e| e.into()),
+        x => Err(FunctionErrorKind::Diagnostic(
+            format!("expected one positional argument but got: {}", x.len()),
+            None,
         )),
     }
 }

@@ -5,14 +5,14 @@
 use std::str;
 
 use crate::{
-    error::FunctionError, lookup_keys::TARGET, Context, NaslFunction, NaslValue, Register,
+    error::FunctionErrorKind, lookup_keys::TARGET, Context, NaslFunction, NaslValue, Register,
 };
 
 /// Resolves IP address of target to hostname
 ///
 /// It does lookup TARGET and when not found falls back to 127.0.0.1 to resolve.
 /// If the TARGET is not a IP address than we assume that it already is a fqdn or a hostname and will return that instead.
-fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
+fn resolve_hostname(register: &Register) -> Result<String, FunctionErrorKind> {
     use std::net::ToSocketAddrs;
 
     let default_ip = "127.0.0.1";
@@ -36,7 +36,10 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionError> {
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_names<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn get_host_names<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -44,7 +47,10 @@ pub fn get_host_names<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-pub fn get_host_name<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn get_host_name<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     resolve_hostname(register).map(NaslValue::String)
 }
 

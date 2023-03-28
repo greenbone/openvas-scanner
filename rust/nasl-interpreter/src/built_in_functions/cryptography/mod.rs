@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use crate::{
-    error::{FunctionError, FunctionErrorKind::GeneralError},
+    error::FunctionErrorKind::{self, GeneralError},
     ContextType, NaslFunction, NaslValue, Register,
 };
 
@@ -37,18 +37,14 @@ fn get_named_data<'a>(
     register: &'a Register,
     key: &'a str,
     required: bool,
-    function: &str,
-) -> Result<Option<&'a [u8]>, FunctionError> {
+) -> Result<Option<&'a [u8]>, FunctionErrorKind> {
     match register.named(key) {
         Some(ContextType::Value(NaslValue::Data(x))) => Ok(Some(x.as_slice())),
         Some(ContextType::Value(NaslValue::String(x))) => Ok(Some(x.as_bytes())),
-        Some(x) => Err(FunctionError::new(
-            function,
-            (key, "a String or Data Value", format!("{:?}", x).as_str()).into(),
-        )),
+        Some(x) => Err((key, "a String or Data Value", format!("{:?}", x).as_str()).into()),
         _ => {
             if required {
-                Err(FunctionError::new(function, (key).into()))
+                Err((key).into())
             } else {
                 Ok(None)
             }
@@ -64,17 +60,13 @@ fn get_named_number(
     register: &Register,
     key: &str,
     required: bool,
-    function: &str,
-) -> Result<Option<i64>, FunctionError> {
+) -> Result<Option<i64>, FunctionErrorKind> {
     match register.named(key) {
         Some(ContextType::Value(NaslValue::Number(x))) => Ok(Some(*x)),
-        Some(x) => Err(FunctionError::new(
-            function,
-            (key, "a Number Value", format!("{:?}", x).as_str()).into(),
-        )),
+        Some(x) => Err((key, "a Number Value", format!("{:?}", x).as_str()).into()),
         _ => {
             if required {
-                Err(FunctionError::new(function, (key).into()))
+                Err((key).into())
             } else {
                 Ok(None)
             }
@@ -83,36 +75,33 @@ fn get_named_number(
 }
 
 /// Get the required key argument or error.
-fn get_key<'a>(register: &'a Register, function: &str) -> Result<&'a [u8], FunctionError> {
-    Ok(get_named_data(register, "key", true, function)?.unwrap())
+fn get_key(register: &Register) -> Result<&[u8], FunctionErrorKind> {
+    Ok(get_named_data(register, "key", true)?.unwrap())
 }
 
 /// Get the required data argument or error.
-fn get_data<'a>(register: &'a Register, function: &str) -> Result<&'a [u8], FunctionError> {
-    Ok(get_named_data(register, "data", true, function)?.unwrap())
+fn get_data(register: &Register) -> Result<&[u8], FunctionErrorKind> {
+    Ok(get_named_data(register, "data", true)?.unwrap())
 }
 
 /// Get the required iv argument or error.
-fn get_iv<'a>(register: &'a Register, function: &str) -> Result<&'a [u8], FunctionError> {
-    Ok(get_named_data(register, "iv", true, function)?.unwrap())
+fn get_iv(register: &Register) -> Result<&[u8], FunctionErrorKind> {
+    Ok(get_named_data(register, "iv", true)?.unwrap())
 }
 
 /// Get the optional len argument with proper error handling.
-fn get_len(register: &Register, function: &str) -> Result<Option<usize>, FunctionError> {
-    let buf = get_named_number(register, "len", false, function)?;
+fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
+    let buf = get_named_number(register, "len", false)?;
     match buf {
         None => Ok(None),
         Some(x) => match x.try_into() {
             Ok(y) => Ok(Some(y)),
-            Err(_) => Err(FunctionError::new(
-                function,
-                GeneralError(format!(
-                    "System only supports numbers between {:?} and {:?} but was {:?}",
-                    usize::MIN,
-                    usize::MAX,
-                    x
-                )),
-            )),
+            Err(_) => Err(GeneralError(format!(
+                "System only supports numbers between {:?} and {:?} but was {:?}",
+                usize::MIN,
+                usize::MAX,
+                x
+            ))),
         },
     }
 }

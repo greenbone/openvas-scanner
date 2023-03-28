@@ -9,7 +9,7 @@
 
 use std::collections::HashMap;
 
-use crate::{error::FunctionError, Context, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionErrorKind, Context, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
 
@@ -18,7 +18,7 @@ use super::resolve_positional_arguments;
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-pub fn make_array<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn make_array<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
@@ -30,37 +30,34 @@ pub fn make_array<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, F
 }
 
 /// NASL function to create a list out of a number of unnamed arguments
-fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionError> {
+fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionErrorKind> {
     let arr = resolve_positional_arguments(register);
     let mut values = Vec::<NaslValue>::new();
     for val in arr.iter() {
         match val {
             NaslValue::Dict(x) => values.extend(x.values().cloned().collect::<Vec<NaslValue>>()),
             NaslValue::Array(x) => values.extend(x.clone()),
-            NaslValue::Null => println!(
-                "{:?}",
-                FunctionError::new("make_list", ("0", "NaslValue").into())
-            ),
+            NaslValue::Null => {}
             x => values.push(x.clone()),
         }
     }
     Ok(values)
 }
 /// NASL function to create a list out of a number of unnamed arguments
-pub fn make_list<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn make_list<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let values = nasl_make_list(register)?;
     Ok(NaslValue::Array(values))
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-pub fn nasl_sort<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn nasl_sort<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let mut values = nasl_make_list(register)?;
     values.sort();
     Ok(NaslValue::Array(values))
 }
 
 /// Returns an array with the keys of a dict
-pub fn keys<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn keys<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
     let mut keys = Vec::<NaslValue>::new();
     for val in positional.iter() {
@@ -75,7 +72,7 @@ pub fn keys<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functio
 }
 
 /// NASL function to return the length of an array|dict.
-pub fn max_index<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn max_index<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);

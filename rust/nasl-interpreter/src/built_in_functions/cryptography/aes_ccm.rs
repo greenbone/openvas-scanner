@@ -11,7 +11,7 @@ use ccm::{
 };
 use digest::generic_array::ArrayLength;
 
-use crate::{error::FunctionError, Context, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionErrorKind, Context, NaslFunction, NaslValue, Register};
 
 use super::{get_data, get_iv, get_key, get_len, Crypt};
 
@@ -35,24 +35,23 @@ where
 }
 
 /// Base function for ccm en- and decryption. Sets the tag length to 16.
-fn ccm<D>(register: &Register, crypt: Crypt, function: &str) -> Result<NaslValue, FunctionError>
+fn ccm<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FunctionErrorKind>
 where
     D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit,
 {
     // Get parameters
-    let key = get_key(register, function)?;
-    let data = get_data(register, function)?;
-    let nonce = get_iv(register, function)?;
-    let tag_size = get_len(register, function)?.unwrap_or(16);
+    let key = get_key(register)?;
+    let data = get_data(register)?;
+    let nonce = get_iv(register)?;
+    let tag_size = get_len(register)?.unwrap_or(16);
     // Switch mode dependent on iv length
-    let res = ccm_typed::<D>(tag_size, nonce.len(), crypt, key, nonce, data, function)?;
+    let res = ccm_typed::<D>(tag_size, nonce.len(), crypt, key, nonce, data)?;
 
     // Error handling
     match res {
         Ok(x) => Ok(NaslValue::Data(x)),
-        Err(_) => Err(FunctionError::new(
-            function,
-            crate::error::FunctionErrorKind::GeneralError("unable to en-/decrypt data".to_string()),
+        Err(_) => Err(crate::error::FunctionErrorKind::GeneralError(
+            "unable to en-/decrypt data".to_string(),
         )),
     }
 }
@@ -64,8 +63,11 @@ where
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ccm::<Aes128>(register, Crypt::Encrypt, "aes128_ccm_encrypt")
+fn aes128_ccm_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ccm::<Aes128>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt aes256 ccm encrypted data. The tag size is set to 16.
@@ -75,8 +77,11 @@ fn aes128_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ccm::<Aes128>(register, Crypt::Decrypt, "aes128_ccm_decrypt")
+fn aes128_ccm_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ccm::<Aes128>(register, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes256 ccm. The tag size is set to 16.
@@ -86,8 +91,11 @@ fn aes128_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ccm::<Aes192>(register, Crypt::Encrypt, "aes192_ccm_encrypt")
+fn aes192_ccm_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ccm::<Aes192>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt aes256 ccm encrypted data. The tag size is set to 16.
@@ -97,8 +105,11 @@ fn aes192_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ccm::<Aes192>(register, Crypt::Decrypt, "aes192_ccm_decrypt")
+fn aes192_ccm_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ccm::<Aes192>(register, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes256 ccm. The tag size is set to 16.
@@ -108,8 +119,11 @@ fn aes192_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ccm::<Aes256>(register, Crypt::Encrypt, "aes256_ccm_encrypt")
+fn aes256_ccm_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ccm::<Aes256>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt aes256 ccm encrypted data. The tag size is set to 16.
@@ -119,8 +133,11 @@ fn aes256_ccm_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ccm::<Aes256>(register, Crypt::Decrypt, "aes256_ccm_decrypt")
+fn aes256_ccm_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ccm::<Aes256>(register, Crypt::Decrypt)
 }
 
 pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
@@ -137,7 +154,7 @@ pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
 
 macro_rules! ccm_call_typed {
     ($(($t1s: expr, $t1: ty) => $(($t2s: expr, $t2: ty)),*);*) => {
-        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8], function: &str) -> Result<Result<Vec<u8>, aError>, FunctionError>
+        fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8]) -> Result<Result<Vec<u8>, aError>, FunctionErrorKind>
         where D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit
         {
             match tag_size {
@@ -149,11 +166,11 @@ macro_rules! ccm_call_typed {
                                     Ok(ccm_crypt::<D, $t1, $t2>(crypt, key, nonce, data))
                                 }
                             ),*
-                            other => Err(FunctionError::new(function, ("iv", "between 7 and 13", other.to_string().as_str()).into()))
+                            other => Err(("iv must be between 7 and 13", other.to_string().as_str()).into())
                         }
                     }
                 ),*
-                other => Err(FunctionError::new(function, ("tag_size", "4, 6, 8, 10, 12, 14 or 16", other.to_string().as_str()).into()))
+                other => Err(("tag_size must be 4, 6, 8, 10, 12, 14 or 16", other.to_string().as_str()).into())
             }
          }
      }

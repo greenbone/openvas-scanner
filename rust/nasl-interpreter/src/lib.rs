@@ -7,7 +7,6 @@
 mod built_in_functions;
 mod error;
 mod naslvalue;
-use error::FunctionError;
 
 mod assign;
 mod call;
@@ -26,6 +25,7 @@ pub use context::Context;
 pub use context::ContextType;
 pub use context::DefaultContext;
 pub use context::Register;
+use error::FunctionErrorKind;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
@@ -35,7 +35,8 @@ pub use naslvalue::NaslValue;
 
 // Is a type definition for built-in functions
 pub(crate) type NaslFunction<'a, K> =
-    fn(&Register, &Context<K>) -> Result<NaslValue, FunctionError>;
+    fn(&Register, &Context<K>) -> Result<NaslValue, FunctionErrorKind>;
+
 pub(crate) fn lookup<K>(function_name: &str) -> Option<NaslFunction<K>>
 where
     K: AsRef<str>,

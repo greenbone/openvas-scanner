@@ -103,6 +103,12 @@ impl From<io::ErrorKind> for FunctionErrorKind {
     }
 }
 
+impl From<io::Error> for FunctionErrorKind {
+    fn from(e: io::Error) -> Self {
+        Self::IOError(e.kind())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionError {
     pub function: String,
@@ -115,20 +121,6 @@ impl FunctionError {
             function: function.to_owned(),
             kind,
         }
-    }
-}
-
-impl From<StorageError> for FunctionError {
-    // TODO remove
-    fn from(e: StorageError) -> Self {
-        Self::new("", e.into())
-    }
-}
-
-// TODO remove
-impl From<Infallible> for FunctionError {
-    fn from(e: Infallible) -> Self {
-        Self::new("", e.into())
     }
 }
 

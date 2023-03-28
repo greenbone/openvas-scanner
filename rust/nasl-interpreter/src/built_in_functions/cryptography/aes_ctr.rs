@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::Context;
+use crate::{error::FunctionErrorKind, Context};
 use aes::{
     cipher::{
         BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyIvInit, StreamCipher,
@@ -12,11 +12,11 @@ use aes::{
 };
 use digest::typenum::U16;
 
-use crate::{error::FunctionError, NaslFunction, NaslValue, Register};
+use crate::{NaslFunction, NaslValue, Register};
 
 use super::{get_data, get_iv, get_key, get_len, Crypt};
 
-fn ctr<D>(register: &Register, crypt: Crypt, function: &str) -> Result<NaslValue, FunctionError>
+fn ctr<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FunctionErrorKind>
 where
     D: BlockSizeUser<BlockSize = U16>
         + aes::cipher::KeyInit
@@ -25,11 +25,11 @@ where
         + BlockDecrypt,
 {
     // Get data
-    let key = get_key(register, function)?;
-    let data = get_data(register, function)?;
+    let key = get_key(register)?;
+    let data = get_data(register)?;
     let data_len = data.len();
-    let iv = get_iv(register, function)?;
-    let len = match get_len(register, function)? {
+    let iv = get_iv(register)?;
+    let len = match get_len(register)? {
         Some(x) => x,
         None => data_len,
     };
@@ -57,8 +57,11 @@ where
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
-fn aes128_ctr_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ctr::<Aes128>(register, Crypt::Encrypt, "aes128_ctr_encrypt")
+fn aes128_ctr_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ctr::<Aes128>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes128 ctr.
@@ -69,8 +72,11 @@ fn aes128_ctr_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
-fn aes128_ctr_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ctr::<Aes128>(register, Crypt::Decrypt, "aes128_ctr_decrypt")
+fn aes128_ctr_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ctr::<Aes128>(register, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes192 ctr.
@@ -80,8 +86,11 @@ fn aes128_ctr_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
-fn aes192_ctr_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ctr::<Aes192>(register, Crypt::Encrypt, "aes192_ctr_encrypt")
+fn aes192_ctr_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ctr::<Aes192>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes192 ctr.
@@ -92,8 +101,11 @@ fn aes192_ctr_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
-fn aes192_ctr_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ctr::<Aes192>(register, Crypt::Decrypt, "aes192_ctr_decrypt")
+fn aes192_ctr_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ctr::<Aes192>(register, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes256 ctr.
@@ -103,8 +115,11 @@ fn aes192_ctr_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
-fn aes256_ctr_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ctr::<Aes256>(register, Crypt::Encrypt, "aes256_ctr_encrypt")
+fn aes256_ctr_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ctr::<Aes256>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes256 ctr.
@@ -115,8 +130,11 @@ fn aes256_ctr_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
-fn aes256_ctr_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    ctr::<Aes256>(register, Crypt::Decrypt, "aes256_ctr_decrypt")
+fn aes256_ctr_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    ctr::<Aes256>(register, Crypt::Decrypt)
 }
 
 pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {

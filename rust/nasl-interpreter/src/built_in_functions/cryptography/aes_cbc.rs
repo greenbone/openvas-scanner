@@ -12,19 +12,19 @@ use aes::{
 };
 use cbc::{Decryptor, Encryptor};
 
-use crate::{error::FunctionError, Context, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionErrorKind, Context, NaslFunction, NaslValue, Register};
 
 use super::{get_data, get_iv, get_key, get_len, Crypt};
 
 /// Base function for en- and decrypting Cipher Block Chaining (CBC) mode
-fn cbc<D>(register: &Register, crypt: Crypt, function: &str) -> Result<NaslValue, FunctionError>
+fn cbc<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FunctionErrorKind>
 where
     D: BlockCipher + BlockEncrypt + BlockDecrypt + KeyInit,
 {
     // Get Arguments
-    let key = get_key(register, function)?;
-    let data = get_data(register, function)?;
-    let iv = get_iv(register, function)?;
+    let key = get_key(register)?;
+    let data = get_data(register)?;
+    let iv = get_iv(register)?;
 
     // Mode Encrypt or Decrypt
     match crypt {
@@ -32,30 +32,26 @@ where
             let res = Encryptor::<D>::new_from_slices(key, iv);
             match res {
                 Ok(encryptor) => Ok(encryptor.encrypt_padded_vec_mut::<ZeroPadding>(data).into()),
-                Err(e) => Err(FunctionError::new(
-                    function,
-                    crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
+                Err(e) => Err(crate::error::FunctionErrorKind::WrongArgument(
+                    e.to_string(),
                 )),
             }
         }
         Crypt::Decrypt => {
             // length for encrypted data
-            let len = match get_len(register, function)? {
+            let len = match get_len(register)? {
                 Some(x) => x,
                 None => data.len(),
             };
 
             // len should not be more than the length of the data
             if len > data.len() {
-                return Err(FunctionError::new(
-                    function,
-                    (
-                        "len",
-                        format!("<={:?}", data.len()).as_str(),
-                        len.to_string().as_str(),
-                    )
-                        .into(),
-                ));
+                return Err((
+                    "len",
+                    format!("<={:?}", data.len()).as_str(),
+                    len.to_string().as_str(),
+                )
+                    .into());
             }
             let res = Decryptor::<D>::new_from_slices(key, iv);
             match res {
@@ -63,9 +59,8 @@ where
                     [..len]
                     .to_vec()
                     .into()),
-                Err(e) => Err(FunctionError::new(
-                    function,
-                    crate::error::FunctionErrorKind::WrongArgument(e.to_string()),
+                Err(e) => Err(crate::error::FunctionErrorKind::WrongArgument(
+                    e.to_string(),
                 )),
             }
         }
@@ -79,8 +74,11 @@ where
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes128_cbc_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    cbc::<Aes128>(register, Crypt::Encrypt, "aes128_cbc_encrypt")
+fn aes128_cbc_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    cbc::<Aes128>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes128 cbc.
@@ -91,8 +89,11 @@ fn aes128_cbc_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes128_cbc_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    cbc::<Aes128>(register, Crypt::Decrypt, "aes128_cbc_decrypt")
+fn aes128_cbc_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    cbc::<Aes128>(register, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes192 cbc.
@@ -102,8 +103,11 @@ fn aes128_cbc_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes192_cbc_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    cbc::<Aes192>(register, Crypt::Encrypt, "aes192_cbc_encrypt")
+fn aes192_cbc_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    cbc::<Aes192>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes192 cbc.
@@ -114,8 +118,11 @@ fn aes192_cbc_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes192_cbc_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    cbc::<Aes192>(register, Crypt::Decrypt, "aes192_cbc_decrypt")
+fn aes192_cbc_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    cbc::<Aes192>(register, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes256 cbc.
@@ -125,8 +132,11 @@ fn aes192_cbc_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes256_cbc_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    cbc::<Aes256>(register, Crypt::Encrypt, "aes256_cbc_encrypt")
+fn aes256_cbc_encrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    cbc::<Aes256>(register, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes256 cbc.
@@ -137,8 +147,11 @@ fn aes256_cbc_encrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValu
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes256_cbc_decrypt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
-    cbc::<Aes256>(register, Crypt::Decrypt, "aes256_cbc_decrypt")
+fn aes256_cbc_decrypt<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    cbc::<Aes256>(register, Crypt::Decrypt)
 }
 
 pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
