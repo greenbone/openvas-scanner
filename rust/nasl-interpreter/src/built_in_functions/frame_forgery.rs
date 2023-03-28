@@ -15,9 +15,7 @@ use pcap::{Address, Capture, Device};
 
 use crate::lookup_keys::TARGET;
 use crate::{
-    context::Context,
-    error::{FunctionError, FunctionErrorKind},
-    ContextType, NaslFunction, NaslValue, Register,
+    context::Context, error::FunctionErrorKind, ContextType, NaslFunction, NaslValue, Register,
 };
 
 /// Hardware type ethernet
@@ -105,14 +103,11 @@ impl From<&Frame> for Vec<u8> {
 }
 
 impl TryFrom<&[u8]> for Frame {
-    type Error = FunctionError;
+    type Error = FunctionErrorKind;
 
     fn try_from(f: &[u8]) -> Result<Self, Self::Error> {
         if f.len() < 14 {
-            Err(FunctionError::new(
-                "get_local_mac_address_from_ip",
-                ("valid ip address").into(),
-            ))
+            Err(("valid ip address").into())
         } else {
             let mut frame = Frame::new();
             frame.set_dsthaddr(MacAddr(f[0], f[1], f[2], f[3], f[4], f[5]));
@@ -267,37 +262,25 @@ fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -
     frame.into()
 }
 
-fn convert_vec_into_mac_address(v: &Vec<u8>) -> Result<MacAddr, FunctionError> {
+fn convert_vec_into_mac_address(v: &Vec<u8>) -> Result<MacAddr, FunctionErrorKind> {
     if v.len() != 6 {
-        Err(FunctionError::new(
-            "MacAddress converter",
-            ("Invalid mac address").into(),
-        ))
+        Err(("Invalid mac address").into())
     } else {
         Ok(MacAddr::from([v[0], v[1], v[2], v[3], v[4], v[5]]))
     }
 }
 
-fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionError> {
+fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErrorKind> {
     match v {
         Some(ContextType::Value(NaslValue::String(x))) => match MacAddr::from_str(x) {
             Ok(macaddr) => Ok(macaddr),
-            Err(_) => Err(FunctionError::new(
-                "forge_frame",
-                ("mac address", "invalid mac address").into(),
-            )),
+            Err(_) => Err(("mac address", "invalid mac address").into()),
         },
         Some(ContextType::Value(NaslValue::Data(x))) => match convert_vec_into_mac_address(x) {
             Ok(macaddr) => Ok(macaddr),
-            Err(_) => Err(FunctionError::new(
-                "forge_frame",
-                ("mac address", "invalid mac address").into(),
-            )),
+            Err(_) => Err(("mac address", "invalid mac address").into()),
         },
-        _ => Err(FunctionError::new(
-            "forge_frame",
-            ("mac address", "invalid mac address").into(),
-        )),
+        _ => Err(("mac address", "invalid mac address").into()),
     }
 }
 
@@ -310,7 +293,7 @@ fn get_local_mac_address(name: &str) -> Option<MacAddr> {
 }
 
 /// Get the interface from the local ip
-fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionError> {
+fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionErrorKind> {
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
     // doesn't have an associated address.
@@ -341,17 +324,17 @@ fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionEr
 
     match dev {
         Some(dev) => Ok(dev),
-        _ => Err(FunctionError::new(
-            "get_local_mac_address_from_ip",
-            FunctionErrorKind::Diagnostic("Invalid ip address".to_string(), None),
+        _ => Err(FunctionErrorKind::Diagnostic(
+            "Invalid ip address".to_string(),
+            None,
         )),
     }
 }
 
-fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
-    let fe = Err(FunctionError::new(
-        "get_source_ip",
-        FunctionErrorKind::Diagnostic("Error binding".to_string(), None),
+fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
+    let fe = Err(FunctionErrorKind::Diagnostic(
+        "Error binding".to_string(),
+        None,
     ));
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
@@ -360,7 +343,7 @@ fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionError> {
 }
 
 /// Return the source IP address given the destination IP address
-fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionError> {
+fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;
@@ -368,26 +351,26 @@ fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionError> {
         Ok(_) => match local_socket.local_addr() {
             Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
                 Ok(x) => Ok(x),
-                Err(_) => Err(FunctionError::new(
-                    "get_source_ip",
-                    FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+                Err(_) => Err(FunctionErrorKind::Diagnostic(
+                    "No route to destination".to_string(),
+                    None,
                 )),
             },
-            Err(_) => Err(FunctionError::new(
-                "get_source_ip",
-                FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+            Err(_) => Err(FunctionErrorKind::Diagnostic(
+                "No route to destination".to_string(),
+                None,
             )),
         },
-        Err(_) => Err(FunctionError::new(
-            "get_source_ip",
-            FunctionErrorKind::Diagnostic("No route to destination".to_string(), None),
+        Err(_) => Err(FunctionErrorKind::Diagnostic(
+            "No route to destination".to_string(),
+            None,
         )),
     }
 }
 
 /// Return a frame given a capture device and a filter. It returns an empty frame in case
 /// there was no response or anything was filtered.
-fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, FunctionError> {
+fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, FunctionErrorKind> {
     let f = Frame::new();
 
     let p = match cap.filter(filter, true) {
@@ -407,7 +390,7 @@ fn send_frame(
     pcap_active: &bool,
     filter: Option<&String>,
     timeout: i32,
-) -> Result<Option<Frame>, FunctionError> {
+) -> Result<Option<Frame>, FunctionErrorKind> {
     let mut capture_dev = match Capture::from_device(iface.clone()) {
         Ok(c) => match c.promisc(true).timeout(10).snaplen(timeout).open() {
             Ok(mut capture) => match capture.sendpacket(frame) {
@@ -436,18 +419,18 @@ fn send_frame(
     }
 }
 
-fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionError> {
+fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(FunctionError::new(
-            "ipstr2ipaddr",
-            FunctionErrorKind::Diagnostic("Invalid IP address".to_string(), Some(NaslValue::Null)),
+        Err(_) => Err(FunctionErrorKind::Diagnostic(
+            "Invalid IP address".to_string(),
+            Some(NaslValue::Null),
         )),
     }
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
-fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionError> {
+fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionErrorKind> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = register.named(TARGET).map_or_else(
         || IpAddr::from_str(default_ip),
@@ -459,10 +442,7 @@ fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionError> {
 
     match r_sock_addr {
         Ok(x) => Ok(x),
-        Err(e) => Err(FunctionError::new(
-            "get_host_ip",
-            ("IP address", e.to_string().as_str()).into(),
-        )),
+        Err(e) => Err(("IP address", e.to_string().as_str()).into()),
     }
 }
 
@@ -473,55 +453,32 @@ fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionError> {
 fn nasl_send_arp_request<K>(
     register: &Register,
     _: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let timeout = match register.named("filter") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
-        _ => {
-            return Err(FunctionError::new(
-                "send_frame",
-                ("Integer", "Invalid timeout value").into(),
-            ))
-        }
+        _ => return Err(("Integer", "Invalid timeout value").into()),
     };
 
     let target_ip = get_host_ip(register)?;
     if target_ip.is_ipv6() {
-        return Err(FunctionError::new(
-            "send_arp_request",
-            ("IPv4", "IPv6 does not support ARP protocol.").into(),
-        ));
+        return Err(("IPv4", "IPv6 does not support ARP protocol.").into());
     }
     let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
     let local_mac_address = match get_local_mac_address(&iface.name) {
         Some(x) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "send_arp_request",
-                ("No possible to get a src mac address.").into(),
-            ))
-        }
+        _ => return Err(("No possible to get a src mac address.").into()),
     };
 
     let src_ip = match Ipv4Addr::from_str(&local_ip.to_string()) {
         Ok(x) => x,
-        Err(_) => {
-            return Err(FunctionError::new(
-                "send_arp_request",
-                ("No possible to parse the src IP address.").into(),
-            ))
-        }
+        Err(_) => return Err(("No possible to parse the src IP address.").into()),
     };
 
     let dst_ip = match Ipv4Addr::from_str(&target_ip.to_string()) {
         Ok(x) => x,
-        Err(_) => {
-            return Err(FunctionError::new(
-                "send_arp_request",
-                ("No possible to parse the dst IP address.").into(),
-            ))
-        }
+        Err(_) => return Err(("No possible to parse the dst IP address.").into()),
     };
 
     let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
@@ -539,7 +496,7 @@ fn nasl_send_arp_request<K>(
 fn nasl_get_local_mac_address_from_ip<K>(
     register: &Register,
     _: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -554,9 +511,8 @@ fn nasl_get_local_mac_address_from_ip<K>(
                 _ => Ok(NaslValue::Null),
             }
         }
-        _ => Err(FunctionError::new(
-            "get_local_mac_address_from_ip",
-            FunctionErrorKind::WrongArgument("valid ip address".to_string()),
+        _ => Err(FunctionErrorKind::WrongArgument(
+            "valid ip address".to_string(),
         )),
     }
 }
@@ -566,7 +522,10 @@ fn nasl_get_local_mac_address_from_ip<K>(
 /// - dst_haddr: is a string containing the destination MAC address
 /// -ether_proto: is an int containing the ethernet type (normally given as hexadecimal). It is optional and its default value is 0x0800. A list of Types can be e.g. looked up here.
 /// -payload: is any data, which is then attached as payload to the frame.
-fn nasl_forge_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+fn nasl_forge_frame<K>(
+    register: &Register,
+    _: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     let src_haddr = validate_mac_address(register.named("src_haddr"))?;
     let dst_haddr = validate_mac_address(register.named("dst_haddr"))?;
     let ether_proto = match register.named("ether_proto") {
@@ -594,48 +553,28 @@ fn nasl_forge_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue,
 /// - pcap_active: option to capture the answer, default is TRUE
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
-fn nasl_send_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+fn nasl_send_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
-        _ => {
-            return Err(FunctionError::new(
-                "send_frame",
-                ("Data", "Invalid data type").into(),
-            ))
-        }
+        _ => return Err(("Data", "Invalid data type").into()),
     };
 
     let pcap_active = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => x,
         None => &true,
-        _ => {
-            return Err(FunctionError::new(
-                "send_frame",
-                ("Boolean", "Invalid pcap_active value").into(),
-            ))
-        }
+        _ => return Err(("Boolean", "Invalid pcap_active value").into()),
     };
 
     let filter = match register.named("filter") {
         Some(ContextType::Value(NaslValue::String(x))) => Some(x),
         None => None,
-        _ => {
-            return Err(FunctionError::new(
-                "send_frame",
-                ("String", "Invalid pcap_filter value").into(),
-            ))
-        }
+        _ => return Err(("String", "Invalid pcap_filter value").into()),
     };
 
     let timeout = match register.named("timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => {
-            return Err(FunctionError::new(
-                "send_frame",
-                ("Integer", "Invalid timeout value").into(),
-            ))
-        }
+        _ => return Err(("Integer", "Invalid timeout value").into()),
     };
 
     let target_ip = get_host_ip(register)?;
@@ -656,15 +595,10 @@ fn nasl_send_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, 
 fn nasl_dump_frame<K>(
     register: &Register,
     configs: &Context<K>,
-) -> Result<NaslValue, FunctionError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
-        _ => {
-            return Err(FunctionError::new(
-                "forge_frame",
-                ("Data", "Invalid data type").into(),
-            ))
-        }
+        _ => return Err(("Data", "Invalid data type").into()),
     };
 
     configs.logger().info(format!("Frame:\n{}", frame));

@@ -7,7 +7,7 @@ use std::str::FromStr;
 use crate::{
     context::{Context, Register},
     error::FunctionErrorKind,
-    FunctionError, NaslFunction, NaslValue,
+    NaslFunction, NaslValue,
 };
 
 use storage::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
@@ -26,7 +26,7 @@ use super::get_named_parameter;
 ///}
 /// ````
 /// The first parameter is the name of the function as well as the &str lookup key.
-/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FunctionError>` must be defined.
+/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FunctionErrorKind>` must be defined.
 ///
 /// Parameter are separated from the definition by a `=>`.
 ///
@@ -60,15 +60,14 @@ macro_rules! make_storage_function {
         pub fn $name<K>(
             registrat: &Register,
             ctxconfigs: &Context<K>,
-        ) -> Result<NaslValue, FunctionError> where K: AsRef<str> {
+        ) -> Result<NaslValue, FunctionErrorKind> where K: AsRef<str> {
             let mut variables = vec![];
             $(
             let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
-                return Err(FunctionError::new(
-                    stringify!($name),
-                    FunctionErrorKind::MissingPositionalArguments { expected: $len, got: positional.len() },
-                ));
+                return Err(
+                    FunctionErrorKind::MissingPositionalArguments { expected: $len, got: positional.len() }
+                );
             }
             for p in positional {
                 variables.push(p);
@@ -76,13 +75,13 @@ macro_rules! make_storage_function {
             )?
             $(
             $(
-            let value = get_named_parameter(stringify!($name), registrat, stringify!($value), true)?;
+            let value = get_named_parameter(registrat, stringify!($value), true)?;
             variables.push(value);
             )+
             )?
             $(
             $(
-            let value = get_named_parameter(stringify!($name), registrat, stringify!($optional_value), false)?;
+            let value = get_named_parameter(registrat, stringify!($optional_value), false)?;
             if !matches!(value, &NaslValue::Exit(0)) {
                variables.push(value);
             }
@@ -107,7 +106,7 @@ macro_rules! make_storage_function {
     };
 }
 
-type Transform = Result<Vec<NVTField>, FunctionError>;
+type Transform = Result<Vec<NVTField>, FunctionErrorKind>;
 
 fn as_timeout_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Preference(NvtPreference {
@@ -121,10 +120,7 @@ fn as_timeout_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
 fn as_category_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(vec![NVTField::Category(*cat)]),
-        a => Err(FunctionError::new(
-            "script_category",
-            ("AttackCategory", a).into(),
-        )),
+        a => Err(("AttackCategory", a).into()),
     }
 }
 
@@ -207,10 +203,10 @@ fn as_tag_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
 
 fn as_xref_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() != 2 {
-        return Err(FunctionError::new(
-            "script_xref",
-            FunctionErrorKind::MissingArguments(vec!["name".to_owned(), "csv".to_owned()]),
-        ));
+        return Err(FunctionErrorKind::MissingArguments(vec![
+            "name".to_owned(),
+            "csv".to_owned(),
+        ]));
     }
     Ok(vec![NVTField::Reference(vec![NvtRef {
         class: arguments[1].to_string(),
@@ -220,10 +216,10 @@ fn as_xref_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
 
 fn as_preference<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() < 3 {
-        return Err(FunctionError::new(
-            "script_add_preference",
-            FunctionErrorKind::MissingArguments(vec!["type".to_owned(), "value".to_owned()]),
-        ));
+        return Err(FunctionErrorKind::MissingArguments(vec![
+            "type".to_owned(),
+            "value".to_owned(),
+        ]));
     }
     let name = arguments[0].to_string();
     let class = arguments[1].to_string();

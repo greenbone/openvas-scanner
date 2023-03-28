@@ -14,10 +14,7 @@ use std::{
 
 use chrono::{self, Datelike, Local, LocalResult, Offset, TimeZone, Timelike, Utc};
 
-use crate::{
-    error::{FunctionError, FunctionErrorKind},
-    Context, ContextType, NaslFunction, NaslValue, Register,
-};
+use crate::{error::FunctionErrorKind, Context, ContextType, NaslFunction, NaslValue, Register};
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
@@ -25,35 +22,34 @@ use flate2::{
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
-fn random_impl() -> Result<i64, FunctionError> {
-    let mut rng =
-        File::open("/dev/urandom").map_err(|e| FunctionError::new("randr", e.kind().into()))?;
+fn random_impl() -> Result<i64, FunctionErrorKind> {
+    let mut rng = File::open("/dev/urandom")?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
         .map(|_| i64::from_be_bytes(buffer))
-        .map_err(|e| FunctionError::new("randr", e.kind().into()))
+        .map_err(|e| e.kind().into())
 }
 
 /// NASL function to get random number
-pub fn rand<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn rand<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     random_impl().map(NaslValue::Number)
 }
 
 /// NASL function to get host byte order
-pub fn get_byte_order<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn get_byte_order<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     Ok(NaslValue::Boolean(cfg!(target_endian = "little")))
 }
 
 /// NASL function to convert given number to string
-pub fn dec2str<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn dec2str<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     match register.named("num") {
         Some(ContextType::Value(NaslValue::Number(x))) => Ok(NaslValue::String(x.to_string())),
-        x => Err(FunctionError::new("dec2str", ("0", "numeric", x).into())),
+        x => Err(("0", "numeric", x).into()),
     }
 }
 
 /// takes an integer and sleeps the amount of seconds
-pub fn sleep<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn sleep<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     match positional[0] {
         NaslValue::Number(x) => {
@@ -65,7 +61,7 @@ pub fn sleep<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functi
 }
 
 /// takes an integer and sleeps the amount of microseconds
-pub fn usleep<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn usleep<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     match positional[0] {
         NaslValue::Number(x) => {
@@ -78,7 +74,7 @@ pub fn usleep<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Funct
 
 /// Returns the type of given unnamed argument.
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
-pub fn nasl_typeof<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn nasl_typeof<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -96,16 +92,13 @@ pub fn nasl_typeof<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, 
 }
 
 /// Returns true when the given unnamed argument is null.
-pub fn isnull<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn isnull<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionError::new(
-            "isnull",
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: 1,
-                got: positional.len(),
-            },
-        ));
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 1,
+            got: positional.len(),
+        });
     }
     match positional[0] {
         NaslValue::Null => Ok(NaslValue::Boolean(true)),
@@ -114,19 +107,19 @@ pub fn isnull<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Funct
 }
 
 /// Returns the seconds counted from 1st January 1970 as an integer.
-pub fn unixtime<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn unixtime<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     match std::time::SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(NaslValue::Number(t.as_secs() as i64)),
-        Err(_) => Err(FunctionError::new("unixtime", ("0", "numeric").into())),
+        Err(_) => Err(("0", "numeric").into()),
     }
 }
 
 /// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
-pub fn gzip<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn gzip<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(FunctionError::new("gzip", ("data").into())),
+        _ => return Err(("data").into()),
     };
     let headformat = match register.named("headformat") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
@@ -158,11 +151,11 @@ pub fn gzip<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functio
 }
 
 /// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
-pub fn gunzip<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn gunzip<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(FunctionError::new("gzip", ("data").into())),
+        _ => return Err(("data").into()),
     };
 
     let mut uncompress = ZlibDecoder::new(&data[..]);
@@ -181,7 +174,7 @@ pub fn gunzip<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Funct
     }
 }
 /// Takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
-pub fn mktime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn mktime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let sec = match register.named("sec") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
         _ => 0,
@@ -245,7 +238,7 @@ where
 }
 
 /// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
-pub fn localtime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError> {
+pub fn localtime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let utc_flag = match register.named("utc") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x != 0,
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,

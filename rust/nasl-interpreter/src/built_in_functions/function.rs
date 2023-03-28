@@ -4,7 +4,7 @@
 
 //! Defines various built-in functions for NASL functions.
 
-use crate::{error::FunctionError, Context, ContextType, NaslFunction, NaslValue, Register};
+use crate::{error::FunctionErrorKind, Context, ContextType, NaslFunction, NaslValue, Register};
 
 use super::resolve_positional_arguments;
 
@@ -13,7 +13,7 @@ use super::resolve_positional_arguments;
 /// Uses the first positional argument to verify if a function is defined.
 /// This argument must be a string everything else will return False per default.
 /// Returns NaslValue::Boolean(true) when defined NaslValue::Boolean(false) otherwise.
-pub fn defined_func<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionError>
+pub fn defined_func<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind>
 where
     K: AsRef<str>,
 {
