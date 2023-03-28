@@ -55,8 +55,7 @@ where
             }
             let res = Decryptor::<D>::new_from_slices(key, iv);
             match res {
-                Ok(decryptor) => Ok(decryptor.decrypt_padded_vec_mut::<NoPadding>(data).unwrap()
-                    [..len]
+                Ok(decryptor) => Ok(decryptor.decrypt_padded_vec_mut::<NoPadding>(data)?[..len]
                     .to_vec()
                     .into()),
                 Err(e) => Err(crate::error::FunctionErrorKind::WrongArgument(

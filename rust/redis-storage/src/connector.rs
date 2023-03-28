@@ -388,7 +388,9 @@ where
 
     /// Reset the NVT Cache and release the redis namespace
     pub fn reset(&self) -> RedisStorageResult<()> {
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+        let mut cache = Arc::as_ref(&self.cache)
+            .lock()
+            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
         cache.delete_namespace()
     }
 }
@@ -399,12 +401,12 @@ where
     K: AsRef<str>,
 {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError> {
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+        let mut cache = Arc::as_ref(&self.cache).lock()?;
         cache.redis_add_nvt(nvt).map_err(|e| e.into())
     }
 
     fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError> {
-        let mut cache = Arc::as_ref(&self.cache).lock().unwrap();
+        let mut cache = Arc::as_ref(&self.cache).lock()?;
         cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
     }
 

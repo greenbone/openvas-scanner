@@ -157,8 +157,8 @@ where
                 Ok(value) => {
                     if bool::from(value) {
                         return self.resolve(if_block);
-                    } else if else_block.is_some() {
-                        return self.resolve(else_block.as_ref().unwrap());
+                    } else if let Some(else_block) = else_block {
+                        return self.resolve(else_block.as_ref());
                     }
                     Ok(NaslValue::Null)
                 }

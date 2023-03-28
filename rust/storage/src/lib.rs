@@ -176,10 +176,11 @@ impl<K> DefaultDispatcher<K> {
     }
 
     /// Cleanses stored data.
-    pub fn cleanse(&self) {
-        let mut data = Arc::as_ref(&self.data).lock().unwrap();
+    pub fn cleanse(&self) -> Result<(), StorageError> {
+        let mut data = Arc::as_ref(&self.data).lock()?;
         data.clear();
         data.shrink_to_fit();
+        Ok(())
     }
 }
 
@@ -188,7 +189,7 @@ where
     K: AsRef<str> + Display + Default + From<String>,
 {
     fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.data).lock().unwrap();
+        let mut data = Arc::as_ref(&self.data).lock()?;
         match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
             Some((_, v)) => v.push(scope),
             None => data.push((key.as_ref().to_owned(), vec![scope])),
@@ -198,7 +199,7 @@ where
 
     fn on_exit(&self) -> Result<(), StorageError> {
         if !self.dirty {
-            self.cleanse();
+            self.cleanse()?;
         }
 
         Ok(())
@@ -210,7 +211,7 @@ where
     K: AsRef<str> + Display + Default,
 {
     fn retrieve(&self, key: &K, scope: &Retrieve) -> Result<Vec<Field>, StorageError> {
-        let data = Arc::as_ref(&self.data).lock().unwrap();
+        let data = Arc::as_ref(&self.data).lock()?;
         let skey = key.to_string();
 
         match data.iter().find(|(k, _)| k == &skey) {

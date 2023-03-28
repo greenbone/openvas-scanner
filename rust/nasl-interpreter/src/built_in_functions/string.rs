@@ -242,7 +242,7 @@ fn hexstr_to_data<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, F
 /// The first positional argument must be byte data, all other arguments are ignored. If either the no argument was given or the first positional is not byte data, a error is returned.
 fn data_to_hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     match resolve_positional_arguments(register).get(0) {
-        Some(NaslValue::Data(x)) => Ok(encode_hex(x).into()),
+        Some(NaslValue::Data(x)) => Ok(encode_hex(x)?.into()),
         Some(x) => Err(("first positional argument", "data", x.to_string().as_str()).into()),
         None => Err("0".into()),
     }
