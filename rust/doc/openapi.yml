@@ -503,7 +503,7 @@ components:
           description: "The identifier for a VT"
           type: "string"
         parameters:
-          description: "A list of parameters for the VT"
+          description: "A list of parameters for the VT. In case a VT has parameters but these are not set here, then the defaults will be applied. A default exists for any parameter."
           type: "array"
           items:
             $ref: "#/components/schemas/Parameter"
