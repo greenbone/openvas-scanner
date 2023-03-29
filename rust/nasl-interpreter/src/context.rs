@@ -115,10 +115,11 @@ impl Register {
         self.blocks.len()
     }
 
-    /// Creates a child context
-    pub fn create_child(&mut self, parent: &NaslContext, defined: Named) {
+    /// Creates a child context using the last context as a parent
+    pub fn create_child(&mut self, defined: Named) {
+        let parent_id = self.blocks.last().map(|x| x.id).unwrap_or_default();
         let result = NaslContext {
-            parent: Some(parent.id),
+            parent: Some(parent_id),
             id: self.index(),
             defined,
         };
