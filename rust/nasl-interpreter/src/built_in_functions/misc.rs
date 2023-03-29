@@ -12,7 +12,10 @@ use std::{
     time::{Duration, UNIX_EPOCH},
 };
 
-use chrono::{self, Datelike, Local, LocalResult, Offset, TimeZone, Timelike, Utc};
+use chrono::{
+    self, DateTime, Datelike, FixedOffset, Local, LocalResult, NaiveDateTime, Offset, TimeZone,
+    Timelike, Utc,
+};
 
 use crate::{error::FunctionErrorKind, Context, ContextType, NaslFunction, NaslValue, Register};
 use flate2::{
@@ -256,8 +259,13 @@ pub fn localtime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Fu
             _ => create_localtime_map(Utc::now()),
         },
         (false, 0) => create_localtime_map(Local::now()),
-        (false, secs) => match Local.timestamp_opt(secs, 0) {
-            LocalResult::Single(x) => create_localtime_map(x),
+
+        (false, secs) => match NaiveDateTime::from_timestamp_opt(secs, 0) {
+            Some(dt) => {
+                let offset = chrono::Local::now().offset().fix();
+                let dt: DateTime<FixedOffset> = DateTime::from_utc(dt, offset);
+                create_localtime_map(dt)
+            }
             _ => create_localtime_map(Local::now()),
         },
     };
