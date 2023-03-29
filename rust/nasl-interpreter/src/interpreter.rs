@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::io;
+use std::{collections::HashMap, io};
 
 use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
 use storage::StorageError;
@@ -165,15 +165,25 @@ where
                 Err(err) => Err(err),
             },
             Block(blocks) => {
+                self.registrat.create_child(HashMap::default());
                 for stmt in blocks {
-                    match self.resolve(stmt)? {
-                        NaslValue::Exit(rc) => return Ok(NaslValue::Exit(rc)),
-                        NaslValue::Return(rc) => return Ok(NaslValue::Return(rc)),
-                        NaslValue::Break => return Ok(NaslValue::Break),
-                        NaslValue::Continue => return Ok(NaslValue::Continue),
-                        _ => {}
+                    match self.resolve(stmt) {
+                        Ok(x) => {
+                            if matches!(
+                                x,
+                                NaslValue::Exit(_)
+                                    | NaslValue::Return(_)
+                                    | NaslValue::Break
+                                    | NaslValue::Continue
+                            ) {
+                                self.registrat.drop_last();
+                                return Ok(x);
+                            }
+                        }
+                        Err(e) => return Err(e),
                     }
                 }
+                self.registrat.drop_last();
                 // currently blocks don't return something
                 Ok(NaslValue::Null)
             }
