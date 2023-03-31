@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{convert::Infallible, io};
+use std::{convert::Infallible, fmt::Display, io};
 
 use aes::cipher::block_padding::UnpadError;
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
@@ -11,23 +11,61 @@ use storage::StorageError;
 use crate::{ContextType, LoadError, NaslValue};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Describtive kinds of cryptographic errors
 pub enum CryptErrorKind {
+    /// Unpadding error
     Unpad,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Describtive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
-    MissingPositionalArguments { expected: usize, got: usize },
+    /// Function called with insufficient arguments
+    MissingPositionalArguments {
+        /// Expected amount of arguments
+        expected: usize,
+        /// Actual amount of arguments
+        got: usize,
+    },
+    /// Function called without required named arguments
     MissingArguments(Vec<String>),
+    /// Wraps formatting error
     FMTError(std::fmt::Error),
+    /// Wraps StorageError
     StorageError(StorageError),
+    /// Wraps Infallible
     Infallible(Infallible),
+    /// Wraps io::ErrorKind
     IOError(io::ErrorKind),
+    /// Function was called with wrong arguments
     WrongArgument(String),
-    // Diagnostic string is informational and the second arg is the return value for the user
+    /// Diagnostic string is informational and the second arg is the return value for the user
     Diagnostic(String, Option<NaslValue>),
+    /// Generic error
     GeneralError(String),
+    /// An error occurred while doing a crypt operation
     CryptError(CryptErrorKind),
+}
+
+impl Display for FunctionErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunctionErrorKind::MissingPositionalArguments { expected, got } => {
+                write!(f, "expected {expected} arguments but got {got}")
+            }
+            FunctionErrorKind::MissingArguments(x) => {
+                write!(f, "missing arguments: {}", x.join(", "))
+            }
+            FunctionErrorKind::FMTError(e) => write!(f, "{e}"),
+            FunctionErrorKind::StorageError(e) => write!(f, "{e}"),
+            FunctionErrorKind::Infallible(e) => write!(f, "{e}"),
+            FunctionErrorKind::IOError(e) => write!(f, "{e}"),
+            FunctionErrorKind::WrongArgument(x) => write!(f, "wrong argument: {x}"),
+            FunctionErrorKind::Diagnostic(x, _) => write!(f, "{x}"),
+            FunctionErrorKind::GeneralError(x) => write!(f, "{x}"),
+            FunctionErrorKind::CryptError(e) => write!(f, "cryptographic error: {e:?}"),
+        }
+    }
 }
 
 impl From<UnpadError> for FunctionErrorKind {
@@ -123,17 +161,27 @@ impl From<io::Error> for FunctionErrorKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// An error that occurred while calling a function
 pub struct FunctionError {
+    /// Name of the function
     pub function: String,
+    /// Kind of error
     pub kind: FunctionErrorKind,
 }
 
 impl FunctionError {
+    /// Creates a new FunctionError
     pub fn new(function: &str, kind: FunctionErrorKind) -> Self {
         Self {
             function: function.to_owned(),
             kind,
         }
+    }
+}
+
+impl Display for FunctionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.function, self.kind)
     }
 }
 
@@ -180,6 +228,52 @@ pub enum InterpretErrorKind {
     IOError(io::ErrorKind),
     /// An error occurred while calling a built-in function.
     FunctionCallError(FunctionError),
+}
+
+impl Display for InterpretErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InterpretErrorKind::FunctioExpectedValue => {
+                write!(f, "expected a value but got a function")
+            }
+            InterpretErrorKind::ValueExpectedFunction => {
+                write!(f, "expected a function but got a value")
+            }
+            InterpretErrorKind::WrongType(e) => write!(f, "expected the type {e}"),
+            InterpretErrorKind::WrongCategory(e) => write!(f, "expecteced category {e}"),
+            InterpretErrorKind::InvalidRegex(e) => write!(f, "regular expression: {e} is invalid"),
+            InterpretErrorKind::IncludeSyntaxError { filename, err } => {
+                write!(
+                    f,
+                    "on include {filename}{}: {err}",
+                    err.as_token()
+                        .map(|t| format!(", line: {}, col: {}", t.position.0, t.position.1))
+                        .unwrap_or_default()
+                )
+            }
+            InterpretErrorKind::SyntaxError(e) => write!(f, "{e}"),
+            InterpretErrorKind::NotFound(e) => write!(f, "{e} not found"),
+            InterpretErrorKind::StorageError(e) => write!(f, "{e}"),
+            InterpretErrorKind::LoadError(e) => write!(f, "{e}"),
+            InterpretErrorKind::FMTError(e) => write!(f, "{e}"),
+            InterpretErrorKind::IOError(e) => write!(f, "{e}"),
+            InterpretErrorKind::FunctionCallError(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl Display for InterpretError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}",
+            self.origin
+                .clone()
+                .map(|e| format!("{e}: "))
+                .unwrap_or_default(),
+            self.kind
+        )
+    }
 }
 
 impl InterpretError {

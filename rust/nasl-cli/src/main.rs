@@ -106,11 +106,10 @@ impl RunAction<()> for FeedAction {
                 let mut o = json_storage::ArrayWrapper::new(io::stdout());
                 let dispatcher = json_storage::NvtDispatcher::as_dispatcher(&mut o);
                 match feed_update::run(dispatcher, transform_config.plugin_path, verbose) {
-                    Ok(_) => o
-                        .end()
-                        .map_err(StorageError::from)
-                        .map_err(CliErrorKind::from)
-                        .map_err(CliError::from),
+                    Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
+                        filename: "".to_string(),
+                        kind: se.into(),
+                    }),
                     Err(e) => Err(e),
                 }
             }
@@ -337,7 +336,11 @@ When ID is used than a valid feed path must be given within the path parameter."
                 "BrokenPipe" => {}
                 _ => panic!("Unexpected data within dispatcher: {x}"),
             },
-            _ => panic!("{e:?}"),
+            CliErrorKind::InterpretError(_) | CliErrorKind::SyntaxError(_) => {
+                eprintln!("script error, {e}");
+                std::process::exit(1);
+            }
+            _ => panic!("{e}"),
         },
     }
 }

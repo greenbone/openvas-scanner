@@ -39,6 +39,21 @@ pub struct SyntaxError {
     pub(crate) file: String,
 }
 
+impl SyntaxError {
+    /// Returns a token of the underlying error kind
+    pub fn as_token(&self) -> Option<&Token> {
+        match &self.kind {
+            ErrorKind::UnexpectedToken(t) => Some(t),
+            ErrorKind::UnclosedToken(t) => Some(t),
+            ErrorKind::UnexpectedStatement(s) => s.as_token(),
+            ErrorKind::MissingSemicolon(s) => s.as_token(),
+            ErrorKind::UnclosedStatement(s) => s.as_token(),
+            ErrorKind::EoF => None,
+            ErrorKind::IOError(_) => None,
+        }
+    }
+}
+
 /// Creates an SyntaxError.
 ///
 /// # Examples
@@ -169,11 +184,11 @@ impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             // TODO fix statement print
-            ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {token:?}"),
-            ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {token:?}"),
+            ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {token}"),
+            ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {token}"),
             ErrorKind::UnexpectedStatement(stmt) => write!(f, "unexpected statement: {stmt:?}"),
-            ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {stmt:?}"),
-            ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {stmt:?}"),
+            ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {stmt}"),
+            ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {stmt}"),
             ErrorKind::EoF => write!(f, "end of file."),
             ErrorKind::IOError(kind) => write!(f, "IOError: {kind}"),
         }

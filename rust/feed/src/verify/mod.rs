@@ -6,7 +6,10 @@
 //! If you want to manipulate the feed you have to create a new hashsum file otherwise the modificated data will not
 //! be loaded
 
-use std::io::{self, BufRead, BufReader, Read};
+use std::{
+    fmt::Display,
+    io::{self, BufRead, BufReader, Read},
+};
 
 use hex::encode;
 use nasl_interpreter::{AsBufReader, LoadError};
@@ -33,6 +36,20 @@ pub enum Error {
 impl From<LoadError> for Error {
     fn from(value: LoadError) -> Self {
         Error::LoadError(value)
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::SumsFileCorrupt(e) => write!(f, "{} is corrupted.", e.sum_file()),
+            Error::LoadError(e) => write!(f, "{e}"),
+            Error::HashInvalid {
+                expected,
+                actual,
+                key,
+            } => write!(f, "{key} hash {actual} is not as expected ({expected})."),
+        }
     }
 }
 
