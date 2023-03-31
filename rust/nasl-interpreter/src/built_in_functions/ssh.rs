@@ -5,8 +5,8 @@
 //! Defines NASL ssh and sftp functions
 
 use crate::{
-    error::FunctionErrorKind, lookup_keys::TARGET, Context, ContextType, NaslFunction, NaslValue,
-    Register,
+    error::FunctionErrorKind, lookup_keys::TARGET, sessions::ConnectionOpts, Context, ContextType,
+    NaslFunction, NaslValue, Register,
 };
 use std::time::Duration;
 
@@ -61,8 +61,8 @@ fn nasl_ssh_connect<K>(
     };
 
     let ip_str = match register.named(TARGET) {
-        Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => "127.0.0.1",
+        Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
+        _ => String::from("127.0.0.1"),
     };
 
     let timeout = match register.named("timeout") {
@@ -85,9 +85,9 @@ fn nasl_ssh_connect<K>(
         _ => String::new(),
     };
 
-    ctx.sessions().connect(
-        sock, ip_str, port, timeout, &key_type, &csciphers, &scciphers,
-    )?;
+    let connection_opts =
+        ConnectionOpts::new(sock, ip_str, port, timeout, key_type, csciphers, scciphers);
+    ctx.sessions().connect(connection_opts)?;
 
     Ok(NaslValue::Null)
 }

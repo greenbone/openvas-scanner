@@ -9,6 +9,7 @@ use std::{fmt::Display, fs::File, marker::PhantomData};
 
 use nasl_interpreter::{
     AsBufReader, Context, ContextType, DefaultLogger, Interpreter, Loader, NaslValue, Register,
+    Sessions,
 };
 use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
 
@@ -85,9 +86,10 @@ where
         let code = self.loader.load(feed_info_key)?;
         let mut register = Register::default();
         let logger = DefaultLogger::default();
+        let sessions = Sessions::default();
         let k: K = Default::default();
         let fr = NoOpRetriever::default();
-        let context = Context::new(&k, &self.dispatcher, &fr, &self.loader, &logger);
+        let context = Context::new(&k, &self.dispatcher, &fr, &self.loader, &logger, &sessions);
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
@@ -114,8 +116,9 @@ where
 
         let mut register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::default();
+        let sessions = Sessions::default();
         let fr = NoOpRetriever::default();
-        let context = Context::new(key, &self.dispatcher, &fr, &self.loader, &logger);
+        let context = Context::new(key, &self.dispatcher, &fr, &self.loader, &logger, &sessions);
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match interpreter.retry_resolve(&stmt?, self.max_retry) {
