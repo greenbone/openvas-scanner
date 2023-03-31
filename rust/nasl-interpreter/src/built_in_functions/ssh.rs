@@ -52,12 +52,12 @@ fn nasl_ssh_connect<K>(
     };
 
     let port = if sock > 0 {
+        0u16 // ignore the port if there is a socket
+    } else {
         match register.named("port") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as u16,
             _ => 0u16, // TODO: implement get_ssh_port()
         }
-    } else {
-        0u16
     };
 
     let ip_str = match register.named(TARGET) {
@@ -87,9 +87,8 @@ fn nasl_ssh_connect<K>(
 
     let connection_opts =
         ConnectionOpts::new(sock, ip_str, port, timeout, key_type, csciphers, scciphers);
-    ctx.sessions().connect(connection_opts)?;
-
-    Ok(NaslValue::Null)
+    let session_id = ctx.sessions().connect(connection_opts)?;
+    Ok(session_id)
 }
 
 /// Disconnect an ssh connection

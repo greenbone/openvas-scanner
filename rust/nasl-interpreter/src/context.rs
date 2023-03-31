@@ -5,7 +5,7 @@
 use nasl_syntax::Statement;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
-use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue};
+use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, sessions::Sessions, Loader, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 

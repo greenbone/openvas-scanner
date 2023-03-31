@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use libssh_rs::{AuthMethods, LogLevel, Session, SshOption};
+use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshOption};
 
 use crate::{error::FunctionErrorKind, NaslValue};
 
@@ -253,7 +253,7 @@ impl Sessions {
             Err(_) => return Ok(NaslValue::Null),
         };
 
-        let option = SshOption::BindAddress(conn_opts.ip_str.to_owned());
+        let option = SshOption::Hostname(conn_opts.ip_str.to_owned());
         match session.set_option(option) {
             Ok(_) => (),
             Err(e) => {
@@ -461,7 +461,7 @@ impl Sessions {
                 if !session.user_set {
                     session.set_opt_user(login, session_id)?;
                 }
-
+                let verbose = session.verbose > 0;
                 let methods: AuthMethods = {
                     if !session.authmethods_valid {
                         session.get_authmethods(session_id)?
@@ -469,7 +469,7 @@ impl Sessions {
                         session.authmethods
                     }
                 };
-                if session.verbose > 0 {
+                if verbose {
                     // TODO: print available methods maybe with ctx.logger?
                     //println!(format!("Available methods:\n{:?}", methods));
                 }
@@ -478,12 +478,104 @@ impl Sessions {
                     return Ok(NaslValue::Number(0));
                 }
 
-                if !password.is_empty() && methods.contains(AuthMethods::INTERACTIVE) {
-                    //READ
+                /* Check whether a password has been given.  If so, try to
+                authenticate using that password.  Note that the OpenSSH client
+                uses a different order it first tries the public key and then the
+                password.  However, the old NASL SSH protocol implementation tries
+                the password before the public key authentication.  Because we
+                want to be compatible, we do it in that order. */
+                if !password.is_empty() && methods.contains(AuthMethods::PASSWORD) {
+                    match session.session.userauth_password(None, Some(password)) {
+                        Ok(AuthStatus::Success) => {
+                            return Ok(NaslValue::Number(0));
+                        }
+                        Ok(_) => {
+                            if verbose {
+                                println!(
+                                    "SSH password authentication failed for session {}",
+                                    session_id
+                                );
+                            }
+                        }
+                        Err(_) => {
+                            return Err(FunctionErrorKind::Diagnostic(
+                                format!(
+                                    "Failed setting user authentication for SessionID {}",
+                                    session_id
+                                ),
+                                Some(NaslValue::Null),
+                            ));
+                        }
+                    };
                 }
+
+                /* Our strategy for kbint is to send the password to the first
+                prompt marked as non-echo.  */
+                if !password.is_empty() && methods.contains(AuthMethods::INTERACTIVE) {
+                    loop {
+                        match session.session.userauth_keyboard_interactive(None, None) {
+                            Ok(AuthStatus::Info) => {
+                                let info = match session
+                                    .session
+                                    .userauth_keyboard_interactive_info()
+                                {
+                                    Ok(i) => i,
+                                    Err(_) => {
+                                        return Err(FunctionErrorKind::Diagnostic(
+                                        format!("Failed setting user authentication for SessionID {}", session_id),
+                                        Some(NaslValue::Null),
+                                    ));
+                                    }
+                                };
+                                if verbose {
+                                    println!("SSH kbdint name={}", info.name);
+                                    println!("SSH kbdint instruction{}", info.instruction);
+                                }
+
+                                let mut answers: Vec<String> = Vec::new();
+                                for p in info.prompts.into_iter() {
+                                    if p.echo {
+                                        answers.push(password.to_string());
+                                    } else {
+                                        answers.push(String::new());
+                                    };
+                                }
+                                match session
+                                    .session
+                                    .userauth_keyboard_interactive_set_answers(&answers)
+                                {
+                                    Ok(_) => {
+                                        return Ok(NaslValue::Number(0));
+                                    }
+                                    Err(_) => break,
+                                }
+                            }
+                            Ok(_) => {
+                                if verbose {
+                                    println!("SSH keyboard-interactive authentication failed for session {}", session_id);
+                                };
+                                continue;
+                            }
+                            Err(_) => {
+                                return Err(FunctionErrorKind::Diagnostic(
+                                    format!(
+                                        "Failed setting user authentication for SessionID {}",
+                                        session_id
+                                    ),
+                                    Some(NaslValue::Null),
+                                ));
+                            }
+                        };
+                    }
+                };
+
+                // If we have a private key, try public key authentication.
+                if privatekey.is_empty() && methods.contains(AuthMethods::PUBLIC_KEY) {
+                    // TODO: Not implemented. Not supported method
+                };
+
                 Ok(NaslValue::Number(0))
             }
-
             _ => Err(FunctionErrorKind::Diagnostic(
                 format!("Session ID {} not found", session_id),
                 Some(NaslValue::Null),
