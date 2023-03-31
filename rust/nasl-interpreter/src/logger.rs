@@ -24,7 +24,7 @@ pub trait NaslLogger {
     /// Print a Info Message
     fn info(&self, msg: String);
     /// Print a Warning Message
-    fn warning(&self, msg: String);
+    fn warning(&self, msg: &str);
     /// Print a Error Message
     fn error(&self, msg: String);
     /// Print a normal Message
@@ -67,7 +67,7 @@ impl NaslLogger for DefaultLogger {
         println!("\x1b[38;5;2mINFO : \x1b[0m{}", msg);
     }
 
-    fn warning(&self, msg: String) {
+    fn warning(&self, msg: &str) {
         if self.mode > Mode::Warning {
             return;
         }

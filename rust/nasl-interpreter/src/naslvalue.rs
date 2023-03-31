@@ -5,7 +5,7 @@ use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 use crate::InterpretError;
 
 /// Represents a valid Value of NASL
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub enum NaslValue {
     /// String value
     String(String),
@@ -22,6 +22,7 @@ pub enum NaslValue {
     /// Attack category keyword
     AttackCategory(ACT),
     /// Null value
+    #[default]
     Null,
     /// Returns value of the context
     Return(Box<NaslValue>),
