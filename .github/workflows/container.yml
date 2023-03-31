@@ -42,7 +42,7 @@ jobs:
       - name: archive nasl-cli x86_64-unknown-linux-gnu
         uses: actions/upload-artifact@v3
         with:
-          name: nasl-cli-x86_64
+          name: nasl-cli-amd64
           path: rust/target/x86_64-unknown-linux-gnu/release/nasl-cli
           retention-days: 1
   production-image:
@@ -51,7 +51,7 @@ jobs:
     strategy:
       matrix:
         platform:
-          - x86_64
+          - amd64
           - aarch64
     steps:
       - name: Checkout
