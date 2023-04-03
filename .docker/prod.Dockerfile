@@ -12,34 +12,34 @@ RUN DESTDIR=/install cmake --build /build -- install
 
 FROM greenbone/gvm-libs:$VERSION
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-    bison \
-    libjson-glib-1.0-0 \
-    libksba8 \
-    nmap \
-    libcap2-bin \
-    snmp \
-    netdiag \
-    pnscan \
-    libbsd0 \
-    rsync \
-    # net-tools is required by some nasl plugins.
-    # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
-    net-tools \
-    # for openvas-smb support
-    python3-impacket \
-    libgnutls30 \
-    libgssapi3-heimdal \
-    libkrb5-26-heimdal \
-    libasn1-8-heimdal \
-    libroken18-heimdal \
-    libhdb9-heimdal \
-    libpopt0 \
-    && rm -rf /var/lib/apt/lists/*
+  bison \
+  libjson-glib-1.0-0 \
+  libksba8 \
+  nmap \
+  libcap2-bin \
+  snmp \
+  netdiag \
+  pnscan \
+  libbsd0 \
+  rsync \
+  # net-tools is required by some nasl plugins.
+  # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
+  net-tools \
+  # for openvas-smb support
+  python3-impacket \
+  libgnutls30 \
+  libgssapi3-heimdal \
+  libkrb5-26-heimdal \
+  libasn1-8-heimdal \
+  libroken18-heimdal \
+  libhdb9-heimdal \
+  libpopt0 \
+  && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
-COPY bin/nasl-cli /usr/local/bin/nasl-cli
+COPY bin/nasl-cli/nasl-cli /usr/local/bin/nasl-cli
 RUN chmod a+x /usr/local/bin/nasl-cli
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
