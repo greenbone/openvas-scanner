@@ -73,7 +73,7 @@ paths:
                 type: "string"
           description: "Header"
 
-  /scan:
+  /scans:
     post:
       description: "This request just creates the scan. It can be started afterwards with the scan_action request."
       operationId: "create_scan"
@@ -105,7 +105,7 @@ paths:
         "400":
           description: "Bad Request body"
 
-  /scan/{id}:
+  /scans/{id}:
     get:
       description: "Get a scan from the scan manager."
       operationId: "get_scan"
@@ -172,7 +172,7 @@ paths:
         "406":
           description: "A running scan cannot be deleted"
 
-  /scan/{id}/result:
+  /scans/{id}/results:
     get:
       description: "Get results from a scan."
       operationId: "get_results"
@@ -211,7 +211,7 @@ paths:
         "406":
           description: "A scan, that has not started, does not contain results"
 
-  /scan/{id}/result/{rid}:
+  /scans/{id}/results/{rid}:
     get:
       description: "Get a specific result from the scan."
       operationId: "get_result"
@@ -237,7 +237,7 @@ paths:
         "406":
           description: "A scan that has not started, cannot contain results"
 
-  /scan/{id}/status:
+  /scans/{id}/status:
     get:
       description: "Get the current status of a scan."
       operationId: "get_scan_status"
@@ -266,7 +266,7 @@ paths:
         "404":
           description: "Scan not found"
 
-  /vt:
+  /vts:
     get:
       description: "Get a Identifier list of all VTs that are available to the scanner."
       operationId: "get_vts"
