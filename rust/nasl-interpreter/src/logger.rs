@@ -8,7 +8,7 @@ use std::fmt::Display;
 #[derive(Eq, PartialEq, PartialOrd, Default)]
 pub enum Mode {
     /// Debug Mode, enables all logging
-    Debug = 0,
+    Debug,
     /// Info Mode, enables Info, Warning and Error Messages
     #[default]
     Info,
@@ -16,8 +16,6 @@ pub enum Mode {
     Warning,
     /// Error Mode, enables only Error Messages
     Error,
-    /// Disabled, no Messages are logged
-    Nothing,
 }
 
 /// A trait for types that can be logged.
@@ -30,22 +28,28 @@ impl<T: Sync + Send + Display> Logable for T {}
 
 /// A interface for a logger for the NASL interpreter
 pub trait NaslLogger {
-    /// Print a Debug Message
-    fn debug(&self, msg: &dyn Logable);
-    /// Print a Info Message
-    fn info(&self, msg: &dyn Logable);
-    /// Print a Warning Message
-    fn warning(&self, msg: &dyn Logable);
-    /// Print a Error Message
-    fn error(&self, msg: &dyn Logable);
-    /// Print a normal Message
-    fn print(&self, msg: &dyn Logable);
+    /// Log a message with a specific level
+    fn log(&self, level: Mode, msg: &dyn Logable);
+
+    /// Log a Debug Message
+    fn debug(&self, msg: &dyn Logable) {
+        self.log(Mode::Debug, msg)
+    }
+    /// Log a Info Message
+    fn info(&self, msg: &dyn Logable) {
+        self.log(Mode::Info, msg)
+    }
+    /// Log a Warning Message
+    fn warning(&self, msg: &dyn Logable) {
+        self.log(Mode::Warning, msg)
+    }
+    /// Log a Error Message
+    fn error(&self, msg: &dyn Logable) {
+        self.log(Mode::Error, msg)
+    }
 }
 
-/// The default logger for NASL. It will just print to the terminal. It has a
-/// basic mode system and color scheme for printing. The mode order is
-/// debug > info > warning > error > nothing. Printing normal messages is meant
-/// to be used by the display function therefore it cannot be disabled
+/// A default logger that prints to stderr
 #[derive(Default)]
 pub struct DefaultLogger {
     mode: Mode,
@@ -64,36 +68,16 @@ impl DefaultLogger {
 }
 
 impl NaslLogger for DefaultLogger {
-    fn debug(&self, msg: &dyn Logable) {
-        if self.mode > Mode::Debug {
+    fn log(&self, level: Mode, msg: &dyn Logable) {
+        if self.mode > level {
             return;
         }
-        println!("\x1b[38;5;8mDEBUG: \x1b[0m{}", msg);
-    }
-
-    fn info(&self, msg: &dyn Logable) {
-        if self.mode > Mode::Info {
-            return;
+        match level {
+            Mode::Debug => eprintln!("\x1b[38;5;8mDEBUG: \x1b[0m{}", msg),
+            Mode::Info => eprintln!("\x1b[38;5;2mINFO : \x1b[0m{}", msg),
+            Mode::Warning => eprintln!("\x1b[38;5;3mWARN : \x1b[0m{}", msg),
+            Mode::Error => eprintln!("\x1b[38;5;1mERROR: \x1b[0m{}", msg),
         }
-        println!("\x1b[38;5;2mINFO : \x1b[0m{}", msg);
-    }
-
-    fn warning(&self, msg: &dyn Logable) {
-        if self.mode > Mode::Warning {
-            return;
-        }
-        println!("\x1b[38;5;3mWARN : \x1b[0m{}", msg);
-    }
-
-    fn error(&self, msg: &dyn Logable) {
-        if self.mode > Mode::Error {
-            return;
-        }
-        println!("\x1b[38;5;1mERROR: \x1b[0m{}", msg);
-    }
-
-    fn print(&self, msg: &dyn Logable) {
-        println!("{}", msg);
     }
 }
 
