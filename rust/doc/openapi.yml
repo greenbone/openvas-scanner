@@ -146,7 +146,7 @@ paths:
               stop scan:
                 $ref: "#/components/examples/scan_action_stop"
       responses:
-        "200":
+        "204":
           description: "Action performed"
         "400":
           description: "Bad request body"
