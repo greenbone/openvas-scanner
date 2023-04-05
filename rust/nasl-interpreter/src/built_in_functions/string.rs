@@ -326,9 +326,7 @@ fn stridx<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
 ///
 /// Internally the string function is used to concatenate the given parameters
 fn display<K>(register: &Register, configs: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
-    configs
-        .logger()
-        .print(string(register, configs)?.to_string());
+    configs.logger().info(&string(register, configs)?);
     Ok(NaslValue::Null)
 }
 
