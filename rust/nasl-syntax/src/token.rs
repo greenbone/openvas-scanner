@@ -385,6 +385,16 @@ pub struct Token {
     pub position: (usize, usize),
 }
 
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{} {}",
+            self.position.0, self.position.1, self.category
+        )
+    }
+}
+
 impl Token {
     /// Returns the Category
     pub fn category(&self) -> &Category {

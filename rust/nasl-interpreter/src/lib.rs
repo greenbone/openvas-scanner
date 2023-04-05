@@ -25,9 +25,11 @@ pub use context::Context;
 pub use context::ContextType;
 pub use context::DefaultContext;
 pub use context::Register;
-use error::FunctionErrorKind;
+pub use error::FunctionError;
+pub use error::FunctionErrorKind;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
+
 pub use interpreter::Interpreter;
 pub use loader::*;
 pub use logger::{DefaultLogger, Mode, NaslLogger};

@@ -7,7 +7,7 @@ use std::{fmt::Display, path::PathBuf};
 use feed::HashSumNameLoader;
 use nasl_interpreter::{
     load_non_utf8_path, Context, DefaultLogger, FSPluginLoader, Interpreter, LoadError, Loader,
-    NaslValue, NoOpLoader, Register,
+    NaslLogger, NaslValue, NoOpLoader, Register,
 };
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
@@ -89,7 +89,21 @@ where
                     if verbose {
                         eprintln!("> {stmt}");
                     }
-                    let r = interpreter.retry_resolve(&stmt, 5)?;
+                    let r = match interpreter.retry_resolve(&stmt, 5) {
+                        Ok(x) => x,
+                        Err(e) => match &e.kind {
+                            nasl_interpreter::InterpretErrorKind::FunctionCallError(
+                                nasl_interpreter::FunctionError {
+                                    function: _,
+                                    kind: nasl_interpreter::FunctionErrorKind::Diagnostic(_, x),
+                                },
+                            ) => {
+                                logger.warning(&e.to_string());
+                                x.clone().unwrap_or_default()
+                            }
+                            _ => return Err(e.into()),
+                        },
+                    };
                     match r {
                         NaslValue::Exit(rc) => std::process::exit(rc as i32),
                         _ => {

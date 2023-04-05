@@ -9,6 +9,7 @@ mod verify;
 
 pub use oid::Oid;
 pub use update::Error as UpdateError;
+pub use update::ErrorKind as UpdateErrorKind;
 pub use update::Update;
 pub use verify::Error as VerifyError;
 pub use verify::FileNameLoader;
