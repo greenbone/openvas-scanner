@@ -5,6 +5,7 @@
 use std::{convert::Infallible, fmt::Display, io};
 
 use aes::cipher::block_padding::UnpadError;
+use digest::InvalidLength;
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
 use storage::StorageError;
 
@@ -15,6 +16,8 @@ use crate::{ContextType, LoadError, NaslValue};
 pub enum CryptErrorKind {
     /// Unpadding error
     Unpad,
+    /// Invalid key size
+    KeySize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,6 +74,12 @@ impl Display for FunctionErrorKind {
 impl From<UnpadError> for FunctionErrorKind {
     fn from(_: UnpadError) -> Self {
         FunctionErrorKind::CryptError(CryptErrorKind::Unpad)
+    }
+}
+
+impl From<InvalidLength> for FunctionErrorKind {
+    fn from(_: InvalidLength) -> Self {
+        FunctionErrorKind::CryptError(CryptErrorKind::KeySize)
     }
 }
 

@@ -27,3 +27,4 @@ ccm = "0.5.0"
 cbc = { version = "0.1.2", features = ["alloc"]}
 ctr = "0.9.2"
 aes-gcm = { version = "0.10.1"}
+cmac = "0.7.2"
