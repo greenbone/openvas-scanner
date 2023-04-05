@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use ::aes::{Aes128, Aes192, Aes256};
 use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
+use aes::{Aes128, Aes192, Aes256};
 use ccm::{
     aead::{Aead, Error as aError, Payload},
     consts::{U10, U11, U12, U13, U14, U16, U4, U6, U7, U8, U9},

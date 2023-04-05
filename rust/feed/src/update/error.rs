@@ -6,7 +6,7 @@ use crate::verify;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Errors within feed handling
-pub enum Error {
+pub enum ErrorKind {
     /// An InterpretError occurred while interpreting
     InterpretError(InterpretError),
     /// NASL script contains an SyntaxError
@@ -21,26 +21,53 @@ pub enum Error {
     VerifyError(verify::Error),
 }
 
-impl From<LoadError> for Error {
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// ErrorKind and key of error
+pub struct Error {
+    /// Used key for the operation
+    pub key: String,
+    /// The kind of error occurred
+    pub kind: ErrorKind,
+}
+
+impl From<verify::Error> for Error {
+    fn from(value: verify::Error) -> Self {
+        let fin = match &value {
+            crate::VerifyError::SumsFileCorrupt(x) => x.sum_file(),
+            crate::VerifyError::LoadError(_) => "",
+            crate::VerifyError::HashInvalid {
+                expected: _,
+                actual: _,
+                key,
+            } => key,
+        };
+        Self {
+            key: fin.to_string(),
+            kind: ErrorKind::VerifyError(value),
+        }
+    }
+}
+
+impl From<LoadError> for ErrorKind {
     fn from(value: LoadError) -> Self {
-        Error::LoadError(value)
+        Self::LoadError(value)
     }
 }
 
-impl From<StorageError> for Error {
+impl From<StorageError> for ErrorKind {
     fn from(value: StorageError) -> Self {
-        Error::StorageError(value)
+        Self::StorageError(value)
     }
 }
 
-impl From<SyntaxError> for Error {
+impl From<SyntaxError> for ErrorKind {
     fn from(value: SyntaxError) -> Self {
-        Error::SyntaxError(value)
+        Self::SyntaxError(value)
     }
 }
 
-impl From<InterpretError> for Error {
+impl From<InterpretError> for ErrorKind {
     fn from(value: InterpretError) -> Self {
-        Error::InterpretError(value)
+        Self::InterpretError(value)
     }
 }

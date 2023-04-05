@@ -48,7 +48,7 @@ where
     }
 
     /// Returns the OID string or update::Error::MissingExit.
-    fn single(&self, key: String) -> Result<String, update::Error> {
+    fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
         for stmt in nasl_syntax::parse(&code) {
             if let Statement::If(_, stmts, _) = stmt? {
@@ -61,7 +61,7 @@ where
                 }
             }
         }
-        Err(update::Error::MissingExit(key))
+        Err(update::ErrorKind::MissingExit(key))
     }
 }
 
@@ -80,7 +80,11 @@ where
                 true
             }
         }) {
-            Some(Ok(k)) => Some(self.single(k.clone()).map(|x| (k, x))),
+            Some(Ok(k)) => Some(
+                self.single(k.clone())
+                    .map(|x| (k.clone(), x))
+                    .map_err(|e| update::Error { kind: e, key: k }),
+            ),
             Some(Err(e)) => Some(Err(e.into())),
             None => None,
         }

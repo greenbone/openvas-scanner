@@ -14,6 +14,8 @@ use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
 
 use crate::verify;
 
+pub use self::error::ErrorKind;
+
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
 pub struct Update<S, L, V, K> {
@@ -30,9 +32,9 @@ pub struct Update<S, L, V, K> {
     phanton: PhantomData<K>,
 }
 
-impl From<verify::Error> for Error {
+impl From<verify::Error> for ErrorKind {
     fn from(value: verify::Error) -> Self {
-        Error::VerifyError(value)
+        ErrorKind::VerifyError(value)
     }
 }
 
@@ -78,7 +80,7 @@ where
     /// The feed_version is loaded from that inc file.
     /// Therefore we need to load the plugin_feed_info and extract the feed_version
     /// to put into the corresponding dispatcher.
-    fn plugin_feed_info(&self) -> Result<String, Error> {
+    fn plugin_feed_info(&self) -> Result<String, ErrorKind> {
         let feed_info_key = "plugin_feed_info.inc";
         let code = self.loader.load(feed_info_key)?;
         let mut register = Register::default();
@@ -107,7 +109,7 @@ where
     }
 
     /// Runs a single plugin in description mode.
-    fn single(&self, key: &K) -> Result<i64, Error> {
+    fn single(&self, key: &K) -> Result<i64, ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
 
         let mut register = Register::root_initial(&self.initial);
@@ -125,7 +127,7 @@ where
                 Err(e) => return Err(e.into()),
             }
         }
-        Err(Error::MissingExit(key.as_ref().into()))
+        Err(ErrorKind::MissingExit(key.as_ref().into()))
     }
 }
 
@@ -148,11 +150,20 @@ where
         }) {
             Some(Ok(k)) => {
                 let k: K = k.into();
-                self.single(&k).map(|_| k.as_ref().into()).into()
+                self.single(&k)
+                    .map(|_| k.as_ref().into())
+                    .map_err(|kind| Error {
+                        kind,
+                        key: k.to_string(),
+                    })
+                    .into()
             }
             Some(Err(e)) => Some(Err(e.into())),
             None if !self.feed_version_set => {
-                let result = self.plugin_feed_info();
+                let result = self.plugin_feed_info().map_err(|kind| Error {
+                    kind,
+                    key: "plugin_feed_info.inc".to_string(),
+                });
                 self.feed_version_set = true;
                 Some(result)
             }
