@@ -601,7 +601,7 @@ fn nasl_dump_frame<K>(
         _ => return Err(("Data", "Invalid data type").into()),
     };
 
-    configs.logger().info(format!("Frame:\n{}", frame));
+    configs.logger().info(&frame);
     Ok(NaslValue::Null)
 }
 
