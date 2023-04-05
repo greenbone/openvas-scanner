@@ -9,6 +9,7 @@ use crate::{
 
 pub mod aes_cbc;
 pub mod aes_ccm;
+pub mod aes_cmac;
 pub mod aes_ctr;
 pub mod aes_gcm;
 pub mod hmac;
@@ -27,6 +28,7 @@ where
         .or_else(|| aes_cbc::lookup(function_name))
         .or_else(|| aes_ctr::lookup(function_name))
         .or_else(|| aes_gcm::lookup(function_name))
+        .or_else(|| aes_cmac::lookup(function_name))
 }
 
 /// Get named argument of Type Data or String from the register with appropriate error handling.
