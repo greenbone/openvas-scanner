@@ -8,12 +8,15 @@ on:
 
 jobs:
   nasl-test:
-    name: Test
+    name: test
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    container: greenbone/gvm-libs:unstable
     steps:
       - uses: actions/checkout@v3
-      - name: build
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
+      - name: build openvas
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build
@@ -22,9 +25,17 @@ jobs:
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y redis
           mkdir /run/redis-openvas
           redis-server config/redis-openvas.conf || exit 1
-      - name: run
+      - name: scripttests
         run: |
           mkdir -p /etc/openvas
           echo "db_address = /run/redis-openvas/redis.sock" >> /etc/openvas/openvas.conf
           cd nasl/tests
           OPENVAS_NASL=../../build/nasl/openvas-nasl make check
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.16.0'
+      - name: smoketest/lint
+        run: |
+          make build
+          ./run -e ../../build/nasl/openvas-nasl-lint
+        working-directory: smoketest_lint

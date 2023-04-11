@@ -1,14 +1,13 @@
-name: "Compile & Unit Tests"
+name: "openvas-c"
 
 on:
   push:
-    branches: [ main, stable, oldstable, middleware ]
+    branches: [ main, stable ]
   pull_request:
-    branches: [ main, stable, oldstable, middleware ]
+    branches: [ main, stable ]
 
 jobs:
-  check-format:
-    name: Check formatting
+  formatting:
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
@@ -17,14 +16,22 @@ jobs:
         run: |
           clang-format -i -style=file {src,misc,nasl}/*.{c,h}
           git diff --exit-code
-
   compile:
-    name: scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    strategy:
+      matrix:
+        # With the upcoming changes, we require both downwards and upwards compatibility between the OpenVAS C
+        # code and GVM-libs. This is because, even though we will be using semantic versioning, as long as
+        # OpenVAS and GVM-libs remain separate repositories, we want to be notified of every change.
+        gvm-libs-version:
+          - stable
+          - unstable
+    container: greenbone/gvm-libs:${{ matrix.gvm-libs-version }}
     steps:
-      - name: Check out openvas-scanner
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
       - name: Configure and Scan Build
         run: |
           cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-11/libexec/ccc-analyzer
@@ -35,15 +42,20 @@ jobs:
           name: scan-build-report
           path: ~/scan-build-report/
           retention-days: 7
-
   unit-tests:
-    name: Unit Tests
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    strategy:
+      matrix:
+        gvm-libs-version:
+          - stable
+          - unstable
+    container: greenbone/gvm-libs:${{ matrix.gvm-libs-version }}
     steps:
-      - name: Check out openvas-scanner
-        uses: actions/checkout@v3
-      - name: Configure and run unit tests
+      - uses: actions/checkout@v3
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
+      - name: unit-tests
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test
