@@ -823,8 +823,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs"
 version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "411ad6d6b81fd5544f9a9b3b25a9da5533112880fff69b3b659d271a70ec4797"
+source = "git+https://github.com/jjnicola/libssh-rs.git?branch=userauth-try#9364c2b5bfc1321d22324609f64e2b1511ca3326"
 dependencies = [
  "bitflags",
  "libssh-rs-sys",
@@ -835,8 +834,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs-sys"
 version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d592a55d4efe34f3e437e3f74e32b6d60d54aa3270fe2925840173c7d8648a42"
+source = "git+https://github.com/jjnicola/libssh-rs.git?branch=userauth-try#9364c2b5bfc1321d22324609f64e2b1511ca3326"
 dependencies = [
  "cc",
  "openssl-sys",

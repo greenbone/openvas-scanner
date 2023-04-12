@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshOption};
+use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption};
 
 use crate::{error::FunctionErrorKind, NaslValue};
 
@@ -571,9 +571,33 @@ impl Sessions {
 
                 // If we have a private key, try public key authentication.
                 if privatekey.is_empty() && methods.contains(AuthMethods::PUBLIC_KEY) {
-                    // TODO: Not implemented. Not supported method
+                    match SshKey::from_privkey_base64(privatekey, Some(passphrase)) {
+                        Ok(k) => match session.session.userauth_try_publickey(None, &k) {
+                            Ok(AuthStatus::Success) => {
+                                match session.session.userauth_publickey(None, &k) {
+                                    Ok(AuthStatus::Success) => {
+                                        return Ok(NaslValue::Number(0));
+                                    }
+                                    _ => {
+                                        if verbose {
+                                            println!("SSH authentication failed for session {}: No more authentication methods to try", session_id);
+                                        };
+                                    }
+                                }
+                            }
+                            _ => {
+                                if verbose {
+                                    println!("SSH public key authentication failed for session {}: Server does not want our key", session_id);
+                                };
+                            }
+                        },
+                        Err(_) => {
+                            if verbose {
+                                println!("SSH public key authentication failed for session {}: Error converting provided key", session.session_id);
+                            };
+                        }
+                    };
                 };
-
                 Ok(NaslValue::Number(0))
             }
             _ => Err(FunctionErrorKind::Diagnostic(
