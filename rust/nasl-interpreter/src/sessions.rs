@@ -1040,8 +1040,24 @@ impl Sessions {
     }
 
     /// Get the server banner
-    pub fn get_server_banner(&self, _session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn get_server_banner(&self, session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                match session.session.get_server_banner() {
+                    Ok(b) => Ok(NaslValue::String(b)),
+                    Err(_) => Ok(NaslValue::Null),
+                }
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Get the list of authmethods
