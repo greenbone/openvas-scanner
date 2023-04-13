@@ -4,13 +4,16 @@
 
 //! Defines functions and structures for handling sessions
 
+use core::str;
 use std::{
     env,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption};
+use libssh_rs::{
+    AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption,
+};
 
 use crate::{error::FunctionErrorKind, NaslValue};
 
@@ -753,7 +756,29 @@ impl Sessions {
                     .session
                     .userauth_keyboard_interactive_set_answers(&answers)
                 {
-                    Ok(_) => Ok(NaslValue::Number(0)),
+                    Ok(_) => {
+                        // Once set the answers we need to get info again to finish the auth process
+                        loop {
+                            match session.session.userauth_keyboard_interactive(None, None) {
+                                Ok(AuthStatus::Info) => {
+                                    session
+                                        .session
+                                        .userauth_keyboard_interactive_info()
+                                        .unwrap();
+                                    continue;
+                                }
+                                Ok(AuthStatus::Success) => break,
+                                _ => {
+                                    return Err(FunctionErrorKind::Diagnostic(
+                                        format!("Session ID {} not found", session_id),
+                                        Some(NaslValue::Number(-1)),
+                                    ));
+                                }
+                            }
+                        }
+                        Ok(NaslValue::Number(0))
+                    }
+
                     Err(_) => Ok(NaslValue::Number(-1)),
                 }
             }
@@ -764,15 +789,197 @@ impl Sessions {
         }
     }
 
+    fn exec_ssh_cmd(
+        session: &SshSession,
+        cmd: &str,
+        verbose: bool,
+        compat_mode: bool,
+        to_stdout: i32,
+        to_stderr: i32,
+    ) -> Result<(String, String), FunctionErrorKind> {
+        let channel = match session.session.new_channel() {
+            Ok(c) => c,
+            Err(e) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    format!(
+                        "Failed to open a new channel for session ID {}: {}",
+                        session.session_id,
+                        e
+                    ),
+                    Some(NaslValue::Number(-1)),
+                ));
+            }
+        };
+
+        match channel.open_session() {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    format!(
+                        "Channel failed to open session for session ID {}: {}",
+                        session.session_id,
+                        e
+                    ),
+                    Some(NaslValue::Number(-1)),
+                ));
+            }
+        }
+
+        match channel.request_pty("xterm", 80, 24) {
+            Ok(_) => (),
+            Err(e) => {
+                if verbose {
+                    println!(
+                        "Channel failed to request pty for session ID {}: {}",
+                        session.session_id,
+                        e
+                    );
+                }
+            }
+        }
+
+        match channel.request_exec(cmd) {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    format!(
+                        "Channel failed to exec command {} for session ID {}: {}",
+                        cmd,
+                        session.session_id,
+                        e
+                    ),
+                    Some(NaslValue::Number(-1)),
+                ));
+            }
+        }
+
+        let mut response = String::new();
+        let mut compat_buf = String::new();
+        let mut buf: [u8; 4096] = [0; 4096];
+
+        // read stderr
+        loop {
+            match channel.read_timeout(&mut buf, true, Some(Duration::from_millis(15000))) {
+                Ok(0) => break,
+                Ok(_) => {
+                    let buf_as_str = match std::str::from_utf8(&buf) {
+                        Ok(s) => s,
+                        Err(_) => {
+                            return Err(FunctionErrorKind::Diagnostic(
+                                format!(
+                                    "Channel failed getting response {} for session ID {}",
+                                    cmd, session.session_id
+                                ),
+                                Some(NaslValue::Number(-1)),
+                            ));
+                        }
+                    };
+
+                    if to_stderr == 1 {
+                        response.push_str(buf_as_str);
+                    }
+                    if compat_mode {
+                        compat_buf.push_str(buf_as_str);
+                    }
+                }
+                Err(_) => {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!(
+                            "Channel failed getting response {} for session ID {}",
+                            cmd, session.session_id
+                        ),
+                        Some(NaslValue::Number(-1)),
+                    ));
+                }
+            }
+        }
+        // read stdout
+        loop {
+            match channel.read_timeout(&mut buf, false, Some(Duration::from_millis(15000))) {
+                Ok(0) => break,
+                Ok(_) => {
+                    let buf_as_str = match std::str::from_utf8(&buf) {
+                        Ok(s) => s,
+                        Err(_) => {
+                            return Err(FunctionErrorKind::Diagnostic(
+                                format!(
+                                    "Channel failed getting response {} for session ID {}",
+                                    cmd, session.session_id
+                                ),
+                                Some(NaslValue::Number(-1)),
+                            ));
+                        }
+                    };
+
+                    if to_stdout == 1 {
+                        response.push_str(buf_as_str);
+                    }
+                }
+                Err(_) => {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!(
+                            "Channel failed getting response {} for session ID {}",
+                            cmd, session.session_id
+                        ),
+                        Some(NaslValue::Number(-1)),
+                    ));
+                }
+            }
+        }
+        Ok((response, compat_buf))
+    }
+
     /// Run a command via ssh.
     pub fn request_exec(
         &self,
-        _session_id: i32,
-        _cmd: &str,
-        _stdout: i32,
-        _stderr: i32,
+        session_id: i32,
+        cmd: &str,
+        stdout: i32,
+        stderr: i32,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                let verbose = session.verbose > 0;
+
+                if cmd.is_empty() {
+                    return Ok(NaslValue::Null);
+                }
+                let (mut to_stdout, mut to_stderr, mut compat_mode): (i32, i32, bool) =
+                    (stdout, stderr, false);
+                if stdout == -1 && stderr == -1 {
+                    // None of the two named args are given.
+                    to_stdout = 1;
+                } else if stdout == 0 && stderr == 0 {
+                    // Comaptibility mode
+                    to_stdout = 1;
+                    compat_mode = true;
+                }
+
+                if to_stdout < 0 {
+                    to_stdout = 0;
+                }
+                if to_stderr < 0 {
+                    to_stderr = 0;
+                }
+
+                let (mut response, compat_buf) =
+                    Self::exec_ssh_cmd(session, cmd, verbose, compat_mode, to_stdout, to_stderr)?;
+
+                if compat_mode {
+                    response.push_str(&compat_buf)
+                }
+                Ok(NaslValue::String(response))
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Number(-1)),
+            )),
+        }
     }
 
     /// Request an ssh shell

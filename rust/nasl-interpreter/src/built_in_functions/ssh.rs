@@ -385,17 +385,17 @@ fn nasl_ssh_request_exec<K>(
 
     let cmd = match register.named("cmd") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => return Err(FunctionErrorKind::from("cmd")),
+        _ => return Err(FunctionErrorKind::from("No command passed")),
     };
 
-    let stdout = match register.named("stdout ") {
+    let stdout = match register.named("stdout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-        _ => return Err(FunctionErrorKind::from("stdout")),
+        _ => -1,
     };
 
     let stderr = match register.named("stderr") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-        _ => return Err(FunctionErrorKind::from("stderr")),
+        _ => -1,
     };
 
     ctx.sessions().request_exec(sid, cmd, stdout, stderr)
