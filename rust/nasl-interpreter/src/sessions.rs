@@ -462,6 +462,8 @@ impl Sessions {
                     session.set_opt_user(login, session_id)?;
                 }
                 let verbose = session.verbose > 0;
+
+                // Get the authentication methods only once per session.
                 let methods: AuthMethods = {
                     if !session.authmethods_valid {
                         session.get_authmethods(session_id)?
@@ -534,7 +536,7 @@ impl Sessions {
 
                                 let mut answers: Vec<String> = Vec::new();
                                 for p in info.prompts.into_iter() {
-                                    if p.echo {
+                                    if !p.echo {
                                         answers.push(password.to_string());
                                     } else {
                                         answers.push(String::new());
@@ -620,19 +622,146 @@ impl Sessions {
     /// Authenticate a user on an ssh connection
     pub fn login_interactive(
         &self,
-        _session_id: i32,
-        _login: &str,
+        session_id: i32,
+        login: &str,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                if !session.user_set {
+                    session.set_opt_user(login, session_id)?;
+                }
+                let verbose = session.verbose > 0;
+
+                // Get the authentication methods only once per session.
+                let methods: AuthMethods = {
+                    if !session.authmethods_valid {
+                        session.get_authmethods(session_id)?
+                    } else {
+                        session.authmethods
+                    }
+                };
+                if verbose {
+                    // TODO: print available methods maybe with ctx.logger?
+                    println!("Available methods:\n{:?}", methods);
+                }
+                if methods.contains(AuthMethods::INTERACTIVE) {
+                    let mut prompt = String::new();
+                    loop {
+                        match session.session.userauth_keyboard_interactive(None, None) {
+                            Ok(AuthStatus::Info) => {
+                                let info = match session
+                                    .session
+                                    .userauth_keyboard_interactive_info()
+                                {
+                                    Ok(i) => i,
+                                    Err(_) => {
+                                        return Err(FunctionErrorKind::Diagnostic(
+                                        format!("Failed setting user authentication for SessionID {}", session_id),
+                                        Some(NaslValue::Null),
+                                    ));
+                                    }
+                                };
+                                if verbose {
+                                    println!("SSH kbdint name={}", info.name);
+                                    println!("SSH kbdint instruction{}", info.instruction);
+                                }
+
+                                for p in info.prompts.into_iter() {
+                                    if !p.echo {
+                                        prompt = p.prompt;
+                                    }
+                                }
+                                break;
+                            }
+                            Ok(_) => {
+                                if verbose {
+                                    println!("SSH keyboard-interactive authentication failed for session {}", session_id);
+                                };
+                                continue;
+                            }
+                            Err(_) => {
+                                println!("Error en interactivo");
+
+                                return Err(FunctionErrorKind::Diagnostic(
+                                    format!(
+                                        "Failed setting user authentication for SessionID {}",
+                                        session_id
+                                    ),
+                                    Some(NaslValue::Null),
+                                ));
+                            }
+                        }
+                    }
+                    return Ok(NaslValue::String(prompt));
+                }
+                Ok(NaslValue::Null)
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Authenticate a user on an ssh connection
     pub fn login_interactive_pass(
         &self,
-        _session_id: i32,
-        _password: &str,
+        session_id: i32,
+        password: &str,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                let verbose = session.verbose > 0;
+                let info = match session.session.userauth_keyboard_interactive_info() {
+                    Ok(i) => i,
+                    Err(_) => {
+                        return Err(FunctionErrorKind::Diagnostic(
+                            format!(
+                                "Failed setting user authentication for SessionID {}",
+                                session_id
+                            ),
+                            Some(NaslValue::Number(-1)),
+                        ));
+                    }
+                };
+
+                if verbose {
+                    println!("SSH kbdint name={}", info.name);
+                    println!("SSH kbdint instruction{}", info.instruction);
+                }
+
+                let mut answers: Vec<String> = Vec::new();
+                for p in info.prompts.into_iter() {
+                    if !p.echo {
+                        answers.push(password.to_string());
+                    } else {
+                        answers.push(String::new());
+                    };
+                }
+                match session
+                    .session
+                    .userauth_keyboard_interactive_set_answers(&answers)
+                {
+                    Ok(_) => Ok(NaslValue::Number(0)),
+                    Err(_) => Ok(NaslValue::Number(-1)),
+                }
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Number(-1)),
+            )),
+        }
     }
 
     /// Run a command via ssh.
