@@ -11,9 +11,7 @@ use std::{
     time::Duration,
 };
 
-use libssh_rs::{
-    AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption,
-};
+use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption};
 
 use crate::{error::FunctionErrorKind, NaslValue};
 
@@ -100,6 +98,7 @@ impl SshSession {
         login: &str,
         session_id: i32,
     ) -> Result<NaslValue, FunctionErrorKind> {
+        // TODO: get the username alternatively from the kb.
         let opt_user = SshOption::User(Some(login.to_string()));
         match self.session.set_option(opt_user) {
             Ok(()) => {
@@ -122,11 +121,13 @@ impl SshSession {
                 //TODO: log the following message:
                 //"SSH authentication succeeded using the none method - should not happen; very old server?
                 self.authmethods = AuthMethods::NONE;
+                self.authmethods_valid = true;
                 Ok(AuthMethods::NONE)
             }
             Ok(libssh_rs::AuthStatus::Denied) => match self.session.userauth_list(None) {
                 Ok(list) => {
                     self.authmethods = list;
+                    self.authmethods_valid = true;
                     Ok(list)
                 }
                 Err(_) => {
@@ -139,6 +140,7 @@ impl SshSession {
                         | AuthMethods::NONE
                         | AuthMethods::PASSWORD
                         | AuthMethods::PUBLIC_KEY;
+                    self.authmethods_valid = true;
                     Ok(methods)
                 }
             },
@@ -688,8 +690,6 @@ impl Sessions {
                                 continue;
                             }
                             Err(_) => {
-                                println!("Error en interactivo");
-
                                 return Err(FunctionErrorKind::Diagnostic(
                                     format!(
                                         "Failed setting user authentication for SessionID {}",
@@ -803,8 +803,7 @@ impl Sessions {
                 return Err(FunctionErrorKind::Diagnostic(
                     format!(
                         "Failed to open a new channel for session ID {}: {}",
-                        session.session_id,
-                        e
+                        session.session_id, e
                     ),
                     Some(NaslValue::Number(-1)),
                 ));
@@ -817,8 +816,7 @@ impl Sessions {
                 return Err(FunctionErrorKind::Diagnostic(
                     format!(
                         "Channel failed to open session for session ID {}: {}",
-                        session.session_id,
-                        e
+                        session.session_id, e
                     ),
                     Some(NaslValue::Number(-1)),
                 ));
@@ -831,8 +829,7 @@ impl Sessions {
                 if verbose {
                     println!(
                         "Channel failed to request pty for session ID {}: {}",
-                        session.session_id,
-                        e
+                        session.session_id, e
                     );
                 }
             }
@@ -844,9 +841,7 @@ impl Sessions {
                 return Err(FunctionErrorKind::Diagnostic(
                     format!(
                         "Channel failed to exec command {} for session ID {}: {}",
-                        cmd,
-                        session.session_id,
-                        e
+                        cmd, session.session_id, e
                     ),
                     Some(NaslValue::Number(-1)),
                 ));
@@ -1015,8 +1010,33 @@ impl Sessions {
     }
 
     /// Get the issue banner
-    pub fn get_issue_banner(&self, _session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn get_issue_banner(&self, session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                if !session.user_set {
+                    //TODO: set the login with set_opt_user(). Get the user from the kb
+                    return Ok(NaslValue::Null);
+                }
+
+                if !session.authmethods_valid {
+                    session.get_authmethods(session_id)?;
+                }
+
+                match session.session.get_issue_banner() {
+                    Ok(b) => Ok(NaslValue::String(b)),
+                    Err(_) => Ok(NaslValue::Null),
+                }
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Get the server banner
