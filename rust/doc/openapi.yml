@@ -4,22 +4,20 @@ info:
   description: "
     # Authentication
 
-    In general the API supports two kinds of authentication methods:
+    The API supports two kinds of authentication methods:
 
     - API Key
 
     - Certificates
 
 
-    The different authentication modes are set within a configuration file or via the argument list, when starting the server.
+    The authentication modes are set within a configuration file or via the argument list, when starting the server.
 
     The authentication is required for each request except for a HEAD request.
 
-    For testing and development the authentication can be disabled.
-
     ## API Key
 
-    An API key is a token that client provides when making API requests and are used to authorize access.
+    An API key is a token that the client provides when doing API requests and are used to authorize access.
     The `SCANNER-API-KEY` must be in the header.
 
 
@@ -28,7 +26,7 @@ info:
 
     ## Certificates
 
-    This option use [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived certificates to allow access.
+    This option uses [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived certificates to allow access.
 
 
     <!--More details about this method follows with its implementation.-->
@@ -52,7 +50,7 @@ tags:
 paths:
   /:
     head:
-      description: "Get the response header. It contains the API version, feed version and authentication methods available."
+      description: "Get the response header. It contains the API version, feed version and available authentication methods."
       operationId: "get_info"
       tags:
         - "general"
@@ -64,7 +62,7 @@ paths:
               schema:
                 type: "string"
             feed-version:
-              description: "The version of the feed used for the VTs"
+              description: "The version of the VT feed"
               schema:
                 type: "string"
             authentication:
@@ -885,7 +883,7 @@ components:
     list_of_oids:
       description: "
         A small list of OIDs for requesting the available VTs.
-        Note that this is only an example and can contain tens of thousands OIDs."
+        For a regular feed this is typically over 100K OIDs."
       value:
         [
           "1.3.6.1.4.1.25623.1.0.100196",
