@@ -1047,12 +1047,10 @@ impl Sessions {
             .enumerate()
             .find(|(_i, s)| s.session_id == session_id)
         {
-            Some((_i, session)) => {
-                match session.session.get_server_banner() {
-                    Ok(b) => Ok(NaslValue::String(b)),
-                    Err(_) => Ok(NaslValue::Null),
-                }
-            }
+            Some((_i, session)) => match session.session.get_server_banner() {
+                Ok(b) => Ok(NaslValue::String(b)),
+                Err(_) => Ok(NaslValue::Null),
+            },
             _ => Err(FunctionErrorKind::Diagnostic(
                 format!("Session ID {} not found", session_id),
                 Some(NaslValue::Null),
@@ -1061,8 +1059,50 @@ impl Sessions {
     }
 
     /// Get the list of authmethods
-    pub fn get_auth_methods(&self, _session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn get_auth_methods(&self, session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                if !session.user_set {
+                    //TODO: set the login with set_opt_user(). Get the user from the kb
+                    return Ok(NaslValue::Null);
+                }
+
+                if !session.authmethods_valid {
+                    session.get_authmethods(session_id)?;
+                };
+
+                let mut methods = vec![];
+                if session.authmethods.contains(AuthMethods::NONE) {
+                    methods.push("none");
+                }
+                if session.authmethods.contains(AuthMethods::PASSWORD) {
+                    methods.push("password");
+                }
+                if session.authmethods.contains(AuthMethods::PUBLIC_KEY) {
+                    methods.push("publickey");
+                }
+                if session.authmethods.contains(AuthMethods::HOST_BASED) {
+                    methods.push("hostbased");
+                }
+                if session.authmethods.contains(AuthMethods::INTERACTIVE) {
+                    methods.push("keyboard-interactive");
+                }
+
+                if methods.is_empty() {
+                    return Ok(NaslValue::Null);
+                }
+                Ok(NaslValue::String(methods.join(",")))
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Get the host key
