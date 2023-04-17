@@ -1,7 +1,7 @@
 ARG VERSION=unstable
 
 FROM greenbone/gvm-libs:$VERSION
-LABEL deprecayed="This image is deprecated and may be removed soon."
+LABEL deprecated="This image is deprecated and may be removed soon."
 
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
