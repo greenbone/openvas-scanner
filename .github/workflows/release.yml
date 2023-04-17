@@ -107,7 +107,7 @@ jobs:
         run: |
              git config --global user.email "${{ secrets.GREENBONE_BOT_MAIL }}"
              git config --global user.name "${{ secrets.GREENBONE_BOT }}"
-      - name: "create working branch for previous major relese (${{ env.LATEST_VERSION }})"
+      - name: "create working branch for previous major release (${{ env.LATEST_VERSION }})"
         if: ( env.RELEASE_KIND == 'major' )
         run: |
           # save a branch so that we can easily create PR for that version when we want to fix something
