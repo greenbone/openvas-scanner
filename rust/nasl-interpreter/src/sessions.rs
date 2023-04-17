@@ -1113,16 +1113,12 @@ impl Sessions {
             .enumerate()
             .find(|(_i, s)| s.session_id == session_id)
         {
-            Some((_i, session)) => {
-                match session.session.get_server_public_key() {
-                    Ok(s) => {
-                        match s.get_public_key_hash_hexa(libssh_rs::PublicKeyHashType::Md5) {
-                            Ok(hash) => Ok(NaslValue::String(hash)),
-                            Err(_) => Ok(NaslValue::Null),
-                        }
-                    },
+            Some((_i, session)) => match session.session.get_server_public_key() {
+                Ok(s) => match s.get_public_key_hash_hexa(libssh_rs::PublicKeyHashType::Md5) {
+                    Ok(hash) => Ok(NaslValue::String(hash)),
                     Err(_) => Ok(NaslValue::Null),
-                }
+                },
+                Err(_) => Ok(NaslValue::Null),
             },
             _ => Err(FunctionErrorKind::Diagnostic(
                 format!("Session ID {} not found", session_id),
@@ -1131,10 +1127,31 @@ impl Sessions {
         }
     }
 
-
     /// Get the host key
-    pub fn sftp_enabled_check(&self, _session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn sftp_enabled_check(&self, session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                let verbose = session.verbose > 0;
+                match session.session.sftp() {
+                    Ok(_) => Ok(NaslValue::Number(0)),
+                    Err(e) => {
+                        if verbose {
+                            println!("SFTP enabled check error: {}", e);
+                        }
+                        Ok(NaslValue::Number(1))
+                    }
+                }
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 }
 
