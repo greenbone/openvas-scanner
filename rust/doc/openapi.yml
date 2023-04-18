@@ -514,7 +514,7 @@ components:
           description: "An ID, which is unique for the scan. It is auto incremental and starts at 0 for the first result."
           type: "integer"
           format: "int32"
-        result:
+        type:
           description: "The type of the result."
           type: "string"
           enum:
@@ -615,42 +615,6 @@ components:
         - alive
         - queued
         - finished
-
-    Reference:
-      description: "A reference for a VT."
-      type: "object"
-      properties:
-        ref_type:
-          description: "Type of a reference."
-          type: "string"
-        value:
-          description: "Value of a reference."
-          type: "string"
-      required:
-        - ref_type
-        - value
-
-    Severity:
-      description: "A severity."
-      type: "object"
-      properties:
-        version:
-          description: "The version of the severity."
-          type: "string"
-          enum:
-            - cvss_base_v2
-            - cvss_base_v3
-        vector:
-          description: "The severity vector."
-          type: "string"
-        date:
-          description: "A UNIX format timestamp."
-          type: "integer"
-          format: "int32"
-      required:
-        - version
-        - vector
-        - date
 
     ScanAction:
       description: "An action to perform on a scan"
