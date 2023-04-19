@@ -31,7 +31,7 @@ on:
 #
 # Major version releases are only valid on the "main" branch.
 # 
-# Once the version is found and enhanced, each Cargo.toml / CMakeLists file is updated to the new
+# Once the version is found and enhanced, each CMakeLists file is updated to the new
 # version, and a commit is created in the found branch.
 jobs:
   release:
@@ -121,15 +121,16 @@ jobs:
           # jump back for the case that we switched to a tag
           git checkout "${{ env.RELEASE_REF }}"
           # change version
-          sed -i.bak 's/^\([ ]*\)VERSION [0-9]*.[0-9]*.[0-9]*/\1VERSION ${{ env.NEW_VERSION }}/' CMakeLists.txt
-          sed -i.bak 's/^version = ".*"$/version = "${{ env.NEW_VERSION }}"/' **/Cargo.toml
-          # disable PROJECT_DEV_VERSION for tag
-          sed -i.bak 's/set (PROJECT_DEV_VERSION 1)/set (PROJECT_DEV_VERSION 0)/' CMakeLists.txt
+          python3 -m pip install pontos
+          pontos-version update ${{ env.NEW_VERSION }}
+          # as soon as pontos-version release is available and it supports cargo do
+          # cd rust
+          # pontos-version update ${{ env.NEW_VERSION }}
+          # but since we don't upload cargo modules to registry the version doesn't matter as of now.
           if git diff --exit-code --quiet; then
             echo "There are no modified files, skipping."
           else
             git add CMakeLists.txt
-            git add **/Cargo.toml
             git commit -m "Automated commit: change version from ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}"
             git push origin ${{ env.RELEASE_REF }}
           fi
@@ -156,11 +157,12 @@ jobs:
       - name: release ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           python3 -m pip install pontos
+          export PROJECT=$(echo "${{ github.repository }}" | sed 's/.*\///' )
           pontos-changelog \
             --current-version ${{ env.LATEST_VERSION }} \
             --next-version ${{ env.NEW_VERSION }} \
             --config changelog.toml \
-            --project openvas-scanner \
+            --project $PROJECT \
             --versioning-scheme semver \
             -o /tmp/changelog.md   || true
           # we would rather have empty release notes than no release
@@ -170,13 +172,14 @@ jobs:
           echo "${{ secrets.GREENBONE_BOT_TOKEN }}" | gh auth login --with-token
           # lets see how smart it is
           export nrn="v${{ env.NEW_VERSION }}"
+          export filename="$PROJECT-$nrn"
           gh release create "$nrn" -F /tmp/changelog.md
           mkdir -p assets
           ls -las assets/
-          curl -Lo assets/$nrn.zip https://github.com/nichtsfrei/openvas-scanner/archive/refs/tags/$nrn.zip
-          curl -Lo assets/$nrn.tar.gz https://github.com/nichtsfrei/openvas-scanner/archive/refs/tags/$nrn.tar.gz
+          curl -Lo assets/$filename.zip https://github.com/nichtsfrei/openvas-scanner/archive/refs/tags/$nrn.zip
+          curl -Lo assets/$filename.tar.gz https://github.com/nichtsfrei/openvas-scanner/archive/refs/tags/$nrn.tar.gz
           echo -e "${{ secrets.GPG_KEY }}" > private.pgp
           echo ${{ secrets.GPG_PASSPHRASE }} | bash .github/sign-assets.sh private.pgp
-          rm assets/$nrn.zip
-          rm assets/$nrn.tar.gz
+          rm assets/$filename.zip
+          rm assets/$filename.tar.gz
           gh release upload $nrn assets/*
