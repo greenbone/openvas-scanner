@@ -36,6 +36,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 OPTION (ENABLE_COVERAGE "Enable support for coverage analysis" OFF)
+# the shell based script got replaced by https://github.com/greenbone/greenbone-feed-sync/
+OPTION (INSTALL_OLD_SYNC_SCRIPT "Install shell based VT feed sync script" OFF)
 
 ## Retrieve git revision (at configure time)
 include (GetGit)
