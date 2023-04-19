@@ -27,7 +27,7 @@ key_id=$(echo "$password" | \
 # Create a signed ASC for each file in the assets directory
 for file in assets/*; do
   if [ -f "$file" ]; then
-    echo $password | gpg --default-key $key_id --batch --passphrase-fd 0 --clear-sign --detach-sign "$file"
+    echo $password | gpg --default-key $key_id --batch --passphrase-fd 0 --detach-sign -a "$file"
   fi
 done
 
