@@ -40,7 +40,7 @@ pkg_check_modules (LIBSSH REQUIRED libssh>=0.6.0)
 
 set (KSBA_MIN_VERSION "1.0.7")
 # try with package config
-pkg_check_modules (KSBA REQUIRED ksba>=1.0.7)
+pkg_check_modules (KSBA ksba>=1.0.7)
 if (NOT KSBA_FOUND)
   # try with find library
   find_library (KSBA ksba)
