@@ -11,10 +11,11 @@ use std::{
     time::Duration,
 };
 
-use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption};
+use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
 
 use crate::{error::FunctionErrorKind, NaslValue};
 
+use std::io::Write;
 use std::net::UdpSocket;
 use std::os::fd::AsRawFd;
 
@@ -72,6 +73,24 @@ pub struct SshSession {
     pub user_set: bool,
     /// Verbose diagnostic
     pub verbose: i32,
+    /// Channel
+    pub channel: Option<Channel>,
+}
+
+impl Default for SshSession {
+    fn default() -> Self {
+        {
+            Self {
+                session_id: 50000,
+                session: Session::new().unwrap(),
+                authmethods: AuthMethods::NONE,
+                authmethods_valid: false,
+                user_set: false,
+                verbose: 0,
+                channel: None,
+            }
+        }
+    }
 }
 
 impl SshSession {
@@ -82,6 +101,7 @@ impl SshSession {
         authmethods_valid: bool,
         user_set: bool,
         verbose: i32,
+        channel: Option<Channel>,
     ) -> Self {
         Self {
             session_id,
@@ -90,6 +110,7 @@ impl SshSession {
             authmethods_valid,
             user_set,
             verbose,
+            channel,
         }
     }
 
@@ -148,21 +169,6 @@ impl SshSession {
                 format!("Invalid SSH session for SessionID {}", session_id),
                 Some(NaslValue::Null),
             )),
-        }
-    }
-}
-
-impl Default for SshSession {
-    fn default() -> Self {
-        {
-            Self {
-                session_id: 50000,
-                session: Session::new().unwrap(),
-                authmethods: AuthMethods::NONE,
-                authmethods_valid: false,
-                user_set: false,
-                verbose: 0,
-            }
         }
     }
 }
@@ -401,16 +407,14 @@ impl Sessions {
             }
         };
 
-        let authmethods_valid = false;
-        let authmethods = AuthMethods::NONE;
-        let user_set = false;
         let s = SshSession {
             session_id,
             session,
-            authmethods,
-            authmethods_valid,
-            user_set,
+            authmethods: AuthMethods::NONE,
+            authmethods_valid: false,
+            user_set: false,
             verbose,
+            channel: None,
         };
 
         let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
