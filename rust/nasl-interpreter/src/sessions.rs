@@ -1079,8 +1079,32 @@ impl Sessions {
     }
 
     /// Close an ssh shell
-    pub fn shell_close(&self, _session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn shell_close(&self, session_id: i32) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                let _ = &session
+                    .channel
+                    .as_mut()
+                    .map_or((), |c| c.close().unwrap_or(()));
+
+                //match &session.channel {
+                //    Some(c) => c.close().unwrap_or(()),
+                //    _ => {
+                //        return Ok(NaslValue::Null);}
+
+                session.channel = None;
+                Ok(NaslValue::Null)
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Get the issue banner
