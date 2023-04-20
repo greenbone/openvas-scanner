@@ -56,7 +56,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup container meta information
+      - name: 'set IS_VERSION_TAG'
+        run: |
+          echo "IS_VERSION_TAG=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}" >> $GITHUB_ENV
+          # set defaults
+          echo "IS_LATEST_TAG=false" >> $GITHUB_ENV
+      - name: 'set IS_LATEST_TAG'
+        if: ( env.IS_VERSION_TAG )
+        run: |
+          # find the latest version that is not ourself
+          export LATEST_VERSION=$(git tag -l | grep -v '${{ github.ref_name }}' | sort -r --version-sort)
+          # get major minor patch versions
+          IFS='.' read -r latest_major latest_minor latest_patch << EOF
+          $LATEST_VERSION
+          EOF
+          IFS='.' read -r tag_major tag_minor tag_patch << EOF
+          ${{ github.ref_name }}
+          EOF
+          # remove leading v
+          latest_major=$(echo $latest_major | cut -c2-)
+          tag_major=$(echo $tag_major | cut -c2-)
+          echo "$tag_major >= $latest_major"
+          if [[ $tag_major -ge $latest_major && ($tag_minor -ne 0 || $tag_patch -ne 0) ]]; then
+            # set this tag to latest and stable
+            echo "IS_LATEST_TAG=true" >> $GITHUB_ENV
+          fi
+      - name: 'Setup meta information (IS_VERSION_TAG: ${{ env.IS_VERSION_TAG }}, IS_LATEST_TAG: ${{ env.IS_LATEST_TAG }} )'
         id: meta
         uses: docker/metadata-action@v4
         with:
@@ -66,16 +91,15 @@ jobs:
             org.opencontainers.image.base.name=greenbone/gvm-libs
           flavor: latest=false # no auto latest container tag for git tags
           tags: |
-            # use container tag for git tags
-            type=match,pattern=v(.*),group=1
-            # use latest for latest tag from stable branch
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v22.4') }}
-            # use stable for latest 22.4 tag
-            type=raw,value=stable,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v22.4') }}
-            # use oldstable for latest 22.4 tag
-            type=raw,value=oldstable,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v21.4') }}
-            # use edge for default branch
-            type=edge
+            # when IS_LATEST_TAG is set create a stable and a latest tag
+            type=raw,value=latest,enable=${{ env.IS_LATEST_TAG }}
+            type=raw,value=stable,enable=${{ env.IS_LATEST_TAG }}
+            # if tag version is set than create a version tags
+            type=semver,pattern={{version}},enable=${{ env.IS_VERSION_TAG }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ env.IS_VERSION_TAG }}
+            type=semver,pattern={{major}},enable=${{ env.IS_VERSION_TAG }}
+            # if we are on the main branch set edge
+            type=edge,branch=main
             # use branch-sha otherwise for pushes to branches other then main (will not be uploaded)
             type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
             # use pr-$PR_ID for pull requests (will not be uploaded)
