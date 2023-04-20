@@ -211,9 +211,9 @@ impl Sessions {
             .enumerate()
             .find(|(_i, s)| s.session_id == session_id)
         {
-            Some((_, s)) => {
+            Some((i, s)) => {
                 s.session.disconnect();
-                sessions.remove(session_id as usize);
+                sessions.remove(i);
                 Ok(NaslValue::Null)
             }
             _ => Err(FunctionErrorKind::Diagnostic(
