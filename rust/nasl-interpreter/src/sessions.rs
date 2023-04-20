@@ -1061,13 +1061,135 @@ impl Sessions {
         }
     }
 
+    fn read_ssh_blocking(channel: &Channel, timeout: Duration, response: &mut String) -> i32 {
+        let mut buf: [u8; 4096] = [0; 4096];
+
+        // read stderr
+        loop {
+            match channel.read_timeout(&mut buf, true, Some(timeout)) {
+                Ok(0) => break,
+                Ok(_) | Err(libssh_rs::Error::TryAgain) => {
+                    let buf_as_str = match std::str::from_utf8(&buf) {
+                        Ok(s) => s,
+                        Err(_) => {
+                            return -1;
+                        }
+                    };
+                    response.push_str(buf_as_str);
+                }
+                Err(_) => {
+                    return -1;
+                }
+            }
+        }
+        // read stdout
+        loop {
+            match channel.read_timeout(&mut buf, false, Some(timeout)) {
+                Ok(0) => break,
+                Ok(_) | Err(libssh_rs::Error::TryAgain) => {
+                    let buf_as_str = match std::str::from_utf8(&buf) {
+                        Ok(s) => s,
+                        Err(_) => {
+                            return -1;
+                        }
+                    };
+                    response.push_str(buf_as_str);
+                }
+                Err(_) => {
+                    return -1;
+                }
+            }
+        }
+
+        0
+    }
+
+    fn read_ssh_nonblocking(channel: &Channel, response: &mut String) -> i32 {
+        if channel.is_closed() || channel.is_eof() {
+            return -1;
+        }
+
+        let mut buf: [u8; 4096] = [0; 4096];
+        // stderr
+        match channel.read_nonblocking(&mut buf, true) {
+            Ok(n) if n > 0 => {
+                let buf_as_str = match std::str::from_utf8(&buf) {
+                    Ok(s) => s,
+                    Err(_) => {
+                        return -1;
+                    }
+                };
+                response.push_str(buf_as_str);
+            }
+            Ok(_) => (),
+            Err(_) => {
+                return -1;
+            }
+        }
+
+        let mut buf: [u8; 4096] = [0; 4096];
+        // stdout
+        match channel.read_nonblocking(&mut buf, false) {
+            Ok(n) if n > 0 => {
+                let buf_as_str = match std::str::from_utf8(&buf) {
+                    Ok(s) => s,
+                    Err(_) => {
+                        return -1;
+                    }
+                };
+                response.push_str(buf_as_str);
+            }
+            Ok(_) => (),
+            Err(_) => {
+                return -1;
+            }
+        }
+        0
+    }
+
     /// Read the output of an ssh shell.
     pub fn shell_read(
         &self,
-        _session_id: i32,
-        _timeout: Duration,
+        session_id: i32,
+        timeout: Duration,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                let channel = match &session.channel {
+                    Some(c) => c,
+                    _ => {
+                        return Ok(NaslValue::Null);
+                    }
+                };
+
+                if channel.is_closed() {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!("Session ID {} not found", session_id),
+                        Some(NaslValue::Null),
+                    ));
+                }
+
+                let mut response = String::new();
+                if timeout.as_secs() > 0 {
+                    if Self::read_ssh_blocking(channel, timeout, &mut response) != 0 {
+                        return Ok(NaslValue::Null);
+                    }
+                } else if Self::read_ssh_nonblocking(channel, &mut response) != 0 {
+                    return Ok(NaslValue::Null);
+                }
+
+                Ok(NaslValue::String(response))
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
     /// Write string to ssh shell
     pub fn shell_write(&self, session_id: i32, cmd: &str) -> Result<NaslValue, FunctionErrorKind> {
@@ -1118,11 +1240,6 @@ impl Sessions {
                     .as_mut()
                     .map_or((), |c| c.close().unwrap_or(()));
 
-                //match &session.channel {
-                //    Some(c) => c.close().unwrap_or(()),
-                //    _ => {
-                //        return Ok(NaslValue::Null);}
-
                 session.channel = None;
                 Ok(NaslValue::Null)
             }
@@ -1171,6 +1288,7 @@ impl Sessions {
             .enumerate()
             .find(|(_i, s)| s.session_id == session_id)
         {
+            // TODO: Check with openvas-nasl why the outputs doesn't match
             Some((_i, session)) => match session.session.get_server_banner() {
                 Ok(b) => Ok(NaslValue::String(b)),
                 Err(_) => Ok(NaslValue::Null),

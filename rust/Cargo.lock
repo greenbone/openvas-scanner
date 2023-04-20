@@ -271,18 +271,18 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.2.2"
+version = "4.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b802d85aaf3a1cdb02b224ba472ebdea62014fccfcb269b95a4d76443b5ee5a"
+checksum = "956ac1f6381d8d82ab4684768f89c0ea3afe66925ceadb4eeb3fc452ffc55d62"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.2.2"
+version = "4.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14a1a858f532119338887a4b8e1af9c60de8249cd7bafd68036a489e261e37b6"
+checksum = "84080e799e54cff944f4b4a4b0e71630b0e0443b25b985175c7dddc1a859b749"
 dependencies = [
  "anstream",
  "anstyle",
@@ -843,7 +843,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs"
 version = "0.1.8"
-source = "git+https://github.com/jjnicola/libssh-rs.git?branch=main#ef6d5ee0482dac9a76037cb45143d8299549b132"
+source = "git+https://github.com/jjnicola/libssh-rs.git?branch=ssh-read#479668b7715c7d8cb9acd8b696fc74f188ca43b7"
 dependencies = [
  "bitflags",
  "libssh-rs-sys",
@@ -854,7 +854,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs-sys"
 version = "0.1.3"
-source = "git+https://github.com/jjnicola/libssh-rs.git?branch=main#ef6d5ee0482dac9a76037cb45143d8299549b132"
+source = "git+https://github.com/jjnicola/libssh-rs.git?branch=ssh-read#479668b7715c7d8cb9acd8b696fc74f188ca43b7"
 dependencies = [
  "cc",
  "openssl-sys",
@@ -872,9 +872,9 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d59d8c75012853d2e872fb56bc8a2e53718e2cafe1a4c823143141c6d90c322f"
+checksum = "9b085a4f2cde5781fc4b1717f2e86c62f5cda49de7ba99a7c2eae02b61c9064c"
 
 [[package]]
 name = "log"
@@ -931,7 +931,7 @@ dependencies = [
 name = "nasl-cli"
 version = "0.1.0"
 dependencies = [
- "clap 4.2.2",
+ "clap 4.2.4",
  "configparser",
  "feed",
  "json-storage",
@@ -1308,9 +1308,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.37.11"
+version = "0.37.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85597d61f83914ddeba6a47b3b8ffe7365107221c2e557ed94426489fefb5f77"
+checksum = "f79bef90eb6d984c72722595b5b1348ab39275a5e5123faca6863bf07d75a4e0"
 dependencies = [
  "bitflags",
  "errno 0.3.1",
