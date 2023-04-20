@@ -1070,12 +1070,38 @@ impl Sessions {
         Ok(NaslValue::Null)
     }
     /// Write string to ssh shell
-    pub fn shell_write(
-        &self,
-        _session_id: i32,
-        _cmd: &str,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn shell_write(&self, session_id: i32, cmd: &str) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                let channel = match &session.channel {
+                    Some(c) => c,
+                    _ => {
+                        return Ok(NaslValue::Null);
+                    }
+                };
+
+                if channel.is_closed() {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!("Session ID {} not found", session_id),
+                        Some(NaslValue::Null),
+                    ));
+                }
+
+                match channel.stdin().write(cmd.as_bytes()) {
+                    Ok(_) => Ok(NaslValue::Number(0)),
+                    Err(_) => Ok(NaslValue::Number(-1)),
+                }
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Close an ssh shell
