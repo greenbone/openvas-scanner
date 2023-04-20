@@ -981,14 +981,84 @@ impl Sessions {
         }
     }
 
+    fn request_ssh_shell(
+        session_id: i32,
+        channel: &mut Channel,
+        pty: bool,
+    ) -> Result<(), FunctionErrorKind> {
+        if pty {
+            match channel.request_pty("xterm", 80, 24) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!(
+                            "Failed to requesting a new channel pty for session ID {}: {}",
+                            session_id, e
+                        ),
+                        Some(NaslValue::Number(-1)),
+                    ));
+                }
+            }
+        }
+
+        match channel.request_shell() {
+            Ok(_) => Ok(()),
+            Err(e) => Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "Failed to open a shell for session ID {}: {}",
+                    session_id, e
+                ),
+                Some(NaslValue::Number(-1)),
+            )),
+        }
+    }
+
     /// Request an ssh shell
-    pub fn shell_open(
-        &self,
-        //session id, &login
-        _session_id: i32,
-        _pty: bool,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        Ok(NaslValue::Null)
+    pub fn shell_open(&self, session_id: i32, pty: bool) -> Result<NaslValue, FunctionErrorKind> {
+        let mut sessions = Arc::as_ref(&self.ssh_sessions).lock().unwrap();
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                // new channel
+                let mut channel = match session.session.new_channel() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        return Err(FunctionErrorKind::Diagnostic(
+                            format!(
+                                "Failed to open a new channel for session ID {}: {}",
+                                session.session_id, e
+                            ),
+                            Some(NaslValue::Null),
+                        ));
+                    }
+                };
+
+                match channel.open_session() {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(FunctionErrorKind::Diagnostic(
+                            format!(
+                                "Channel failed to open session for session ID {}: {}",
+                                session.session_id, e
+                            ),
+                            Some(NaslValue::Null),
+                        ));
+                    }
+                };
+
+                Self::request_ssh_shell(session_id, &mut channel, pty)?;
+
+                session.channel = Some(channel);
+                Ok(NaslValue::Number(session_id as i64))
+            }
+            _ => Err(FunctionErrorKind::Diagnostic(
+                format!("Session ID {} not found", session_id),
+                Some(NaslValue::Null),
+            )),
+        }
     }
 
     /// Read the output of an ssh shell.
