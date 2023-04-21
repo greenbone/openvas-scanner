@@ -4,6 +4,7 @@
 
 //! Defines NASL ssh and sftp functions
 
+use crate::NaslLogger;
 use crate::{
     error::FunctionErrorKind, lookup_keys::TARGET, sessions::SshSession, Context, ContextType,
     NaslFunction, NaslValue, Register,
@@ -42,35 +43,36 @@ fn set_opt_user(
 fn get_authmethods(
     session: &mut SshSession,
     session_id: i32,
+    logger: &dyn NaslLogger,
 ) -> Result<AuthMethods, FunctionErrorKind> {
     match session.session.userauth_none(None) {
         Ok(libssh_rs::AuthStatus::Success) => {
-            //TODO: log the following message:
-            //"SSH authentication succeeded using the none method - should not happen; very old server?
+            logger.info(&"SSH authentication succeeded using the none method - should not happen; very old server?");
             session.authmethods = AuthMethods::NONE;
             session.authmethods_valid = true;
             Ok(AuthMethods::NONE)
         }
-        Ok(libssh_rs::AuthStatus::Denied) => match session.session.userauth_list(None) {
-            Ok(list) => {
-                session.authmethods = list;
-                session.authmethods_valid = true;
-                Ok(list)
-            }
-            Err(_) => {
-                if session.verbose > 0 {
-                    //TODO: log the following message:
-                    //SSH server did not return a list of authentication methods - trying all
+        Ok(libssh_rs::AuthStatus::Denied) => {
+            match session.session.userauth_list(None) {
+                Ok(list) => {
+                    session.authmethods = list;
+                    session.authmethods_valid = true;
+                    Ok(list)
                 }
-                let methods = AuthMethods::HOST_BASED
-                    | AuthMethods::INTERACTIVE
-                    | AuthMethods::NONE
-                    | AuthMethods::PASSWORD
-                    | AuthMethods::PUBLIC_KEY;
-                session.authmethods_valid = true;
-                Ok(methods)
+                Err(_) => {
+                    if session.verbose > 0 {
+                        logger.info(&"SSH server did not return a list of authentication methods - trying all".to_string());
+                    }
+                    let methods = AuthMethods::HOST_BASED
+                        | AuthMethods::INTERACTIVE
+                        | AuthMethods::NONE
+                        | AuthMethods::PASSWORD
+                        | AuthMethods::PUBLIC_KEY;
+                    session.authmethods_valid = true;
+                    Ok(methods)
+                }
             }
-        },
+        }
         _ => Err(FunctionErrorKind::Diagnostic(
             format!("Invalid SSH session for SessionID {}", session_id),
             Some(NaslValue::Null),
@@ -85,6 +87,7 @@ fn exec_ssh_cmd(
     compat_mode: bool,
     to_stdout: i32,
     to_stderr: i32,
+    logger: &dyn NaslLogger,
 ) -> Result<(String, String), FunctionErrorKind> {
     let channel = match session.session.new_channel() {
         Ok(c) => c,
@@ -116,10 +119,10 @@ fn exec_ssh_cmd(
         Ok(_) => (),
         Err(e) => {
             if verbose {
-                println!(
+                logger.info(&format!(
                     "Channel failed to request pty for session ID {}: {}",
                     session.session_id, e
-                );
+                ));
             }
         }
     }
@@ -418,16 +421,12 @@ fn nasl_ssh_connect<K>(
         let option = SshOption::Socket(my_sock.as_raw_fd());
 
         if verbose > 0 {
-            //TODO: use ctx.logger().info() ?
-            println!(
-                "{}",
-                format_args!(
-                    "Setting SSH fd for '{}' to {} (NASL sock={}",
-                    ip_str,
-                    my_sock.as_raw_fd(),
-                    sock
-                )
-            );
+            ctx.logger().info(&format!(
+                "Setting SSH fd for '{}' to {} (NASL sock={}",
+                ip_str,
+                my_sock.as_raw_fd(),
+                sock
+            ));
         }
 
         match session.set_option(option) {
@@ -445,14 +444,10 @@ fn nasl_ssh_connect<K>(
     }
 
     if verbose > 0 {
-        // TODO ctx.logger().info
-        println!(
-            "{}",
-            format_args!(
-                "Connecting to SSH server '{}' (port {}, sock {})",
-                ip_str, port, sock
-            )
-        );
+        ctx.logger().info(&format!(
+            "Connecting to SSH server '{}' (port {}, sock {})",
+            ip_str, port, sock
+        ));
     }
 
     let session_id = 9000; //TODO: implement next_session_id()
@@ -779,14 +774,14 @@ fn nasl_ssh_userauth<K>(
             // Get the authentication methods only once per session.
             let methods: AuthMethods = {
                 if !session.authmethods_valid {
-                    get_authmethods(session, session_id)?
+                    get_authmethods(session, session_id, ctx.logger())?
                 } else {
                     session.authmethods
                 }
             };
             if verbose {
-                // TODO: print available methods maybe with ctx.logger?
-                //println!(format!("Available methods:\n{:?}", methods));
+                ctx.logger()
+                    .info(&format!("Available methods:\n{:?}", methods));
             }
 
             if methods == AuthMethods::NONE {
@@ -806,10 +801,10 @@ fn nasl_ssh_userauth<K>(
                     }
                     Ok(_) => {
                         if verbose {
-                            println!(
+                            ctx.logger().info(&format!(
                                 "SSH password authentication failed for session {}",
                                 session_id
-                            );
+                            ));
                         }
                     }
                     Err(_) => {
@@ -843,8 +838,9 @@ fn nasl_ssh_userauth<K>(
                                 }
                             };
                             if verbose {
-                                println!("SSH kbdint name={}", info.name);
-                                println!("SSH kbdint instruction{}", info.instruction);
+                                ctx.logger().info(&format!("SSH kbdint name={}", info.name));
+                                ctx.logger()
+                                    .info(&format!("SSH kbdint instruction{}", info.instruction));
                             }
 
                             let mut answers: Vec<String> = Vec::new();
@@ -867,10 +863,10 @@ fn nasl_ssh_userauth<K>(
                         }
                         Ok(_) => {
                             if verbose {
-                                println!(
+                                ctx.logger()
+                                    .info(&format!(
                                     "SSH keyboard-interactive authentication failed for session {}",
-                                    session_id
-                                );
+                                    session_id));
                             };
                             continue;
                         }
@@ -898,20 +894,20 @@ fn nasl_ssh_userauth<K>(
                                 }
                                 _ => {
                                     if verbose {
-                                        println!("SSH authentication failed for session {}: No more authentication methods to try", session_id);
+                                        ctx.logger().info(&format!("SSH authentication failed for session {}: No more authentication methods to try", session_id));
                                     };
                                 }
                             }
                         }
                         _ => {
                             if verbose {
-                                println!("SSH public key authentication failed for session {}: Server does not want our key", session_id);
+                                ctx.logger().info(&format!("SSH public key authentication failed for session {}: Server does not want our key", session_id));
                             };
                         }
                     },
                     Err(_) => {
                         if verbose {
-                            println!("SSH public key authentication failed for session {}: Error converting provided key", session.session_id);
+                            ctx.logger().info(&format!("SSH public key authentication failed for session {}: Error converting provided key", session.session_id));
                         };
                     }
                 };
@@ -1034,8 +1030,15 @@ fn nasl_ssh_request_exec<K>(
                 to_stderr = 0;
             }
 
-            let (mut response, compat_buf) =
-                exec_ssh_cmd(session, cmd, verbose, compat_mode, to_stdout, to_stderr)?;
+            let (mut response, compat_buf) = exec_ssh_cmd(
+                session,
+                cmd,
+                verbose,
+                compat_mode,
+                to_stdout,
+                to_stderr,
+                ctx.logger(),
+            )?;
 
             if compat_mode {
                 response.push_str(&compat_buf)
@@ -1498,14 +1501,15 @@ fn nasl_ssh_login_interactive<K>(
             // Get the authentication methods only once per session.
             let methods: AuthMethods = {
                 if !session.authmethods_valid {
-                    get_authmethods(session, session_id)?
+                    get_authmethods(session, session_id, ctx.logger())?
                 } else {
                     session.authmethods
                 }
             };
             if verbose {
                 // TODO: print available methods maybe with ctx.logger?
-                println!("Available methods:\n{:?}", methods);
+                ctx.logger()
+                    .info(&format!("Available methods:\n{:?}", methods));
             }
             if methods.contains(AuthMethods::INTERACTIVE) {
                 let mut prompt = String::new();
@@ -1525,8 +1529,9 @@ fn nasl_ssh_login_interactive<K>(
                                 }
                             };
                             if verbose {
-                                println!("SSH kbdint name={}", info.name);
-                                println!("SSH kbdint instruction{}", info.instruction);
+                                ctx.logger().info(&format!("SSH kbdint name={}", info.name));
+                                ctx.logger()
+                                    .info(&format!("SSH kbdint instruction{}", info.instruction));
                             }
 
                             for p in info.prompts.into_iter() {
@@ -1538,10 +1543,10 @@ fn nasl_ssh_login_interactive<K>(
                         }
                         Ok(_) => {
                             if verbose {
-                                println!(
+                                ctx.logger()
+                                    .info(&format!(
                                     "SSH keyboard-interactive authentication failed for session {}",
-                                    session_id
-                                );
+                                    session_id));
                             };
                             continue;
                         }
@@ -1634,8 +1639,9 @@ fn nasl_ssh_login_interactive_pass<K>(
             };
 
             if verbose {
-                println!("SSH kbdint name={}", info.name);
-                println!("SSH kbdint instruction{}", info.instruction);
+                ctx.logger().info(&format!("SSH kbdint name={}", info.name));
+                ctx.logger()
+                    .info(&format!("SSH kbdint instruction{}", info.instruction));
             }
 
             let mut answers: Vec<String> = Vec::new();
@@ -1728,7 +1734,7 @@ fn nasl_ssh_get_issue_banner<K>(
             }
 
             if !session.authmethods_valid {
-                get_authmethods(session, session_id)?;
+                get_authmethods(session, session_id, ctx.logger())?;
             }
 
             match session.session.get_issue_banner() {
@@ -1838,7 +1844,7 @@ fn nasl_ssh_get_auth_methods<K>(
             }
 
             if !session.authmethods_valid {
-                get_authmethods(session, session_id)?;
+                get_authmethods(session, session_id, ctx.logger())?;
             };
 
             let mut methods = vec![];
@@ -1962,7 +1968,8 @@ fn nasl_sftp_enabled_check<K>(
                 Ok(_) => Ok(NaslValue::Number(0)),
                 Err(e) => {
                     if verbose {
-                        println!("SFTP enabled check error: {}", e);
+                        ctx.logger()
+                            .info(&format!("SFTP enabled check error: {}", e));
                     }
                     Ok(NaslValue::Number(1))
                 }
