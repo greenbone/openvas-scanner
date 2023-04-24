@@ -14,8 +14,33 @@ use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, Ssh
 use std::io::Write;
 use std::net::UdpSocket;
 use std::os::fd::AsRawFd;
+use std::sync::MutexGuard;
 use std::{env, sync::Arc, time::Duration};
 
+fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
+    let mut new_val: i32 = 9000;
+    if sessions.is_empty() {
+        return new_val;
+    }
+
+    let mut list = sessions.iter().map(|x| x.session_id).collect::<Vec<i32>>();
+    list.sort();
+
+    for (i, v) in list.iter().enumerate() {
+        if i == list.len() - 1 {
+            new_val = v + 1;
+            break;
+        }
+        if new_val != list[i] {
+            println!("nv:{} - v:{}", new_val, v);
+            break;
+        }
+
+        new_val = new_val + 1;
+    }
+    println!("return {}", new_val);
+    new_val
+}
 fn set_opt_user(
     ssh_session: &mut SshSession,
     login: Option<String>,
@@ -450,9 +475,11 @@ fn nasl_ssh_connect<K>(
         ));
     }
 
-    let session_id = 9000; //TODO: implement next_session_id()
     match session.connect() {
         Ok(_) => {
+            let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+            let session_id = next_session_id(&sessions);
+
             let s = SshSession {
                 session_id,
                 session,
@@ -463,7 +490,6 @@ fn nasl_ssh_connect<K>(
                 channel: None,
             };
 
-            let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
             sessions.push(s);
 
             Ok(NaslValue::Number(session_id as i64))
@@ -2004,5 +2030,66 @@ pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
         "ssh_get_host_key" => Some(nasl_ssh_get_host_key),
         "sftp_enabled_check" => Some(nasl_sftp_enabled_check),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sessions::Sessions;
+    #[test]
+    fn get_next_session_id() {
+        let all_sessions = Sessions::default();
+        assert_eq!(
+            next_session_id(&all_sessions.ssh_sessions.lock().unwrap()),
+            9000
+        );
+
+        // Add a few sessions
+        for _i in 1..6 {
+            let mut new_ssh = SshSession::default();
+            new_ssh.session_id = next_session_id(&all_sessions.ssh_sessions.lock().unwrap());
+            all_sessions.add_ssh_session(new_ssh);
+        }
+        {
+            let sessions = &all_sessions.ssh_sessions.lock().unwrap();
+            let mut list = sessions.iter().map(|x| x.session_id).collect::<Vec<i32>>();
+            list.sort();
+            assert_eq!(list, vec![9000, 9001, 9002, 9003, 9004]);
+        }
+        assert_eq!(
+            next_session_id(&all_sessions.ssh_sessions.lock().unwrap()),
+            9005
+        );
+        assert_eq!(all_sessions.ssh_sessions.lock().unwrap().len(), 5);
+
+        // Delete a session at the beginnig of the list and reuse the ids
+        all_sessions.del_ssh_session(9000);
+        all_sessions.del_ssh_session(9001);
+        let mut new_ssh = SshSession::default();
+        new_ssh.session_id = next_session_id(&all_sessions.ssh_sessions.lock().unwrap());
+        assert_eq!(new_ssh.session_id, 9000);
+        all_sessions.add_ssh_session(new_ssh);
+
+        let mut new_ssh = SshSession::default();
+        new_ssh.session_id = next_session_id(&all_sessions.ssh_sessions.lock().unwrap());
+        assert_eq!(new_ssh.session_id, 9001);
+        all_sessions.add_ssh_session(new_ssh);
+
+        // Delete a session in the middle of the list and reuse the id
+        println!("\n\n Check here");
+        all_sessions.del_ssh_session(9002);
+        assert_eq!(all_sessions.ssh_sessions.lock().unwrap().len(), 4);
+        let mut new_ssh = SshSession::default();
+        new_ssh.session_id = next_session_id(&all_sessions.ssh_sessions.lock().unwrap());
+        assert_eq!(new_ssh.session_id, 9002);
+        all_sessions.add_ssh_session(new_ssh);
+
+        {
+            let sessions = &all_sessions.ssh_sessions.lock().unwrap();
+            let mut list = sessions.iter().map(|x| x.session_id).collect::<Vec<i32>>();
+            list.sort();
+            assert_eq!(list, vec![9000, 9001, 9002, 9003, 9004]);
+        }
     }
 }
