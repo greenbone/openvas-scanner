@@ -1,5 +1,5 @@
 [package]
-name = "scanner-api"
+name = "models"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-2.0-or-later"
@@ -7,6 +7,5 @@ license = "GPL-2.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-models = {path = "../models"}
-rocket = {version = "0.5.0-rc.3", features = ["json", "uuid"]}
-uuid = {version = "1", features = ["v4", "fast-rng", "serde"]}
+serde = {version = "1", features = ["derive"]}
+serde_json = "1"
