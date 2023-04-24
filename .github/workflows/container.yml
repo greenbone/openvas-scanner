@@ -28,7 +28,7 @@ jobs:
             ~/.cargo/git/db/
             rust/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: sudo apt update && sudo apt-get install -y libpcap-dev
+      - run: sudo apt update && sudo apt-get install -y libpcap-dev libssl-dev
       - run: rustup update stable && rustup default stable
       - run: cargo install cross
       - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
