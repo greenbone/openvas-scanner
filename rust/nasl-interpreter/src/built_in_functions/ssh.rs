@@ -15,7 +15,11 @@ use std::io::Write;
 use std::net::UdpSocket;
 use std::os::fd::AsRawFd;
 use std::sync::MutexGuard;
-use std::{env, sync::Arc, time::Duration};
+use std::{
+    env,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
     let mut new_val: i32 = 9000;
@@ -32,15 +36,24 @@ fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
             break;
         }
         if new_val != list[i] {
-            println!("nv:{} - v:{}", new_val, v);
             break;
         }
 
-        new_val = new_val + 1;
+        new_val += 1;
     }
-    println!("return {}", new_val);
     new_val
 }
+
+fn lock_sessions(
+    sessions: &Arc<Mutex<Vec<SshSession>>>,
+) -> Result<MutexGuard<Vec<SshSession>>, FunctionErrorKind> {
+    let res = Err(FunctionErrorKind::Diagnostic(
+        "Error getting the Session lock".to_string(),
+        Some(NaslValue::Null),
+    ));
+    Arc::as_ref(sessions).lock().or(res)
+}
+
 fn set_opt_user(
     ssh_session: &mut SshSession,
     login: Option<String>,
@@ -459,7 +472,7 @@ fn nasl_ssh_connect<K>(
             Err(e) => {
                 return Err(FunctionErrorKind::Diagnostic(
                     format!(
-                        "Function {} (calling internal function {}) called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "func", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, e), // TODO: get_nasl_function_name()
+                        "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, e),
                     Some(NaslValue::Null),
                 ));
             }
@@ -477,7 +490,8 @@ fn nasl_ssh_connect<K>(
 
     match session.connect() {
         Ok(_) => {
-            let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+            let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
+
             let session_id = next_session_id(&sessions);
 
             let s = SshSession {
@@ -531,7 +545,7 @@ fn nasl_ssh_disconnect<K>(
 
     match &positional[0] {
         NaslValue::Number(session_id) => {
-            let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+            let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
             match sessions
                 .iter()
                 .enumerate()
@@ -653,7 +667,7 @@ fn nasl_ssh_set_login<K>(
         _ => return Err(FunctionErrorKind::from("login")),
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -785,7 +799,7 @@ fn nasl_ssh_userauth<K>(
         ));
     }
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1026,7 +1040,7 @@ fn nasl_ssh_request_exec<K>(
         _ => -1,
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1233,7 +1247,7 @@ fn nasl_ssh_shell_open<K>(
         _ => false,
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1314,7 +1328,7 @@ fn nasl_ssh_shell_read<K>(
         _ => Duration::from_secs(0),
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1389,7 +1403,7 @@ fn nasl_ssh_shell_write<K>(
         _ => return Err(FunctionErrorKind::from("cmd")),
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1447,7 +1461,7 @@ fn nasl_ssh_shell_close<K>(
         }
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1512,7 +1526,7 @@ fn nasl_ssh_login_interactive<K>(
         _ => return Err(FunctionErrorKind::from("login")),
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1533,7 +1547,6 @@ fn nasl_ssh_login_interactive<K>(
                 }
             };
             if verbose {
-                // TODO: print available methods maybe with ctx.logger?
                 ctx.logger()
                     .info(&format!("Available methods:\n{:?}", methods));
             }
@@ -1643,7 +1656,7 @@ fn nasl_ssh_login_interactive_pass<K>(
         _ => return Err(FunctionErrorKind::from("pass")),
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1747,7 +1760,7 @@ fn nasl_ssh_get_issue_banner<K>(
         }
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1806,7 +1819,7 @@ fn nasl_ssh_get_server_banner<K>(
         }
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1857,7 +1870,7 @@ fn nasl_ssh_get_auth_methods<K>(
         }
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1932,7 +1945,7 @@ fn nasl_ssh_get_host_key<K>(
         }
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -1982,7 +1995,7 @@ fn nasl_sftp_enabled_check<K>(
         }
     };
 
-    let mut sessions = Arc::as_ref(&ctx.sessions().ssh_sessions).lock().unwrap();
+    let mut sessions = lock_sessions(&ctx.sessions().ssh_sessions)?;
     match sessions
         .iter_mut()
         .enumerate()
@@ -2063,7 +2076,7 @@ mod tests {
         );
         assert_eq!(all_sessions.ssh_sessions.lock().unwrap().len(), 5);
 
-        // Delete a session at the beginnig of the list and reuse the ids
+        // Delete a session at the beginning of the list and reuse the ids
         all_sessions.del_ssh_session(9000);
         all_sessions.del_ssh_session(9001);
         let mut new_ssh = SshSession::default();
@@ -2077,7 +2090,6 @@ mod tests {
         all_sessions.add_ssh_session(new_ssh);
 
         // Delete a session in the middle of the list and reuse the id
-        println!("\n\n Check here");
         all_sessions.del_ssh_session(9002);
         assert_eq!(all_sessions.ssh_sessions.lock().unwrap().len(), 4);
         let mut new_ssh = SshSession::default();
