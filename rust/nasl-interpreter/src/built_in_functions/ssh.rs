@@ -23,9 +23,9 @@ use std::{
 
 /// Return the next available session ID
 fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
-    /* Note that the first session ID we will
-    hand out is an arbitrary high number, this is only to help
-    debugging. */
+    // Note that the first session ID we will
+    // hand out is an arbitrary high number, this is only to help
+    // debugging.
     let mut new_val: i32 = 9000;
     if sessions.is_empty() {
         return new_val;
