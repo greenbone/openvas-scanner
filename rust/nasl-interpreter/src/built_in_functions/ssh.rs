@@ -21,7 +21,11 @@ use std::{
     time::Duration,
 };
 
+/// Return the next available session ID
 fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
+    /* Note that the first session ID we will
+    hand out is an arbitrary high number, this is only to help
+    debugging. */
     let mut new_val: i32 = 9000;
     if sessions.is_empty() {
         return new_val;
@@ -118,6 +122,46 @@ fn get_authmethods(
     }
 }
 
+fn channel_read(
+    channel: &Channel,
+    cmd: &str,
+    session_id: i32,
+    stderr: bool,
+    timeout: Option<Duration>,
+) -> Result<String, FunctionErrorKind> {
+    let mut buf: [u8; 4096] = [0; 4096];
+    let mut buf_as_str = String::new();
+    loop {
+        match channel.read_timeout(&mut buf, stderr, timeout) {
+            Ok(0) => break,
+            Ok(_) => {
+                buf_as_str = match std::str::from_utf8(&buf) {
+                    Ok(s) => s.to_string(),
+                    Err(_) => {
+                        return Err(FunctionErrorKind::Diagnostic(
+                            format!(
+                                "Channel failed getting response {} for session ID {}",
+                                cmd, session_id
+                            ),
+                            Some(NaslValue::Number(-1)),
+                        ));
+                    }
+                };
+            }
+            Err(_) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    format!(
+                        "Channel failed getting response {} for session ID {}",
+                        cmd, session_id
+                    ),
+                    Some(NaslValue::Number(-1)),
+                ));
+            }
+        }
+    }
+    Ok(buf_as_str)
+}
+
 fn exec_ssh_cmd(
     session: &SshSession,
     cmd: &str,
@@ -180,77 +224,34 @@ fn exec_ssh_cmd(
 
     let mut response = String::new();
     let mut compat_buf = String::new();
-    let mut buf: [u8; 4096] = [0; 4096];
 
-    // read stderr
-    loop {
-        match channel.read_timeout(&mut buf, true, Some(Duration::from_millis(15000))) {
-            Ok(0) => break,
-            Ok(_) => {
-                let buf_as_str = match std::str::from_utf8(&buf) {
-                    Ok(s) => s,
-                    Err(_) => {
-                        return Err(FunctionErrorKind::Diagnostic(
-                            format!(
-                                "Channel failed getting response {} for session ID {}",
-                                cmd, session.session_id
-                            ),
-                            Some(NaslValue::Number(-1)),
-                        ));
-                    }
-                };
-
-                if to_stderr == 1 {
-                    response.push_str(buf_as_str);
-                }
-                if compat_mode {
-                    compat_buf.push_str(buf_as_str);
-                }
-            }
-            Err(_) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Channel failed getting response {} for session ID {}",
-                        cmd, session.session_id
-                    ),
-                    Some(NaslValue::Number(-1)),
-                ));
-            }
-        }
+    //Read stderr
+    let stderr_read = channel_read(
+        &channel,
+        cmd,
+        session.session_id,
+        true,
+        Some(Duration::from_millis(15000)),
+    )?;
+    if to_stderr == 1 {
+        response.push_str(stderr_read.as_str());
     }
-    // read stdout
-    loop {
-        match channel.read_timeout(&mut buf, false, Some(Duration::from_millis(15000))) {
-            Ok(0) => break,
-            Ok(_) => {
-                let buf_as_str = match std::str::from_utf8(&buf) {
-                    Ok(s) => s,
-                    Err(_) => {
-                        return Err(FunctionErrorKind::Diagnostic(
-                            format!(
-                                "Channel failed getting response {} for session ID {}",
-                                cmd, session.session_id
-                            ),
-                            Some(NaslValue::Number(-1)),
-                        ));
-                    }
-                };
-
-                if to_stdout == 1 {
-                    response.push_str(buf_as_str);
-                }
-            }
-            Err(_) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Channel failed getting response {} for session ID {}",
-                        cmd, session.session_id
-                    ),
-                    Some(NaslValue::Number(-1)),
-                ));
-            }
-        }
+    if compat_mode {
+        compat_buf.push_str(stderr_read.as_str());
     }
+
+    //Read stdout
+    let stdout_read = channel_read(
+        &channel,
+        cmd,
+        session.session_id,
+        false,
+        Some(Duration::from_millis(15000)),
+    )?;
+    if to_stdout == 1 {
+        response.push_str(stdout_read.as_str());
+    }
+
     Ok((response, compat_buf))
 }
 
@@ -341,16 +342,13 @@ fn nasl_ssh_connect<K>(
 
     let option = SshOption::Timeout(Duration::from_secs(timeout as u64));
 
-    match session.set_option(option) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!(
-                    "Function {} called from {}: Failed to set the SSH connection timeout to {} seconds: {}", "func", "key", timeout, e),
+    if let Err(err) = session.set_option(option) {
+        return Err(FunctionErrorKind::Diagnostic(
+            format!(
+                "Function {} called from {}: Failed to set the SSH connection timeout to {} seconds: {}", "func", "key", timeout, err),
                 Some(NaslValue::Null)
             ));
-        }
-    };
+    }
 
     let verbose = env::var("OPENVAS_LIBSSH_DEBUG")
         .map(|x| x.parse::<i32>().unwrap_or_default())
@@ -381,74 +379,59 @@ fn nasl_ssh_connect<K>(
     };
 
     let option = SshOption::KnownHosts(Some("/dev/null".to_owned()));
-    match session.set_option(option) {
-        Ok(_) => (),
-        Err(e) => {
-            FunctionErrorKind::Diagnostic(
-                format!(
-                    "Function {} (calling internal function {}): Failed to disable known_hosts: {}",
-                    "func", "nasl_ssh_connect", e
-                ),
-                Some(NaslValue::Null),
-            );
-        }
-    };
+    if let Err(err) = session.set_option(option) {
+        return Err(FunctionErrorKind::Diagnostic(
+            format!(
+                "Function {} (calling internal function {}): Failed to disable known_hosts: {}",
+                "func", "nasl_ssh_connect", err
+            ),
+            Some(NaslValue::Null),
+        ));
+    }
 
     if !key_type.is_empty() {
         let option = SshOption::PublicKeyAcceptedTypes(key_type.to_owned());
-        match session.set_option(option) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", key_type, e),
-                    Some(NaslValue::Null)
-                ));
-            }
-        };
+        if let Err(err) = session.set_option(option) {
+            return Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", key_type, err),
+                Some(NaslValue::Null)
+            ));
+        }
     }
 
     if !csciphers.is_empty() {
         let option = SshOption::CiphersCS(csciphers.to_owned());
-        match session.set_option(option) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Function {} (calling internal function {}): Failed to set SSH client to server ciphers '{}': {}", "func", "nasl_ssh_connect", csciphers, e),
-                    Some(NaslValue::Null)
-                ));
-            }
-        };
+        if let Err(err) = session.set_option(option) {
+            return Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "Function {} (calling internal function {}): Failed to set SSH client to server ciphers '{}': {}", "func", "nasl_ssh_connect", csciphers, err),
+                Some(NaslValue::Null)
+            ));
+        }
     }
 
     if !scciphers.is_empty() {
         let option = SshOption::CiphersSC(scciphers.to_owned());
-        match session.set_option(option) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Function {} (calling internal function {}): Failed to set SSH server to client ciphers '{}': {}", "func", "nasl_ssh_connect", scciphers, e),
-                    Some(NaslValue::Null)
-                ));
-            }
-        };
+        if let Err(err) = session.set_option(option) {
+            return Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "Function {} (calling internal function {}): Failed to set SSH server to client ciphers '{}': {}", "func", "nasl_ssh_connect", scciphers, err),
+                Some(NaslValue::Null)
+            ));
+        }
     }
 
     let valid_ports = 1..65535;
     if valid_ports.contains(&port) {
         let option = SshOption::Port(port);
-        match session.set_option(option) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Function {} (calling internal function {}) called from {}: Failed to set SSH port '{}': {}", "func", "nasl_ssh_connect", "key", port, e),
-                    Some(NaslValue::Null),
-                ));
-            }
-        };
+        if let Err(err) = session.set_option(option) {
+            return Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "Function {} (calling internal function {}) called from {}: Failed to set SSH port '{}': {}", "func", "nasl_ssh_connect", "key", port, err),
+                Some(NaslValue::Null),
+            ));
+        }
     }
 
     let mut forced_sock = -1;
@@ -467,16 +450,13 @@ fn nasl_ssh_connect<K>(
             ));
         }
 
-        match session.set_option(option) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, e),
-                    Some(NaslValue::Null),
-                ));
-            }
-        };
+        if let Err(err) = session.set_option(option) {
+            return Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, err),
+                Some(NaslValue::Null),
+            ));
+        }
 
         forced_sock = sock; // TODO: check and fix everything related to open socket
     }
