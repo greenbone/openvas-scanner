@@ -75,6 +75,33 @@ impl From<usize> for ContextType {
     }
 }
 
+impl From<&ContextType> for i64 {
+    fn from(ct: &ContextType) -> i64 {
+        match ct {
+            ContextType::Value(NaslValue::Number(i)) => *i,
+            _ => i64::default(),
+        }
+    }
+}
+
+impl From<&ContextType> for String {
+    fn from(ct: &ContextType) -> String {
+        match ct {
+            ContextType::Value(NaslValue::String(s)) => s.to_string(),
+            _ => String::default(),
+        }
+    }
+}
+
+impl From<&ContextType> for bool {
+    fn from(ct: &ContextType) -> bool {
+        match ct {
+            ContextType::Value(NaslValue::Boolean(b)) => *b,
+            _ => bool::default(),
+        }
+    }
+}
+
 impl From<HashMap<String, NaslValue>> for ContextType {
     fn from(x: HashMap<String, NaslValue>) -> Self {
         Self::Value(x.into())

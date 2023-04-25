@@ -291,10 +291,10 @@ fn nasl_ssh_connect<K>(
     register: &Register,
     ctx: &Context<K>,
 ) -> Result<NaslValue, FunctionErrorKind> {
-    let sock = match register.named("socket") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x,
-        _ => 0i64,
-    };
+    let sock: i64 = register
+        .named("socket")
+        .unwrap_or(&ContextType::Value(NaslValue::Number(0)))
+        .into();
 
     let port = if sock > 0 {
         0u16 // ignore the port if there is a socket
@@ -305,30 +305,29 @@ fn nasl_ssh_connect<K>(
         }
     };
 
-    let ip_str = match register.named(TARGET) {
-        Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
-        _ => String::from("127.0.0.1"),
-    };
+    let ip_str: String = register
+        .named(TARGET)
+        .unwrap_or(&ContextType::Value(NaslValue::String(
+            "127.0.0.1".to_string(),
+        )))
+        .into();
+    let timeout: i64 = register
+        .named("timeout")
+        .unwrap_or(&ContextType::Value(NaslValue::Number(0)))
+        .into();
+    let key_type: String = register
+        .named("keytype")
+        .unwrap_or(&ContextType::Value(NaslValue::String(String::default())))
+        .into();
+    let csciphers: String = register
+        .named("csciphers")
+        .unwrap_or(&ContextType::Value(NaslValue::String(String::default())))
+        .into();
 
-    let timeout = match register.named("timeout") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x,
-        _ => 0i64,
-    };
-
-    let key_type = match register.named("keytype") {
-        Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
-        _ => String::new(),
-    };
-
-    let csciphers = match register.named("csciphers") {
-        Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
-        _ => String::new(),
-    };
-
-    let scciphers = match register.named("scciphers") {
-        Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
-        _ => String::new(),
-    };
+    let scciphers: String = register
+        .named("scciphers")
+        .unwrap_or(&ContextType::Value(NaslValue::String(String::default())))
+        .into();
 
     let session = match Session::new() {
         Ok(s) => s,
