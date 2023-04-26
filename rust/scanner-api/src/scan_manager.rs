@@ -7,10 +7,10 @@ use models::json::{
     status::{Phase, Status},
 };
 
-use crate::error::APIError;
-
-pub type ScanID = String;
-pub type OID = String;
+use crate::{
+    error::APIError,
+    manager::{ScanID, ScanManager},
+};
 
 pub struct Phases {
     phases: Vec<Phase>,
@@ -34,27 +34,6 @@ impl From<Vec<Phase>> for Phases {
     fn from(value: Vec<Phase>) -> Self {
         Self { phases: value }
     }
-}
-
-/// ScanManager trait. Used for the API to interact with the Scan Management.
-pub trait ScanManager {
-    /// Create a new Scan with a unique Scan ID
-    fn create_scan(&mut self, scan: Scan) -> Result<ScanID, APIError>;
-    /// Perform an action on a scan
-    fn scan_action(&mut self, scan_id: ScanID, action: Action) -> Result<(), APIError>;
-    /// Get meta information about a scan
-    fn get_scan(&self, id: ScanID) -> Result<Scan, APIError>;
-    /// Get result information about a scan
-    fn get_results(
-        &self,
-        id: ScanID,
-        first: Option<usize>,
-        last: Option<usize>,
-    ) -> Result<Vec<ScanResult>, APIError>;
-    /// Get status information about a scan
-    fn get_status(&self, id: ScanID) -> Result<Status, APIError>;
-    /// Delete a scan
-    fn delete_scan(&mut self, id: ScanID) -> Result<(), APIError>;
 }
 
 /// Default implementation of the ScanManager trait. This does not interact with an actual scan

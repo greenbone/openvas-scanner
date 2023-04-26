@@ -1,15 +1,4 @@
-/// Interface for the webserver to handle VT requests.
-pub trait VTManager {
-    /// Get a list of available OIDs. All OIDs are unique.
-    fn get_oids(&self) -> &Vec<String>;
-
-    /// Add an OID to the list of available OIDs. As all OIDs must be unique, known ones will get
-    /// ignored.
-    fn add_oid(&mut self, oid: String);
-
-    /// Remove an OID of the list of available OIDs. If the OID is unknown nothing happens.
-    fn remove_oid(&mut self, oid: String);
-}
+use crate::manager::VTManager;
 
 /// The default VTManager. It contains a simple vector with all known OIDs
 #[derive(Default)]
