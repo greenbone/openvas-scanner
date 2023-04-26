@@ -6,11 +6,8 @@ pub mod result;
 pub mod scan;
 pub mod scan_action;
 pub mod scanner_parameter;
-pub mod snmp;
 pub mod status;
 pub mod target;
-pub mod up;
-pub mod usk;
 pub mod vt;
 
 #[cfg(test)]

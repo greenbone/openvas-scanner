@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Represents a scanner parameter.
+/// Configuration parameter for the scanner
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ScannerParameter {
     /// The ID of the parameter.
