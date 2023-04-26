@@ -13,7 +13,6 @@ use std::{
 
 use pcap::{Address, Capture, Device};
 
-use crate::lookup_keys::TARGET;
 use crate::{
     context::Context, error::FunctionErrorKind, ContextType, NaslFunction, NaslValue, Register,
 };
@@ -392,7 +391,7 @@ fn send_frame(
     timeout: i32,
 ) -> Result<Option<Frame>, FunctionErrorKind> {
     let mut capture_dev = match Capture::from_device(iface.clone()) {
-        Ok(c) => match c.promisc(true).timeout(10).snaplen(timeout).open() {
+        Ok(c) => match c.promisc(true).timeout(timeout).open() {
             Ok(mut capture) => match capture.sendpacket(frame) {
                 Ok(_) => capture,
                 Err(_) => return Ok(None),
@@ -430,15 +429,12 @@ fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
-fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionErrorKind> {
+fn get_host_ip<K>(context: &Context<K>) -> Result<IpAddr, FunctionErrorKind> {
     let default_ip = "127.0.0.1";
-    let r_sock_addr = register.named(TARGET).map_or_else(
-        || IpAddr::from_str(default_ip),
-        |x| match x {
-            crate::ContextType::Value(NaslValue::String(x)) => IpAddr::from_str(x),
-            _ => IpAddr::from_str(default_ip),
-        },
-    );
+    let r_sock_addr = match context.target() {
+        x if !x.is_empty() => IpAddr::from_str(x),
+        _ => IpAddr::from_str(default_ip),
+    };
 
     match r_sock_addr {
         Ok(x) => Ok(x),
@@ -452,15 +448,16 @@ fn get_host_ip(register: &Register) -> Result<IpAddr, FunctionErrorKind> {
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
 fn nasl_send_arp_request<K>(
     register: &Register,
-    _: &Context<K>,
+    context: &Context<K>,
 ) -> Result<NaslValue, FunctionErrorKind> {
-    let timeout = match register.named("filter") {
+    let timeout = match register.named("cap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
         _ => return Err(("Integer", "Invalid timeout value").into()),
     };
 
-    let target_ip = get_host_ip(register)?;
+    let target_ip = get_host_ip(context)?;
+
     if target_ip.is_ipv6() {
         return Err(("IPv4", "IPv6 does not support ARP protocol.").into());
     }
@@ -482,7 +479,6 @@ fn nasl_send_arp_request<K>(
     };
 
     let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
-
     let filter = format!("arp and src host {}", local_ip);
     // send the frame and get a response if pcap_active enabled
     match send_frame(&arp_frame, &iface, &true, Some(&filter), timeout)? {
@@ -553,7 +549,10 @@ fn nasl_forge_frame<K>(
 /// - pcap_active: option to capture the answer, default is TRUE
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
-fn nasl_send_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_send_frame<K>(
+    register: &Register,
+    context: &Context<K>,
+) -> Result<NaslValue, FunctionErrorKind> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => return Err(("Data", "Invalid data type").into()),
@@ -577,7 +576,7 @@ fn nasl_send_frame<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, 
         _ => return Err(("Integer", "Invalid timeout value").into()),
     };
 
-    let target_ip = get_host_ip(register)?;
+    let target_ip = get_host_ip(context)?;
 
     let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
