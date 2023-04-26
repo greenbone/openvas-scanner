@@ -126,7 +126,7 @@ impl<'a, R: Read> HashSumNameLoader<'a, R> {
         let buf = reader
             .as_bufreader(Hasher::Sha256.sum_file())
             .map(|x| x.lines())
-            .map_err(|_| Error::SumsFileCorrupt(Hasher::Sha256))?;
+            .map_err(Error::LoadError)?;
         Ok(Self::new(buf, reader, Hasher::Sha256))
     }
 }
