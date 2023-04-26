@@ -1,18 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    manager::ScanManager, manager::VTManager, routes::*, scan_manager::DefaultScanManager,
-    vt_manager::DefaultVTManager,
+    fairing::HeadInformation, manager::ScanManager, manager::VTManager, routes::*,
+    scan_manager::DefaultScanManager, vt_manager::DefaultVTManager,
 };
 
-use rocket::{
-    async_trait,
-    fairing::{Fairing, Info, Kind},
-    http::Header,
-    routes,
-    tokio::sync::RwLock,
-    Build, Request, Response, Rocket,
-};
+use rocket::{routes, tokio::sync::RwLock, Build, Rocket};
 
 type ScanManagerType = Arc<RwLock<dyn ScanManager + Send + Sync>>;
 type VTManagerType = Arc<RwLock<dyn VTManager + Send + Sync>>;
@@ -23,33 +16,6 @@ pub struct Manager {
     pub scan_manager: ScanManagerType,
     /// Handles vt related stuff
     pub vt_manager: VTManagerType,
-}
-
-/// Contains version and authentication information. Is meant to be put into the header of
-/// responses.
-struct HeadInformation {
-    pub api_version: String,
-    pub feed_version: String,
-    pub authentication: String,
-}
-
-#[async_trait]
-impl Fairing for HeadInformation {
-    fn info(&self) -> Info {
-        Info {
-            name: "HEAD version Info",
-            kind: Kind::Response,
-        }
-    }
-
-    async fn on_response<'r>(&self, _: &'r Request<'_>, response: &mut Response<'r>) {
-        response.adjoin_header(Header::new("api-version", self.api_version.to_owned()));
-        response.adjoin_header(Header::new("feed-version", self.feed_version.to_owned()));
-        response.adjoin_header(Header::new(
-            "authentication",
-            self.authentication.to_owned(),
-        ));
-    }
 }
 
 /// This is a Webserver meant to be used as an API to a given ScanManager
