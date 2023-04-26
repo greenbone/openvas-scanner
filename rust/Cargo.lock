@@ -1985,6 +1985,8 @@ version = "0.1.0"
 dependencies = [
  "models",
  "rocket",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 

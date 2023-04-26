@@ -1,7 +1,8 @@
-use std::{io::Cursor, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    scan_manager::{ScanErrorKind, ScanID, ScanManager},
+    error::APIError,
+    scan_manager::{ScanID, ScanManager},
     vt_manager::VTManager,
 };
 use models::json::{
@@ -13,7 +14,7 @@ use rocket::{
     get, head,
     http::{Header, Status},
     post,
-    response::{status::Created, Responder},
+    response::status::Created,
     routes,
     serde::json::Json,
     tokio::sync::RwLock,
@@ -106,25 +107,6 @@ impl Webserver {
     }
 }
 
-impl<'r> Responder<'r, 'static> for ScanErrorKind {
-    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'static> {
-        let msg = self.to_string();
-        let mut resp = Response::new();
-        resp.set_sized_body(msg.len(), Cursor::new(msg));
-        match self {
-            Self::ActionNotSupported(_) => resp.set_status(Status::NotImplemented),
-            Self::BadScanStatus {
-                expected: _,
-                got: _,
-            } => resp.set_status(Status::NotAcceptable),
-            Self::ScanAlreadyExists(_) => resp.set_status(Status::Conflict),
-            ScanErrorKind::ScanNotFound(_) => resp.set_status(Status::NotFound),
-            Self::BadRangeFormat(_) => resp.set_status(Status::BadRequest),
-        };
-        Ok(resp)
-    }
-}
-
 /// API call to receive the header content on the root path
 #[head("/")]
 async fn get_header() -> Status {
@@ -136,7 +118,7 @@ async fn get_header() -> Status {
 async fn create_scan(
     scan: Json<Scan>,
     manager: &State<Manager>,
-) -> Result<Created<Json<ScanID>>, ScanErrorKind> {
+) -> Result<Created<Json<ScanID>>, APIError> {
     // Mutex
     let mut scan_manager = manager.scan_manager.write().await;
 
@@ -156,7 +138,7 @@ async fn scan_action(
     action: Json<ScanAction>,
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Status, ScanErrorKind> {
+) -> Result<Status, APIError> {
     let mut scan_manager = manager.scan_manager.write().await;
 
     scan_manager.scan_action(scan_id, action.action.to_owned())?;
@@ -167,7 +149,7 @@ async fn scan_action(
 /// API call to receive information about a requested scan. This does not contain any results or
 /// status information, but only meta-information provided by a client with create_scan
 #[get("/scans/<scan_id>")]
-async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan>, ScanErrorKind> {
+async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan>, APIError> {
     // Mutex
     let scan_manager = manager.scan_manager.read().await;
 
@@ -181,7 +163,7 @@ async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan
 async fn get_results_wo_range(
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Json<Vec<ScanResult>>, ScanErrorKind> {
+) -> Result<Json<Vec<ScanResult>>, APIError> {
     get_results(scan_id, None, None, manager).await
 }
 
@@ -197,7 +179,7 @@ async fn get_results_w_range(
     scan_id: String,
     range: String,
     manager: &State<Manager>,
-) -> Result<Json<Vec<ScanResult>>, ScanErrorKind> {
+) -> Result<Json<Vec<ScanResult>>, APIError> {
     // Validate range
     // Check for <number1>-<number2> or <number>
     let (first, last) = match range.split_once('-') {
@@ -208,7 +190,12 @@ async fn get_results_w_range(
         None => match range.parse::<usize>() {
             // try to parse number
             Ok(x) => (Some(x), None),
-            Err(_) => return Err(ScanErrorKind::BadRangeFormat(range)),
+            Err(_) => {
+                return Err(APIError::ParseQueryError {
+                    message: "Unable to parse range quarry".to_string(),
+                    field_errors: HashMap::from([("range".to_string(), format!("The range must be of the format <number1>[-<number2>]. The given quarry {range} is not a number."))]),
+                })
+            }
         },
     };
 
@@ -218,10 +205,13 @@ async fn get_results_w_range(
 /// Helper function to parse a range
 /// * `x` - is the actual number to parse
 /// * `range` is the complete range string and is used to generate an Error
-fn range_parse(x: &str, range: &String) -> Result<usize, ScanErrorKind> {
+fn range_parse(x: &str, range: &String) -> Result<usize, APIError> {
     match x.trim().parse::<usize>() {
         Ok(y) => Ok(y),
-        Err(_) => Err(ScanErrorKind::BadRangeFormat(range.to_owned())),
+        Err(_) => Err(APIError::ParseQueryError {
+            message: "Unable to parse range quarry".to_string(),
+            field_errors: HashMap::from([("range".to_string(), format!("The range must be of the format <number1>[-<number2>]. The given quarry {range} is not a valid range."))]),
+        }),
     }
 }
 
@@ -231,7 +221,7 @@ async fn get_results(
     first: Option<usize>,
     last: Option<usize>,
     manager: &State<Manager>,
-) -> Result<Json<Vec<ScanResult>>, ScanErrorKind> {
+) -> Result<Json<Vec<ScanResult>>, APIError> {
     // Mutex
     let scan_manager = manager.scan_manager.write().await;
 
@@ -245,7 +235,7 @@ async fn get_results(
 async fn get_status(
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Json<ScanStatus>, ScanErrorKind> {
+) -> Result<Json<ScanStatus>, APIError> {
     // Mutex
     let scan_manager = manager.scan_manager.write().await;
 
@@ -254,7 +244,7 @@ async fn get_status(
 
 /// API call to delete a scan. Note that a running scan cannot be deleted and must be stopped before.
 #[delete("/scans/<scan_id>")]
-async fn delete_scan(scan_id: String, manager: &State<Manager>) -> Result<Status, ScanErrorKind> {
+async fn delete_scan(scan_id: String, manager: &State<Manager>) -> Result<Status, APIError> {
     // Mutex
     let mut scan_manager = manager.scan_manager.write().await;
 
