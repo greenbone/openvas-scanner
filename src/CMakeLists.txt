@@ -240,23 +240,12 @@ if (INSTALL_OLD_SYNC_SCRIPT)
           PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                       GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-  install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
+  install (FILES ${CMAKE_SOURCE_DIR}/doc/man/greenbone-nvt-sync.8
           DESTINATION ${DATADIR}/man/man8 )
 endif (INSTALL_OLD_SYNC_SCRIPT)
 
-
-<<<<<<< HEAD
 install (FILES ${CMAKE_BINARY_DIR}/doc/man/openvas.8
-                     DESTINATION ${DATADIR}/man/man8 )
-            
-            
-install (FILES ${CMAKE_SOURCE_DIR}/doc/man/greenbone-nvt-sync.8
-                     DESTINATION ${DATADIR}/man/man8 )
-=======
-install (FILES ${CMAKE_BINARY_DIR}/doc/openvas.8
          DESTINATION ${DATADIR}/man/man8 )
-
->>>>>>> de4cf86d (Change: Make installing nvt feed sync script optional)
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
 
