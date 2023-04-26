@@ -26,7 +26,7 @@ impl DefaultVTManager {
 
 impl VTManager for DefaultVTManager {
     fn add_oid(&mut self, oid: String) {
-        if self.vts.iter().find(|&x| x.eq(&oid)).is_some() {
+        if self.vts.iter().any(|x| x.eq(&oid)) {
             return;
         }
         self.vts.push(oid);

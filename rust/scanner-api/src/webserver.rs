@@ -172,9 +172,7 @@ async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan
     let scan_manager = manager.scan_manager.read().await;
 
     // Get Scan from manager
-    scan_manager
-        .get_scan(scan_id)
-        .map(|scan| Json(scan.clone()))
+    Ok(Json(scan_manager.get_scan(scan_id)?))
 }
 
 /// API call to get results without a given range. This will respond with all currently available
@@ -202,7 +200,7 @@ async fn get_results_w_range(
 ) -> Result<Json<Vec<ScanResult>>, ScanErrorKind> {
     // Validate range
     // Check for <number1>-<number2> or <number>
-    let (first, last) = match range.split_once("-") {
+    let (first, last) = match range.split_once('-') {
         // we have two numbers
         Some((x, y)) => (Some(range_parse(x, &range)?), Some(range_parse(y, &range)?)),
 
@@ -223,7 +221,7 @@ async fn get_results_w_range(
 fn range_parse(x: &str, range: &String) -> Result<usize, ScanErrorKind> {
     match x.trim().parse::<usize>() {
         Ok(y) => Ok(y),
-        Err(_) => return Err(ScanErrorKind::BadRangeFormat(range.to_owned())),
+        Err(_) => Err(ScanErrorKind::BadRangeFormat(range.to_owned())),
     }
 }
 
@@ -238,9 +236,7 @@ async fn get_results(
     let scan_manager = manager.scan_manager.write().await;
 
     // Get Results from Scan
-    scan_manager
-        .get_results(scan_id, first, last)
-        .map(|results| Json(results.clone()))
+    Ok(Json(scan_manager.get_results(scan_id, first, last)?))
 }
 
 /// API call to get information about the Status. In case the scan did not start yes, most of
@@ -253,7 +249,7 @@ async fn get_status(
     // Mutex
     let scan_manager = manager.scan_manager.write().await;
 
-    Ok(Json(scan_manager.get_status(scan_id)?.clone()))
+    Ok(Json(scan_manager.get_status(scan_id)?))
 }
 
 /// API call to delete a scan. Note that a running scan cannot be deleted and must be stopped before.

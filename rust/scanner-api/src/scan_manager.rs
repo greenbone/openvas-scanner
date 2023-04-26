@@ -144,7 +144,7 @@ impl DefaultScanManager {
 
 impl ScanManager for DefaultScanManager {
     fn create_scan(&mut self, scan: Scan) -> Result<ScanID, ScanErrorKind> {
-        let mut scan = scan.to_owned();
+        let mut scan = scan;
         let id = match scan.scan_id.clone() {
             Some(x) => x,
             None => {
@@ -195,14 +195,8 @@ impl ScanManager for DefaultScanManager {
                 if x.is_empty() {
                     return Ok(vec![]);
                 }
-                let f = match first {
-                    Some(y) => y,
-                    None => 0,
-                };
-                let l = match last {
-                    Some(y) => y,
-                    None => x.len() - 1,
-                };
+                let f = first.unwrap_or(0);
+                let l = last.unwrap_or(x.len() - 1);
                 if f >= x.len() || f > l {
                     return Ok(vec![]);
                 }
