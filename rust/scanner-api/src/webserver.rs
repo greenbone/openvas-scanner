@@ -1,4 +1,4 @@
-use std::{io::Cursor, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     catchers::*, fairings::HeadInformation, manager::ScanManager, manager::VTManager, routes::*,
