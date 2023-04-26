@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{io::Cursor, sync::Arc};
 
 use crate::{
     scan_manager::{ScanErrorKind, ScanID, ScanManager},
@@ -107,24 +107,31 @@ impl Webserver {
 }
 
 impl<'r> Responder<'r, 'static> for ScanErrorKind {
-    fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'static> {
+    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'static> {
+        let msg = self.to_string();
+        let mut resp = Response::new();
+        resp.set_sized_body(msg.len(), Cursor::new(msg));
         match self {
-            Self::ActionNotSupported(_) => Response::build().status(Status::NotImplemented).ok(),
-            Self::BadScanStatus { expected, got } => {
-                Response::build().status(Status::NotAcceptable).ok()
-            }
-            Self::ScanAlreadyExists(id) => Response::build().status(Status::Conflict).ok(),
-            ScanErrorKind::ScanNotFound(id) => Response::build().status(Status::NotFound).ok(),
-            Self::BadRangeFormat(format) => Response::build().status(Status::BadRequest).ok(),
-        }
+            Self::ActionNotSupported(_) => resp.set_status(Status::NotImplemented),
+            Self::BadScanStatus {
+                expected: _,
+                got: _,
+            } => resp.set_status(Status::NotAcceptable),
+            Self::ScanAlreadyExists(_) => resp.set_status(Status::Conflict),
+            ScanErrorKind::ScanNotFound(_) => resp.set_status(Status::NotFound),
+            Self::BadRangeFormat(_) => resp.set_status(Status::BadRequest),
+        };
+        Ok(resp)
     }
 }
 
+/// API call to receive the header content on the root path
 #[head("/")]
 async fn get_header() -> Status {
     Status::NoContent
 }
 
+/// API call to create a new scan
 #[post("/scans", format = "json", data = "<scan>")]
 async fn create_scan(
     scan: Json<Scan>,
@@ -143,15 +150,22 @@ async fn create_scan(
     Ok(Created::new(location.to_string()).body(Json(scan_id)))
 }
 
+/// API call to perform a action on a scan
 #[post("/scans/<scan_id>", format = "json", data = "<action>")]
 async fn scan_action(
     action: Json<ScanAction>,
     scan_id: String,
     manager: &State<Manager>,
 ) -> Result<Status, ScanErrorKind> {
-    todo!()
+    let mut scan_manager = manager.scan_manager.write().await;
+
+    scan_manager.scan_action(scan_id, action.action.to_owned())?;
+
+    Ok(Status::NoContent)
 }
 
+/// API call to receive information about a requested scan. This does not contain any results or
+/// status information, but only meta-information provided by a client with create_scan
 #[get("/scans/<scan_id>")]
 async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan>, ScanErrorKind> {
     // Mutex
@@ -163,6 +177,8 @@ async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan
         .map(|scan| Json(scan.clone()))
 }
 
+/// API call to get results without a given range. This will respond with all currently available
+/// results
 #[get("/scans/<scan_id>/results")]
 async fn get_results_wo_range(
     scan_id: String,
@@ -171,6 +187,13 @@ async fn get_results_wo_range(
     get_results(scan_id, None, None, manager).await
 }
 
+/// API call to get results within a specified range. The range must be of the format
+/// <number1>[-<number2>] where number1 >= number2. Both numbers are inclusive Valid ranges are e.g.:
+/// - 1
+/// - 4-7
+/// If only a single number is given, all available results from the specified one are in the
+/// response. If a number is out of range of available ones, those results will not be contained
+/// in the response and also no error will be shown.
 #[get("/scans/<scan_id>/results?<range>")]
 async fn get_results_w_range(
     scan_id: String,
@@ -178,7 +201,7 @@ async fn get_results_w_range(
     manager: &State<Manager>,
 ) -> Result<Json<Vec<ScanResult>>, ScanErrorKind> {
     // Validate range
-    // Check for <number>-<number> or <number>
+    // Check for <number1>-<number2> or <number>
     let (first, last) = match range.split_once("-") {
         // we have two numbers
         Some((x, y)) => (Some(range_parse(x, &range)?), Some(range_parse(y, &range)?)),
@@ -194,13 +217,17 @@ async fn get_results_w_range(
     get_results(scan_id, first, last, manager).await
 }
 
+/// Helper function to parse a range
+/// * `x` - is the actual number to parse
+/// * `range` is the complete range string and is used to generate an Error
 fn range_parse(x: &str, range: &String) -> Result<usize, ScanErrorKind> {
-    match x.parse::<usize>() {
+    match x.trim().parse::<usize>() {
         Ok(y) => Ok(y),
         Err(_) => return Err(ScanErrorKind::BadRangeFormat(range.to_owned())),
     }
 }
 
+/// Function to get the results from a Scan
 async fn get_results(
     scan_id: String,
     first: Option<usize>,
@@ -216,6 +243,8 @@ async fn get_results(
         .map(|results| Json(results.clone()))
 }
 
+/// API call to get information about the Status. In case the scan did not start yes, most of
+/// the information is empty.
 #[get("/scans/<scan_id>/status")]
 async fn get_status(
     scan_id: String,
@@ -227,6 +256,7 @@ async fn get_status(
     Ok(Json(scan_manager.get_status(scan_id)?.clone()))
 }
 
+/// API call to delete a scan. Note that a running scan cannot be deleted and must be stopped before.
 #[delete("/scans/<scan_id>")]
 async fn delete_scan(scan_id: String, manager: &State<Manager>) -> Result<Status, ScanErrorKind> {
     // Mutex
@@ -237,6 +267,7 @@ async fn delete_scan(scan_id: String, manager: &State<Manager>) -> Result<Status
     Ok(Status::Ok)
 }
 
+/// API call to get all available OIDs of the Scanner.
 #[get("/vts")]
 async fn get_oids(manager: &State<Manager>) -> Json<Vec<String>> {
     // Mutex
