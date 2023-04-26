@@ -523,6 +523,16 @@ do_feedversion () {
 
 do_sync ()
 {
+
+
+  echo "This script has been DEPRECATED in favor of greenbone-feed-sync"
+  echo "and will be removed in the next major version."
+  echo "It is strongly recommended to switch to the new script as soon as possible."
+  echo "The installation of the greenbone-nvt-sync script can be disabled"
+  echo "with cmake option -DINSTALL_OLD_SYNC_SCRIPT=OFF"
+  echo "For more information please visit https://github.com/greenbone/greenbone-feed-sync/"
+  echo ""
+
   do_self_test
   if [ $SELFTEST_FAIL -ne 0 ] ; then
     exit $SELFTEST_FAIL
