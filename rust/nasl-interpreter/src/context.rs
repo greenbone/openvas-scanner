@@ -5,7 +5,7 @@
 use nasl_syntax::Statement;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
-use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue};
+use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, sessions::Sessions, Loader, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -72,6 +72,33 @@ impl From<i64> for ContextType {
 impl From<usize> for ContextType {
     fn from(n: usize) -> Self {
         Self::Value(n.into())
+    }
+}
+
+impl From<&ContextType> for i64 {
+    fn from(ct: &ContextType) -> i64 {
+        match ct {
+            ContextType::Value(NaslValue::Number(i)) => *i,
+            _ => i64::default(),
+        }
+    }
+}
+
+impl From<&ContextType> for String {
+    fn from(ct: &ContextType) -> String {
+        match ct {
+            ContextType::Value(NaslValue::String(s)) => s.to_string(),
+            _ => String::default(),
+        }
+    }
+}
+
+impl From<&ContextType> for bool {
+    fn from(ct: &ContextType) -> bool {
+        match ct {
+            ContextType::Value(NaslValue::Boolean(b)) => *b,
+            _ => bool::default(),
+        }
     }
 }
 
@@ -251,6 +278,8 @@ pub struct Context<'a, K> {
     loader: &'a dyn Loader,
     /// Default logger.
     logger: &'a dyn NaslLogger,
+    /// Default logger.
+    sessions: &'a Sessions,
 }
 
 impl<'a, K> Context<'a, K> {
@@ -261,6 +290,7 @@ impl<'a, K> Context<'a, K> {
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
+        sessions: &'a Sessions,
     ) -> Self {
         Self {
             key,
@@ -268,6 +298,7 @@ impl<'a, K> Context<'a, K> {
             retriever,
             loader,
             logger,
+            sessions,
         }
     }
 
@@ -291,6 +322,10 @@ impl<'a, K> Context<'a, K> {
     pub fn loader(&self) -> &dyn Loader {
         self.loader
     }
+    /// Get the sessions
+    pub fn sessions(&self) -> &Sessions {
+        self.sessions
+    }
 }
 /// Can be used as DefaultContext::default().as_context() within tests
 #[derive(Default)]
@@ -303,6 +338,8 @@ pub struct DefaultContext {
     pub loader: Box<dyn Loader>,
     /// Default logger
     pub logger: Box<dyn NaslLogger>,
+    /// Default logger
+    pub sessions: Sessions,
 }
 
 impl DefaultContext {
@@ -314,6 +351,7 @@ impl DefaultContext {
             retriever: &*self.dispatcher,
             loader: &*self.loader,
             logger: self.logger.as_ref(),
+            sessions: &self.sessions,
         }
     }
 }

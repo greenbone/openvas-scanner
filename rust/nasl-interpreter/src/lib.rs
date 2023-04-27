@@ -5,6 +5,7 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 mod built_in_functions;
+
 mod error;
 mod naslvalue;
 
@@ -20,6 +21,7 @@ mod logger;
 mod lookup_keys;
 mod loop_extension;
 mod operator;
+mod sessions;
 
 pub use context::Context;
 pub use context::ContextType;
@@ -34,6 +36,7 @@ pub use interpreter::Interpreter;
 pub use loader::*;
 pub use logger::{DefaultLogger, Mode, NaslLogger};
 pub use naslvalue::NaslValue;
+pub use sessions::Sessions;
 
 // Is a type definition for built-in functions
 pub(crate) type NaslFunction<'a, K> =

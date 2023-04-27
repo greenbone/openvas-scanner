@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
 
-use crate::InterpretError;
+use crate::{ContextType, InterpretError};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -255,6 +255,15 @@ impl From<storage::types::Primitive> for NaslValue {
             Dict(x) => Self::Dict(x.into_iter().map(|(k, v)| (k, Self::from(v))).collect()),
             Boolean(x) => Self::Boolean(x),
             Null => todo!(),
+        }
+    }
+}
+
+impl From<&ContextType> for NaslValue {
+    fn from(value: &ContextType) -> Self {
+        match value {
+            ContextType::Function(_, _) => NaslValue::Null,
+            ContextType::Value(v) => v.to_owned(),
         }
     }
 }

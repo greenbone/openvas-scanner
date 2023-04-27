@@ -15,6 +15,7 @@ mod function;
 mod hostname;
 mod kb;
 mod misc;
+mod ssh;
 mod string;
 
 pub(crate) fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
@@ -66,4 +67,5 @@ where
         .or_else(|| function::lookup(function_name))
         .or_else(|| cryptography::lookup(function_name))
         .or_else(|| frame_forgery::lookup(function_name))
+        .or_else(|| ssh::lookup(function_name))
 }

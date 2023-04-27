@@ -7,7 +7,7 @@ use std::{fmt::Display, path::PathBuf};
 use feed::HashSumNameLoader;
 use nasl_interpreter::{
     load_non_utf8_path, Context, DefaultLogger, FSPluginLoader, Interpreter, LoadError, Loader,
-    NaslLogger, NaslValue, NoOpLoader, Register,
+    NaslLogger, NaslValue, NoOpLoader, Register, Sessions,
 };
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
@@ -72,13 +72,14 @@ where
 
     fn run(&self, script: &str, verbose: bool) -> Result<(), CliErrorKind> {
         let logger = DefaultLogger::default();
-
+        let sessions = Sessions::default();
         let context = Context::new(
             &self.key,
             self.dispatcher,
             self.retriever,
             self.loader,
             &logger,
+            &sessions,
         );
         let mut register = Register::default();
         let mut interpreter = Interpreter::new(&mut register, &context);
