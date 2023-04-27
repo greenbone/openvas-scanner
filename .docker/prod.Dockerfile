@@ -9,7 +9,7 @@ FROM ${REPOSITORY}-build:$VERSION AS build
 COPY . /source
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 
-RUN cmake -DCMAKE_BUILD_TYPE=Release -B/build /source
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
 FROM greenbone/gvm-libs:$VERSION
