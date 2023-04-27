@@ -15,6 +15,7 @@ use crate::{CliError, CliErrorKind, Db};
 
 struct Run<'a, K> {
     feed: Option<PathBuf>,
+    target: Option<String>,
     dispatcher: &'a dyn Dispatcher<K>,
     retriever: &'a dyn Retriever<K>,
     key: K,
@@ -28,12 +29,14 @@ where
     fn new(
         key: K,
         feed: Option<PathBuf>,
+        target: Option<String>,
         dispatcher: &'a dyn Dispatcher<K>,
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
     ) -> Self {
         Self {
             feed,
+            target,
             dispatcher,
             retriever,
             key,
@@ -73,8 +76,11 @@ where
     fn run(&self, script: &str, verbose: bool) -> Result<(), CliErrorKind> {
         let logger = DefaultLogger::default();
         let sessions = Sessions::default();
+        let no_target = String::default();
+
         let context = Context::new(
             &self.key,
+            self.target.as_ref().unwrap_or(&no_target),
             self.dispatcher,
             self.retriever,
             self.loader,
@@ -155,7 +161,13 @@ where
     }
 }
 
-pub fn run(db: &Db, feed: Option<PathBuf>, script: String, verbose: bool) -> Result<(), CliError> {
+pub fn run(
+    db: &Db,
+    feed: Option<PathBuf>,
+    script: String,
+    target: Option<String>,
+    verbose: bool,
+) -> Result<(), CliError> {
     let k = String::default();
     let storage = build_dispatcher(db);
     let loader = build_loader(feed.clone());
@@ -163,6 +175,7 @@ pub fn run(db: &Db, feed: Option<PathBuf>, script: String, verbose: bool) -> Res
     let runner = Run::new(
         k,
         feed,
+        target,
         storage.as_dispatcher(),
         storage.as_retriever(),
         &*loader,

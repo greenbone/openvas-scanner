@@ -270,6 +270,8 @@ impl NaslContext {
 pub struct Context<'a, K> {
     /// key for this context. A name or an OID
     key: &'a K,
+    /// target to run a scan against
+    target: &'a String,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher<K>,
     /// Default Retriever
@@ -286,6 +288,7 @@ impl<'a, K> Context<'a, K> {
     /// Creates an empty configuration
     pub fn new(
         key: &'a K,
+        target: &'a String,
         dispatcher: &'a dyn Dispatcher<K>,
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
@@ -294,6 +297,7 @@ impl<'a, K> Context<'a, K> {
     ) -> Self {
         Self {
             key,
+            target,
             dispatcher,
             retriever,
             loader,
@@ -309,6 +313,10 @@ impl<'a, K> Context<'a, K> {
     /// Get the Key
     pub fn key(&self) -> &K {
         self.key
+    }
+    /// Get the target host
+    pub fn target(&self) -> &String {
+        self.target
     }
     /// Get the storage
     pub fn dispatcher(&self) -> &dyn Dispatcher<K> {
@@ -332,6 +340,8 @@ impl<'a, K> Context<'a, K> {
 pub struct DefaultContext {
     /// key for the default context. A name or an OID
     pub key: String,
+    /// Default target host
+    pub target: String,
     /// Default Storage
     pub dispatcher: Box<DefaultDispatcher<String>>,
     /// Default Loader
@@ -347,6 +357,7 @@ impl DefaultContext {
     pub fn as_context(&self) -> Context<String> {
         Context {
             key: &self.key,
+            target: &self.target,
             dispatcher: &*self.dispatcher,
             retriever: &*self.dispatcher,
             loader: &*self.loader,
