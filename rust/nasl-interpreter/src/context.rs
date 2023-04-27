@@ -271,7 +271,7 @@ pub struct Context<'a, K> {
     /// key for this context. A name or an OID
     key: &'a K,
     /// target to run a scan against
-    target: &'a String,
+    target: &'a str,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher<K>,
     /// Default Retriever
@@ -288,7 +288,7 @@ impl<'a, K> Context<'a, K> {
     /// Creates an empty configuration
     pub fn new(
         key: &'a K,
-        target: &'a String,
+        target: &'a str,
         dispatcher: &'a dyn Dispatcher<K>,
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
@@ -315,7 +315,7 @@ impl<'a, K> Context<'a, K> {
         self.key
     }
     /// Get the target host
-    pub fn target(&self) -> &String {
+    pub fn target(&self) -> &str {
         self.target
     }
     /// Get the storage
