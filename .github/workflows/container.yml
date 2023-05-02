@@ -30,7 +30,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - run: sudo apt update && sudo apt-get install -y libpcap-dev libssl-dev
       - run: rustup update stable && rustup default stable
-      - run: cargo install cross
+      # This command will attempt to install 'cross', but if it's already
+      # installed due to caching, it will do nothing and proceed without error.
+      - run: cargo install cross || true
       - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
       - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
       - name: archive nasl-cli aarch64-unknown-linux-gnu
@@ -48,11 +50,6 @@ jobs:
   production-image:
     runs-on: ubuntu-latest
     needs: [nasl-cli-release]
-    strategy:
-      matrix:
-        platform:
-          - amd64
-          - aarch64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -112,8 +109,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: actions/download-artifact@v3
         with:
-          name: nasl-cli-${{ matrix.platform }}
-          path: bin/nasl-cli
+          name: nasl-cli-amd64
+          path: bin/nasl-cli/linux/amd64
+      - uses: actions/download-artifact@v3
+        with:
+          name: nasl-cli-aarch64
+          path: bin/nasl-cli/linux/arm64
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -126,6 +127,6 @@ jobs:
           file: .docker/prod.Dockerfile
           build-args: |
             REPOSITORY=${{ github.repository }}
-          platforms: linux/${{ matrix.platform }}
+          platforms: linux/amd64,linux/aarch64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

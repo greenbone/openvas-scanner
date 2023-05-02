@@ -12,6 +12,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /sou
 RUN DESTDIR=/install cmake --build /build -- install
 
 FROM greenbone/gvm-libs:$VERSION
+ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
   libjson-glib-1.0-0 \
@@ -40,7 +41,7 @@ COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
-COPY bin/nasl-cli/nasl-cli /usr/local/bin/nasl-cli
+COPY bin/nasl-cli/$TARGETPLATFORM/nasl-cli /usr/local/bin/nasl-cli
 RUN chmod a+x /usr/local/bin/nasl-cli
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
