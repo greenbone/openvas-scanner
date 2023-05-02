@@ -23,14 +23,14 @@ on:
 # For a patch release, the latest tag is enhanced with 0.0.1, leaving the major and minor versions as
 # they are.
 #
-# For a minor release, the latest tag is enhanced with 0.1.0, and the patch version is set to 0. 
+# For a minor release, the latest tag is enhanced with 0.1.0, and the patch version is set to 0.
 #
 # For a major release, a branch is created for the latest major release found by tag, and the version
 # is enhanced with $latest_tag + 1.0.0, increasing the major version by 1 and setting the minor and
 # patch versions to 0.
 #
 # Major version releases are only valid on the "main" branch.
-# 
+#
 # Once the version is found and enhanced, each CMakeLists file is updated to the new
 # version, and a commit is created in the found branch.
 jobs:
@@ -41,7 +41,7 @@ jobs:
         (github.event_name == 'workflow_dispatch') ||
         (
           ( github.event.pull_request.merged == true) &&
-          ( 
+          (
             contains(github.event.pull_request.labels.*.name, 'major_release') ||
             contains(github.event.pull_request.labels.*.name, 'minor_release') ||
             contains(github.event.pull_request.labels.*.name, 'patch_release')
@@ -115,7 +115,7 @@ jobs:
           export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
           git checkout -b "$BRANCH_NAME"
           git push origin "$BRANCH_NAME"
-      # create branch of version 
+      # create branch of version
       - name: prepare project version ${{ env.RELEASE_REF }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           # jump back for the case that we switched to a tag
@@ -176,8 +176,8 @@ jobs:
           gh release create "$nrn" -F /tmp/changelog.md
           mkdir -p assets
           ls -las assets/
-          curl -Lo assets/$filename.zip https://github.com/nichtsfrei/openvas-scanner/archive/refs/tags/$nrn.zip
-          curl -Lo assets/$filename.tar.gz https://github.com/nichtsfrei/openvas-scanner/archive/refs/tags/$nrn.tar.gz
+          curl -Lo assets/$filename.zip https://github.com/${{ github.repository }}/openvas-scanner/archive/refs/tags/$nrn.zip
+          curl -Lo assets/$filename.tar.gz https://github.com/${{ github.repository }}/openvas-scanner/archive/refs/tags/$nrn.tar.gz
           echo -e "${{ secrets.GPG_KEY }}" > private.pgp
           echo ${{ secrets.GPG_PASSPHRASE }} | bash .github/sign-assets.sh private.pgp
           rm assets/$filename.zip
