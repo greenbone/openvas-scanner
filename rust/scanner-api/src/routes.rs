@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{error::APIError, manager::ScanID, webserver::Manager};
+use crate::{
+    error::APIError, guards::json_validation::JsonValidation, manager::ScanID, webserver::Manager,
+};
 use models::json::{
     result::Result as ScanResult, scan::Scan, scan_action::ScanAction, status::Status as ScanStatus,
 };
@@ -17,7 +19,7 @@ pub async fn get_header() -> Status {
 /// API call to create a new scan
 #[post("/scans", format = "json", data = "<scan>")]
 pub async fn create_scan(
-    scan: Json<Scan>,
+    scan: JsonValidation<Scan>,
     manager: &State<Manager>,
 ) -> Result<Created<Json<ScanID>>, APIError> {
     // Mutex
@@ -36,12 +38,11 @@ pub async fn create_scan(
 /// API call to perform a action on a scan
 #[post("/scans/<scan_id>", format = "json", data = "<action>")]
 pub async fn scan_action(
-    action: Json<ScanAction>,
+    action: JsonValidation<ScanAction>,
     scan_id: String,
     manager: &State<Manager>,
 ) -> Result<Status, APIError> {
     let mut scan_manager = manager.scan_manager.write().await;
-
     scan_manager.scan_action(scan_id, action.action.to_owned())?;
 
     Ok(Status::NoContent)

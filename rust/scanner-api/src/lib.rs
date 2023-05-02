@@ -1,8 +1,9 @@
 mod scan_manager;
 mod vt_manager;
 
-mod catcher;
-mod fairing;
+mod catchers;
+mod fairings;
+mod guards;
 mod routes;
 
 pub mod error;

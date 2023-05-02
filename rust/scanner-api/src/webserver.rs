@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    fairing::HeadInformation, manager::ScanManager, manager::VTManager, routes::*,
+    catchers::*, fairings::HeadInformation, manager::ScanManager, manager::VTManager, routes::*,
     scan_manager::DefaultScanManager, vt_manager::DefaultVTManager,
 };
 
-use rocket::{routes, tokio::sync::RwLock, Build, Rocket};
+use rocket::{catchers, routes, tokio::sync::RwLock, Build, Rocket};
 
 type ScanManagerType = Arc<RwLock<dyn ScanManager + Send + Sync>>;
 type VTManagerType = Arc<RwLock<dyn VTManager + Send + Sync>>;
@@ -63,6 +63,7 @@ impl Webserver {
             )
             .manage(self.manager)
             .attach(self.head_info)
+            .register("/", catchers![json_bad_request, json_unprocessable_entity])
     }
 }
 
