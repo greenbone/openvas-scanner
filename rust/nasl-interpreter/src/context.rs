@@ -5,7 +5,7 @@
 use nasl_syntax::Statement;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
-use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, Loader, NaslValue};
+use crate::{logger::NaslLogger, lookup_keys::FC_ANON_ARGS, sessions::Sessions, Loader, NaslValue};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -72,6 +72,33 @@ impl From<i64> for ContextType {
 impl From<usize> for ContextType {
     fn from(n: usize) -> Self {
         Self::Value(n.into())
+    }
+}
+
+impl From<&ContextType> for i64 {
+    fn from(ct: &ContextType) -> i64 {
+        match ct {
+            ContextType::Value(NaslValue::Number(i)) => *i,
+            _ => i64::default(),
+        }
+    }
+}
+
+impl From<&ContextType> for String {
+    fn from(ct: &ContextType) -> String {
+        match ct {
+            ContextType::Value(NaslValue::String(s)) => s.to_string(),
+            _ => String::default(),
+        }
+    }
+}
+
+impl From<&ContextType> for bool {
+    fn from(ct: &ContextType) -> bool {
+        match ct {
+            ContextType::Value(NaslValue::Boolean(b)) => *b,
+            _ => bool::default(),
+        }
     }
 }
 
@@ -243,6 +270,8 @@ impl NaslContext {
 pub struct Context<'a, K> {
     /// key for this context. A name or an OID
     key: &'a K,
+    /// target to run a scan against
+    target: &'a str,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher<K>,
     /// Default Retriever
@@ -251,23 +280,29 @@ pub struct Context<'a, K> {
     loader: &'a dyn Loader,
     /// Default logger.
     logger: &'a dyn NaslLogger,
+    /// Default logger.
+    sessions: &'a Sessions,
 }
 
 impl<'a, K> Context<'a, K> {
     /// Creates an empty configuration
     pub fn new(
         key: &'a K,
+        target: &'a str,
         dispatcher: &'a dyn Dispatcher<K>,
         retriever: &'a dyn Retriever<K>,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
+        sessions: &'a Sessions,
     ) -> Self {
         Self {
             key,
+            target,
             dispatcher,
             retriever,
             loader,
             logger,
+            sessions,
         }
     }
 
@@ -278,6 +313,10 @@ impl<'a, K> Context<'a, K> {
     /// Get the Key
     pub fn key(&self) -> &K {
         self.key
+    }
+    /// Get the target host
+    pub fn target(&self) -> &str {
+        self.target
     }
     /// Get the storage
     pub fn dispatcher(&self) -> &dyn Dispatcher<K> {
@@ -291,18 +330,26 @@ impl<'a, K> Context<'a, K> {
     pub fn loader(&self) -> &dyn Loader {
         self.loader
     }
+    /// Get the sessions
+    pub fn sessions(&self) -> &Sessions {
+        self.sessions
+    }
 }
 /// Can be used as DefaultContext::default().as_context() within tests
 #[derive(Default)]
 pub struct DefaultContext {
     /// key for the default context. A name or an OID
     pub key: String,
+    /// Default target host
+    pub target: String,
     /// Default Storage
     pub dispatcher: Box<DefaultDispatcher<String>>,
     /// Default Loader
     pub loader: Box<dyn Loader>,
     /// Default logger
     pub logger: Box<dyn NaslLogger>,
+    /// Default logger
+    pub sessions: Sessions,
 }
 
 impl DefaultContext {
@@ -310,10 +357,12 @@ impl DefaultContext {
     pub fn as_context(&self) -> Context<String> {
         Context {
             key: &self.key,
+            target: &self.target,
             dispatcher: &*self.dispatcher,
             retriever: &*self.dispatcher,
             loader: &*self.loader,
             logger: self.logger.as_ref(),
+            sessions: &self.sessions,
         }
     }
 }

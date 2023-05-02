@@ -321,7 +321,7 @@ components:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
-            $ref: "#/components/schemas/Parameter"
+            $ref: "#/components/schemas/ScannerParameter"
         vts:
           type: "array"
           description: "A collection of VTs, which are run for the given target."
@@ -477,6 +477,20 @@ components:
           enum:
             - aes
             - des
+
+    ScannerParameter:
+      description: "Consists of a parameter ID and its value."
+      type: "object"
+      properties:
+        id:
+          description: "ID of the parameter to set."
+          type: "string"
+        value:
+          description: "Value of the parameter."
+          type: "string"
+      required:
+        - value
+        - id
 
     Parameter:
       description: "Consists of a parameter ID and its value."

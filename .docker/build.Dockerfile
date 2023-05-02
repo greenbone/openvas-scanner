@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libksba-dev \
   libpaho-mqtt-dev \
   libpcap-dev \
+  zlib1g-dev \
   libssh-gcrypt-dev \
   libbsd-dev \
   # for linking openvas-smb (libopenvas_wmiclient)
