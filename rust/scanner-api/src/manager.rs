@@ -1,4 +1,4 @@
-use models::json::{result::Result as ScanResult, scan::Scan, scan_action::Action, status::Status};
+use models::{Action, Result as ScanResult, Scan, Status};
 
 use crate::error::APIError;
 
