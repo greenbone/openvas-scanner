@@ -67,7 +67,10 @@ if(description)
         let logger = DefaultLogger::default();
         let key = "test.nasl".to_owned();
         let sessions = Sessions::default();
-        let ctxconfigs = Context::new(&key, &storage, &storage, &loader, &logger, &sessions);
+        let target = String::new();
+        let ctxconfigs = Context::new(
+            &key, &target, &storage, &storage, &loader, &logger, &sessions,
+        );
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {

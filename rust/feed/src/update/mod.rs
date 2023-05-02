@@ -89,7 +89,16 @@ where
         let sessions = Sessions::default();
         let k: K = Default::default();
         let fr = NoOpRetriever::default();
-        let context = Context::new(&k, &self.dispatcher, &fr, &self.loader, &logger, &sessions);
+        let target = String::default();
+        let context = Context::new(
+            &k,
+            &target,
+            &self.dispatcher,
+            &fr,
+            &self.loader,
+            &logger,
+            &sessions,
+        );
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
@@ -118,7 +127,16 @@ where
         let logger = DefaultLogger::default();
         let sessions = Sessions::default();
         let fr = NoOpRetriever::default();
-        let context = Context::new(key, &self.dispatcher, &fr, &self.loader, &logger, &sessions);
+        let target = String::default();
+        let context = Context::new(
+            key,
+            &target,
+            &self.dispatcher,
+            &fr,
+            &self.loader,
+            &logger,
+            &sessions,
+        );
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
             match interpreter.retry_resolve(&stmt?, self.max_retry) {

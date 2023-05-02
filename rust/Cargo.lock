@@ -69,9 +69,9 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "anstream"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e579a7752471abc2a8268df8b20005e3eadd975f585398f17efcfd8d4927371"
+checksum = "6342bd4f5a1205d7f41e94a41a901f5647c938cdfa96036338e8533c9d6c2450"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -108,9 +108,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bcd8291a340dd8ac70e18878bc4501dd7b4ff970cfa21c207d36ece51ea88fd"
+checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -159,9 +159,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.0"
+version = "3.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
+checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 
 [[package]]
 name = "bytes"
@@ -259,9 +259,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.23"
+version = "3.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71655c45cb9845d3270c9d6df84ebe72b4dad3c2ba3f7023ad47c144e4e473a5"
+checksum = "eef2b3ded6a26dfaec672a742c93c8cf6b689220324da509ec5caa20de55dc83"
 dependencies = [
  "bitflags",
  "clap_lex 0.2.4",
@@ -383,7 +383,7 @@ dependencies = [
  "atty",
  "cast",
  "ciborium",
- "clap 3.2.23",
+ "clap 3.2.24",
  "criterion-plot",
  "itertools",
  "lazy_static",
@@ -872,9 +872,9 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b085a4f2cde5781fc4b1717f2e86c62f5cda49de7ba99a7c2eae02b61c9064c"
+checksum = "36eb31c1778188ae1e64398743890d0877fef36d11521ac60406b42016e8c2cf"
 
 [[package]]
 name = "log"
@@ -1282,9 +1282,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac6cf59af1067a3fb53fbe5c88c053764e930f932be1d71d3ffe032cbe147f59"
+checksum = "af83e617f331cc6ae2da5443c602dfa5af81e517212d9d611a5b3ba1777b5370"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -1293,9 +1293,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6868896879ba532248f33598de5181522d8b3d9d724dfd230911e1a7d4822f5"
+checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 
 [[package]]
 name = "ripemd"
@@ -1308,9 +1308,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.37.13"
+version = "0.37.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f79bef90eb6d984c72722595b5b1348ab39275a5e5123faca6863bf07d75a4e0"
+checksum = "a0661814f891c57c930a610266415528da53c4933e6dea5fb350cbfe048a9ece"
 dependencies = [
  "bitflags",
  "errno 0.3.1",

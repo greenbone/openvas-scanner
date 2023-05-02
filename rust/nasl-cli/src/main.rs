@@ -33,10 +33,12 @@ enum Commands {
         /// The action to perform on a feed
         action: FeedAction,
     },
+
     Execute {
         db: Db,
         feed: Option<PathBuf>,
         script: String,
+        target: Option<String>,
     },
 }
 
@@ -127,9 +129,18 @@ impl RunAction<()> for Commands {
                 no_progress,
             } => syntax_check::run(path, *verbose, *no_progress),
             Commands::Feed { verbose, action } => action.run(*verbose),
-            Commands::Execute { db, feed, script } => {
-                interpret::run(db, feed.clone(), script.to_string(), verbose)
-            }
+            Commands::Execute {
+                db,
+                feed,
+                script,
+                target,
+            } => interpret::run(
+                db,
+                feed.clone(),
+                script.to_string(),
+                target.clone(),
+                verbose,
+            ),
         }
     }
 }
@@ -277,6 +288,7 @@ When ID is used than a valid feed path must be given within the path parameter."
                 .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
                     .value_parser(value_parser!(PathBuf)))
                 .arg(Arg::new("script").required(true))
+                .arg(arg!(-t --target <HOST> "Target to scan") .required(false))
         )
         .get_matches();
     let verbose = matches
@@ -320,10 +332,13 @@ When ID is used than a valid feed path must be given within the path parameter."
                 Some(path) => path,
                 _ => unreachable!("path is set to required"),
             };
+            let target = args.get_one::<String>("target").cloned();
+
             Commands::Execute {
                 db: Db::InMemory,
                 feed,
                 script,
+                target,
             }
         }
         _ => unreachable!("subcommand_required prevents None"),
