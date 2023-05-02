@@ -1072,9 +1072,10 @@ plug_get_kb (struct script_infos *args)
 }
 
 static void
-plug_get_key_sigchld ()
+plug_get_key_sigchld (int s)
 {
   int status;
+  (void) s;
 
   wait (&status);
 }
