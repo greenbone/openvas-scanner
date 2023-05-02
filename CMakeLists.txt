@@ -37,6 +37,12 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 OPTION (ENABLE_COVERAGE "Enable support for coverage analysis" OFF)
 
+# the shell based script got replaced by https://github.com/greenbone/greenbone-feed-sync/
+OPTION (INSTALL_OLD_SYNC_SCRIPT "Install shell based VT feed sync script" ON)
+if (INSTALL_OLD_SYNC_SCRIPT)
+  message (DEPRECATION "greenbone-nvt-sync is deprecated in favor of greenbone-feed-sync (https://github.com/greenbone/greenbone-feed-sync/) and will be removed in the next major version")
+endif (INSTALL_OLD_SYNC_SCRIPT)
+
 ## Retrieve git revision (at configure time)
 include (GetGit)
 
