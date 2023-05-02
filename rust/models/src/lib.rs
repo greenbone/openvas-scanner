@@ -23,7 +23,7 @@ pub use target::*;
 pub use vt::*;
 
 #[cfg(test)]
-#[cfg(feature = "serde_support")]
+//#[cfg(feature = "serde_support")]
 mod tests {
     use super::scan::Scan;
 
@@ -36,7 +36,7 @@ mod tests {
         ],
         "ports": [
         {
-            "range": "22"
+            "range": [{"start": 22}]
         }
         ]
     },
@@ -68,14 +68,14 @@ mod tests {
     "ports": [
       {
         "protocol": "udp",
-        "range": "22,1024-1030"
+        "range": [{"start": 22}, {"start": 1024, "end": 1030}]
       },
       {
         "protocol": "tcp",
-        "range": "24-30"
+        "range": [{"start": 24, "end": 30}]
       },
       {
-        "range": "100-1000"
+        "range": [{"start": 100, "end": 1000}]
       }
     ],
     "credentials": [
@@ -110,10 +110,10 @@ mod tests {
     "alive_test_ports": [
       {
         "protocol": "tcp",
-        "range": "1-100"
+        "range": [{"start": 1, "end": 100}]
       },
       {
-        "range": "443"
+        "range": [{ "start": 443 }]
       }
     ],
     "alive_test_methods": [

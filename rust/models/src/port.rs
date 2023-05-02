@@ -11,9 +11,30 @@ pub struct Port {
     )]
     /// Protocol for the given port range. If empty, prot range applies to UDP and TCP
     pub protocol: Option<Protocol>,
-    /// Range for ports to scan. A range is defined by
-    /// range => <number>[-<number>][,<range>]
-    pub range: String,
+    /// Range for ports to scan.
+    pub range: Vec<PortRange>,
+}
+
+/// Range for ports to scan.
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct PortRange {
+    /// The required start port.
+    ///
+    /// It is an inclusive range.
+    pub start: usize,
+    /// The optional end port.
+    ///
+    /// It is an inclusive range.
+    /// When the end port is not set, only the start port is used.
+    #[cfg_attr(
+        feature = "serde_support",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub end: Option<usize>,
 }
 
 /// Enum representing the protocol used for scanning a port.
