@@ -1,7 +1,9 @@
-use serde::{Deserialize, Serialize};
-
 /// Information about hosts of a running scan
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct HostInfo {
     /// Number of all hosts, that are contained in a target
     pub all: i32,
@@ -15,7 +17,10 @@ pub struct HostInfo {
     pub queued: i32,
     /// Number of hosts, that are already finished scanning
     pub finished: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "serde_support",
+        serde(skip_serializing_if = "Vec::is_empty")
+    )]
     /// IPs of hosts, that are currently scanned.
-    pub scanning: Option<Vec<String>>,
+    pub scanning: Vec<String>,
 }
