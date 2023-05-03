@@ -1,7 +1,7 @@
 FROM ghcr.io/cross-rs/aarch64-unknown-linux-gnu:latest
 # it is based on xenial and therefore doesn't have
 # libpcap-dev available as a install candidate for aarach64.
-# The edge version (as written in 2023-03-08) is based on 
+# The edge version (as written in 2023-03-08) is based on
 # 20.4 and would have a candidate ready; however the build time
 # is very bad on edge therefore we wait until it is stable.
 RUN apt-get update && apt-get install -y \
@@ -30,11 +30,11 @@ RUN ./configure
 RUN make install
 RUN ldconfig
 
-RUN curl -o /tmp/openssl.tar.gz https://www.openssl.org/source/old/3.0/openssl-3.0.7.tar.gz
+RUN curl -o /tmp/openssl.tar.gz https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
 WORKDIR /tmp
 RUN tar xvf openssl.tar.gz
 RUN ls -las
-WORKDIR /tmp/openssl-3.0.7
+WORKDIR /tmp/openssl-1.1.1
 ENV CC=aarch64-linux-gnu-gcc
 ENV CFLAGS='-Os'
 RUN ./Configure linux-aarch64 --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
