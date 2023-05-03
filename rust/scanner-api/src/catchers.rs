@@ -25,3 +25,14 @@ pub fn json_bad_request(req: &Request) -> APIError {
 pub fn json_unprocessable_entity(req: &Request) -> APIError {
     json_parse_error(req, Status::UnprocessableEntity)
 }
+
+#[catch(401)]
+pub fn unauthorized(req: &Request) -> APIError {
+    let e = req.local_cache::<Option<APIError>, _>(|| None);
+    match e {
+        Some(e) => e.to_owned(),
+        None => APIError::Unexpected {
+            message: "The server caught a 401(Unauthorized) with an unexpected error".to_string(),
+        },
+    }
+}

@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Display, io::Cursor};
 use rocket::{http::Status, response::Responder, Request, Response};
 use serde::{Deserialize, Serialize};
 
-use crate::guards::json_validation::JsonValidationError;
+use crate::guards::{api_key::ApiKeyError, json_validation::JsonValidationError};
 
 /// Errors, that might occur during request processing
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -62,9 +62,20 @@ pub enum APIError {
         got: String,
     },
     /// Unable to read data in request body. E.g. the given JSON is too large
-    IOError { message: String },
+    IOError {
+        message: String,
+    },
     /// Something unexpected happened, this is a server internal error
-    Unexpected { message: String },
+    Unexpected {
+        message: String,
+    },
+    /// The given API key is invalid
+    InvalidApiKey {
+        message: String,
+    },
+    MissingApiKey {
+        message: String,
+    },
 }
 
 impl Display for APIError {
@@ -79,6 +90,8 @@ impl Display for APIError {
             Self::ActionNotSupported { message, .. } => write!(f, "{message}"),
             Self::IOError { message, .. } => write!(f, "{message}"),
             Self::Unexpected { message } => write!(f, "{message}"),
+            Self::InvalidApiKey { message } => write!(f, "{message}"),
+            Self::MissingApiKey { message } => write!(f, "{message}"),
         }
     }
 }
@@ -98,21 +111,37 @@ impl<'a> From<&JsonValidationError<'a>> for APIError {
     }
 }
 
+impl From<ApiKeyError> for APIError {
+    fn from(value: ApiKeyError) -> Self {
+        match value {
+            ApiKeyError::Invalid => Self::InvalidApiKey {
+                message: "The given API key is invalid".to_string(),
+            },
+            ApiKeyError::Missing => Self::MissingApiKey {
+                message: "No API key was given".to_string(),
+            },
+        }
+    }
+}
+
 impl<'r> Responder<'r, 'static> for APIError {
     fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'static> {
         let msg = serde_json::to_string(&self).unwrap();
         let mut resp = Response::new();
         resp.set_sized_body(msg.len(), Cursor::new(msg));
         match self {
-            Self::BadJsonError { .. } => resp.set_status(Status::BadRequest),
-            Self::ParseJsonError { .. } => resp.set_status(Status::BadRequest),
             Self::ResourceNotFound { .. } => resp.set_status(Status::NotFound),
-            Self::ResourceExists { .. } => resp.set_status(Status::BadRequest),
-            Self::ParseQueryError { .. } => resp.set_status(Status::BadRequest),
+            Self::ResourceExists { .. }
+            | Self::ParseQueryError { .. }
+            | Self::BadJsonError { .. }
+            | Self::ParseJsonError { .. } => resp.set_status(Status::BadRequest),
             Self::BadResourceState { .. } => resp.set_status(Status::NotAcceptable),
             Self::ActionNotSupported { .. } => resp.set_status(Status::NotImplemented),
             Self::IOError { .. } => resp.set_status(Status::UnprocessableEntity),
             Self::Unexpected { .. } => resp.set_status(Status::InternalServerError),
+            Self::InvalidApiKey { .. } | Self::MissingApiKey { .. } => {
+                resp.set_status(Status::Unauthorized)
+            }
         };
         Ok(resp)
     }

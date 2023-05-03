@@ -1,0 +1,8 @@
+[default]
+api_key = "secret-api-key"
+
+[debug]
+api_key = "secret-api-key"
+
+[release]
+api_key = "secret-api-key"

@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::APIError, guards::json_validation::JsonValidation, manager::ScanID, webserver::Manager,
+    config::Config,
+    error::APIError,
+    guards::{api_key::ApiKey, json_validation::JsonValidation},
+    manager::ScanID,
+    webserver::Manager,
 };
 use models::{Result as ScanResult, Scan, ScanAction, Status as ScanStatus};
 use rocket::{
@@ -17,6 +21,8 @@ pub async fn get_header() -> Status {
 /// API call to create a new scan
 #[post("/scans", format = "json", data = "<scan>")]
 pub async fn create_scan(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
     scan: JsonValidation<Scan>,
     manager: &State<Manager>,
 ) -> Result<Created<Json<ScanID>>, APIError> {
@@ -36,6 +42,8 @@ pub async fn create_scan(
 /// API call to perform a action on a scan
 #[post("/scans/<scan_id>", format = "json", data = "<action>")]
 pub async fn scan_action(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
     action: JsonValidation<ScanAction>,
     scan_id: String,
     manager: &State<Manager>,
@@ -49,7 +57,12 @@ pub async fn scan_action(
 /// API call to receive information about a requested scan. This does not contain any results or
 /// status information, but only meta-information provided by a client with create_scan
 #[get("/scans/<scan_id>")]
-pub async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<Scan>, APIError> {
+pub async fn get_scan(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
+    scan_id: String,
+    manager: &State<Manager>,
+) -> Result<Json<Scan>, APIError> {
     // Mutex
     let scan_manager = manager.scan_manager.read().await;
 
@@ -61,10 +74,12 @@ pub async fn get_scan(scan_id: String, manager: &State<Manager>) -> Result<Json<
 /// results
 #[get("/scans/<scan_id>/results")]
 pub async fn get_results_wo_range(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
     scan_id: String,
     manager: &State<Manager>,
 ) -> Result<Json<Vec<ScanResult>>, APIError> {
-    get_results(scan_id, None, None, manager).await
+    get_results(_config, _key, scan_id, None, None, manager).await
 }
 
 /// API call to get results within a specified range. The range must be of the format
@@ -76,6 +91,8 @@ pub async fn get_results_wo_range(
 /// in the response and also no error will be shown.
 #[get("/scans/<scan_id>/results?<range>")]
 pub async fn get_results_w_range(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
     scan_id: String,
     range: String,
     manager: &State<Manager>,
@@ -99,7 +116,7 @@ pub async fn get_results_w_range(
         },
     };
 
-    get_results(scan_id, first, last, manager).await
+    get_results(_config, _key, scan_id, first, last, manager).await
 }
 
 /// Helper function to parse a range
@@ -117,6 +134,8 @@ fn range_parse(x: &str, range: &String) -> Result<usize, APIError> {
 
 /// Function to get the results from a Scan
 pub async fn get_results(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
     scan_id: String,
     first: Option<usize>,
     last: Option<usize>,
@@ -133,6 +152,8 @@ pub async fn get_results(
 /// the information is empty.
 #[get("/scans/<scan_id>/status")]
 pub async fn get_status(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
     scan_id: String,
     manager: &State<Manager>,
 ) -> Result<Json<ScanStatus>, APIError> {
@@ -144,7 +165,12 @@ pub async fn get_status(
 
 /// API call to delete a scan. Note that a running scan cannot be deleted and must be stopped before.
 #[delete("/scans/<scan_id>")]
-pub async fn delete_scan(scan_id: String, manager: &State<Manager>) -> Result<Status, APIError> {
+pub async fn delete_scan(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
+    scan_id: String,
+    manager: &State<Manager>,
+) -> Result<Status, APIError> {
     // Mutex
     let mut scan_manager = manager.scan_manager.write().await;
 
@@ -155,7 +181,11 @@ pub async fn delete_scan(scan_id: String, manager: &State<Manager>) -> Result<St
 
 /// API call to get all available OIDs of the Scanner.
 #[get("/vts")]
-pub async fn get_oids(manager: &State<Manager>) -> Json<Vec<String>> {
+pub async fn get_oids(
+    _config: &State<Config>,
+    _key: ApiKey<'_>,
+    manager: &State<Manager>,
+) -> Json<Vec<String>> {
     // Mutex
     let vt_manager = manager.vt_manager.write().await;
 
