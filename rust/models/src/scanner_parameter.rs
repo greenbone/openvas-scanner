@@ -1,7 +1,9 @@
-use serde::{Deserialize, Serialize};
-
 /// Configuration parameter for the scanner
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct ScannerParameter {
     /// The ID of the parameter.
     pub id: String,

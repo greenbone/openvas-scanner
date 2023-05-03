@@ -1,11 +1,6 @@
 use std::{cmp::min, collections::HashMap, fmt::Display};
 
-use models::json::{
-    result::Result as ScanResult,
-    scan::Scan,
-    scan_action::Action,
-    status::{Phase, Status},
-};
+use models::{Action, Phase, Result as ScanResult, Scan, Status};
 
 use crate::{
     error::APIError,

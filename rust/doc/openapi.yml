@@ -392,8 +392,15 @@ components:
             - udp
             - tcp
         range:
-          description: "A comma separated list of port options. A port option is either a single port or a port range given with two numbers with a hyphen."
-          type: "string"
+          description: "A list of ranges, start and end are inclusive."
+          type: "object"
+          properties:
+            start:
+              type: "number"
+              description: "The inclusive start port. When end is not set only the start port is used"
+            end:
+              type: "number"
+              description: "The inclusive end port."
       required:
         - range
 
@@ -648,7 +655,7 @@ components:
       description: "A simple example for creating a scan."
       value:
         {
-          "target": { "hosts": ["127.0.0.1"], "ports": [{ "range": "22" }] },
+          "target": { "hosts": ["127.0.0.1"], "ports": [{ "range": [{ "start": 22}] }] },
           "vts": [{ "oid": "1.3.6.1.4.1.25623.1.0.10267" }],
         }
     scan_full:
@@ -670,9 +677,9 @@ components:
                 ],
               "ports":
                 [
-                  { "protocol": "udp", "range": "22, 1024-1030" },
-                  { "protocol": "tcp", "range": "24-30" },
-                  { "range": "100-1000" },
+                  { "protocol": "udp", "range": [{"start": 22}, {"start": 1024, "end": 1030}] },
+                  { "protocol": "tcp", "range": [{"start": 24, "end": 30 }]},
+                  { "range": [{"start": 100, "end": 1000 }]},
                 ],
               "credentials":
                 [
@@ -704,7 +711,7 @@ components:
                   },
                 ],
               "alive_test_ports":
-                [{ "protocol": "tcp", "range": "1-100" }, { "range": "443" }],
+                [{ "protocol": "tcp", "range": [ {"start": 1, "end": 100 }]}, { "range": [{"start": 443}] }],
               "alive_test_methods":
                 ["icmp", "tcp_syn", "tcp_ack", "arp", "consider_alive"],
               "reverse_lookup_unify": true,
