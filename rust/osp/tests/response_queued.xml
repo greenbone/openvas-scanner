@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<get_scans_response status="200" status_text="OK">
+  <scan id="925eb35a-f3b8-4e55-8f55-5aeb410ecd10" target="" progress="0" status="queued" start_time="0" end_time="0">
+    <results/>
+  </scan>
+</get_scans_response>

@@ -1,0 +1,508 @@
+<?xml version="1.0"?>
+<get_scans_response status="200" status_text="OK">
+  <scan id="925eb35a-f3b8-4e55-8f55-5aeb410ecd10" target="127.0.0.1,localhost" progress="100" status="finished" start_time="1683537846" end_time="1683538651">
+    <results>
+      <result name="HOST_START" type="Log Message" severity="0.0" host="127.0.0.1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:24:07 2023</result>
+      <result name="HOST_START" type="Log Message" severity="0.0" host="::1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:24:07 2023</result>
+      <result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="22/tcp" qod="80" uri="">An ssh server is running on this port
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A TLScustom server answered on this port
+
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A web server is running on this port through SSL
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A TLScustom server answered on this port
+
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="22/tcp" qod="80" uri="">An ssh server is running on this port
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A web server is running on this port through SSL
+</result>
+      <result name="Traceroute" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.51662" port="general/tcp" qod="80" uri="">Network route from scanner (127.0.0.1) to target (127.0.0.1):
+
+127.0.0.1
+
+Network distance between scanner and target: 1
+</result>
+      <result name="Traceroute" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.51662" port="general/tcp" qod="80" uri="">Network route from scanner (::1) to target (::1):
+
+::1
+
+Network distance between scanner and target: 1
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="5355/tcp" qod="80" uri="">The service closed the connection after 10 seconds without sending any data
+It might be protected by some TCP wrapper
+
+</result>
+      <result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="5355/tcp" qod="80" uri="">The service closed the connection after 10 seconds without sending any data
+It might be protected by some TCP wrapper
+
+</result>
+      <result name="MQTT Broker Detection" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.140166" port="1883/tcp" qod="80" uri="">A MQTT Broker is running at this port.
+
+The following information was extracted:
+
+Version: mosquitto version 2.0.15
+</result>
+      <result name="MQTT Broker Detection" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.140166" port="1883/tcp" qod="80" uri="">A MQTT Broker is running at this port.
+
+The following information was extracted:
+
+Version: mosquitto version 2.0.15
+</result>
+      <result name="SSL/TLS: Version Detection" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.105782" port="9090/tcp" qod="80" uri="">The remote SSL/TLS service supports the following SSL/TLS protocol version(s):
+
+TLSv1.2
+TLSv1.3
+</result>
+      <result name="SSL/TLS: Version Detection" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.105782" port="9090/tcp" qod="80" uri="">The remote SSL/TLS service supports the following SSL/TLS protocol version(s):
+
+TLSv1.2
+TLSv1.3
+</result>
+      <result name="SSH Server type and version" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10267" port="22/tcp" qod="80" uri="">Remote SSH server banner: SSH-2.0-OpenSSH_8.8
+Remote SSH supported authentication: password,publickey
+Remote SSH text/login banner: (not available)
+
+This is probably:
+
+- OpenSSH
+
+Concluded from remote connection attempt with credentials:
+
+Login:    OpenVASVT
+Password: OpenVASVT
+</result>
+      <result name="SSH Server type and version" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10267" port="22/tcp" qod="80" uri="">Remote SSH server banner: SSH-2.0-OpenSSH_8.8
+Remote SSH supported authentication: password,publickey
+Remote SSH text/login banner: (not available)
+
+This is probably:
+
+- OpenSSH
+
+Concluded from remote connection attempt with credentials:
+
+Login:    OpenVASVT
+Password: OpenVASVT
+</result>
+      <result name="SSH Protocol Algorithms Supported" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.105565" port="22/tcp" qod="80" uri="">The following options are supported by the remote ssh service:
+
+kex_algorithms:
+curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+
+server_host_key_algorithms:
+rsa-sha2-512,rsa-sha2-256,ecdsa-sha2-nistp256,ssh-ed25519
+
+encryption_algorithms_client_to_server:
+aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr
+
+encryption_algorithms_server_to_client:
+aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr
+
+mac_algorithms_client_to_server:
+hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512
+
+mac_algorithms_server_to_client:
+hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512
+
+compression_algorithms_client_to_server:
+none,zlib@openssh.com
+
+compression_algorithms_server_to_client:
+none,zlib@openssh.com
+
+
+</result>
+      <result name="SSH Protocol Algorithms Supported" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.105565" port="22/tcp" qod="80" uri="">The following options are supported by the remote ssh service:
+
+kex_algorithms:
+curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+
+server_host_key_algorithms:
+rsa-sha2-512,rsa-sha2-256,ecdsa-sha2-nistp256,ssh-ed25519
+
+encryption_algorithms_client_to_server:
+aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr
+
+encryption_algorithms_server_to_client:
+aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr
+
+mac_algorithms_client_to_server:
+hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512
+
+mac_algorithms_server_to_client:
+hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512
+
+compression_algorithms_client_to_server:
+none,zlib@openssh.com
+
+compression_algorithms_server_to_client:
+none,zlib@openssh.com
+
+
+</result>
+      <result name="SSH Protocol Versions Supported" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.100259" port="22/tcp" qod="95" uri="">The remote SSH Server supports the following SSH Protocol Versions:
+1.99
+2.0
+
+SSHv2 Fingerprint(s):
+ecdsa-sha2-nistp256: 05:93:bf:01:3e:16:05:93:ec:d8:03:11:82:a9:35:b2
+</result>
+      <result name="SSH Protocol Versions Supported" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.100259" port="22/tcp" qod="95" uri="">The remote SSH Server supports the following SSH Protocol Versions:
+1.99
+2.0
+
+SSHv2 Fingerprint(s):
+ecdsa-sha2-nistp256: 05:93:bf:01:3e:16:05:93:ec:d8:03:11:82:a9:35:b2
+</result>
+      <result name="SSL/TLS: Report Medium Cipher Suites" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.902816" port="9090/tcp" qod="98" uri="">'Medium' cipher suites accepted by this service via the TLSv1.2 protocol:
+
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_AES_128_CCM
+TLS_RSA_WITH_AES_128_GCM_SHA256
+TLS_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_256_CCM
+TLS_RSA_WITH_AES_256_GCM_SHA384
+
+'Medium' cipher suites accepted by this service via the TLSv1.3 protocol:
+
+TLS_AES_128_CCM_SHA256
+TLS_AES_128_GCM_SHA256
+
+
+</result>
+      <result name="SSL/TLS: Report Non Weak Cipher Suites" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103441" port="9090/tcp" qod="98" uri="">'Non Weak' cipher suites accepted by this service via the TLSv1.2 protocol:
+
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_AES_128_CCM
+TLS_RSA_WITH_AES_128_GCM_SHA256
+TLS_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_256_CCM
+TLS_RSA_WITH_AES_256_GCM_SHA384
+
+'Non Weak' cipher suites accepted by this service via the TLSv1.3 protocol:
+
+TLS_AES_128_CCM_SHA256
+TLS_AES_128_GCM_SHA256
+TLS_AES_256_GCM_SHA384
+TLS_CHACHA20_POLY1305_SHA256
+
+
+</result>
+      <result name="SSL/TLS: Report Non Weak Cipher Suites" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103441" port="9090/tcp" qod="98" uri="">'Non Weak' cipher suites accepted by this service via the TLSv1.2 protocol:
+
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_AES_128_CCM
+TLS_RSA_WITH_AES_128_GCM_SHA256
+TLS_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_256_CCM
+TLS_RSA_WITH_AES_256_GCM_SHA384
+
+'Non Weak' cipher suites accepted by this service via the TLSv1.3 protocol:
+
+TLS_AES_128_CCM_SHA256
+TLS_AES_128_GCM_SHA256
+TLS_AES_256_GCM_SHA384
+TLS_CHACHA20_POLY1305_SHA256
+
+
+</result>
+      <result name="SSL/TLS: Report Medium Cipher Suites" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.902816" port="9090/tcp" qod="98" uri="">'Medium' cipher suites accepted by this service via the TLSv1.2 protocol:
+
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_AES_128_CCM
+TLS_RSA_WITH_AES_128_GCM_SHA256
+TLS_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_256_CCM
+TLS_RSA_WITH_AES_256_GCM_SHA384
+
+'Medium' cipher suites accepted by this service via the TLSv1.3 protocol:
+
+TLS_AES_128_CCM_SHA256
+TLS_AES_128_GCM_SHA256
+
+
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Cert:80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B&lt;/name&gt;&lt;value&gt;x509:MIIE2zCCAsOgAwIBAgIILPwRGQRr3/cwDQYJKoZIhvcNAQELBQAweTELMAkGA1UEBhMCVVMxKTAnBgNVBAoMIGVhODhjYWI4MjI5ODQzNjRiNTQxZjIzYmE2NmFkOTk0MR8wHQYDVQQLDBZjYS05MTgyNDI5MjE5MDYyNjI1MDc0MR4wHAYDVQQDDBVsb2NhbGhvc3QubG9jYWxkb21haW4wHhcNMjMwNDI2MjEyMzU4WhcNMjQwNTI1MjEyMzU4WjBYMQswCQYDVQQGEwJVUzEpMCcGA1UECgwgZWE4OGNhYjgyMjk4NDM2NGI1NDFmMjNiYTY2YWQ5OTQxHjAcBgNVBAMMFWxvY2FsaG9zdC5sb2NhbGRvbWFpbjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKo2uZKQaZhzbm3qWkbPITz/tWe7WgKLCDHisySQYQCzmgBj1wwC+RDriv2/3H73g++Ivh2gW3jQ3DrC8gskyqbaAAHfgLVBT6v/m3kYvViEjIaV7TycnM6C7aT0ISdh27wd+5ES+6jq/y789uQzjcrKp31r19ViiJ9J7flIhmVT47NlYeTILnqsHffC0G3VCWpbj+ZD7FvXNeXqiA68imvwn4Z2MEz1hA86/BpQvrDMKHEpeZE3jy/zDjemC0xelc8mhzyDCrzRbwvD9leq3v8pe5yksJ7opXFGBJz3o7rDeUK9kj6Fx72sfb8CkY/8c8R6ZgXUZE4ENfOwDkt4WLMCAwEAAaOBhzCBhDAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwCQYDVR0TBAIwADAxBgNVHREEKjAoghVsb2NhbGhvc3QubG9jYWxkb21haW6CCWxvY2FsaG9zdIcEfwAAATAfBgNVHSMEGDAWgBQA8fTYLuiPoTVRWSZ/FCtN3hxhjDANBgkqhkiG9w0BAQsFAAOCAgEAxTXoKKPssOrH5YcI7jIxwgBxTYTZLULk/3OcEgDfkYhCAQ/6SgyFKJYnKr7Psq3ZKS/YgN//fj3vE48RI9ZlVPT9RHPWTzi4qruGZZlHU4X2cMDN7wrNo5E9ufft8F9uzDn3Tv+89mGm/eeSMxiOc0o2fpGOdJnxHJ4JFLHH7SvzqVxERZwe5K2ewyoCFasE12dysNTCcjr2SVk3j89FcJEkdo0B72AaSWwaWoBK/dfrvnS3noqRnA5a7kZA6QxW/qDzH1Id7wjbb8FYvYY3967N/QNwu5RMFhhUgTrSurRFeEPTfluzq449B8klTjZ0r7IcLhEurMOgHkujTKMdQDVbdT0cSxpGh9S5AC++OJBzarMla7rtOM/WA0Niyl2J8C/DowJooUB3rgJSNbBbjxjmMGMwiSNoqAJWa08jbzpOiggxkVOe1om6qg2g6wGseDBPpvkSIyZ/xQVq+hxawcKxsD3799R7aBHCL21jxz7RbO5D7UW/votwzYcAr7utE4a2q+9HQxecgE35WswGtrzZ9P/O7qPj8oKVX9Nqvtv3yOhhrYLUeq/fKGxi8xVvdWz/DayTYWx2IwZYVC4X9rcs48CG6xiWdep0q5CuxT2OZIVEh10HbMoMR7kY+lUXedbAdVe9qy0D2QiGDGDthz7ccekhXSGR08RwKXbv640=&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;SSLDetails:80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B&lt;/name&gt;&lt;value&gt;issuer:CN=localhost.localdomain,OU=ca-9182429219062625074,O=ea88cab822984364b541f23ba66ad994,C=US|serial:2CFC1119046BDFF7|notBefore:20230426T212358|notAfter:20240525T212358&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate Details&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Cert:80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B&lt;/name&gt;&lt;value&gt;x509:MIIE2zCCAsOgAwIBAgIILPwRGQRr3/cwDQYJKoZIhvcNAQELBQAweTELMAkGA1UEBhMCVVMxKTAnBgNVBAoMIGVhODhjYWI4MjI5ODQzNjRiNTQxZjIzYmE2NmFkOTk0MR8wHQYDVQQLDBZjYS05MTgyNDI5MjE5MDYyNjI1MDc0MR4wHAYDVQQDDBVsb2NhbGhvc3QubG9jYWxkb21haW4wHhcNMjMwNDI2MjEyMzU4WhcNMjQwNTI1MjEyMzU4WjBYMQswCQYDVQQGEwJVUzEpMCcGA1UECgwgZWE4OGNhYjgyMjk4NDM2NGI1NDFmMjNiYTY2YWQ5OTQxHjAcBgNVBAMMFWxvY2FsaG9zdC5sb2NhbGRvbWFpbjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKo2uZKQaZhzbm3qWkbPITz/tWe7WgKLCDHisySQYQCzmgBj1wwC+RDriv2/3H73g++Ivh2gW3jQ3DrC8gskyqbaAAHfgLVBT6v/m3kYvViEjIaV7TycnM6C7aT0ISdh27wd+5ES+6jq/y789uQzjcrKp31r19ViiJ9J7flIhmVT47NlYeTILnqsHffC0G3VCWpbj+ZD7FvXNeXqiA68imvwn4Z2MEz1hA86/BpQvrDMKHEpeZE3jy/zDjemC0xelc8mhzyDCrzRbwvD9leq3v8pe5yksJ7opXFGBJz3o7rDeUK9kj6Fx72sfb8CkY/8c8R6ZgXUZE4ENfOwDkt4WLMCAwEAAaOBhzCBhDAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwCQYDVR0TBAIwADAxBgNVHREEKjAoghVsb2NhbGhvc3QubG9jYWxkb21haW6CCWxvY2FsaG9zdIcEfwAAATAfBgNVHSMEGDAWgBQA8fTYLuiPoTVRWSZ/FCtN3hxhjDANBgkqhkiG9w0BAQsFAAOCAgEAxTXoKKPssOrH5YcI7jIxwgBxTYTZLULk/3OcEgDfkYhCAQ/6SgyFKJYnKr7Psq3ZKS/YgN//fj3vE48RI9ZlVPT9RHPWTzi4qruGZZlHU4X2cMDN7wrNo5E9ufft8F9uzDn3Tv+89mGm/eeSMxiOc0o2fpGOdJnxHJ4JFLHH7SvzqVxERZwe5K2ewyoCFasE12dysNTCcjr2SVk3j89FcJEkdo0B72AaSWwaWoBK/dfrvnS3noqRnA5a7kZA6QxW/qDzH1Id7wjbb8FYvYY3967N/QNwu5RMFhhUgTrSurRFeEPTfluzq449B8klTjZ0r7IcLhEurMOgHkujTKMdQDVbdT0cSxpGh9S5AC++OJBzarMla7rtOM/WA0Niyl2J8C/DowJooUB3rgJSNbBbjxjmMGMwiSNoqAJWa08jbzpOiggxkVOe1om6qg2g6wGseDBPpvkSIyZ/xQVq+hxawcKxsD3799R7aBHCL21jxz7RbO5D7UW/votwzYcAr7utE4a2q+9HQxecgE35WswGtrzZ9P/O7qPj8oKVX9Nqvtv3yOhhrYLUeq/fKGxi8xVvdWz/DayTYWx2IwZYVC4X9rcs48CG6xiWdep0q5CuxT2OZIVEh10HbMoMR7kY+lUXedbAdVe9qy0D2QiGDGDthz7ccekhXSGR08RwKXbv640=&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;SSLInfo&lt;/name&gt;&lt;value&gt;9090::80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate Information&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;SSLDetails:80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B&lt;/name&gt;&lt;value&gt;issuer:CN=localhost.localdomain,OU=ca-9182429219062625074,O=ea88cab822984364b541f23ba66ad994,C=US|serial:2CFC1119046BDFF7|notBefore:20230426T212358|notAfter:20240525T212358&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate Details&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="9090/tcp" qod="98" uri="">The following certificate details of the remote service were collected.
+
+Certificate details:
+fingerprint (SHA-1)             | 516F2806256AD9A9A84BB8DEED565864E0A98B2D
+fingerprint (SHA-256)           | 80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B
+issued by                       | CN=localhost.localdomain,OU=ca-9182429219062625074,O=ea88cab822984364b541f23ba66ad994,C=US
+public key algorithm            | RSA
+public key size (bits)          | 2048
+serial                          | 2CFC1119046BDFF7
+signature algorithm             | sha256WithRSAEncryption
+subject                         | CN=localhost.localdomain,O=ea88cab822984364b541f23ba66ad994,C=US
+subject alternative names (SAN) | localhost.localdomain, localhost
+valid from                      | 2023-04-26 21:23:58 UTC
+valid until                     | 2024-05-25 21:23:58 UTC
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;SSLInfo&lt;/name&gt;&lt;value&gt;9090::80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate Information&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="9090/tcp" qod="98" uri="">The following certificate details of the remote service were collected.
+
+Certificate details:
+fingerprint (SHA-1)             | 516F2806256AD9A9A84BB8DEED565864E0A98B2D
+fingerprint (SHA-256)           | 80BEE70B6F8E8B4E40D044C44F6CC345765F03A20186189847FAA9A716349E9B
+issued by                       | CN=localhost.localdomain,OU=ca-9182429219062625074,O=ea88cab822984364b541f23ba66ad994,C=US
+public key algorithm            | RSA
+public key size (bits)          | 2048
+serial                          | 2CFC1119046BDFF7
+signature algorithm             | sha256WithRSAEncryption
+subject                         | CN=localhost.localdomain,O=ea88cab822984364b541f23ba66ad994,C=US
+subject alternative names (SAN) | localhost.localdomain, localhost
+valid from                      | 2023-04-26 21:23:58 UTC
+valid until                     | 2024-05-25 21:23:58 UTC
+</result>
+      <result name="SSL/TLS: Hostname discovery from server certificate" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.111010" port="general/tcp" qod="98" uri="">The following additional and resolvable hostnames pointing to a different host ip were detected:
+
+localhost.localdomain
+
+
+</result>
+      <result name="SSL/TLS: Hostname discovery from server certificate" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.111010" port="general/tcp" qod="98" uri="">The following additional and resolvable hostnames were detected:
+
+localhost.localdomain
+
+
+</result>
+      <result name="Response Time / No 404 Error Code Check" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10386" port="9090/tcp" qod="80" uri="">The service is responding with a 200 HTTP status code to non-existent files/urls. The following pattern is used to work around possible false detections:
+-----
+TYPE="password"
+-----
+</result>
+      <result name="Response Time / No 404 Error Code Check" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10386" port="9090/tcp" qod="80" uri="">The service is responding with a 200 HTTP status code to non-existent files/urls. The following pattern is used to work around possible false detections:
+-----
+TYPE="password"
+-----
+</result>
+      <result name="Response Time / No 404 Error Code Check" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.10386" port="9090/tcp" qod="80" uri="">The service is responding with a 200 HTTP status code to non-existent files/urls. The following pattern is used to work around possible false detections:
+-----
+TYPE="password"
+-----
+</result>
+      <result name="OS Detection Consolidation and Reporting" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.105937" port="general/tcp" qod="80" uri="">Best matching OS:
+
+OS:           Linux Kernel
+CPE:          cpe:/o:linux:kernel
+Found by NVT: 1.3.6.1.4.1.25623.1.0.102002 (Operating System (OS) Detection (ICMP))
+Concluded from ICMP based OS fingerprint
+Setting key "Host/runs_unixoide" based on this information
+</result>
+      <result name="Hostname Determination Reporting" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.108449" port="general/tcp" qod="80" uri="">Hostname determination for IP 127.0.0.1:
+
+Hostname|Source
+localhost|Forward-DNS
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;ports&lt;/name&gt;&lt;value&gt;1883,22,5355,9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.900239&lt;/name&gt;&lt;description&gt;Check Open TCP Ports&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;tcp_ports&lt;/name&gt;&lt;value&gt;1883,22,5355,9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.900239&lt;/name&gt;&lt;description&gt;Check Open TCP Ports&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;traceroute&lt;/name&gt;&lt;value&gt;127.0.0.1&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.51662&lt;/name&gt;&lt;description&gt;Traceroute&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Services&lt;/name&gt;&lt;value&gt;1883,tcp,mqtt,A MQTT Broker is running at this port.&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.140166&lt;/name&gt;&lt;description&gt;Service detection (1.3.6.1.4.1.25623.1.0.140166)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Services&lt;/name&gt;&lt;value&gt;22,tcp,ssh,Remote SSH server banner: SSH-2.0-OpenSSH_8.8
+Remote SSH supported authentication: password,publickey
+Remote SSH text/login banner: (not available)
+
+This is probably:
+
+- OpenSSH
+
+Concluded from remote connection attempt with credentials:
+
+Login:    OpenVASVT
+Password: OpenVASVT&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10267&lt;/name&gt;&lt;description&gt;Service detection (1.3.6.1.4.1.25623.1.0.10267)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;ssh-key&lt;/name&gt;&lt;value&gt;22 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDiRkUstfAlqa7Aji2/FKourWUoBX9O3xoyBzgQC7BPVe+3pF3KCcdzG+vLYdcYcKKc0Tte0bbX5Rs+QAnKQnEc=&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.100259&lt;/name&gt;&lt;description&gt;SSH Key&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10740&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10793&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10878&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.111025&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;OS&lt;/name&gt;&lt;value&gt;Linux Kernel&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.102002&lt;/name&gt;&lt;description&gt;Operating System (OS) Detection (ICMP)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;OS&lt;/name&gt;&lt;value&gt;cpe:/o:linux:kernel&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.102002&lt;/name&gt;&lt;description&gt;Operating System (OS) Detection (ICMP)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;OS&lt;/name&gt;&lt;value&gt;Li&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108021&lt;/name&gt;&lt;description&gt;Nmap OS Identification (NASL wrapper)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;OS-Detection&lt;/name&gt;&lt;value&gt;cpe:/o:linux:kernel&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.105937&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;cpe:/o:linux:kernel&lt;/name&gt;&lt;value&gt;general/tcp&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.105937&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname_determination&lt;/name&gt;&lt;value&gt;127.0.0.1,localhost,Forward-DNS&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108449&lt;/name&gt;&lt;description&gt;Hostname Determination Reporting&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_scanner&lt;/name&gt;&lt;value&gt;22.4.2&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_feedversion&lt;/name&gt;&lt;value&gt;202302011009&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_feedtype&lt;/name&gt;&lt;value&gt;Greenbone Community Feed&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/port&lt;/name&gt;&lt;value&gt;9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/9090&lt;/name&gt;&lt;value&gt;TLSv1.2&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/9090&lt;/name&gt;&lt;value&gt;TLSv1.3&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname&lt;/name&gt;&lt;value&gt;localhost&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103997&lt;/name&gt;&lt;description&gt;Host Details&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;best_os_cpe&lt;/name&gt;&lt;value&gt;cpe:/o:linux:kernel&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.102002;&lt;/name&gt;&lt;description&gt;Operating System (OS) Detection (ICMP)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;best_os_txt&lt;/name&gt;&lt;value&gt;Linux Kernel&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.102002;&lt;/name&gt;&lt;description&gt;Operating System (OS) Detection (ICMP)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="HOST_END" type="Log Message" severity="0.0" host="127.0.0.1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:31:41 2023</result>
+      <result name="OS Detection Consolidation and Reporting" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.105937" port="general/tcp" qod="80" uri="">No Best matching OS identified. Please see the VT 'Unknown OS and Service Banner Reporting' (OID: 1.3.6.1.4.1.25623.1.0.108441) for possible ways to identify this OS.
+</result>
+      <result name="Hostname Determination Reporting" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.108449" port="general/tcp" qod="80" uri="">Hostname determination for IP ::1:
+
+Hostname|Source
+localhost|Forward-DNS
+localhost.localdomain|SSL/TLS server certificate
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;ports&lt;/name&gt;&lt;value&gt;1883,22,5355,9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.900239&lt;/name&gt;&lt;description&gt;Check Open TCP Ports&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;tcp_ports&lt;/name&gt;&lt;value&gt;1883,22,5355,9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.900239&lt;/name&gt;&lt;description&gt;Check Open TCP Ports&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;traceroute&lt;/name&gt;&lt;value&gt;::1&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.51662&lt;/name&gt;&lt;description&gt;Traceroute&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Services&lt;/name&gt;&lt;value&gt;1883,tcp,mqtt,A MQTT Broker is running at this port.&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.140166&lt;/name&gt;&lt;description&gt;Service detection (1.3.6.1.4.1.25623.1.0.140166)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Services&lt;/name&gt;&lt;value&gt;22,tcp,ssh,Remote SSH server banner: SSH-2.0-OpenSSH_8.8
+Remote SSH supported authentication: password,publickey
+Remote SSH text/login banner: (not available)
+
+This is probably:
+
+- OpenSSH
+
+Concluded from remote connection attempt with credentials:
+
+Login:    OpenVASVT
+Password: OpenVASVT&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10267&lt;/name&gt;&lt;description&gt;Service detection (1.3.6.1.4.1.25623.1.0.10267)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;ssh-key&lt;/name&gt;&lt;value&gt;22 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDiRkUstfAlqa7Aji2/FKourWUoBX9O3xoyBzgQC7BPVe+3pF3KCcdzG+vLYdcYcKKc0Tte0bbX5Rs+QAnKQnEc=&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.100259&lt;/name&gt;&lt;description&gt;SSH Key&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;DNS-via-SSL-TLS-Cert&lt;/name&gt;&lt;value&gt;localhost.localdomain&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.111010&lt;/name&gt;&lt;description&gt;SSL/TLS: Hostname discovery from server certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10740&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10793&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10878&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.111025&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;OS&lt;/name&gt;&lt;value&gt;Li&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108021&lt;/name&gt;&lt;description&gt;Nmap OS Identification (NASL wrapper)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname_determination&lt;/name&gt;&lt;value&gt;::1,localhost,Forward-DNS&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108449&lt;/name&gt;&lt;description&gt;Hostname Determination Reporting&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname_determination&lt;/name&gt;&lt;value&gt;::1,localhost.localdomain,SSL/TLS server certificate&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108449&lt;/name&gt;&lt;description&gt;Hostname Determination Reporting&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_scanner&lt;/name&gt;&lt;value&gt;22.4.2&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_feedversion&lt;/name&gt;&lt;value&gt;202302011009&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_feedtype&lt;/name&gt;&lt;value&gt;Greenbone Community Feed&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/port&lt;/name&gt;&lt;value&gt;9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/9090&lt;/name&gt;&lt;value&gt;TLSv1.2&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/9090&lt;/name&gt;&lt;value&gt;TLSv1.3&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname&lt;/name&gt;&lt;value&gt;localhost&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103997&lt;/name&gt;&lt;description&gt;Host Details&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;ports&lt;/name&gt;&lt;value&gt;1883,22,5355,9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.900239&lt;/name&gt;&lt;description&gt;Check Open TCP Ports&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;tcp_ports&lt;/name&gt;&lt;value&gt;1883,22,5355,9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.900239&lt;/name&gt;&lt;description&gt;Check Open TCP Ports&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;traceroute&lt;/name&gt;&lt;value&gt;::1&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.51662&lt;/name&gt;&lt;description&gt;Traceroute&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Services&lt;/name&gt;&lt;value&gt;1883,tcp,mqtt,A MQTT Broker is running at this port.&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.140166&lt;/name&gt;&lt;description&gt;Service detection (1.3.6.1.4.1.25623.1.0.140166)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;Services&lt;/name&gt;&lt;value&gt;22,tcp,ssh,Remote SSH server banner: SSH-2.0-OpenSSH_8.8
+Remote SSH supported authentication: password,publickey
+Remote SSH text/login banner: (not available)
+
+This is probably:
+
+- OpenSSH
+
+Concluded from remote connection attempt with credentials:
+
+Login:    OpenVASVT
+Password: OpenVASVT&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10267&lt;/name&gt;&lt;description&gt;Service detection (1.3.6.1.4.1.25623.1.0.10267)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;ssh-key&lt;/name&gt;&lt;value&gt;22 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDiRkUstfAlqa7Aji2/FKourWUoBX9O3xoyBzgQC7BPVe+3pF3KCcdzG+vLYdcYcKKc0Tte0bbX5Rs+QAnKQnEc=&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.100259&lt;/name&gt;&lt;description&gt;SSH Key&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;DNS-via-SSL-TLS-Cert&lt;/name&gt;&lt;value&gt;localhost.localdomain&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.111010&lt;/name&gt;&lt;description&gt;SSL/TLS: Hostname discovery from server certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10740&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10793&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.10878&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;EXIT_CODE&lt;/name&gt;&lt;value&gt;EXIT_NOTVULN&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.111025&lt;/name&gt;&lt;description/&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;OS&lt;/name&gt;&lt;value&gt;Li&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108021&lt;/name&gt;&lt;description&gt;Nmap OS Identification (NASL wrapper)&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname_determination&lt;/name&gt;&lt;value&gt;::1,localhost,Forward-DNS&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108449&lt;/name&gt;&lt;description&gt;Hostname Determination Reporting&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname_determination&lt;/name&gt;&lt;value&gt;::1,localhost.localdomain,SSL/TLS server certificate&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.108449&lt;/name&gt;&lt;description&gt;Hostname Determination Reporting&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_scanner&lt;/name&gt;&lt;value&gt;22.4.2&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_feedversion&lt;/name&gt;&lt;value&gt;202302011009&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;scanned_with_feedtype&lt;/name&gt;&lt;value&gt;Greenbone Community Feed&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103739&lt;/name&gt;&lt;description&gt;Host Scan End&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/port&lt;/name&gt;&lt;value&gt;9090&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/9090&lt;/name&gt;&lt;value&gt;TLSv1.2&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;TLS/9090&lt;/name&gt;&lt;value&gt;TLSv1.3&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103823&lt;/name&gt;&lt;description&gt;SSL/TLS: Version Detection Report&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname&lt;/name&gt;&lt;value&gt;localhost&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103997&lt;/name&gt;&lt;description&gt;Host Details&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="Host Details" type="Log Message" severity="0.0" host="::1" hostname="localhost.localdomain" test_id="1.3.6.1.4.1.25623.1.0.103997" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;hostname&lt;/name&gt;&lt;value&gt;localhost.localdomain&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103997&lt;/name&gt;&lt;description&gt;Host Details&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+</result>
+      <result name="HOST_END" type="Log Message" severity="0.0" host="::1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:37:29 2023</result>
+    </results>
+  </scan>
+</get_scans_response>

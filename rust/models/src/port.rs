@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
+use std::fmt::Display;
 
 /// Represents a port representation for scanning.
 #[derive(Debug, Clone)]
@@ -41,6 +42,15 @@ pub struct PortRange {
     pub end: Option<usize>,
 }
 
+impl Display for PortRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.end {
+            Some(end) => write!(f, "{}-{}", self.start, end),
+            None => write!(f, "{}", self.start),
+        }
+    }
+}
+
 /// Enum representing the protocol used for scanning a port.
 #[derive(Debug, Clone)]
 #[cfg_attr(
@@ -51,4 +61,16 @@ pub struct PortRange {
 pub enum Protocol {
     UDP,
     TCP,
+}
+
+impl TryFrom<&str> for Protocol {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "udp" => Ok(Protocol::UDP),
+            "tcp" => Ok(Protocol::TCP),
+            _ => Err(format!("Invalid protocol: {}", value)),
+        }
+    }
 }

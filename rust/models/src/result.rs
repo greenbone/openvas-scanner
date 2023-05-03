@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::collections::HashMap;
+
 use super::port::Protocol;
 
 /// Scan result
@@ -15,7 +17,7 @@ pub struct Result {
     pub id: usize,
     #[cfg_attr(feature = "serde_support", serde(rename = "type"))]
     /// Type of the result
-    pub r_type: String,
+    pub r_type: ResultType,
     #[cfg_attr(
         feature = "serde_support",
         serde(skip_serializing_if = "Option::is_none")
@@ -52,10 +54,25 @@ pub struct Result {
     )]
     /// Additional information
     pub message: Option<String>,
+
+    #[cfg_attr(
+        feature = "serde_support",
+        serde(skip_serializing_if = "HashMap::is_empty")
+    )]
+    pub details: HashMap<String, String>,
+}
+
+// is used for enumerate handling
+impl<T: Into<Result>> From<(usize, T)> for Result {
+    fn from(value: (usize, T)) -> Self {
+        let mut result = value.1.into();
+        result.id = value.0;
+        result
+    }
 }
 
 /// Enum of possible types of results
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -72,4 +89,8 @@ pub enum ResultType {
     HostStart,
     /// Information about the scan end of a host
     HostEnd,
+    /// Information about the scan dead host
+    DeadHost,
+    /// Detail information about the host
+    HostDetail,
 }
