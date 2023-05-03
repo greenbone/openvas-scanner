@@ -39,6 +39,18 @@ pub enum Service {
     SNMP,
 }
 
+impl AsRef<str> for Service {
+
+    fn as_ref(&self) -> &str {
+        match self {
+            Service::SSH => "ssh",
+            Service::SMB => "smb",
+            Service::ESXi => "esxi",
+            Service::SNMP => "snmp",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 #[cfg_attr(
     feature = "serde_support",
@@ -81,4 +93,15 @@ pub enum CredentialType {
         /// The SNMP privacy algorithm.
         privacy_algorithm: String,
     },
+}
+
+impl AsRef<str> for CredentialType {
+
+    fn as_ref(&self) -> &str {
+        match self {
+            CredentialType::UP { .. } => "up",
+            CredentialType::USK { .. } => "usk",
+            CredentialType::SNMP { .. } => "snmp",
+        }
+    }
 }

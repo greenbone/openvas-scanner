@@ -544,6 +544,7 @@ components:
             - error
             - host_start
             - host_stop
+            - host_detail
         ip_address:
           description: "The IPv4 or IPv6 of the target the result was found."
           type: "string"
@@ -566,6 +567,9 @@ components:
         message:
           description: "Additional information about the result."
           type: "string"
+        details:
+          description: "An object with key and value pairs. Only set on `host_detail` and should be treated as a `HashMap<String, String>` as there is not formalization possible."
+          type: "object"
       required:
         - type
 

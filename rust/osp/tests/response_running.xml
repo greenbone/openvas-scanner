@@ -1,0 +1,19 @@
+<get_scans_response status="200" status_text="OK"><scan id="925eb35a-f3b8-4e55-8f55-5aeb410ecd10" target="127.0.0.1,localhost" progress="14" status="running" start_time="1683537846" end_time="0"><results><result name="HOST_START" type="Log Message" severity="0.0" host="127.0.0.1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:24:07 2023</result><result name="HOST_START" type="Log Message" severity="0.0" host="::1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:24:07 2023</result><result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="22/tcp" qod="80" uri="">An ssh server is running on this port
+</result><result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A TLScustom server answered on this port
+
+</result><result name="Services" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A web server is running on this port through SSL
+</result><result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A TLScustom server answered on this port
+
+</result><result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="22/tcp" qod="80" uri="">An ssh server is running on this port
+</result><result name="Services" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.10330" port="9090/tcp" qod="80" uri="">A web server is running on this port through SSL
+</result><result name="Traceroute" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.51662" port="general/tcp" qod="80" uri="">Network route from scanner (127.0.0.1) to target (127.0.0.1):
+
+127.0.0.1
+
+Network distance between scanner and target: 1
+</result><result name="Traceroute" type="Log Message" severity="0.0" host="::1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.51662" port="general/tcp" qod="80" uri="">Network route from scanner (::1) to target (::1):
+
+::1
+
+Network distance between scanner and target: 1
+</result></results></scan></get_scans_response>

@@ -12,7 +12,7 @@ pub type OID = String;
 /// ScanManager trait. Used for the API to interact with the Scan Management.
 pub trait ScanManager {
     /// Create a new Scan with a unique Scan ID
-    fn create_scan(&mut self, scan: Scan) -> Result<ScanID, APIError>;
+    fn create_scan(&mut self, scan: Scan) -> Result<&ScanID, APIError>;
     /// Perform an action on a scan
     fn scan_action(&mut self, scan_id: ScanID, action: Action) -> Result<(), APIError>;
     /// Get meta information about a scan

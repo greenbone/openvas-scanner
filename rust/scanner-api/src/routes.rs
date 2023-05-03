@@ -31,10 +31,10 @@ pub async fn create_scan(
     let scan_id = scan_manager.create_scan(scan.0)?;
 
     // Get location of the new data
-    let location = uri!("/", get_scan(&scan_id));
+    let location = uri!("/", get_scan(scan_id));
 
     // Generate response
-    Ok(Created::new(location.to_string()).body(Json(scan_id)))
+    Ok(Created::new(location.to_string()).body(Json(scan_id.clone())))
 }
 
 /// API call to perform a action on a scan
