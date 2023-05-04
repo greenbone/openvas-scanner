@@ -151,6 +151,9 @@ jobs:
         working-directory: rust
       - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
         working-directory: rust
+      - name: "patch for debian stable"
+        run: |
+          patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
       - run: mkdir assets/
       - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
       - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu

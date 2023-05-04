@@ -19,22 +19,15 @@ jobs:
     steps:
       # install rustup
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            rust/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: sudo apt update && sudo apt-get install -y libpcap-dev libssl-dev
       - run: rustup update stable && rustup default stable
       # This command will attempt to install 'cross', but if it's already
       # installed due to caching, it will do nothing and proceed without error.
       - run: cargo install cross || true
       - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
       - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
+      - name: "patch for debian stable"
+        run: |
+          patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
       - name: archive nasl-cli aarch64-unknown-linux-gnu
         uses: actions/upload-artifact@v3
         with:
