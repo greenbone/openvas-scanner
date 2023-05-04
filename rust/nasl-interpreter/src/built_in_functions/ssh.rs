@@ -6,8 +6,8 @@
 
 use crate::NaslLogger;
 use crate::{
-    error::FunctionErrorKind, lookup_keys::TARGET, sessions::SshSession, Context, ContextType,
-    NaslFunction, NaslValue, Register,
+    error::FunctionErrorKind, sessions::SshSession, Context, ContextType, NaslFunction, NaslValue,
+    Register,
 };
 use core::str;
 use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
@@ -305,12 +305,11 @@ fn nasl_ssh_connect<K>(
         }
     };
 
-    let ip_str: String = register
-        .named(TARGET)
-        .unwrap_or(&ContextType::Value(NaslValue::String(
-            "127.0.0.1".to_string(),
-        )))
-        .into();
+    let ip_str: String = match ctx.target() {
+        x if !x.is_empty() => x.to_string(),
+        _ => "127.0.0.1".to_string(),
+    };
+
     let timeout: i64 = register
         .named("timeout")
         .unwrap_or(&ContextType::Value(NaslValue::Number(0)))
@@ -389,7 +388,7 @@ fn nasl_ssh_connect<K>(
     }
 
     if !key_type.is_empty() {
-        let option = SshOption::PublicKeyAcceptedTypes(key_type.to_owned());
+        let option = SshOption::HostKeys(key_type.to_owned());
         if let Err(err) = session.set_option(option) {
             return Err(FunctionErrorKind::Diagnostic(
                 format!(
