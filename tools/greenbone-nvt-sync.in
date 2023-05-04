@@ -18,14 +18,12 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
 # This script updates the local Network Vulnerability Tests (NVTs) from the
-# Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF). 
+# Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF).
 
 VERSION=@OPENVAS_VERSION@
 
-VERSION_MAYOR=`echo $VERSION | cut -d. -f1`
-VERSION_MINOR=`echo $VERSION | cut -d. -f2`
-[ $VERSION_MINOR -lt 10 ] && VERSION_MINOR="0$VERSION_MINOR"
-VERSION_SHORT="$VERSION_MAYOR.$VERSION_MINOR"
+# The feed version is not linked to the openvas version anymore.
+VERSION_SHORT="22.04"
 
 # SETTINGS
 # ========
