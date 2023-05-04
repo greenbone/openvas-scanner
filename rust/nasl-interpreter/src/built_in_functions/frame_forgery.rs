@@ -84,7 +84,7 @@ impl From<Frame> for Vec<u8> {
         let mut raw_frame = vec![];
         raw_frame.extend(f.dsthaddr.octets());
         raw_frame.extend(f.srchaddr.octets());
-        raw_frame.extend(f.ethertype.to_ne_bytes());
+        raw_frame.extend(f.ethertype.to_be_bytes());
         raw_frame.extend(f.payload);
         raw_frame
     }
@@ -239,12 +239,12 @@ fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<
     let mut frame = Frame::new();
     frame.set_srchaddr(eth_src);
     frame.set_dsthaddr(MacAddr::broadcast());
-    frame.set_ethertype(ETHERTYPE_ARP.to_be());
+    frame.set_ethertype(ETHERTYPE_ARP.to_le());
 
     let mut arp_frame = ArpFrame::new();
     arp_frame.set_srchaddr(eth_src);
     arp_frame.set_srcip(src_ip);
-    arp_frame.set_dsthaddr(MacAddr::broadcast());
+    arp_frame.set_dsthaddr(MacAddr::zero());
     arp_frame.set_dstip(dst_ip);
 
     frame.set_payload(arp_frame.into());
@@ -256,7 +256,7 @@ fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -
     let mut frame = Frame::new();
     frame.set_srchaddr(src);
     frame.set_dsthaddr(dst);
-    frame.set_ethertype(ether_proto.to_be());
+    frame.set_ethertype(ether_proto);
     frame.set_payload(payload);
     frame.into()
 }
@@ -378,7 +378,7 @@ fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, Fu
     };
     match p {
         Ok(packet) => packet.data.try_into(),
-        _ => Ok(f),
+        Err(_) => Ok(f),
     }
 }
 
@@ -450,9 +450,9 @@ fn nasl_send_arp_request<K>(
     register: &Register,
     context: &Context<K>,
 ) -> Result<NaslValue, FunctionErrorKind> {
-    let timeout = match register.named("cap_timeout") {
+    let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
-        Some(ContextType::Value(NaslValue::Null)) => DEFAULT_TIMEOUT,
+        None => DEFAULT_TIMEOUT,
         _ => return Err(("Integer", "Invalid timeout value").into()),
     };
 
@@ -479,10 +479,10 @@ fn nasl_send_arp_request<K>(
     };
 
     let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
-    let filter = format!("arp and src host {}", local_ip);
+    let filter = format!("arp and src host {}", target_ip);
     // send the frame and get a response if pcap_active enabled
     match send_frame(&arp_frame, &iface, &true, Some(&filter), timeout)? {
-        Some(f) => Ok(NaslValue::Data(f.into())),
+        Some(f) => Ok(NaslValue::String(format!("{}", f.srchaddr))),
         None => Ok(NaslValue::Null),
     }
 }
@@ -564,13 +564,13 @@ fn nasl_send_frame<K>(
         _ => return Err(("Boolean", "Invalid pcap_active value").into()),
     };
 
-    let filter = match register.named("filter") {
+    let filter = match register.named("pcap_filter") {
         Some(ContextType::Value(NaslValue::String(x))) => Some(x),
         None => None,
         _ => return Err(("String", "Invalid pcap_filter value").into()),
     };
 
-    let timeout = match register.named("timeout") {
+    let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
         _ => return Err(("Integer", "Invalid timeout value").into()),
@@ -701,8 +701,8 @@ mod tests {
         let raw_arp_frame = vec![
             0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0x01u8, 0x02u8, 0x03u8, 0x04u8, 0x05u8,
             0x06u8, 0x08u8, 0x06u8, 0x00u8, 0x01u8, 0x08u8, 0x00u8, 0x06u8, 0x04u8, 0x00u8, 0x01u8,
-            0x01u8, 0x02u8, 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0xc0u8, 0xa8u8, 0x00u8, 0x0au8, 0xffu8,
-            0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xffu8, 0xc0u8, 0xa8u8, 0x00u8, 0x01u8, 0x00u8, 0x00u8,
+            0x01u8, 0x02u8, 0x03u8, 0x04u8, 0x05u8, 0x06u8, 0xc0u8, 0xa8u8, 0x00u8, 0x0au8, 0x00u8,
+            0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0xc0u8, 0xa8u8, 0x00u8, 0x01u8, 0x00u8, 0x00u8,
             0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
             0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8,
         ];
