@@ -151,7 +151,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use storage::nvt::{Nvt, ACT};
 
@@ -165,11 +165,11 @@ mod tests {
             .join(".")
     }
 
-    fn generate_tags() -> HashMap<storage::nvt::TagKey, storage::nvt::TagValue> {
+    fn generate_tags() -> BTreeMap<storage::nvt::TagKey, storage::nvt::TagValue> {
         use storage::nvt::TagKey::*;
         use storage::nvt::TagValue;
         let ts = "2012-09-23 02:15:34 -0400";
-        HashMap::from([
+        BTreeMap::from([
             (Affected, TagValue::parse(Affected, "Affected").unwrap()),
             (CreationDate, TagValue::parse(CreationDate, ts).unwrap()),
             (
