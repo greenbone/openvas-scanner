@@ -4,12 +4,13 @@
 
 //! Defines NVT
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fmt::Display,
     marker::PhantomData,
     str::FromStr,
     sync::{Arc, Mutex},
 };
+
 
 use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Retriever, StorageError};
 
@@ -96,7 +97,7 @@ impl FromStr for ACT {
 macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd)]
         #[cfg_attr(feature = "serde_support",
                    derive(serde::Serialize, serde::Deserialize),
                    serde(rename_all = "snake_case")
@@ -141,6 +142,7 @@ impl Display for TagKey {
         write!(f, "{}", self.as_ref())
     }
 }
+
 
 make_str_lookup_enum! {
     TagKey: "Allowed keys for a tag" => {
@@ -416,7 +418,7 @@ pub struct Nvt {
     /// The filename of the nvt.
     pub filename: String,
     /// The tags of the nvt.
-    pub tag: HashMap<TagKey, TagValue>,
+    pub tag: BTreeMap<TagKey, TagValue>,
     /// The direct dependencies of the nvt.
     pub dependencies: Vec<String>,
     /// The required keys to run the NVT.
