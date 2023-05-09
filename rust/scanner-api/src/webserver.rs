@@ -1,11 +1,18 @@
 use std::sync::Arc;
 
 use crate::{
-    catchers::*, config::Config, fairings::HeadInformation, manager::ScanManager,
-    manager::VTManager, routes::*, scan_manager::DefaultScanManager, vt_manager::DefaultVTManager,
+    catchers::*, config::Auth, fairings::HeadInformation, manager::ScanManager, manager::VTManager,
+    routes::*, scan_manager::DefaultScanManager, vt_manager::DefaultVTManager,
 };
 
-use rocket::{catchers, fairing::AdHoc, routes, tokio::sync::RwLock, Build, Rocket};
+use rocket::{
+    catchers,
+    config::{MutualTls, TlsConfig},
+    fairing::AdHoc,
+    routes,
+    tokio::sync::RwLock,
+    Build, Rocket,
+};
 
 type ScanManagerType = Arc<RwLock<dyn ScanManager + Send + Sync>>;
 type VTManagerType = Arc<RwLock<dyn VTManager + Send + Sync>>;
@@ -63,7 +70,9 @@ impl Webserver {
             )
             .manage(self.manager)
             .attach(self.head_info)
-            .attach(AdHoc::config::<Config>())
+            .attach(AdHoc::config::<Auth>())
+            .attach(AdHoc::config::<TlsConfig>())
+            .attach(AdHoc::config::<MutualTls>())
             .register(
                 "/",
                 catchers![json_bad_request, json_unprocessable_entity, unauthorized],

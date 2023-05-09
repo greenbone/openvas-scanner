@@ -1,8 +1,14 @@
 [default]
 api_key = "secret-api-key"
+auth_method = "certificate"
+certs = "/path/to/certificate"
+key = "/path/to/cert_key"
+ca_certs = "/path/to/ca_certs"
+log_level = "debug"
 
-[debug]
-api_key = "secret-api-key"
+[default.tls]
+certs = "/path/to/certificate" # For some reason this value is needed twice
+key = "/path/to/cert_key" #For some reason this value is needed twice
 
-[release]
-api_key = "secret-api-key"
+[default.tls.mutual]
+ca_certs = "/path/to/ca_certs" #For some reason this value is needed twice

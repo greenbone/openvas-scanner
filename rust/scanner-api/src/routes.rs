@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    config::Config,
-    error::APIError,
-    guards::{api_key::ApiKey, json_validation::JsonValidation},
+    config::Auth,
+    error::ApiError,
+    guards::{authorization::Authorizer, json_validation::JsonValidation},
     manager::ScanID,
     webserver::Manager,
 };
@@ -21,11 +21,11 @@ pub async fn get_header() -> Status {
 /// API call to create a new scan
 #[post("/scans", format = "json", data = "<scan>")]
 pub async fn create_scan(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan: JsonValidation<Scan>,
     manager: &State<Manager>,
-) -> Result<Created<Json<ScanID>>, APIError> {
+) -> Result<Created<Json<ScanID>>, ApiError> {
     // Mutex
     let mut scan_manager = manager.scan_manager.write().await;
 
@@ -42,12 +42,12 @@ pub async fn create_scan(
 /// API call to perform a action on a scan
 #[post("/scans/<scan_id>", format = "json", data = "<action>")]
 pub async fn scan_action(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     action: JsonValidation<ScanAction>,
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Status, APIError> {
+) -> Result<Status, ApiError> {
     let mut scan_manager = manager.scan_manager.write().await;
     scan_manager.scan_action(scan_id, action.action.to_owned())?;
 
@@ -58,11 +58,11 @@ pub async fn scan_action(
 /// status information, but only meta-information provided by a client with create_scan
 #[get("/scans/<scan_id>")]
 pub async fn get_scan(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Json<Scan>, APIError> {
+) -> Result<Json<Scan>, ApiError> {
     // Mutex
     let scan_manager = manager.scan_manager.read().await;
 
@@ -74,12 +74,12 @@ pub async fn get_scan(
 /// results
 #[get("/scans/<scan_id>/results")]
 pub async fn get_results_wo_range(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Json<Vec<ScanResult>>, APIError> {
-    get_results(_config, _key, scan_id, None, None, manager).await
+) -> Result<Json<Vec<ScanResult>>, ApiError> {
+    get_results(_config, _auth, scan_id, None, None, manager).await
 }
 
 /// API call to get results within a specified range. The range must be of the format
@@ -91,12 +91,12 @@ pub async fn get_results_wo_range(
 /// in the response and also no error will be shown.
 #[get("/scans/<scan_id>/results?<range>")]
 pub async fn get_results_w_range(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan_id: String,
     range: String,
     manager: &State<Manager>,
-) -> Result<Json<Vec<ScanResult>>, APIError> {
+) -> Result<Json<Vec<ScanResult>>, ApiError> {
     // Validate range
     // Check for <number1>-<number2> or <number>
     let (first, last) = match range.split_once('-') {
@@ -108,7 +108,7 @@ pub async fn get_results_w_range(
             // try to parse number
             Ok(x) => (Some(x), None),
             Err(_) => {
-                return Err(APIError::ParseQueryError {
+                return Err(ApiError::ParseQueryError {
                     message: "Unable to parse range quarry".to_string(),
                     field_errors: HashMap::from([("range".to_string(), format!("The range must be of the format <number1>[-<number2>]. The given quarry {range} is not a number."))]),
                 })
@@ -116,16 +116,16 @@ pub async fn get_results_w_range(
         },
     };
 
-    get_results(_config, _key, scan_id, first, last, manager).await
+    get_results(_config, _auth, scan_id, first, last, manager).await
 }
 
 /// Helper function to parse a range
 /// * `x` - is the actual number to parse
 /// * `range` is the complete range string and is used to generate an Error
-fn range_parse(x: &str, range: &String) -> Result<usize, APIError> {
+fn range_parse(x: &str, range: &String) -> Result<usize, ApiError> {
     match x.trim().parse::<usize>() {
         Ok(y) => Ok(y),
-        Err(_) => Err(APIError::ParseQueryError {
+        Err(_) => Err(ApiError::ParseQueryError {
             message: "Unable to parse range quarry".to_string(),
             field_errors: HashMap::from([("range".to_string(), format!("The range must be of the format <number1>[-<number2>]. The given quarry {range} is not a valid range."))]),
         }),
@@ -134,13 +134,13 @@ fn range_parse(x: &str, range: &String) -> Result<usize, APIError> {
 
 /// Function to get the results from a Scan
 pub async fn get_results(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan_id: String,
     first: Option<usize>,
     last: Option<usize>,
     manager: &State<Manager>,
-) -> Result<Json<Vec<ScanResult>>, APIError> {
+) -> Result<Json<Vec<ScanResult>>, ApiError> {
     // Mutex
     let scan_manager = manager.scan_manager.write().await;
 
@@ -152,11 +152,11 @@ pub async fn get_results(
 /// the information is empty.
 #[get("/scans/<scan_id>/status")]
 pub async fn get_status(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Json<ScanStatus>, APIError> {
+) -> Result<Json<ScanStatus>, ApiError> {
     // Mutex
     let scan_manager = manager.scan_manager.write().await;
 
@@ -166,11 +166,11 @@ pub async fn get_status(
 /// API call to delete a scan. Note that a running scan cannot be deleted and must be stopped before.
 #[delete("/scans/<scan_id>")]
 pub async fn delete_scan(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     scan_id: String,
     manager: &State<Manager>,
-) -> Result<Status, APIError> {
+) -> Result<Status, ApiError> {
     // Mutex
     let mut scan_manager = manager.scan_manager.write().await;
 
@@ -182,8 +182,8 @@ pub async fn delete_scan(
 /// API call to get all available OIDs of the Scanner.
 #[get("/vts")]
 pub async fn get_oids(
-    _config: &State<Config>,
-    _key: ApiKey<'_>,
+    _config: &State<Auth>,
+    _auth: Authorizer,
     manager: &State<Manager>,
 ) -> Json<Vec<String>> {
     // Mutex

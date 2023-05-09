@@ -3,7 +3,7 @@ use std::{cmp::min, collections::HashMap, fmt::Display};
 use models::{Action, Phase, Result as ScanResult, Scan, Status};
 
 use crate::{
-    error::APIError,
+    error::ApiError,
     manager::{ScanID, ScanManager},
 };
 
@@ -55,11 +55,11 @@ impl DefaultScanManager {
 
     /// Simulating a start scan action, by setting its status to running. Also contains simple
     /// error handling, e.g. a finished or running scan cannot be started.
-    fn start_scan(&mut self, scan_id: ScanID) -> Result<(), APIError> {
+    fn start_scan(&mut self, scan_id: ScanID) -> Result<(), ApiError> {
         let mut status = match self.status.get_mut(&scan_id) {
             Some(x) => x,
             None => {
-                return Err(APIError::ResourceNotFound {
+                return Err(ApiError::ResourceNotFound {
                     message: "Unable to find the requested scan".to_string(),
                     id: scan_id,
                 })
@@ -69,7 +69,7 @@ impl DefaultScanManager {
         match &status.status {
             Phase::Failed | Phase::Requested | Phase::Stopped => status.status = Phase::Running,
             x => {
-                return Err(APIError::BadResourceState {
+                return Err(ApiError::BadResourceState {
                     message: "The requested scan cannot be started.".to_string(),
                     expected: vec![
                         Phase::Requested.to_string(),
@@ -86,12 +86,12 @@ impl DefaultScanManager {
 
     /// Simulating a stop scan action, by setting its status to stopped. Also contains simple
     /// error handling, e.g. only a running scan can be stopped.
-    fn stop_scan(&mut self, scan_id: ScanID) -> Result<(), APIError> {
+    fn stop_scan(&mut self, scan_id: ScanID) -> Result<(), ApiError> {
         match self.status.get_mut(&scan_id) {
             Some(status) => match &status.status {
                 Phase::Running => status.status = Phase::Stopped,
                 phase => {
-                    return Err(APIError::BadResourceState {
+                    return Err(ApiError::BadResourceState {
                         message: "The requested scan cannot be stopped.".to_string(),
                         expected: vec![Phase::Running.to_string()],
                         got: phase.to_string(),
@@ -99,7 +99,7 @@ impl DefaultScanManager {
                 }
             },
             None => {
-                return Err(APIError::ResourceNotFound {
+                return Err(ApiError::ResourceNotFound {
                     message: "Unable to find the requested scan.".to_string(),
                     id: scan_id,
                 })
@@ -110,7 +110,7 @@ impl DefaultScanManager {
 }
 
 impl ScanManager for DefaultScanManager {
-    fn create_scan(&mut self, scan: Scan) -> Result<ScanID, APIError> {
+    fn create_scan(&mut self, scan: Scan) -> Result<ScanID, ApiError> {
         let mut scan = scan;
         let id = match scan.scan_id.clone() {
             Some(x) => x,
@@ -121,7 +121,7 @@ impl ScanManager for DefaultScanManager {
             }
         };
         if self.scans.contains_key(&id) {
-            return Err(APIError::ResourceExists {
+            return Err(ApiError::ResourceExists {
                 message: "The ID of the scan to create already exists.".to_string(),
                 id,
             });
@@ -140,17 +140,17 @@ impl ScanManager for DefaultScanManager {
         Ok(id)
     }
 
-    fn scan_action(&mut self, scan_id: ScanID, action: Action) -> Result<(), APIError> {
+    fn scan_action(&mut self, scan_id: ScanID, action: Action) -> Result<(), ApiError> {
         match action {
             Action::Start => self.start_scan(scan_id),
             Action::Stop => self.stop_scan(scan_id),
         }
     }
 
-    fn get_scan(&self, scan_id: ScanID) -> Result<Scan, APIError> {
+    fn get_scan(&self, scan_id: ScanID) -> Result<Scan, ApiError> {
         match self.scans.get(&scan_id) {
             Some(x) => Ok(x.clone()),
-            None => Err(APIError::ResourceNotFound {
+            None => Err(ApiError::ResourceNotFound {
                 message: "Unable to find the requested scan.".to_string(),
                 id: scan_id,
             }),
@@ -162,7 +162,7 @@ impl ScanManager for DefaultScanManager {
         scan_id: ScanID,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<ScanResult>, APIError> {
+    ) -> Result<Vec<ScanResult>, ApiError> {
         match self.results.get(&scan_id) {
             Some(x) => {
                 if x.is_empty() {
@@ -175,24 +175,24 @@ impl ScanManager for DefaultScanManager {
                 }
                 Ok(x[f..=min(x.len() - 1, l)].to_vec())
             }
-            None => Err(APIError::ResourceNotFound {
+            None => Err(ApiError::ResourceNotFound {
                 message: "Unable to find the requested scan.".to_string(),
                 id: scan_id,
             }),
         }
     }
 
-    fn get_status(&self, scan_id: ScanID) -> Result<Status, APIError> {
+    fn get_status(&self, scan_id: ScanID) -> Result<Status, ApiError> {
         match self.status.get(&scan_id) {
             Some(x) => Ok(x.clone()),
-            None => Err(APIError::ResourceNotFound {
+            None => Err(ApiError::ResourceNotFound {
                 message: "Unable to find the requested scan.".to_string(),
                 id: scan_id,
             }),
         }
     }
 
-    fn delete_scan(&mut self, scan_id: ScanID) -> Result<(), APIError> {
+    fn delete_scan(&mut self, scan_id: ScanID) -> Result<(), ApiError> {
         match self.status.get(&scan_id) {
             Some(status) => match &status.status {
                 Phase::Failed | Phase::Stopped | Phase::Succeeded | Phase::Requested => {
@@ -201,7 +201,7 @@ impl ScanManager for DefaultScanManager {
                     self.status.remove(&scan_id).unwrap();
                     Ok(())
                 }
-                phase => Err(APIError::BadResourceState {
+                phase => Err(ApiError::BadResourceState {
                     message: "The requested scan cannot be deleted".to_string(),
                     expected: vec![
                         Phase::Requested.to_string(),
@@ -212,7 +212,7 @@ impl ScanManager for DefaultScanManager {
                     got: phase.to_string(),
                 }),
             },
-            None => Err(APIError::ResourceNotFound {
+            None => Err(ApiError::ResourceNotFound {
                 message: "Unable to find the requested scan.".to_string(),
                 id: scan_id,
             }),

@@ -9,7 +9,7 @@ use rocket::{
 };
 use serde::Deserialize;
 
-use crate::error::APIError;
+use crate::error::ApiError;
 
 /// Custom JSON validator request guard to translate its errors into a respond
 #[repr(transparent)]
@@ -65,12 +65,12 @@ impl<'r, T: Deserialize<'r>> FromData<'r> for JsonValidation<T> {
         match Self::from_data(req, data).await {
             Ok(value) => Outcome::Success(value),
             Err(e) => {
-                req.local_cache(|| <&JsonValidationError as Into<APIError>>::into(&e));
+                req.local_cache(|| <&JsonValidationError as Into<ApiError>>::into(&e));
                 match e {
                     JsonValidationError::Io(_) => Outcome::Failure((Status::PayloadTooLarge, e)),
                     JsonValidationError::Parse(_, _) => {
                         req.local_cache(|| {
-                            Some(<&JsonValidationError as Into<APIError>>::into(&e))
+                            Some(<&JsonValidationError as Into<ApiError>>::into(&e))
                         });
                         Outcome::Failure((Status::BadRequest, e))
                     }

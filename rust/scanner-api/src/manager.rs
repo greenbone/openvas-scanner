@@ -1,6 +1,6 @@
 use models::{Action, Result as ScanResult, Scan, Status};
 
-use crate::error::APIError;
+use crate::error::ApiError;
 
 pub type ScanID = String;
 pub type OID = String;
@@ -8,22 +8,22 @@ pub type OID = String;
 /// ScanManager trait. Used for the API to interact with the Scan Management.
 pub trait ScanManager {
     /// Create a new Scan with a unique Scan ID
-    fn create_scan(&mut self, scan: Scan) -> Result<ScanID, APIError>;
+    fn create_scan(&mut self, scan: Scan) -> Result<ScanID, ApiError>;
     /// Perform an action on a scan
-    fn scan_action(&mut self, scan_id: ScanID, action: Action) -> Result<(), APIError>;
+    fn scan_action(&mut self, scan_id: ScanID, action: Action) -> Result<(), ApiError>;
     /// Get meta information about a scan
-    fn get_scan(&self, id: ScanID) -> Result<Scan, APIError>;
+    fn get_scan(&self, id: ScanID) -> Result<Scan, ApiError>;
     /// Get result information about a scan
     fn get_results(
         &self,
         id: ScanID,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<ScanResult>, APIError>;
+    ) -> Result<Vec<ScanResult>, ApiError>;
     /// Get status information about a scan
-    fn get_status(&self, id: ScanID) -> Result<Status, APIError>;
+    fn get_status(&self, id: ScanID) -> Result<Status, ApiError>;
     /// Delete a scan
-    fn delete_scan(&mut self, id: ScanID) -> Result<(), APIError>;
+    fn delete_scan(&mut self, id: ScanID) -> Result<(), ApiError>;
 }
 
 /// Interface for the webserver to handle VT requests.
