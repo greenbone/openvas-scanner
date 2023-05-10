@@ -1,9 +1,12 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::{
     io::{self, BufReader, Write},
     os::unix::net::UnixStream,
     path::Path,
 };
-
 
 use crate::{
     commands::Error,
@@ -37,7 +40,7 @@ pub fn get_scan<T: AsRef<Path>>(address: T, scan_id: &ScanID) -> Result<response
 /// Returns the scan information from OSPD and deletes the results from it
 pub fn get_delete_scan_results<T: AsRef<Path>>(
     address: T,
-    scan_id: &ScanID,
+    scan_id: &str,
 ) -> Result<response::Scan, Error> {
     let cmd = ScanCommand::GetDelete(scan_id);
     let response = send_command(address, cmd)?;
@@ -87,28 +90,4 @@ impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Error::Socket(err.kind())
     }
-}
-#[cfg(test)]
-mod tests {
-
-
-
-    // load json from path examples/discovery.json
-
-    #[test]
-    fn test_start_scan() {
-        let example = std::fs::read_to_string("../examples/discovery.json").unwrap();
-        let _scan = serde_json::from_str::<models::Scan>(&example).unwrap();
-        //let scan_id = start_scan("/run/ospd/ospd-openvas.sock", &scan).unwrap();
-        //println!("Scan ID: {scan_id:?}");
-        //let scan_id = "dc84a6f1-f229-4bd8-a565-741ffa44d1ff";
-        //let result = get_scan("/run/ospd/ospd-openvas.sock", &ScanID::from(scan_id)).unwrap();
-        //println!("Scan ID: {result:?}");
-        //assert_eq!(scan_id, ScanID::from("1"));
-    }
-
-    //    let listener = UnixListener::bind(address)?;
-    //
-    //    let (mut socket, _) = listener.accept()?;
-    //
 }

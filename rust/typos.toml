@@ -1,2 +1,4 @@
 [default.extend-identifiers]
 OpenVAS = "OpenVAS"
+[files]
+extend-exclude = ["osp/tests/response_*.xml"]

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use super::port::Protocol;
 
 /// Scan result
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -72,7 +72,7 @@ impl<T: Into<Result>> From<(usize, T)> for Result {
 }
 
 /// Enum of possible types of results
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -82,6 +82,7 @@ pub enum ResultType {
     /// Vulnerability
     Alarm,
     /// Log message
+    #[default]
     Log,
     /// Some error occurred during a scan
     Error,

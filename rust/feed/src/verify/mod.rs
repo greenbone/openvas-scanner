@@ -64,6 +64,7 @@ pub enum Hasher {
     Sha256,
 }
 
+/// Computes hash of a given reader
 fn compute_hash_with<R, H>(
     reader: &mut BufReader<R>,
     hasher: &dyn Fn() -> H,
@@ -96,7 +97,8 @@ impl Hasher {
         }
     }
 
-    fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
+    /// Returns the hash of a given reader and key
+    pub fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
     where
         R: Read,
     {
@@ -132,6 +134,14 @@ impl<'a, R: Read> HashSumNameLoader<'a, R> {
             .map(|x| x.lines())
             .map_err(Error::LoadError)?;
         Ok(Self::new(buf, reader, Hasher::Sha256))
+    }
+
+    /// Returns the hashsum of the sums file
+    pub fn sumfile_hash(&self) -> Result<String, Error> {
+        self.hasher.hash(
+            &mut self.reader.as_bufreader(self.hasher.sum_file())?,
+            self.hasher.sum_file(),
+        )
     }
 }
 

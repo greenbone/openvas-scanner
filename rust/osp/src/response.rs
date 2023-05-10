@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! # Responses of OSPD commands
 use std::fmt;
 
@@ -201,7 +205,7 @@ pub enum Response {
     },
 }
 
-impl TryFrom<Response> for Scan{
+impl TryFrom<Response> for Scan {
     type Error = Error;
     fn try_from(response: Response) -> Result<Self, Self::Error> {
         match response {
@@ -383,19 +387,14 @@ impl From<&ScanResult> for models::Result {
         };
         let details = match r_type {
             models::ResultType::HostDetail => match urlencoding::decode(&result.description) {
-                Ok(decoded) => {
-                    match quick_xml::de::from_str::<HostDetail>(&decoded) {
-
-                        Ok(details) => {
-                            details
-                            .detail
-                            .into_iter()
-                            .map(|d| (d.name, d.value))
-                            .collect()
-                        },
-                        Err(_) => Default::default(),
-                    }
-                }
+                Ok(decoded) => match quick_xml::de::from_str::<HostDetail>(&decoded) {
+                    Ok(details) => details
+                        .detail
+                        .into_iter()
+                        .map(|d| (d.name, d.value))
+                        .collect(),
+                    Err(_) => Default::default(),
+                },
                 Err(_) => Default::default(),
             },
             _ => Default::default(),
@@ -471,6 +470,8 @@ pub enum ScanStatus {
     Finished,
     /// A scan has been successfully finished
     Succeeded,
+    /// A scan has been interrupted
+    Interrupted,
 }
 
 impl From<&str> for ScanStatus {
@@ -482,13 +483,14 @@ impl From<&str> for ScanStatus {
             "failed" => ScanStatus::Failed,
             "succeeded" => ScanStatus::Succeeded,
             "finished" => ScanStatus::Finished,
+            "interrupted" => ScanStatus::Failed,
             _ => ScanStatus::default(),
         }
     }
 }
 
 /// Scan within the get_scans response
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Scan {
     #[serde(rename = "@id")]
     /// Scan ID
@@ -522,6 +524,28 @@ impl Default for Scan {
             progress: StringU32(0),
             status: ScanStatus::default(),
             results: Results { result: vec![] },
+        }
+    }
+}
+
+impl From<Scan> for models::Status {
+    fn from(value: Scan) -> Self {
+        let phase: models::Phase = match value.status {
+            ScanStatus::Queued => models::Phase::Requested,
+            ScanStatus::Requested => models::Phase::Requested,
+            ScanStatus::Running => models::Phase::Running,
+            ScanStatus::Stopped => models::Phase::Stopped,
+            ScanStatus::Failed => models::Phase::Failed,
+            ScanStatus::Finished => models::Phase::Succeeded,
+            ScanStatus::Succeeded => models::Phase::Succeeded,
+            ScanStatus::Interrupted => models::Phase::Failed,
+        };
+        // TODO parse host info from results
+        models::Status {
+            status: phase,
+            start_time: value.start_time.map(|s| s.0),
+            end_time: value.end_time.map(|s| s.0),
+            host_info: None,
         }
     }
 }
