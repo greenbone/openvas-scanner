@@ -5,7 +5,7 @@
 use super::{scanner_parameter::ScannerParameter, target::Target, vt::VT};
 
 /// Struct for creating and getting a scan
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)

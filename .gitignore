@@ -8,3 +8,5 @@ testsuiterun.nasl
 .venv/
 *.bak
 assets/
+*.rsa
+*.pem

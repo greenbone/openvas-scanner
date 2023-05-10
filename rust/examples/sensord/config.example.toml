@@ -1,0 +1,25 @@
+[feed]
+path = "/var/lib/openvas/plugins"
+
+[feed.check_interval]
+secs = 3600
+nanos = 0
+
+[endpoints]
+enable_get_scans = true
+key = "mtls_is_preferred"
+
+[tls]
+certs = "/etc/sensord/tls/certs.pem"
+key = "/var/lib/sensord/tls/key.pem"
+client_certs = "/etc/sensord/tls/clients"
+
+[ospd]
+socket = "/var/run/ospd/ospd.sock"
+
+[ospd.result_check_interval]
+secs = 1
+nanos = 0
+
+[listener]
+address = "127.0.0.1:3000"

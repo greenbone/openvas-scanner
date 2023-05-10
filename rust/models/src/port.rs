@@ -4,7 +4,7 @@
 use std::fmt::Display;
 
 /// Represents a port representation for scanning.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -21,7 +21,7 @@ pub struct Port {
 }
 
 /// Range for ports to scan.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -52,7 +52,7 @@ impl Display for PortRange {
 }
 
 /// Enum representing the protocol used for scanning a port.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)

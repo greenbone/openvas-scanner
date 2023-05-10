@@ -5,7 +5,7 @@
 use super::parameter::Parameter;
 
 /// A VT to execute during a scan, including its parameters
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)

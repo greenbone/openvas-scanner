@@ -1,22 +1,26 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::io::{self, Cursor};
 
 use models::Scan;
 use quick_xml::events::{attributes::Attribute, BytesEnd, BytesStart, BytesText, Event};
 
-use crate::{response::Status, ScanID};
+use crate::response::Status;
 
 /// OSP Command
 pub enum ScanCommand<'a> {
     /// Start a new scan.
     Start(&'a Scan),
     /// Delete a scan.
-    Delete(&'a ScanID),
+    Delete(&'a str),
     /// Stop a scan.
-    Stop(&'a ScanID),
+    Stop(&'a str),
     /// Get the status and results of a scan.
-    Get(&'a ScanID),
+    Get(&'a str),
     /// Get the status and results of a scan and deletes results from OSPD.
-    GetDelete(&'a ScanID),
+    GetDelete(&'a str),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -24,7 +28,7 @@ type Writer = quick_xml::Writer<Cursor<Vec<u8>>>;
 
 impl<'a> ScanCommand<'a> {
     fn as_byte_response(
-        scan_id: Option<&ScanID>,
+        scan_id: Option<&str>,
         element_name: &str,
         additional: &[(&str, &str)],
         f: &mut dyn FnMut(&mut Writer) -> Result<()>,
@@ -43,7 +47,7 @@ impl<'a> ScanCommand<'a> {
     pub fn try_to_xml(&self) -> Result<Vec<u8>> {
         match self {
             ScanCommand::Start(scan) => ScanCommand::as_byte_response(
-                scan.scan_id.as_ref(),
+                scan.scan_id.as_deref(),
                 "start_scan",
                 &[],
                 &mut |writer| {
