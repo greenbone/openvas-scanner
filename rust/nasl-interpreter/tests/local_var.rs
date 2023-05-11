@@ -1,4 +1,8 @@
-/// Tests local_var behaviour
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+/// Tests local_var behavior
 
 #[cfg(test)]
 mod tests {

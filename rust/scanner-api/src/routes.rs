@@ -1,11 +1,13 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::collections::HashMap;
 
 use crate::{
     error::APIError, guards::json_validation::JsonValidation, manager::ScanID, webserver::Manager,
 };
-use models::{
-    Result as ScanResult, Scan, ScanAction, Status as ScanStatus,
-};
+use models::{Result as ScanResult, Scan, ScanAction, Status as ScanStatus};
 use rocket::{
     delete, get, head, http::Status, post, response::status::Created, serde::json::Json, uri, State,
 };

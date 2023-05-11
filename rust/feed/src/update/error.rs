@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use nasl_interpreter::{InterpretError, LoadError};
 use nasl_syntax::SyntaxError;
 use storage::StorageError;

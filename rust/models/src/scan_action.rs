@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /// Action to perform on a scan
 #[derive(Debug, Clone)]
 #[cfg_attr(

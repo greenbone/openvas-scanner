@@ -1,3 +1,7 @@
+// Copyright (C) 2023 Greenbone Networks GmbH
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /// Represents a set of credentials to be used for scanning to access a host.
 #[derive(Debug, Clone)]
 #[cfg_attr(
