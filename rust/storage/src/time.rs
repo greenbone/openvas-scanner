@@ -1,6 +1,7 @@
-// Copyright (C) 2023 Greenbone Networks GmbH
+// SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Defines time implementation for storage usages
 
 /// Is an extension to add as_timestamp method for various types

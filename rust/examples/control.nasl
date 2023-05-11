@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Greenbone AG
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 function append(a, i, b) {
   a[i] = b;
   return a;

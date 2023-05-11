@@ -1,25 +1,12 @@
-/* Copyright (C) Andrew Tridgell              1992-2000
- * Copyright (C) John H Terpstra              1996-2002
- * Copyright (C) Luke Kenneth Casson Leighton 1996-2000
- * Copyright (C) Paul Ashton                  1998-2000
- * Copyright (C) Simo Sorce                   2001-2002
- * Copyright (C) Martin Pool                  2002
+/* SPDX-FileCopyrightText: 2023 Greenbone AG
+ * SPDX-FileCopyrightText: 2002 Martin Pool
+ * SPDX-FileCopyrightText: 2001-2002 Simo Sorce
+ * SPDX-FileCopyrightText: 1998-2000 Paul Ashton
+ * SPDX-FileCopyrightText: 1996-2002 John H Terpstra
+ * SPDX-FileCopyrightText: 1996-2000 Luke Kenneth Casson Leighton
+ * SPDX-FileCopyrightText: 1992-2000 Andrew Tridgell
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /**
