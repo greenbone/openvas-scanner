@@ -798,33 +798,6 @@ host_died:
 }
 
 /*
- * Checks if a host is authorized to be scanned.
- *
- * @param[in]   host    Host to check access to.
- * @param[in]   addr    Pointer to address so a hostname isn't resolved multiple
- *                      times.
- * @param[in]   hosts_allow   Hosts whitelist.
- * @param[in]   hosts_deny    Hosts blacklist.
- *
- * @return 1 if host authorized, 0 otherwise.
- */
-static int
-host_authorized (const gvm_host_t *host, const struct in6_addr *addr,
-                 const gvm_hosts_t *hosts_allow, const gvm_hosts_t *hosts_deny)
-{
-  /* Check Hosts Access. */
-  if (host == NULL)
-    return 0;
-
-  if (hosts_deny && gvm_host_in_hosts (host, addr, hosts_deny))
-    return 0;
-  if (hosts_allow && !gvm_host_in_hosts (host, addr, hosts_allow))
-    return 0;
-
-  return 1;
-}
-
-/*
  * Converts the vhosts list to a comma-separated char string.
  *
  * @param[in]   list    Linked-list to convert.
@@ -886,6 +859,34 @@ check_deprecated_prefs (void)
     }
 }
 
+#ifndef FEATURE_HOSTS_ALLOWED_ONLY
+/*
+ * Checks if a host is authorized to be scanned.
+ *
+ * @param[in]   host    Host to check access to.
+ * @param[in]   addr    Pointer to address so a hostname isn't resolved multiple
+ *                      times.
+ * @param[in]   hosts_allow   Hosts whitelist.
+ * @param[in]   hosts_deny    Hosts blacklist.
+ *
+ * @return 1 if host authorized, 0 otherwise.
+ */
+static int
+host_authorized (const gvm_host_t *host, const struct in6_addr *addr,
+                 const gvm_hosts_t *hosts_allow, const gvm_hosts_t *hosts_deny)
+{
+  /* Check Hosts Access. */
+  if (host == NULL)
+    return 0;
+
+  if (hosts_deny && gvm_host_in_hosts (host, addr, hosts_deny))
+    return 0;
+  if (hosts_allow && !gvm_host_in_hosts (host, addr, hosts_allow))
+    return 0;
+
+  return 1;
+}
+
 /*
  * Check if a scan is authorized on a host.
  *
@@ -918,6 +919,7 @@ check_host_authorization (gvm_host_t *host, const struct in6_addr *addr)
   gvm_hosts_free (sys_hosts_deny);
   return 0;
 }
+#endif
 
 /**
  * @brief Set up some data and jump into attack_host()
@@ -932,7 +934,7 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
   struct timeval then;
   kb_t kb = args->host_kb;
   kb_t main_kb = get_main_kb ();
-  int ret, ret_host_auth;
+  int ret;
   args->ipc_context = ipcc;
 
   nvticache_reset ();
@@ -953,7 +955,8 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
   gvm_host_get_addr6 (args->host, &hostip);
   addr6_to_str (&hostip, ip_str);
 
-  ret_host_auth = check_host_authorization (args->host, &hostip);
+#ifndef FEATURE_HOSTS_ALLOWED_ONLY
+  int ret_host_auth = check_host_authorization (args->host, &hostip);
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
@@ -966,6 +969,7 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
       g_warning ("Host %s access denied.", ip_str);
       return;
     }
+#endif
 
   if (prefs_get_bool ("test_empty_vhost"))
     {
@@ -1018,6 +1022,55 @@ apply_hosts_excluded (gvm_hosts_t *hosts)
         g_message ("exclude_hosts: Error.");
     }
 }
+
+#ifdef FEATURE_HOSTS_ALLOWED_ONLY
+static void
+print_host_access_denied (gpointer data, gpointer systemwide)
+{
+  kb_t kb = NULL;
+  int *sw = systemwide;
+  connect_main_kb (&kb);
+  if (*sw == 0)
+    message_to_client ((kb_t) kb, "Host access denied.", (gchar *) data, NULL,
+                       "ERRMSG");
+  else if (*sw == 1)
+    message_to_client ((kb_t) kb,
+                       "Host access denied (system-wide restriction).",
+                       (gchar *) data, NULL, "ERRMSG");
+  kb_item_set_str_with_main_kb_check ((kb_t) kb, "internal/host_deny", "True",
+                                      0);
+  kb_lnk_reset (kb);
+  g_warning ("Host %s access denied.", (gchar *) data);
+}
+
+static void
+apply_hosts_allow_deny (gvm_hosts_t *hosts)
+{
+  GSList *removed = NULL;
+  const char *allow_hosts = prefs_get ("hosts_allow");
+  const char *deny_hosts = prefs_get ("hosts_deny");
+  int systemwide;
+  if (allow_hosts || deny_hosts)
+    {
+      systemwide = 0;
+      removed = gvm_hosts_allowed_only (hosts, deny_hosts, allow_hosts);
+      g_slist_foreach (removed, print_host_access_denied,
+                       (gpointer) &systemwide);
+      g_slist_free_full (removed, g_free);
+    }
+
+  const char *sys_allow_hosts = prefs_get ("sys_hosts_allow");
+  const char *sys_deny_hosts = prefs_get ("sys_hosts_deny");
+  if (sys_allow_hosts || sys_deny_hosts)
+    {
+      systemwide = 1;
+      removed = gvm_hosts_allowed_only (hosts, sys_deny_hosts, sys_allow_hosts);
+      g_slist_foreach (removed, print_host_access_denied,
+                       (gpointer) &systemwide);
+      g_slist_free_full (removed, g_free);
+    }
+}
+#endif
 
 static void
 apply_hosts_preferences_ordering (gvm_hosts_t *hosts)
@@ -1272,6 +1325,13 @@ attack_network (struct scan_globals *globals)
   apply_hosts_preferences_ordering (hosts);
   apply_hosts_reverse_lookup_preferences (hosts);
 
+#ifdef FEATURE_HOSTS_ALLOWED_ONLY
+  // Remove hosts which are denied and/or keep the ones in the allowed host
+  // lists
+  // for both, user and system wide settings.
+  apply_hosts_allow_deny (hosts);
+#endif
+
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
   sprintf (buf, "%d", gvm_hosts_count (hosts));
@@ -1279,6 +1339,7 @@ attack_network (struct scan_globals *globals)
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
 
+  // Remove the excluded hosts
   apply_hosts_excluded (hosts);
 
   host = gvm_hosts_next (hosts);
