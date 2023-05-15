@@ -153,6 +153,7 @@ jobs:
         working-directory: rust
       - name: "patch for debian stable"
         run: |
+          find . -type f -name "nasl-cli"
           patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
       - run: mkdir assets/
       - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
