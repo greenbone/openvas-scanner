@@ -1061,7 +1061,7 @@ apply_hosts_allow_deny (gvm_hosts_t *hosts)
 
   const char *sys_allow_hosts = prefs_get ("sys_hosts_allow");
   const char *sys_deny_hosts = prefs_get ("sys_hosts_deny");
-  if (allow_hosts || deny_hosts)
+  if (sys_allow_hosts || sys_deny_hosts)
     {
       systemwide = 1;
       removed = gvm_hosts_allowed_only (hosts, sys_deny_hosts, sys_allow_hosts);
