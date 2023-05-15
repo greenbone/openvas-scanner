@@ -144,7 +144,6 @@ jobs:
             ~/.cargo/git/db/
             rust/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: sudo apt update && sudo apt-get install -y libpcap-dev
       - run: rustup update stable && rustup default stable
       - run: cargo install cross
       - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
@@ -152,7 +151,9 @@ jobs:
       - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
         working-directory: rust
       - name: "patch for debian stable"
+        working-directory: rust
         run: |
+          find . -type f -name "nasl-cli"
           patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
       - run: mkdir assets/
       - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
