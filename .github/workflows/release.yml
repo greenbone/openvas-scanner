@@ -34,22 +34,22 @@ on:
 # Once the version is found and enhanced, each CMakeLists file is updated to the new
 # version, and a commit is created in the found branch.
 jobs:
-  release:
-    name: release
-    if: |
-      ${{
-        (github.event_name == 'workflow_dispatch') ||
-        (
-          ( github.event.pull_request.merged == true) &&
-          (
-            contains(github.event.pull_request.labels.*.name, 'major_release') ||
-            contains(github.event.pull_request.labels.*.name, 'minor_release') ||
-            contains(github.event.pull_request.labels.*.name, 'patch_release')
-
-          )
-        )
-      }}
+  calculate_version:
     runs-on: "ubuntu-latest"
+    if: |
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.pull_request.merged == true &&
+          contains(github.event.pull_request.labels.*.name, 'major_release') ||
+          contains(github.event.pull_request.labels.*.name, 'minor_release') ||
+          contains(github.event.pull_request.labels.*.name, 'patch_release')
+        )
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+      latest_version: ${{ steps.version.outputs.latest_version }}
+      release_kind:  ${{ steps.version.outputs.release_kind }}
+      release_ref:  ${{ steps.version.outputs.release_ref }}
+      project:  ${{ steps.version.outputs.project}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -103,6 +103,31 @@ jobs:
           echo "NEW_VERSION=$(sh .github/enhance_version.sh ${{ env.LATEST_VERSION }} ${{ env.RELEASE_KIND }})" >> $GITHUB_ENV
       - name: NEW_VERSION != NULL
         run: ([ -n "${{ env.NEW_VERSION }}" ])
+      - name: set output
+        id: version
+        run: |
+          echo "latest_version=$LATEST_VERSION" >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_kind=$RELEASE_KIND" >> "$GITHUB_OUTPUT"
+          echo "release_ref=$RELEASE_REF" >> "$GITHUB_OUTPUT"
+          echo "project=$(echo "${{ github.repository }}" | sed 's/.*\///' )" >> "$GITHUB_OUTPUT"
+
+
+  release:
+    name: release
+    needs: calculate_version
+    runs-on: "ubuntu-latest"
+    env:
+      RELEASE_KIND: ${{needs.calculate_version.outputs.release_kind}}
+      RELEASE_REF: ${{needs.calculate_version.outputs.release_ref}}
+      LATEST_VERSION: ${{needs.calculate_version.outputs.latest_version}}
+      NEW_VERSION: ${{needs.calculate_version.outputs.new_version}}
+      PROJECT: ${{needs.calculate_version.outputs.project}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          fetch-depth: '0'
       - name: set git credentials
         run: |
              git config --global user.email "${{ secrets.GREENBONE_BOT_MAIL }}"
@@ -122,7 +147,8 @@ jobs:
           git checkout "${{ env.RELEASE_REF }}"
           # change version
           python3 -m pip install pontos
-          pontos-version update ${{ env.NEW_VERSION }}
+          # ignore failure on setting version
+          pontos-version update ${{ env.NEW_VERSION }} || true
           # as soon as pontos-version release is available and it supports cargo do
           # cd rust
           # pontos-version update ${{ env.NEW_VERSION }}
@@ -145,7 +171,8 @@ jobs:
             rust/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - run: rustup update stable && rustup default stable
-      - run: cargo install cross
+        # ignore failing install, it may already be installed
+      - run: cargo install cross || true
       - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
         working-directory: rust
       - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
@@ -158,10 +185,10 @@ jobs:
       - run: mkdir assets/
       - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
       - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu
-      - name: release ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
+
+      - uses: greenbone/actions/setup-pontos@v2
+      - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
-          python3 -m pip install pontos
-          export PROJECT=$(echo "${{ github.repository }}" | sed 's/.*\///' )
           pontos-changelog \
             --current-version ${{ env.LATEST_VERSION }} \
             --next-version ${{ env.NEW_VERSION }} \
@@ -176,12 +203,15 @@ jobs:
           echo "${{ secrets.GREENBONE_BOT_TOKEN }}" | gh auth login --with-token
           # lets see how smart it is
           export nrn="v${{ env.NEW_VERSION }}"
-          export filename="$PROJECT-$nrn"
           gh release create "$nrn" -F /tmp/changelog.md
+      - name: "sign ${{ env.PROJECT }}"
+        run: |
           mkdir -p assets
           ls -las assets/
-          curl -Lo assets/$filename.zip https://github.com/${{ github.repository }}/openvas-scanner/archive/refs/tags/$nrn.zip
-          curl -Lo assets/$filename.tar.gz https://github.com/${{ github.repository }}/openvas-scanner/archive/refs/tags/$nrn.tar.gz
+          export nrn="v${{ env.NEW_VERSION }}"
+          export filename="$PROJECT-$nrn"
+          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.zip https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.zip
+          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.tar.gz https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.tar.gz
           echo -e "${{ secrets.GPG_KEY }}" > private.pgp
           echo ${{ secrets.GPG_PASSPHRASE }} | bash .github/sign-assets.sh private.pgp
           rm assets/$filename.zip
