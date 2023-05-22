@@ -290,6 +290,10 @@ pub trait RedisAddNvt: RedisWrapper {
             //self.kb.lpush(&key_name, prefs)?;
         }
 
+        // Stores the OID under the filename key. This key is currently used
+        // for the dependency autoload, where the filename is used to fetch the OID
+        let key_name = format!("filename:{filename}");
+        self.lpush(&key_name, &oid)?;
         Ok(())
     }
 }
@@ -520,6 +524,7 @@ mod tests {
             ])),
             NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
             NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
+            NVT(FileName("test.nasl".to_owned())),
             NVT(Preference(NvtPreference {
                 id: Some(2),
                 class: PreferenceType::Password,
@@ -563,6 +568,14 @@ mod tests {
                                 enable_pw
                             );
                         }
+                        "filename:test.nasl" => {
+                            let values = values.first().unwrap().clone();
+                            let oid = String::from_utf8(values);
+                            assert_eq!(
+                                Ok("0.0.0.0.0.0.0.0.0.1".to_owned()),
+                                oid
+                            );
+                        }
                         _ => panic!("{key} should not occur"),
                     }
                 }
@@ -570,6 +583,6 @@ mod tests {
                 Err(e) => panic!("{e:?}"),
             }
         }
-        assert_eq!(results, 3);
+        assert_eq!(results, 4);
     }
 }
