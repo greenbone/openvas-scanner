@@ -313,7 +313,8 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
       else
         {
 #ifdef NETSNMP_DISABLE_DES
-          result->name = g_strdup ("DES not supported in this net-snmp version.");
+          result->name =
+            g_strdup ("DES not supported in this net-snmp version.");
           return -1;
 #else
           session.securityPrivProto = usmDESPrivProtocol;
