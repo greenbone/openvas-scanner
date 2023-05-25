@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Verifies a feed
 //!
 //! It includes a HashVerifier that loads the hashsum file and verify for each entry that the given

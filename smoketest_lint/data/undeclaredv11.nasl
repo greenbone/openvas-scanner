@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Greenbone AG
+# Some text descriptions might be excerpted from (a) referenced
+# source(s), and are Copyright (C) by the respective right holder(s).
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 barlist2 = get_kb_list( "bar/foo" );
 foreach bar3( barlist2 ) {#!none
   bar4 = bar3;

@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: 2023 Greenbone AG
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 version=0.1
 date=$(date +"%B %Y")

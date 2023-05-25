@@ -1,3 +1,8 @@
+/* SPDX-FileCopyrightText: 2023 Greenbone AG
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 #ifndef MISC_IPC_H
 #define MISC_IPC_H
 

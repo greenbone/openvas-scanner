@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #[derive(Debug, Clone)]
 #[cfg_attr(
     feature = "serde_support",

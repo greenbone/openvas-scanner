@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::{collections::HashMap, fmt::Display, io::Cursor};
 
 use rocket::{http::Status, response::Responder, Request, Response};

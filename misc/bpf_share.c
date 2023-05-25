@@ -1,27 +1,8 @@
-/* Portions Copyright (C) 2009-2022 Greenbone Networks GmbH
- * Copyright (C) 2003 Renaud Deraison
+/* SPDX-FileCopyrightText: 2023 Greenbone AG
+ * SPDX-FileCopyrightText: 2003 Renaud Deraison
  *
  * SPDX-License-Identifier: GPL-2.0-only
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-/** @todo There once was a BPF sharing feature with the same API
- * as the methods below, but trying to share BPF among the daemon
- * processes. What remains is a thin abstraction of the pcap API.
- * Eventually it needs to be analysed whether this makes sense
- * or can further be simplified. */
 
 #include "bpf_share.h"
 

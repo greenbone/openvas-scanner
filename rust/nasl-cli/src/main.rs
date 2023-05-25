@@ -1,6 +1,7 @@
-// Copyright (C) 2023 Greenbone Networks GmbH
+// SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
+
 #![doc = include_str!("../README.md")]
 mod error;
 mod feed_update;

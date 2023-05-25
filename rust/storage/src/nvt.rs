@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Greenbone Networks GmbH
+// SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -10,7 +10,6 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-
 
 use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Retriever, StorageError};
 
@@ -142,7 +141,6 @@ impl Display for TagKey {
         write!(f, "{}", self.as_ref())
     }
 }
-
 
 make_str_lookup_enum! {
     TagKey: "Allowed keys for a tag" => {

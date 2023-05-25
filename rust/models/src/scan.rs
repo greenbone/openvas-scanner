@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use super::{scanner_parameter::ScannerParameter, target::Target, vt::VT};
 
 /// Struct for creating and getting a scan

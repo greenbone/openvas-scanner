@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::path::{Path, PathBuf};
 
 use nasl_interpreter::load_non_utf8_path;

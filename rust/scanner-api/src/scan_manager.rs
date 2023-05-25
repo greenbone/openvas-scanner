@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::{cmp::min, collections::HashMap, fmt::Display};
 
 use models::{Action, Phase, Result as ScanResult, Scan, Status};

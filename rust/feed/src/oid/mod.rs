@@ -1,6 +1,7 @@
-// Copyright (C) 2023 Greenbone Networks GmbH
+// SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Is a module to get oids within a feed
 
 use std::fs::File;

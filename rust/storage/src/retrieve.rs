@@ -1,8 +1,9 @@
-use std::marker::PhantomData;
-
-// Copyright (C) 2023 Greenbone Networks GmbH
+// SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
+
+use std::marker::PhantomData;
+
 use crate::{nvt::NVTKey, Field, StorageError};
 /// Retrieve command for a given Field
 ///

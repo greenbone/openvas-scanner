@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use crate::manager::VTManager;
 
 /// The default VTManager. It contains a simple vector with all known OIDs

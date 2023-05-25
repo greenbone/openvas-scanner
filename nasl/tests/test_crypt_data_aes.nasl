@@ -1,20 +1,8 @@
-# Copyright (C) 2022 Greenbone Networks GmbH
+# SPDX-FileCopyrightText: 2023 Greenbone AG
+# Some text descriptions might be excerpted from (a) referenced
+# source(s), and are Copyright (C) by the respective right holder(s).
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
 key = raw_string(0xa9, 0x87, 0xf5, 0x2b, 0xaf, 0x99, 0x06, 0xfa, 0x04, 0x8e, 0x2d, 0xb4, 0x6f, 0x50, 0x88, 0xa3); # Encryption Key
 
