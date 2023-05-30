@@ -366,3 +366,13 @@ impl DefaultContext {
         }
     }
 }
+
+
+impl From<&ContextType> for NaslValue {
+    fn from(value: &ContextType) -> Self {
+        match value {
+            ContextType::Function(_, _) => NaslValue::Null,
+            ContextType::Value(v) => v.to_owned(),
+        }
+    }
+}

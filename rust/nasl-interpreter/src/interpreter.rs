@@ -129,7 +129,7 @@ where
             Repeat(body, condition) => self.repeat_loop(body, condition),
             ForEach(variable, iterable, body) => self.for_each_loop(variable, iterable, body),
             FunctionDeclaration(name, args, exec) => self.declare_function(name, args, exec),
-            Primitive(token) => TryFrom::try_from(token),
+            Primitive(token) => TryFrom::try_from(token).map_err(|e: TokenCategory| e.into()),
             Variable(token) => {
                 let name: NaslValue = TryFrom::try_from(token)?;
                 match self.registrat.named(&name.to_string()) {

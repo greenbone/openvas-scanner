@@ -4,9 +4,7 @@
 
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
-use nasl_syntax::{IdentifierType, Token, TokenCategory, ACT};
-
-use crate::{ContextType, InterpretError};
+use crate::{IdentifierType, Token, TokenCategory, ACT};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -211,7 +209,7 @@ impl From<NaslValue> for i64 {
 }
 
 impl TryFrom<&Token> for NaslValue {
-    type Error = InterpretError;
+    type Error = TokenCategory;
 
     fn try_from(token: &Token) -> Result<Self, Self::Error> {
         match token.category() {
@@ -226,7 +224,7 @@ impl TryFrom<&Token> for NaslValue {
             TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
             TokenCategory::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
             TokenCategory::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
-            o => Err(InterpretError::wrong_category(o)),
+            o => Err(o.clone()),
         }
     }
 }
@@ -263,11 +261,3 @@ impl From<storage::types::Primitive> for NaslValue {
     }
 }
 
-impl From<&ContextType> for NaslValue {
-    fn from(value: &ContextType) -> Self {
-        match value {
-            ContextType::Function(_, _) => NaslValue::Null,
-            ContextType::Value(v) => v.to_owned(),
-        }
-    }
-}

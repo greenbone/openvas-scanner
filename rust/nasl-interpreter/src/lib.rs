@@ -7,7 +7,6 @@
 mod built_in_functions;
 
 mod error;
-mod naslvalue;
 
 mod assign;
 mod call;
@@ -35,7 +34,7 @@ pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
 pub use loader::*;
 pub use logger::{DefaultLogger, Mode, NaslLogger};
-pub use naslvalue::NaslValue;
+pub use nasl_syntax::NaslValue;
 pub use sessions::Sessions;
 
 // Is a type definition for built-in functions

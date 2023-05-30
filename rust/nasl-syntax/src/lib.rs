@@ -16,6 +16,7 @@ mod prefix_extension;
 mod statement;
 mod token;
 mod variable_extension;
+mod naslvalue;
 
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
@@ -26,6 +27,7 @@ pub use token::Category as TokenCategory;
 pub use token::IdentifierType;
 pub use token::Token;
 pub use token::Tokenizer;
+pub use naslvalue::*;
 
 /// Parses given code and returns found Statements and Errors
 ///
