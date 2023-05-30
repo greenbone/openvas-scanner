@@ -5,7 +5,9 @@
 use nasl_syntax::{Statement, TokenCategory};
 use regex::Regex;
 
-use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue};
+use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+
+use nasl_syntax::NaslValue;
 
 /// Is a trait to handle operator within nasl.
 pub(crate) trait OperatorExtension {
@@ -215,10 +217,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use nasl_syntax::parse;
 
-    use crate::{DefaultContext, Register};
-    use crate::{Interpreter, NaslValue};
+    use crate::*;
 
     macro_rules! create_test {
         ($($name:tt: $code:expr => $result:expr),*) => {
@@ -227,13 +227,13 @@ mod tests {
             #[test]
             fn $name() {
                 let mut register = Register::default();
-                let binding = DefaultContext::default();
-                let context = binding.as_context();
+                let binding = ContextBuilder::default();
+                let context = binding.build();
                 let mut interpreter = Interpreter::new(&mut register, &context);
-                let mut parser = parse($code).map(|x|
+                let parser = parse($code).map(|x|
                     interpreter.resolve(&x.expect("unexpected parse error"))
                 );
-                assert_eq!(parser.next(), Some(Ok($result)));
+                assert_eq!(parser.last(), Some(Ok($result)));
             }
         )*
         };
@@ -271,7 +271,6 @@ mod tests {
         less: "1 < 2;" => NaslValue::Boolean(true),
         greater_equal: "1 >= 1;" => NaslValue::Boolean(true),
         less_equal: "1 <= 1;" => NaslValue::Boolean(true),
-        xxxgonna_give_it_to_ya: "script_oid('hi') x 200;" => NaslValue::Null,
-        gonna_give_it_to_ya: "script_oid('hi') x 200;" => NaslValue::Null
+        x_gonna_give_it_ya: "function test() { }; test('hi') x 200;" => NaslValue::Null
     }
 }

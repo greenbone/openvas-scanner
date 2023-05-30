@@ -4,19 +4,22 @@
 
 use std::{collections::HashMap, io};
 
-use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
+use nasl_syntax::{
+    IdentifierType, LoadError, NaslValue, Statement, Statement::*, Token, TokenCategory,
+};
 use storage::StorageError;
 
 use crate::{
     assign::AssignExtension,
     call::CallExtension,
-    context::{Context, ContextType, Register},
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     include::IncludeExtension,
     loop_extension::LoopExtension,
     operator::OperatorExtension,
-    InterpretError, InterpretErrorKind, LoadError, NaslValue,
+    InterpretError, InterpretErrorKind,
 };
+
+use nasl_builtin_utils::{Context, ContextType, Register};
 
 /// Used to interpret a Statement
 pub struct Interpreter<'a, K> {

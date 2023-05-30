@@ -17,6 +17,9 @@ mod statement;
 mod token;
 mod variable_extension;
 mod naslvalue;
+mod loader;
+// should be replaced with tracing
+pub mod logger;
 
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
@@ -28,6 +31,7 @@ pub use token::IdentifierType;
 pub use token::Token;
 pub use token::Tokenizer;
 pub use naslvalue::*;
+pub use loader::*;
 
 /// Parses given code and returns found Statements and Errors
 ///

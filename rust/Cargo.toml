@@ -1,6 +1,16 @@
 
 [workspace]
 members = [
+  "nasl-builtin-knowledge-base",
+  "nasl-builtin-raw-ip",
+  "nasl-builtin-cryptographic",
+  "nasl-builtin-ssh",
+  "nasl-builtin-host",
+  "nasl-builtin-string",
+  "nasl-builtin-misc",
+  "nasl-builtin-description",
+  "nasl-builtin-utils",
+  "nasl-builtin-std",
   "nasl-syntax",
   "nasl-interpreter",
   "nasl-cli",

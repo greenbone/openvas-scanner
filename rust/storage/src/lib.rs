@@ -148,6 +148,27 @@ pub trait Dispatcher<K> {
     }
 }
 
+/// Convenience trait to use a dispatcher and retriever implementation
+pub trait Storage<K>: Dispatcher<K> + Retriever<K> {
+    /// Returns a reference to the retriever
+    fn as_retriever(&self) -> &dyn Retriever<K>;
+    /// Returns a reference to the dispatcher
+    fn as_dispatcher(&self) -> &dyn Dispatcher<K>;
+}
+
+impl<K, T> Storage<K> for T
+where
+    T: Dispatcher<K> + Retriever<K>,
+{
+    fn as_retriever(&self) -> &dyn Retriever<K> {
+        self
+    }
+
+    fn as_dispatcher(&self) -> &dyn Dispatcher<K> {
+        self
+    }
+}
+
 /// Contains a Vector of all stored items.
 ///
 /// The first String statement is the used key while the Vector of Scope are the values.

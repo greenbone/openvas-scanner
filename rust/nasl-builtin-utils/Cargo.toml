@@ -1,0 +1,14 @@
+[package]
+name = "nasl-builtin-utils"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nasl-syntax = { path = "../nasl-syntax" }
+storage = { path = "../storage" }
+tracing = "0.1"
+
+# FIXME rewrite sessions.rs to be abstract and remove this dependency
+libssh-rs = {git = "https://github.com/wez/libssh-rs.git", branch = "main"}

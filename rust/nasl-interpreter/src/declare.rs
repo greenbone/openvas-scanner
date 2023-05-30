@@ -4,9 +4,9 @@
 
 use nasl_syntax::{DeclareScope, Statement, Token, TokenCategory};
 
-use crate::{
-    error::InterpretError, interpreter::InterpretResult, ContextType, Interpreter, NaslValue,
-};
+use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+use nasl_builtin_utils::ContextType;
+use nasl_syntax::NaslValue;
 
 /// Is a trait to declare functions
 pub(crate) trait DeclareFunctionExtension {
@@ -72,9 +72,7 @@ impl<'a, K> DeclareVariableExtension for Interpreter<'a, K> {
 
 #[cfg(test)]
 mod tests {
-    use nasl_syntax::parse;
-
-    use crate::{context::Register, DefaultContext, Interpreter, NaslValue};
+    use crate::*;
 
     #[test]
     fn declare_local() {
@@ -88,8 +86,8 @@ mod tests {
         c;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -107,8 +105,8 @@ mod tests {
         test(a: 1, b: 2);
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));

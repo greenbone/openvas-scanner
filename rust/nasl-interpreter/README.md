@@ -20,16 +20,10 @@ An interpreter requires:
 ## Example
 
 ```
-use nasl_interpreter::{Interpreter, NoOpLoader, Register, Context, DefaultLogger, Sessions};
-use storage::DefaultDispatcher;
-let storage = DefaultDispatcher::new(false);
+use nasl_interpreter::{Interpreter, Register, ContextBuilder};
 let mut register = Register::default();
-let loader = NoOpLoader::default();
-let logger = DefaultLogger::default();
-let session = Sessions::default();
-let oid = "0.0.0.0.0.0".to_owned();
-let target = String::new();
-let context = Context::new(&oid, &target, &storage, &storage, &loader, &logger, &session);
+let context_builder = ContextBuilder::default();
+let context = context_builder.build();
 let code = "display('hi');";
 let mut interpreter = Interpreter::new(&mut register, &context);
 let mut parser =

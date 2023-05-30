@@ -9,8 +9,8 @@ pub use error::Error;
 use std::{fmt::Display, fs::File, marker::PhantomData};
 
 use nasl_interpreter::{
-    AsBufReader, Context, ContextType, DefaultLogger, Interpreter, Loader, NaslValue, Register,
-    Sessions,
+    logger::DefaultLogger, AsBufReader, Context, ContextType, Interpreter, Loader, NaslValue,
+    Register,
 };
 use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
 
@@ -31,6 +31,7 @@ pub struct Update<S, L, V, K> {
     max_retry: usize,
     verifier: V,
     feed_version_set: bool,
+    functions: nasl_interpreter::NaslFunctionRegister<K>,
     phanton: PhantomData<K>,
 }
 
@@ -72,6 +73,7 @@ where
             dispatcher: storage,
             verifier,
             feed_version_set: false,
+            functions: nasl_interpreter::nasl_std_functions(),
             phanton: PhantomData,
         }
     }
@@ -87,7 +89,6 @@ where
         let code = self.loader.load(feed_info_key)?;
         let mut register = Register::default();
         let logger = DefaultLogger::default();
-        let sessions = Sessions::default();
         let k: K = Default::default();
         let fr = NoOpRetriever::default();
         let target = String::default();
@@ -98,7 +99,7 @@ where
             &fr,
             &self.loader,
             &logger,
-            &sessions,
+            &self.functions,
         );
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
@@ -126,9 +127,9 @@ where
 
         let mut register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::default();
-        let sessions = Sessions::default();
         let fr = NoOpRetriever::default();
         let target = String::default();
+
         let context = Context::new(
             key,
             &target,
@@ -136,7 +137,7 @@ where
             &fr,
             &self.loader,
             &logger,
-            &sessions,
+            &self.functions,
         );
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {

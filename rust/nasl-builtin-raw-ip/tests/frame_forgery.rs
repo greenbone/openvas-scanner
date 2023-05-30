@@ -1,0 +1,101 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//! Defines NASL frame forgery and arp functions
+#[cfg(test)]
+mod tests {
+    use nasl_interpreter::*;
+    
+
+    
+
+    //use super::convert_vec_into_mac_address;
+
+    #[test]
+    fn get_local_mac_address_from_ip() {
+        let code = r###"
+        get_local_mac_address_from_ip(127.0.0.1);
+        get_local_mac_address_from_ip("127.0.0.1");
+        get_local_mac_address_from_ip("::1");
+        "###;
+        let mut register = Register::default();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
+        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
+        );
+    }
+
+    #[test]
+    fn forge_frame() {
+        let code = r###"
+        src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
+        dst = "0a:0b:0c:0d:0e:0f";
+        a = forge_frame(src_haddr: src , dst_haddr: dst,
+        ether_proto: 0x0806, payload: "abcd" );
+        dump_frame(frame:a);
+        "###;
+        let mut register = Register::default();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
+        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(vec![
+                0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
+                0x61, 0x62, 0x63, 0x64
+            ])))
+        );
+        // This dumps the forged frame. To see it in the tests output, run the tests with
+        // `cargo test -- --nocapture`
+        parser.next();
+    }
+    #[test]
+    fn send_frame() {
+        let code = r###"
+        src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
+        dst = "0a:0b:0c:0d:0e:0f";
+        a = forge_frame(src_haddr: src , dst_haddr: dst,
+        ether_proto: 0x0806, payload: "abcd" );
+        send_frame(frame: a, pcap_active: FALSE);
+        send_frame(frame: a, pcap_active: TRUE);
+        send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
+        "###;
+        let binding = ContextBuilder::default();
+        let context = binding.build();
+        let mut register = Register::default();
+        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        parser.next();
+        parser.next();
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Data(vec![
+                0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
+                0x61, 0x62, 0x63, 0x64
+            ])))
+        );
+
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+    }
+}

@@ -2,15 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use nasl_builtin_utils::lookup_keys::FC_ANON_ARGS;
 use nasl_syntax::{Statement, Statement::*, Token};
 
 use crate::{
     error::{FunctionError, InterpretError},
     interpreter::InterpretResult,
-    lookup,
-    lookup_keys::FC_ANON_ARGS,
-    ContextType, Interpreter, NaslValue,
+    Interpreter,
 };
+
+use nasl_builtin_utils::ContextType;
+use nasl_syntax::NaslValue;
 use std::collections::HashMap;
 
 /// Is a trait to handle function calls within nasl.
@@ -46,11 +48,8 @@ where
             ContextType::Value(NaslValue::Array(position)),
         );
         self.registrat.create_root_child(named);
-        let result = match lookup(name) {
-            // Built-In Function
-            Some(function) => function(self.registrat, self.ctxconfigs)
-                .map_err(|x| FunctionError::new(name, x).into()),
-            // Check for user defined function
+        let result = match self.ctxconfigs.nasl_fn_execute(name, self.registrat) {
+            Some(r) => r.map_err(|x| FunctionError::new(name, x).into()),
             None => {
                 let found = self
                     .registrat
@@ -86,9 +85,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use nasl_syntax::parse;
-
-    use crate::{context::DefaultContext, context::Register, Interpreter, NaslValue};
+    use crate::*;
 
     #[test]
     fn default_null_on_user_defined_functions() {
@@ -101,8 +98,8 @@ mod tests {
         test();
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));

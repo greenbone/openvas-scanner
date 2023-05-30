@@ -16,7 +16,10 @@ walkdir = "2"
 
 feed = {path = "../feed"}
 nasl-syntax = { path = "../nasl-syntax" }
-nasl-interpreter = { path = "../nasl-interpreter" }
+nasl-interpreter = { path = "../nasl-interpreter", default-features = false }
 storage = { path = "../storage" }
 redis-storage = { path = "../redis-storage" }
 json-storage = {path = "../json-storage"}
+
+
+[features]

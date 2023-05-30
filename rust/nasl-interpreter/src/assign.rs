@@ -6,9 +6,9 @@ use std::collections::HashMap;
 
 use nasl_syntax::{AssignOrder, Statement, TokenCategory};
 
-use crate::{
-    error::InterpretError, interpreter::InterpretResult, ContextType, Interpreter, NaslValue,
-};
+use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+use nasl_builtin_utils::ContextType;
+use nasl_syntax::NaslValue;
 use Statement::*;
 
 /// Is a trait to handle function assignments within nasl.
@@ -257,10 +257,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use nasl_syntax::parse;
-
-    use crate::{context::Register, DefaultContext, Interpreter, NaslValue};
-
+    use crate::*;
     #[test]
     fn variables() {
         let code = r###"
@@ -279,8 +276,8 @@ mod tests {
         --a;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -314,8 +311,8 @@ mod tests {
         ++a[0];
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -338,8 +335,8 @@ mod tests {
         a;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -363,8 +360,8 @@ mod tests {
         a;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -389,8 +386,8 @@ mod tests {
         a['hi'];
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
@@ -411,8 +408,8 @@ mod tests {
         a = [1, 2, 3];
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));

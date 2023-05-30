@@ -4,7 +4,9 @@
 
 use nasl_syntax::{parse, Statement};
 
-use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter, NaslValue};
+use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+
+use nasl_syntax::NaslValue;
 
 /// Is a trait to declare include functionality
 pub(crate) trait IncludeExtension {
@@ -40,9 +42,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use nasl_syntax::parse;
-
-    use crate::{context::Register, DefaultContext, Interpreter, LoadError, Loader, NaslValue};
+    use crate::*;
 
     struct FakeInclude {
         plugins: HashMap<String, String>,
@@ -75,11 +75,11 @@ mod tests {
         test();
         "###;
         let mut register = Register::default();
-        let context = DefaultContext {
+        let context = ContextBuilder {
             loader: Box::new(loader),
             ..Default::default()
         };
-        let fuck = context.as_context();
+        let fuck = context.build();
         let mut interpreter = Interpreter::new(&mut register, &fuck);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));

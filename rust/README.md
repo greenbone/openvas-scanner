@@ -8,19 +8,35 @@ The decision to rewrite certain parts in rust was mainly to have an easier way t
 
 The implementation is split into multiple parts that are reflected in the directory layout.
 
-The core parts are:
 
-- [nasl-syntax](./nasl-syntax/) - to tokenize a NASL script and return `Statements`
-- [storage](./storage/) - a storage abstraction used to implement multiple storage solutions.
-- [nasl-interpreter](./nasl-interpreter/) - to execute the `Statements` by also utilizing `storage`
-- [feed](./feed) - a feed related abstraction for a front end (e.g. `nasl-cli`).
+# Requirements
 
-Additional implementation:
-- [redis-storage](./redis-storage/) - a `ospd-openvas` compatible redis implementation of `storage`.
-- [nasl-cli](./nasl-cli/) - a CLI front end for the NASL implementation.
+- rust toolchain
 
-Tests:
-- [feed-verifier](./feed-verifier) - verifies that the feed update functionality is comparable with `openvas -u` and that `nasl-cli feed update` is faster than `openvas -u`.
+Additionally for the features defined as experimental you need:
+
+- libpcap
+- openssl
+- pkg-config
+- zlib
+
+# Build
+
+To build and create the executables
+
+- nasl-cli
+- openvasd
+
+You have to execute
+```
+cargo build --release
+```
+
+To enable the experimental features:
+
+```
+cargo build -F experimental --release
+```
 
 # Architecture Overview
 
@@ -37,10 +53,6 @@ interpreter ->
 storage ->
 storage specific implementation (e.g. redis-storage)
 ```
-
-## Requirements
-
-Currently only `cargo` within `rust-toolchain` is required.
 
 ## Contribution
 
