@@ -1,4 +1,4 @@
-# Implementation of Network Attack Scripting Language
+# Implementation of the NASL Attack Scripting Language
 
 The goal is to have rust based implementation of NASL.
 
