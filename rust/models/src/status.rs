@@ -55,7 +55,7 @@ impl Status {
 pub enum Phase {
     /// A scan has been stored but not started yet
     #[default]
-    Declared,
+    Stored,
     /// A scan has been requested, but not started yet
     Requested,
     /// A scan is currently running
@@ -82,7 +82,7 @@ impl Display for Phase {
             Self::Stopped => write!(f, "stopped"),
             Self::Failed => write!(f, "failed"),
             Self::Succeeded => write!(f, "succeeded"),
-            Self::Declared => write!(f, "stored"),
+            Self::Stored => write!(f, "stored"),
         }
     }
 }
