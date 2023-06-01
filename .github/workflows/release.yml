@@ -112,10 +112,16 @@ jobs:
           echo "release_ref=$RELEASE_REF" >> "$GITHUB_OUTPUT"
           echo "project=$(echo "${{ github.repository }}" | sed 's/.*\///' )" >> "$GITHUB_OUTPUT"
 
+  build-binaries:
+    needs: calculate_version
+    uses: ./.github/workflows/build-rust.yml
+
 
   release:
     name: release
-    needs: calculate_version
+    needs: 
+      - build-binaries
+      - calculate_version
     runs-on: "ubuntu-latest"
     env:
       RELEASE_KIND: ${{needs.calculate_version.outputs.release_kind}}
@@ -160,32 +166,10 @@ jobs:
             git commit -m "Automated commit: change version from ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}"
             git push origin ${{ env.RELEASE_REF }}
           fi
-
-      - uses: actions/cache@v3
+      - uses: actions/download-artifact@v3
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            rust/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: rustup update stable && rustup default stable
-        # ignore failing install, it may already be installed
-      - run: cargo install cross || true
-      - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
-        working-directory: rust
-      - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
-        working-directory: rust
-      - name: "patch for debian stable"
-        working-directory: rust
-        run: |
-          find . -type f -name "nasl-cli"
-          patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
-      - run: mkdir assets/
-      - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
-      - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu
-
+          name: rs-binaries
+          path: assets
       - uses: greenbone/actions/setup-pontos@v2
       - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
