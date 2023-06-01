@@ -166,7 +166,7 @@ where
                                 if progress.status.is_running() =>
                             {
                                 use models::Phase::*;
-                                let expected = &[Declared, Stopped, Failed, Succeeded];
+                                let expected = &[Stored, Stopped, Failed, Succeeded];
                                 Ok(ctx
                                     .response
                                     .not_accepted(&progress.status.status, expected))

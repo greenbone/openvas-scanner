@@ -253,8 +253,8 @@ paths:
               examples:
                 schema:
                   description: "Schema of a status response."
-                status of a queued scan:
-                  $ref: "#/components/examples/scan_status_queued"
+                status of a stored scan:
+                  $ref: "#/components/examples/scan_status_stored"
                 status of a running scan:
                   $ref: "#/components/examples/scan_status_running"
                 status of a succeeded scan:
@@ -589,6 +589,7 @@ components:
           description: "In which phase the scan is currently in."
           type: "string"
           enum:
+            - stored
             - requested
             - running
             - stopped
@@ -811,9 +812,9 @@ components:
           "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
         }
 
-    scan_status_queued:
+    scan_status_stored:
       description: "Status of a queued Scan"
-      value: { "status": "queued" }
+      value: { "status": "stored" }
 
     scan_status_running:
       description: "Status of a running Scan"
