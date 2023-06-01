@@ -10,39 +10,12 @@ on:
   repository_dispatch:
 
 jobs:
-  nasl-cli-release:
-    runs-on:
-     - ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      # install rustup
-      - uses: actions/checkout@v3
-      - run: rustup update stable && rustup default stable
-      # This command will attempt to install 'cross', but if it's already
-      # installed due to caching, it will do nothing and proceed without error.
-      - run: cargo install cross || true
-      - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
-      - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
-      - name: "patch for debian stable"
-        run: |
-          patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
-      - name: archive nasl-cli aarch64-unknown-linux-gnu
-        uses: actions/upload-artifact@v3
-        with:
-          name: nasl-cli-aarch64
-          path: rust/target/aarch64-unknown-linux-gnu/release/nasl-cli
-          retention-days: 1
-      - name: archive nasl-cli x86_64-unknown-linux-gnu
-        uses: actions/upload-artifact@v3
-        with:
-          name: nasl-cli-amd64
-          path: rust/target/x86_64-unknown-linux-gnu/release/nasl-cli
-          retention-days: 1
+  rs-build-binaries:
+    uses: ./.github/workflows/build-rust.yml
+
   production-image:
     runs-on: ubuntu-latest
-    needs: [nasl-cli-release]
+    needs: [rs-build-binaries]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -100,14 +73,15 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - uses: actions/download-artifact@v3
         with:
-          name: nasl-cli-amd64
-          path: bin/nasl-cli/linux/amd64
-      - uses: actions/download-artifact@v3
-        with:
-          name: nasl-cli-aarch64
-          path: bin/nasl-cli/linux/arm64
+          name: rs-binaries
+          path: assets
+      - run: mkdir -p assets/linux/amd64
+      - run: mkdir -p assets/linux/arm64
+      - run: mv assets/nasl-cli-aarch64-unknown-linux-gnu assets/linux/arm64/nasl-cli
+      - run: mv assets/nasl-cli-x86_64-unknown-linux-gnu assets/linux/amd64/nasl-cli
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx

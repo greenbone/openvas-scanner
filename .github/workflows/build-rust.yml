@@ -1,0 +1,60 @@
+name: "rs-build"
+
+on: [workflow_call] 
+
+
+# This job builds the targets for x86_64 as well as aarch64. It is intented to 
+# be included in the other jobs by calling:
+# ```
+# jobs:
+#   name:
+#     uses: ./.github/workflows/build-rust.yml
+# ```
+#
+# It saves the binaris:
+# - nasl-cli
+# - feed-verofier
+#
+# as rs-binaries.
+#
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+      # create branch of version
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: rustup update stable && rustup default stable
+        # ignore failing install, it may already be installed
+      - run: cargo install cross || true
+      - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
+        working-directory: rust
+      - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
+        working-directory: rust
+      - name: "patch for debian stable"
+        working-directory: rust
+        run: |
+          find . -type f -name "nasl-cli"
+          patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/nasl-cli
+          patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/x86_64-unknown-linux-gnu/release/nasl-cli
+          patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/nasl-cli
+          patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release/nasl-cli
+      - run: mkdir assets/
+      - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
+      - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu
+      - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/feed-verifier-aarch64-unknown-linux-gnu
+      - run: mv rust/target/x86_64-unknown-linux-gnu/release/feed-verifier assets/feed-verifier-x86_64-unknown-linux-gnu
+      - name: archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: rs-binaries
+          path: assets/*
+          retention-days: 1
