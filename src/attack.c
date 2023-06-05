@@ -646,12 +646,15 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   /* launch the plugins */
   pluginlaunch_init (ip_str);
   num_plugs = plugins_scheduler_count_active (args->sched);
+  g_debug ("%s: Launch %d Plugins against %s", __func__, num_plugs, ip_str);
   for (;;)
     {
       /* Check that our father is still alive */
       parent = getppid ();
       if (parent <= 1 || process_alive (parent) == 0)
         {
+          g_warning ("%s: Parent process dead, stop scanning %s", __func__,
+                     ip_str);
           pluginlaunch_stop ();
           return;
         }
@@ -667,7 +670,10 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
         }
 
       if (scan_is_stopped ())
-        plugins_scheduler_stop (args->sched);
+        {
+          g_debug ("%s: Scanning %s is stopped", __func__, ip_str);
+          plugins_scheduler_stop (args->sched);
+        }
 
       plugin = plugins_scheduler_next (args->sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
@@ -684,6 +690,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                */
               if (e == ERR_HOST_DEAD)
                 {
+                  g_debug ("%s: Host %s is dead", __func__, ip_str);
                   char buffer[2048];
 
                   snprintf (
@@ -1221,6 +1228,8 @@ attack_network (struct scan_globals *globals)
   GSList *unresolved;
   char buf[96];
 
+  g_debug ("Attack network start");
+
   check_deprecated_prefs ();
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
@@ -1234,13 +1243,16 @@ attack_network (struct scan_globals *globals)
   if (check_kb_access ())
     return;
 
+  g_debug ("%s: Get list of hosts to scan", __func__);
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
+      g_warning ("%s: Nothing to scan, list of hosts is empty", __func__);
       return;
     }
 
+  g_debug ("%s: Get list of ports to scan", __func__);
   /* Verify the port range is a valid one */
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
@@ -1250,21 +1262,25 @@ attack_network (struct scan_globals *globals)
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
         NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-      g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
-                 "Scan terminated.");
+      g_warning ("%s: Invalid port list. Ports must be in the range [1-65535]. "
+                 "Scan terminated.",
+                 __func__);
       set_scan_status ("finished");
 
       return;
     }
 
   /* Initialize the attack. */
+  g_debug ("%s: Initialize scheduler", __func__);
   int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
                                   prefs_get_bool ("auto_enable_dependencies"),
                                   &plugins_init_error);
   if (!sched)
     {
-      g_message ("Couldn't initialize the plugin scheduler");
+      g_message ("%s: Couldn't initialize the plugin scheduler", __func__);
+      if (plugins_init_error == -1)
+        g_warning ("%s: Found dependency cycle in plugins", __func__);
       return;
     }
 
@@ -1275,6 +1291,7 @@ attack_network (struct scan_globals *globals)
                "Some plugins have not been launched.",
                plugins_init_error);
 
+      g_warning ("%s: %s", __func__, buf);
       connect_main_kb (&main_kb);
       message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
@@ -1283,6 +1300,7 @@ attack_network (struct scan_globals *globals)
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
 
+  g_debug ("%s: Create hosts from hostlist", __func__);
   hosts = gvm_hosts_new (hostlist);
   if (hosts == NULL)
     {
@@ -1296,18 +1314,22 @@ attack_network (struct scan_globals *globals)
       message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
                          "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
-      g_warning ("Invalid target list. Scan terminated.");
+      g_warning ("%s: Invalid target list. Scan terminated.", __func__);
+      g_debug ("%s: target list: %s", __func__, hostlist);
       goto stop;
     }
 
+  g_debug ("%s: Resolve hostnames to their corresponding IP Address", __func__);
   unresolved = gvm_hosts_resolve (hosts);
   while (unresolved)
     {
-      g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
+      g_warning ("%s: Couldn't resolve hostname '%s'", __func__,
+                 (char *) unresolved->data);
       unresolved = unresolved->next;
     }
   g_slist_free_full (unresolved, g_free);
 
+  g_debug ("Apply hosts preference ordering and reverse lookup");
   /* Apply Hosts preferences. */
   apply_hosts_preferences_ordering (hosts);
   apply_hosts_reverse_lookup_preferences (hosts);
@@ -1316,6 +1338,7 @@ attack_network (struct scan_globals *globals)
   // Remove hosts which are denied and/or keep the ones in the allowed host
   // lists
   // for both, user and system wide settings.
+  g_debug ("Apply hosts allow deny");
   apply_hosts_allow_deny (hosts);
 #endif
 
@@ -1334,10 +1357,10 @@ attack_network (struct scan_globals *globals)
     goto stop;
   hosts_init (max_hosts);
 
-  g_message ("Vulnerability scan %s started: Target has %d hosts: "
+  g_message ("%s: Vulnerability scan %s started: Target has %d hosts: "
              "%s, with max_hosts = %d and max_checks = %d",
-             globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
-             max_checks);
+             __func__, globals->scan_id, gvm_hosts_count (hosts), hostlist,
+             max_hosts, max_checks);
 
   if (test_alive_hosts_only)
     {
@@ -1346,6 +1369,8 @@ attack_network (struct scan_globals *globals)
       int err;
       pthread_t tid;
       struct in6_addr tmpaddr;
+
+      g_debug ("%s: Start alive detection", __func__);
 
       /* Reset the iterator. */
       hosts->current = 0;
@@ -1356,8 +1381,10 @@ attack_network (struct scan_globals *globals)
           "to create thread.",
           __func__);
       set_alive_detection_tid (tid);
-      g_debug ("%s: started alive detection.", __func__);
+      g_debug ("%s: started alive detection", __func__);
 
+      g_debug ("%s: Wait for the first host to be detected", __func__);
+      /* Wait for the first host to be detected as alive */
       for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
            !host && !ad_finished && !scan_is_stopped ();
            host = get_host_from_queue (alive_hosts_kb, &ad_finished))
@@ -1365,6 +1392,7 @@ attack_network (struct scan_globals *globals)
           fork_sleep (1);
         }
 
+      /* Use the first host to initialize the alive_hosts_list */
       if (gvm_host_get_addr6 (host, &tmpaddr) == 0)
         host = gvm_host_find_in_hosts (host, &tmpaddr, hosts);
       if (host)
@@ -1376,10 +1404,13 @@ attack_network (struct scan_globals *globals)
         }
       alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
     }
+  else
+    g_debug ("%s: Alive detection disabled", __func__);
 
   /*
    * Start the attack !
    */
+  g_debug ("%s: Start attacking", __func__);
   allow_simultaneous_ips = prefs_get_bool ("allow_simultaneous_ips");
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
@@ -1445,15 +1476,15 @@ attack_network (struct scan_globals *globals)
           if (fork_retries > MAX_FORK_RETRIES)
             {
               /* Forking failed - we go to the wait queue. */
-              g_warning ("fork() failed - %s. %s won't be tested",
+              g_warning ("%s: fork() failed - %s. %s won't be tested", __func__,
                          strerror (errno), host_str);
               g_free (host_str);
               goto stop;
             }
 
-          g_debug ("fork() failed - "
+          g_debug ("%s: fork() failed - "
                    "sleeping %d seconds and trying again...",
-                   fork_retries);
+                   __func__, fork_retries);
           fork_sleep (fork_retries);
           goto forkagain;
         }
@@ -1490,15 +1521,18 @@ attack_network (struct scan_globals *globals)
                   flag_set = finish_signal_on_queue (alive_hosts_kb);
 
                   put_host_on_queue (alive_hosts_kb, ip_str);
-                  g_debug ("Reallocating the host %s at the end of the queue",
-                           ip_str);
+                  g_debug (
+                    "%s: Reallocating the host %s at the end of the queue",
+                    __func__, ip_str);
 
                   gvm_host_free (host);
                   host = NULL;
 
                   if (flag_set)
                     {
-                      g_debug ("Reallocating finish signal in the host queue");
+                      g_debug (
+                        "%s: Reallocating finish signal in the host queue",
+                        __func__);
                       realloc_finish_signal_on_queue (alive_hosts_kb);
                     }
                 }
@@ -1532,7 +1566,7 @@ attack_network (struct scan_globals *globals)
     if (scan_is_stopped () == 1)
       killpg (getpid (), SIGUSR1);
 
-  g_debug ("Test complete");
+  g_debug ("%s: Test complete", __func__);
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
@@ -1573,13 +1607,13 @@ stop:
 
   gettimeofday (&now, NULL);
   if (test_alive_hosts_only)
-    g_message ("Vulnerability scan %s finished in %ld seconds: "
+    g_message ("%s: Vulnerability scan %s finished in %ld seconds: "
                "%d alive hosts of %d",
-               globals->scan_id, now.tv_sec - then.tv_sec,
+               __func__, globals->scan_id, now.tv_sec - then.tv_sec,
                gvm_hosts_count (alive_hosts_list), gvm_hosts_count (hosts));
   else
-    g_message ("Vulnerability scan %s finished in %ld seconds: %d hosts",
-               globals->scan_id, now.tv_sec - then.tv_sec,
+    g_message ("%s: Vulnerability scan %s finished in %ld seconds: %d hosts",
+               __func__, globals->scan_id, now.tv_sec - then.tv_sec,
                gvm_hosts_count (hosts));
 
   gvm_hosts_free (hosts);

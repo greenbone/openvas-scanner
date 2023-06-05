@@ -310,6 +310,7 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int *error)
   if (check_dependency_cycles (ret))
     {
       plugins_scheduler_free (ret);
+      *error = -1;
       return NULL;
     }
 
