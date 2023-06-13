@@ -34,7 +34,7 @@ jobs:
           sh .github/install-openvas-dependencies.sh
       - name: Configure and Scan Build
         run: |
-          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-11/libexec/ccc-analyzer
+          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
           scan-build -o ~/scan-build-report cmake --build build
       - name: Upload scan-build report
         uses: actions/upload-artifact@v3

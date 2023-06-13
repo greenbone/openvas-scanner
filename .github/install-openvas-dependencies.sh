@@ -9,8 +9,8 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     clang-format \
     clang-tools \
     cmake \
+    curl \
     lcov \
-    libcgreen1-dev \
     libgnutls28-dev \
     libgpgme-dev \
     libjson-glib-dev \
@@ -23,7 +23,12 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libgssapi3-heimdal \
     libkrb5-26-heimdal \
     libasn1-8-heimdal \
-    libroken18-heimdal \
+    libroken19-heimdal \
     libhdb9-heimdal \
     libpopt0 \
     && rm -rf /var/lib/apt/lists/*
+
+curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.2.tar.gz -k
+tar -xzf cgreen.tar.gz && cd cgreen-1.6.2
+make install
+ldconfig

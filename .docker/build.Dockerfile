@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   clang-tools \
   cmake \
   lcov \
-  libcgreen1-dev \
   libgnutls28-dev \
   libgpgme-dev \
   libjson-glib-dev \
@@ -26,7 +25,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libgssapi3-heimdal \
   libkrb5-26-heimdal \
   libasn1-8-heimdal \
-  libroken18-heimdal \
+  libroken19-heimdal \
   libhdb9-heimdal \
   libpopt0 \
   && rm -rf /var/lib/apt/lists/*

@@ -207,7 +207,7 @@ pub struct InterpretError {
 /// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.
-    FunctioExpectedValue,
+    FunctionExpectedValue,
     /// When returned context is a value when a function is required.
     ValueExpectedFunction,
     /// When a specific type is expected
@@ -242,7 +242,7 @@ pub enum InterpretErrorKind {
 impl Display for InterpretErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InterpretErrorKind::FunctioExpectedValue => {
+            InterpretErrorKind::FunctionExpectedValue => {
                 write!(f, "expected a value but got a function")
             }
             InterpretErrorKind::ValueExpectedFunction => {
@@ -344,7 +344,7 @@ impl InterpretError {
 
     /// Creates an InterpreterError if the found context is a function although a value is required
     pub fn expected_value() -> Self {
-        Self::new(InterpretErrorKind::FunctioExpectedValue, None)
+        Self::new(InterpretErrorKind::FunctionExpectedValue, None)
     }
 
     /// Creates an InterpreterError if the found context is a value although a function is required
