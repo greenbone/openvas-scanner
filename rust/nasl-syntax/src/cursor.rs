@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-///! This module defines the Cursor as a basis for tokenizing
+//! This module defines the Cursor as a basis for tokenizing
 use std::str::Chars;
 
 pub const EOF_CHAR: char = '\0';
