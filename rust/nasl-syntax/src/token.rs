@@ -7,7 +7,7 @@ use std::ops::Range;
 
 use crate::ACT;
 
-//! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
+/// This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use crate::cursor::Cursor;
 
 /// Identifies if number is base10, base 8, hex or binary

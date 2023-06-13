@@ -20,7 +20,7 @@ use nasl_interpreter::{AsBufReader, LoadError};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Defines error cases that can happen while verifiying
+/// Defines error cases that can happen while verifying
 pub enum Error {
     /// Feed is incorrect
     SumsFileCorrupt(Hasher),
