@@ -1170,6 +1170,7 @@ dependencies = [
 name = "nasl-builtin-raw-ip"
 version = "0.1.0"
 dependencies = [
+ "nasl-builtin-std",
  "nasl-builtin-utils",
  "nasl-interpreter",
  "nasl-syntax",
@@ -1332,6 +1333,32 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "openvasd"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "clap 4.3.0",
+ "feed",
+ "futures-util",
+ "hyper",
+ "hyper-rustls",
+ "models",
+ "nasl-interpreter",
+ "osp",
+ "rustls",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "storage",
+ "tokio",
+ "tokio-rustls",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -1841,32 +1868,6 @@ checksum = "f51d0c0d83bec45f16480d0ce0058397a69e48fcdc52d1dc8855fb68acbd31a7"
 dependencies = [
  "core-foundation-sys",
  "libc",
-]
-
-[[package]]
-name = "sensord"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "clap 4.3.0",
- "feed",
- "futures-util",
- "hyper",
- "hyper-rustls",
- "models",
- "nasl-interpreter",
- "osp",
- "rustls",
- "rustls-pemfile",
- "serde",
- "serde_json",
- "storage",
- "tokio",
- "tokio-rustls",
- "toml",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

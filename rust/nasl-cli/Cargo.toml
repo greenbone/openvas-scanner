@@ -21,5 +21,7 @@ storage = { path = "../storage" }
 redis-storage = { path = "../redis-storage" }
 json-storage = {path = "../json-storage"}
 
-
 [features]
+nasl-builtin-raw-ip = ["nasl-interpreter/nasl-builtin-raw-ip"]
+nasl-builtin-ssh = ["nasl-interpreter/nasl-builtin-ssh"]
+experimental = ["nasl-builtin-ssh", "nasl-builtin-raw-ip"]

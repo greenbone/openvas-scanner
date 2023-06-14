@@ -84,6 +84,14 @@ fn add_ssh<K: AsRef<str>>(
     builder
 }
 
+#[cfg(not(feature = "nasl-builtin-raw-ip"))]
+fn add_raw_ip<K: AsRef<str>>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+    println!("RAWIP is not enabled");
+    builder
+}
+
 #[cfg(feature = "nasl-builtin-raw-ip")]
 fn add_raw_ip<K: AsRef<str>>(
     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
@@ -96,13 +104,6 @@ fn add_ssh<K: AsRef<str>>(
     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
 ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
     builder.push_register(nasl_builtin_ssh::Ssh::default())
-}
-
-#[cfg(not(feature = "nasl-builtin-raw-ip"))]
-fn add_raw_ip<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
-    builder
 }
 
 /// Contains the key as well as the dispatcher.

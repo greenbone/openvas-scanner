@@ -5,12 +5,13 @@
 //! Defines NASL frame forgery and arp functions
 #[cfg(test)]
 mod tests {
-    use nasl_interpreter::*;
-    
-
-    
 
     //use super::convert_vec_into_mac_address;
+
+    use nasl_builtin_std::ContextBuilder;
+    use nasl_builtin_utils::Register;
+    use nasl_interpreter::Interpreter;
+    use nasl_syntax::{parse, NaslValue};
 
     #[test]
     fn get_local_mac_address_from_ip() {
@@ -20,7 +21,8 @@ mod tests {
         get_local_mac_address_from_ip("::1");
         "###;
         let mut register = Register::default();
-        let binding = ContextBuilder::default();
+        let mut binding = ContextBuilder::default();
+        binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -49,7 +51,9 @@ mod tests {
         dump_frame(frame:a);
         "###;
         let mut register = Register::default();
-        let binding = ContextBuilder::default();
+        let mut binding = ContextBuilder::default();
+        binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -78,7 +82,8 @@ mod tests {
         send_frame(frame: a, pcap_active: TRUE);
         send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
         "###;
-        let binding = ContextBuilder::default();
+        let mut binding = ContextBuilder::default();
+        binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
         let context = binding.build();
         let mut register = Register::default();
         let mut interpreter = Interpreter::new(&mut register, &context);

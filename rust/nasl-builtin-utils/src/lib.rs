@@ -101,6 +101,14 @@ impl<K> NaslFunctionRegister<K> {
     pub fn new(executor: Vec<Box<dyn NaslFunctionExecuter<K>>>) -> Self {
         Self { executor }
     }
+
+    /// Pushes a NaslFunctionExecuter to the register
+    pub fn push_executer<T>(&mut self, executor: T)
+    where
+        T: NaslFunctionExecuter<K> + 'static,
+    {
+        self.executor.push(Box::new(executor));
+    }
 }
 
 impl<K> NaslFunctionExecuter<K> for NaslFunctionRegister<K> {
