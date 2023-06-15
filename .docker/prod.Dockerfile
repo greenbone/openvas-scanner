@@ -15,6 +15,7 @@ FROM greenbone/gvm-libs:$VERSION
 ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
+  libglib2.0-0 \
   libjson-glib-1.0-0 \
   libksba8 \
   nmap \
