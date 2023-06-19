@@ -13,7 +13,6 @@ pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;
 ///
 /// It is mostly used internally when building a NaslFunctionExecuter.
 /// The register as well as the context are given by the interpreter that wants either a result or
-//Lw
 /// an error back.
 pub type NaslFunction<'a, K> =
     fn(&Register, &Context<K>) -> Result<nasl_syntax::NaslValue, FunctionErrorKind>;

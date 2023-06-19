@@ -6,7 +6,7 @@ To use this module you have to initiate `Description` and look for the function:
 
 ```
 let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
-    .add(nasl_builtin_description::Description)
+    .push_register(nasl_builtin_description::Description)
     .build();
 ```
 

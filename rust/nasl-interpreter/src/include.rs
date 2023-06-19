@@ -79,8 +79,8 @@ mod tests {
             loader: Box::new(loader),
             ..Default::default()
         };
-        let fuck = context.build();
-        let mut interpreter = Interpreter::new(&mut register, &fuck);
+        let ctx = context.build();
+        let mut interpreter = Interpreter::new(&mut register, &ctx);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));

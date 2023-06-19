@@ -8,7 +8,7 @@ To use this module you have to initiate Cryptographic and look for the function:
 
 ```
 let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
-    .add(nasl_builtin_cryptographic::Cryptographic)
+    .push_register(nasl_builtin_cryptographic::Cryptographic)
     .build();
 ```
 

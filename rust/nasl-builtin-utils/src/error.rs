@@ -10,7 +10,7 @@ use crate::context::ContextType;
 pub type GeneralErrorType = StorageError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Describtive kind of error that can occur while calling a function
+/// Descriptive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
     /// Function called with insufficient arguments
     MissingPositionalArguments {

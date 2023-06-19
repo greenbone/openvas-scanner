@@ -148,19 +148,6 @@ impl Default for ContextBuilder<String, KeyDispatcherSet<String>> {
     }
 }
 
-impl<K: AsRef<str>> ContextBuilder<K, KeyDispatcherSet<K>> {
-    /// Creates a new context builder with the given key and storage.
-    pub fn new(key: K, storage: Box<dyn Storage<K>>) -> Self {
-        Self {
-            key: KeyDispatcherSet { key, storage },
-            target: Default::default(),
-            loader: Default::default(),
-            logger: Default::default(),
-            functions: nasl_std_functions(),
-        }
-    }
-}
-
 impl<K: AsRef<str>, S> ContextBuilder<K, S> {
     /// Sets the target to test.
     pub fn target(mut self, target: String) -> Self {
@@ -188,6 +175,17 @@ impl<K: AsRef<str>, S> ContextBuilder<K, S> {
 }
 
 impl<K: AsRef<str>> ContextBuilder<K, KeyDispatcherSet<K>> {
+    /// Creates a new context builder with the given key and storage.
+    pub fn new(key: K, storage: Box<dyn Storage<K>>) -> Self {
+        Self {
+            key: KeyDispatcherSet { key, storage },
+            target: Default::default(),
+            loader: Default::default(),
+            logger: Default::default(),
+            functions: nasl_std_functions(),
+        }
+    }
+
     /// Createz the context.
     ///
     /// Be aware that unlike normal builder, because of the lifetime of the dispatcher, the ContextBuilder must exist as long as the context and cannot be dropped immediately.
