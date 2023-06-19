@@ -260,4 +260,3 @@ impl From<storage::types::Primitive> for NaslValue {
         }
     }
 }
-

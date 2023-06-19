@@ -10,3 +10,9 @@ if (description == 1) {
 }
 
 display("Hello, world!");
+
+
+display("de nuevo");
+display(TEST1);
+display(IPPROTO_IP);
+display(ARP_PROTO_LEN);

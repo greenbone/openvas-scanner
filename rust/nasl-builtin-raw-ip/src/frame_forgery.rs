@@ -18,19 +18,19 @@ use nasl_builtin_utils::{Context, ContextType, NaslFunction, Register};
 use nasl_syntax::NaslValue;
 
 /// Hardware type ethernet
-const ARPHRD_ETHER: u16 = 0x0001;
+pub const ARPHRD_ETHER: u16 = 0x0001;
 /// Protocol type IP
-const ETHERTYPE_IP: u16 = 0x0800;
+pub const ETHERTYPE_IP: u16 = 0x0800;
 /// Protocol type ARP
-const ETHERTYPE_ARP: u16 = 0x0806;
+pub const ETHERTYPE_ARP: u16 = 0x0806;
 /// Length in bytes of an ethernet mac address
-const ETH_ALEN: u8 = 0x0006;
+pub const ETH_ALEN: u8 = 0x0006;
 /// Protocol length for ARP
-const ARP_PROTO_LEN: u8 = 0x0004;
+pub const ARP_PROTO_LEN: u8 = 0x0004;
 /// ARP operation request
-const ARPOP_REQUEST: u16 = 0x0001;
+pub const ARPOP_REQUEST: u16 = 0x0001;
 /// Default Timeout for received
-const DEFAULT_TIMEOUT: i32 = 5000;
+pub const DEFAULT_TIMEOUT: i32 = 5000;
 
 #[derive(Debug)]
 /// Structure to hold a datalink layer frame

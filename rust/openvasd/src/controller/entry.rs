@@ -8,10 +8,10 @@
 
 use std::{fmt::Display, sync::Arc};
 
-use hyper::{Response, Body, Method, Request};
-use super::{quit_on_poison, context::Context};
+use super::{context::Context, quit_on_poison};
+use hyper::{Body, Method, Request, Response};
 
-use crate::scan::{Error, ScanStarter, ScanStopper, ScanDeleter};
+use crate::scan::{Error, ScanDeleter, ScanStarter, ScanStopper};
 /// The supported paths of scannerd
 enum KnownPaths {
     /// /scans/{id}
@@ -67,7 +67,6 @@ impl Display for KnownPaths {
         }
     }
 }
-
 
 /// Is used to call a blocking function and return a response.
 ///
@@ -167,9 +166,7 @@ where
                             {
                                 use models::Phase::*;
                                 let expected = &[Stored, Stopped, Failed, Succeeded];
-                                Ok(ctx
-                                    .response
-                                    .not_accepted(&progress.status.status, expected))
+                                Ok(ctx.response.not_accepted(&progress.status.status, expected))
                             }
                             (models::Action::Start, Some(progress)) => {
                                 tracing::debug!(
@@ -265,9 +262,7 @@ where
         (&Method::GET, Vts) => {
             let (_, oids) = ctx.oids.read()?.clone();
             Ok(ctx.response.ok(&oids))
-        },
+        }
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
     }
 }
-
-

@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
-use nasl_builtin_utils::{Context, NaslFunctionRegister, Register};
+
+use nasl_builtin_utils::{Context, NaslFunctionRegister, NaslVarRegister, Register};
 use nasl_syntax::{logger::NaslLogger, Loader};
 use storage::{DefaultDispatcher, Storage};
 mod array;
@@ -77,18 +78,49 @@ pub fn nasl_std_functions<K: AsRef<str>>() -> nasl_builtin_utils::NaslFunctionRe
     builder.build()
 }
 
+/// Creates a new NaslVarRegister and adds all the predefined nasl variables.
+///
+/// To add new variables to the register, add it to the builder by calling `push_register`.
+/// This way the predefined NASL variables will be added to the std and can be utilized by the nasl interpreter.
+///
+/// When you have a function that is considered experimental due to either dependencies on
+/// c-library or other reasons, you have to add the library as optional and put it into the
+/// `experimental` feature flag, so the variables can be added. Additionally you have to create two new functions:
+/// one with the library toggle enabled and one when it is disabled.
+///
+/// This way the user can decide on compile if the functionality, and therefore the variables, are enabled or not.
+///
+/// # Example
+///
+/// ```
+/// #[cfg(feature = "nasl-builtin-raw-ip")]
+/// fn add_raw_ip_vars(
+///     builder: nasl_builtin_utils::NaslVarRegisterBuilder,
+/// ) -> nasl_builtin_utils::NaslVarRegisterBuilder {
+///     builder.push_register(nasl_builtin_raw_ip::RawIpVars)
+/// }
+///
+/// #[cfg(not(feature = "nasl-builtin-raw-ip"))]
+/// fn add_raw_ip_vars(
+///     builder: nasl_builtin_utils::NaslVarRegisterBuilder,
+/// ) -> nasl_builtin_utils::NaslVarRegisterBuilder {
+///     builder
+/// }
+/// ```
+///
+/// ```text
+/// builder = add_raw_ip_vars(builder);
+/// ```
+pub fn nasl_std_variables() -> NaslVarRegister {
+    let mut builder = nasl_builtin_utils::NaslVarRegisterBuilder::new();
+    builder = add_raw_ip_vars(builder);
+    builder.build()
+}
+
 #[cfg(not(feature = "nasl-builtin-ssh"))]
 fn add_ssh<K: AsRef<str>>(
     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
 ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
-    builder
-}
-
-#[cfg(not(feature = "nasl-builtin-raw-ip"))]
-fn add_raw_ip<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
-    println!("RAWIP is not enabled");
     builder
 }
 
@@ -99,11 +131,32 @@ fn add_raw_ip<K: AsRef<str>>(
     builder.push_register(nasl_builtin_raw_ip::RawIp)
 }
 
+#[cfg(feature = "nasl-builtin-raw-ip")]
+fn add_raw_ip_vars(
+    builder: nasl_builtin_utils::NaslVarRegisterBuilder,
+) -> nasl_builtin_utils::NaslVarRegisterBuilder {
+    builder.push_register(nasl_builtin_raw_ip::RawIp)
+}
+
 #[cfg(feature = "nasl-builtin-ssh")]
 fn add_ssh<K: AsRef<str>>(
     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
 ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
     builder.push_register(nasl_builtin_ssh::Ssh::default())
+}
+
+#[cfg(not(feature = "nasl-builtin-raw-ip"))]
+fn add_raw_ip<K: AsRef<str>>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+    builder
+}
+
+#[cfg(not(feature = "nasl-builtin-raw-ip"))]
+fn add_raw_ip_vars(
+    builder: nasl_builtin_utils::NaslVarRegisterBuilder,
+) -> nasl_builtin_utils::NaslVarRegisterBuilder {
+    builder
 }
 
 /// Contains the key as well as the dispatcher.
@@ -199,5 +252,39 @@ impl<K: AsRef<str>> ContextBuilder<K, KeyDispatcherSet<K>> {
             self.logger.as_ref(),
             &self.functions,
         )
+    }
+}
+
+/// The register builder for NASL Variables
+///
+/// This is the main entry point for the nasl interpreter and adds all the variables defined in
+/// [nasl_std_variables] to variables register.
+pub struct RegisterBuilder {
+    /// Holds the access to the defined nasl variables
+    pub variables: NaslVarRegister,
+}
+
+impl Default for RegisterBuilder {
+    fn default() -> Self {
+        Self {
+            variables: nasl_std_variables(),
+        }
+    }
+}
+
+impl RegisterBuilder {
+    /// Build a Register which includes all predefined globals variables.
+    /// This is the register which is passed to the interpreter and nasl functions
+    pub fn build() -> Register {
+        let mut register = Register::new();
+        let regbuilder = Self {
+            variables: nasl_std_variables(),
+        };
+        for var_definer in regbuilder.variables.definers {
+            for (var_name, nasl_val) in var_definer.nasl_var_define() {
+                register.add_global(var_name, nasl_builtin_utils::ContextType::Value(nasl_val));
+            }
+        }
+        register
     }
 }

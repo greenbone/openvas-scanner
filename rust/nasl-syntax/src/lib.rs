@@ -10,19 +10,21 @@ mod grouping_extension;
 mod infix_extension;
 mod keyword_extension;
 mod lexer;
+mod loader;
+mod naslvalue;
 mod operation;
 mod postfix_extension;
 mod prefix_extension;
 mod statement;
 mod token;
 mod variable_extension;
-mod naslvalue;
-mod loader;
 // should be replaced with tracing
 pub mod logger;
 
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
+pub use loader::*;
+pub use naslvalue::*;
 pub use statement::*;
 pub use storage::nvt::ACT;
 pub use token::Base as NumberBase;
@@ -30,8 +32,6 @@ pub use token::Category as TokenCategory;
 pub use token::IdentifierType;
 pub use token::Token;
 pub use token::Tokenizer;
-pub use naslvalue::*;
-pub use loader::*;
 
 /// Parses given code and returns found Statements and Errors
 ///
