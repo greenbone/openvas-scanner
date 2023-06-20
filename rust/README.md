@@ -46,13 +46,7 @@ This is done by providing specialized crates by task and abstraction of data bas
 
 It roughly follows the pattern of:
 
-```text
-Frontend (e.g. nasl-cli) -> 
-specialized task (e.g. feed/update) ->
-interpreter ->
-storage ->
-storage specific implementation (e.g. redis-storage)
-```
+![overview picture](doc/overview.svg?raw=true "Overview")
 
 ## Contribution
 
