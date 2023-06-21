@@ -130,7 +130,7 @@ impl Config {
             .arg(
                 clap::Arg::new("config")
                     .short('c')
-                    .env("SENSORD_CONFIG")
+                    .env("OPENVASD_CONFIG")
                     .long("config")
                     .action(ArgAction::Set)
                     .help("path to toml config file"),

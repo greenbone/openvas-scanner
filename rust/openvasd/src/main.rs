@@ -14,7 +14,7 @@ mod tls;
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .with_env_var("SENSORD_LOG")
+        .with_env_var("OPENVASD_LOG")
         .from_env_lossy();
     tracing_subscriber::fmt().with_env_filter(filter).init();
     let config = config::Config::load();

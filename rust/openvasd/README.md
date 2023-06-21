@@ -1,10 +1,10 @@
-# sensord
+# OpenVAS Daemon
 
 Is the implementation for [scanner-api](https://greenbone.github.io/scanner-api/).
 
 Currently it is utilizing ospd-openvas.
 
-To set the log level you haben set environment variable `SENSORD_LOG` to the following levels:
+To set the log level you haben set environment variable `OPENVASD_LOG` to the following levels:
 
 - TRACE
 - DEBUG
@@ -22,10 +22,10 @@ It requires a running ospd-openvas instance.
 
 Create a configuration file under either:
 
-- `/etc/sensord/sensord.toml`
-- `$HOME/.config/sensord/sensord.toml`
+- `/etc/openvasd/sensord.toml`
+- `$HOME/.config/openvasd/sensord.toml`
 
-or provide the `-c` flag when starting sensord.
+or provide the `-c` flag when starting openvasd.
 
 Configure it like:
 
@@ -48,13 +48,13 @@ key = "mtls_is_preferred"
 
 [tls]
 # the server certificate
-certs = "/etc/sensord/tls/certs.pem"
+certs = "/etc/openvasd/tls/certs.pem"
 # server key
-key = "/var/lib/sensord/tls/key.pem"
+key = "/var/lib/openvasd/tls/key.pem"
 # dir that contains client certificates. if there are none than every client is
 # allowed to connect otherwise just the clients that habve the configured
 # client certificates
-client_certs = "/etc/sensord/tls/clients"
+client_certs = "/etc/openvasd/tls/clients"
 
 [ospd]
 # path to the unix socket of ospd-openvas
@@ -92,11 +92,11 @@ header with the configured value for successful authentication.
 # Usage
 
 ```
-Usage: sensord [OPTIONS]
+Usage: openvasd [OPTIONS]
 
 Options:
   -c, --config <config>
-          path to toml config file [env: SENSORD_CONFIG=]
+          path to toml config file [env: OPENVASD_CONFIG=]
       --feed-path <feed-path>
           path to openvas feed [env: FEEED_PATH=]
       --feed-check-interval <SECONDS>
@@ -122,8 +122,8 @@ Options:
 ## Defaults
 
 The default lookup path for the configs are:
-- `/etc/sensord/sensord.toml`
-- `$HOME/.config/sensord/sensord.toml`
+- `/etc/openvasd/sensord.toml`
+- `$HOME/.config/openvasd/sensord.toml`
 
 
 ```
@@ -138,9 +138,9 @@ nanos = 0
 enable_get_scans = false
 
 [tls]
-certs = "/etc/sensord/tls/certs.pem"
-key = "/etc/sensord/tls/key.pem"
-client_certs = "/etc/sensord/tls/clients"
+certs = "/etc/openvasd/tls/certs.pem"
+key = "/etc/openvasd/tls/key.pem"
+client_certs = "/etc/openvasd/tls/clients"
 
 [ospd]
 socket = "/var/run/ospd/ospd.sock"
