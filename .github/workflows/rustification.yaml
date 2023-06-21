@@ -2,10 +2,10 @@ name: rs
 
 on:
   push:
-    branches: [ main, stable, oldstable ]
+    branches: [main, stable, oldstable]
   pull_request:
 
-env: 
+env:
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt update && sudo apt-get install -y libpcap-dev
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }} || rustup default ${{ matrix.toolchain }}
       - run: cargo test
   clippy:
     runs-on: ubuntu-latest
@@ -122,4 +122,3 @@ jobs:
           mv ./feed/* "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
       - run: openvas -s
       - run: feed-verifier || (cat /var/log/gvm/openvas.log && false)
-      
