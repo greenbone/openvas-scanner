@@ -4,7 +4,9 @@
 
 use nasl_syntax::{IdentifierType, Statement, Token, TokenCategory};
 
-use crate::{interpreter::InterpretResult, ContextType, InterpretError, Interpreter, NaslValue};
+use crate::{interpreter::InterpretResult, InterpretError, Interpreter};
+use nasl_builtin_utils::ContextType;
+use nasl_syntax::NaslValue;
 
 /// Extension to handle the interpretation of NASL loops
 pub(crate) trait LoopExtension {
@@ -166,9 +168,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use nasl_syntax::parse;
-
-    use crate::{DefaultContext, Interpreter, NaslValue, Register};
+    use crate::*;
 
     #[test]
     fn for_loop_test() {
@@ -179,8 +179,8 @@ mod tests {
         }
         a;
         "###;
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut register = Register::default();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter =
@@ -200,8 +200,8 @@ mod tests {
         a;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -222,8 +222,8 @@ mod tests {
         a;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -248,8 +248,8 @@ mod tests {
         i;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -275,8 +275,8 @@ mod tests {
         i;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -307,8 +307,8 @@ mod tests {
         i;
         "###;
         let mut register = Register::default();
-        let binding = DefaultContext::default();
-        let context = binding.as_context();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));

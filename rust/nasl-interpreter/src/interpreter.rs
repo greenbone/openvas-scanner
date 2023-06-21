@@ -4,19 +4,22 @@
 
 use std::{collections::HashMap, io};
 
-use nasl_syntax::{IdentifierType, Statement, Statement::*, Token, TokenCategory};
+use nasl_syntax::{
+    IdentifierType, LoadError, NaslValue, Statement, Statement::*, Token, TokenCategory,
+};
 use storage::StorageError;
 
 use crate::{
     assign::AssignExtension,
     call::CallExtension,
-    context::{Context, ContextType, Register},
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     include::IncludeExtension,
     loop_extension::LoopExtension,
     operator::OperatorExtension,
-    InterpretError, InterpretErrorKind, LoadError, NaslValue,
+    InterpretError, InterpretErrorKind,
 };
+
+use nasl_builtin_utils::{Context, ContextType, Register};
 
 /// Used to interpret a Statement
 pub struct Interpreter<'a, K> {
@@ -129,7 +132,7 @@ where
             Repeat(body, condition) => self.repeat_loop(body, condition),
             ForEach(variable, iterable, body) => self.for_each_loop(variable, iterable, body),
             FunctionDeclaration(name, args, exec) => self.declare_function(name, args, exec),
-            Primitive(token) => TryFrom::try_from(token),
+            Primitive(token) => TryFrom::try_from(token).map_err(|e: TokenCategory| e.into()),
             Variable(token) => {
                 let name: NaslValue = TryFrom::try_from(token)?;
                 match self.registrat.named(&name.to_string()) {

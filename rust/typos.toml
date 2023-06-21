@@ -1,4 +1,6 @@
 [default.extend-identifiers]
 OpenVAS = "OpenVAS"
+des_ede_cbc_encrypt = "des_ede_cbc_encrypt"
+
 [files]
 extend-exclude = ["osp/tests/response_*.xml"]

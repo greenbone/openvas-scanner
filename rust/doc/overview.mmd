@@ -1,0 +1,36 @@
+---
+title: OpenVASD / nasl-cli overview 
+---
+erDiagram
+%% mmdc -i overview.mmd -o overview.svg -b white  
+openvasd ||--|| feed: uses
+openvasd ||--|| models: uses
+openvasd ||--|| osp: uses
+nasl-cli ||--|| feed : uses
+nasl-cli ||--|| json-storage : uses
+nasl-cli ||--|| redis-storage : uses
+feed ||--|| nasl-interpreter: uses
+nasl-interpreter ||--|| nasl-builtin-std: uses
+nasl-interpreter ||--|| nasl-syntax: uses
+nasl-interpreter ||--|| storage: uses
+nasl-syntax ||--|| storage: uses
+redis-storage ||--|| storage: implements
+json-storage ||--|| storage: implements
+nasl-builtin-utils ||--|| nasl-syntax: uses
+nasl-builtin-utils ||--|| storage: uses
+nasl-builtin-cryptographic ||--|| nasl-builtin-utils: uses
+nasl-builtin-description ||--|| nasl-builtin-utils: uses
+nasl-builtin-host ||--|| nasl-builtin-utils: uses
+nasl-builtin-knowledge-base ||--|| nasl-builtin-utils: uses
+nasl-builtin-misc ||--|| nasl-builtin-utils: uses
+nasl-builtin-raw-ip ||--|| nasl-builtin-utils: uses
+nasl-builtin-ssh ||--|| nasl-builtin-utils: uses
+nasl-builtin-string ||--|| nasl-builtin-utils: uses
+nasl-builtin-std ||--|| nasl-builtin-cryptographic: fassades
+nasl-builtin-std ||--|| nasl-builtin-description: fassades
+nasl-builtin-std ||--|| nasl-builtin-host: fassades
+nasl-builtin-std ||--|| nasl-builtin-knowledge-base: fassades
+nasl-builtin-std ||--|| nasl-builtin-misc: fassades
+nasl-builtin-std ||--|| nasl-builtin-raw-ip: fassades
+nasl-builtin-std ||--|| nasl-builtin-ssh: fassades
+nasl-builtin-std ||--|| nasl-builtin-string: fassades 

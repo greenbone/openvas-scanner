@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use nasl_interpreter::{LoadError, Loader};
+use nasl_syntax::{LoadError, Loader};
 
 #[derive(Default)]
 pub struct NoOpLoader {}
@@ -17,10 +17,15 @@ impl Loader for NoOpLoader {
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::{Context, Interpreter, Register, Sessions};
-    use nasl_interpreter::{ContextType, DefaultLogger, InterpretError, NaslValue};
+    use nasl_builtin_utils::Context;
+    use nasl_builtin_utils::ContextType;
+    use nasl_builtin_utils::Register;
+    use nasl_interpreter::InterpretError;
+    use nasl_interpreter::Interpreter;
 
+    use nasl_syntax::logger::DefaultLogger;
     use nasl_syntax::parse;
+    use nasl_syntax::NaslValue;
     use storage::nvt::TagKey::*;
     use storage::nvt::ACT::*;
     use storage::nvt::{NVTField::*, NvtPreference, PreferenceType};
@@ -66,10 +71,10 @@ if(description)
         let mut register = Register::root_initial(&initial);
         let logger = DefaultLogger::default();
         let key = "test.nasl".to_owned();
-        let sessions = Sessions::default();
         let target = String::new();
+        let functions = nasl_builtin_std::nasl_std_functions();
         let ctxconfigs = Context::new(
-            &key, &target, &storage, &storage, &loader, &logger, &sessions,
+            &key, &target, &storage, &storage, &loader, &logger, &functions,
         );
         let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
         let results = parse(code)

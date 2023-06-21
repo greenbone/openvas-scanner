@@ -16,7 +16,12 @@ walkdir = "2"
 
 feed = {path = "../feed"}
 nasl-syntax = { path = "../nasl-syntax" }
-nasl-interpreter = { path = "../nasl-interpreter" }
+nasl-interpreter = { path = "../nasl-interpreter", default-features = false }
 storage = { path = "../storage" }
 redis-storage = { path = "../redis-storage" }
 json-storage = {path = "../json-storage"}
+
+[features]
+nasl-builtin-raw-ip = ["nasl-interpreter/nasl-builtin-raw-ip"]
+nasl-builtin-ssh = ["nasl-interpreter/nasl-builtin-ssh"]
+experimental = ["nasl-builtin-ssh", "nasl-builtin-raw-ip"]

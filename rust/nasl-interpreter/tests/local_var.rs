@@ -7,10 +7,7 @@
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::{DefaultContext, Interpreter, Register};
-    use nasl_interpreter::{InterpretError, NaslValue};
-
-    use nasl_syntax::parse;
+    use nasl_interpreter::*;
 
     #[test]
     fn in_if() {
@@ -22,9 +19,9 @@ if (a) {
 }
 a;
         "###;
-        let dc = DefaultContext::default();
+        let dc = ContextBuilder::default();
         let mut register = Register::default();
-        let ctx = dc.as_context();
+        let ctx = dc.build();
         let mut interpreter = Interpreter::new(&mut register, &ctx);
         let results = parse(code)
             .map(|stmt| match stmt {
