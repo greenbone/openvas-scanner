@@ -187,7 +187,7 @@ impl Config {
                     .env("API_KEY")
                     .long("api-key")
                     .action(ArgAction::Set)
-                    .help("API key that must be set as SCANNER-API-KEY header to gain access"),
+                    .help("API key that must be set as X-API-KEY header to gain access"),
             )
             .arg(
                 clap::Arg::new("ospd-socket")
