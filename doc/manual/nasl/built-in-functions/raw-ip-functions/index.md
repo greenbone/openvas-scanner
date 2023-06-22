@@ -58,4 +58,5 @@ All those functions work on blocks of data which are implemented as “pure stri
 - **[set_tcp_v6_elements](set_tcp_v6_elements.md)** - modify the TCP fields of an IPv6 datagram
 - **[set_udp_elements](set_udp_elements.md)** - modify the UDP fields of an IP datagram
 - **[set_udp_v6_elements](set_udp_v6_elements.md)** - modify the UDP fields of an IPv6 datagram
+- **[tcp_ping](tcp_ping.md)** - Launches a TCP ping against the target host
 - **[tcp_v6_ping](tcp_v6_ping.md)** - Launches a TCP ping against the target host

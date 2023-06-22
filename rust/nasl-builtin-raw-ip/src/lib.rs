@@ -1,4 +1,6 @@
 mod frame_forgery;
+mod packet_forgery;
+mod raw_ip_utils;
 use nasl_builtin_utils::{Context, NaslVars, Register};
 use nasl_syntax::NaslValue;
 
@@ -12,10 +14,14 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for RawIp {
         context: &Context<K>,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         frame_forgery::lookup(name).map(|x| x(register, context))
+            .or_else(|| packet_forgery::lookup(name).map(|x| x(register, context)))
+            
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        frame_forgery::lookup::<K>(name).is_some()
+        frame_forgery::lookup::<K>(name)
+            .or_else(|| packet_forgery::lookup::<K>(name))
+            .is_some()
     }
 }
 

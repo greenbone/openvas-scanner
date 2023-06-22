@@ -27,7 +27,7 @@ use nasl_builtin_utils::{Context, ContextType, Register};
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
-fn random_impl() -> Result<i64, FunctionErrorKind> {
+pub fn random_impl() -> Result<i64, FunctionErrorKind> {
     let mut rng = File::open("/dev/urandom")?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
