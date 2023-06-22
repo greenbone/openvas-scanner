@@ -7,8 +7,7 @@ ip_packet = forge_ip_packet(ip_v : 4,
                      ip_tos : 0,
                      ip_len : 20,
                      ip_id : rand(),
-#                     ip_p : IPPROTO_TCP, # No implemented
-                     ip_p : 0x06,
+                     ip_p : IPPROTO_TCP, # 0x06
                      ip_ttl : 255,
                      ip_off : 0,
                      ip_src : 192.168.0.1,
@@ -28,10 +27,8 @@ tcp_packet = forge_tcp_packet(ip:       ip_packet,
                               th_ack:   0,
                               th_x2:    0,
                               th_off:   5,
-                              th_flags: TH_SYN,
+                              th_flags: TH_SYN |TH_FIN,
                               th_win:   0,
                               th_sum:   0,
                               th_urp:   0);
-
-dump_tcp_packet (ip_packet);
-
+dump_tcp_packet (tcp_packet);

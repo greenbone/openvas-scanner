@@ -457,7 +457,26 @@ fn dump_ip_packet<K>(
                 configs
                     .logger()
                     .info(&format!("\tip_ttl : {:?}", pkt.get_ttl()));
-                // TODO: match pkt.get_next_level_protocol()
+
+                match pkt.get_next_level_protocol() {
+                    IpNextHeaderProtocols::Tcp => configs.logger().info(&format!(
+                        "\tip_p   : IPPROTO_TCP ({:?})",
+                        pkt.get_next_level_protocol().to_primitive_values().0
+                    )),
+                    IpNextHeaderProtocols::Udp => configs.logger().info(&format!(
+                        "\tip_p   : IPPROTO_UDP ({:?})",
+                        pkt.get_next_level_protocol().to_primitive_values().0
+                    )),
+                    IpNextHeaderProtocols::Icmp => configs.logger().info(&format!(
+                        "\tip_p   : IPPROTO_ICMP ({:?})",
+                        pkt.get_next_level_protocol().to_primitive_values().0
+                    )),
+                    _ => configs.logger().info(&format!(
+                        "\tip_p   : IPPROTO_ICMP ({:?})",
+                        pkt.get_next_level_protocol().to_primitive_values().0
+                    )),
+                };
+
                 configs
                     .logger()
                     .info(&format!("\tip_sum  : {:?}", pkt.get_checksum()));
