@@ -13,10 +13,10 @@ openvas - The Scanner of the Greenbone Vulnerability Management
 
 **Greenbone Vulnerability Management (GVM)** is a vulnerability auditing
 and management framework made up of several modules. The OpenVAS
-Scanner, **openvas** is in charge of executing many security tests
+Scanner, **Openvas** is in charge of executing many security tests
 against many target hosts in a highly optimized way.
 
-**openvas** inspects the remote hosts to list all the vulnerabilities
+**Openvas** inspects the remote hosts to list all the vulnerabilities
 and common misconfigurations that affects them.
 
 It is a command line tool with parameters to update the feed of
@@ -76,8 +76,8 @@ max_checks
 :   is the number of plugins that will run against each host being
     tested. Note that the total number of process will be *max_checks* x
     *max_hosts* so you need to find a balance between these two options.
-    Note that launching too many plugins at the same time may disable
-    the remote host, either temporarily (ie: inetd closes its ports) or
+    Launching too many plugins at the same time may disable
+    the remote host, either temporarily (i.e: inetd closes its ports) or
     definitely (the remote host crash because it is asked to do too many
     things at the same time), so be careful.
 
