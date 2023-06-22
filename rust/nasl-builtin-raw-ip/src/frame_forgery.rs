@@ -4,19 +4,17 @@
 
 //! Defines NASL frame forgery and arp functions
 
+use nasl_builtin_utils::NaslVars;
 use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
-use std::{
-    net::{Ipv4Addr},
-    str::FromStr,
-};
+use std::{net::Ipv4Addr, str::FromStr};
 
-use pcap::{ Capture, Device};
+use pcap::{Capture, Device};
 
-use nasl_builtin_utils::{Context, ContextType, NaslFunction, Register, error::FunctionErrorKind};
-use nasl_syntax::NaslValue;
 use nasl_builtin_host::get_host_ip;
+use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, NaslFunction, Register};
+use nasl_syntax::NaslValue;
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 
@@ -517,6 +515,28 @@ pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
         "send_arp_request" => Some(nasl_send_arp_request),
         _ => None,
     }
+}
+
+/// Returns a NaslVars with all predefined variables which must be expose to nasl script
+pub fn expose_vars() -> NaslVars<'static> {
+    let builtin_vars: NaslVars = [
+        // Hardware type ethernet
+        ("ARPHRD_ETHER", NaslValue::Number(ARPHRD_ETHER.into())),
+        // Protocol type IP
+        ("ETHERTYPE_IP", NaslValue::Number(ETHERTYPE_IP.into())),
+        // Protocol type ARP
+        ("ETHERTYPE_ARP", NaslValue::Number(ETHERTYPE_ARP.into())),
+        // Length in bytes of an ethernet mac address
+        ("ETH_ALEN", NaslValue::Number(ETH_ALEN.into())),
+        // Protocol length for ARP
+        ("ARP_PROTO_LEN", NaslValue::Number(ARP_PROTO_LEN.into())),
+        // ARP operation request
+        ("ARPOP_REQUEST", NaslValue::Number(ARPOP_REQUEST.into())),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+    builtin_vars
 }
 
 #[cfg(test)]

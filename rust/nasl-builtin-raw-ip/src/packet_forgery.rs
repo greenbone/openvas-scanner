@@ -11,22 +11,23 @@ use std::{
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost};
 
-use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, NaslFunction, Register};
-use nasl_syntax::{NaslValue, logger::NaslLogger};
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
-
+use nasl_builtin_utils::{
+    Context, ContextType, FunctionErrorKind, NaslFunction, NaslVars, Register,
+};
+use nasl_syntax::{logger::NaslLogger, NaslValue};
 
 use pcap::Capture;
 use pnet::packet::{
     self,
     ethernet::EthernetPacket,
     icmp::*,
-    ip::IpNextHeaderProtocol,
+    ip::{IpNextHeaderProtocol, IpNextHeaderProtocols},
     ipv4::{checksum, MutableIpv4Packet},
     tcp::{TcpOption, TcpOptionNumbers, TcpPacket, *},
     udp::UdpPacket,
-    Packet,
+    Packet, PrimitiveValues,
 };
 
 use socket2::{Domain, Protocol, Socket};
@@ -43,8 +44,21 @@ macro_rules! custom_error {
 /// Default Timeout for received
 const DEFAULT_TIMEOUT: i32 = 5000;
 
-// Define IPPROTO_RAW
+/// Define IPPROTO_RAW
 const IPPROTO_RAW: i32 = 255;
+/// Define IPPROTO_IP for dummy tcp . From rfc3542:
+// Berkeley-derived IPv4 implementations also define IPPROTO_IP to be 0.
+// This should not be a problem since IPPROTO_IP is used only with IPv4
+// sockets and IPPROTO_HOPOPTS only with IPv6 sockets.
+const IPPROTO_IP: u8 = 0;
+/// Reserved fragment flag
+const IP_RF: i64 = 0x8000;
+/// Dont fragment flag
+const IP_DF: i64 = 0x4000;
+/// More fragments flag
+const IP_MF: i64 = 0x2000;
+/// Mask for fragmenting bits
+const IP_OFFMASK: i64 = 0x1fff;
 
 /// print the raw packet
 pub fn display_packet(logger: &dyn NaslLogger, vector: &[u8]) {
@@ -422,17 +436,38 @@ fn dump_ip_packet<K>(
                     )
                 })?;
                 configs.logger().info(&"------\n");
-                configs.logger().info(&format!("\tip_hl  : {:?}", pkt.get_header_length()));
-                configs.logger().info(&format!("\tip_v   : {:?}", pkt.get_version()));
-                configs.logger().info(&format!("\tip_tos : {:?}", pkt.get_dscp()));
-                configs.logger().info(&format!("\tip_len : {:?}", pkt.get_total_length()));
-                configs.logger().info(&format!("\tip_id  : {:?}", pkt.get_identification()));
-                configs.logger().info(&format!("\tip_off : {:?}", pkt.get_fragment_offset()));
-                configs.logger().info(&format!("\tip_ttl : {:?}", pkt.get_ttl()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_hl  : {:?}", pkt.get_header_length()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_v   : {:?}", pkt.get_version()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_tos : {:?}", pkt.get_dscp()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_len : {:?}", pkt.get_total_length()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_id  : {:?}", pkt.get_identification()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_off : {:?}", pkt.get_fragment_offset()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_ttl : {:?}", pkt.get_ttl()));
                 // TODO: match pkt.get_next_level_protocol()
-                configs.logger().info(&format!("\tip_sum  : {:?}", pkt.get_checksum()));
-                configs.logger().info(&format!("\tip_src : {:?}", pkt.get_source().to_string()));
-                configs.logger().info(&format!("\tip_dst : {:?}", pkt.get_destination().to_string()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_sum  : {:?}", pkt.get_checksum()));
+                configs
+                    .logger()
+                    .info(&format!("\tip_src : {:?}", pkt.get_source().to_string()));
+                configs.logger().info(&format!(
+                    "\tip_dst : {:?}",
+                    pkt.get_destination().to_string()
+                ));
                 display_packet(configs.logger(), data);
             }
             _ => {
@@ -1261,12 +1296,24 @@ fn dump_tcp_packet<K>(
                 match packet::tcp::TcpPacket::new(ip.payload()) {
                     Some(pkt) => {
                         configs.logger().info(&"------\n");
-                        configs.logger().info(&format!("\tth_sport  : {:?}", pkt.get_source()));
-                        configs.logger().info(&format!("\tth_dport   : {:?}", pkt.get_destination()));
-                        configs.logger().info(&format!("\tth_seq : {:?}", pkt.get_sequence()));
-                        configs.logger().info(&format!("\tth_ack : {:?}", pkt.get_acknowledgement()));
-                        configs.logger().info(&format!("\tth_x2  : {:?}", pkt.get_reserved()));
-                        configs.logger().info(&format!("\tth_off : {:?}", pkt.get_data_offset()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_sport  : {:?}", pkt.get_source()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_dport   : {:?}", pkt.get_destination()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_seq : {:?}", pkt.get_sequence()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_ack : {:?}", pkt.get_acknowledgement()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_x2  : {:?}", pkt.get_reserved()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_off : {:?}", pkt.get_data_offset()));
 
                         let flags = pkt.get_flags();
                         let mut f = String::new();
@@ -1322,25 +1369,39 @@ fn dump_tcp_packet<K>(
                             f.push_str(&format!(" {:?}", flags));
                         };
                         configs.logger().info(&f);
-                        configs.logger().info(&format!("\tth_win  : {:?}", pkt.get_window()));
-                        configs.logger().info(&format!("\tth_sum : {:?}", pkt.get_checksum()));
-                        configs.logger().info(&format!("\tth_urp : {:?}", pkt.get_urgent_ptr()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_win  : {:?}", pkt.get_window()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_sum : {:?}", pkt.get_checksum()));
+                        configs
+                            .logger()
+                            .info(&format!("\tth_urp : {:?}", pkt.get_urgent_ptr()));
                         println!("\tTCP Options:");
                         for o in pkt.get_options_iter() {
                             let n = o.get_number();
                             let p = o.payload();
                             if n == TcpOptionNumbers::MSS {
-                                configs.logger().info(&format!("\t\tTCPOPT_MAXSEG: {:?}", p));
+                                configs
+                                    .logger()
+                                    .info(&format!("\t\tTCPOPT_MAXSEG: {:?}", p));
                             }
                             if n == TcpOptionNumbers::WSCALE {
-                                configs.logger().info(&format!("\t\tTCPOPT_WINDOW: {:?}", p));
+                                configs
+                                    .logger()
+                                    .info(&format!("\t\tTCPOPT_WINDOW: {:?}", p));
                             }
 
                             if n == TcpOptionNumbers::SACK_PERMITTED {
-                                configs.logger().info(&format!("\t\tTCPOPT_SACK_PERMITTED: {:?}", p));
+                                configs
+                                    .logger()
+                                    .info(&format!("\t\tTCPOPT_SACK_PERMITTED: {:?}", p));
                             }
                             if n == TcpOptionNumbers::TIMESTAMPS {
-                                configs.logger().info(&format!("\t\tTCPOPT_TIMESTAMP TSval: {:?}", p));
+                                configs
+                                    .logger()
+                                    .info(&format!("\t\tTCPOPT_TIMESTAMP TSval: {:?}", p));
                             }
                         }
                         display_packet(configs.logger(), data);
@@ -1636,10 +1697,18 @@ fn dump_udp_packet<K>(
                 match packet::udp::UdpPacket::new(ip.payload()) {
                     Some(pkt) => {
                         configs.logger().info(&"------\n");
-                        configs.logger().info(&format!("\tuh_sport  : {:?}", pkt.get_source()));
-                        configs.logger().info(&format!("\tuh_dport   : {:?}", pkt.get_destination()));
-                        configs.logger().info(&format!("\tuh_len : {:?}", pkt.get_length()));
-                        configs.logger().info(&format!("\tuh_sum : {:?}", pkt.get_checksum()));
+                        configs
+                            .logger()
+                            .info(&format!("\tuh_sport  : {:?}", pkt.get_source()));
+                        configs
+                            .logger()
+                            .info(&format!("\tuh_dport   : {:?}", pkt.get_destination()));
+                        configs
+                            .logger()
+                            .info(&format!("\tuh_len : {:?}", pkt.get_length()));
+                        configs
+                            .logger()
+                            .info(&format!("\tuh_sum : {:?}", pkt.get_checksum()));
                         display_packet(configs.logger(), data);
                     }
                     None => {
@@ -1963,11 +2032,21 @@ fn dump_icmp_packet<K>(
         }
 
         configs.logger().info(&"------");
-        configs.logger().info(&format!("\ticmp_id    : {:?}", icmp_id));
-        configs.logger().info(&format!("\ticmp_code  : {:?}", icmp.get_icmp_code()));
-        configs.logger().info(&format!("\ticmp_type  : {:?}", icmp.get_icmp_type()));
-        configs.logger().info(&format!("\ticmp_seq   : {:?}", icmp_seq));
-        configs.logger().info(&format!("\ticmp_cksum : {:?}", icmp.get_checksum()));
+        configs
+            .logger()
+            .info(&format!("\ticmp_id    : {:?}", icmp_id));
+        configs
+            .logger()
+            .info(&format!("\ticmp_code  : {:?}", icmp.get_icmp_code()));
+        configs
+            .logger()
+            .info(&format!("\ticmp_type  : {:?}", icmp.get_icmp_type()));
+        configs
+            .logger()
+            .info(&format!("\ticmp_seq   : {:?}", icmp_seq));
+        configs
+            .logger()
+            .info(&format!("\ticmp_cksum : {:?}", icmp.get_checksum()));
         configs.logger().info(&format!("\tData       : {:?}", data));
         configs.logger().info(&"\n");
     }
@@ -2518,6 +2597,59 @@ fn nasl_send_capture<K>(
         }
         Err(_) => Ok(NaslValue::Null),
     }
+}
+
+/// Returns a NaslVars with all predefined variables which must be expose to nasl script
+pub fn expose_vars() -> NaslVars<'static> {
+    let builtin_vars: NaslVars = [
+        (
+            "IPPROTO_TCP",
+            NaslValue::Number(IpNextHeaderProtocols::Tcp.to_primitive_values().0.into()),
+        ),
+        (
+            "IPPROTO_UDP",
+            NaslValue::Number(IpNextHeaderProtocols::Udp.to_primitive_values().0.into()),
+        ),
+        (
+            "IPPROTO_ICMP",
+            NaslValue::Number(IpNextHeaderProtocols::Icmp.to_primitive_values().0.into()),
+        ),
+        (
+            "IPPROTO_IGMP",
+            NaslValue::Number(IpNextHeaderProtocols::Igmp.to_primitive_values().0.into()),
+        ),
+        ("IPPROTO_IP", NaslValue::Number(IPPROTO_IP.into())),
+        ("TH_FIN", NaslValue::Number(TcpFlags::FIN.into())),
+        ("TH_SYN", NaslValue::Number(TcpFlags::SYN.into())),
+        ("TH_RST", NaslValue::Number(TcpFlags::RST.into())),
+        ("TH_PUSH", NaslValue::Number(TcpFlags::PSH.into())),
+        ("TH_ACK", NaslValue::Number(TcpFlags::ACK.into())),
+        ("TH_URG", NaslValue::Number(TcpFlags::URG.into())),
+        ("IP_RF", NaslValue::Number(IP_RF)),
+        ("IP_DF", NaslValue::Number(IP_DF)),
+        ("IP_MF", NaslValue::Number(IP_MF)),
+        ("IP_OFFMASK", NaslValue::Number(IP_OFFMASK)),
+        (
+            "TCPOPT_MAXSEG",
+            NaslValue::Number(TcpOptionNumbers::MSS.to_primitive_values().0 as i64),
+        ),
+        (
+            "TCPOPT_WINDOW",
+            NaslValue::Number(TcpOptionNumbers::WSCALE.to_primitive_values().0 as i64),
+        ),
+        (
+            "TCPOPT_SACK_PERMITTED",
+            NaslValue::Number(TcpOptionNumbers::SACK_PERMITTED.to_primitive_values().0 as i64),
+        ),
+        (
+            "TCPOPT_TIMESTAMP",
+            NaslValue::Number(TcpOptionNumbers::TIMESTAMPS.to_primitive_values().0 as i64),
+        ),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+    builtin_vars
 }
 
 /// Returns found function for key or None when not found

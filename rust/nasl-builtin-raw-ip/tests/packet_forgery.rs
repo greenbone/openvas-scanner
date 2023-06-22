@@ -7,7 +7,7 @@
 mod tests {
 
     use nasl_builtin_std::ContextBuilder;
-    use nasl_builtin_utils::{Register, error::FunctionErrorKind};
+    use nasl_builtin_utils::{error::FunctionErrorKind, Register};
     use nasl_interpreter::Interpreter;
     use nasl_syntax::{parse, NaslValue};
 
@@ -66,7 +66,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -108,7 +108,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -139,7 +139,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -181,7 +181,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -216,7 +216,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -260,7 +260,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
@@ -298,7 +298,7 @@ mod tests {
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        
+
         let context = binding.build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let mut parser =
