@@ -317,11 +317,11 @@ components:
         target:
           description: "The target to scan"
           $ref: "#/components/schemas/Target"
-        scanner_parameters:
+        scanner_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
-            $ref: "#/components/schemas/ScannerParameter"
+            $ref: "#/components/schemas/ScannerPreference"
         vts:
           type: "array"
           description: "A collection of VTs, which are run for the given target."
@@ -485,15 +485,15 @@ components:
             - aes
             - des
 
-    ScannerParameter:
-      description: "Consists of a parameter ID and its value."
+    ScannerPreference:
+      description: "Consists of a preference ID and its value."
       type: "object"
       properties:
         id:
-          description: "ID of the parameter to set."
+          description: "ID of the preference to set."
           type: "string"
         value:
-          description: "Value of the parameter."
+          description: "Value of the preference."
           type: "string"
       required:
         - value
@@ -722,7 +722,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_parameters":
+          "scanner_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
