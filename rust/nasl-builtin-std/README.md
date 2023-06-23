@@ -38,7 +38,7 @@ builder = builder.push_register(nasl_builtin_string::NaslString)
 
 In some cases, from a nasl script, is desirable to have access to builtin variables or even to ones coming from libraries , like in the following nasl script
 
-```
+```text
 display(IPPROTO_IP);
 ```
 For this purpose, it is possible to add predefined variables to the Register. The way to do it is similar to for functions. 
@@ -57,7 +57,7 @@ nasl-builtin-raw-ip = {path = "../nasl-builtin-raw-ip"}
 ```
 and then extend the register builder within the [nasl_std_variables] with the implementation of the [nasl_built_uitls::NaslVarsDefiner] of those variables:
 
-``` rust
+```text
 builder = builder.push_register(nasl_builtin_raw_ip::RawIp)
 
 ```
