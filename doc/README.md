@@ -1,12 +1,15 @@
 # OpenVAS Documentation (WORK IN PROGRESS)
-The new documentation is still a WORK IN PROGRESS!!
+**Project Title**
 
-The documentation of this project contains three parts:
-1. Doxygen
-It is used as a documentation of the internal c library. To build the doxygen documentation call `make doxygen-full`.
+OpenVAS Project Documentation
 
-2. Man
-In the man folder you can find man pages of the executables of the project. These are automatically installed when calling `make install`. Additionally it is possible to generate man pages of the built-in nasl functions. These can be generated with `make nasl-man`. Be aware that those are currently not automatically installed and pandoc is required in order to be able to generate those.
+**Project Description**
 
-3. Manual
-It is also possible to generate a general purpose manual of the openvas project. The manual can be generated with `make manual` and contains various information about the OpenVAS project including the NASL-documentation. Also for this pandoc is required.
+This repository contains the documentation for the OpenVAS project, which consists of three main parts:
+
+Doxygen: The Doxygen documentation serves as the documentation for the internal C library of the project. To build the Doxygen documentation, run the following command: `make doxygen-full`.
+
+Man: In the man folder, you can find the man pages for the project's executables. These man pages are automatically installed when calling `make install`. Additionally, you have the option to generate man pages for the built-in NASL functions. To generate these NASL man pages, use the command: `make nasl-man`. Please note that the NASL man pages are not automatically installed, and you need to have pandoc installed in order to generate them.
+
+Manual: The general-purpose manual of the OpenVAS project can be generated using the command: `make manual`. This manual provides comprehensive information about the OpenVAS project, including the NASL documentation. Generating the manual also requires pandoc to be installed.
+
