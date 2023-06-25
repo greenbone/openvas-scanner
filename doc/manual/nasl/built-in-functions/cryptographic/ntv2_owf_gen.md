@@ -2,13 +2,13 @@
 
 ## NAME
 
-**ntv2_owf_gen** - takes fiven named arguments owf, login, domain, length, insert_hexzeros to generate the NTLMv2 of a users's password.
+**ntv2_owf_gen** - takes five named arguments owf, login, domain, length, insert_hexzeros to generate the NTLMv2 of a user's password.
 
 ## SYNOPSIS
 
 *str* **ntv2_owf_gen**(owf: str, login: str, domain: str, length int, insert_hexzeros str);
 
-**ntv2_owf_gen** It takes fiven named arguments owf, login, domain, length, insert_hexzeros to generate the NTLMv2 of a users's password.
+**ntv2_owf_gen** It takes five named arguments owf, login, domain, length, insert_hexzeros to generate the NTLMv2 of a user's password.
 
 ## DESCRIPTION
 

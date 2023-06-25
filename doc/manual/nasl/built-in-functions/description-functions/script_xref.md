@@ -2,7 +2,7 @@
 
 ## NAME
 
-**script_xref** - Add a cross reference to the meta data.
+**script_xref** - Add a cross-reference to the metadata.
 
 ## SYNOPSIS
 

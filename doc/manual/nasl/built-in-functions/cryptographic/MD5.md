@@ -2,7 +2,7 @@
 
 ## NAME
 
-**MD5** - takes a unnamed paramaeter and return MD5 hash.
+**MD5** - takes an unnamed parameter and return MD5 hash.
 ## SYNOPSIS
 
 *str* **MD5**(str);

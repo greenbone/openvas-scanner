@@ -1,9 +1,9 @@
 ---
-name: Bug Report
-about: Report an issue with openvas scanner
-title: ''
-labels: bug
-assignees: ''
+Name: Bug Report
+- About: Report an issue with openvas scanner
+- Title: ''
+- labels: bug
+- assignees: ''
 
 ---
 
@@ -46,7 +46,7 @@ Thanks for your help to keep the communication channels clean and consistent!
 ### Steps to reproduce
 
 <!--
-  How would you describe your issue to someone who doesn’t know openvas?
+  How would you describe your issue to someone who does not know openvas?
   Try to write a sequence of steps that anybody can repeat to see the issue.
 -->
 

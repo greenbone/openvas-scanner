@@ -2,7 +2,7 @@
 
 ## NAME
 
-**SHA1** - takes a unnamed paramaeter and return SHA1 hash
+**SHA1** - takes an unnamed parameter and return SHA1 hash
 
 ## SYNOPSIS
 

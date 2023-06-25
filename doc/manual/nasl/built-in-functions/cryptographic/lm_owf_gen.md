@@ -2,7 +2,7 @@
 
 ## NAME
 
-**lm_owf_gen** - takes a unnamed parameter and returns LanMan one way hash.
+**lm_owf_gen** - takes an unnamed parameter and returns LanMan one way hash.
 ## SYNOPSIS
 
 *str* **lm_owf_gen**(str);

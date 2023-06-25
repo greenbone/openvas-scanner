@@ -18,7 +18,7 @@
 
 - **id** is the id for that preference.
   - Should not be modified once existing!
-  - The scanner detects if the id is repeated. If a preference does not have an ID and the following line adds a preferences with the ID = 1, the scanner will log a messages. This is because an ID will be assigned automatically for the first preference without ID (assign id = 1). The second preferences tries to add a new entry with the id 1, which is already in use, but it is not possible. Therefore is very important to preserve the order of the preferences once they have been added without an id.
+  - The scanner detects if the id is repeated. If a preference does not have an ID and the following line adds a preferences with the ID = 1, the scanner will log a messages. This is because an ID will be assigned automatically for the first preference without ID (assign id = 1). The second preferences tries to add a new entry with the id 1, which is already in use, but it is not possible. Therefore, it is very important to preserve the order of the preferences once they have been added without an id.
   - Do not use ID 0. The scanner detects if the id 0 is being used, which is invalid because id 0 is reserved for the timeout preference.
   - The scanner detects if an ID has a non-integer value. An error messages is shown in the log
   - The preference id should always stay the same. One of the reasons for introducing the id was ensuring that configs will refer to the correct preference even if the preference name is changed (e.g. to fix a typo).
@@ -36,7 +36,7 @@ KB items as a list of key-value pairs or None if array size is 0
 
 ## ERRORS
 
- - Invalid id or not allowed id value. ID must be greather than 0. 
+ - Invalid id or not allowed id value. ID must be greater than 0. 
  - Argument error in the call to script_add_preference. No name nor type neither value.
  - Preference already exists.
  

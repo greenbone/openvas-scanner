@@ -8,10 +8,10 @@
 
 *any* **script_cve_id**(*string*, *string*, ...);
 
-**script cve id** It takes any number of unnamed string arguments. They usually looks like "CVE-2002-042".
+**script cve id** It takes any number of unnamed string arguments. They usually look like "CVE-2002-042".
 
 ## DESCRIPTION
-Sets the CVE IDs of the flaws tested by the script. It takes any number of unnamed string arguments. They usually looks like "CVE-2002-042".
+Sets the CVE IDs of the flaws tested by the script. It takes any number of unnamed string arguments. They usually look like "CVE-2002-042".
 The CVEs are stored as NVT references.
 
 ## RETURN VALUE

@@ -2,7 +2,7 @@
 
 ## NAME
 
-**HMAC_SHA384** - takes named paramaeter data and key to return HMAC SHA384 string.
+**HMAC_SHA384** - takes named paramater data and key to return HMAC SHA384 string.
 ## SYNOPSIS
 
 *str* **HMAC_SHA384**(key: str, data: str);

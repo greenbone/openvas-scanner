@@ -2,7 +2,7 @@
 
 ## NAME
 
-**nt_owf_gen** - takes a unnamed paramaeter and returns NT one way hash.
+**nt_owf_gen** - takes an unnamed parameter and returns NT one way hash.
 ## SYNOPSIS
 
 *str* **nt_owf_gen**(str);

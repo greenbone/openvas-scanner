@@ -2,13 +2,13 @@
 
 ## NAME
 
-**bn_random** - takes one named arguments need to returns a message passing interface with the given amount of bits.
+**bn_random** - takes one named arguments need to return a message passing interface with the given amount of bits.
 
 ## SYNOPSIS
 
 *str* **bn_random**(key: str, buf: str);
 
-**bn_random** It takes one named arguments need to returns a message passing interface with the given amount of bits.
+**bn_random** It takes one named arguments need to return a message passing interface with the given amount of bits.
 
 ## DESCRIPTION
 

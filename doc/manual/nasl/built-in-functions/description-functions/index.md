@@ -23,4 +23,4 @@ All those functions but script_get_preference are only used in the "description 
 - **[script_tag](script_tag.md)** - sets additional information. Takes a named string argument:
 - **[script_timeout](script_timeout.md)** - sets the default timeout of the plugin.
 - **[script_version](script_version.md)** - sets the plugin's version.
-- **[script_xref](script_xref.md)** - Add a cross reference to the meta data.
+- **[script_xref](script_xref.md)** - Add a cross reference to the metadata.

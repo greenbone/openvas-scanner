@@ -2,7 +2,7 @@
 
 ## NAME
 
-**plugin_run_find_service** - find services that are accessible on the target system
+**plugin_run_find_service** - find services that are accessible on the target system.
 
 ## SYNOPSIS
 

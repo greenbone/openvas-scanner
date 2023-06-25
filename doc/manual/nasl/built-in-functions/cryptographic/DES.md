@@ -2,7 +2,7 @@
 
 ## NAME
 
-**DES** - takes a unnamed paramaeter and return DES hash.
+**DES** - takes an unnamed parameter and return DES hash.
 ## SYNOPSIS
 
 *str* **DES**(str);

@@ -16,7 +16,7 @@ Open RC4 cipher to encrypt a stream of data. The handler can be used to encrypt 
 
 Opened cipher must be closed with (close_stream_cipher)[close_stream_cipher.md] when it is not used anymore.
 
--iv: the initival vector
+-iv: the initial vector
 -key: the key used for encryption
 
 ## RETURN VALUE
