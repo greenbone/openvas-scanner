@@ -3,6 +3,8 @@
 pub mod context;
 pub mod error;
 pub mod lookup_keys;
+use std::collections::HashMap;
+
 pub use context::{Context, ContextType, Register};
 pub use error::FunctionErrorKind;
 
@@ -88,7 +90,6 @@ pub fn get_named_parameter<'a>(
         },
     }
 }
-
 /// Holds registered NaslFunctionExecuter and executes them in order of registration.
 #[derive(Default)]
 pub struct NaslFunctionRegister<K> {
@@ -161,6 +162,59 @@ impl<K> NaslfunctionRegisterBuilder<K> {
     /// Builds the NaslFunctionRegister
     pub fn build(self) -> NaslFunctionRegister<K> {
         NaslFunctionRegister::new(self.executor)
+    }
+}
+
+/// Is a type definition for built-in variables
+///
+/// It is mostly used internally when building a NaslVarDefiner.
+pub type NaslVars<'a> = HashMap<&'a str, nasl_syntax::NaslValue>;
+
+/// Looks for NaslVars.
+pub trait NaslVarDefiner {
+    /// Returns a NaslVars if it is registered.
+    fn nasl_var_define(&self) -> NaslVars;
+}
+
+/// Holds registered NaslVarDefiner
+#[derive(Default)]
+pub struct NaslVarRegister {
+    /// Holds all NaslVars definers
+    pub definers: Vec<Box<dyn NaslVarDefiner>>,
+}
+
+impl NaslVarRegister {
+    /// Creates a new NaslVarRegister
+    pub fn new(definer: Vec<Box<dyn NaslVarDefiner>>) -> Self {
+        Self { definers: definer }
+    }
+}
+
+/// A builder for NaslVarRegister
+#[derive(Default)]
+pub struct NaslVarRegisterBuilder {
+    definer: Vec<Box<dyn NaslVarDefiner>>,
+}
+
+impl NaslVarRegisterBuilder {
+    /// Creates a new NaslVarRegister builder
+    pub fn new() -> Self {
+        Self {
+            definer: Vec::new(),
+        }
+    }
+    /// Push a declared NaslVarDefiner into the definer list
+    pub fn push_register<T>(mut self, definer: T) -> Self
+    where
+        T: NaslVarDefiner + 'static,
+    {
+        self.definer.push(Box::new(definer));
+        self
+    }
+
+    /// Build a NaslVarRegister with a vector of NaslVarsDefiner
+    pub fn build(self) -> NaslVarRegister {
+        NaslVarRegister::new(self.definer)
     }
 }
 

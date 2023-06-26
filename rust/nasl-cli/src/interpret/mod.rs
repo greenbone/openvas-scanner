@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use feed::HashSumNameLoader;
 use nasl_interpreter::{
     load_non_utf8_path, logger::DefaultLogger, logger::NaslLogger, ContextBuilder, FSPluginLoader,
-    Interpreter, KeyDispatcherSet, LoadError, Loader, NaslValue, NoOpLoader, Register,
+    Interpreter, KeyDispatcherSet, LoadError, Loader, NaslValue, NoOpLoader, RegisterBuilder,
 };
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
@@ -35,6 +35,7 @@ impl Run<String> {
             None => context_builder.loader(NoOpLoader::default()),
         }
         .target(target.unwrap_or_default());
+
         Self {
             context_builder,
             feed,
@@ -73,7 +74,7 @@ impl Run<String> {
     fn run(&self, script: &str, verbose: bool) -> Result<(), CliErrorKind> {
         let logger = DefaultLogger::default();
         let context = self.context_builder.build();
-        let mut register = Register::default();
+        let mut register = RegisterBuilder::build();
         let mut interpreter = Interpreter::new(&mut register, &context);
         let code = self.load(script)?;
         for stmt in nasl_syntax::parse(&code) {

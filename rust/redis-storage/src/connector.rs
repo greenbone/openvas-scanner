@@ -571,10 +571,7 @@ mod tests {
                         "filename:test.nasl" => {
                             let values = values.first().unwrap().clone();
                             let oid = String::from_utf8(values);
-                            assert_eq!(
-                                Ok("0.0.0.0.0.0.0.0.0.1".to_owned()),
-                                oid
-                            );
+                            assert_eq!(Ok("0.0.0.0.0.0.0.0.0.1".to_owned()), oid);
                         }
                         _ => panic!("{key} should not occur"),
                     }
