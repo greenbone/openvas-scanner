@@ -9,7 +9,7 @@ mod port;
 mod result;
 mod scan;
 mod scan_action;
-mod scanner_parameter;
+mod scanner_preference;
 mod status;
 mod target;
 mod vt;
@@ -21,7 +21,7 @@ pub use port::*;
 pub use result::*;
 pub use scan::*;
 pub use scan_action::*;
-pub use scanner_parameter::*;
+pub use scanner_preference::*;
 pub use status::*;
 pub use target::*;
 pub use vt::*;
@@ -130,7 +130,7 @@ mod tests {
     "reverse_lookup_unify": true,
     "reverse_lookup_only": false
   },
-  "scanner_parameters": [
+  "scanner_preferences": [
     {
       "id": "target_port",
       "value": "443"

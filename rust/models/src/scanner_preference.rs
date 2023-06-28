@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-/// Configuration parameter for the scanner
+/// Configuration preference for the scanner
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-pub struct ScannerParameter {
-    /// The ID of the parameter.
+pub struct ScannerPreference {
+    /// The ID of the scanner preference.
     pub id: String,
-    /// The value of the parameter.
+    /// The value of the scanner preference.
     pub value: String,
 }

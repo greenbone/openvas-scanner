@@ -53,7 +53,7 @@ impl<'a> ScanCommand<'a> {
                 &mut |writer| {
                     write_vts(scan, writer)?;
                     write_target(scan, writer)?;
-                    write_scanner_params(scan, writer)?;
+                    write_scanner_prefs(scan, writer)?;
                     Ok(())
                 },
             ),
@@ -188,9 +188,11 @@ fn write_vts(scan: &Scan, writer: &mut Writer) -> Result<()> {
     })
 }
 
-fn write_scanner_params(scan: &Scan, writer: &mut Writer) -> Result<()> {
+// In the openvasd API it is called scanner preferences while in the OSP side
+// it is called scanner parameters.
+fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
-    for p in &scan.scanner_parameters {
+    for p in &scan.scanner_preferences {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
         writer.write_event(Event::Text(BytesText::new(&p.value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;
