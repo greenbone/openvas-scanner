@@ -177,9 +177,9 @@ pub enum Response {
     /// <get_scans_response status_text="OK" status="200">
     ///  <scan id="9750f1f8-07aa-49cc-9c31-2f9e469c8f65"
     ///      target="192.168.1.1"
-    ///      end_time="1432000000"
-    ///      progress="100"
-    ///      status="finished"
+    ///      end_time="0"
+    ///      progress="78"
+    ///      status="running"
     ///      start_time="1432000000">
     ///      <results>
     ///         <result host="192.168.1.1"
@@ -192,6 +192,15 @@ pub enum Response {
     ///         An SSH service was detected on the remote host.
     ///         </result>
     ///     </results>
+    ///     <progress>
+    ///         <host name="127.0.0.1">45</host>
+    ///         <host name="10.0.0.160">98</host>
+    ///         <overall>78</overall>
+    ///         <count_alive>2</count_alive>
+    ///         <count_dead>10</count_dead>
+    ///         <count_excluded>3</count_excluded>
+    ///         <count_total>511</count_total>
+    ///      </progress>
     ///  </scan>
     ///</get_scans_response>
     ///```
@@ -512,6 +521,47 @@ pub struct Scan {
     pub status: ScanStatus,
     /// Results
     pub results: Results,
+    #[serde(rename = "progress")]
+    /// HostInfo
+    pub host_info: Option<HostInfo>,
+}
+
+/// Information about the scan progress
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct HostInfo {
+    #[serde(default)]
+    /// Currently scanned hosts
+    pub host: Vec<Host>,
+    /// Overall progress
+    pub overall: ElementU32,
+    /// Number of alive hosts finished
+    // TODO: Consider divide into alive and finished
+    pub count_alive: ElementU32,
+    /// Number of dead hosts
+    pub count_dead: ElementU32,
+    /// Number of excluded hosts
+    pub count_excluded: ElementU32,
+    /// Total number of hosts
+    pub count_total: ElementU32,
+}
+
+/// An StringU32 element
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct ElementU32 {
+    #[serde(rename = "$text")]
+    /// Content of the element
+    pub content: StringU32,
+}
+
+/// Progress information for a single host
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Host {
+    #[serde(rename = "@name")]
+    /// IP of the host
+    pub name: String,
+    #[serde(rename = "$text")]
+    /// Current progress for the host
+    pub progress: StringU32,
 }
 
 impl Default for Scan {
@@ -524,6 +574,7 @@ impl Default for Scan {
             progress: StringU32(0),
             status: ScanStatus::default(),
             results: Results { result: vec![] },
+            host_info: None,
         }
     }
 }
@@ -540,12 +591,30 @@ impl From<Scan> for models::Status {
             ScanStatus::Succeeded => models::Phase::Succeeded,
             ScanStatus::Interrupted => models::Phase::Failed,
         };
-        // TODO parse host info from results
+
+        let mut scanning: Vec<String> = vec![];
+        if let Some(i) = &value.host_info {
+            for host in &i.host {
+                scanning.push(host.name.clone());
+            }
+        }
+
         models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
-            host_info: None,
+            host_info: value.host_info.map(|i| models::HostInfo {
+                all: i.count_total.content.0,
+                excluded: i.count_excluded.content.0,
+                dead: i.count_dead.content.0,
+                alive: i.count_alive.content.0,
+                queued: i.count_total.content.0
+                    - i.count_excluded.content.0
+                    - i.count_alive.content.0
+                    - i.host.len() as u32,
+                finished: i.count_alive.content.0,
+                scanning,
+            }),
         }
     }
 }
@@ -602,14 +671,14 @@ mod tests {
     #[test]
     fn get_scans_response() {
         // types Alarm, Log Message, nn
-        // TODO write tests for Log Message, Error Message, Host Detail, Alarm
+        // TODO write tests for Log Message, Error Message, Alarm
         let xml = r#"
      <get_scans_response status_text="OK"
                          status="200">
        <scan id="9750f1f8-07aa-49cc-9c31-2f9e469c8f65"
              target="192.168.1.252"
-             end_time="1432824234"
-             progress="100"
+             end_time="0"
+             progress="78"
              status="finished"
              start_time="1432824206">
          <results>
@@ -623,6 +692,15 @@ mod tests {
              bla
            </result>
          </results>
+         <progress>
+            <host name="127.0.0.1">45</host>
+            <host name="10.0.0.160">98</host>
+            <overall>78</overall>
+            <count_alive>2</count_alive>
+            <count_dead>10</count_dead>
+            <count_excluded>3</count_excluded>
+            <count_total>511</count_total>
+        </progress>
        </scan>
      </get_scans_response>
             "#;
@@ -632,10 +710,11 @@ mod tests {
                 assert_eq!(status.text, "OK");
                 assert_eq!(status.code, 200.into());
                 if let Some(scan) = scan {
+                    let host_info = scan.host_info.unwrap();
                     assert_eq!(scan.id, "9750f1f8-07aa-49cc-9c31-2f9e469c8f65");
                     assert_eq!(scan.target, "192.168.1.252");
-                    assert_eq!(scan.end_time, Some(1432824234.into()));
-                    assert_eq!(scan.progress, 100.into());
+                    assert_eq!(scan.end_time, Some(0.into()));
+                    assert_eq!(scan.progress, 78.into());
                     assert_eq!(scan.status, "finished".into());
                     assert_eq!(scan.start_time, Some(1432824206.into()));
                     assert_eq!(scan.results.result[0].host, "192.168.1.252");
@@ -646,6 +725,10 @@ mod tests {
                     assert_eq!(scan.results.result[0].name, "Path disclosure vulnerability");
                     assert_eq!(scan.results.result[0].result_type, ResultType::Log);
                     assert_eq!(scan.results.result[0].description, "bla");
+                    assert_eq!(host_info.count_alive.content.0, 2);
+                    assert_eq!(host_info.count_dead.content.0, 10);
+                    assert_eq!(host_info.count_excluded.content.0, 3);
+                    assert_eq!(host_info.count_total.content.0, 511);
                 } else {
                     panic!("no scan");
                 }

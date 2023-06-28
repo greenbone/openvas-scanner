@@ -67,7 +67,7 @@ impl<'a> ScanCommand<'a> {
                 Some(scan_id),
                 "get_scans",
                 // removes results from ospd-openvas
-                &[("pop_results", "1")],
+                &[("pop_results", "1"), ("progress", "1")],
                 &mut |_| Ok(()),
             ),
             ScanCommand::Get(scan_id) => {

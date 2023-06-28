@@ -10,17 +10,17 @@
 )]
 pub struct HostInfo {
     /// Number of all hosts, that are contained in a target
-    pub all: i32,
+    pub all: u32,
     /// Number of hosts, that are excluded from the target
-    pub excluded: i32,
+    pub excluded: u32,
     /// Number of hosts, that are not reachable (alive-test failed)
-    pub dead: i32,
+    pub dead: u32,
     /// Number of hosts, that are reachable (alive-test succeeded)
-    pub alive: i32,
+    pub alive: u32,
     /// Number of hosts, that are currently queued for scanning
-    pub queued: i32,
+    pub queued: u32,
     /// Number of hosts, that are already finished scanning
-    pub finished: i32,
+    pub finished: u32,
     #[cfg_attr(
         feature = "serde_support",
         serde(skip_serializing_if = "Vec::is_empty")
