@@ -19,12 +19,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: 'set IS_VERSION_TAG'
+      - name: "set IS_VERSION_TAG"
         run: |
           echo "IS_VERSION_TAG=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}" >> $GITHUB_ENV
           # set defaults
           echo "IS_LATEST_TAG=false" >> $GITHUB_ENV
-      - name: 'set IS_LATEST_TAG'
+      - name: "set IS_LATEST_TAG"
         if: ( env.IS_VERSION_TAG )
         run: |
           # find the latest version that is not ourself
@@ -44,7 +44,7 @@ jobs:
             # set this tag to latest and stable
             echo "IS_LATEST_TAG=true" >> $GITHUB_ENV
           fi
-      - name: 'Setup meta information (IS_VERSION_TAG: ${{ env.IS_VERSION_TAG }}, IS_LATEST_TAG: ${{ env.IS_LATEST_TAG }} )'
+      - name: "Setup meta information (IS_VERSION_TAG: ${{ env.IS_VERSION_TAG }}, IS_LATEST_TAG: ${{ env.IS_LATEST_TAG }} )"
         id: meta
         uses: docker/metadata-action@v4
         with:
@@ -80,6 +80,8 @@ jobs:
           path: assets
       - run: mkdir -p assets/linux/amd64
       - run: mkdir -p assets/linux/arm64
+      - run: mv assets/openvasd-aarch64-unknown-linux-gnu assets/linux/arm64/openvasd
+      - run: mv assets/openvasd-x86_64-unknown-linux-gnu assets/linux/amd64/openvasd
       - run: mv assets/nasl-cli-aarch64-unknown-linux-gnu assets/linux/arm64/nasl-cli
       - run: mv assets/nasl-cli-x86_64-unknown-linux-gnu assets/linux/amd64/nasl-cli
       - name: Set up QEMU

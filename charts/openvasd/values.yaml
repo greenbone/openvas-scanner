@@ -1,0 +1,132 @@
+# Default values for openvasd.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Is currently reqired by openvasd to control openvas
+ospd:
+  repository: greenbone/ospd-openvas
+  pullPolicy: Always
+  tag: "edge"
+
+# Contains openvasd
+openvas:
+  repository: greenbone/openvas-scanner
+  pullPolicy: Always
+  tag: "edge"
+
+# Configuration of openvasd
+openvasd: 
+  # Sets the log level and changes the verbosity of openvasd.
+  # Can be set to TRACE, DEBUG, INFO, WARNING, ERROR
+  # openvasd is provided by the openvas image
+  loglevel: TRACE
+  apikey: changeme
+
+# Required for version checks 
+notus:
+  repository: greenbone/notus-scanner
+  pullPolicy: Always
+  tag: "edge"
+
+# NASL scripts also known as feed
+vulnerabilitytests:
+  # latest is the most current community feed.
+  repository: greenbone/vulnerability-tests
+  pullPolicy: Always
+  tag: "latest"
+
+# Notus description json also known as feed
+notusdata:
+  # latest is the most current community feed.
+  repository: greenbone/notus-data
+  pullPolicy: Always
+  tag: "latest"
+
+# Required by notus
+mqtt:
+  repository: greenbone/mqtt-broker
+  pullPolicy: Always
+  tag: "latest"
+
+# required by openvas and ospd
+redis:
+  repository: greenbone/redis-server
+  pullPolicy: Always
+  tag: "latest"
+
+# When you have access to the enterprise feed add the credentials for the private repository here.
+# Additionally change notus and vulnerabilitytests accordingly.
+imagePullSecrets: []
+nameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+# openvasd listens on root without any service prefix
+# in an environment with multiple http services it is 
+# wisely to configure ingress to rewrite targets to root for openvasd.
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /api/openvasd(/|$)(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: openvasd
+              port:
+                number: 3000
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
