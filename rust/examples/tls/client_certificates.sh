@@ -33,7 +33,7 @@ openssl req -nodes \
 
 openssl rsa \
           -in end.key \
-          -out client_sample.rsa
+          -out client.rsa
 
 openssl x509 -req \
             -in inter.req \
@@ -55,5 +55,5 @@ openssl x509 -req \
             -set_serial 456 \
             -extensions v3_end -extfile openssl.cnf
 
-cat end.cert inter.cert ca.cert > client_sample.pem
+cat end.cert inter.cert ca.cert > client.pem
 rm *.key *.cert *.req
