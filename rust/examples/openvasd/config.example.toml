@@ -10,9 +10,9 @@ enable_get_scans = true
 key = "mtls_is_preferred"
 
 [tls]
-certs = "/etc/openvasd/tls/certs.pem"
-key = "/var/lib/openvasd/tls/key.pem"
-client_certs = "/etc/openvasd/tls/clients"
+certs = "/etc/openvasd/tls/server.pem"
+key = "/var/lib/openvasd/tls/server.pem"
+client_certs = "/etc/openvasd/tls/client"
 
 [ospd]
 socket = "/var/run/ospd/ospd.sock"
