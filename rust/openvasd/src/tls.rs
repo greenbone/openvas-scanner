@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! TLS support for the sensord.
+//! TLS support for the openvasd.
 //! To use it you need to provide a certificate and a key file.
 //! If there are no client certificates provided, the server will start without
 //! certificate based client authentication.

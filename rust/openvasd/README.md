@@ -22,8 +22,8 @@ It requires a running ospd-openvas instance.
 
 Create a configuration file under either:
 
-- `/etc/openvasd/sensord.toml`
-- `$HOME/.config/openvasd/sensord.toml`
+- `/etc/openvasd/openvasd.toml`
+- `$HOME/.config/openvasd/openvasd.toml`
 
 or provide the `-c` flag when starting openvasd.
 
@@ -122,8 +122,8 @@ Options:
 ## Defaults
 
 The default lookup path for the configs are:
-- `/etc/openvasd/sensord.toml`
-- `$HOME/.config/openvasd/sensord.toml`
+- `/etc/openvasd/openvasd.toml`
+- `$HOME/.config/openvasd/openvasd.toml`
 
 
 ```

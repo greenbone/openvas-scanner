@@ -72,9 +72,9 @@ pub struct Tls {
 impl Default for Tls {
     fn default() -> Self {
         Self {
-            certs: PathBuf::from("/etc/sensord/tls/certs.pem"),
-            key: PathBuf::from("/var/lib/sensord/tls/key.pem"),
-            client_certs: PathBuf::from("/etc/sensord/tls/clients"),
+            certs: PathBuf::from("/etc/openvasd/tls/certs.pem"),
+            key: PathBuf::from("/var/lib/openvasd/tls/key.pem"),
+            client_certs: PathBuf::from("/etc/openvasd/tls/clients"),
         }
     }
 }
@@ -101,14 +101,14 @@ impl Display for Config {
 
 impl Config {
     fn load_etc() -> Option<Self> {
-        let config = std::fs::read_to_string("/etc/sensord/sensord.toml").unwrap_or_default();
+        let config = std::fs::read_to_string("/etc/openvasd/openvasd.toml").unwrap_or_default();
         toml::from_str(&config).ok()
     }
 
     fn load_user() -> Option<Self> {
         match std::env::var("HOME") {
             Ok(home) => {
-                let path = format!("{}/.config/sensord/sensord.toml", home);
+                let path = format!("{}/.config/openvasd/openvasd.toml", home);
                 let config = std::fs::read_to_string(path).unwrap_or_default();
                 toml::from_str(&config).ok()
             }
@@ -126,7 +126,7 @@ impl Config {
     }
 
     pub fn load() -> Self {
-        let cmds = clap::Command::new("sensord")
+        let cmds = clap::Command::new("openvasd")
             .arg(
                 clap::Arg::new("config")
                     .short('c')
@@ -273,15 +273,15 @@ mod tests {
         assert!(!config.endpoints.enable_get_scans);
         assert_eq!(
             config.tls.certs,
-            std::path::PathBuf::from("/etc/sensord/tls/certs.pem")
+            std::path::PathBuf::from("/etc/openvasd/tls/certs.pem")
         );
         assert_eq!(
             config.tls.key,
-            std::path::PathBuf::from("/var/lib/sensord/tls/key.pem")
+            std::path::PathBuf::from("/var/lib/openvasd/tls/key.pem")
         );
         assert_eq!(
             config.tls.client_certs,
-            std::path::PathBuf::from("/etc/sensord/tls/clients")
+            std::path::PathBuf::from("/etc/openvasd/tls/clients")
         );
     }
 }
