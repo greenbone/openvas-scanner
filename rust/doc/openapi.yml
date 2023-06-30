@@ -18,7 +18,7 @@ info:
     ## API Key
 
     An API key is a token that the client provides when doing API requests and are used to authorize access.
-    The `SCANNER-API-KEY` must be in the header.
+    The `X-API-KEY` must be in the header.
 
 
     <!--More details about this method follows with its implementation.-->
@@ -317,11 +317,11 @@ components:
         target:
           description: "The target to scan"
           $ref: "#/components/schemas/Target"
-        scanner_parameters:
+        scanner_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
-            $ref: "#/components/schemas/ScannerParameter"
+            $ref: "#/components/schemas/ScannerPreference"
         vts:
           type: "array"
           description: "A collection of VTs, which are run for the given target."
@@ -485,15 +485,15 @@ components:
             - aes
             - des
 
-    ScannerParameter:
-      description: "Consists of a parameter ID and its value."
+    ScannerPreference:
+      description: "Consists of a preference ID and its value."
       type: "object"
       properties:
         id:
-          description: "ID of the parameter to set."
+          description: "ID of the preference to set."
           type: "string"
         value:
-          description: "Value of the parameter."
+          description: "Value of the preference."
           type: "string"
       required:
         - value
@@ -660,7 +660,11 @@ components:
       description: "A simple example for creating a scan."
       value:
         {
-          "target": { "hosts": ["127.0.0.1"], "ports": [{ "range": [{ "start": 22}] }] },
+          "target":
+            {
+              "hosts": ["127.0.0.1"],
+              "ports": [{ "range": [{ "start": 22 }] }],
+            },
           "vts": [{ "oid": "1.3.6.1.4.1.25623.1.0.10267" }],
         }
     scan_full:
@@ -682,9 +686,12 @@ components:
                 ],
               "ports":
                 [
-                  { "protocol": "udp", "range": [{"start": 22}, {"start": 1024, "end": 1030}] },
-                  { "protocol": "tcp", "range": [{"start": 24, "end": 30 }]},
-                  { "range": [{"start": 100, "end": 1000 }]},
+                  {
+                    "protocol": "udp",
+                    "range": [{ "start": 22 }, { "start": 1024, "end": 1030 }],
+                  },
+                  { "protocol": "tcp", "range": [{ "start": 24, "end": 30 }] },
+                  { "range": [{ "start": 100, "end": 1000 }] },
                 ],
               "credentials":
                 [
@@ -716,13 +723,16 @@ components:
                   },
                 ],
               "alive_test_ports":
-                [{ "protocol": "tcp", "range": [ {"start": 1, "end": 100 }]}, { "range": [{"start": 443}] }],
+                [
+                  { "protocol": "tcp", "range": [{ "start": 1, "end": 100 }] },
+                  { "range": [{ "start": 443 }] },
+                ],
               "alive_test_methods":
                 ["icmp", "tcp_syn", "tcp_ack", "arp", "consider_alive"],
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_parameters":
+          "scanner_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },

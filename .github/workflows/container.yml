@@ -97,3 +97,30 @@ jobs:
           platforms: linux/amd64,linux/aarch64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: "Setup meta information (IS_VERSION_TAG: ${{ env.IS_VERSION_TAG }}, IS_LATEST_TAG: ${{ env.IS_LATEST_TAG }} )"
+        id: old_stable_meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ github.repository }}
+          labels: |
+            org.opencontainers.image.vendor=Greenbone
+            org.opencontainers.image.base.name=greenbone/gvm-libs
+          flavor: latest=false # no auto latest container tag for git tags
+          tags: |
+            # for the images provided for debian:oldstable we just provide
+            # oldstable on an new version or oldstable-edge when it is on main.
+            # oldstable-branch-sha on a branch
+            type=raw,value=oldstable,enable=${{ env.IS_LATEST_TAG }}
+            type=raw,value=oldstable-edge,enable=${{ github.ref_name == 'main' }}
+            type=raw,value=oldstable-{{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
+            type=ref,event=pr
+      - name: Build and push Container image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == 'main') }}
+          file: .docker/prod-oldstable.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.old_stable_meta.outputs.tags }}
+          labels: ${{ steps.old_stable_meta.outputs.labels }}

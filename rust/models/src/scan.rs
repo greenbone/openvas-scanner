@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use super::{scanner_parameter::ScannerParameter, target::Target, vt::VT};
+use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
 
 /// Struct for creating and getting a scan
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
@@ -24,7 +24,7 @@ pub struct Scan {
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
     /// Configuration options for the scanner
-    pub scanner_parameters: Vec<ScannerParameter>,
+    pub scanner_preferences: Vec<ScannerPreference>,
     /// List of VTs to execute for the target
     pub vts: Vec<VT>,
 }
