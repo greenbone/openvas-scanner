@@ -15,7 +15,7 @@ key = "/var/lib/openvasd/tls/server.pem"
 client_certs = "/etc/openvasd/tls/client"
 
 [ospd]
-socket = "/var/run/ospd/ospd.sock"
+socket = "/var/run/ospd/ospd-openvas.sock"
 
 [ospd.result_check_interval]
 secs = 1
@@ -23,3 +23,6 @@ nanos = 0
 
 [listener]
 address = "127.0.0.1:3000"
+
+[log]
+level = "DEBUG"

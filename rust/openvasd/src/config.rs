@@ -79,6 +79,20 @@ impl Default for Tls {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Logging {
+    #[serde(default)]
+    pub level: String,
+}
+
+impl Default for Logging {
+    fn default() -> Self {
+        Self {
+            level: "INFO".to_string(),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     #[serde(default)]
@@ -91,6 +105,8 @@ pub struct Config {
     pub ospd: OspdWrapper,
     #[serde(default)]
     pub listener: Listener,
+    #[serde(default)]
+    pub log: Logging,
 }
 
 impl Display for Config {
@@ -120,7 +136,6 @@ impl Config {
     where
         P: AsRef<std::path::Path> + std::fmt::Display,
     {
-        tracing::debug!("loading config from {}", path);
         let config = std::fs::read_to_string(path).unwrap_or_default();
         toml::from_str(&config).unwrap_or_default()
     }
@@ -213,6 +228,14 @@ impl Config {
                     .value_parser(clap::value_parser!(SocketAddr))
                     .help("the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000)."),
             )
+            .arg(
+                clap::Arg::new("log-level")
+                    .env("OPENVASD_LOG")
+                    .long("log-level")
+                    .short('L')
+                    .default_value("INFO")
+                    .help("Level of log messages to be shown. TRACE>DEBUG>INFO>WARN>ERROR"),
+            )
             .get_matches();
         let mut config = match cmds.get_one::<String>("config") {
             Some(path) => Self::from_file(path),
@@ -254,6 +277,9 @@ impl Config {
         }
         if let Some(ip) = cmds.get_one::<SocketAddr>("listening") {
             config.listener.address = *ip;
+        }
+        if let Some(log_level) = cmds.get_one::<String>("log-level") {
+            config.log.level = log_level.clone();
         }
 
         config

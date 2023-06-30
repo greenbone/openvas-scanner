@@ -12,12 +12,13 @@ mod tls;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let config = config::Config::load();
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .with_env_var("OPENVASD_LOG")
-        .from_env_lossy();
+        .parse_lossy(config.logging.level.clone());
     tracing_subscriber::fmt().with_env_filter(filter).init();
-    let config = config::Config::load();
+    tracing::info!("Log level: {}", config.logging.level);
+    tracing::info!("OSPD Socket: {}", config.ospd.socket.display());
     let rc = config.ospd.result_check_interval;
     let fc = (config.feed.path.clone(), config.feed.check_interval);
     let scanner = scan::OSPDWrapper::from_env();
