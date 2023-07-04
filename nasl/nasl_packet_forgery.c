@@ -2033,7 +2033,7 @@ forge_igmp_packet (lex_ctxt *lexic)
 /*---------------------------------------------------------------------------*/
 
 /**
- * @brief Lunches a “TCP ping” against the target host.
+ * @brief Launches a “TCP ping” against the target host.
  *
  * Tries to open a TCP connection and sees if anything comes back (SYN/ACK or
  * RST).

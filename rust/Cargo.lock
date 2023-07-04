@@ -827,7 +827,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2",
+ "socket2 0.4.9",
  "tokio",
  "tower-service",
  "tracing",
@@ -1170,6 +1170,8 @@ dependencies = [
 name = "nasl-builtin-raw-ip"
 version = "0.1.0"
 dependencies = [
+ "nasl-builtin-host",
+ "nasl-builtin-misc",
  "nasl-builtin-std",
  "nasl-builtin-utils",
  "nasl-interpreter",
@@ -1177,6 +1179,9 @@ dependencies = [
  "pcap",
  "pnet",
  "pnet_base",
+ "pnet_macros",
+ "pnet_macros_support",
+ "socket2 0.5.3",
  "storage",
 ]
 
@@ -1982,6 +1987,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "socket2"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2538b18701741680e0322a2302176d3253a35388e2e62f172f64f4f16605f877"
+dependencies = [
+ "libc",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2130,7 +2145,7 @@ dependencies = [
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
- "socket2",
+ "socket2 0.4.9",
  "tokio-macros",
  "windows-sys 0.48.0",
 ]
