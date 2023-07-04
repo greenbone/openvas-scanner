@@ -156,6 +156,7 @@ impl Config {
                     .long("feed-path")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
+                    .default_value("/var/lib/openvas/plugins")
                     .help("path to openvas feed"),
             )
             .arg(
@@ -164,6 +165,7 @@ impl Config {
                     .long("feed-check-interval")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
+                    .default_value("3600")
                     .help("interval to check for feed updates in seconds"),
             )
             .arg(
@@ -208,6 +210,7 @@ impl Config {
                 clap::Arg::new("ospd-socket")
                     .env("OSPD_SOCKET")
                     .long("ospd-socket")
+                    .default_value("/var/run/ospd/ospd.sock")
                     .help("socket to ospd")
                     .value_parser(clap::builder::PathBufValueParser::new()),
             )
@@ -217,6 +220,7 @@ impl Config {
                     .long("result-check-interval")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
+                    .default_value("1")
                     .help("interval to check for new results in seconds"),
             )
             .arg(
@@ -226,6 +230,7 @@ impl Config {
                     .short('l')
                     .value_name("IP:PORT")
                     .value_parser(clap::value_parser!(SocketAddr))
+                    .default_value("127.0.0.1:3000")
                     .help("the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000)."),
             )
             .arg(
@@ -234,7 +239,7 @@ impl Config {
                     .long("log-level")
                     .short('L')
                     .default_value("INFO")
-                    .help("Level of log messages to be shown. TRACE>DEBUG>INFO>WARN>ERROR"),
+                    .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
             .get_matches();
         let mut config = match cmds.get_one::<String>("config") {

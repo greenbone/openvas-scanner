@@ -1,28 +1,41 @@
 [feed]
+# path to the openvas feed. This is required for the /vts endpoint.
 path = "/var/lib/openvas/plugins"
 
 [feed.check_interval]
+# how often the feed should be checked for updates
 secs = 3600
 nanos = 0
 
 [endpoints]
+# enables GET /scans endpoint
 enable_get_scans = true
+# if set it requires `x-api-key` header to use the endpoint
 key = "mtls_is_preferred"
 
 [tls]
+# the server certificate
 certs = "/etc/openvasd/tls/server.pem"
-key = "/var/lib/openvasd/tls/server.pem"
+# server key
+key = "/var/lib/openvasd/tls/server.rsa"
+# dir that contains client certificates. if there are none than every client is
+# allowed to connect otherwise just the clients that have the configured
+# client certificates
 client_certs = "/etc/openvasd/tls/client"
 
 [ospd]
-socket = "/var/run/ospd/ospd-openvas.sock"
+# path to the unix socket of ospd-openvas
+socket = "/var/run/ospd/ospd.sock"
 
 [ospd.result_check_interval]
+# interval of checking for results for started scans
 secs = 1
 nanos = 0
 
 [listener]
+# ip address and port to listen to
 address = "127.0.0.1:3000"
 
 [log]
-level = "DEBUG"
+# level of the log messages: TRACE > DEBUG > INFO > WARN > ERROR
+level = "INFO"

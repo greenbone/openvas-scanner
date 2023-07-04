@@ -4,7 +4,7 @@ Is the implementation for [scanner-api](https://greenbone.github.io/scanner-api/
 
 Currently it is utilizing ospd-openvas.
 
-To set the log level you haben set environment variable `OPENVASD_LOG` to the following levels:
+The log level can be adjusted with the env variable `OPENVASD_LOG` and can have the following values:
 
 - TRACE
 - DEBUG
@@ -48,13 +48,13 @@ key = "mtls_is_preferred"
 
 [tls]
 # the server certificate
-certs = "/etc/openvasd/tls/certs.pem"
+certs = "/etc/openvasd/tls/server.pem"
 # server key
-key = "/var/lib/openvasd/tls/key.pem"
+key = "/var/lib/openvasd/tls/server.rsa"
 # dir that contains client certificates. if there are none than every client is
-# allowed to connect otherwise just the clients that habve the configured
+# allowed to connect otherwise just the clients that have the configured
 # client certificates
-client_certs = "/etc/openvasd/tls/clients"
+client_certs = "/etc/openvasd/tls/client"
 
 [ospd]
 # path to the unix socket of ospd-openvas
@@ -68,6 +68,10 @@ nanos = 0
 [listener]
 # ip address and port to listen to
 address = "127.0.0.1:3000"
+
+[log]
+# level of the log messages: TRACE > DEBUG > INFO > WARN > ERROR
+level = "INFO"
 ```
 
 If you want to enable TLS for secure communication, ensure that the TLS
@@ -98,9 +102,9 @@ Options:
   -c, --config <config>
           path to toml config file [env: OPENVASD_CONFIG=]
       --feed-path <feed-path>
-          path to openvas feed [env: FEEED_PATH=]
+          path to openvas feed [env: FEEED_PATH=] [default: /var/lib/openvas/plugins]
       --feed-check-interval <SECONDS>
-          interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=]
+          interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=] [default: 3600]
       --tls-certs <tls-certs>
           path to server tls certs [env: TLS_CERTS=]
       --tls-key <tls-key>
@@ -109,46 +113,16 @@ Options:
           path to client tls certs. Enables mtls. [env: TLS_CLIENT_CERTS=]
       --enable-get-scans
           enable get scans endpoint [env: ENABLE_GET_SCANS=]
+      --api-key <api-key>
+          API key that must be set as X-API-KEY header to gain access [env: API_KEY=]
       --ospd-socket <ospd-socket>
-          socket to ospd [env: OSPD_SOCKET=]
+          socket to ospd [env: OSPD_SOCKET=] [default: /var/run/ospd/ospd.sock]
       --result-check-interval <SECONDS>
-          interval to check for new results in seconds [env: RESULT_CHECK_INTERVAL=]
+          interval to check for new results in seconds [env: RESULT_CHECK_INTERVAL=] [default: 1]
   -l, --listening <IP:PORT>
-          the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000). [env: LISTENING=]
-  -h, --e
+          the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000). [env: LISTENING=] [default: 127.0.0.1:3000]
+  -L, --log-level <log-level>
+          Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR [env: OPENVASD_LOG=] [default: INFO]
+  -h, --help
           Print help
-```
-
-## Defaults
-
-The default lookup path for the configs are:
-- `/etc/openvasd/openvasd.toml`
-- `$HOME/.config/openvasd/openvasd.toml`
-
-
-```
-[feed]
-path = "/var/lib/openvas/plugins"
-
-[feed.check_interval]
-secs = 3600
-nanos = 0
-
-[endpoints]
-enable_get_scans = false
-
-[tls]
-certs = "/etc/openvasd/tls/certs.pem"
-key = "/etc/openvasd/tls/key.pem"
-client_certs = "/etc/openvasd/tls/clients"
-
-[ospd]
-socket = "/var/run/ospd/ospd.sock"
-
-[ospd.result_check_interval]
-secs = 1
-nanos = 0
-
-[listener]
-address = "127.0.0.1:3000"
 ```
