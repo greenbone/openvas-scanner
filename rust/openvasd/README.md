@@ -4,21 +4,11 @@ Is the implementation for [scanner-api](https://greenbone.github.io/scanner-api/
 
 Currently it is utilizing ospd-openvas.
 
-The log level can be adjusted with the env variable `OPENVASD_LOG` and can have the following values:
-
-- TRACE
-- DEBUG
-- INFO
-- WARN
-- ERROR
-
-the default is `INFO`.
-
 # Requirements
 
 It requires a running ospd-openvas instance.
 
-## Configuration
+# Configuration
 
 Create a configuration file under either:
 
@@ -102,9 +92,9 @@ Options:
   -c, --config <config>
           path to toml config file [env: OPENVASD_CONFIG=]
       --feed-path <feed-path>
-          path to openvas feed [env: FEEED_PATH=] [default: /var/lib/openvas/plugins]
+          path to openvas feed [env: FEEED_PATH=]
       --feed-check-interval <SECONDS>
-          interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=] [default: 3600]
+          interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=]
       --tls-certs <tls-certs>
           path to server tls certs [env: TLS_CERTS=]
       --tls-key <tls-key>
@@ -116,13 +106,31 @@ Options:
       --api-key <api-key>
           API key that must be set as X-API-KEY header to gain access [env: API_KEY=]
       --ospd-socket <ospd-socket>
-          socket to ospd [env: OSPD_SOCKET=] [default: /var/run/ospd/ospd.sock]
+          socket to ospd [env: OSPD_SOCKET=]
       --result-check-interval <SECONDS>
-          interval to check for new results in seconds [env: RESULT_CHECK_INTERVAL=] [default: 1]
+          interval to check for new results in seconds [env: RESULT_CHECK_INTERVAL=]
   -l, --listening <IP:PORT>
-          the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000). [env: LISTENING=] [default: 127.0.0.1:3000]
+          the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000). [env: LISTENING=]
   -L, --log-level <log-level>
-          Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR [env: OPENVASD_LOG=] [default: INFO]
+          Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR [env: OPENVASD_LOG=]
   -h, --help
           Print help
 ```
+
+# Options
+
+| Option                  | Long Command            | Short Command | Config Section             | Config Name      | Environment Variable  | Description                                                                                                      | Default Value            |
+| ----------------------- | ----------------------- | ------------- | -------------------------- | ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Config Path             | --config                | -c            |                            |                  | OPENVASD_CONFIG       | Path to toml config file                                                                                         |                          |
+| Feed Path               | --feed-path             |               | feed                       | path             | FEEED_PATH            | Path to openvas feed                                                                                             | /var/lib/openvas/plugins |
+| Feed Check Interval     | --feed-check-interval   |               | feed.check_interval        | secs</br>nanos   | FEED_CHECK_INTERVAL   | Interval to check for feed updates in seconds. Using the config file, it can be set in seconds and nanoseconds   | 3600 (seconds)           |
+| TLS Certificates        | --tls-certs             |               | tls                        | certs            | TLS_CERTS             | Path to server TLS certs file. If none is given, TLS is disabled                                                 |                          |
+| TLS Key                 | --tls-key               |               | tls                        | key              | TLS_KEY               | Path to server TLS key                                                                                           |                          |
+| TLS Client Certificates | --tls-client-certs      |               | tls                        | client_certs     | TLS_CLIENT_CERTS      | Path to client TLS certs enables mTLS                                                                            |                          |
+| Enable get scans        | --enable-get-scans      |               | endpoints                  | enable_get_scans | ENABLE_GET_SCANS      | Enables GET /scans endpoint                                                                                      | false                    |
+| API key                 | --api-key               |               | endpoints                  | key              | API_KEY               | API key that must be set as X-API-KEY header to gain access. If none is given, api-key authorization is disabled |                          |
+| OSPD Socket             | --opsd-socket           |               | ospd                       | socket           | OSPD_SOCKET           | Path to the unix socket of ospd-openvas                                                                          | /var/run/ospd/ospd.sock  |
+| Result Check Interval   | --result-check-interval |               | ospd.result_check_interval | secs</br>nanos   | RESULT_CHECK_INTERVAL | Interval to check for new results in seconds. Using the config file, it can be set in seconds and nanoseconds    | 1 (second)               |
+| Listening               | --listening             | -l            | listener                   | address          | LISTENING             | IP address and port to listen to                                                                                 | 127.0.0.1:3000           |
+| Log Level               | --log-level             | -L            | log                        | level            | OPENVASD_LOG          | Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR                                           | INFO                     |
+| Help                    | --help                  | -h            |                            |                  |                       | Print help                                                                                                       |                          |

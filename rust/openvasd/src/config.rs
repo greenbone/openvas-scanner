@@ -37,7 +37,7 @@ impl Default for Feed {
     fn default() -> Self {
         Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
-            check_interval: Duration::from_secs(60 * 60),
+            check_interval: Duration::from_secs(3600),
         }
     }
 }
@@ -62,21 +62,11 @@ pub struct Endpoints {
     pub key: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Tls {
-    pub certs: PathBuf,
-    pub key: PathBuf,
-    pub client_certs: PathBuf,
-}
-
-impl Default for Tls {
-    fn default() -> Self {
-        Self {
-            certs: PathBuf::from("/etc/openvasd/tls/certs.pem"),
-            key: PathBuf::from("/var/lib/openvasd/tls/key.pem"),
-            client_certs: PathBuf::from("/etc/openvasd/tls/clients"),
-        }
-    }
+    pub certs: Option<PathBuf>,
+    pub key: Option<PathBuf>,
+    pub client_certs: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -156,7 +146,6 @@ impl Config {
                     .long("feed-path")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
-                    .default_value("/var/lib/openvas/plugins")
                     .help("path to openvas feed"),
             )
             .arg(
@@ -165,7 +154,6 @@ impl Config {
                     .long("feed-check-interval")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
-                    .default_value("3600")
                     .help("interval to check for feed updates in seconds"),
             )
             .arg(
@@ -210,7 +198,6 @@ impl Config {
                 clap::Arg::new("ospd-socket")
                     .env("OSPD_SOCKET")
                     .long("ospd-socket")
-                    .default_value("/var/run/ospd/ospd.sock")
                     .help("socket to ospd")
                     .value_parser(clap::builder::PathBufValueParser::new()),
             )
@@ -220,7 +207,7 @@ impl Config {
                     .long("result-check-interval")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
-                    .default_value("1")
+                    // .default_value("1")
                     .help("interval to check for new results in seconds"),
             )
             .arg(
@@ -230,7 +217,6 @@ impl Config {
                     .short('l')
                     .value_name("IP:PORT")
                     .value_parser(clap::value_parser!(SocketAddr))
-                    .default_value("127.0.0.1:3000")
                     .help("the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000)."),
             )
             .arg(
@@ -238,7 +224,7 @@ impl Config {
                     .env("OPENVASD_LOG")
                     .long("log-level")
                     .short('L')
-                    .default_value("INFO")
+                    // .default_value("INFO")
                     .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
             .get_matches();
@@ -266,13 +252,13 @@ impl Config {
             config.feed.path = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
-            config.tls.certs = path.clone();
+            config.tls.certs = Some(path.clone());
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-key") {
-            config.tls.key = path.clone();
+            config.tls.key = Some(path.clone());
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-client-certs") {
-            config.tls.client_certs = path.clone();
+            config.tls.client_certs = Some(path.clone());
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-scans") {
             config.endpoints.enable_get_scans = *enable;
@@ -286,33 +272,45 @@ impl Config {
         if let Some(log_level) = cmds.get_one::<String>("log-level") {
             config.log.level = log_level.clone();
         }
-
         config
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::{path::PathBuf, time::Duration};
 
     #[test]
     fn defaults() {
         let config = super::Config::default();
+
         assert_eq!(
             config.feed.path,
             std::path::PathBuf::from("/var/lib/openvas/plugins")
         );
+        assert_eq!(config.feed.check_interval, Duration::from_secs(3600));
+
         assert!(!config.endpoints.enable_get_scans);
-        assert_eq!(
-            config.tls.certs,
-            std::path::PathBuf::from("/etc/openvasd/tls/certs.pem")
-        );
-        assert_eq!(
-            config.tls.key,
-            std::path::PathBuf::from("/var/lib/openvasd/tls/key.pem")
-        );
-        assert_eq!(
-            config.tls.client_certs,
-            std::path::PathBuf::from("/etc/openvasd/tls/clients")
-        );
+        assert!(config.endpoints.key.is_none());
+
+        assert!(config.tls.certs.is_none());
+        assert!(config.tls.key.is_none());
+        assert!(config.tls.client_certs.is_none());
+
+        assert_eq!(config.ospd.result_check_interval, Duration::from_secs(1));
+        assert_eq!(config.ospd.socket, PathBuf::from("/var/run/ospd/ospd.sock"));
+
+        assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
+
+        assert_eq!(config.log.level, "INFO".to_string());
+    }
+
+    #[test]
+    fn parse_toml() {
+        let cfg = r#"[log]
+        level = "DEBUG"
+        "#;
+        let config: super::Config = toml::from_str(cfg).unwrap();
+        assert_eq!(config.log.level, "DEBUG");
     }
 }
