@@ -9,6 +9,3 @@ edition = "2021"
 nasl-syntax = { path = "../nasl-syntax" }
 storage = { path = "../storage" }
 tracing = "0.1"
-
-# FIXME rewrite sessions.rs to be abstract and remove this dependency
-libssh-rs = {git = "https://github.com/wez/libssh-rs.git", branch = "main"}
