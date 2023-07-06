@@ -396,7 +396,10 @@ fn nasl_get_local_mac_address_from_ip<K>(
 ) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Ok(NaslValue::Null);
+        return Err(FunctionErrorKind::MissingPositionalArguments {
+            expected: 1,
+            got: 0,
+        });
     }
 
     match &positional[0] {
@@ -405,7 +408,10 @@ fn nasl_get_local_mac_address_from_ip<K>(
             let iface = get_interface_by_local_ip(ip)?;
             match get_local_mac_address(&iface.name) {
                 Some(mac) => Ok(NaslValue::String(mac.to_string())),
-                _ => Ok(NaslValue::Null),
+                _ => Err(FunctionErrorKind::Diagnostic(
+                    "Not possible to get the local mac address".to_string(),
+                    Some(NaslValue::Null),
+                )),
             }
         }
         _ => Err(FunctionErrorKind::WrongArgument(

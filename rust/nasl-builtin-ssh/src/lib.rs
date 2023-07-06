@@ -460,21 +460,19 @@ impl Ssh {
         let session = match Session::new() {
             Ok(s) => s,
             Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!("Function called from ssh_connect: {}", e),
-                    Some(NaslValue::Null),
-                ));
+                return Err(FunctionErrorKind::Dirty(format!(
+                    "Function called from ssh_connect: {}",
+                    e
+                )));
             }
         };
 
         let option = SshOption::Timeout(Duration::from_secs(timeout as u64));
 
         if let Err(err) = session.set_option(option) {
-            return Err(FunctionErrorKind::Diagnostic(
+            return Err(FunctionErrorKind::Dirty(
             format!(
-                "Function {} called from {}: Failed to set the SSH connection timeout to {} seconds: {}", "func", "key", timeout, err),
-                Some(NaslValue::Null)
-            ));
+                "Function {} called from {}: Failed to set the SSH connection timeout to {} seconds: {}", "func", "key", timeout, err)));
         }
 
         let verbose = env::var("OPENVAS_LIBSSH_DEBUG")
@@ -490,50 +488,47 @@ impl Ssh {
         };
         let option = SshOption::LogLevel(log_level);
         if session.set_option(option).is_err() {
-            return Ok(NaslValue::Null);
+            return Err(FunctionErrorKind::Dirty(format!(
+                "Function {} called from {}: Failed to set the SSH connection log level",
+                "func", "key"
+            )));
         }
 
         let option = SshOption::Hostname(ip_str.to_owned());
         match session.set_option(option) {
             Ok(_) => (),
             Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} (calling internal function {}): Failed to set SSH hostname '{}': {}", "func", "nasl_ssh_connect", ip_str, e),
-                Some(NaslValue::Null)
+                    "Function {} (calling internal function {}): Failed to set SSH hostname '{}': {}", "func", "nasl_ssh_connect", ip_str, e)
             ));
             }
         };
 
         let option = SshOption::KnownHosts(Some("/dev/null".to_owned()));
         if let Err(err) = session.set_option(option) {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!(
-                    "Function {} (calling internal function {}): Failed to disable known_hosts: {}",
-                    "func", "nasl_ssh_connect", err
-                ),
-                Some(NaslValue::Null),
-            ));
+            return Err(FunctionErrorKind::Dirty(format!(
+                "Function {} (calling internal function {}): Failed to disable known_hosts: {}",
+                "func", "nasl_ssh_connect", err
+            )));
         }
 
         if !key_type.is_empty() {
             let option = SshOption::HostKeys(key_type.to_owned());
             if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", key_type, err),
-                Some(NaslValue::Null)
-            ));
+                    "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", key_type, err)
+                ));
             }
         }
 
         if !csciphers.is_empty() {
             let option = SshOption::CiphersCS(csciphers.to_owned());
             if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} (calling internal function {}): Failed to set SSH client to server ciphers '{}': {}", "func", "nasl_ssh_connect", csciphers, err),
-                Some(NaslValue::Null)
+                    "Function {} (calling internal function {}): Failed to set SSH client to server ciphers '{}': {}", "func", "nasl_ssh_connect", csciphers, err)
             ));
             }
         }
@@ -541,10 +536,9 @@ impl Ssh {
         if !scciphers.is_empty() {
             let option = SshOption::CiphersSC(scciphers.to_owned());
             if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} (calling internal function {}): Failed to set SSH server to client ciphers '{}': {}", "func", "nasl_ssh_connect", scciphers, err),
-                Some(NaslValue::Null)
+                    "Function {} (calling internal function {}): Failed to set SSH server to client ciphers '{}': {}", "func", "nasl_ssh_connect", scciphers, err)
             ));
             }
         }
@@ -553,10 +547,9 @@ impl Ssh {
         if valid_ports.contains(&port) {
             let option = SshOption::Port(port);
             if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} (calling internal function {}) called from {}: Failed to set SSH port '{}': {}", "func", "nasl_ssh_connect", "key", port, err),
-                Some(NaslValue::Null),
+                    "Function {} (calling internal function {}) called from {}: Failed to set SSH port '{}': {}", "func", "nasl_ssh_connect", "key", port, err)
             ));
             }
         }
@@ -578,10 +571,9 @@ impl Ssh {
             }
 
             if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, err),
-                Some(NaslValue::Null),
+                    "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, err)
             ));
             }
 
@@ -617,13 +609,10 @@ impl Ssh {
             }
             Err(e) => {
                 session.disconnect();
-                Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Failed to connect to SSH server '{}' (port {}, sock {}, f={}): {}",
-                        ip_str, port, sock, forced_sock, e
-                    ),
-                    Some(NaslValue::Null),
-                ))
+                Err(FunctionErrorKind::Dirty(format!(
+                    "Failed to connect to SSH server '{}' (port {}, sock {}, f={}): {}",
+                    ip_str, port, sock, forced_sock, e
+                )))
             }
         }
     }
@@ -785,10 +774,10 @@ impl Ssh {
             .find(|(_i, s)| s.session_id == session_id)
         {
             Some((_i, s)) => set_opt_user(s, login, session_id),
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -905,10 +894,10 @@ impl Ssh {
 
         if password.is_none() && privatekey.is_none() && passphrase.is_none() {
             //TODO: Get values from KB
-            return Err(FunctionErrorKind::Diagnostic(
-                format!("Invalid SSH session for SessionID {}", session_id),
-                Some(NaslValue::Null),
-            ));
+            return Err(FunctionErrorKind::Dirty(format!(
+                "Invalid SSH session for SessionID {}",
+                session_id
+            )));
         }
 
         let mut sessions = lock_sessions(&self.sessions)?;
@@ -960,13 +949,10 @@ impl Ssh {
                             }
                         }
                         Err(_) => {
-                            return Err(FunctionErrorKind::Diagnostic(
-                                format!(
-                                    "Failed setting user authentication for SessionID {}",
-                                    session_id
-                                ),
-                                Some(NaslValue::Null),
-                            ));
+                            return Err(FunctionErrorKind::Dirty(format!(
+                                "Failed setting user authentication for SessionID {}",
+                                session_id
+                            )));
                         }
                     };
                 }
@@ -977,19 +963,18 @@ impl Ssh {
                     loop {
                         match session.session.userauth_keyboard_interactive(None, None) {
                             Ok(AuthStatus::Info) => {
-                                let info =
-                                    match session.session.userauth_keyboard_interactive_info() {
-                                        Ok(i) => i,
-                                        Err(_) => {
-                                            return Err(FunctionErrorKind::Diagnostic(
-                                                format!(
+                                let info = match session
+                                    .session
+                                    .userauth_keyboard_interactive_info()
+                                {
+                                    Ok(i) => i,
+                                    Err(_) => {
+                                        return Err(FunctionErrorKind::Dirty(format!(
                                             "Failed setting user authentication for SessionID {}",
                                             session_id
-                                        ),
-                                                Some(NaslValue::Null),
-                                            ));
-                                        }
-                                    };
+                                        )));
+                                    }
+                                };
                                 if verbose {
                                     ctx.logger().info(&format!("SSH kbdint name={}", info.name));
                                     ctx.logger().info(&format!(
@@ -1025,13 +1010,10 @@ impl Ssh {
                                 continue;
                             }
                             Err(_) => {
-                                return Err(FunctionErrorKind::Diagnostic(
-                                    format!(
-                                        "Failed setting user authentication for SessionID {}",
-                                        session_id
-                                    ),
-                                    Some(NaslValue::Null),
-                                ));
+                                return Err(FunctionErrorKind::Dirty(format!(
+                                    "Failed setting user authentication for SessionID {}",
+                                    session_id
+                                )));
                             }
                         };
                     }
@@ -1068,10 +1050,10 @@ impl Ssh {
                 };
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1256,26 +1238,20 @@ impl Ssh {
                 let mut channel = match session.session.new_channel() {
                     Ok(c) => c,
                     Err(e) => {
-                        return Err(FunctionErrorKind::Diagnostic(
-                            format!(
-                                "Failed to open a new channel for session ID {}: {}",
-                                session.session_id, e
-                            ),
-                            Some(NaslValue::Null),
-                        ));
+                        return Err(FunctionErrorKind::Dirty(format!(
+                            "Failed to open a new channel for session ID {}: {}",
+                            session.session_id, e
+                        )));
                     }
                 };
 
                 match channel.open_session() {
                     Ok(_) => (),
                     Err(e) => {
-                        return Err(FunctionErrorKind::Diagnostic(
-                            format!(
-                                "Channel failed to open session for session ID {}: {}",
-                                session.session_id, e
-                            ),
-                            Some(NaslValue::Null),
-                        ));
+                        return Err(FunctionErrorKind::Dirty(format!(
+                            "Channel failed to open session for session ID {}: {}",
+                            session.session_id, e
+                        )));
                     }
                 };
 
@@ -1284,10 +1260,10 @@ impl Ssh {
                 session.channel = Some(channel);
                 Ok(NaslValue::Number(session_id as i64))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1342,10 +1318,10 @@ impl Ssh {
                 };
 
                 if channel.is_closed() {
-                    return Err(FunctionErrorKind::Diagnostic(
-                        format!("Session ID {} not found", session_id),
-                        Some(NaslValue::Null),
-                    ));
+                    return Err(FunctionErrorKind::Dirty(format!(
+                        "Session ID {} not found",
+                        session_id
+                    )));
                 }
 
                 let mut response = String::new();
@@ -1359,10 +1335,10 @@ impl Ssh {
 
                 Ok(NaslValue::String(response))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1418,10 +1394,10 @@ impl Ssh {
                 };
 
                 if channel.is_closed() {
-                    return Err(FunctionErrorKind::Diagnostic(
-                        format!("Session ID {} not found", session_id),
-                        Some(NaslValue::Null),
-                    ));
+                    return Err(FunctionErrorKind::Dirty(format!(
+                        "Session ID {} not found",
+                        session_id
+                    )));
                 }
 
                 match channel.stdin().write(cmd.as_bytes()) {
@@ -1429,10 +1405,10 @@ impl Ssh {
                     Err(_) => Ok(NaslValue::Number(-1)),
                 }
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1477,10 +1453,10 @@ impl Ssh {
                 session.channel = None;
                 Ok(NaslValue::Null)
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1557,19 +1533,18 @@ impl Ssh {
                     loop {
                         match session.session.userauth_keyboard_interactive(None, None) {
                             Ok(AuthStatus::Info) => {
-                                let info =
-                                    match session.session.userauth_keyboard_interactive_info() {
-                                        Ok(i) => i,
-                                        Err(_) => {
-                                            return Err(FunctionErrorKind::Diagnostic(
-                                                format!(
+                                let info = match session
+                                    .session
+                                    .userauth_keyboard_interactive_info()
+                                {
+                                    Ok(i) => i,
+                                    Err(_) => {
+                                        return Err(FunctionErrorKind::Dirty(format!(
                                             "Failed setting user authentication for SessionID {}",
                                             session_id
-                                        ),
-                                                Some(NaslValue::Null),
-                                            ));
-                                        }
-                                    };
+                                        )));
+                                    }
+                                };
                                 if verbose {
                                     ctx.logger().info(&format!("SSH kbdint name={}", info.name));
                                     ctx.logger().info(&format!(
@@ -1594,13 +1569,10 @@ impl Ssh {
                                 continue;
                             }
                             Err(_) => {
-                                return Err(FunctionErrorKind::Diagnostic(
-                                    format!(
-                                        "Failed setting user authentication for SessionID {}",
-                                        session_id
-                                    ),
-                                    Some(NaslValue::Null),
-                                ));
+                                return Err(FunctionErrorKind::Dirty(format!(
+                                    "Failed setting user authentication for SessionID {}",
+                                    session_id
+                                )));
                             }
                         }
                     }
@@ -1608,10 +1580,10 @@ impl Ssh {
                 }
                 Ok(NaslValue::Null)
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1723,7 +1695,10 @@ impl Ssh {
                         Ok(NaslValue::Number(0))
                     }
 
-                    Err(_) => Ok(NaslValue::Number(-1)),
+                    Err(e) => Err(FunctionErrorKind::Diagnostic(
+                        format!("Not possible to set answers during authentication: {}", e),
+                        Some(NaslValue::Number(-1)),
+                    )),
                 }
             }
             _ => Err(FunctionErrorKind::Diagnostic(
@@ -1787,10 +1762,10 @@ impl Ssh {
                     Err(_) => Ok(NaslValue::Null),
                 }
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1837,10 +1812,10 @@ impl Ssh {
                 Ok(b) => Ok(NaslValue::String(b)),
                 Err(_) => Ok(NaslValue::Null),
             },
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1916,10 +1891,10 @@ impl Ssh {
                 }
                 Ok(NaslValue::String(methods.join(",")))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -1965,12 +1940,15 @@ impl Ssh {
                     Ok(hash) => Ok(NaslValue::String(hash)),
                     Err(_) => Ok(NaslValue::Null),
                 },
-                Err(_) => Ok(NaslValue::Null),
+                Err(_) => Err(FunctionErrorKind::Diagnostic(
+                    "Not possible to get the public key".to_string(),
+                    Some(NaslValue::Null),
+                )),
             },
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 
@@ -2024,10 +2002,10 @@ impl Ssh {
                     }
                 }
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
         }
     }
 

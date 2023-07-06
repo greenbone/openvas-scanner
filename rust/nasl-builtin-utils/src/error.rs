@@ -33,6 +33,9 @@ pub enum FunctionErrorKind {
     Diagnostic(String, Option<NaslValue>),
     /// Generic error
     GeneralError(GeneralErrorType),
+    /// There is a deeper problem
+    /// An example would be that there is no free memory left in the system
+    Dirty(String),
 }
 
 impl From<GeneralErrorType> for FunctionErrorKind {
@@ -56,6 +59,7 @@ impl Display for FunctionErrorKind {
             FunctionErrorKind::WrongArgument(x) => write!(f, "wrong argument: {x}"),
             FunctionErrorKind::Diagnostic(x, _) => write!(f, "{x}"),
             FunctionErrorKind::GeneralError(x) => write!(f, "{x}"),
+            FunctionErrorKind::Dirty(x) => write!(f, "{x}"),
         }
     }
 }
