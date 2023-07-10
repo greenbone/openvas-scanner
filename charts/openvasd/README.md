@@ -34,8 +34,7 @@ it will use `nichtsfrei/openvas-scanner` instead of `greenbone/openvas-scanner`.
 Although it is possible to start OSPD with TLS, it is used in unix socket mode to prevent a user to bypass openvasd and interfere with those scans.
 
 Unfortunately the redis instance is shared between ospd and openvas without any clear separation. It is crucial that the redis instance used by them cannot be modified elsewhere. 
-
-To ensure that redis is also started in unix socket mode.
+To ensure redis is not used by another container, it is also started in unix socket mode.
 
 ## No scaling
 
