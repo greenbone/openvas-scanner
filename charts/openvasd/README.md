@@ -15,7 +15,7 @@ As an example imagine you want to override the openvas image to your forked one 
 ```
 # Contains openvasd
 openvas:
-  repository: nichtsfrei/openvas-scanner
+  repository: example/openvas-scanner
   pullPolicy: Always
   tag: "edge"
 ```
