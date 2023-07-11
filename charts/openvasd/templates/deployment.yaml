@@ -1,0 +1,202 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openvasd.fullname" . }}
+  labels:
+    {{- include "openvasd.labels" . | nindent 4 }}
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      {{- include "openvasd.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "openvasd.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openvasd.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+      - name: redis-socket
+        emptyDir: {}
+      - name: nasl-plugins
+        emptyDir: {}
+      - name: notus-data
+        emptyDir: {}
+      - name: openvas-config
+        emptyDir: {}
+      - name: scan-config 
+        emptyDir: {}
+      - name: ospd-config
+        emptyDir: {}
+      - name: ospd-socket
+        emptyDir: {}
+      - name: ospd-logs
+        emptyDir: {}
+      initContainers:
+      - name: nasl
+        image: "{{ .Values.vulnerabilitytests.repository }}:{{ .Values.vulnerabilitytests.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: nasl-plugins
+            mountPath: /mnt/nasl
+        command: ['sh', '-c']
+        args: ['cp -rv /var/lib/openvas/22.04/vt-data/nasl/* /mnt/nasl/']
+      - name: notus-advisories
+        image: "{{ .Values.notusdata.repository }}:{{ .Values.notusdata.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: notus-data
+            mountPath: /mnt/notus
+        command: ['cp', '-rv', '/var/lib/notus/advisories', '/mnt/notus/']
+      - name: notus-products
+        image: "{{ .Values.notusdata.repository }}:{{ .Values.notusdata.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: notus-data
+            mountPath: /mnt/notus
+        command: ['cp', '-rv', '/var/lib/notus/products', '/mnt/notus/']
+      - name: mqtt-broker-openvas-fix
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: openvas-config
+            mountPath: /mnt/ovc
+        command: ['sh', '-c']
+        args: ["sed 's/mqtt-broker/localhost/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]
+      - name: ospd-disable-notus-hashsum-verification #since can mount local volumes which may be altered we have to disable hashsum verification for notus  
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: ospd-config
+            mountPath: /mnt/ovc
+        command: ['sh', '-c']
+        args: ["cp /etc/gvm/ospd-openvas.conf /mnt/ovc/ospd-openvas.conf && printf \"disable_notus_hashsum_verification = True\n\" >> /mnt/ovc/ospd-openvas.conf"]
+      - name: create-dummy-openvas-log
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: ospd-logs
+            mountPath: /mnt/ovc
+        command: ['sh', '-c']
+        args: ["touch /mnt/ovc/openvas.log && chown ospd-openvas:ospd-openvas /mnt/ovc/openvas.log"]
+      containers:
+      - name: broker
+        image: "{{ .Values.mqtt.repository }}:{{ .Values.mqtt.tag }}"
+        imagePullPolicy: Always
+      - name: redis
+        image: "{{ .Values.redis.repository }}:{{ .Values.redis.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: redis-socket
+          mountPath: /run/redis
+      # although the main purpose is to display openvas logs 
+      # we make it as ospd so that there is a container running
+      # to play around
+      - name: openvas
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+        imagePullPolicy: Always
+        command: [ "tail", "-f", "/var/log/gvm/openvas.log" ]
+        volumeMounts:
+        - name: scan-config
+          mountPath: /usr/local/src/policies
+        - name: redis-socket
+          mountPath: /run/redis
+        - name: nasl-plugins
+          mountPath: /var/lib/openvas/plugins
+        - name: notus-data
+          mountPath: /var/lib/notus
+        - name: openvas-config
+          mountPath: /etc/openvas
+        - name: ospd-config
+          mountPath: /etc/gvm/
+        - name: ospd-logs
+          mountPath: /var/log/gvm
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+      - name: openvasd
+        image: "{{ .Values.openvas.repository }}:{{ .Values.openvas.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: redis-socket
+          mountPath: /run/redis
+        - name: nasl-plugins
+          mountPath: /var/lib/openvas/plugins
+        - name: notus-data
+          mountPath: /var/lib/notus
+        - name: openvas-config
+          mountPath: /etc/openvas
+        - name: ospd-socket
+          mountPath: /run/ospd/
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+        ports:
+        - containerPort: 3000
+          protocol: TCP 
+        env:
+          - name: LISTENING
+            value: "0.0.0.0:3000"
+          - name: OSPD_SOCKET
+            value: /run/ospd/ospd-openvas.sock
+          - name: OPENVASD_LOG
+            value: {{ .Values.openvasd.loglevel | default "INFO" }} 
+          - name: API_KEY
+            value: {{ .Values.openvasd.apikey }} 
+      - name: ospd
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: redis-socket
+          mountPath: /run/redis
+        - name: nasl-plugins
+          mountPath: /var/lib/openvas/plugins
+        - name: notus-data
+          mountPath: /var/lib/notus
+        - name: openvas-config
+          mountPath: /etc/openvas
+        - name: ospd-config
+          mountPath: /etc/gvm/
+        - name: ospd-socket
+          mountPath: /run/ospd/
+        - name: ospd-logs
+          mountPath: /var/log/gvm
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+      - name: notus
+        image: "{{ .Values.notus.repository }}:{{ .Values.notus.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: notus-data
+          mountPath: /var/lib/notus
+        command: ["notus-scanner", "-f", "--disable-hashsum-verification=True"]
+      # what does it mean?
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

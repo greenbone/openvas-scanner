@@ -44,7 +44,9 @@ COPY .docker/openvas.conf /etc/openvas/
 # usually this image is created within in a ci ensuring that the
 # binary is available.
 COPY assets/$TARGETPLATFORM/nasl-cli /usr/local/bin/nasl-cli
+COPY assets/$TARGETPLATFORM/openvasd /usr/local/bin/openvasd
 RUN chmod +x /usr/local/bin/nasl-cli
+RUN chmod +x /usr/local/bin/openvasd
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
@@ -54,3 +56,5 @@ RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
 # allow nmap to send e.g. UDP or TCP SYN probes without root permissions
 ENV NMAP_PRIVILEGED=1
 RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
+CMD /usr/local/bin/openvasd
+
