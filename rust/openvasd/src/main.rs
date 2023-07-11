@@ -12,15 +12,17 @@ mod tls;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let config = config::Config::load();
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .with_env_var("OPENVASD_LOG")
-        .from_env_lossy();
+        .parse_lossy(config.log.level.clone());
     tracing_subscriber::fmt().with_env_filter(filter).init();
-    let config = config::Config::load();
     let rc = config.ospd.result_check_interval;
     let fc = (config.feed.path.clone(), config.feed.check_interval);
-    let scanner = scan::OSPDWrapper::from_env();
+    if !config.ospd.socket.exists() {
+        tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.ospd.socket.display());
+    }
+    let scanner = scan::OSPDWrapper::new(config.ospd.socket.clone());
     let ctx = controller::ContextBuilder::new()
         .result_config(rc)
         .feed_config(fc)

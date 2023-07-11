@@ -37,7 +37,7 @@ impl Default for Feed {
     fn default() -> Self {
         Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
-            check_interval: Duration::from_secs(60 * 60),
+            check_interval: Duration::from_secs(3600),
         }
     }
 }
@@ -62,19 +62,23 @@ pub struct Endpoints {
     pub key: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Tls {
-    pub certs: PathBuf,
-    pub key: PathBuf,
-    pub client_certs: PathBuf,
+    pub certs: Option<PathBuf>,
+    pub key: Option<PathBuf>,
+    pub client_certs: Option<PathBuf>,
 }
 
-impl Default for Tls {
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Logging {
+    #[serde(default)]
+    pub level: String,
+}
+
+impl Default for Logging {
     fn default() -> Self {
         Self {
-            certs: PathBuf::from("/etc/sensord/tls/certs.pem"),
-            key: PathBuf::from("/var/lib/sensord/tls/key.pem"),
-            client_certs: PathBuf::from("/etc/sensord/tls/clients"),
+            level: "INFO".to_string(),
         }
     }
 }
@@ -91,6 +95,8 @@ pub struct Config {
     pub ospd: OspdWrapper,
     #[serde(default)]
     pub listener: Listener,
+    #[serde(default)]
+    pub log: Logging,
 }
 
 impl Display for Config {
@@ -101,14 +107,14 @@ impl Display for Config {
 
 impl Config {
     fn load_etc() -> Option<Self> {
-        let config = std::fs::read_to_string("/etc/sensord/sensord.toml").unwrap_or_default();
+        let config = std::fs::read_to_string("/etc/openvasd/openvasd.toml").unwrap_or_default();
         toml::from_str(&config).ok()
     }
 
     fn load_user() -> Option<Self> {
         match std::env::var("HOME") {
             Ok(home) => {
-                let path = format!("{}/.config/sensord/sensord.toml", home);
+                let path = format!("{}/.config/openvasd/openvasd.toml", home);
                 let config = std::fs::read_to_string(path).unwrap_or_default();
                 toml::from_str(&config).ok()
             }
@@ -120,13 +126,12 @@ impl Config {
     where
         P: AsRef<std::path::Path> + std::fmt::Display,
     {
-        tracing::debug!("loading config from {}", path);
         let config = std::fs::read_to_string(path).unwrap_or_default();
         toml::from_str(&config).unwrap_or_default()
     }
 
     pub fn load() -> Self {
-        let cmds = clap::Command::new("sensord")
+        let cmds = clap::Command::new("openvasd")
             .arg(
                 clap::Arg::new("config")
                     .short('c')
@@ -202,6 +207,7 @@ impl Config {
                     .long("result-check-interval")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
+                    // .default_value("1")
                     .help("interval to check for new results in seconds"),
             )
             .arg(
@@ -212,6 +218,14 @@ impl Config {
                     .value_name("IP:PORT")
                     .value_parser(clap::value_parser!(SocketAddr))
                     .help("the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000)."),
+            )
+            .arg(
+                clap::Arg::new("log-level")
+                    .env("OPENVASD_LOG")
+                    .long("log-level")
+                    .short('L')
+                    // .default_value("INFO")
+                    .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
             .get_matches();
         let mut config = match cmds.get_one::<String>("config") {
@@ -238,13 +252,13 @@ impl Config {
             config.feed.path = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
-            config.tls.certs = path.clone();
+            config.tls.certs = Some(path.clone());
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-key") {
-            config.tls.key = path.clone();
+            config.tls.key = Some(path.clone());
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-client-certs") {
-            config.tls.client_certs = path.clone();
+            config.tls.client_certs = Some(path.clone());
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-scans") {
             config.endpoints.enable_get_scans = *enable;
@@ -255,33 +269,48 @@ impl Config {
         if let Some(ip) = cmds.get_one::<SocketAddr>("listening") {
             config.listener.address = *ip;
         }
-
+        if let Some(log_level) = cmds.get_one::<String>("log-level") {
+            config.log.level = log_level.clone();
+        }
         config
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::{path::PathBuf, time::Duration};
 
     #[test]
     fn defaults() {
         let config = super::Config::default();
+
         assert_eq!(
             config.feed.path,
             std::path::PathBuf::from("/var/lib/openvas/plugins")
         );
+        assert_eq!(config.feed.check_interval, Duration::from_secs(3600));
+
         assert!(!config.endpoints.enable_get_scans);
-        assert_eq!(
-            config.tls.certs,
-            std::path::PathBuf::from("/etc/sensord/tls/certs.pem")
-        );
-        assert_eq!(
-            config.tls.key,
-            std::path::PathBuf::from("/var/lib/sensord/tls/key.pem")
-        );
-        assert_eq!(
-            config.tls.client_certs,
-            std::path::PathBuf::from("/etc/sensord/tls/clients")
-        );
+        assert!(config.endpoints.key.is_none());
+
+        assert!(config.tls.certs.is_none());
+        assert!(config.tls.key.is_none());
+        assert!(config.tls.client_certs.is_none());
+
+        assert_eq!(config.ospd.result_check_interval, Duration::from_secs(1));
+        assert_eq!(config.ospd.socket, PathBuf::from("/var/run/ospd/ospd.sock"));
+
+        assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
+
+        assert_eq!(config.log.level, "INFO".to_string());
+    }
+
+    #[test]
+    fn parse_toml() {
+        let cfg = r#"[log]
+        level = "DEBUG"
+        "#;
+        let config: super::Config = toml::from_str(cfg).unwrap();
+        assert_eq!(config.log.level, "DEBUG");
     }
 }

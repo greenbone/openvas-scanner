@@ -85,6 +85,17 @@ impl Response {
         self.empty(hyper::StatusCode::INTERNAL_SERVER_ERROR)
     }
 
+    pub fn service_unavailable<'a>(&self, source: &'a str, reason: &'a str) -> Result {
+        #[derive(Serialize, Debug)]
+        struct Unavailable<'a> {
+            source: &'a str,
+            reason: &'a str,
+        }
+        let value = Unavailable { source, reason };
+        tracing::error!("Service {} unavailable: {}", source, reason);
+        self.create(hyper::StatusCode::SERVICE_UNAVAILABLE, &value)
+    }
+
     pub fn not_found<'a>(&self, class: &'a str, id: &'a str) -> Result {
         #[derive(Serialize, Debug)]
         struct NotFound<'a> {

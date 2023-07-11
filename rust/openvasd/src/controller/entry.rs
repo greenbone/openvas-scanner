@@ -147,7 +147,8 @@ where
                         let mut scans = ctx.scans.write()?;
                         let id = scan.scan_id.clone().unwrap_or_default();
                         let resp = ctx.response.created(&id);
-                        scans.insert(id, crate::scan::Progress::from(scan));
+                        scans.insert(id.clone(), crate::scan::Progress::from(scan));
+                        tracing::debug!("Scan with ID {} created", id);
                         Ok(resp)
                     })
                     .await
@@ -175,11 +176,43 @@ where
                                     action.action,
                                 );
 
-                                progress.status.status = models::Phase::Requested;
                                 match ctx.scanner.start_scan(progress) {
-                                    Ok(()) => Ok(ctx.response.no_content()),
+                                    Ok(()) => {
+                                        progress.status.status = models::Phase::Requested;
+                                        tracing::debug!(
+                                            "Scan with ID {} started",
+                                            progress
+                                                .scan
+                                                .scan_id
+                                                .as_ref()
+                                                .unwrap_or(&"".to_string())
+                                        );
+                                        Ok(ctx.response.no_content())
+                                    }
                                     // TODO we need to parse the ospd response for status code
-                                    Err(e) => Ok(ctx.response.internal_server_error(&e)),
+                                    Err(e) => {
+                                        tracing::debug!(
+                                            "Unable to start Scan with ID {}",
+                                            progress
+                                                .scan
+                                                .scan_id
+                                                .as_ref()
+                                                .unwrap_or(&"".to_string())
+                                        );
+                                        match e {
+                                            Error::SocketDoesNotExist(path) => {
+                                                Ok(ctx.response.service_unavailable(
+                                                    "OSP",
+                                                    format!(
+                                                        "socket {} does not exist",
+                                                        path.display()
+                                                    )
+                                                    .as_str(),
+                                                ))
+                                            }
+                                            _ => Ok(ctx.response.internal_server_error(&e)),
+                                        }
+                                    }
                                 }
                             }
                             (models::Action::Stop, Some(progress)) => {

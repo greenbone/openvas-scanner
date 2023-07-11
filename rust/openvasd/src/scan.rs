@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{env, sync::PoisonError};
+use std::{path::PathBuf, sync::PoisonError};
 
 /// The result of a fetch operation
 pub type FetchResult = (models::Status, Vec<models::Result>);
@@ -17,12 +17,13 @@ impl From<osp::Error> for Error {
 /// OSPD wrapper, is used to utilize ospd
 pub struct OSPDWrapper {
     /// Path to the socket
-    socket: String,
+    socket: PathBuf,
 }
 
 #[derive(Debug)]
 pub enum Error {
     Unexpected(String),
+    SocketDoesNotExist(PathBuf),
     Poisoned,
 }
 
@@ -30,7 +31,12 @@ impl std::error::Error for Error {}
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            Self::SocketDoesNotExist(p) => {
+                write!(f, "The OSPD socket {} does not exist", p.display())
+            }
+            _ => write!(f, "{:?}", self),
+        }
     }
 }
 
@@ -42,16 +48,15 @@ impl<T> From<PoisonError<T>> for Error {
 
 impl OSPDWrapper {
     /// Creates a new instance of OSPDWrapper
-    pub fn new(socket: String) -> Self {
+    pub fn new(socket: PathBuf) -> Self {
         Self { socket }
     }
 
-    /// Creates a new instance of OSPDWrapper from the environment
-    pub fn from_env() -> Self {
-        let socket = env::var("OSPD_SOCKET")
-            .ok()
-            .unwrap_or_else(|| "/run/ospd/ospd-openvas.sock".to_string());
-        Self::new(socket)
+    fn check_socket(&self) -> Result<(), Error> {
+        if !self.socket.exists() {
+            return Err(Error::SocketDoesNotExist(self.socket.clone()));
+        }
+        Ok(())
     }
 }
 
@@ -79,6 +84,7 @@ pub trait ScanResultFetcher {
 
 impl ScanStarter for OSPDWrapper {
     fn start_scan(&self, progress: &Progress) -> Result<(), Error> {
+        self.check_socket()?;
         osp::start_scan(&self.socket, &progress.scan)
             .map_err(Error::from)
             .map(|_| ())
@@ -87,6 +93,7 @@ impl ScanStarter for OSPDWrapper {
 
 impl ScanStopper for OSPDWrapper {
     fn stop_scan(&self, progress: &Progress) -> Result<(), Error> {
+        self.check_socket()?;
         osp::stop_scan(&self.socket, progress.scan.scan_id.as_ref().unwrap())
             .map_err(Error::from)
             .map(|_| ())
@@ -95,6 +102,7 @@ impl ScanStopper for OSPDWrapper {
 
 impl ScanDeleter for OSPDWrapper {
     fn delete_scan(&self, progress: &Progress) -> Result<(), Error> {
+        self.check_socket()?;
         osp::delete_scan(&self.socket, progress.scan.scan_id.as_ref().unwrap())
             .map_err(Error::from)
             .map(|_| ())
@@ -103,6 +111,7 @@ impl ScanDeleter for OSPDWrapper {
 
 impl ScanResultFetcher for OSPDWrapper {
     fn fetch_results(&self, progress: &Progress) -> Result<FetchResult, Error> {
+        self.check_socket()?;
         osp::get_delete_scan_results(&self.socket, progress.id())
             .map(|r| (r.clone().into(), r.into()))
             .map_err(Error::from)

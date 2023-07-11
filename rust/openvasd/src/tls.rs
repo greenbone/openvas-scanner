@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! TLS support for the sensord.
+//! TLS support for the openvasd.
 //! To use it you need to provide a certificate and a key file.
 //! If there are no client certificates provided, the server will start without
 //! certificate based client authentication.
@@ -18,7 +18,7 @@
 //!let addr = incoming.local_addr();
 //!
 //!// when tls config is unable to load the certificates it will return None
-//!// when client certificates are proovided it will run in mtls.
+//!// when client certificates are provided it will run in mtls.
 //!if let Some(tlsc) = tls::tls_config(&config)? {
 //!    let make_svc = crate::controller::make_svc!(&controller);
 //!    let server = hyper::Server::builder(tls::TlsAcceptor::new(tlsc, incoming)).serve(make_svc);
@@ -158,52 +158,66 @@ impl Accept for TlsAcceptor {
 pub fn tls_config(
     config: &crate::config::Config,
 ) -> Result<Option<Arc<ServerConfig>>, Box<dyn std::error::Error + Send + Sync>> {
-    match load_certs(&config.tls.certs) {
-        Ok(certs) => {
-            let key = load_private_key(&config.tls.key)?;
-            let verifier = {
-                let client_certs: Vec<PathBuf> = std::fs::read_dir(&config.tls.client_certs)?
-                    .filter_map(|entry| {
-                        let entry = entry.ok()?;
-                        let file_type = entry.file_type().ok()?;
-                        if file_type.is_file() {
-                            Some(entry.path())
+    if let Some(certs_path) = &config.tls.certs {
+        match load_certs(certs_path) {
+            Ok(certs) => {
+                if let Some(key_path) = &config.tls.key {
+                    let key = load_private_key(key_path)?;
+                    let verifier = {
+                        if let Some(client_certs_dir) = &config.tls.client_certs {
+                            let client_certs: Vec<PathBuf> = std::fs::read_dir(client_certs_dir)?
+                                .filter_map(|entry| {
+                                    let entry = entry.ok()?;
+                                    let file_type = entry.file_type().ok()?;
+                                    if file_type.is_file() {
+                                        Some(entry.path())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect();
+                            if client_certs.is_empty() {
+                                tracing::info!(
+                                    "no client certs found, starting without certificate based client auth"
+                                );
+                                NoClientAuth::boxed()
+                            } else {
+                                tracing::info!(
+                                    "client certs found, starting with certificate based client auth"
+                                );
+                                let mut client_auth_roots = RootCertStore::empty();
+                                for root in client_certs.iter().flat_map(load_certs).flatten() {
+                                    client_auth_roots.add(&root)?;
+                                }
+                                AllowAnyAuthenticatedClient::new(client_auth_roots).boxed()
+                            }
                         } else {
-                            None
+                            tracing::info!(
+                                "no client certs found, starting without certificate based client auth"
+                            );
+                            NoClientAuth::boxed()
                         }
-                    })
-                    .collect();
-                if client_certs.is_empty() {
-                    tracing::info!(
-                        "no client certs found, starting without certificate based client auth"
-                    );
-                    NoClientAuth::boxed()
-                } else {
-                    tracing::info!(
-                        "client certs found, starting with certificate based client auth"
-                    );
-                    let mut client_auth_roots = RootCertStore::empty();
-                    for root in client_certs.iter().flat_map(load_certs).flatten() {
-                        client_auth_roots.add(&root)?;
-                    }
-                    AllowAnyAuthenticatedClient::new(client_auth_roots).boxed()
-                }
-            };
+                    };
 
-            let mut cfg = rustls::ServerConfig::builder()
-                .with_safe_defaults()
-                //.with_client_cert_verifier()
-                .with_client_cert_verifier(verifier)
-                .with_single_cert(certs, key)
-                .map_err(|e| error(format!("{}", e)))?;
-            // Configure ALPN to accept HTTP/2, HTTP/1.1, and HTTP/1.0 in that order.
-            cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
-            Ok(Some(std::sync::Arc::new(cfg)))
+                    let mut cfg = rustls::ServerConfig::builder()
+                        .with_safe_defaults()
+                        //.with_client_cert_verifier()
+                        .with_client_cert_verifier(verifier)
+                        .with_single_cert(certs, key)
+                        .map_err(|e| error(format!("{}", e)))?;
+                    // Configure ALPN to accept HTTP/2, HTTP/1.1, and HTTP/1.0 in that order.
+                    cfg.alpn_protocols =
+                        vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
+                    Ok(Some(std::sync::Arc::new(cfg)))
+                } else {
+                    Err(error("TLS enabled, but private key is missing".to_string()).into())
+                }
+            }
+            Err(e) => Err(error(format!("failed to load TLS certificates: {}", e)).into()),
         }
-        Err(e) => {
-            tracing::trace!("failed to load TLS certificates: {}", e);
-            Ok(None)
-        }
+    } else {
+        tracing::info!("No Server certificates given, starting without TLS");
+        Ok(None)
     }
 }
 
