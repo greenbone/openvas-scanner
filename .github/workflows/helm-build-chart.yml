@@ -1,0 +1,32 @@
+name: helm-charts
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  openvasd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start a local k8s cluster
+        uses: jupyterhub/action-k3s-helm@v3
+        with:
+          k3s-channel: latest
+          metrics-enabled: false
+      - name: deploy openvasd
+        run: |
+          helm uninstall openvasd || true 
+          helm install openvasd charts/openvasd/ --values charts/openvasd/values.yaml
+          kubectl rollout status --watch --timeout 600s deployment/openvasd
+          helm test openvasd
+      - uses: greenbone/actions/helm-build-push@v2
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          chart-name: openvasd
+          registry: ${{ vars.IMAGE_REGISTRY }}
+          registry-subpath: helm-charts/
+          registry-user: ${{ secrets.GREENBONE_BOT }}
+          registry-token: ${{ secrets.GREENBONE_BOT_PACKAGES_WRITE_TOKEN }}

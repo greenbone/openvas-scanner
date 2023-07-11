@@ -252,7 +252,7 @@ impl Config {
         if let Some(api_key) = cmds.get_one::<String>("api-key") {
             config.endpoints.key = Some(api_key.clone());
         }
-        if let Some(ip) = cmds.get_one::<SocketAddr>("binding-ip") {
+        if let Some(ip) = cmds.get_one::<SocketAddr>("listening") {
             config.listener.address = *ip;
         }
 

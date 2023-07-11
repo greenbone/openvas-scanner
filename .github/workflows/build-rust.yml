@@ -1,9 +1,8 @@
 name: "rs-build"
 
-on: [workflow_call] 
+on: [workflow_call]
 
-
-# This job builds the targets for x86_64 as well as aarch64. It is intented to 
+# This job builds the targets for x86_64 as well as aarch64. It is intented to
 # be included in the other jobs by calling:
 # ```
 # jobs:
@@ -48,6 +47,8 @@ jobs:
           patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/nasl-cli
           patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release/nasl-cli
       - run: mkdir assets/
+      - run: mv rust/target/aarch64-unknown-linux-gnu/release/openvasd assets/openvasd-aarch64-unknown-linux-gnu
+      - run: mv rust/target/x86_64-unknown-linux-gnu/release/openvasd assets/openvasd-x86_64-unknown-linux-gnu
       - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
       - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu
       - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/feed-verifier-aarch64-unknown-linux-gnu
