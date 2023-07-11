@@ -277,6 +277,7 @@ impl From<FunctionError> for InterpretError {
             | FunctionErrorKind::MissingArguments(_)
             | FunctionErrorKind::Infallible(_)
             | FunctionErrorKind::WrongArgument(_)
+            | FunctionErrorKind::Dirty(_)
             | FunctionErrorKind::Diagnostic(_, _) => {
                 Self::new(InterpretErrorKind::FunctionCallError(fe), None)
             }
