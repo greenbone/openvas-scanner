@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libgssapi3-heimdal \
   libkrb5-26-heimdal \
   libasn1-8-heimdal \
-  libroken18-heimdal \
+  libroken19-heimdal \
   libhdb9-heimdal \
   libpopt0 \
   zlib1g\
