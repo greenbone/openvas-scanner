@@ -11,7 +11,9 @@ use std::convert::Infallible;
 use std::{fmt::Display, sync::Arc};
 
 use super::{context::Context, quit_on_poison};
+use futures_util::Stream;
 use hyper::{Body, Method, Request, Response};
+use serde::Serialize;
 
 use crate::scan::{Error, ScanDeleter, ScanStarter, ScanStopper};
 /// The supported paths of scannerd
@@ -28,6 +30,63 @@ enum KnownPaths {
     Unknown,
 }
 
+struct JsonArrayStreamer<T> {
+    elements: Vec<T>,
+    first: bool,
+}
+
+impl<T> Unpin for JsonArrayStreamer<T> {}
+
+impl<T> JsonArrayStreamer<T>
+where
+    T: Serialize,
+{
+    fn new(elements: Vec<T>) -> Self {
+        Self {
+            elements,
+            first: true,
+        }
+    }
+}
+
+impl<T> Stream for JsonArrayStreamer<T>
+where
+    T: Serialize,
+{
+    type Item = Result<String, Infallible>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let out = {
+            if self.first && self.elements.is_empty() {
+                self.first = false;
+                Some("[]".to_string())
+            } else if self.first {
+                self.first = false;
+                Some("[".to_string())
+            } else {
+                match self.elements.pop() {
+                    Some(e) => {
+                        let e = serde_json::to_string(&e).unwrap();
+                        if self.elements.is_empty() {
+                            Some(format!("{}]", e))
+                        } else {
+                            Some(format!("{},", e))
+                        }
+                    }
+                    None => None,
+                }
+            }
+        };
+
+        match out {
+            Some(e) => std::task::Poll::Ready(Some(Ok(e))),
+            None => std::task::Poll::Ready(None),
+        }
+    }
+}
 impl KnownPaths {
     #[tracing::instrument]
     /// Parses a path and returns the corresponding `KnownPaths` variant.
@@ -295,13 +354,10 @@ where
             .await
         }
         (&Method::GET, Vts) => {
+            // need to get rid of clone
             let (_, oids) = ctx.oids.read()?.clone();
 
-            let stream = futures::stream::iter(oids.into_iter().map(
-                |s: String| -> Result<String, Infallible> {
-                    Ok(format!("{},", serde_json::to_string(&s).unwrap()))
-                },
-            ));
+            let stream = JsonArrayStreamer::new(oids);
 
             Ok(ctx.response.ok_stream(stream).await)
         }
