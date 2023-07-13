@@ -6,6 +6,8 @@
 //!
 //! All known paths must be handled in the entrypoint function.
 
+use std::convert::Infallible;
+
 use std::{fmt::Display, sync::Arc};
 
 use super::{context::Context, quit_on_poison};
@@ -294,7 +296,14 @@ where
         }
         (&Method::GET, Vts) => {
             let (_, oids) = ctx.oids.read()?.clone();
-            Ok(ctx.response.ok(&oids))
+
+            let stream = futures::stream::iter(oids.into_iter().map(
+                |s: String| -> Result<String, Infallible> {
+                    Ok(format!("{},", serde_json::to_string(&s).unwrap()))
+                },
+            ));
+
+            Ok(ctx.response.ok_stream(stream).await)
         }
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
     }
