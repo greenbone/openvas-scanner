@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::error::Error;
+use std::{convert::Infallible, error::Error};
 
 use futures::Stream;
 use hyper::body::Bytes;
@@ -22,6 +22,65 @@ impl Default for Response {
             authentication: String::new(),
             version: "1".to_string(),
             feed_version: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct JsonArrayStreamer<T> {
+    elements: Vec<T>,
+    first: bool,
+}
+
+impl<T> Unpin for JsonArrayStreamer<T> {}
+
+impl<T> JsonArrayStreamer<T>
+where
+    T: Serialize,
+{
+    fn new(elements: Vec<T>) -> Self {
+        Self {
+            elements,
+            first: true,
+        }
+    }
+}
+
+impl<T> Stream for JsonArrayStreamer<T>
+where
+    T: Serialize,
+{
+    type Item = std::result::Result<String, Infallible>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let out = {
+            if self.first && self.elements.is_empty() {
+                self.first = false;
+                Some("[]".to_string())
+            } else if self.first {
+                self.first = false;
+                Some("[".to_string())
+            } else {
+                match self.elements.pop() {
+                    Some(e) => {
+                        let e = serde_json::to_string(&e).unwrap();
+                        if self.elements.is_empty() {
+                            Some(format!("{}]", e))
+                        } else {
+                            Some(format!("{},", e))
+                        }
+                    }
+                    None => None,
+                }
+            }
+        };
+
+        match out {
+            Some(e) => std::task::Poll::Ready(Some(Ok(e))),
+            None => std::task::Poll::Ready(None),
         }
     }
 }
@@ -73,13 +132,12 @@ impl Response {
         }
     }
 
-    pub async fn ok_stream<S, O, E>(&self, value: S) -> Result
+    pub async fn ok_stream<T>(&self, value: Vec<T>) -> Result
     where
-        S: Stream<Item = std::result::Result<O, E>> + Send + std::fmt::Debug + 'static,
-        O: Into<Bytes> + 'static,
-        E: Into<Box<dyn std::error::Error + Send + Sync>> + 'static,
+        T: Serialize + Send + std::fmt::Debug + 'static,
     {
-        self.create_stream(hyper::StatusCode::OK, value).await
+        let stream = JsonArrayStreamer::new(value);
+        self.create_stream(hyper::StatusCode::OK, stream).await
     }
 
     fn create<T>(&self, code: hyper::StatusCode, value: &T) -> Result
