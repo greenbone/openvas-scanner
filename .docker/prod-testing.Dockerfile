@@ -1,7 +1,7 @@
 ARG VERSION=unstable
 # this allows to work on forked repository
 ARG REPOSITORY=greenbone/openvas-scanner
-ARG GVM_LIBS_VERSION=testing
+ARG GVM_LIBS_VERSION=testing-edge
 
 FROM greenbone/openvas-smb:testing-edge AS openvas-smb
 
