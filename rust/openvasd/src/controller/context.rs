@@ -4,6 +4,9 @@
 
 use std::{collections::HashMap, path::PathBuf, sync::RwLock};
 
+
+use storage::DefaultDispatcher;
+
 use crate::{
     response,
     scan::{Error, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper},
@@ -57,6 +60,7 @@ pub struct ContextBuilder<S, T> {
     api_key: Option<String>,
     enable_get_scans: bool,
     marker: std::marker::PhantomData<S>,
+    response: response::Response,
 }
 
 impl<S> ContextBuilder<S, NoScanner> {
@@ -69,6 +73,7 @@ impl<S> ContextBuilder<S, NoScanner> {
             api_key: None,
             marker: std::marker::PhantomData,
             enable_get_scans: false,
+            response: response::Response::default(),
         }
     }
 }
@@ -83,12 +88,21 @@ impl<S, T> ContextBuilder<S, T> {
     /// Sets the feed config.
     pub fn feed_config(mut self, config: impl Into<FeedContext>) -> Self {
         self.feed_config = Some(config.into());
+        if let Some(fp) = self.feed_config.as_ref() {
+            let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
+            let dispatcher: DefaultDispatcher<String> = DefaultDispatcher::default();
+            let version = feed::version(&loader, &dispatcher).unwrap();
+            self.response.set_feed_version(&version);
+        }
         self
     }
 
     /// Sets the api key.
     pub fn api_key(mut self, api_key: impl Into<Option<String>>) -> Self {
         self.api_key = api_key.into();
+        if self.api_key.is_some() {
+            self.response.add_authentication("x-api-key");
+        }
         self
     }
 
@@ -115,6 +129,7 @@ where
             enable_get_scans,
             scanner: _,
             marker: _,
+            response,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
@@ -123,6 +138,7 @@ where
             marker: std::marker::PhantomData,
             api_key,
             enable_get_scans,
+            response,
         }
     }
 }
@@ -131,7 +147,7 @@ impl<S> ContextBuilder<S, Scanner<S>> {
     pub fn build(self) -> Context<S> {
         Context {
             scanner: self.scanner.0,
-            response: Default::default(),
+            response: self.response,
             scans: Default::default(),
             oids: Default::default(),
             result_config: self.result_config,
