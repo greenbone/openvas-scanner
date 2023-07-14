@@ -8,13 +8,45 @@ use serde::Serialize;
 
 type Result = hyper::Response<hyper::Body>;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone)]
 pub struct Response {
     authentication: String,
     version: String,
+    feed_version: String,
+}
+
+impl Default for Response {
+    fn default() -> Self {
+        Self {
+            authentication: String::new(),
+            version: "1".to_string(),
+            feed_version: String::new(),
+        }
+    }
 }
 
 impl Response {
+    /// Sets the version of the response header.
+    pub fn set_feed_version(&mut self, feed_version: &str) {
+        self.feed_version = feed_version.to_string();
+    }
+
+    /// Appends authentication to the response header.
+    pub fn add_authentication(&mut self, authentication: &str) {
+        if self.authentication.is_empty() {
+            self.authentication = authentication.to_string();
+        } else {
+            self.authentication = format!("{}, {}", self.authentication, authentication);
+        }
+    }
+
+    fn default_response_builder(&self) -> hyper::http::response::Builder {
+        hyper::Response::builder()
+            .header("authentication", &self.authentication)
+            .header("version", &self.version)
+            .header("feed_version", &self.feed_version)
+    }
+
     #[tracing::instrument]
     fn create<T>(&self, code: hyper::StatusCode, value: &T) -> Result
     where
@@ -22,12 +54,11 @@ impl Response {
     {
         match serde_json::to_string(value) {
             Ok(json) => {
-                match hyper::Response::builder()
-                    .status(code)
+                match self
+                    .default_response_builder()
                     .header("Content-Type", "application/json")
                     .header("Content-Length", json.len())
-                    .header("authentication", &self.authentication)
-                    .header("version", &self.version)
+                    .status(code)
                     .body(hyper::Body::from(json))
                 {
                     Ok(resp) => resp,
@@ -42,7 +73,7 @@ impl Response {
             }
             Err(e) => {
                 tracing::error!("Error serializing response: {}", e);
-                hyper::Response::builder()
+                self.default_response_builder()
                     .status(hyper::StatusCode::INTERNAL_SERVER_ERROR)
                     .body(hyper::Body::empty())
                     .unwrap()
@@ -65,10 +96,8 @@ impl Response {
     }
 
     pub fn empty(&self, code: hyper::StatusCode) -> Result {
-        hyper::Response::builder()
+        self.default_response_builder()
             .status(code)
-            .header("authentication", &self.authentication)
-            .header("version", &self.version)
             .body(hyper::Body::empty())
             .unwrap()
     }

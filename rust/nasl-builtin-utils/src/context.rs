@@ -1,5 +1,3 @@
-// SPDX-FileCopyrightText: 2023 Greenbone AG
-//
 // SPDX-License-Identifier: GPL-2.0-or-later
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
@@ -286,7 +284,6 @@ pub struct Context<'a, K> {
     executor: &'a dyn super::NaslFunctionExecuter<K>,
 }
 
-// TODO create builder for this nonsense
 impl<'a, K> Context<'a, K> {
     /// Creates an empty configuration
     pub fn new(

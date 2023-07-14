@@ -31,7 +31,6 @@ pub struct Update<S, L, V, K> {
     max_retry: usize,
     verifier: V,
     feed_version_set: bool,
-    functions: nasl_interpreter::NaslFunctionRegister<K>,
     phanton: PhantomData<K>,
 }
 
@@ -39,6 +38,35 @@ impl From<verify::Error> for ErrorKind {
     fn from(value: verify::Error) -> Self {
         ErrorKind::VerifyError(value)
     }
+}
+/// Loads the plugin_feed_info and returns the feed version
+pub fn feed_version<K: Default + AsRef<str>>(
+    loader: &dyn Loader,
+    dispatcher: &dyn Dispatcher<K>,
+) -> Result<String, ErrorKind> {
+    let feed_info_key = "plugin_feed_info.inc";
+    let code = loader.load(feed_info_key)?;
+    let mut register = Register::default();
+    let logger = DefaultLogger::default();
+    let k: K = Default::default();
+    let fr = NoOpRetriever::default();
+    let target = String::default();
+    // TODO add parameter to struct
+    let functions = nasl_interpreter::nasl_std_functions();
+    let context = Context::new(&k, &target, dispatcher, &fr, loader, &logger, &functions);
+    let mut interpreter = Interpreter::new(&mut register, &context);
+    for stmt in nasl_syntax::parse(&code) {
+        match stmt {
+            Ok(stmt) => interpreter.retry_resolve(&stmt, 3)?,
+            Err(e) => return Err(e.into()),
+        };
+    }
+
+    let feed_version = register
+        .named("PLUGIN_SET")
+        .map(|x| x.to_string())
+        .unwrap_or_else(|| "0".to_owned());
+    Ok(feed_version)
 }
 
 impl<S, L, V, K> Update<S, L, V, K>
@@ -73,9 +101,13 @@ where
             dispatcher: storage,
             verifier,
             feed_version_set: false,
-            functions: nasl_interpreter::nasl_std_functions(),
             phanton: PhantomData,
         }
+    }
+
+    /// Loads the plugin_feed_info and returns the feed version
+    pub fn feed_version(&self) -> Result<String, ErrorKind> {
+        feed_version(&self.loader, &self.dispatcher)
     }
 
     /// plugin_feed_info must be handled differently.
@@ -84,40 +116,14 @@ where
     /// The feed_version is loaded from that inc file.
     /// Therefore we need to load the plugin_feed_info and extract the feed_version
     /// to put into the corresponding dispatcher.
-    fn plugin_feed_info(&self) -> Result<String, ErrorKind> {
-        let feed_info_key = "plugin_feed_info.inc";
-        let code = self.loader.load(feed_info_key)?;
-        let mut register = Register::default();
-        let logger = DefaultLogger::default();
-        let k: K = Default::default();
-        let fr = NoOpRetriever::default();
-        let target = String::default();
-        let context = Context::new(
-            &k,
-            &target,
-            &self.dispatcher,
-            &fr,
-            &self.loader,
-            &logger,
-            &self.functions,
-        );
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        for stmt in nasl_syntax::parse(&code) {
-            match stmt {
-                Ok(stmt) => interpreter.retry_resolve(&stmt, self.max_retry)?,
-                Err(e) => return Err(e.into()),
-            };
-        }
-
-        let feed_version = register
-            .named("PLUGIN_SET")
-            .map(|x| x.to_string())
-            .unwrap_or_else(|| "0".to_owned());
+    fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
+        let feed_version = self.feed_version()?;
         self.dispatcher.retry_dispatch(
             self.max_retry,
-            &k,
+            &Default::default(),
             NVTField::Version(feed_version).into(),
         )?;
+        let feed_info_key = "plugin_feed_info.inc";
         Ok(feed_info_key.into())
     }
 
@@ -129,6 +135,8 @@ where
         let logger = DefaultLogger::default();
         let fr = NoOpRetriever::default();
         let target = String::default();
+        // TODO add parameter to struct
+        let functions = nasl_interpreter::nasl_std_functions();
 
         let context = Context::new(
             key,
@@ -137,7 +145,7 @@ where
             &fr,
             &self.loader,
             &logger,
-            &self.functions,
+            &functions,
         );
         let mut interpreter = Interpreter::new(&mut register, &context);
         for stmt in nasl_syntax::parse(&code) {
@@ -183,7 +191,7 @@ where
             }
             Some(Err(e)) => Some(Err(e.into())),
             None if !self.feed_version_set => {
-                let result = self.plugin_feed_info().map_err(|kind| Error {
+                let result = self.dispatch_feed_info().map_err(|kind| Error {
                     kind,
                     key: "plugin_feed_info.inc".to_string(),
                 });

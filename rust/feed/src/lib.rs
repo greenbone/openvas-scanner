@@ -9,6 +9,7 @@ mod update;
 mod verify;
 
 pub use oid::Oid;
+pub use update::feed_version as version;
 pub use update::Error as UpdateError;
 pub use update::ErrorKind as UpdateErrorKind;
 pub use update::Update;
