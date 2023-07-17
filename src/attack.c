@@ -499,7 +499,7 @@ read_ipc (struct ipc_context *ctx)
           {
             gchar *message = NULL;
             len = j - pos + 1;
-            message = g_malloc0 (sizeof (gchar) * (len));
+            message = g_malloc0 (sizeof (gchar) * (len + 1));
             memcpy (message, &results[pos], len);
             pos = j + 1;
             len = 0;
