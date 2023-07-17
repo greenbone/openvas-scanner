@@ -8,8 +8,8 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
 payload=$(sed "s/localhost/$TARGET/" "$SCRIPTPATH/discovery.json")
-id=$(curl -s -H "Content-Type: application/json" -H "X-Api-Key: $API_KEY" -d "$payload" "http://$SENSOR/scans" | sed 's/"//g')
+id=$(curl -s -H "Content-Type: application/json" -H "X-Api-Key: $API_KEY" -d "$payload" "$SENSOR/scans" | sed 's/"//g')
 echo "Scan ID: $id"
-curl --fail-with-body -s -H "Content-Type: application/json" -H "X-Api-Key: $API_KEY" -d '{"action": "start"}' "http://$SENSOR/scans/$id" || exit 1
-echo "Status: curl --fail-with-body -H \"X-Api-Key: $API_KEY\" \"http://$SENSOR/scans/$id/status\""
-echo "Results: curl --fail-with-body -H \"X-Api-Key: $API_KEY\" \"http://$SENSOR/scans/$id/results\""
+curl --fail-with-body -s -H "Content-Type: application/json" -H "X-Api-Key: $API_KEY" -d '{"action": "start"}' "$SENSOR/scans/$id" || exit 1
+echo "Status: curl --fail-with-body -H \"X-Api-Key: $API_KEY\" \"$SENSOR/scans/$id/status\""
+echo "Results: curl --fail-with-body -H \"X-Api-Key: $API_KEY\" \"$SENSOR/scans/$id/results\""

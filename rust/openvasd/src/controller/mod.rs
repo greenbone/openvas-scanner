@@ -130,7 +130,7 @@ mod tests {
             .body(Body::empty())
             .unwrap();
         let resp = entrypoint(req, Arc::clone(&controller)).await.unwrap();
-        assert_eq!(resp.headers().get("version").unwrap(), "1");
+        assert_eq!(resp.headers().get("api-version").unwrap(), "1");
         assert_eq!(resp.headers().get("authentication").unwrap(), "");
     }
     async fn get_scan_status<S>(id: &str, ctx: Arc<Context<S>>) -> Response<Body>
