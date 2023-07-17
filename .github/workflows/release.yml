@@ -170,7 +170,7 @@ jobs:
         with:
           name: rs-binaries
           path: assets
-      - uses: greenbone/actions/setup-pontos@v2
+      - uses: greenbone/actions/setup-pontos@v3
       - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           pontos-changelog \

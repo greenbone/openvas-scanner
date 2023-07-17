@@ -22,7 +22,7 @@ jobs:
           helm install openvasd charts/openvasd/ --values charts/openvasd/values.yaml
           kubectl rollout status --watch --timeout 600s deployment/openvasd
           helm test openvasd
-      - uses: greenbone/actions/helm-build-push@v2
+      - uses: greenbone/actions/helm-build-push@v3
         if: github.event_name == 'workflow_dispatch'
         with:
           chart-name: openvasd
