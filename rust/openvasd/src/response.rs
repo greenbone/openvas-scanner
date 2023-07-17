@@ -43,8 +43,8 @@ impl Response {
     fn default_response_builder(&self) -> hyper::http::response::Builder {
         hyper::Response::builder()
             .header("authentication", &self.authentication)
-            .header("version", &self.version)
-            .header("feed_version", &self.feed_version)
+            .header("api-version", &self.version)
+            .header("feed-version", &self.feed_version)
     }
 
     #[tracing::instrument]
