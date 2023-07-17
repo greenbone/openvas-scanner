@@ -24,7 +24,7 @@ jobs:
           echo "TAG=${vtag:1}" >> $GITHUB_ENV
 
       - name: Run helm version upgrade
-        uses: greenbone/actions/helm-version-upgrade@v2
+        uses: greenbone/actions/helm-version-upgrade@v3
         with:
           chart-path: ${{ github.workspace }}/charts/${{ matrix.chart }}
           chart-version: ${{ env.TAG }}
@@ -34,7 +34,7 @@ jobs:
           cat '${{ github.workspace }}/charts/${{ matrix.chart }}/Chart.yaml'
 
       - name: Upload to github registry
-        uses: greenbone/actions/helm-build-push@v2
+        uses: greenbone/actions/helm-build-push@v3
         with:
           chart-name: ${{ matrix.chart }}
           registry: ${{ vars.IMAGE_REGISTRY }}
@@ -43,7 +43,7 @@ jobs:
           registry-token: ${{ secrets.GREENBONE_BOT_PACKAGES_WRITE_TOKEN }}
 
       - name: Trigger product helm chart upgrade
-        uses: greenbone/actions/trigger-workflow@v2
+        uses: greenbone/actions/trigger-workflow@v3
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           repository: "greenbone/product-helm-chart"
