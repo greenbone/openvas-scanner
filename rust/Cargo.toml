@@ -21,5 +21,6 @@ members = [
   "feed-verifier",
   "models",
   "osp",
-  "openvasd",
+  "openvasd", 
+  "scanconfig",
 ]
