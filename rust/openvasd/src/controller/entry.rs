@@ -136,7 +136,7 @@ where
     }
 
     match (req.method(), kp) {
-        (&Method::HEAD, _) => Ok(ctx.response.no_content()),
+        (&Method::HEAD, _) => Ok(ctx.response.empty(hyper::StatusCode::OK)),
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
