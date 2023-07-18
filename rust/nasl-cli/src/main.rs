@@ -6,12 +6,17 @@
 mod error;
 mod feed_update;
 mod interpret;
+mod scanconfig;
 mod syntax_check;
 
 use configparser::ini::Ini;
 pub use error::*;
 
-use std::{io, path::PathBuf, process};
+use std::{
+    io::{self},
+    path::PathBuf,
+    process,
+};
 use storage::StorageError;
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
@@ -22,24 +27,29 @@ enum Commands {
     Syntax {
         /// The path for the file or dir to parse
         path: PathBuf,
-        /// Prints all parsed statements instead of just errors
-        verbose: bool,
         /// Disables printing of progress
         no_progress: bool,
+        /// Verbose output
+        verbose: bool,
     },
     /// Controls the feed
     Feed {
-        /// Prints the interpret filename and elapsed time for each
-        verbose: bool,
         /// The action to perform on a feed
         action: FeedAction,
     },
-
+    /// Executes a script
     Execute {
         db: Db,
         feed: Option<PathBuf>,
         script: String,
         target: Option<String>,
+    },
+    /// Transforms a scan config to scan json for openvasd
+    ScanConfig {
+        feed: Option<PathBuf>,
+        config: String,
+        port_list: Option<String>,
+        stdin: bool,
     },
 }
 
@@ -77,12 +87,12 @@ enum FeedAction {
 
 trait RunAction<T> {
     type Error;
-    fn run(&self, verbose: bool) -> Result<T, Self::Error>;
+    fn run(&self) -> Result<T, Self::Error>;
 }
 
 impl RunAction<()> for FeedAction {
     type Error = CliError;
-    fn run(&self, verbose: bool) -> Result<(), Self::Error> {
+    fn run(&self) -> Result<(), Self::Error> {
         match self {
             FeedAction::Update { redis: _, path } => {
                 let update_config: FeedUpdateConfiguration =
@@ -97,7 +107,7 @@ impl RunAction<()> for FeedAction {
                             kind: e.into(),
                             filename: format!("{path:?}"),
                         })?;
-                feed_update::run(dispatcher, update_config.plugin_path, verbose)
+                feed_update::run(dispatcher, update_config.plugin_path)
             }
             FeedAction::Transform { path } => {
                 let transform_config: TransformConfiguration =
@@ -108,7 +118,7 @@ impl RunAction<()> for FeedAction {
 
                 let mut o = json_storage::ArrayWrapper::new(io::stdout());
                 let dispatcher = json_storage::NvtDispatcher::as_dispatcher(&mut o);
-                match feed_update::run(dispatcher, transform_config.plugin_path, verbose) {
+                match feed_update::run(dispatcher, transform_config.plugin_path) {
                     Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                         filename: "".to_string(),
                         kind: se.into(),
@@ -122,26 +132,26 @@ impl RunAction<()> for FeedAction {
 
 impl RunAction<()> for Commands {
     type Error = CliError;
-    fn run(&self, verbose: bool) -> Result<(), Self::Error> {
+    fn run(&self) -> Result<(), Self::Error> {
         match self {
             Commands::Syntax {
                 path,
-                verbose,
                 no_progress,
+                verbose,
             } => syntax_check::run(path, *verbose, *no_progress),
-            Commands::Feed { verbose, action } => action.run(*verbose),
+            Commands::Feed { action } => action.run(),
             Commands::Execute {
                 db,
                 feed,
                 script,
                 target,
-            } => interpret::run(
-                db,
-                feed.clone(),
-                script.to_string(),
-                target.clone(),
-                verbose,
-            ),
+            } => interpret::run(db, feed.clone(), script.to_string(), target.clone()),
+            Commands::ScanConfig {
+                feed,
+                config,
+                port_list,
+                stdin,
+            } => scanconfig::run(feed.as_ref(), config, port_list.as_ref(), *stdin),
         }
     }
 }
@@ -255,8 +265,9 @@ fn get_path_from_openvas(config: Ini) -> PathBuf {
 fn main() {
     let matches = Command::new("nasl-cli")
         .version("1.0")
-        .about("Is CLI tool around NASL.")
-        .arg(arg!(-v --verbose ... "Prints more details while running").required(false).action(ArgAction::SetTrue))
+        .about("Is a CLI tool around NASL.")
+        .arg(arg!(-v --verbose ... "Prints more details while running").required(false).action(ArgAction::Count))
+        .arg(arg!(-vv --very-verbose ... "Prints even more details while running").required(false).action(ArgAction::SetTrue))
         .subcommand_required(true)
         .subcommand(
             Command::new("feed")
@@ -291,25 +302,44 @@ When ID is used than a valid feed path must be given within the path parameter."
                 .arg(Arg::new("script").required(true))
                 .arg(arg!(-t --target <HOST> "Target to scan") .required(false))
         )
-        .get_matches();
+        .subcommand(
+            Command::new("scan-config")
+                .about("Transforms a scan-config xml to a scan json for openvasd.
+When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.")
+                .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
+                    .value_parser(value_parser!(PathBuf)))
+                .arg(Arg::new("scan-config").required(true))
+                .arg(arg!(-i --input "Parses scan json from stdin.").required(false).action(ArgAction::SetTrue))
+                .arg(arg!(-l --portlist <FILE> "Path to the port list xml") .required(false))
+        )
+.get_matches();
     let verbose = matches
-        .get_one::<bool>("verbose")
+        .get_one::<u8>("verbose")
         .cloned()
         .unwrap_or_default();
+    let lv = if verbose > 1 {
+        tracing::Level::TRACE
+    } else if verbose > 0 {
+        tracing::Level::DEBUG
+    } else {
+        tracing::Level::INFO
+    };
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_max_level(lv)
+        .init();
     let command = match matches.subcommand() {
         Some(("feed", args)) => match args.subcommand() {
             Some(("update", args)) => {
                 let path = args.get_one::<PathBuf>("path").cloned();
                 let redis = args.get_one::<String>("redis").cloned();
                 Commands::Feed {
-                    verbose,
                     action: FeedAction::Update { redis, path },
                 }
             }
             Some(("transform", args)) => {
                 let path = args.get_one::<PathBuf>("path").cloned();
                 Commands::Feed {
-                    verbose,
                     action: FeedAction::Transform { path },
                 }
             }
@@ -323,7 +353,7 @@ When ID is used than a valid feed path must be given within the path parameter."
             let quiet = args.get_one::<bool>("quiet").cloned().unwrap_or_default();
             Commands::Syntax {
                 path,
-                verbose,
+                verbose: verbose > 0,
                 no_progress: quiet,
             }
         }
@@ -342,10 +372,26 @@ When ID is used than a valid feed path must be given within the path parameter."
                 target,
             }
         }
+        Some(("scan-config", args)) => {
+            let feed = args.get_one::<PathBuf>("path").cloned();
+            let config = match args.get_one::<String>("scan-config").cloned() {
+                Some(path) => path,
+                _ => unreachable!("path is set to required"),
+            };
+            let port_list = args.get_one::<String>("portlist").cloned();
+            tracing::debug!("port_list: {port_list:?}");
+            let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
+            Commands::ScanConfig {
+                feed,
+                config,
+                port_list,
+                stdin,
+            }
+        }
         _ => unreachable!("subcommand_required prevents None"),
     };
 
-    match command.run(verbose) {
+    match command.run() {
         Ok(_) => {}
         Err(e) => match e.kind {
             CliErrorKind::StorageError(StorageError::UnexpectedData(x)) => match &x as &str {
@@ -353,7 +399,7 @@ When ID is used than a valid feed path must be given within the path parameter."
                 _ => panic!("Unexpected data within dispatcher: {x}"),
             },
             CliErrorKind::InterpretError(_) | CliErrorKind::SyntaxError(_) => {
-                eprintln!("script error, {e}");
+                tracing::warn!("script error, {e}");
                 std::process::exit(1);
             }
             _ => panic!("{e}"),

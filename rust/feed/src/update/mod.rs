@@ -89,7 +89,7 @@ where
         loader: L,
         storage: S,
         verifier: V,
-    ) -> impl Iterator<Item = Result<String, Error>> {
+    ) -> Self {
         let initial = vec![
             ("description".to_owned(), true.into()),
             ("OPENVAS_VERSION".to_owned(), openvas_version.into()),

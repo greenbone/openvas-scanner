@@ -522,13 +522,12 @@ where
 
 impl<S, K> Dispatcher<K> for PerNVTDispatcher<S, K>
 where
-    K: AsRef<str>,
-    S: NvtDispatcher<K>,
+    K: AsRef<str> + Send + Sync,
+    S: NvtDispatcher<K> + Send + Sync,
 {
     fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
-            // TODO change here to store other fields instead
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
         }
     }
@@ -551,6 +550,14 @@ where
 {
     fn retrieve(&self, key: &K, scope: &crate::Retrieve) -> Result<Vec<Field>, StorageError> {
         self.dispatcher.retrieve(key, scope)
+    }
+
+    fn retrieve_by_field(
+        &self,
+        field: &Field,
+        scope: &crate::Retrieve,
+    ) -> Result<Vec<(K, Vec<Field>)>, StorageError> {
+        self.dispatcher.retrieve_by_field(field, scope)
     }
 }
 
