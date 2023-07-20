@@ -4,7 +4,6 @@
 
 use std::{collections::HashMap, path::PathBuf, sync::RwLock};
 
-
 use storage::DefaultDispatcher;
 
 use crate::{
@@ -115,7 +114,7 @@ impl<S, T> ContextBuilder<S, T> {
 
 impl<S> ContextBuilder<S, NoScanner>
 where
-    S: Clone + Send,
+    S: Clone,
 {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, Scanner<S>>

@@ -43,8 +43,6 @@ where
                         tracing::trace!("{id} fetched results");
                         let mut progress = prgs.clone();
                         progress.append_results(fr).await;
-                        let a = progress.results.lock().await.len();
-                        tracing::trace!("results length {:?}", a);
                         let mut ls = match ctx.scans.write() {
                             Ok(ls) => ls,
                             Err(_) => quit_on_poison(),
@@ -59,6 +57,5 @@ where
             }
             std::thread::sleep(interval);
         }
-        
     }
 }

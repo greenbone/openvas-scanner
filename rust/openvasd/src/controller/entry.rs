@@ -1,4 +1,3 @@
-
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
@@ -285,11 +284,15 @@ where
         }
         (&Method::GET, ScanResults(id, _rid)) => {
             let scans = ctx.scans.read()?.clone();
-            let prgss = scans.get(&id).unwrap();
+            let prgss = match scans.get(&id) {
+                Some(prgss) => prgss,
+                None => return Ok(ctx.response.not_found("scans", &id)),
+
+            };
             let res = &prgss.results.lock().await;
             Ok(ctx.response.ok_stream(res.to_vec()).await)
         }
-        
+
         (&Method::GET, Vts) => {
             let (_, oids) = ctx.oids.read()?.clone();
             Ok(ctx.response.ok_stream(oids).await)
@@ -297,5 +300,3 @@ where
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
     }
 }
-
-

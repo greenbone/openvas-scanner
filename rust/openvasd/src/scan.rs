@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{path::PathBuf, sync::{Arc, PoisonError}};
+use std::{
+    path::PathBuf,
+    sync::{Arc, PoisonError},
+};
 
 use futures::lock::Mutex;
-use std::process;
 
 /// The result of a fetch operation
 pub type FetchResult = (models::Status, Vec<models::Result>);
@@ -115,7 +117,6 @@ impl ScanDeleter for OSPDWrapper {
 impl ScanResultFetcher for OSPDWrapper {
     fn fetch_results(&self, progress: &Progress) -> Result<FetchResult, Error> {
         self.check_socket()?;
-        println!("PROCESS ID IN fetch_results(): {:?}", process::id());
         osp::get_delete_scan_results(&self.socket, progress.id())
             .map(|r| (r.clone().into(), r.into()))
             .map_err(Error::from)
@@ -152,10 +153,6 @@ impl Progress {
             None => "",
         }
     }
-
-    pub(crate) async fn results_length(&self) -> usize {
-        self.results.lock().await.len()
-    }
 }
 
 impl From<models::Scan> for Progress {
@@ -163,8 +160,7 @@ impl From<models::Scan> for Progress {
         Self {
             scan,
             status: models::Status::default(),
-            results: Arc::new(Mutex::new(Vec::new()))
+            results: Arc::new(Mutex::new(Vec::new())),
         }
     }
 }
-
