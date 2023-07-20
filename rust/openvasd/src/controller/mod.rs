@@ -20,7 +20,7 @@ pub(crate) fn quit_on_poison<T>() -> T {
 /// Combines all traits needed for a scanner.
 pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
-impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
+impl<T> Scanner for T where T: Send + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
 macro_rules! make_svc {
     ($controller:expr) => {{

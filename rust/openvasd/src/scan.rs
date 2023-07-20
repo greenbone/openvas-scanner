@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{path::PathBuf, sync::PoisonError};
+use std::{path::PathBuf, sync::{Arc, PoisonError}};
+
+use futures::lock::Mutex;
+use std::process;
 
 /// The result of a fetch operation
 pub type FetchResult = (models::Status, Vec<models::Result>);
@@ -112,6 +115,7 @@ impl ScanDeleter for OSPDWrapper {
 impl ScanResultFetcher for OSPDWrapper {
     fn fetch_results(&self, progress: &Progress) -> Result<FetchResult, Error> {
         self.check_socket()?;
+        println!("PROCESS ID IN fetch_results(): {:?}", process::id());
         osp::get_delete_scan_results(&self.socket, progress.id())
             .map(|r| (r.clone().into(), r.into()))
             .map_err(Error::from)
@@ -129,16 +133,17 @@ pub struct Progress {
     /// The status of the scan
     pub status: models::Status,
     /// The results of the scan
-    pub results: Vec<models::Result>,
+    pub results: Arc<Mutex<Vec<models::Result>>>,
 }
 
 impl Progress {
     /// Appends the results of a fetch operation to the progress and updates the status.
-    pub(crate) fn append_results(&mut self, fr: FetchResult) {
+    pub(crate) async fn append_results(&mut self, fr: FetchResult) {
         let (status, results) = fr;
         tracing::trace!("Set status: {:?}", status);
         self.status = status;
-        self.results.extend(results);
+        let mut res = self.results.lock().await;
+        res.extend(results);
     }
 
     pub fn id(&self) -> &str {
@@ -147,6 +152,10 @@ impl Progress {
             None => "",
         }
     }
+
+    pub(crate) async fn results_length(&self) -> usize {
+        self.results.lock().await.len()
+    }
 }
 
 impl From<models::Scan> for Progress {
@@ -154,7 +163,8 @@ impl From<models::Scan> for Progress {
         Self {
             scan,
             status: models::Status::default(),
-            results: Vec::new(),
+            results: Arc::new(Mutex::new(Vec::new()))
         }
     }
 }
+

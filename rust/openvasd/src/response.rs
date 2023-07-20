@@ -27,7 +27,7 @@ impl Default for Response {
 }
 
 #[derive(Debug, Clone)]
-struct JsonArrayStreamer<T> {
+pub struct JsonArrayStreamer<T> {
     elements: Vec<T>,
     first: bool,
 }
@@ -36,9 +36,9 @@ impl<T> Unpin for JsonArrayStreamer<T> {}
 
 impl<T> JsonArrayStreamer<T>
 where
-    T: Serialize,
+    T: Serialize + Send,
 {
-    fn new(elements: Vec<T>) -> Self {
+    pub fn new(elements: Vec<T>) -> Self {
         Self {
             elements,
             first: true,
@@ -48,7 +48,7 @@ where
 
 impl<T> Stream for JsonArrayStreamer<T>
 where
-    T: Serialize,
+    T: Serialize + Send,
 {
     type Item = std::result::Result<String, Infallible>;
 

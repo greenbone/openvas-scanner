@@ -22,13 +22,13 @@ where
     if let Some(cfg) = &ctx.result_config {
         let interval = cfg.0;
         tracing::debug!("Starting synchronization loop");
-        tokio::task::spawn_blocking(move || loop {
+        loop {
             if *ctx.abort.read().unwrap() {
                 tracing::trace!("aborting");
                 break;
             }
             let ls = match ctx.scans.read() {
-                Ok(ls) => ls,
+                Ok(ls) => ls.clone(),
                 Err(_) => quit_on_poison(),
             };
             let scans = ls.clone();
@@ -42,7 +42,9 @@ where
                     Ok(fr) => {
                         tracing::trace!("{id} fetched results");
                         let mut progress = prgs.clone();
-                        progress.append_results(fr);
+                        progress.append_results(fr).await;
+                        let a = progress.results.lock().await.len();
+                        tracing::trace!("results length {:?}", a);
                         let mut ls = match ctx.scans.write() {
                             Ok(ls) => ls,
                             Err(_) => quit_on_poison(),
@@ -56,8 +58,7 @@ where
                 }
             }
             std::thread::sleep(interval);
-        })
-        .await
-        .unwrap();
+        }
+        
     }
 }

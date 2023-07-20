@@ -115,7 +115,7 @@ impl<S, T> ContextBuilder<S, T> {
 
 impl<S> ContextBuilder<S, NoScanner>
 where
-    S: Clone,
+    S: Clone + Send,
 {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, Scanner<S>>
