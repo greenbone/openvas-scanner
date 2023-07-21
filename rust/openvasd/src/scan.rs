@@ -2,12 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{
-    path::PathBuf,
-    sync::{Arc, PoisonError},
-};
-
-use futures::lock::Mutex;
+use std::{path::PathBuf, sync::PoisonError};
 
 /// The result of a fetch operation
 pub type FetchResult = (models::Status, Vec<models::Result>);
@@ -134,17 +129,16 @@ pub struct Progress {
     /// The status of the scan
     pub status: models::Status,
     /// The results of the scan
-    pub results: Arc<Mutex<Vec<models::Result>>>,
+    pub results: Vec<models::Result>,
 }
 
 impl Progress {
     /// Appends the results of a fetch operation to the progress and updates the status.
-    pub(crate) async fn append_results(&mut self, fr: FetchResult) {
+    pub(crate) fn append_results(&mut self, fr: FetchResult) {
         let (status, results) = fr;
         tracing::trace!("Set status: {:?}", status);
         self.status = status;
-        let mut res = self.results.lock().await;
-        res.extend(results);
+        self.results.extend(results);
     }
 
     pub fn id(&self) -> &str {
@@ -160,7 +154,7 @@ impl From<models::Scan> for Progress {
         Self {
             scan,
             status: models::Status::default(),
-            results: Arc::new(Mutex::new(Vec::new())),
+            results: Vec::new(),
         }
     }
 }

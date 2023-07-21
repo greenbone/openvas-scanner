@@ -287,9 +287,8 @@ where
             let prgss = match scans.get(&id) {
                 Some(prgss) => prgss,
                 None => return Ok(ctx.response.not_found("scans", &id)),
-
             };
-            let res = &prgss.results.lock().await;
+            let res = &prgss.results;
             Ok(ctx.response.ok_stream(res.to_vec()).await)
         }
 
