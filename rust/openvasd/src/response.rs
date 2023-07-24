@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::error::Error;
+use std::{convert::Infallible, error::Error};
 
+use futures::Stream;
+use hyper::body::Bytes;
 use serde::Serialize;
-
 type Result = hyper::Response<hyper::Body>;
 
 #[derive(Debug, Clone)]
@@ -21,6 +22,65 @@ impl Default for Response {
             authentication: String::new(),
             version: "1".to_string(),
             feed_version: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct JsonArrayStreamer<T> {
+    elements: Vec<T>,
+    first: bool,
+}
+
+impl<T> Unpin for JsonArrayStreamer<T> {}
+
+impl<T> JsonArrayStreamer<T>
+where
+    T: Serialize,
+{
+    fn new(elements: Vec<T>) -> Self {
+        Self {
+            elements,
+            first: true,
+        }
+    }
+}
+
+impl<T> Stream for JsonArrayStreamer<T>
+where
+    T: Serialize,
+{
+    type Item = std::result::Result<String, Infallible>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let out = {
+            if self.first && self.elements.is_empty() {
+                self.first = false;
+                Some("[]".to_string())
+            } else if self.first {
+                self.first = false;
+                Some("[".to_string())
+            } else {
+                match self.elements.pop() {
+                    Some(e) => {
+                        let e = serde_json::to_string(&e).unwrap();
+                        if self.elements.is_empty() {
+                            Some(format!("{}]", e))
+                        } else {
+                            Some(format!("{},", e))
+                        }
+                    }
+                    None => None,
+                }
+            }
+        };
+
+        match out {
+            Some(e) => std::task::Poll::Ready(Some(Ok(e))),
+            None => std::task::Poll::Ready(None),
         }
     }
 }
@@ -48,6 +108,38 @@ impl Response {
     }
 
     #[tracing::instrument]
+    async fn create_stream<S, O, E>(&self, code: hyper::StatusCode, value: S) -> Result
+    where
+        S: Stream<Item = std::result::Result<O, E>> + Send + std::fmt::Debug + 'static,
+        O: Into<Bytes> + 'static,
+        E: Into<Box<dyn std::error::Error + Send + Sync>> + 'static,
+    {
+        match hyper::Response::builder()
+            .status(code)
+            .header("Content-Type", "application/json")
+            .header("authentication", &self.authentication)
+            .header("version", &self.version)
+            .body(hyper::Body::wrap_stream(value))
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                tracing::error!("Error creating response: {}", e);
+                hyper::Response::builder()
+                    .status(hyper::StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(hyper::Body::empty())
+                    .unwrap()
+            }
+        }
+    }
+
+    pub async fn ok_stream<T>(&self, value: Vec<T>) -> Result
+    where
+        T: Serialize + Send + std::fmt::Debug + 'static,
+    {
+        let stream = JsonArrayStreamer::new(value);
+        self.create_stream(hyper::StatusCode::OK, stream).await
+    }
+
     fn create<T>(&self, code: hyper::StatusCode, value: &T) -> Result
     where
         T: ?Sized + Serialize + std::fmt::Debug,

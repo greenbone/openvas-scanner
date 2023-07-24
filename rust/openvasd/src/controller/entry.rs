@@ -294,7 +294,7 @@ where
         }
         (&Method::GET, Vts) => {
             let (_, oids) = ctx.oids.read()?.clone();
-            Ok(ctx.response.ok(&oids))
+            Ok(ctx.response.ok_stream(oids).await)
         }
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
     }
