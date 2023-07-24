@@ -127,6 +127,10 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Func
         NaslValue::Number(x) => write!(s, "{}", x),
         NaslValue::Boolean(x) => write!(s, "{}", *x as i32),
         NaslValue::AttackCategory(x) => write!(s, "{}", *x as i32),
+        NaslValue::Data(x) => {
+            let x = x.iter().map(|x| *x as char).collect::<String>();
+            write!(s, "{}", x)
+        }
         _ => Ok(()),
     }
     .map_err(|e| e.into())
