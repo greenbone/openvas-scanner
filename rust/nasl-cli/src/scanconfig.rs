@@ -35,7 +35,7 @@ pub(crate) fn run(
     let feed = match feed {
         Some(feed) => feed.to_owned(),
         None => read_openvas_config()
-            .map(|c| get_path_from_openvas(c))
+            .map(get_path_from_openvas)
             .map_err(|e| CliError {
                 filename: "".to_string(),
                 kind: CliErrorKind::Corrupt(format!("{e:?}")),
