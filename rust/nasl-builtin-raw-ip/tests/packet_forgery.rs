@@ -317,7 +317,7 @@ mod tests {
     #[should_panic]
     fn copy_from_slice_panic() {
         let mut a = [1u8, 2u8, 3u8, 4u8];
-        let b = ['a' as u8, 'b' as u8, 'c' as u8, 'd' as u8];
+        let b = [b'a', b'b', b'c', b'd'];
 
         // this should panic
         a[..2].copy_from_slice(&b[..b.len()]);
@@ -326,7 +326,7 @@ mod tests {
     #[test]
     fn copy_from_slice_safe() {
         let mut a = [1u8, 2u8, 3u8, 4u8];
-        let b = ['a' as u8, 'b' as u8, 'c' as u8, 'd' as u8];
+        let b = [b'a', b'b', b'c', b'd'];
         let alen = a.len();
         // different range size between origin and destination
         assert_eq!(
@@ -356,6 +356,6 @@ mod tests {
         );
 
         let _r = safe_copy_from_slice(&mut a, 0, 2, &b, 0, 2);
-        assert_eq!(a, ['a' as u8, 'b' as u8, 3u8, 4u8]);
+        assert_eq!(a, [b'a', b'b', 3u8, 4u8]);
     }
 }

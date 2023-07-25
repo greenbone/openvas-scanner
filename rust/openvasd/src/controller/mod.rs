@@ -296,7 +296,7 @@ mod tests {
         let scan: models::Scan = models::Scan::default();
         let ctx = ContextBuilder::new()
             .api_key(Some("mtls_is_preferred".to_string()))
-            .scanner(NoOpScanner::default())
+            .scanner(NoOpScanner)
             .build();
         let controller = Arc::new(ctx);
         let resp = post_scan(&scan, Arc::clone(&controller)).await;

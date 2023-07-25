@@ -105,12 +105,12 @@ where
     R: BufRead,
 {
     let result = quick_xml::de::from_reader::<R, PortList>(pl)
-        .map_err(|e| Error::ParseError(format!("Error parsing port list: {}", e.to_string())))?;
+        .map_err(|e| Error::ParseError(format!("Error parsing port list: {}", e)))?;
     tracing::trace!(
         "transforming portlist {} {} ({}) with {} entries.",
         &result.id,
-        result.name.as_ref().map(|s| s.as_str()).unwrap_or(&""),
-        result.comment.as_ref().map(|s| s.as_str()).unwrap_or(&""),
+        result.name.as_deref().unwrap_or(""),
+        result.comment.as_deref().unwrap_or(""),
         &result.port_ranges.port_range.len()
     );
     Ok(result.as_port_list())
@@ -174,12 +174,12 @@ where
     R: BufRead,
 {
     let result = quick_xml::de::from_reader::<R, ScanConfig>(sc)
-        .map_err(|e| Error::ParseError(format!("Error parsing vts: {}", e.to_string())))?;
+        .map_err(|e| Error::ParseError(format!("Error parsing vts: {}", e)))?;
     tracing::debug!(
         "transforming vts {} {} ({}) with {} entries.",
         &result.id,
-        result.name.as_ref().map(|s| s.as_str()).unwrap_or(&""),
-        result.comment.as_ref().map(|s| s.as_str()).unwrap_or(&""),
+        result.name.as_deref().unwrap_or(""),
+        result.comment.as_deref().unwrap_or(""),
         &result.preferences.preference.len()
     );
     let preference_lookup: HashMap<String, Vec<models::Parameter>> = result
@@ -190,7 +190,7 @@ where
             (
                 p.nvt.oid.clone(),
                 vec![models::Parameter {
-                    id: p.id.clone(),
+                    id: p.id,
                     value: p.value.clone(),
                 }],
             )
@@ -211,9 +211,9 @@ where
         .flat_map(|s| {
             if s.nvt_type == 2 {
                 if is_not_already_present(&s.family_or_nvt) {
-                    return vec![oid_to_vt(&s.family_or_nvt)];
+                    vec![oid_to_vt(&s.family_or_nvt)]
                 } else {
-                    return vec![];
+                    vec![]
                 }
             } else {
                 // lookup oids via family
@@ -316,7 +316,7 @@ mod tests {
       <nvt oid="1.3.6.1.4.1.25623.1.0.100315">
         <name>Ping Host</name>
       </nvt>
-      <name>Report about unrechable Hosts</name>
+      <name>Report about unreachable Hosts</name>
       <type>checkbox</type>
       <value>no</value>
       <id>6</id>
@@ -335,7 +335,7 @@ mod tests {
       <nvt oid="1.3.6.1.4.1.25623.1.0.100315">
         <name>Ping Host</name>
       </nvt>
-      <name>Mark unrechable Hosts as dead (not scanning)</name>
+      <name>Mark unreachable Hosts as dead (not scanning)</name>
       <type>checkbox</type>
       <value>yes</value>
       <id>5</id>
