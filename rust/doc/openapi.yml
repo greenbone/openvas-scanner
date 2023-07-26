@@ -311,9 +311,6 @@ components:
       description: "Model representing a scan."
       type: "object"
       properties:
-        scan_id:
-          description: "The scan ID for a scan to create. If left empty, an ID is automatically generated. Must be a UUIDv4."
-          $ref: "#/components/schemas/ScanID"
         target:
           description: "The target to scan"
           $ref: "#/components/schemas/Target"
@@ -671,7 +668,6 @@ components:
       description: "A complex example for creating a scan, that uses all available fields."
       value:
         {
-          "scan_id": "6c591f83-8f7b-452a-8c78-ba35779e682f",
           "target":
             {
               "hosts":

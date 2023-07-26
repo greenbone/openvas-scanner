@@ -141,11 +141,10 @@ where
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
                     response_blocking(move || {
-                        if scan.scan_id.is_none() {
-                            scan.scan_id = Some(uuid::Uuid::new_v4().to_string());
-                        }
+                        scan.scan_id = Some(uuid::Uuid::new_v4().to_string());
                         let mut scans = ctx.scans.write()?;
                         let id = scan.scan_id.clone().unwrap_or_default();
+
                         let resp = ctx.response.created(&id);
                         scans.insert(id.clone(), crate::scan::Progress::from(scan));
                         tracing::debug!("Scan with ID {} created", id);
@@ -287,7 +286,6 @@ where
             let res = match scans.get(&id) {
                 Some(prgss) => &prgss.results,
                 None => return Ok(ctx.response.not_found("scans", &id)),
-
             };
             Ok(ctx.response.ok_stream(res.to_vec()).await)
         }
