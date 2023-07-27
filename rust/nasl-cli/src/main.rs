@@ -47,7 +47,7 @@ enum Commands {
     /// Transforms a scan config to scan json for openvasd
     ScanConfig {
         feed: Option<PathBuf>,
-        config: String,
+        config: Vec<String>,
         port_list: Option<String>,
         stdin: bool,
     },
@@ -308,7 +308,7 @@ When ID is used than a valid feed path must be given within the path parameter."
 When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.")
                 .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
                     .value_parser(value_parser!(PathBuf)))
-                .arg(Arg::new("scan-config").required(true))
+                .arg(Arg::new("scan-config").required(true).action(ArgAction::Append))
                 .arg(arg!(-i --input "Parses scan json from stdin.").required(false).action(ArgAction::SetTrue))
                 .arg(arg!(-l --portlist <FILE> "Path to the port list xml") .required(false))
         )
@@ -374,10 +374,11 @@ When piping a scan json it is enriched with the scan-config xml and may the port
         }
         Some(("scan-config", args)) => {
             let feed = args.get_one::<PathBuf>("path").cloned();
-            let config = match args.get_one::<String>("scan-config").cloned() {
-                Some(path) => path,
-                _ => unreachable!("path is set to required"),
-            };
+            let config = args
+                .get_many::<String>("scan-config")
+                .expect("scan-config is required")
+                .cloned()
+                .collect();
             let port_list = args.get_one::<String>("portlist").cloned();
             tracing::debug!("port_list: {port_list:?}");
             let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();

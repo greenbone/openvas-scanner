@@ -214,11 +214,13 @@ For that we need to execute:
 
 ```
 echo '{ "target": { "hosts": ["localhost"], "ports": [] }, "vts": [] }'| \
-nasl-cli scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common -l ~/src/greenbone/data-objects/content/22.04/port-lists/openvas-default-c7e03b6c-3bbe-11e1-a057-406186ea4fc5.xml ~/src/greenbone/data-objects/content/22.04/scan-configs/discovery-8715c877-47a0-438d-98a3-27c7a6ab2196.xml | \
-nasl-cli scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common  ~/src/greenbone/data-objects/content/22.04/scan-configs/full-and-fast-daba56c8-73ec-11df-a475-002264764cea.xml
+nasl-cli scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common \
+  -l ~/src/greenbone/data-objects/content/22.04/port-lists/openvas-default-c7e03b6c-3bbe-11e1-a057-406186ea4fc5.xml \
+  ~/src/greenbone/data-objects/content/22.04/scan-configs/discovery-8715c877-47a0-438d-98a3-27c7a6ab2196.xml \
+  ~/src/greenbone/data-objects/content/22.04/scan-configs/full-and-fast-daba56c8-73ec-11df-a475-002264764cea.xml
 ```
 
-Be aware to resolve the families within a scan-config nasl-cli requires to read the complete feed. Depending on your system that may require some time on each scan-config run.
+Be aware that each call does a description run of the defined feed to gather the meta data, depending on your system and the size of the feed it requires may some time.
 
 #### Usage
 
