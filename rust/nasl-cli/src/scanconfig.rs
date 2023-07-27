@@ -4,7 +4,7 @@ use crate::{feed_update, get_path_from_openvas, read_openvas_config, CliError, C
 
 pub(crate) fn run(
     feed: Option<&PathBuf>,
-    config: &str,
+    config: &[String],
     port_list: Option<&String>,
     stdin: bool,
 ) -> Result<(), CliError> {
@@ -53,13 +53,18 @@ pub(crate) fn run(
         }
         None => vec![],
     };
-    let reader = as_bufreader(config)?;
-    let vts = scanconfig::parse_vts(reader, storage.as_ref(), &scan.vts)
-        .map_err(|e| map_error(config, e))?;
+    let mut vts = vec![];
+    for a in config.iter().map(|f| {
+        as_bufreader(f).map_err(CliError::from).and_then(|r| {
+            scanconfig::parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e))
+        })
+    }) {
+        vts.extend(a?);
+    }
     scan.vts.extend(vts);
     scan.target.ports = ports;
     let out = serde_json::to_string_pretty(&scan).map_err(|e| CliError {
-        filename: config.to_string(),
+        filename: config.join(","),
         kind: CliErrorKind::Corrupt(format!("{e:?}")),
     })?;
     println!("{}", out);
