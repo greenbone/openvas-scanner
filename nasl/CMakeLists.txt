@@ -70,14 +70,18 @@ if (NOT GPGME_FOUND)
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif (NOT GPGME_FOUND)
 
-message (STATUS "Looking for netsnmp...")
-find_library (SNMP netsnmp)
-message (STATUS "Looking for netsnmp... ${SNMP}")
-if (SNMP)
+if (BUILD_WITH_NETSNMP)
+  message (STATUS "Looking for netsnmp...")
+  find_library (NETSNMP netsnmp)
+  message (STATUS "Looking for netsnmp... ${NETSNMP}")
+else (BUILD_WITH_NETSNMP)
+  message (STATUS "Netsnmp support disabled")
+endif (BUILD_WITH_NETSNMP)
+if (NETSNMP)
   execute_process (COMMAND net-snmp-config --libs
     OUTPUT_VARIABLE SNMP_LDFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-endif (SNMP)
+endif (NETSNMP)
 
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
@@ -103,9 +107,9 @@ endif (NOT GCRYPT)
 
 
 ## Library
-if (SNMP)
+if (NETSNMP)
   add_definitions (-DHAVE_NETSNMP)
-endif (SNMP)
+endif (NETSNMP)
 
 
 # The "-fno-strict-aliasing" silences warnings caused by macros defined in byteorder.h.
