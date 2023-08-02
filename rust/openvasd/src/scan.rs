@@ -4,6 +4,8 @@
 
 use std::{path::PathBuf, sync::PoisonError};
 
+use async_trait::async_trait;
+
 /// The result of a fetch operation
 pub type FetchResult = (models::Status, Vec<models::Result>);
 
@@ -40,6 +42,11 @@ impl std::fmt::Display for Error {
     }
 }
 
+impl From<crate::storage::Error> for Error {
+    fn from(value: crate::storage::Error) -> Self {
+        Self::Unexpected(format!("{value:?}"))
+    }
+}
 impl<T> From<PoisonError<T>> for Error {
     fn from(_: PoisonError<T>) -> Self {
         Self::Poisoned
@@ -52,109 +59,108 @@ impl OSPDWrapper {
         Self { socket }
     }
 
-    fn check_socket(&self) -> Result<(), Error> {
+    fn check_socket(&self) -> Result<PathBuf, Error> {
         if !self.socket.exists() {
             return Err(Error::SocketDoesNotExist(self.socket.clone()));
         }
-        Ok(())
+        Ok(self.socket.clone())
+    }
+    async fn spawn_blocking<F, R, E>(&self, f: F) -> Result<R, Error>
+    where
+        F: FnOnce(PathBuf) -> Result<R, E> + Send + 'static,
+        R: Send + 'static,
+        E: Into<Error> + Send + 'static,
+    {
+        let socket = self.check_socket()?;
+        tokio::task::spawn_blocking(move || f(socket).map_err(Into::into))
+            .await
+            .map_err(|_| Error::Poisoned)?
     }
 }
 
 /// Starts a scan
+#[async_trait]
 pub trait ScanStarter {
     /// Starts a scan
-    fn start_scan<'a>(&'a self, progress: &'a Progress) -> Result<(), Error>;
+    async fn start_scan(&self, scan: models::Scan) -> Result<(), Error>;
 }
 
 /// Stops a scan
+#[async_trait]
 pub trait ScanStopper {
     /// Stops a scan
-    fn stop_scan(&self, progress: &Progress) -> Result<(), Error>;
+    async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static;
 }
 
 /// Deletes a scan
+#[async_trait]
 pub trait ScanDeleter {
-    fn delete_scan(&self, progress: &Progress) -> Result<(), Error>;
+    async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static;
 }
 
+#[async_trait]
 pub trait ScanResultFetcher {
     /// Fetches the results of a scan and combines the results with response
-    fn fetch_results(&self, id: &Progress) -> Result<FetchResult, Error>;
+    async fn fetch_results<I>(&self, id: I) -> Result<FetchResult, Error>
+    where
+        I: AsRef<str> + Send + 'static;
 }
 
+#[async_trait]
 impl ScanStarter for OSPDWrapper {
-    fn start_scan(&self, progress: &Progress) -> Result<(), Error> {
-        self.check_socket()?;
-        osp::start_scan(&self.socket, &progress.scan)
-            .map_err(Error::from)
-            .map(|_| ())
+    async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
+        self.spawn_blocking(move |socket| {
+            osp::start_scan(socket, &scan)
+                .map(|_| ())
+                .map_err(Error::from)
+        })
+        .await
     }
 }
 
+#[async_trait]
 impl ScanStopper for OSPDWrapper {
-    fn stop_scan(&self, progress: &Progress) -> Result<(), Error> {
-        self.check_socket()?;
-        osp::stop_scan(&self.socket, progress.scan.scan_id.as_ref().unwrap())
-            .map_err(Error::from)
-            .map(|_| ())
+    async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.spawn_blocking(move |socket| {
+            osp::stop_scan(socket, id).map(|_| ()).map_err(Error::from)
+        })
+        .await
     }
 }
 
+#[async_trait]
 impl ScanDeleter for OSPDWrapper {
-    fn delete_scan(&self, progress: &Progress) -> Result<(), Error> {
-        self.check_socket()?;
-        osp::delete_scan(&self.socket, progress.scan.scan_id.as_ref().unwrap())
-            .map_err(Error::from)
-            .map(|_| ())
+    async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.spawn_blocking(move |socket| {
+            osp::get_delete_scan_results(socket, id)
+                .map(|_| ())
+                .map_err(Error::from)
+        })
+        .await
     }
 }
 
+#[async_trait]
 impl ScanResultFetcher for OSPDWrapper {
-    fn fetch_results(&self, progress: &Progress) -> Result<FetchResult, Error> {
-        self.check_socket()?;
-        osp::get_delete_scan_results(&self.socket, progress.id())
-            .map(|r| (r.clone().into(), r.into()))
-            .map_err(Error::from)
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-/// Contains the progress of a scan.
-///
-/// It is used to keep track of the scan status and results.
-/// As scan is in progress as long as `is_done` function of status does not return true.
-pub struct Progress {
-    /// The scan that is being tracked
-    pub scan: models::Scan,
-    /// The status of the scan
-    pub status: models::Status,
-    /// The results of the scan
-    pub results: Vec<models::Result>,
-}
-
-impl Progress {
-    /// Appends the results of a fetch operation to the progress and updates the status.
-    pub(crate) fn append_results(&mut self, fr: FetchResult) {
-        let (status, results) = fr;
-        tracing::trace!("Set status: {:?}", status);
-        self.status = status;
-        self.results.extend(results);
-    }
-
-    pub fn id(&self) -> &str {
-        match self.scan.scan_id.as_ref() {
-            Some(s) => s,
-            None => "",
-        }
-    }
-}
-
-impl From<models::Scan> for Progress {
-    fn from(scan: models::Scan) -> Self {
-        Self {
-            scan,
-            status: models::Status::default(),
-            results: Vec::new(),
-        }
+    async fn fetch_results<I>(&self, id: I) -> Result<FetchResult, Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.spawn_blocking(move |socket| {
+            osp::get_delete_scan_results(socket, id)
+                .map(|r| (r.clone().into(), r.into()))
+                .map_err(Error::from)
+        })
+        .await
     }
 }

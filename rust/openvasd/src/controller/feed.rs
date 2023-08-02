@@ -9,9 +9,10 @@ use crate::feed::FeedIdentifier;
 use super::context::Context;
 use super::quit_on_poison;
 
-pub async fn fetch<S>(ctx: Arc<Context<S>>)
+pub async fn fetch<S, DB>(ctx: Arc<Context<S, DB>>)
 where
-    S: std::marker::Send + std::marker::Sync + 'static,
+    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+    DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
 {
     if let Some(cfg) = &ctx.feed_config {
         let interval = cfg.verify_interval;

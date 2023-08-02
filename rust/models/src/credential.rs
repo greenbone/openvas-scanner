@@ -18,6 +18,42 @@ pub struct Credential {
     pub credential_type: CredentialType,
 }
 
+impl Credential {
+    /// Maps the password of the credential using the given closure.
+    pub fn map_password<F, E>(self, f: F) -> Result<Self, E>
+    where
+        F: FnOnce(String) -> Result<String, E>,
+    {
+        Ok(Credential {
+            service: self.service,
+            port: self.port,
+            credential_type: self.credential_type.map_password(f)?,
+        })
+    }
+
+    /// Gets the password of the credential.
+    pub fn password(&self) -> &str {
+        match &self.credential_type {
+            CredentialType::UP { password, .. } => password,
+            CredentialType::USK { password, .. } => password,
+            CredentialType::SNMP { password, .. } => password,
+        }
+    }
+}
+
+impl Default for Credential {
+    fn default() -> Self {
+        Self {
+            service: Service::SSH,
+            port: Default::default(),
+            credential_type: CredentialType::UP {
+                username: "root".to_string(),
+                password: "".to_string(),
+            },
+        }
+    }
+}
+
 /// Enum of available services
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
@@ -103,6 +139,45 @@ pub enum CredentialType {
         #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         privacy_algorithm: String,
     },
+}
+
+impl CredentialType {
+    /// Uses given closure to transform the password of the credential.
+    pub fn map_password<F, E>(self, f: F) -> Result<Self, E>
+    where
+        F: FnOnce(String) -> Result<String, E>,
+    {
+        Ok(match self {
+            CredentialType::UP { username, password } => CredentialType::UP {
+                username,
+                password: f(password)?,
+            },
+            CredentialType::USK {
+                username,
+                password,
+                private_key,
+            } => CredentialType::USK {
+                username,
+                password: f(password)?,
+                private_key,
+            },
+            CredentialType::SNMP {
+                username,
+                password,
+                community,
+                auth_algorithm,
+                privacy_password,
+                privacy_algorithm,
+            } => CredentialType::SNMP {
+                username,
+                password: f(password)?,
+                community,
+                auth_algorithm,
+                privacy_password,
+                privacy_algorithm,
+            },
+        })
+    }
 }
 
 impl AsRef<str> for CredentialType {

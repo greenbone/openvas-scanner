@@ -25,8 +25,11 @@ pub fn send_command<T: AsRef<Path>>(address: T, cmd: ScanCommand) -> Result<Resp
 }
 
 /// Returns the scan information from OSPD
-pub fn get_scan<T: AsRef<Path>>(address: T, scan_id: &ScanID) -> Result<response::Scan, Error> {
-    let cmd = ScanCommand::Get(scan_id);
+pub fn get_scan<T: AsRef<Path>, I: AsRef<str>>(
+    address: T,
+    scan_id: I,
+) -> Result<response::Scan, Error> {
+    let cmd = ScanCommand::Get(scan_id.as_ref());
     let response = send_command(address, cmd)?;
     match response {
         Response::GetScans {
@@ -38,11 +41,11 @@ pub fn get_scan<T: AsRef<Path>>(address: T, scan_id: &ScanID) -> Result<response
 }
 
 /// Returns the scan information from OSPD and deletes the results from it
-pub fn get_delete_scan_results<T: AsRef<Path>>(
+pub fn get_delete_scan_results<T: AsRef<Path>, I: AsRef<str>>(
     address: T,
-    scan_id: &str,
+    scan_id: I,
 ) -> Result<response::Scan, Error> {
-    let cmd = ScanCommand::GetDelete(scan_id);
+    let cmd = ScanCommand::GetDelete(scan_id.as_ref());
     let response = send_command(address, cmd)?;
     match response {
         Response::GetScans {
@@ -67,8 +70,8 @@ pub fn start_scan<T: AsRef<Path>>(address: T, scan: &models::Scan) -> Result<Sca
 }
 
 /// Stops a scan
-pub fn stop_scan<T: AsRef<Path>>(address: T, scan_id: &ScanID) -> Result<(), Error> {
-    let cmd = ScanCommand::Stop(scan_id);
+pub fn stop_scan<T: AsRef<Path>, I: AsRef<str>>(address: T, scan_id: I) -> Result<(), Error> {
+    let cmd = ScanCommand::Stop(scan_id.as_ref());
     let response = send_command(address, cmd)?;
     match response {
         Response::StopScan { status: _ } => Ok(()),
@@ -77,8 +80,8 @@ pub fn stop_scan<T: AsRef<Path>>(address: T, scan_id: &ScanID) -> Result<(), Err
 }
 
 /// Deletes a scan
-pub fn delete_scan<T: AsRef<Path>>(address: T, scan_id: &ScanID) -> Result<(), Error> {
-    let cmd = ScanCommand::Delete(scan_id);
+pub fn delete_scan<T: AsRef<Path>, I: AsRef<str>>(address: T, scan_id: I) -> Result<(), Error> {
+    let cmd = ScanCommand::Delete(scan_id.as_ref());
     let response = send_command(address, cmd)?;
     match response {
         Response::DeleteScan { status: _ } => Ok(()),

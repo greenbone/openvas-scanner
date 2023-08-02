@@ -4,10 +4,12 @@
 
 mod config;
 mod controller;
+mod crypt;
 mod feed;
 mod request;
 mod response;
 mod scan;
+mod storage;
 mod tls;
 
 #[tokio::main]
