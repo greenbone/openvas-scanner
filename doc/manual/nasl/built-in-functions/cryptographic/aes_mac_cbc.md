@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-aes_mac_gcm encrypts given data with given key by using AES in CBC mode.
+aes_mac_cbc encrypts given data with given key by using AES in CBC mode.
 The according aes algorithm is dependent on the key size (if the key is 128 bit than AES128 is used, 256 and 512 are supported.)
 
 
