@@ -8,10 +8,10 @@
 
 use std::{fmt::Display, sync::Arc};
 
-use super::{context::Context, quit_on_poison};
+use super::context::Context;
 use hyper::{Body, Method, Request, Response};
 
-use crate::scan::{Error, ScanDeleter, ScanStarter, ScanStopper};
+use crate::scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper};
 /// The supported paths of scannerd
 enum KnownPaths {
     /// /scans/{id}
@@ -68,59 +68,31 @@ impl Display for KnownPaths {
     }
 }
 
-/// Is used to call a blocking function and return a response.
-///
-/// This is necessary as the ospd library is blocking and when blocking calls
-/// are made in a tokio the complete thread will be blocked.
-///
-/// To give tokio the chance to handle the blocking call appropriately it is
-/// wrapped within a tokio::task::spawn_blocking call.
-///
-/// If the thread panics a 500 response is returned.
-async fn response_blocking<F>(f: F) -> Result<Response<Body>, Error>
-where
-    F: FnOnce() -> Result<Response<Body>, Error> + std::marker::Send + 'static,
-{
-    Ok(match tokio::task::spawn_blocking(f).await {
-        Ok(Ok(r)) => r,
-        Ok(Err(Error::Poisoned)) => quit_on_poison(),
-        Ok(Err(e)) => {
-            tracing::warn!("unhandled error: {:?} returning 500", e);
-            hyper::Response::builder()
-                .status(hyper::StatusCode::INTERNAL_SERVER_ERROR)
-                .body(hyper::Body::empty())
-                .unwrap()
-        }
-        Err(e) => {
-            tracing::warn!("panic {:?}, returning 500", e);
-            hyper::Response::builder()
-                .status(hyper::StatusCode::INTERNAL_SERVER_ERROR)
-                .body(hyper::Body::empty())
-                .unwrap()
-        }
-    })
-}
-
 /// Is used to handle all incomng requests.
 ///
 /// First it will be checked if a known path is requested and if the method is supported.
 /// Than corresponding functions will be called to handle the request.
-pub async fn entrypoint<'a, S>(
+pub async fn entrypoint<'a, S, DB>(
     req: Request<Body>,
-    ctx: Arc<Context<S>>,
+    ctx: Arc<Context<S, DB>>,
 ) -> Result<Response<Body>, Error>
 where
     S: ScanStarter
         + ScanStopper
         + ScanDeleter
+        + scan::ScanResultFetcher
         + std::marker::Send
         + 'static
-        + std::marker::Sync
-        + std::fmt::Debug,
+        + std::marker::Sync,
+    DB: crate::storage::Storage + std::marker::Send + 'static + std::marker::Sync,
 {
     use KnownPaths::*;
     let kp = KnownPaths::from_path(req.uri().path());
     tracing::debug!("{} {}", req.method(), kp);
+    // on head requests we just return an empty response without checking the api key
+    if req.method() == Method::HEAD {
+        return Ok(ctx.response.empty(hyper::StatusCode::OK));
+    }
     if let Some(key) = ctx.api_key.as_ref() {
         match req.headers().get("x-api-key") {
             Some(v) if v == key => {}
@@ -136,159 +108,95 @@ where
     }
 
     match (req.method(), kp) {
-        (&Method::HEAD, _) => Ok(ctx.response.empty(hyper::StatusCode::OK)),
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
-                    response_blocking(move || {
+                    if scan.scan_id.is_none() {
                         scan.scan_id = Some(uuid::Uuid::new_v4().to_string());
-                        let mut scans = ctx.scans.write()?;
-                        let id = scan.scan_id.clone().unwrap_or_default();
-
-                        let resp = ctx.response.created(&id);
-                        scans.insert(id.clone(), crate::scan::Progress::from(scan));
-                        tracing::debug!("Scan with ID {} created", id);
-                        Ok(resp)
-                    })
-                    .await
+                    }
+                    let id = scan.scan_id.clone().unwrap_or_default();
+                    let resp = ctx.response.created(&id);
+                    ctx.db.insert_scan(scan).await?;
+                    tracing::debug!("Scan with ID {} created", id);
+                    Ok(resp)
                 }
                 Err(resp) => Ok(resp),
             }
         }
         (&Method::POST, Scans(Some(id))) => {
-            match crate::request::json_request::<models::ScanAction>(&ctx.response, req).await {
-                Ok(action) => {
-                    response_blocking(move || {
-                        let mut scans = ctx.scans.write()?;
-                        match (action.action, scans.get_mut(&id)) {
-                            (models::Action::Start, Some(progress))
-                                if progress.status.is_running() =>
-                            {
-                                use models::Phase::*;
-                                let expected = &[Stored, Stopped, Failed, Succeeded];
-                                Ok(ctx.response.not_accepted(&progress.status.status, expected))
-                            }
-                            (models::Action::Start, Some(progress)) => {
-                                tracing::debug!(
-                                    "{}: {}",
-                                    progress.scan.scan_id.as_ref().unwrap_or(&"".to_string()),
-                                    action.action,
-                                );
-
-                                match ctx.scanner.start_scan(progress) {
-                                    Ok(()) => {
-                                        progress.status.status = models::Phase::Requested;
-                                        tracing::debug!(
-                                            "Scan with ID {} started",
-                                            progress
-                                                .scan
-                                                .scan_id
-                                                .as_ref()
-                                                .unwrap_or(&"".to_string())
-                                        );
-                                        Ok(ctx.response.no_content())
-                                    }
-                                    // TODO we need to parse the ospd response for status code
-                                    Err(e) => {
-                                        tracing::debug!(
-                                            "Unable to start Scan with ID {}",
-                                            progress
-                                                .scan
-                                                .scan_id
-                                                .as_ref()
-                                                .unwrap_or(&"".to_string())
-                                        );
-                                        match e {
-                                            Error::SocketDoesNotExist(path) => {
-                                                Ok(ctx.response.service_unavailable(
-                                                    "OSP",
-                                                    format!(
-                                                        "socket {} does not exist",
-                                                        path.display()
-                                                    )
-                                                    .as_str(),
-                                                ))
-                                            }
-                                            _ => Ok(ctx.response.internal_server_error(&e)),
-                                        }
-                                    }
-                                }
-                            }
-                            (models::Action::Stop, Some(progress)) => {
-                                tracing::debug!(
-                                    "{}: {}",
-                                    progress.scan.scan_id.as_ref().unwrap_or(&"".to_string()),
-                                    action.action,
-                                );
-                                match ctx.scanner.stop_scan(progress) {
-                                    Ok(()) => Ok(ctx.response.no_content()),
-                                    // TODO we need to parse the ospd response for status code
+            match crate::request::json_request::<models::ScanAction>(&ctx.response, req)
+                .await
+                .map(|a| a.action)
+            {
+                Ok(models::Action::Start) => {
+                    let (scan, mut status) = ctx.db.get_decrypted_scan(&id).await?;
+                    if status.is_running() {
+                        use models::Phase::*;
+                        let expected = &[Stored, Stopped, Failed, Succeeded];
+                        Ok(ctx.response.not_accepted(&status.status, expected))
+                    } else {
+                        match ctx.scanner.start_scan(scan).await {
+                            Ok(_) => {
+                                status.status = models::Phase::Requested;
+                                match ctx.db.update_status(&id, status).await {
+                                    Ok(_) => Ok(ctx.response.no_content()),
                                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                                 }
                             }
-                            (_, None) => Ok(ctx.response.not_found("scans", &id)),
+                            Err(e) => {
+                                tracing::warn!("Scan with ID {} failed to start: {}", id, e);
+                                Ok(ctx.response.internal_server_error(&e))
+                            }
                         }
-                    })
-                    .await
+                    }
                 }
+                Ok(models::Action::Stop) => match ctx.scanner.stop_scan(id).await {
+                    Ok(_) => Ok(ctx.response.no_content()),
+                    Err(e) => Ok(ctx.response.internal_server_error(&e)),
+                },
                 Err(resp) => Ok(resp),
             }
         }
         (&Method::GET, Scans(None)) => {
             if ctx.enable_get_scans {
-                response_blocking(move || {
-                    let scans = ctx.scans.read()?;
-                    Ok(ctx.response.ok(&scans.keys().collect::<Vec<_>>()))
-                })
-                .await
+                match ctx.db.get_scans().await {
+                    Ok(scans) => Ok(ctx.response.ok(&scans
+                        .into_iter()
+                        .map(|s| s.0.scan_id.unwrap_or_default())
+                        .collect::<Vec<_>>())),
+                    Err(e) => Ok(ctx.response.internal_server_error(&e)),
+                }
             } else {
                 Ok(ctx.response.not_found("scans", "all"))
             }
         }
-        (&Method::GET, Scans(Some(id))) => {
-            response_blocking(move || {
-                let scans = ctx.scans.read()?;
-                match scans.get(&id) {
-                    Some(prgrs) => Ok(ctx.response.ok(&prgrs.scan)),
-                    None => Ok(ctx.response.not_found("scans", &id)),
+        (&Method::GET, Scans(Some(id))) => match ctx.db.get_scan(&id).await {
+            Ok((scan, _)) => Ok(ctx.response.ok(&scan)),
+            Err(crate::storage::Error::NotFound) => Ok(ctx.response.not_found("scans", &id)),
+            Err(e) => Ok(ctx.response.internal_server_error(&e)),
+        },
+        (&Method::GET, ScanStatus(id)) => match ctx.db.get_scan(&id).await {
+            Ok((_, status)) => Ok(ctx.response.ok(&status)),
+            Err(crate::storage::Error::NotFound) => Ok(ctx.response.not_found("scans/status", &id)),
+            Err(e) => Ok(ctx.response.internal_server_error(&e)),
+        },
+        (&Method::DELETE, Scans(Some(id))) => match ctx.db.remove_scan(&id).await? {
+            Some((_, status)) => {
+                if status.is_running() {
+                    ctx.scanner.stop_scan(id.clone()).await?;
                 }
-            })
-            .await
-        }
-        (&Method::GET, ScanStatus(id)) => {
-            response_blocking(move || {
-                let scans = ctx.scans.read()?;
-                match scans.get(&id) {
-                    Some(prgrs) => Ok(ctx.response.ok(&prgrs.status)),
-                    None => Ok(ctx.response.not_found("scans/status", &id)),
-                }
-            })
-            .await
-        }
-        (&Method::DELETE, Scans(Some(id))) => {
-            response_blocking(move || {
-                let mut scans = ctx.scans.write()?;
-                match scans.remove(&id) {
-                    Some(s) => {
-                        if s.status.is_running() {
-                            ctx.scanner.stop_scan(&s)?;
-                        }
-                        ctx.scanner.delete_scan(&s)?;
-                        Ok(ctx.response.no_content())
-                    }
-                    None => Ok(ctx.response.not_found("scans", &id)),
-                }
-            })
-            .await
-        }
-        (&Method::GET, ScanResults(id, _rid)) => {
-            let scans = ctx.scans.read()?.clone();
-            let res = match scans.get(&id) {
-                Some(prgss) => &prgss.results,
-                None => return Ok(ctx.response.not_found("scans", &id)),
-            };
-            Ok(ctx.response.ok_stream(res.to_vec()).await)
-        }
+                ctx.scanner.delete_scan(id).await?;
+                Ok(ctx.response.no_content())
+            }
+            None => Ok(ctx.response.not_found("scans", &id)),
+        },
+        (&Method::GET, ScanResults(id, _rid)) => match ctx.db.get_results(&id, None, None).await {
+            Ok(results) => Ok(ctx.response.ok(&results)),
+            Err(crate::storage::Error::NotFound) => {
+                Ok(ctx.response.not_found("scans/results", &id))
+            }
+            Err(e) => Ok(ctx.response.internal_server_error(&e)),
+        },
 
         (&Method::GET, Vts) => {
             let (_, oids) = ctx.oids.read()?.clone();

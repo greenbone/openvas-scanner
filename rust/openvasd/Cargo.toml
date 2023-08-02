@@ -27,5 +27,12 @@ async-trait = "0.1.68"
 clap = { version = "4.3.0", features = ["derive", "env"] }
 toml = "0.7.4"
 futures = "0.3.28"
+chacha20 = "0.9.1"
+rand = "0.8.5"
+pbkdf2 = { version = "0.12.2", features = ["password-hash"] }
+sha2 = "0.10.7"
+generic-array = "0.14.7"
+async-traits = "0.0.0"
+base64 = "0.21.2"
 
 [dev-dependencies]

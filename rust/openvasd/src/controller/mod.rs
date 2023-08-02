@@ -49,41 +49,54 @@ mod tests {
     use super::entry::entrypoint;
     use crate::{
         controller::{ContextBuilder, NoOpScanner},
-        scan::Progress,
     };
+    use async_trait::async_trait;
     use hyper::{Body, Method, Request, Response};
     use std::sync::{Arc, RwLock};
 
-    use crate::scan::{ScanDeleter, ScanStarter, ScanStopper};
+    
 
     #[derive(Debug, Clone)]
     struct FakeScanner {
         count: Arc<RwLock<usize>>,
     }
 
+    #[async_trait]
     impl crate::scan::ScanStarter for FakeScanner {
-        fn start_scan(&self, _scan: &Progress) -> Result<(), crate::scan::Error> {
+        async fn start_scan(&self, _scan: models::Scan) -> Result<(), crate::scan::Error> {
             Ok(())
         }
     }
 
+    #[async_trait]
     impl crate::scan::ScanStopper for FakeScanner {
-        fn stop_scan(&self, _scan: &Progress) -> Result<(), crate::scan::Error> {
+        async fn stop_scan<I>(&self, _id: I) -> Result<(), crate::scan::Error>
+        where
+            I: AsRef<str> + Send,
+        {
             Ok(())
         }
     }
 
+    #[async_trait]
     impl crate::scan::ScanDeleter for FakeScanner {
-        fn delete_scan(&self, _scan: &Progress) -> Result<(), crate::scan::Error> {
+        async fn delete_scan<I>(&self, _id: I) -> Result<(), crate::scan::Error>
+        where
+            I: AsRef<str> + Send,
+        {
             Ok(())
         }
     }
 
+    #[async_trait]
     impl crate::scan::ScanResultFetcher for FakeScanner {
-        fn fetch_results(
+        async fn fetch_results<I>(
             &self,
-            prgrs: &crate::scan::Progress,
-        ) -> Result<crate::scan::FetchResult, crate::scan::Error> {
+            _id: I,
+        ) -> Result<crate::scan::FetchResult, crate::scan::Error>
+        where
+            I: AsRef<str> + Send,
+        {
             let mut count = self.count.write().unwrap();
             match *count {
                 0 => {
@@ -102,7 +115,7 @@ mod tests {
                     let mut results = vec![];
                     for i in 0..*count {
                         results.push(models::Result {
-                            id: prgrs.results.len() + i,
+                            id: i,
                             message: Some(uuid::Uuid::new_v4().to_string()),
                             ..Default::default()
                         });
@@ -133,15 +146,10 @@ mod tests {
         assert_eq!(resp.headers().get("api-version").unwrap(), "1");
         assert_eq!(resp.headers().get("authentication").unwrap(), "");
     }
-    async fn get_scan_status<S>(id: &str, ctx: Arc<Context<S>>) -> Response<Body>
+    async fn get_scan_status<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> Response<Body>
     where
-        S: ScanStarter
-            + ScanStopper
-            + ScanDeleter
-            + std::marker::Send
-            + 'static
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let req = Request::builder()
             .uri(format!("/scans/{id}/status", id = id))
@@ -151,15 +159,10 @@ mod tests {
         entrypoint(req, Arc::clone(&ctx)).await.unwrap()
     }
 
-    async fn get_scan<S>(id: &str, ctx: Arc<Context<S>>) -> Response<Body>
+    async fn get_scan<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> Response<Body>
     where
-        S: ScanStarter
-            + ScanStopper
-            + ScanDeleter
-            + std::marker::Send
-            + 'static
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let req = Request::builder()
             .uri(format!("/scans/{id}", id = id))
@@ -169,15 +172,10 @@ mod tests {
         entrypoint(req, Arc::clone(&ctx)).await.unwrap()
     }
 
-    async fn post_scan<S>(scan: &models::Scan, ctx: Arc<Context<S>>) -> Response<Body>
+    async fn post_scan<S, DB>(scan: &models::Scan, ctx: Arc<Context<S, DB>>) -> Response<Body>
     where
-        S: ScanStarter
-            + ScanStopper
-            + ScanDeleter
-            + std::marker::Send
-            + 'static
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let req = Request::builder()
             .uri("/scans")
@@ -187,15 +185,10 @@ mod tests {
         entrypoint(req, Arc::clone(&ctx)).await.unwrap()
     }
 
-    async fn start_scan<S>(id: &str, ctx: Arc<Context<S>>) -> Response<Body>
+    async fn start_scan<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> Response<Body>
     where
-        S: ScanStarter
-            + ScanStopper
-            + ScanDeleter
-            + std::marker::Send
-            + 'static
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let action = &models::ScanAction {
             action: models::Action::Start,
@@ -208,15 +201,10 @@ mod tests {
         entrypoint(req, Arc::clone(&ctx)).await.unwrap()
     }
 
-    async fn post_scan_id<S>(scan: &models::Scan, ctx: Arc<Context<S>>) -> String
+    async fn post_scan_id<S, DB>(scan: &models::Scan, ctx: Arc<Context<S, DB>>) -> String
     where
-        S: ScanStarter
-            + ScanStopper
-            + ScanDeleter
-            + std::marker::Send
-            + 'static
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let resp = post_scan(scan, Arc::clone(&ctx)).await;
         let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();

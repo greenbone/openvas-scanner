@@ -20,44 +20,44 @@ pub struct Result {
     pub r_type: ResultType,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
     /// IP address
     pub ip_address: Option<String>,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
     /// DNS
     pub hostname: Option<String>,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
     /// ID of the VT, which generated the result
     pub oid: Option<String>,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
     /// Port
     pub port: Option<i16>,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
     /// Protocol the port corresponds to
     pub protocol: Option<Protocol>,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
     /// Additional information
     pub message: Option<String>,
 
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "HashMap::is_empty")
+        serde(skip_serializing_if = "HashMap::is_empty", default)
     )]
     pub details: HashMap<String, String>,
 }

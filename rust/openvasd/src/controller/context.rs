@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{collections::HashMap, path::PathBuf, sync::RwLock};
+use std::{path::PathBuf, sync::RwLock};
 
+use async_trait::async_trait;
 use storage::DefaultDispatcher;
 
 use crate::{
@@ -52,8 +53,9 @@ impl From<(&str, std::time::Duration)> for FeedContext {
 
 #[derive(Debug, Clone, Default)]
 /// Context builder is used to build the context of the application.
-pub struct ContextBuilder<S, T> {
+pub struct ContextBuilder<S, DB, T> {
     scanner: T,
+    storage: DB,
     result_config: Option<ResultContext>,
     feed_config: Option<FeedContext>,
     api_key: Option<String>,
@@ -61,12 +63,12 @@ pub struct ContextBuilder<S, T> {
     marker: std::marker::PhantomData<S>,
     response: response::Response,
 }
-
-impl<S> ContextBuilder<S, NoScanner> {
+impl<S> ContextBuilder<S, crate::storage::InMemoryStorage<crate::crypt::ChaCha20Crypt>, NoScanner> {
     /// Creates a new context builder.
     pub fn new() -> Self {
         Self {
             scanner: NoScanner,
+            storage: crate::storage::InMemoryStorage::default(),
             result_config: None,
             feed_config: None,
             api_key: None,
@@ -77,7 +79,7 @@ impl<S> ContextBuilder<S, NoScanner> {
     }
 }
 
-impl<S, T> ContextBuilder<S, T> {
+impl<S, DB, T> ContextBuilder<S, DB, T> {
     /// Sets the result config.
     pub fn result_config(mut self, config: impl Into<ResultContext>) -> Self {
         self.result_config = Some(config.into());
@@ -110,14 +112,21 @@ impl<S, T> ContextBuilder<S, T> {
         self.enable_get_scans = enable;
         self
     }
+
+    /// Sets the storage.
+    #[allow(dead_code)]
+    pub fn storage(mut self, storage: DB) -> Self {
+        self.storage = storage;
+        self
+    }
 }
 
-impl<S> ContextBuilder<S, NoScanner>
+impl<S, DB> ContextBuilder<S, DB, NoScanner>
 where
     S: Clone,
 {
     /// Sets the scanner. This is required.
-    pub fn scanner(self, scanner: S) -> ContextBuilder<S, Scanner<S>>
+    pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where
         S: super::Scanner + 'static + std::marker::Send + std::marker::Sync + std::fmt::Debug,
     {
@@ -129,9 +138,11 @@ where
             scanner: _,
             marker: _,
             response,
+            storage,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
+            storage,
             result_config,
             feed_config,
             marker: std::marker::PhantomData,
@@ -142,12 +153,16 @@ where
     }
 }
 
-impl<S> ContextBuilder<S, Scanner<S>> {
-    pub fn build(self) -> Context<S> {
+impl<S, DB> ContextBuilder<S, DB, Scanner<S>>
+where
+    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync + std::fmt::Debug,
+    DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync + std::fmt::Debug,
+{
+    pub fn build(self) -> Context<S, DB> {
         Context {
             scanner: self.scanner.0,
             response: self.response,
-            scans: Default::default(),
+            db: self.storage,
             oids: Default::default(),
             result_config: self.result_config,
             feed_config: self.feed_config,
@@ -160,7 +175,11 @@ impl<S> ContextBuilder<S, Scanner<S>> {
 
 #[derive(Debug)]
 /// The context of the application
-pub struct Context<S> {
+pub struct Context<S, DB>
+where
+    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+    DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
+{
     /// The scanner that is used to start, stop and fetch results of scans.
     pub scanner: S,
     /// Creates responses
@@ -169,7 +188,7 @@ pub struct Context<S> {
     ///
     /// It is locked to allow concurrent access, usually the results are updated
     /// with a background task and appended to the progress of the scan.
-    pub scans: RwLock<HashMap<String, crate::scan::Progress>>,
+    pub db: DB,
     /// The OIDs thate can be handled by this sensor.
     pub oids: RwLock<(String, Vec<String>)>,
     /// Configuration for result fetching
@@ -190,31 +209,46 @@ pub struct Context<S> {
 /// A scanner without any side effects. Used for testing.
 pub struct NoOpScanner;
 
+#[async_trait]
 impl ScanStarter for NoOpScanner {
-    fn start_scan<'a>(&'a self, _: &'a crate::scan::Progress) -> Result<(), Error> {
+    async fn start_scan(&self, _: models::Scan) -> Result<(), Error> {
         Ok(())
     }
 }
 
+#[async_trait]
 impl ScanStopper for NoOpScanner {
-    fn stop_scan(&self, _: &crate::scan::Progress) -> Result<(), Error> {
+    async fn stop_scan<I>(&self, _: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send,
+    {
         Ok(())
     }
 }
 
+#[async_trait]
 impl ScanDeleter for NoOpScanner {
-    fn delete_scan(&self, _: &crate::scan::Progress) -> Result<(), Error> {
+    async fn delete_scan<I>(&self, _: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send,
+    {
         Ok(())
     }
 }
 
+#[async_trait]
 impl ScanResultFetcher for NoOpScanner {
-    fn fetch_results(&self, _: &crate::scan::Progress) -> Result<crate::scan::FetchResult, Error> {
+    async fn fetch_results<I>(&self, _: I) -> Result<crate::scan::FetchResult, Error>
+    where
+        I: AsRef<str> + Send,
+    {
         Ok(Default::default())
     }
 }
 
-impl Default for Context<NoOpScanner> {
+impl Default
+    for Context<NoOpScanner, crate::storage::InMemoryStorage<crate::crypt::ChaCha20Crypt>>
+{
     fn default() -> Self {
         ContextBuilder::new().scanner(Default::default()).build()
     }
