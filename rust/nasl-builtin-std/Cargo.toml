@@ -15,8 +15,10 @@ nasl-builtin-description = {path = "../nasl-builtin-description"}
 nasl-builtin-misc = {path = "../nasl-builtin-misc"}
 storage = {path = "../storage"}
 nasl-syntax = {path = "../nasl-syntax"}
+
 # depend on c libraries and are considered unstable for now
 nasl-builtin-raw-ip = {path = "../nasl-builtin-raw-ip", optional = true}
+
 # has license issues on debian:stable and is therefore disabled
 nasl-builtin-ssh = {path = "../nasl-builtin-ssh", optional = true}
 
@@ -24,4 +26,5 @@ nasl-builtin-ssh = {path = "../nasl-builtin-ssh", optional = true}
 nasl-interpreter = {path = "../nasl-interpreter"}
 
 [features]
-experimental = ["nasl-builtin-raw-ip", "nasl-builtin-ssh"]
+nasl-c-lib = ["nasl-builtin-cryptographic/nasl-c-lib"]
+experimental = ["nasl-builtin-raw-ip", "nasl-builtin-ssh", "nasl-c-lib"]

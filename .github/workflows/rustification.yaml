@@ -22,7 +22,7 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt-get install -y libpcap-dev
+      - run: sudo apt update && sudo apt-get install -y libpcap-dev libgcrypt20-dev
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }} || rustup default ${{ matrix.toolchain }}
       - run: cargo test
   clippy:
