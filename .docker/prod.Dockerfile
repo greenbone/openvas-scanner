@@ -29,7 +29,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
   net-tools \
   # for openvas-smb support
-  python3-impacket \
   libgnutls30 \
   libgssapi3-heimdal \
   libkrb5-26-heimdal \
