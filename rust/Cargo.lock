@@ -1278,10 +1278,15 @@ dependencies = [
  "configparser",
  "feed",
  "json-storage",
+ "models",
  "nasl-interpreter",
  "nasl-syntax",
  "redis-storage",
+ "scanconfig",
+ "serde_json",
  "storage",
+ "tracing",
+ "tracing-subscriber",
  "walkdir",
 ]
 
@@ -1865,6 +1870,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "scanconfig"
+version = "0.1.0"
+dependencies = [
+ "models",
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "storage",
+ "tracing",
+ "urlencoding",
+]
+
+[[package]]
 name = "schannel"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2045,6 +2063,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "time",
+ "tracing",
 ]
 
 [[package]]
