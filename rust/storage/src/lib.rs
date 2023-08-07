@@ -17,7 +17,7 @@ use std::{
     sync::{Arc, Mutex, PoisonError},
 };
 
-use nvt::{NVTField, NVTKey};
+use nvt::NVTField;
 use types::Primitive;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -122,7 +122,7 @@ impl Display for StorageError {
 }
 
 /// Defines the Dispatcher interface to distribute fields
-pub trait Dispatcher<K> {
+pub trait Dispatcher<K>: Sync + Send {
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
@@ -145,6 +145,19 @@ pub trait Dispatcher<K> {
                 }
             }
         }
+    }
+}
+
+impl<K, T> Dispatcher<K> for Arc<T>
+where
+    T: Dispatcher<K>,
+{
+    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
+        self.as_ref().dispatch(key, scope)
+    }
+
+    fn on_exit(&self) -> Result<(), StorageError> {
+        self.as_ref().on_exit()
     }
 }
 
@@ -207,7 +220,7 @@ impl<K> DefaultDispatcher<K> {
 
 impl<K> Dispatcher<K> for DefaultDispatcher<K>
 where
-    K: AsRef<str> + Display + Default + From<String>,
+    K: AsRef<str> + Display + Default + From<String> + Send + Sync,
 {
     fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.data).lock()?;
@@ -215,6 +228,7 @@ where
             Some((_, v)) => v.push(scope),
             None => data.push((key.as_ref().to_owned(), vec![scope])),
         }
+        tracing::trace!("Keys: {}", data.len());
         Ok(())
     }
 
@@ -229,78 +243,45 @@ where
 
 impl<K> Retriever<K> for DefaultDispatcher<K>
 where
-    K: AsRef<str> + Display + Default,
+    K: AsRef<str> + Display + Default + From<String>,
 {
     fn retrieve(&self, key: &K, scope: &Retrieve) -> Result<Vec<Field>, StorageError> {
         let data = Arc::as_ref(&self.data).lock()?;
         let skey = key.to_string();
+        let result = data
+            .iter()
+            .filter(|(k, _)| k == &skey)
+            .flat_map(|(_, v)| v.clone())
+            .filter(|v| scope.for_field(v))
+            .collect::<Vec<Field>>();
+        Ok(result)
+    }
 
-        match data.iter().find(|(k, _)| k == &skey) {
-            Some((_, v)) => match scope {
-                Retrieve::NVT(None) => Ok(v
-                    .clone()
-                    .into_iter()
-                    .filter(|x| matches!(x, Field::NVT(_)))
-                    .collect()),
-                Retrieve::NVT(Some(nkey)) => {
-                    let results: Vec<Field> = v
-                        .clone()
-                        .into_iter()
-                        .filter(|v| match nkey {
-                            NVTKey::Oid => matches!(v, Field::NVT(NVTField::Oid(_))),
-                            NVTKey::FileName => matches!(v, Field::NVT(NVTField::FileName(_))),
-                            NVTKey::Version => matches!(v, Field::NVT(NVTField::Version(_))),
-                            NVTKey::Name => matches!(v, Field::NVT(NVTField::Name(_))),
-                            NVTKey::Tag => matches!(v, Field::NVT(NVTField::Tag(_, _))),
-                            NVTKey::Dependencies => {
-                                matches!(v, Field::NVT(NVTField::Dependencies(_)))
-                            }
-                            NVTKey::RequiredKeys => {
-                                matches!(v, Field::NVT(NVTField::RequiredKeys(_)))
-                            }
-                            NVTKey::MandatoryKeys => {
-                                matches!(v, Field::NVT(NVTField::MandatoryKeys(_)))
-                            }
-                            NVTKey::ExcludedKeys => {
-                                matches!(v, Field::NVT(NVTField::ExcludedKeys(_)))
-                            }
-                            NVTKey::RequiredPorts => {
-                                matches!(v, Field::NVT(NVTField::RequiredPorts(_)))
-                            }
-                            NVTKey::RequiredUdpPorts => {
-                                matches!(v, Field::NVT(NVTField::RequiredUdpPorts(_)))
-                            }
-                            NVTKey::Preference => {
-                                matches!(v, Field::NVT(NVTField::Preference(_)))
-                            }
-                            NVTKey::Reference => matches!(v, Field::NVT(NVTField::Reference(_))),
-                            NVTKey::Category => matches!(v, Field::NVT(NVTField::Category(_))),
-                            NVTKey::Family => matches!(v, Field::NVT(NVTField::Family(_))),
-                            NVTKey::NoOp => matches!(v, Field::NVT(NVTField::NoOp)),
-                        })
-                        .collect();
-                    Ok(results)
-                }
-                Retrieve::KB(s) => Ok(v
-                    .clone()
-                    .into_iter()
-                    .filter(|x| match x {
-                        Field::NVT(_) => false,
-                        Field::KB(Kb {
-                            key,
-                            value: _,
-                            expire: _,
-                        }) => key == s,
-                    })
-                    .collect()),
-            },
-            None => Ok(vec![]),
-        }
+    fn retrieve_by_field(
+        &self,
+        field: &Field,
+        scope: &Retrieve,
+    ) -> Result<Vec<(K, Vec<Field>)>, StorageError> {
+        let data = Arc::as_ref(&self.data).lock()?;
+        tracing::debug!("Entries: {:?}", data.len());
+        let result = data
+            .iter()
+            .filter(|(_, v)| v.contains(field))
+            .map(|(k, v)| {
+                (
+                    k.clone().into(),
+                    v.iter().filter(|v| scope.for_field(v)).cloned().collect(),
+                )
+            })
+            .collect::<Vec<(K, Vec<Field>)>>();
+        Ok(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::nvt::NVTKey;
+
     use super::Field::*;
     use super::NVTField::*;
     use super::*;
@@ -321,6 +302,10 @@ mod tests {
         assert_eq!(
             storage.retrieve(&key, &Retrieve::NVT(Some(NVTKey::Family)))?,
             vec![]
+        );
+        assert_eq!(
+            storage.retrieve_by_field(&NVT(Oid("moep".to_owned())), &Retrieve::NVT(None))?,
+            vec![(key.clone(), vec![NVT(Oid("moep".to_owned()))])]
         );
         Ok(())
     }

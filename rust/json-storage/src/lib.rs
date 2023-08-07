@@ -147,6 +147,15 @@ where
             }
         })
     }
+
+    fn retrieve_by_field(
+        &self,
+        _: &storage::Field,
+        _: &storage::Retrieve,
+    ) -> Result<Vec<(K, Vec<storage::Field>)>, StorageError> {
+        // currently not supported
+        Ok(vec![])
+    }
 }
 
 #[cfg(test)]

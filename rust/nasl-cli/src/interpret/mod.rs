@@ -71,7 +71,7 @@ impl Run<String> {
         }
     }
 
-    fn run(&self, script: &str, verbose: bool) -> Result<(), CliErrorKind> {
+    fn run(&self, script: &str) -> Result<(), CliErrorKind> {
         let logger = DefaultLogger::default();
         let context = self.context_builder.build();
         let mut register = RegisterBuilder::build();
@@ -80,9 +80,7 @@ impl Run<String> {
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
                 Ok(stmt) => {
-                    if verbose {
-                        eprintln!("> {stmt}");
-                    }
+                    tracing::debug!("> {stmt}");
                     let r = match interpreter.retry_resolve(&stmt, 5) {
                         Ok(x) => x,
                         Err(e) => match &e.kind {
@@ -101,9 +99,7 @@ impl Run<String> {
                     match r {
                         NaslValue::Exit(rc) => std::process::exit(rc as i32),
                         _ => {
-                            if verbose {
-                                eprintln!("=> {r:?}");
-                            }
+                            tracing::debug!("=> {r:?}", r = r);
                         }
                     }
                 }
@@ -141,10 +137,9 @@ pub fn run(
     feed: Option<PathBuf>,
     script: String,
     target: Option<String>,
-    verbose: bool,
 ) -> Result<(), CliError> {
     let runner = Run::new(db, feed, target);
-    runner.run(&script, verbose).map_err(|e| CliError {
+    runner.run(&script).map_err(|e| CliError {
         filename: script,
         kind: e,
     })
