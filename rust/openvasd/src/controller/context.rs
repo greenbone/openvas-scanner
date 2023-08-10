@@ -153,11 +153,7 @@ where
     }
 }
 
-impl<S, DB> ContextBuilder<S, DB, Scanner<S>>
-where
-    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync + std::fmt::Debug,
-    DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync + std::fmt::Debug,
-{
+impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
     pub fn build(self) -> Context<S, DB> {
         Context {
             scanner: self.scanner.0,
@@ -175,11 +171,7 @@ where
 
 #[derive(Debug)]
 /// The context of the application
-pub struct Context<S, DB>
-where
-    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
-    DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
-{
+pub struct Context<S, DB> {
     /// The scanner that is used to start, stop and fetch results of scans.
     pub scanner: S,
     /// Creates responses

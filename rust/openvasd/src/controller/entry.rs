@@ -87,12 +87,13 @@ where
     DB: crate::storage::Storage + std::marker::Send + 'static + std::marker::Sync,
 {
     use KnownPaths::*;
-    let kp = KnownPaths::from_path(req.uri().path());
-    tracing::debug!("{} {}", req.method(), kp);
     // on head requests we just return an empty response without checking the api key
+
     if req.method() == Method::HEAD {
         return Ok(ctx.response.empty(hyper::StatusCode::OK));
     }
+    let kp = KnownPaths::from_path(req.uri().path());
+    tracing::debug!("{} {}:{:?}", req.method(), kp, req.uri().query());
     if let Some(key) = ctx.api_key.as_ref() {
         match req.headers().get("x-api-key") {
             Some(v) if v == key => {}
@@ -106,6 +107,7 @@ where
             }
         }
     }
+    tracing::debug!("{} {}", req.method(), kp);
 
     match (req.method(), kp) {
         (&Method::POST, Scans(None)) => {
@@ -190,17 +192,43 @@ where
             }
             None => Ok(ctx.response.not_found("scans", &id)),
         },
-        (&Method::GET, ScanResults(id, _rid)) => match ctx.db.get_results(&id, None, None).await {
-            Ok(results) => Ok(ctx.response.ok(&results)),
-            Err(crate::storage::Error::NotFound) => {
-                Ok(ctx.response.not_found("scans/results", &id))
+        (&Method::GET, ScanResults(id, rid)) => {
+            let (begin, end) = {
+                if let Some(id) = rid {
+                    match id.parse::<usize>() {
+                        Ok(id) => (Some(id), Some(id + 1)),
+                        Err(_) => (None, None),
+                    }
+                } else {
+                    let query = req.uri().query().unwrap_or_default();
+                    let mut parts = query.split('=');
+                    if parts.next() == Some("range") {
+                        let mut range = parts.next().unwrap_or_default().split('-');
+                        let begin = range.next().unwrap_or_default().parse::<usize>();
+                        let end = range.next().unwrap_or_default().parse::<usize>();
+                        match (begin, end) {
+                            (Ok(begin), Ok(end)) => (Some(begin), Some(end + 1)),
+                            (Ok(begin), Err(_)) => (Some(begin), None),
+                            _ => (None, None),
+                        }
+                    } else {
+                        (None, None)
+                    }
+                }
+            };
+
+            match ctx.db.get_results(&id, begin, end).await {
+                Ok(results) => Ok(ctx.response.ok_byte_stream(results).await),
+                Err(crate::storage::Error::NotFound) => {
+                    Ok(ctx.response.not_found("scans/results", &id))
+                }
+                Err(e) => Ok(ctx.response.internal_server_error(&e)),
             }
-            Err(e) => Ok(ctx.response.internal_server_error(&e)),
-        },
+        }
 
         (&Method::GET, Vts) => {
             let (_, oids) = ctx.oids.read()?.clone();
-            Ok(ctx.response.ok_stream(oids).await)
+            Ok(ctx.response.ok_json_stream(oids).await)
         }
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
     }

@@ -201,9 +201,12 @@ where
         let mut scans = self.scans.write().await;
         let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
         progress.status = status;
-        for result in &results {
-            let bytes = serde_json::to_vec(result)?;
-            progress.results.push(self.crypter.encrypt_sync(bytes));
+        let mut len = progress.results.len();
+        for mut result in results {
+            result.id = len;
+            len += 1;
+            let bytes = serde_json::to_vec(&result)?;
+            progress.results.push(self.crypter.encrypt(bytes).await);
         }
         Ok(())
     }
@@ -264,7 +267,8 @@ where
         }
         let mut results = Vec::with_capacity(to - from);
         for result in &progress.results[from..to] {
-            results.push(self.crypter.decrypt_sync(result));
+            let b = self.crypter.decrypt_sync(result);
+            results.push(b);
         }
         Ok(results)
     }
