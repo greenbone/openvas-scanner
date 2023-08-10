@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{convert::Infallible, error::Error};
+use std::{convert::Infallible, error::Error, marker::PhantomData};
 
 use futures::Stream;
 use hyper::body::Bytes;
@@ -26,29 +26,66 @@ impl Default for Response {
     }
 }
 
-#[derive(Debug, Clone)]
-struct JsonArrayStreamer<T> {
-    elements: Vec<T>,
-    first: bool,
+trait Transform<T> {
+    fn transform(t: T) -> String;
 }
 
-impl<T> Unpin for JsonArrayStreamer<T> {}
+#[derive(Debug, Clone)]
+struct JsonTransformer;
 
-impl<T> JsonArrayStreamer<T>
+impl<T> Transform<T> for JsonTransformer
 where
     T: Serialize,
 {
-    fn new(elements: Vec<T>) -> Self {
+    fn transform(t: T) -> String {
+        serde_json::to_string(&t).unwrap()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct U8Streamer;
+
+impl Transform<Vec<u8>> for U8Streamer {
+    fn transform(t: Vec<u8>) -> String {
+        String::from_utf8(t).unwrap()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ArrayStreamer<E, T> {
+    elements: Vec<E>,
+    transform: PhantomData<T>,
+    first: bool,
+}
+
+impl<E, T> Unpin for ArrayStreamer<E, T> {}
+
+impl<E> ArrayStreamer<E, JsonTransformer>
+where
+    E: Serialize,
+{
+    fn json(elements: Vec<E>) -> Self {
         Self {
             elements,
             first: true,
+            transform: PhantomData,
         }
     }
 }
 
-impl<T> Stream for JsonArrayStreamer<T>
+impl ArrayStreamer<Vec<u8>, U8Streamer> {
+    fn u8(elements: Vec<Vec<u8>>) -> Self {
+        Self {
+            elements,
+            first: true,
+            transform: PhantomData,
+        }
+    }
+}
+
+impl<E, T> Stream for ArrayStreamer<E, T>
 where
-    T: Serialize,
+    T: Transform<E>,
 {
     type Item = std::result::Result<String, Infallible>;
 
@@ -66,7 +103,7 @@ where
             } else {
                 match self.elements.pop() {
                     Some(e) => {
-                        let e = serde_json::to_string(&e).unwrap();
+                        let e = T::transform(e);
                         if self.elements.is_empty() {
                             Some(format!("{}]", e))
                         } else {
@@ -108,7 +145,7 @@ impl Response {
     }
 
     #[tracing::instrument]
-    async fn create_stream<S, O, E>(&self, code: hyper::StatusCode, value: S) -> Result
+    pub async fn create_stream<S, O, E>(&self, code: hyper::StatusCode, value: S) -> Result
     where
         S: Stream<Item = std::result::Result<O, E>> + Send + std::fmt::Debug + 'static,
         O: Into<Bytes> + 'static,
@@ -132,11 +169,15 @@ impl Response {
         }
     }
 
-    pub async fn ok_stream<T>(&self, value: Vec<T>) -> Result
+    pub async fn ok_json_stream<T>(&self, value: Vec<T>) -> Result
     where
         T: Serialize + Send + std::fmt::Debug + 'static,
     {
-        let stream = JsonArrayStreamer::new(value);
+        let stream = ArrayStreamer::json(value);
+        self.create_stream(hyper::StatusCode::OK, stream).await
+    }
+    pub async fn ok_byte_stream(&self, value: Vec<Vec<u8>>) -> Result {
+        let stream = ArrayStreamer::u8(value);
         self.create_stream(hyper::StatusCode::OK, stream).await
     }
 

@@ -47,14 +47,10 @@ pub(crate) use make_svc;
 mod tests {
     use super::context::Context;
     use super::entry::entrypoint;
-    use crate::{
-        controller::{ContextBuilder, NoOpScanner},
-    };
+    use crate::controller::{ContextBuilder, NoOpScanner};
     use async_trait::async_trait;
     use hyper::{Body, Method, Request, Response};
     use std::sync::{Arc, RwLock};
-
-    
 
     #[derive(Debug, Clone)]
     struct FakeScanner {
@@ -146,6 +142,7 @@ mod tests {
         assert_eq!(resp.headers().get("api-version").unwrap(), "1");
         assert_eq!(resp.headers().get("authentication").unwrap(), "");
     }
+
     async fn get_scan_status<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> Response<Body>
     where
         S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
@@ -244,6 +241,38 @@ mod tests {
 
     #[tokio::test]
     async fn fetch_results() {
+        async fn get_results<S, DB>(
+            id: &str,
+            ctx: Arc<Context<S, DB>>,
+            idx: Option<usize>,
+            range: Option<(usize, usize)>,
+        ) -> Vec<models::Result>
+        where
+            S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+            DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
+        {
+            let uri = match idx {
+                Some(idx) => format!("/scans/{id}/results/{idx}"),
+                None => {
+                    if let Some((begin, end)) = range {
+                        format!("/scans/{id}/results?range={begin}-{end}")
+                    } else {
+                        format!("/scans/{id}/results")
+                    }
+                }
+            };
+            let req = Request::builder()
+                .uri(uri)
+                .method(Method::GET)
+                .body(Body::empty())
+                .unwrap();
+            let resp = entrypoint(req, Arc::clone(&ctx)).await.unwrap();
+            let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+            let mut resp = serde_json::from_slice::<Vec<models::Result>>(&resp).unwrap();
+            // on serializing the results the order is reversed
+            resp.reverse();
+            resp
+        }
         let scan: models::Scan = models::Scan::default();
         let scanner = FakeScanner {
             count: Arc::new(RwLock::new(0)),
@@ -271,6 +300,22 @@ mod tests {
                 *abort = true;
                 break;
             }
+        }
+        let resp = get_results(&id, Arc::clone(&controller), None, None).await;
+        assert_eq!(resp.len(), 4950);
+        resp.iter().enumerate().for_each(|(i, r)| {
+            assert_eq!(r.id, i);
+        });
+        let resp = get_results(&id, Arc::clone(&controller), Some(0), None).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0].id, 0);
+        let resp = get_results(&id, Arc::clone(&controller), Some(4949), None).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0].id, 4949);
+        let resp = get_results(&id, Arc::clone(&controller), None, Some((4900, 4923))).await;
+        assert_eq!(resp.len(), 24);
+        for (i, r) in resp.iter().enumerate() {
+            assert_eq!(r.id, i + 4900);
         }
     }
 
