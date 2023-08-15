@@ -5,7 +5,7 @@
 use super::parameter::Parameter;
 
 /// A VT to execute during a scan, including its parameters
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -13,10 +13,7 @@ use super::parameter::Parameter;
 pub struct VT {
     /// The ID of the VT to execute
     pub oid: String,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(default, skip_serializing_if = "Vec::is_empty")
-    )]
+    #[cfg_attr(feature = "serde_support", serde(default,))]
     /// The list of parameters for the VT
     pub parameters: Vec<Parameter>,
 }

@@ -116,6 +116,11 @@ where
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
+                    if scan.scan_id.is_some() {
+                        return Ok(ctx
+                            .response
+                            .bad_request("field scan_id is not allowed to be set."));
+                    }
                     let id = uuid::Uuid::new_v4().to_string();
                     let resp = ctx.response.created(&id);
                     scan.scan_id = Some(id.clone());
@@ -166,11 +171,8 @@ where
         }
         (&Method::GET, Scans(None)) => {
             if ctx.enable_get_scans {
-                match ctx.db.get_scans().await {
-                    Ok(scans) => Ok(ctx.response.ok(&scans
-                        .into_iter()
-                        .map(|s| s.0.scan_id.unwrap_or_default())
-                        .collect::<Vec<_>>())),
+                match ctx.db.get_scan_ids().await {
+                    Ok(scans) => Ok(ctx.response.ok(&scans)),
                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                 }
             } else {
@@ -187,15 +189,17 @@ where
             Err(crate::storage::Error::NotFound) => Ok(ctx.response.not_found("scans/status", &id)),
             Err(e) => Ok(ctx.response.internal_server_error(&e)),
         },
-        (&Method::DELETE, Scans(Some(id))) => match ctx.db.remove_scan(&id).await? {
-            Some((_, status)) => {
+        (&Method::DELETE, Scans(Some(id))) => match ctx.db.get_status(&id).await {
+            Ok(status) => {
                 if status.is_running() {
                     ctx.scanner.stop_scan(id.clone()).await?;
                 }
+                ctx.db.remove_scan(&id).await?;
                 ctx.scanner.delete_scan(id).await?;
                 Ok(ctx.response.no_content())
             }
-            None => Ok(ctx.response.not_found("scans", &id)),
+            Err(crate::storage::Error::NotFound) => Ok(ctx.response.not_found("scans", &id)),
+            Err(e) => Err(e.into()),
         },
         (&Method::GET, ScanResults(id, rid)) => {
             let (begin, end) = {
@@ -232,7 +236,8 @@ where
         }
 
         (&Method::GET, Vts) => {
-            let (_, oids) = ctx.oids.read()?.clone();
+            let oids = ctx.db.oids().await?;
+
             Ok(ctx.response.ok_json_stream(oids).await)
         }
         _ => Ok(ctx.response.not_found("path", req.uri().path())),

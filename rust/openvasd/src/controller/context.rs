@@ -63,12 +63,15 @@ pub struct ContextBuilder<S, DB, T> {
     marker: std::marker::PhantomData<S>,
     response: response::Response,
 }
-impl<S> ContextBuilder<S, crate::storage::InMemoryStorage<crate::crypt::ChaCha20Crypt>, NoScanner> {
+
+impl<S>
+    ContextBuilder<S, crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>, NoScanner>
+{
     /// Creates a new context builder.
     pub fn new() -> Self {
         Self {
             scanner: NoScanner,
-            storage: crate::storage::InMemoryStorage::default(),
+            storage: crate::storage::inmemory::Storage::default(),
             result_config: None,
             feed_config: None,
             api_key: None,
@@ -115,9 +118,27 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
 
     /// Sets the storage.
     #[allow(dead_code)]
-    pub fn storage(mut self, storage: DB) -> Self {
-        self.storage = storage;
-        self
+    pub fn storage<NDB>(self, storage: NDB) -> ContextBuilder<S, NDB, T> {
+        let ContextBuilder {
+            scanner,
+            storage: _,
+            result_config,
+            feed_config,
+            api_key,
+            enable_get_scans,
+            marker,
+            response,
+        } = self;
+        ContextBuilder {
+            scanner,
+            storage,
+            result_config,
+            feed_config,
+            api_key,
+            enable_get_scans,
+            marker,
+            response,
+        }
     }
 }
 
@@ -159,7 +180,6 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             scanner: self.scanner.0,
             response: self.response,
             db: self.storage,
-            oids: Default::default(),
             result_config: self.result_config,
             feed_config: self.feed_config,
             abort: Default::default(),
@@ -181,8 +201,6 @@ pub struct Context<S, DB> {
     /// It is locked to allow concurrent access, usually the results are updated
     /// with a background task and appended to the progress of the scan.
     pub db: DB,
-    /// The OIDs thate can be handled by this sensor.
-    pub oids: RwLock<(String, Vec<String>)>,
     /// Configuration for result fetching
     pub result_config: Option<ResultContext>,
     /// Configuration for feed handling.
@@ -239,7 +257,7 @@ impl ScanResultFetcher for NoOpScanner {
 }
 
 impl Default
-    for Context<NoOpScanner, crate::storage::InMemoryStorage<crate::crypt::ChaCha20Crypt>>
+    for Context<NoOpScanner, crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>>
 {
     fn default() -> Self {
         ContextBuilder::new().scanner(Default::default()).build()

@@ -10,7 +10,7 @@ license = "GPL-2.0-or-later"
 storage = { path = "../storage" }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0"
 
 [[bench]]
 name = "parse"

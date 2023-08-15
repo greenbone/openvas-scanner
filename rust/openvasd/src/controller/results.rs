@@ -26,37 +26,42 @@ where
                 tracing::trace!("aborting");
                 break;
             }
-            let scans = ctx.db.get_scans().await;
+            let scans = ctx.db.get_scan_ids().await;
             if let Err(e) = scans {
                 tracing::warn!("Failed to get scans: {e}");
                 continue;
             }
             let scans = scans.unwrap();
 
-            for (scan, status) in scans.iter() {
+            for id in scans.iter() {
                 // should never be none, probably makes sense to change scan_id
                 // to not be an option and set a uuid on default when it is
                 // missing on json serialization
-                let id = scan.scan_id.as_ref().unwrap();
-                if status.is_done() {
-                    tracing::trace!("{id} skipping status = {}", status.status);
-                    continue;
-                }
-                let results = ctx.scanner.fetch_results(id.clone()).await;
-                match results {
-                    Ok(fr) => {
-                        tracing::trace!("{} fetched results", id);
-                        // we panic when we fetched results but are unable to
-                        // store them in the database.
-                        // When this happens we effectively lost the results
-                        // and need to escalate this.
-                        ctx.db.append_fetch_result(id, fr).await.unwrap();
+                match ctx.db.get_status(id).await {
+                    Ok(status) if status.is_done() => {
+                        tracing::trace!("{id} skipping status = {}", status.status);
                     }
-                    Err(crate::scan::Error::Poisoned) => {
-                        quit_on_poison::<()>();
+                    Ok(_) => {
+                        let results = ctx.scanner.fetch_results(id.clone()).await;
+                        match results {
+                            Ok(fr) => {
+                                tracing::trace!("{} fetched results", id);
+                                // we panic when we fetched results but are unable to
+                                // store them in the database.
+                                // When this happens we effectively lost the results
+                                // and need to escalate this.
+                                ctx.db.append_fetch_result(id, fr).await.unwrap();
+                            }
+                            Err(crate::scan::Error::Poisoned) => {
+                                quit_on_poison::<()>();
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to fetch results for {}: {e}", &id);
+                            }
+                        }
                     }
                     Err(e) => {
-                        tracing::warn!("Failed to fetch results for {}: {e}", &id);
+                        tracing::warn!("Unable to get status for {}: {}", id, e);
                     }
                 }
             }

@@ -12,18 +12,12 @@ use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
     serde(deny_unknown_fields)
 )]
 pub struct Scan {
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", skip_deserializing)
-    )]
+    #[cfg_attr(feature = "serde_support", serde(default))]
     /// Unique ID of a scan
     pub scan_id: Option<String>,
     /// Information about the target to scan
     pub target: Target,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(default, skip_serializing_if = "Vec::is_empty")
-    )]
+    #[cfg_attr(feature = "serde_support", serde(default))]
     /// Configuration options for the scanner
     pub scanner_preferences: Vec<ScannerPreference>,
     /// List of VTs to execute for the target

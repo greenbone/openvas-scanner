@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use clap::ArgAction;
+use clap::{builder::TypedValueParser, ArgAction};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -85,6 +85,62 @@ impl Default for Logging {
     }
 }
 
+#[derive(Deserialize, Serialize, Default, Debug, Clone, PartialEq, Eq)]
+pub enum StorageType {
+    #[default]
+    #[serde(rename = "inmemory")]
+    InMemory,
+    #[serde(rename = "fs")]
+    FileSystem,
+}
+
+impl TypedValueParser for StorageType {
+    type Value = StorageType;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        _: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        Ok(match value.to_str().unwrap_or_default() {
+            "fs" => StorageType::FileSystem,
+            "inmemory" => StorageType::InMemory,
+            _ => {
+                let mut cmd = cmd.clone();
+                let err = cmd.error(
+                    clap::error::ErrorKind::InvalidValue,
+                    "`{}` is not an storage type.",
+                );
+                return Err(err);
+            }
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct FileStorage {
+    pub path: PathBuf,
+    pub key: Option<String>,
+}
+
+impl Default for FileStorage {
+    fn default() -> Self {
+        Self {
+            path: PathBuf::from("/var/lib/openvasd/storage"),
+            key: None,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+pub struct Storage {
+    #[serde(default, rename = "type")]
+    pub storage_type: StorageType,
+    #[serde(default)]
+    pub fs: FileStorage,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     #[serde(default)]
@@ -99,6 +155,8 @@ pub struct Config {
     pub listener: Listener,
     #[serde(default)]
     pub log: Logging,
+    #[serde(default)]
+    pub storage: Storage,
 }
 
 impl Display for Config {
@@ -209,7 +267,6 @@ impl Config {
                     .long("read-timeout")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
-                    // .default_value("1")
                     .help("read timeout in seconds on the ospd-openvas socket"),
             )
             .arg(
@@ -218,7 +275,6 @@ impl Config {
                     .long("result-check-interval")
                     .value_parser(clap::value_parser!(u64))
                     .value_name("SECONDS")
-                    // .default_value("1")
                     .help("interval to check for new results in seconds"),
             )
             .arg(
@@ -231,11 +287,33 @@ impl Config {
                     .help("the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000)."),
             )
             .arg(
+                clap::Arg::new("storage_type")
+                    .env("STORAGE_TYPE")
+                    .long("storage-type")
+                    .value_name("fs,inmemory")
+                    .value_parser(StorageType::InMemory)
+                    .help("either be stored in memory or on the filesystem."),
+            )
+            .arg(
+                clap::Arg::new("storage_path")
+                    .env("STORAGE_PATH")
+                    .long("storage-path")
+                    .value_name("PATH")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .help("the path that contains the files when type is set to fs."),
+            )
+            .arg(
+                clap::Arg::new("storage_key")
+                    .env("STORAGE_KEY")
+                    .long("storage-key")
+                    .value_name("KEY")
+                    .help("the password to use for encryption when type is set to fs. If not set the files are not encrypted."),
+            )
+            .arg(
                 clap::Arg::new("log-level")
                     .env("OPENVASD_LOG")
                     .long("log-level")
                     .short('L')
-                    // .default_value("INFO")
                     .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
             .get_matches();
@@ -286,6 +364,18 @@ impl Config {
         if let Some(log_level) = cmds.get_one::<String>("log-level") {
             config.log.level = log_level.clone();
         }
+        if let Some(stype) = cmds.get_one::<StorageType>("storage_type") {
+            config.storage.storage_type = stype.clone();
+        }
+        if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
+            config.storage.fs.path = path.clone();
+        }
+        if let Some(key) = cmds.get_one::<String>("storage_key") {
+            if !key.is_empty() {
+                config.storage.fs.key = Some(key.clone());
+            }
+
+        }
         config
     }
 }
@@ -293,6 +383,8 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use std::{path::PathBuf, time::Duration};
+
+    use crate::config::StorageType;
 
     #[test]
     fn defaults() {
@@ -324,8 +416,19 @@ mod tests {
     fn parse_toml() {
         let cfg = r#"[log]
         level = "DEBUG"
+        [storage]
+        type = "fs"
+        [storage.fs]
+        path = "/var/lib/openvasd/storage/test"
+        key = "changeme"
         "#;
         let config: super::Config = toml::from_str(cfg).unwrap();
         assert_eq!(config.log.level, "DEBUG");
+        assert_eq!(
+            config.storage.fs.path,
+            PathBuf::from("/var/lib/openvasd/storage/test")
+        );
+        assert_eq!(config.storage.fs.key, Some("changeme".to_string()));
+        assert_eq!(config.storage.storage_type, StorageType::FileSystem);
     }
 }

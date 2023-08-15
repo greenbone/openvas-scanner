@@ -1,103 +1,5 @@
-use std::collections::HashMap;
-
-use async_trait::async_trait;
+use super::*;
 use tokio::sync::RwLock;
-
-use crate::{crypt, scan::FetchResult};
-
-#[derive(Debug)]
-pub enum Error {
-    SerializationError,
-    NotFound,
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Error::*;
-        match self {
-            NotFound => write!(f, "not found"),
-            SerializationError => write!(f, "serialization error"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl From<serde_json::Error> for Error {
-    fn from(_: serde_json::Error) -> Self {
-        Self::SerializationError
-    }
-}
-
-impl From<crypt::ParseError> for Error {
-    fn from(_: crypt::ParseError) -> Self {
-        Self::SerializationError
-    }
-}
-impl From<std::string::FromUtf8Error> for Error {
-    fn from(_: std::string::FromUtf8Error) -> Self {
-        Self::SerializationError
-    }
-}
-
-#[async_trait]
-/// A trait for getting the progress of a scan, the scan itself with decrypted credentials and
-/// encrypted as well as results.
-///
-/// The main usage of this trait is in the controller and when transforming a scan to a osp
-pub trait ProgressGetter {
-    /// Returns the scan.
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error>;
-    /// Returns the scan with dcecrypted passwords.
-    ///
-    /// This method should only be used when the password is required. E.g.
-    /// when transforming a scan to a osp command.
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error>;
-    /// Returns all scans.
-    async fn get_scans(&self) -> Result<Vec<(models::Scan, models::Status)>, Error>;
-    /// Returns the status of a scan.
-    async fn get_status(&self, id: &str) -> Result<models::Status, Error>;
-    /// Returns the results of a scan as json bytes.
-    ///
-    /// OpenVASD just stores to results without processing them therefore we
-    /// can just return the json bytes.
-    async fn get_results(
-        &self,
-        id: &str,
-        from: Option<usize>,
-        to: Option<usize>,
-    ) -> Result<Vec<Vec<u8>>, Error>;
-}
-
-#[async_trait]
-/// A trait for storing scans.
-///
-/// The main usage of this trait is in the controller and when a user inserts or removes a scan.
-pub trait ScanStorer {
-    /// Inserts a scan.
-    async fn insert_scan(&self, t: models::Scan) -> Result<Option<models::Scan>, Error>;
-    /// Removes a scan.
-    async fn remove_scan(&self, id: &str) -> Result<Option<(models::Scan, models::Status)>, Error>;
-    /// Updates a status of a scan.
-    ///
-    /// This is required when a scan is started or stopped.
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error>;
-}
-
-#[async_trait]
-/// A trait for appending results from a different source.
-///
-/// This is used when a scan is started and the results are fetched from ospd.
-pub trait AppendFetchResult {
-    async fn append_fetch_result(&self, id: &str, results: FetchResult) -> Result<(), Error>;
-}
-
-#[async_trait]
-/// Combines the traits `ProgressGetter`, `ScanStorer` and `AppendFetchResult`.
-pub trait Storage: ProgressGetter + ScanStorer + AppendFetchResult {}
-
-#[async_trait]
-impl<T> Storage for T where T: ProgressGetter + ScanStorer + AppendFetchResult {}
 
 #[derive(Clone, Debug, Default)]
 struct Progress {
@@ -112,18 +14,23 @@ struct Progress {
 }
 
 #[derive(Debug)]
-pub struct InMemoryStorage<E> {
+pub struct Storage<E> {
     scans: RwLock<HashMap<String, Progress>>,
+    oids: RwLock<Vec<String>>,
+    hash: RwLock<String>,
+
     crypter: E,
 }
 
-impl<E> InMemoryStorage<E>
+impl<E> Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
     pub fn new(crypter: E) -> Self {
         Self {
             scans: RwLock::new(HashMap::new()),
+            oids: RwLock::new(vec![]),
+            hash: RwLock::new(String::new()),
             crypter,
         }
     }
@@ -150,34 +57,34 @@ where
     }
 }
 
-impl Default for InMemoryStorage<crate::crypt::ChaCha20Crypt> {
+impl Default for Storage<crate::crypt::ChaCha20Crypt> {
     fn default() -> Self {
         Self::new(crate::crypt::ChaCha20Crypt::default())
     }
 }
 
 #[async_trait]
-impl<E> ScanStorer for InMemoryStorage<E>
+impl<E> ScanStorer for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn insert_scan(&self, sp: models::Scan) -> Result<Option<models::Scan>, Error> {
+    async fn insert_scan(&self, sp: models::Scan) -> Result<(), Error> {
         let id = sp.scan_id.clone().unwrap_or_default();
         let mut scans = self.scans.write().await;
         if let Some(prgs) = scans.get_mut(&id) {
-            let old = prgs.scan.clone();
             prgs.scan = sp;
-            Ok(Some(old))
         } else {
             let progress = self.new_progress(sp).await?;
-            let old = scans.insert(id.clone(), progress);
-            Ok(old.map(|p| p.scan))
+            scans.insert(id.clone(), progress);
         }
+        Ok(())
     }
 
-    async fn remove_scan(&self, id: &str) -> Result<Option<(models::Scan, models::Status)>, Error> {
+    async fn remove_scan(&self, id: &str) -> Result<(), Error> {
         let mut scans = self.scans.write().await;
-        Ok(scans.remove(id).map(|p| (p.scan, p.status)))
+
+        scans.remove(id);
+        Ok(())
     }
 
     async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
@@ -189,7 +96,7 @@ where
 }
 
 #[async_trait]
-impl<E> AppendFetchResult for InMemoryStorage<E>
+impl<E> AppendFetchResult for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
@@ -213,15 +120,17 @@ where
 }
 
 #[async_trait]
-impl<E> ProgressGetter for InMemoryStorage<E>
+impl<E> ProgressGetter for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn get_scans(&self) -> Result<Vec<(models::Scan, models::Status)>, Error> {
+    async fn get_scan_ids(&self) -> Result<Vec<String>, Error> {
         let scans = self.scans.read().await;
         let mut result = Vec::with_capacity(scans.len());
         for (_, progress) in scans.iter() {
-            result.push((progress.scan.clone(), progress.status.clone()));
+            if let Some(id) = progress.scan.scan_id.as_ref() {
+                result.push(id.clone());
+            }
         }
         Ok(result)
     }
@@ -256,21 +165,46 @@ where
         id: &str,
         from: Option<usize>,
         to: Option<usize>,
-    ) -> Result<Vec<Vec<u8>>, Error> {
+    ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
         let scans = self.scans.read().await;
         let progress = scans.get(id).ok_or(Error::NotFound)?;
         let from = from.unwrap_or(0);
         let to = to.unwrap_or(progress.results.len());
         let to = to.min(progress.results.len());
         if from > to || from > progress.results.len() {
-            return Ok(Vec::new());
+            return Ok(Box::new(Vec::new().into_iter()));
         }
         let mut results = Vec::with_capacity(to - from);
         for result in &progress.results[from..to] {
             let b = self.crypter.decrypt_sync(result);
             results.push(b);
         }
-        Ok(results)
+        Ok(Box::new(results.into_iter()))
+    }
+}
+
+#[async_trait]
+impl<E> OIDStorer for Storage<E>
+where
+    E: Send + Sync + 'static,
+{
+    async fn push_oids(&self, hash: String, mut oids: Vec<String>) -> Result<(), Error> {
+        let mut o = self.oids.write().await;
+        o.clear();
+        o.append(&mut oids);
+        o.shrink_to_fit();
+        let mut f = self.hash.write().await;
+        *f = hash;
+        Ok(())
+    }
+
+    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+        let o = self.oids.read().await.clone();
+        Ok(Box::new(o.into_iter()))
+    }
+
+    async fn feed_hash(&self) -> String {
+        self.hash.read().await.clone()
     }
 }
 
@@ -282,20 +216,18 @@ mod tests {
 
     #[tokio::test]
     async fn store_delete_scan() {
-        let storage = InMemoryStorage::default();
+        let storage = Storage::default();
         let scan = Scan::default();
         let id = scan.scan_id.clone().unwrap_or_default();
-        let inserted = storage.insert_scan(scan).await.unwrap();
-        assert!(inserted.is_none());
+        storage.insert_scan(scan).await.unwrap();
         let (retrieved, _) = storage.get_scan(&id).await.unwrap();
         assert_eq!(retrieved.scan_id.unwrap_or_default(), id);
-        let (removed, _) = storage.remove_scan(&id).await.unwrap().unwrap();
-        assert_eq!(removed.scan_id.unwrap_or_default(), id);
+        storage.remove_scan(&id).await.unwrap();
     }
 
     #[tokio::test]
     async fn encrypt_decrypt_passwords() {
-        let storage = InMemoryStorage::default();
+        let storage = Storage::default();
         let mut scan = Scan::default();
         let mut pw = models::Credential::default();
         pw.credential_type = models::CredentialType::UP {
@@ -316,54 +248,53 @@ mod tests {
         assert_eq!(retrieved.target.credentials[0].password(), "test");
     }
 
-    async fn store_scan(storage: &InMemoryStorage<crypt::ChaCha20Crypt>) -> String {
+    async fn store_scan(storage: &Storage<crypt::ChaCha20Crypt>) -> String {
         let mut scan = Scan::default();
         let id = uuid::Uuid::new_v4().to_string();
         scan.scan_id = Some(id.clone());
-        let inserted = storage.insert_scan(scan).await.unwrap();
-        assert!(inserted.is_none());
+        storage.insert_scan(scan).await.unwrap();
         id
     }
 
     #[tokio::test]
     async fn get_scans() {
-        let storage = InMemoryStorage::default();
+        let storage = Storage::default();
         for _ in 0..10 {
             store_scan(&storage).await;
         }
-        let scans = storage.get_scans().await.unwrap();
+        let scans = storage.get_scan_ids().await.unwrap();
         assert_eq!(scans.len(), 10);
     }
 
     #[tokio::test]
     async fn append_results() {
-        let storage = InMemoryStorage::default();
+        let storage = Storage::default();
         let scan = Scan::default();
         let id = scan.scan_id.clone().unwrap_or_default();
-        let inserted = storage.insert_scan(scan).await.unwrap();
-        assert!(inserted.is_none());
+        storage.insert_scan(scan).await.unwrap();
         let fetch_result = (models::Status::default(), vec![models::Result::default()]);
         storage
             .append_fetch_result(&id, fetch_result)
             .await
             .unwrap();
-        let results = storage.get_results(&id, None, None).await.unwrap();
+        let results: Vec<_> = storage.get_results(&id, None, None).await.unwrap().collect();
         assert_eq!(results.len(), 1);
+
         let result: models::Result = serde_json::from_slice(&results[0]).unwrap();
         assert_eq!(result, models::Result::default());
         let results = storage.get_results(&id, Some(23), Some(1)).await.unwrap();
-        assert_eq!(results.len(), 0);
+        assert_eq!(results.count(), 0);
         let results = storage.get_results(&id, Some(0), Some(0)).await.unwrap();
-        assert_eq!(results.len(), 0);
+        assert_eq!(results.count(), 0);
         let results = storage.get_results(&id, Some(0), Some(5)).await.unwrap();
-        assert_eq!(results.len(), 1);
+        assert_eq!(results.count(), 1);
         let results = storage.get_results(&id, Some(0), None).await.unwrap();
-        assert_eq!(results.len(), 1);
+        assert_eq!(results.count(), 1);
     }
 
     #[tokio::test]
     async fn update_status() {
-        let storage = InMemoryStorage::default();
+        let storage = Storage::default();
         let id = store_scan(&storage).await;
         let (_, mut status) = storage.get_scan(&id).await.unwrap();
         assert_eq!(status.status, models::Phase::Stored);
