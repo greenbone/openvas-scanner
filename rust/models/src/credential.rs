@@ -61,35 +61,46 @@ pub enum CredentialType {
     /// User/password credentials.
     UP {
         /// The username for authentication.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         username: String,
         /// The password for authentication.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         password: String,
     },
     #[cfg_attr(feature = "serde_support", serde(rename = "usk"))]
     /// User/ssh-key credentials.
     USK {
         /// The username for authentication.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         username: String,
         /// The password for authentication.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         password: String,
         #[cfg_attr(feature = "serde_support", serde(rename = "private"))]
         /// The private key for authentication.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         private_key: String,
     },
     #[cfg_attr(feature = "serde_support", serde(rename = "snmp"))]
     /// SNMP credentials.
     SNMP {
         /// The SNMP username.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         username: String,
         /// The SNMP password.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         password: String,
         /// The SNMP community string.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         community: String,
         /// The SNMP authentication algorithm.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         auth_algorithm: String,
         /// The SNMP privacy password.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         privacy_password: String,
         /// The SNMP privacy algorithm.
+        #[cfg_attr(feature = "serde_support", serde(serialize_with = "crate::censor"))]
         privacy_algorithm: String,
     },
 }
