@@ -43,10 +43,6 @@ impl Status {
     pub fn is_done(&self) -> bool {
         !self.is_running()
     }
-
-    pub fn is_stored(&self) -> bool {
-        self.status.is_stored()
-    }
 }
 
 /// Enum of the possible phases of a scan
@@ -75,12 +71,6 @@ pub enum Phase {
 impl Phase {
     pub fn is_running(&self) -> bool {
         matches!(self, Self::Running | Self::Requested)
-    }
-}
-
-impl Phase {
-    pub fn is_stored(&self) -> bool {
-        matches!(self, Self::Stored)
     }
 }
 
