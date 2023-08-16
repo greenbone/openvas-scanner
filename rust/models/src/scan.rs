@@ -8,12 +8,13 @@ use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+    derive(serde::Serialize, serde::Deserialize),
+    serde(deny_unknown_fields)
 )]
 pub struct Scan {
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
+        serde(skip_serializing_if = "Option::is_none", skip_deserializing)
     )]
     /// Unique ID of a scan
     pub scan_id: Option<String>,

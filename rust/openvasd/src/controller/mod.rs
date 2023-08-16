@@ -226,20 +226,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn add_scan() {
+    #[should_panic]
+    async fn add_scan_with_id_fails() {
         let scan: models::Scan = models::Scan::default();
         let controller = Arc::new(Context::default());
         let id = post_scan_id(&scan, Arc::clone(&controller)).await;
         let resp = get_scan(&id, Arc::clone(&controller)).await;
         let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();
 
-        let resp = serde_json::from_slice::<models::Scan>(&resp).unwrap();
-
-        let scan: models::Scan = models::Scan {
-            scan_id: Some(id.to_string()),
-            ..Default::default()
-        };
-        assert_eq!(resp, scan);
+        let _ = serde_json::from_slice::<models::Scan>(&resp).unwrap();
     }
 
     #[tokio::test]
