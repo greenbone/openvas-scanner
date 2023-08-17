@@ -364,6 +364,8 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   // Run table driven lsc
   if (json_str == NULL)
     return -1;
+
+  g_message ("Running Notus for %s", ip_str);
   err = mqtt_publish ("scanner/package/cmd/notus", json_str);
   if (err)
     {
@@ -751,7 +753,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
       && prefs_get_bool ("mqtt_enabled"))
     {
-      g_message ("Running LSC via Notus for %s", ip_str);
       if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL))
         {
           char buffer[2048];
