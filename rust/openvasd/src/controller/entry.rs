@@ -88,12 +88,16 @@ where
 {
     use KnownPaths::*;
     // on head requests we just return an empty response without checking the api key
-
+    tracing::trace!(
+        "{} {}:{:?}",
+        req.method(),
+        req.uri().path(),
+        req.uri().query()
+    );
     if req.method() == Method::HEAD {
         return Ok(ctx.response.empty(hyper::StatusCode::OK));
     }
     let kp = KnownPaths::from_path(req.uri().path());
-    tracing::debug!("{} {}:{:?}", req.method(), kp, req.uri().query());
     if let Some(key) = ctx.api_key.as_ref() {
         match req.headers().get("x-api-key") {
             Some(v) if v == key => {}
@@ -107,19 +111,16 @@ where
             }
         }
     }
-    tracing::debug!("{} {}", req.method(), kp);
 
     match (req.method(), kp) {
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
-                    if scan.scan_id.is_none() {
-                        scan.scan_id = Some(uuid::Uuid::new_v4().to_string());
-                    }
-                    let id = scan.scan_id.clone().unwrap_or_default();
+                    let id = uuid::Uuid::new_v4().to_string();
                     let resp = ctx.response.created(&id);
+                    scan.scan_id = Some(id.clone());
                     ctx.db.insert_scan(scan).await?;
-                    tracing::debug!("Scan with ID {} created", id);
+                    tracing::debug!("Scan with ID {} created", &id);
                     Ok(resp)
                 }
                 Err(resp) => Ok(resp),
@@ -142,7 +143,11 @@ where
                                 status.status = models::Phase::Requested;
                                 match ctx.db.update_status(&id, status).await {
                                     Ok(_) => Ok(ctx.response.no_content()),
-                                    Err(e) => Ok(ctx.response.internal_server_error(&e)),
+                                    Err(e) => {
+                                        let _ = ctx.scanner.stop_scan(id.clone()).await;
+                                        let _ = ctx.scanner.delete_scan(id).await;
+                                        Ok(ctx.response.internal_server_error(&e))
+                                    }
                                 }
                             }
                             Err(e) => {
