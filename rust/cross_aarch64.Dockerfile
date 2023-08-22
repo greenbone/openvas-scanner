@@ -20,10 +20,10 @@ RUN ./configure --host=aarch64-unknown-linux-gnu --with-pcap=linux
 RUN cat config.log
 RUN make install
 
-RUN curl --output /tmp/zlib.tar.gz https://www.zlib.net/zlib-1.2.13.tar.gz
+RUN curl --output /tmp/zlib.tar.gz https://www.zlib.net/zlib-1.3.tar.gz
 WORKDIR /tmp
-RUN tar xvf zlib.tar.gz
-WORKDIR /tmp/zlib-1.2.13
+RUN tar xvzf zlib.tar.gz
+WORKDIR /tmp/zlib-1.3
 ENV CC=aarch64-linux-gnu-gcc
 ENV CHOST=arm64
 RUN ./configure
