@@ -27,6 +27,13 @@ client_certs = "/etc/openvasd/tls/client"
 # path to the unix socket of ospd-openvas
 socket = "/var/run/ospd/ospd.sock"
 
+[ospd.read_timeout]
+# Max time openvasd waits for an ospd-openvas response before
+# returning a 500 code (Internal server error). Using the config
+# file, it can be set in seconds and nanoseconds
+secs = 1
+nanos = 0
+
 [ospd.result_check_interval]
 # interval of checking for results for started scans
 secs = 1

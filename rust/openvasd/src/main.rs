@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !config.ospd.socket.exists() {
         tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.ospd.socket.display());
     }
-    let scanner = scan::OSPDWrapper::new(config.ospd.socket.clone());
+    let scanner = scan::OSPDWrapper::new(config.ospd.socket.clone(), config.ospd.read_timeout);
     let ctx = controller::ContextBuilder::new()
         .result_config(rc)
         .feed_config(fc)

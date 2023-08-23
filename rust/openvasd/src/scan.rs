@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{path::PathBuf, sync::PoisonError};
+use std::{path::PathBuf, sync::PoisonError, time::Duration};
 
 use async_trait::async_trait;
 
@@ -20,6 +20,8 @@ impl From<osp::Error> for Error {
 pub struct OSPDWrapper {
     /// Path to the socket
     socket: PathBuf,
+    /// Read timeout in seconds
+    r_timeout: Option<Duration>,
 }
 
 #[derive(Debug)]
@@ -55,8 +57,11 @@ impl<T> From<PoisonError<T>> for Error {
 
 impl OSPDWrapper {
     /// Creates a new instance of OSPDWrapper
-    pub fn new(socket: PathBuf) -> Self {
-        Self { socket }
+    pub fn new(socket: PathBuf, r_timeout: Option<Duration>) -> Self {
+        Self {
+            socket,
+            r_timeout,
+        }
     }
 
     fn check_socket(&self) -> Result<PathBuf, Error> {
@@ -113,8 +118,9 @@ pub trait ScanResultFetcher {
 #[async_trait]
 impl ScanStarter for OSPDWrapper {
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
+        let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            osp::start_scan(socket, &scan)
+            osp::start_scan(socket, rtimeout, &scan)
                 .map(|_| ())
                 .map_err(Error::from)
         })
@@ -128,8 +134,11 @@ impl ScanStopper for OSPDWrapper {
     where
         I: AsRef<str> + Send + 'static,
     {
+        let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            osp::stop_scan(socket, id).map(|_| ()).map_err(Error::from)
+            osp::stop_scan(socket, rtimeout, id)
+                .map(|_| ())
+                .map_err(Error::from)
         })
         .await
     }
@@ -141,8 +150,9 @@ impl ScanDeleter for OSPDWrapper {
     where
         I: AsRef<str> + Send + 'static,
     {
+        let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            osp::get_delete_scan_results(socket, id)
+            osp::get_delete_scan_results(socket, rtimeout, id)
                 .map(|_| ())
                 .map_err(Error::from)
         })
@@ -156,8 +166,9 @@ impl ScanResultFetcher for OSPDWrapper {
     where
         I: AsRef<str> + Send + 'static,
     {
+        let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            osp::get_delete_scan_results(socket, id)
+            osp::get_delete_scan_results(socket, rtimeout, id)
                 .map(|r| (r.clone().into(), r.into()))
                 .map_err(Error::from)
         })

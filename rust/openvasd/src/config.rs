@@ -22,6 +22,7 @@ pub struct Feed {
 pub struct OspdWrapper {
     pub result_check_interval: Duration,
     pub socket: PathBuf,
+    pub read_timeout: Option<Duration>,
 }
 
 impl Default for OspdWrapper {
@@ -29,6 +30,7 @@ impl Default for OspdWrapper {
         OspdWrapper {
             result_check_interval: Duration::from_secs(1),
             socket: PathBuf::from("/var/run/ospd/ospd.sock"),
+            read_timeout: None,
         }
     }
 }
@@ -202,6 +204,15 @@ impl Config {
                     .value_parser(clap::builder::PathBufValueParser::new()),
             )
             .arg(
+                clap::Arg::new("read-timeout")
+                    .env("READ_TIMEOUT")
+                    .long("read-timeout")
+                    .value_parser(clap::value_parser!(u64))
+                    .value_name("SECONDS")
+                    // .default_value("1")
+                    .help("read timeout in seconds on the ospd-openvas socket"),
+            )
+            .arg(
                 clap::Arg::new("result-check-interval")
                     .env("RESULT_CHECK_INTERVAL")
                     .long("result-check-interval")
@@ -246,6 +257,9 @@ impl Config {
         }
         if let Some(path) = cmds.get_one::<PathBuf>("ospd-socket") {
             config.ospd.socket = path.clone();
+        }
+        if let Some(interval) = cmds.get_one::<u64>("read-timeout") {
+            config.ospd.read_timeout = Some(Duration::from_secs(*interval));
         }
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
@@ -299,6 +313,7 @@ mod tests {
 
         assert_eq!(config.ospd.result_check_interval, Duration::from_secs(1));
         assert_eq!(config.ospd.socket, PathBuf::from("/var/run/ospd/ospd.sock"));
+        assert!(config.ospd.read_timeout.is_none());
 
         assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
 
