@@ -189,7 +189,8 @@ make_str_lookup_enum! {
         remote_banner => RemoteBanner,
         remote_banner_unreliable => RemoteBannerUnreliable,
         remote_probe => RemoteProbe,
-        remote_vul => RemoteVul
+        remote_vul => RemoteVul,
+        package_unreliable => PackageUnreliable
     }
 }
 
