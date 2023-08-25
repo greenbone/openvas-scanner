@@ -312,7 +312,7 @@ components:
       type: "object"
       properties:
         target:
-            $ref: "#/components/schemas/Target"
+          $ref: "#/components/schemas/Target"
         scanner_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
@@ -410,15 +410,17 @@ components:
             - udp
             - tcp
         range:
-          description: "A list of ranges, start and end are inclusive."
-          type: "object"
-          properties:
-            start:
-              type: "number"
-              description: "The inclusive start port. When end is not set only the start port is used"
-            end:
-              type: "number"
-              description: "The inclusive end port."
+          type: "array"
+          description: "A list of ranges"
+          items:
+            type: "object"
+            properties:
+              start:
+                type: "number"
+                description: "The inclusive start port. When end is not set only the start port is used"
+              end:
+                type: "number"
+                description: "The inclusive end port."
       required:
         - range
 
