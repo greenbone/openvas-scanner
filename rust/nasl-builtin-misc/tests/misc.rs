@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn nasl_typeof() {
-        let code = r###"
+        let code = r#"
         typeof("AA");
         typeof(1);
         typeof('AA');
@@ -66,7 +66,7 @@ mod tests {
         typeof(NULL);
         typeof(a);
         typeof(23,76);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -116,10 +116,10 @@ mod tests {
 
     #[test]
     fn gzip() {
-        let code = r###"
+        let code = r#"
         gzip(data: 'z', headformat: "gzip");
         gzip(data: 'z');
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn gunzip() {
-        let code = r###"
+        let code = r#"
         z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);
         gunzip(data: z);
         # With Header Format and data is data
@@ -152,7 +152,7 @@ mod tests {
         # Without Header format and data is a string
         ngz = gzip(data: "ngz");
         gunzip(data: ngz);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -295,14 +295,14 @@ mod tests {
 
     #[test]
     fn defined_func() {
-        let code = r###"
+        let code = r#"
         function b() { return 2; }
         defined_func("b");
         defined_func("defined_func");
         a = 12;
         defined_func("a");
         defined_func(a);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

@@ -11,13 +11,13 @@ mod tests {
 
     #[test]
     fn aes128_cbc_crypt() {
-        let code = r###"
+        let code = r#"
         key = hexstr_to_data("00000000000000000000000000000000");
         data = hexstr_to_data("80000000000000000000000000000000");
         iv = hexstr_to_data("00000000000000000000000000000000");
         crypt = aes128_cbc_encrypt(key: key, data: data, iv: iv);
         aes128_cbc_decrypt(key: key, data: crypt, iv: iv);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -43,13 +43,13 @@ mod tests {
 
     #[test]
     fn aes192_cbc_crypt() {
-        let code = r###"
+        let code = r#"
         key = hexstr_to_data("000000000000000000000000000000000000000000000000");
         data = hexstr_to_data("1b077a6af4b7f98229de786d7516b639");
         iv = hexstr_to_data("00000000000000000000000000000000");
         crypt = aes192_cbc_encrypt(key: key, data: data, iv: iv);
         aes192_cbc_decrypt(key: key, data: crypt, iv: iv);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -75,13 +75,13 @@ mod tests {
 
     #[test]
     fn aes256_cbc_crypt() {
-        let code = r###"
+        let code = r#"
         key = hexstr_to_data("0000000000000000000000000000000000000000000000000000000000000000");
         data = hexstr_to_data("014730f80ac625fe84f026c60bfd547d");
         iv = hexstr_to_data("00000000000000000000000000000000");
         crypt = aes256_cbc_encrypt(key: key, data: data, iv: iv);
         aes256_cbc_decrypt(key: key, data: crypt, iv: iv);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -107,14 +107,14 @@ mod tests {
 
     #[test]
     fn padding() {
-        let code = r###"
+        let code = r#"
         key = hexstr_to_data("00000000000000000000000000000000");
         data1 = hexstr_to_data("f34481ec3cc627bacd5dc3fb08f2");
         data2 = hexstr_to_data("f34481ec3cc627bacd5dc3fb08f20000");
         iv = hexstr_to_data("00000000000000000000000000000000");
         aes128_cbc_encrypt(key: key, data: data1, iv: iv);
         aes128_cbc_encrypt(key: key, data: data2, iv: iv);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

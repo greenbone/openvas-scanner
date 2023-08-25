@@ -125,24 +125,31 @@ where
             TokenCategory::Star => self.execute(stmts, |a, b| num_expr!(* a b)),
             TokenCategory::Slash => self.execute(stmts, |a, b| num_expr!(/ a b)),
             TokenCategory::Percent => self.execute(stmts, |a, b| num_expr!(% a b)),
-            TokenCategory::LessLess => self.execute(stmts, |a, b| num_expr!(|a, b| a << b => a b)),
-            TokenCategory::GreaterGreater => {
-                self.execute(stmts, |a, b| num_expr!(|a, b| a >> b => a b))
-            }
+            TokenCategory::LessLess => self.execute(stmts, |a, b| num_expr!(<< a b)),
+            TokenCategory::GreaterGreater => self.execute(stmts, |a, b| num_expr!(>> a b)),
             // let left_casted = left as u32; (left_casted >> right) as i64
             TokenCategory::GreaterGreaterGreater => self.execute(
                 stmts,
-                |a, b| num_expr!(|a, b| ((a as u32) >> b) as i32 => a b),
+                //|a, b| num_expr!(|a, b| ((a as u32) >> b) as i32 => a b),
+                |a, b| {
+                    let (left, right) = as_i64(a, b);
+                    let result = ((left as u32) >> right) as i32;
+                    Ok(NaslValue::Number(result as i64))
+                },
             ),
             TokenCategory::Ampersand => self.execute(stmts, |a, b| num_expr!(& a b)),
             TokenCategory::Pipe => self.execute(stmts, |a, b| num_expr!(| a b)),
             TokenCategory::Caret => self.execute(stmts, |a, b| num_expr!(^ a b)),
             TokenCategory::StarStar => self.execute(
                 stmts,
-                |a, b| num_expr!(|a, b| (a as u32).pow(b as u32) as i32 => a b),
+                |a, b| {
+                    let (a, b) = as_i64(a, b);
+                    let result = (a as u32).pow(b as u32);
+                    Ok(NaslValue::Number(result as i64))
+                }
             ),
             TokenCategory::Tilde => {
-                self.execute(stmts, |a, b| num_expr!(|a: i64, _: i64| !a => a b))
+                self.execute(stmts, |a, _| Ok((!i64::from(&a)).into()))
             }
             // string
             TokenCategory::EqualTilde => self.execute(stmts, match_regex),

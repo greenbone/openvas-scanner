@@ -74,12 +74,12 @@ fn get(con: &mut redis::Connection) -> RedisResult<HashMap<String, Vec<String>>>
 fn normalize_values(v: &str) -> String {
     let mut v = v.to_owned();
 
-    v = v.replace(r#"\n"#, "\n");
-    v = v.replace(r#"\\"#, "\\");
+    v = v.replace(r"\n", "\n");
+    v = v.replace(r"\\", "\\");
     v = v.replace(r#"\""#, "\"");
-    v = v.replace(r#"\'"#, "'");
-    v = v.replace(r#"\r"#, "\r");
-    v = v.replace(r#"\t"#, "\t");
+    v = v.replace(r"\'", "'");
+    v = v.replace(r"\r", "\r");
+    v = v.replace(r"\t", "\t");
     v = v.replace('\\', "");
     v
 }

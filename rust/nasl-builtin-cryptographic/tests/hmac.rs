@@ -9,9 +9,9 @@ mod tests {
     use nasl_interpreter::*;
     #[test]
     fn hmac_md2() {
-        let code = r###"
+        let code = r#"
         HMAC_MD2(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -26,9 +26,9 @@ mod tests {
 
     #[test]
     fn hmac_md5() {
-        let code = r###"
+        let code = r#"
         HMAC_MD5(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -43,9 +43,9 @@ mod tests {
 
     #[test]
     fn hmac_ripemd160() {
-        let code = r###"
+        let code = r#"
         HMAC_RIPEMD160(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -60,9 +60,9 @@ mod tests {
 
     #[test]
     fn hmac_sha1() {
-        let code = r###"
+        let code = r#"
         HMAC_SHA1(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -77,9 +77,9 @@ mod tests {
 
     #[test]
     fn hmac_sha256() {
-        let code = r###"
+        let code = r#"
         HMAC_SHA256(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -96,9 +96,9 @@ mod tests {
 
     #[test]
     fn hmac_sha384() {
-        let code = r###"
+        let code = r#"
         HMAC_SHA384(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -113,9 +113,9 @@ mod tests {
 
     #[test]
     fn hmac_sha512() {
-        let code = r###"
+        let code = r#"
         HMAC_SHA512(key: "my_shared?key", data: "so much wow");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

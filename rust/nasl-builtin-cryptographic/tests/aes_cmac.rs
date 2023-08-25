@@ -10,11 +10,11 @@ mod tests {
 
     #[test]
     fn aes_mac_cbc() {
-        let code = r###"
+        let code = r#"
         key = hexstr_to_data("e3ceb929b52a6eec02b99b13bf30721b");
         data = hexstr_to_data("d2e8a3e86ae0b9edc7cc3116d929a16f13ee3643");
         crypt = aes_mac_cbc(key: key, data: data);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

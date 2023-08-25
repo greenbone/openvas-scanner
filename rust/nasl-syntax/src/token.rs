@@ -529,12 +529,12 @@ impl<'a> Tokenizer<'a> {
                 end: self.cursor.len_consumed(),
             }]
             .to_owned();
-            result = result.replace(r#"\n"#, "\n");
-            result = result.replace(r#"\\"#, "\\");
+            result = result.replace(r"\n", "\n");
+            result = result.replace(r"\\", "\\");
             result = result.replace(r#"\""#, "\"");
-            result = result.replace(r#"\'"#, "'");
-            result = result.replace(r#"\r"#, "\r");
-            result = result.replace(r#"\t"#, "\t");
+            result = result.replace(r"\'", "'");
+            result = result.replace(r"\r", "\r");
+            result = result.replace(r"\t", "\t");
             // skip ""
             self.cursor.advance();
             Category::String(result)
@@ -777,74 +777,74 @@ mod tests {
 
     #[test]
     fn skip_white_space() {
-        verify_tokens!("     (       ", vec![(Category::LeftParen, 1, 6)]);
+        verify_tokens!("     (       ", [(Category::LeftParen, 1, 6)]);
     }
 
     #[test]
     fn single_symbol_tokens() {
-        verify_tokens!("(", vec![(Category::LeftParen, 1, 1)]);
-        verify_tokens!(")", vec![(Category::RightParen, 1, 1)]);
-        verify_tokens!("[", vec![(Category::LeftBrace, 1, 1)]);
-        verify_tokens!("]", vec![(Category::RightBrace, 1, 1)]);
-        verify_tokens!("{", vec![(Category::LeftCurlyBracket, 1, 1)]);
-        verify_tokens!("}", vec![(Category::RightCurlyBracket, 1, 1)]);
-        verify_tokens!(",", vec![(Category::Comma, 1, 1)]);
-        verify_tokens!(".", vec![(Category::Dot, 1, 1)]);
-        verify_tokens!("-", vec![(Category::Minus, 1, 1)]);
-        verify_tokens!("+", vec![(Category::Plus, 1, 1)]);
-        verify_tokens!("%", vec![(Category::Percent, 1, 1)]);
-        verify_tokens!(";", vec![(Category::Semicolon, 1, 1)]);
-        verify_tokens!("/", vec![(Category::Slash, 1, 1)]);
-        verify_tokens!("*", vec![(Category::Star, 1, 1)]);
-        verify_tokens!(":", vec![(Category::DoublePoint, 1, 1)]);
-        verify_tokens!("~", vec![(Category::Tilde, 1, 1)]);
-        verify_tokens!("&", vec![(Category::Ampersand, 1, 1)]);
-        verify_tokens!("|", vec![(Category::Pipe, 1, 1)]);
-        verify_tokens!("^", vec![(Category::Caret, 1, 1)]);
+        verify_tokens!("(", [(Category::LeftParen, 1, 1)]);
+        verify_tokens!(")", [(Category::RightParen, 1, 1)]);
+        verify_tokens!("[", [(Category::LeftBrace, 1, 1)]);
+        verify_tokens!("]", [(Category::RightBrace, 1, 1)]);
+        verify_tokens!("{", [(Category::LeftCurlyBracket, 1, 1)]);
+        verify_tokens!("}", [(Category::RightCurlyBracket, 1, 1)]);
+        verify_tokens!(",", [(Category::Comma, 1, 1)]);
+        verify_tokens!(".", [(Category::Dot, 1, 1)]);
+        verify_tokens!("-", [(Category::Minus, 1, 1)]);
+        verify_tokens!("+", [(Category::Plus, 1, 1)]);
+        verify_tokens!("%", [(Category::Percent, 1, 1)]);
+        verify_tokens!(";", [(Category::Semicolon, 1, 1)]);
+        verify_tokens!("/", [(Category::Slash, 1, 1)]);
+        verify_tokens!("*", [(Category::Star, 1, 1)]);
+        verify_tokens!(":", [(Category::DoublePoint, 1, 1)]);
+        verify_tokens!("~", [(Category::Tilde, 1, 1)]);
+        verify_tokens!("&", [(Category::Ampersand, 1, 1)]);
+        verify_tokens!("|", [(Category::Pipe, 1, 1)]);
+        verify_tokens!("^", [(Category::Caret, 1, 1)]);
     }
 
     #[test]
     fn two_symbol_tokens() {
-        verify_tokens!("&", vec![(Category::Ampersand, 1, 1)]);
-        verify_tokens!("&&", vec![(Category::AmpersandAmpersand, 1, 1)]);
-        verify_tokens!("|", vec![(Category::Pipe, 1, 1)]);
-        verify_tokens!("||", vec![(Category::PipePipe, 1, 1)]);
-        verify_tokens!("!", vec![(Category::Bang, 1, 1)]);
-        verify_tokens!("!=", vec![(Category::BangEqual, 1, 1)]);
-        verify_tokens!("!~", vec![(Category::BangTilde, 1, 1)]);
-        verify_tokens!("=", vec![(Category::Equal, 1, 1)]);
-        verify_tokens!("==", vec![(Category::EqualEqual, 1, 1)]);
-        verify_tokens!("=~", vec![(Category::EqualTilde, 1, 1)]);
-        verify_tokens!(">", vec![(Category::Greater, 1, 1)]);
-        verify_tokens!(">>", vec![(Category::GreaterGreater, 1, 1)]);
-        verify_tokens!(">=", vec![(Category::GreaterEqual, 1, 1)]);
-        verify_tokens!("><", vec![(Category::GreaterLess, 1, 1)]);
-        verify_tokens!("<", vec![(Category::Less, 1, 1)]);
-        verify_tokens!("<<", vec![(Category::LessLess, 1, 1)]);
-        verify_tokens!("<=", vec![(Category::LessEqual, 1, 1)]);
-        verify_tokens!("-", vec![(Category::Minus, 1, 1)]);
-        verify_tokens!("--", vec![(Category::MinusMinus, 1, 1)]);
-        verify_tokens!("+", vec![(Category::Plus, 1, 1)]);
-        verify_tokens!("+=", vec![(Category::PlusEqual, 1, 1)]);
-        verify_tokens!("++", vec![(Category::PlusPlus, 1, 1)]);
-        verify_tokens!("/", vec![(Category::Slash, 1, 1)]);
-        verify_tokens!("/=", vec![(Category::SlashEqual, 1, 1)]);
-        verify_tokens!("*", vec![(Category::Star, 1, 1)]);
-        verify_tokens!("**", vec![(Category::StarStar, 1, 1)]);
-        verify_tokens!("*=", vec![(Category::StarEqual, 1, 1)]);
+        verify_tokens!("&", [(Category::Ampersand, 1, 1)]);
+        verify_tokens!("&&", [(Category::AmpersandAmpersand, 1, 1)]);
+        verify_tokens!("|", [(Category::Pipe, 1, 1)]);
+        verify_tokens!("||", [(Category::PipePipe, 1, 1)]);
+        verify_tokens!("!", [(Category::Bang, 1, 1)]);
+        verify_tokens!("!=", [(Category::BangEqual, 1, 1)]);
+        verify_tokens!("!~", [(Category::BangTilde, 1, 1)]);
+        verify_tokens!("=", [(Category::Equal, 1, 1)]);
+        verify_tokens!("==", [(Category::EqualEqual, 1, 1)]);
+        verify_tokens!("=~", [(Category::EqualTilde, 1, 1)]);
+        verify_tokens!(">", [(Category::Greater, 1, 1)]);
+        verify_tokens!(">>", [(Category::GreaterGreater, 1, 1)]);
+        verify_tokens!(">=", [(Category::GreaterEqual, 1, 1)]);
+        verify_tokens!("><", [(Category::GreaterLess, 1, 1)]);
+        verify_tokens!("<", [(Category::Less, 1, 1)]);
+        verify_tokens!("<<", [(Category::LessLess, 1, 1)]);
+        verify_tokens!("<=", [(Category::LessEqual, 1, 1)]);
+        verify_tokens!("-", [(Category::Minus, 1, 1)]);
+        verify_tokens!("--", [(Category::MinusMinus, 1, 1)]);
+        verify_tokens!("+", [(Category::Plus, 1, 1)]);
+        verify_tokens!("+=", [(Category::PlusEqual, 1, 1)]);
+        verify_tokens!("++", [(Category::PlusPlus, 1, 1)]);
+        verify_tokens!("/", [(Category::Slash, 1, 1)]);
+        verify_tokens!("/=", [(Category::SlashEqual, 1, 1)]);
+        verify_tokens!("*", [(Category::Star, 1, 1)]);
+        verify_tokens!("**", [(Category::StarStar, 1, 1)]);
+        verify_tokens!("*=", [(Category::StarEqual, 1, 1)]);
     }
 
     #[test]
     fn three_symbol_tokens() {
-        verify_tokens!(">>>", vec![(Category::GreaterGreaterGreater, 1, 1)]);
-        verify_tokens!(">>=", vec![(Category::GreaterGreaterEqual, 1, 1)]);
-        verify_tokens!(">!<", vec![(Category::GreaterBangLess, 1, 1)]);
-        verify_tokens!("<<=", vec![(Category::LessLessEqual, 1, 1)]);
+        verify_tokens!(">>>", [(Category::GreaterGreaterGreater, 1, 1)]);
+        verify_tokens!(">>=", [(Category::GreaterGreaterEqual, 1, 1)]);
+        verify_tokens!(">!<", [(Category::GreaterBangLess, 1, 1)]);
+        verify_tokens!("<<=", [(Category::LessLessEqual, 1, 1)]);
     }
 
     #[test]
     fn four_symbol_tokens() {
-        verify_tokens!(">>>=", vec![(Category::GreaterGreaterGreaterEqual, 1, 1)]);
+        verify_tokens!(">>>=", [(Category::GreaterGreaterGreaterEqual, 1, 1)]);
     }
 
     #[test]
@@ -852,7 +852,7 @@ mod tests {
         let code = "\"hello I am a closed string\\\"";
         verify_tokens!(
             code,
-            vec![(
+            [(
                 Category::String("hello I am a closed string\\".to_owned()),
                 1,
                 1,
@@ -861,7 +861,7 @@ mod tests {
         let code = "\"hello I am a unclosed string\\";
         verify_tokens!(
             code,
-            vec![(Category::Unclosed(UnclosedCategory::String), 1, 1,)]
+            [(Category::Unclosed(UnclosedCategory::String), 1, 1,)]
         );
     }
 
@@ -870,12 +870,12 @@ mod tests {
         let code = "'Hello \\'you\\'!'";
         verify_tokens!(
             code,
-            vec![(Category::Data("Hello \\'you\\'!".as_bytes().to_vec()), 1, 1)]
+            [(Category::Data("Hello \\'you\\'!".as_bytes().to_vec()), 1, 1)]
         );
         let code = "'Hello \\'you\\'!\\'";
         verify_tokens!(
             code,
-            vec![(Category::Unclosed(UnclosedCategory::Data), 1, 1)]
+            [(Category::Unclosed(UnclosedCategory::Data), 1, 1)]
         );
     }
 
@@ -883,20 +883,20 @@ mod tests {
     fn numbers() {
         use Base::*;
         use Category::*;
-        verify_tokens!("0", vec![(Number(0), 1, 1)]);
-        verify_tokens!("0b01", vec![(Number(1), 1, 1)]);
-        verify_tokens!("1234567890", vec![(Number(1234567890), 1, 1)]);
-        verify_tokens!("012345670", vec![(Number(2739128), 1, 1)]);
+        verify_tokens!("0", [(Number(0), 1, 1)]);
+        verify_tokens!("0b01", [(Number(1), 1, 1)]);
+        verify_tokens!("1234567890", [(Number(1234567890), 1, 1)]);
+        verify_tokens!("012345670", [(Number(2739128), 1, 1)]);
         verify_tokens!(
             "0x1234567890ABCDEF",
-            vec![(Number(1311768467294899695), 1, 1)]
+            [(Number(1311768467294899695), 1, 1)]
         );
         // That would be later illegal because a number if followed by a number
         // but within tokenizing I think it is the best to ignore that and let it be handled by AST
-        verify_tokens!("0b02", vec![(Number(0), 1, 1), (Number(2), 1, 4)]);
+        verify_tokens!("0b02", [(Number(0), 1, 1), (Number(2), 1, 4)]);
         verify_tokens!(
             "0b2",
-            vec![(IllegalNumber(Binary), 1, 1), (Number(2), 1, 3)]
+            [(IllegalNumber(Binary), 1, 1), (Number(2), 1, 3)]
         );
     }
 
@@ -905,7 +905,7 @@ mod tests {
         use Category::*;
         verify_tokens!(
             "# this is a comment\n;",
-            vec![(Comment, 1, 1), (Semicolon, 2, 1)]
+            [(Comment, 1, 1), (Semicolon, 2, 1)]
         );
     }
 
@@ -915,22 +915,20 @@ mod tests {
         use IdentifierType::*;
         verify_tokens!(
             "help_lo",
-            vec![(Identifier(Undefined("help_lo".to_owned())), 1, 1)]
+            [(Identifier(Undefined("help_lo".to_owned())), 1, 1)]
         );
         verify_tokens!(
             "_hello",
-            vec![(Identifier(Undefined("_hello".to_owned())), 1, 1)]
+            [(Identifier(Undefined("_hello".to_owned())), 1, 1)]
         );
         verify_tokens!(
             "_h4llo",
-            vec![(Identifier(Undefined("_h4llo".to_owned())), 1, 1)]
+            [(Identifier(Undefined("_h4llo".to_owned())), 1, 1)]
         );
         verify_tokens!(
             "4_h4llo",
-            vec![
-                (Number(4), 1, 1),
-                (Identifier(Undefined("_h4llo".to_owned())), 1, 2)
-            ]
+            [(Number(4), 1, 1),
+                (Identifier(Undefined("_h4llo".to_owned())), 1, 2)]
         );
     }
 
@@ -938,29 +936,29 @@ mod tests {
     fn keywords() {
         use Category::*;
         use IdentifierType::*;
-        verify_tokens!("for", vec![(Identifier(For), 1, 1)]);
-        verify_tokens!("foreach", vec![(Identifier(ForEach), 1, 1)]);
-        verify_tokens!("if", vec![(Identifier(If), 1, 1)]);
-        verify_tokens!("else", vec![(Identifier(Else), 1, 1)]);
-        verify_tokens!("while", vec![(Identifier(While), 1, 1)]);
-        verify_tokens!("repeat", vec![(Identifier(Repeat), 1, 1)]);
-        verify_tokens!("until", vec![(Identifier(Until), 1, 1)]);
-        verify_tokens!("local_var", vec![(Identifier(LocalVar), 1, 1)]);
-        verify_tokens!("global_var", vec![(Identifier(GlobalVar), 1, 1)]);
-        verify_tokens!("NULL", vec![(Identifier(Null), 1, 1)]);
-        verify_tokens!("return", vec![(Identifier(Return), 1, 1)]);
-        verify_tokens!("include", vec![(Identifier(Include), 1, 1)]);
-        verify_tokens!("exit", vec![(Identifier(Exit), 1, 1)]);
-        verify_tokens!("break", vec![(Identifier(Break), 1, 1)]);
-        verify_tokens!("continue", vec![(Identifier(Continue), 1, 1)]);
+        verify_tokens!("for", [(Identifier(For), 1, 1)]);
+        verify_tokens!("foreach", [(Identifier(ForEach), 1, 1)]);
+        verify_tokens!("if", [(Identifier(If), 1, 1)]);
+        verify_tokens!("else", [(Identifier(Else), 1, 1)]);
+        verify_tokens!("while", [(Identifier(While), 1, 1)]);
+        verify_tokens!("repeat", [(Identifier(Repeat), 1, 1)]);
+        verify_tokens!("until", [(Identifier(Until), 1, 1)]);
+        verify_tokens!("local_var", [(Identifier(LocalVar), 1, 1)]);
+        verify_tokens!("global_var", [(Identifier(GlobalVar), 1, 1)]);
+        verify_tokens!("NULL", [(Identifier(Null), 1, 1)]);
+        verify_tokens!("return", [(Identifier(Return), 1, 1)]);
+        verify_tokens!("include", [(Identifier(Include), 1, 1)]);
+        verify_tokens!("exit", [(Identifier(Exit), 1, 1)]);
+        verify_tokens!("break", [(Identifier(Break), 1, 1)]);
+        verify_tokens!("continue", [(Identifier(Continue), 1, 1)]);
     }
 
     #[test]
     fn string_quoting() {
         use Category::*;
         verify_tokens!(
-            r###"'webapps\\appliance\\'"###,
-            vec![(Data("webapps\\\\appliance\\\\".as_bytes().to_vec()), 1, 1)]
+            r"'webapps\\appliance\\'",
+            [(Data("webapps\\\\appliance\\\\".as_bytes().to_vec()), 1, 1)]
         );
     }
 
@@ -969,7 +967,7 @@ mod tests {
         use Category::*;
         verify_tokens!(
             "10.187.76.12",
-            vec![(IPv4Address("10.187.76.12".to_owned()), 1, 1)]
+            [(IPv4Address("10.187.76.12".to_owned()), 1, 1)]
         );
     }
 

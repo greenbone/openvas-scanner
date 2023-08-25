@@ -8,11 +8,11 @@ mod tests {
 
     #[test]
     fn set_kb_item() {
-        let code = r###"
+        let code = r#"
         set_kb_item(name: "test", value: 1);
         set_kb_item(name: "test");
         set_kb_item(value: 1);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -25,11 +25,11 @@ mod tests {
     }
     #[test]
     fn get_kb_item() {
-        let code = r###"
+        let code = r#"
         set_kb_item(name: "test", value: 1);
         get_kb_item("test");
         get_kb_item("test", 1);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

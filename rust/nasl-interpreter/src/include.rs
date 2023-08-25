@@ -69,11 +69,11 @@ mod tests {
         .to_string();
         let plugins = HashMap::from([("example.inc".to_string(), example)]);
         let loader = FakeInclude { plugins };
-        let code = r###"
+        let code = r#"
         include("example.inc");
         a;
         test();
-        "###;
+        "#;
         let mut register = Register::default();
         let context = ContextBuilder {
             loader: Box::new(loader),

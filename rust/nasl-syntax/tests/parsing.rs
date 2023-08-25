@@ -128,10 +128,10 @@ req = raw_string(0x00, 0x00, 0x03, 0x14, 0x08, 0x14, 0xff, 0x9f,
 
     #[test]
     fn jsp_example() {
-        let code = r###"
+        let code = r#"
   gms_path = gms_path + 'webapps\\appliance\\';
 jsp = '<% out.println( "' + jsp_print  + '" ); %>';
-        "###;
+        "#;
         for x in parse(code) {
             x.unwrap();
         }
