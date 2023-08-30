@@ -24,4 +24,5 @@ members = [
   "osp",
   "openvasd", 
   "scanconfig",
+  "smoketest",
 ]
