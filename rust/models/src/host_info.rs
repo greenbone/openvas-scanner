@@ -23,8 +23,8 @@ pub struct HostInfo {
     pub finished: u32,
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "Vec::is_empty")
+        serde(skip_serializing_if = "Option::is_none")
     )]
     /// IPs of hosts, that are currently scanned.
-    pub scanning: Vec<String>,
+    pub scanning: Option<Vec<String>>,
 }

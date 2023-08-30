@@ -613,7 +613,7 @@ impl From<Scan> for models::Status {
                     - i.count_alive.content.0
                     - i.host.len() as u32,
                 finished: i.count_alive.content.0,
-                scanning,
+                scanning: Some(scanning),
             }),
         }
     }
