@@ -3,7 +3,7 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// openvasd 
+    /// openvasd
     #[arg(short, long)]
     openvasd: String,
     /// Scan Config
@@ -18,7 +18,6 @@ pub struct Args {
     /// Client private key
     #[arg(short, long)]
     key: Option<String>,
-    
 }
 
 impl Args {

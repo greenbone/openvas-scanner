@@ -1,9 +1,9 @@
 mod config;
 mod tests;
 
-use config::Args;
-use clap::Parser;
 use crate::tests::*;
+use clap::Parser;
+use config::Args;
 use smoketest::new_client;
 
 #[tokio::main]
@@ -17,12 +17,12 @@ async fn main() {
     let cli = new_client(&args.api_key(), &args.cert(), &args.key());
     tracing::info!("Starting smoke test");
     tracing::info!("\n\nTEST 1: Check server connection:");
-    if !test1::check_server(&cli, &args.openvasd()).await{
+    if !test1::check_server(&cli, &args.openvasd()).await {
         tracing::info!("TEST 1: FAILED:");
         return;
     }
     tracing::info!("\n\nTEST 2: Running successful scan:");
-    if !test2::run_scan(&cli, &args.openvasd(), &args.scan_config()).await{
+    if !test2::run_scan(&cli, &args.openvasd(), &args.scan_config()).await {
         tracing::info!("TEST 2: FAILED");
     }
 }
