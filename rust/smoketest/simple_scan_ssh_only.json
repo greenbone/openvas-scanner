@@ -1,4 +1,4 @@
-{"target": {"hosts": ["192.168.0.1"],
+{"target": {"hosts": ["<hostname>"],
     "ports": [
       {
         "protocol": "tcp",
@@ -15,8 +15,8 @@
         "service": "ssh",
         "port": 22,
         "up": {
-          "username": "user",
-          "password": "pass"
+          "username": "<username>",
+          "password": "<password>"
         }
       }
     ]
