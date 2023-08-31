@@ -1,6 +1,6 @@
 use models::{Phase, Result as ScanResult, Status};
 use reqwest::header;
-use serde_json;
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
@@ -13,7 +13,7 @@ pub fn new_client(
 ) -> reqwest::Client {
     let mut headers = header::HeaderMap::new();
     if let Some(k) = apikey {
-        headers.insert("X-API-KEY", header::HeaderValue::from_str(&k).unwrap());
+        headers.insert("X-API-KEY", header::HeaderValue::from_str(k).unwrap());
     }
     headers.insert(
         "Content-Type",
@@ -24,11 +24,11 @@ pub fn new_client(
     // There are key-cert credentials
     if let Some(k) = key {
         if let Some(c) = cert {
-            let mut file = File::open(&k).unwrap();
+            let mut file = File::open(k).unwrap();
             let mut ident = String::new();
             file.read_to_string(&mut ident).unwrap();
 
-            let mut file = File::open(&c).unwrap();
+            let mut file = File::open(c).unwrap();
             let mut aux = String::new();
             file.read_to_string(&mut aux).unwrap();
 
@@ -51,7 +51,7 @@ pub async fn create_scan(
     server: &String,
     scan_config: &String,
 ) -> Option<String> {
-    let mut file = File::open(&scan_config).unwrap();
+    let mut file = File::open(scan_config).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
 
