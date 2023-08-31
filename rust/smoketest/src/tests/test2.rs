@@ -1,8 +1,8 @@
-use models::{Phase};
+use models::Phase;
 use smoketest::*;
 
 /// Run a successful scan. Get results and delete the scan
-pub async fn run_scan (cli: &reqwest::Client, server: &String, scan_config: &String) -> bool {
+pub async fn run_scan(cli: &reqwest::Client, server: &String, scan_config: &String) -> bool {
     if let Some(id) = create_scan(&cli, &server, &scan_config).await {
         if !scan_action(&cli, &server, &id, "start".to_string()).await {
             return false;
