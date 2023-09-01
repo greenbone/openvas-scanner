@@ -7,13 +7,13 @@ mod tests {
 
     #[test]
     fn hexstr() {
-        let code = r###"
+        let code = r#"
         a = 'foo';
         hexstr('foo');
         hexstr('foo', "I will be ignored");
         hexstr(6);
         hexstr();
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -28,11 +28,11 @@ mod tests {
     }
     #[test]
     fn raw_string() {
-        let code = r###"
+        let code = r#"
         raw_string(0x7B);
         raw_string(0x7B, 1);
         raw_string(0x7B, 1, "Hallo");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -93,12 +93,12 @@ mod tests {
     }
     #[test]
     fn string() {
-        let code = r###"
+        let code = r#"
         string(0x7B);
         string(0x7B, 1);
         string(0x7B, 1, "Hallo");
         string(0x7B, 1, NULL, "Hallo");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -113,11 +113,11 @@ mod tests {
 
     #[test]
     fn substr() {
-        let code = r###"
+        let code = r#"
         substr("hello", 1);
         substr("hello", 0, 4);
         substr("hello", 6);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -131,11 +131,11 @@ mod tests {
 
     #[test]
     fn crap() {
-        let code = r###"
+        let code = r#"
         crap(5);
         crap(length: 5);
         crap(data: "ab", length: 5);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -149,12 +149,12 @@ mod tests {
 
     #[test]
     fn chomp() {
-        let code = r###"
+        let code = r#"
         chomp("abc");
         chomp("abc\n");
         chomp("abc  ");
         chomp("abc\n\t\r ");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -169,14 +169,14 @@ mod tests {
 
     #[test]
     fn stridx() {
-        let code = r###"
+        let code = r#"
         stridx("abc", "bcd");
         stridx("abc", "bc");
         stridx("abc", "abc");
         stridx("blahabc", "abc", 4);
         stridx("blahabc", "abc", 3);
         stridx("blahbc", "abc", 2);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -193,9 +193,9 @@ mod tests {
 
     #[test]
     fn display() {
-        let code = r###"
+        let code = r#"
         display("abc");
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -207,10 +207,10 @@ mod tests {
 
     #[test]
     fn hexstr_to_data() {
-        let code = r###"
+        let code = r#"
         a = hexstr_to_data("4bb3c4a4f893ad8c9bdc833c325d62b3");
         data_to_hexstr(a);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

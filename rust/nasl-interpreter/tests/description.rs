@@ -38,7 +38,7 @@ mod tests {
 
     #[test]
     fn description() {
-        let code = r###"
+        let code = r#"
 rc = 23;
 if(description)
 {
@@ -61,7 +61,7 @@ if(description)
   script_add_preference(name:"Without ID", type:"password", value:"");
   exit(rc);
 }
-        "###;
+        "#;
         let storage = DefaultDispatcher::new(true);
         let loader = NoOpLoader::default();
         let initial = [(

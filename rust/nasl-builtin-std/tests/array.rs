@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn make_list() {
-        let code = r###"
+        let code = r#"
         a = [2,4];
         make_list(1, 0);
         make_list();
@@ -56,7 +56,7 @@ mod tests {
         b = make_array("el", 6);
         make_list(1, 0, b);
         make_list(1, 0, a);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -107,11 +107,11 @@ mod tests {
 
     #[test]
     fn sort() {
-        let code = r###"
+        let code = r#"
         a = make_array(5, 6, 7, 8);
         l = make_list("abbb", 1, "aaaa", 0, a);
         s = sort(l);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
@@ -134,11 +134,11 @@ mod tests {
 
     #[test]
     fn keys() {
-        let code = r###"
+        let code = r#"
         a = make_array("a", 6);
         l = make_list("foo", "bar");
         keys(a,l);
-        "###;
+        "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();

@@ -15,11 +15,11 @@ mod tests {
 
     #[test]
     fn get_local_mac_address_from_ip() {
-        let code = r###"
+        let code = r#"
         get_local_mac_address_from_ip(127.0.0.1);
         get_local_mac_address_from_ip("127.0.0.1");
         get_local_mac_address_from_ip("::1");
-        "###;
+        "#;
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
@@ -43,13 +43,13 @@ mod tests {
 
     #[test]
     fn forge_frame() {
-        let code = r###"
+        let code = r#"
         src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
         dst = "0a:0b:0c:0d:0e:0f";
         a = forge_frame(src_haddr: src , dst_haddr: dst,
         ether_proto: 0x0806, payload: "abcd" );
         dump_frame(frame:a);
-        "###;
+        "#;
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
@@ -73,7 +73,7 @@ mod tests {
     }
     #[test]
     fn send_frame() {
-        let code = r###"
+        let code = r#"
         src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
         dst = "0a:0b:0c:0d:0e:0f";
         a = forge_frame(src_haddr: src , dst_haddr: dst,
@@ -81,7 +81,7 @@ mod tests {
         send_frame(frame: a, pcap_active: FALSE);
         send_frame(frame: a, pcap_active: TRUE);
         send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
-        "###;
+        "#;
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
         let context = binding.build();

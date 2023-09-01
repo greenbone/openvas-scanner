@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn modify_elements() {
-        let code = r###"
+        let code = r#"
         ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,
                      ip_tos : 0,
@@ -104,7 +104,7 @@ mod tests {
         elem = get_ip_element(ip: ip_packet, element: "ip_ttl");
         ip_packet = set_ip_elements(ip: ip_packet, ip_ttl: 127, ip_src: 192.168.0.10);
         elem = get_ip_element(ip: ip_packet, element: "ip_ttl");
-        "###;
+        "#;
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn ip_opts() {
-        let code = r###"
+        let code = r#"
         ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,
                      ip_tos : 0,
@@ -135,7 +135,7 @@ mod tests {
 
         ip_packet = insert_ip_options(ip: ip_packet, code: 131, length:5, value: "12");
         opt = get_ip_element(ip: ip_packet, element: "ip_hl");
-        "###;
+        "#;
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn forge_udp() {
-        let code = r###"
+        let code = r#"
         ip_packet = forge_ip_packet(ip_v : 4,
                              ip_hl : 5,
                              ip_tos : 0,
@@ -212,7 +212,7 @@ mod tests {
                                       uh_len:   8,
                                       th_sum:   0,
                                       data: "1234");
-        "###;
+        "#;
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     fn forge_icmp() {
-        let code = r###"
+        let code = r#"
             ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,
                      ip_tos : 0,
@@ -256,7 +256,7 @@ mod tests {
                      icmp_seq:   1,
                      icmp_id:   1,
                      data: "1234");
-        "###;
+        "#;
         let mut register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
