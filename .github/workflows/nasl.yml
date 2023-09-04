@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container: greenbone/gvm-libs:unstable
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh

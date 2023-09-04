@@ -51,7 +51,7 @@ jobs:
       release_ref:  ${{ steps.version.outputs.release_ref }}
       project:  ${{ steps.version.outputs.project}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           fetch-depth: '0'
@@ -130,7 +130,7 @@ jobs:
       NEW_VERSION: ${{needs.calculate_version.outputs.new_version}}
       PROJECT: ${{needs.calculate_version.outputs.project}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           fetch-depth: '0'
