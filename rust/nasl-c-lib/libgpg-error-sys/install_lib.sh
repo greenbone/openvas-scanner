@@ -1,19 +1,21 @@
 #!/bin/sh
-
+[ -z "$CLEAN" ] && CLEAN=0 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 WORK_DIR=$SCRIPT_DIR/../tmp
 LIB_VERSION=1.47
 LIB_NAME=libgpg-error
 PREFIX=$SCRIPT_DIR/..
+set -ex
 
-mkdir -p "$WORK_DIR"
-cd "$WORK_DIR" || { echo "fatal error" >&2; rm -rf "$SCRIPT_DIR/../tmp"; exit 1; }
+[ "$CLEAN" -ne 0 ] && rm -rf "$WORK_DIR"
 
-curl -O https://gnupg.org/ftp/gcrypt/$LIB_NAME/$LIB_NAME-$LIB_VERSION.tar.bz2 || { echo "fatal error" >&2; rm -rf "$SCRIPT_DIR/../tmp"; exit 2; }
-tar -xf $LIB_NAME-$LIB_VERSION.tar.bz2 || { echo "fatal error" >&2; rm -rf "$SCRIPT_DIR/../tmp"; exit 3; }
-cd $LIB_NAME-$LIB_VERSION || { echo "fatal error" >&2; rm -rf "$SCRIPT_DIR/../tmp"; exit 4; }
+[ ! -d "$WORKDIR" ] && mkdir -p "$WORK_DIR"
+cd "$WORK_DIR"
 
-./configure --prefix $PREFIX --enable-static --disable-shared || { echo "fatal error" >&2; rm -rf "$SCRIPT_DIR/../tmp"; exit 5; }
-make install || { echo "fatal error" >&2; rm -rf "$SCRIPT_DIR/../tmp"; exit 6; }
+[ ! -f "$LIB_NAME-$LIB_VERSION.tar.bz2" ] && curl --fail -O https://gnupg.org/ftp/gcrypt/$LIB_NAME/$LIB_NAME-$LIB_VERSION.tar.bz2 
+[ ! -d "$LIB_NAME-$LIB_VERSION" ] && tar -xf $LIB_NAME-$LIB_VERSION.tar.bz2
+cd $LIB_NAME-$LIB_VERSION
 
-rm -rf "$SCRIPT_DIR/../tmp"
+./configure --prefix $PREFIX --enable-static --disable-shared
+make install
+
