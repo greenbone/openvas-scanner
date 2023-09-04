@@ -10,6 +10,7 @@ WORKDIR /tmp
 RUN tar xvf pcap.tar.gz
 RUN ls -las
 WORKDIR /tmp/libpcap-1.10.3
+ENV CHOST=amd64
 ENV CC=x86_64-linux-gnu-gcc
 ENV CFLAGS='-Os'
 RUN ./configure --host=x86_64-unknown-linux-gnu --with-pcap=linux
@@ -20,8 +21,6 @@ RUN curl --output /tmp/zlib.tar.gz https://www.zlib.net/zlib-1.3.tar.gz
 WORKDIR /tmp
 RUN tar xvf zlib.tar.gz
 WORKDIR /tmp/zlib-1.3
-ENV CC=x86_64-linux-gnu-gcc
-ENV CHOST=amd64
 RUN ./configure
 RUN make install
 RUN ldconfig
@@ -31,8 +30,6 @@ WORKDIR /tmp
 RUN tar xvf openssl.tar.gz
 RUN ls -las
 WORKDIR /tmp/openssl-1.1.1
-ENV CC=x86_64-linux-gnu-gcc
-ENV CFLAGS='-Os'
 RUN ./Configure linux-x86_64 --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
 ENV LD_LIBRARY_PATH=/usr/local/ssl/lib:${LD_LIBRARY_PATH}
 RUN ldconfig

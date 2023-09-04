@@ -10,12 +10,14 @@ RUN apt-get update && apt-get install -y \
   curl \
   zlib1g-dev
 RUN curl -o /tmp/pcap.tar.gz https://www.tcpdump.org/release/libpcap-1.10.3.tar.gz
+ENV CC=aarch64-linux-gnu-gcc
+ENV CFLAGS='-Os'
+ENV CHOST=arm64
+
 WORKDIR /tmp
 RUN tar xvf pcap.tar.gz
 RUN ls -las
 WORKDIR /tmp/libpcap-1.10.3
-ENV CC=aarch64-linux-gnu-gcc
-ENV CFLAGS='-Os'
 RUN ./configure --host=aarch64-unknown-linux-gnu --with-pcap=linux
 RUN cat config.log
 RUN make install
@@ -24,8 +26,6 @@ RUN curl --output /tmp/zlib.tar.gz https://www.zlib.net/zlib-1.3.tar.gz
 WORKDIR /tmp
 RUN tar xvzf zlib.tar.gz
 WORKDIR /tmp/zlib-1.3
-ENV CC=aarch64-linux-gnu-gcc
-ENV CHOST=arm64
 RUN ./configure
 RUN make install
 RUN ldconfig
@@ -35,8 +35,6 @@ WORKDIR /tmp
 RUN tar xvf openssl.tar.gz
 RUN ls -las
 WORKDIR /tmp/openssl-1.1.1
-ENV CC=aarch64-linux-gnu-gcc
-ENV CFLAGS='-Os'
 RUN ./Configure linux-aarch64 --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
 ENV LD_LIBRARY_PATH=/usr/local/ssl/lib:${LD_LIBRARY_PATH}
 RUN ldconfig
