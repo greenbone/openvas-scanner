@@ -152,7 +152,7 @@ impl ScanDeleter for OSPDWrapper {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            osp::get_delete_scan_results(socket, rtimeout, id)
+            osp::delete_scan(socket, rtimeout, id)
                 .map(|_| ())
                 .map_err(Error::from)
         })
