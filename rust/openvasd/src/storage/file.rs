@@ -95,7 +95,7 @@ where
         let storage = Arc::clone(&self.storage);
 
         use infisto::base::Range;
-        use infisto::serde::Serialization;
+        use infisto::bincode::Serialization;
         tokio::task::spawn_blocking(move || {
             let storage = storage.read().unwrap();
             let scans: Vec<Serialization<models::Scan>> = storage.by_range(&key, Range::All)?;
@@ -105,8 +105,8 @@ where
             dbg!(&status);
 
             match scans.first() {
-                Some(Serialization::Deserialize(scan)) => match status.first() {
-                    Some(Serialization::Deserialize(status)) => Ok((scan.clone(), status.clone())),
+                Some(Serialization::Deserialized(scan)) => match status.first() {
+                    Some(Serialization::Deserialized(status)) => Ok((scan.clone(), status.clone())),
                     Some(_) => Err(Error::Serialization),
                     None => Err(Error::NotFound),
                 },
@@ -120,7 +120,7 @@ where
     async fn get_scan_ids(&self) -> Result<Vec<String>, Error> {
         let storage = Arc::clone(&self.storage);
         use infisto::base::Range;
-        use infisto::serde::Serialization;
+        use infisto::bincode::Serialization;
         tokio::task::spawn_blocking(move || {
             let storage = &storage.read().unwrap();
             let scans: Vec<Serialization<String>> = match storage.by_range("scans", Range::All) {
@@ -132,7 +132,7 @@ where
                 .into_iter()
                 .filter_map(|x| match x {
                     Serialization::Serialized(_) => None,
-                    Serialization::Deserialize(x) => Some(x),
+                    Serialization::Deserialized(x) => Some(x),
                 })
                 .collect();
             scans.sort();
@@ -147,12 +147,12 @@ where
         let storage = Arc::clone(&self.storage);
 
         use infisto::base::Range;
-        use infisto::serde::Serialization;
+        use infisto::bincode::Serialization;
         tokio::task::spawn_blocking(move || {
             let storage = &storage.read().unwrap();
             let status: Vec<Serialization<models::Status>> = storage.by_range(&key, Range::All)?;
             match status.first() {
-                Some(Serialization::Deserialize(status)) => Ok(status.clone()),
+                Some(Serialization::Deserialized(status)) => Ok(status.clone()),
                 Some(_) => Err(Error::Serialization),
                 None => Err(Error::NotFound),
             }
@@ -167,7 +167,7 @@ impl<S> AppendFetchResult for Storage<S>
 where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
 {
-    async fn append_fetch_result(
+    async fn append_fetched_result(
         &self,
         id: &str,
         (status, results): FetchResult,
@@ -205,13 +205,13 @@ where
         let status_key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
         tokio::task::spawn_blocking(move || {
-            let scan = infisto::serde::Serialization::serialize(scan)?;
-            let status = infisto::serde::Serialization::serialize(models::Status::default())?;
+            let scan = infisto::bincode::Serialization::serialize(scan)?;
+            let status = infisto::bincode::Serialization::serialize(models::Status::default())?;
             let mut storage = storage.write().unwrap();
             storage.put(&key, scan)?;
             storage.put(&status_key, status)?;
 
-            let stored_key = infisto::serde::Serialization::serialize(&id)?;
+            let stored_key = infisto::bincode::Serialization::serialize(&id)?;
             storage.append("scans", stored_key)?;
             Ok(())
         })
@@ -227,7 +227,7 @@ where
         let ids: Vec<_> = ids
             .into_iter()
             .filter(|x| x != id)
-            .filter_map(|x| infisto::serde::Serialization::serialize(x).ok())
+            .filter_map(|x| infisto::bincode::Serialization::serialize(x).ok())
             .collect();
 
         tokio::task::spawn_blocking(move || {
@@ -248,7 +248,7 @@ where
         let storage = Arc::clone(&self.storage);
 
         tokio::task::spawn_blocking(move || {
-            let status = infisto::serde::Serialization::serialize(status)?;
+            let status = infisto::bincode::Serialization::serialize(status)?;
             let mut storage = storage.write().unwrap();
             storage.put(&key, status)?;
             Ok(())
@@ -272,7 +272,7 @@ where
         tokio::task::spawn_blocking(move || {
             let oids = oids
                 .into_iter()
-                .filter_map(|x| infisto::serde::Serialization::serialize(x.to_string()).ok())
+                .filter_map(|x| infisto::bincode::Serialization::serialize(x.to_string()).ok())
                 .collect::<Vec<_>>();
 
             let mut storage = storage.write().unwrap();
@@ -294,9 +294,11 @@ where
         let storage: S = storage.deref().clone();
         let iter = infisto::base::IndexedByteStorageIterator::<
             _,
-            infisto::serde::Serialization<String>,
+            infisto::bincode::Serialization<String>,
         >::new(&key, storage)?;
-        let parsed = iter.filter_map(|x| x.ok()).filter_map(|x| x.deserialize().ok());
+        let parsed = iter
+            .filter_map(|x| x.ok())
+            .filter_map(|x| x.deserialize().ok());
         Ok(Box::new(parsed))
     }
 
@@ -318,6 +320,53 @@ mod tests {
         let serialized = bincode::serialize(&scan).unwrap();
         let deserialized = bincode::deserialize(&serialized).unwrap();
         assert_eq!(scan, deserialized);
+    }
+
+    #[tokio::test]
+    async fn credentials() {
+        let jraw = r#"
+{
+  "target": {
+    "hosts": [
+      "192.168.123.52"
+    ],
+    "ports": [
+      {
+        "protocol": "tcp",
+        "range": [
+          {
+            "start": 22,
+            "end": 22
+          }
+        ]
+      }
+    ],
+    "credentials": [
+      {
+        "service": "ssh",
+        "port": 22,
+        "up": {
+          "username": "msfadmin",
+          "password": "msfadmin"
+        }
+      }
+    ]
+  },
+  "vts": [
+    {
+      "oid": "1.3.6.1.4.1.25623.1.0.90022"
+    }
+  ]
+}
+        "#;
+        let mut scan: Scan = serde_json::from_str(jraw).unwrap();
+        scan.scan_id = Some("aha".to_string());
+        let storage =
+            infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/credential").unwrap();
+        let storage = crate::storage::file::Storage::new(storage);
+        storage.insert_scan(scan.clone()).await.unwrap();
+        let (scan2, _) = storage.get_scan("aha").await.unwrap();
+        assert_eq!(scan, scan2);
     }
 
     #[tokio::test]
@@ -367,7 +416,7 @@ mod tests {
         let status = models::Status::default();
         let results = vec![models::Result::default()];
         storage
-            .append_fetch_result("42", (status, results))
+            .append_fetched_result("42", (status, results))
             .await
             .unwrap();
 
@@ -376,7 +425,7 @@ mod tests {
 
         let results = vec![models::Result::default()];
         storage
-            .append_fetch_result("42", (status.clone(), results))
+            .append_fetched_result("42", (status.clone(), results))
             .await
             .unwrap();
         let stored_status = storage.get_status("42").await.unwrap();

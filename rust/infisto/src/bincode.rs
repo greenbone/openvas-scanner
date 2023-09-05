@@ -1,7 +1,6 @@
 //! Contains helper for serializing and deserializing structs.
-use serde::{Deserialize, Serialize};
-
 use crate::base;
+use bincode::{Decode, Encode};
 
 #[derive(Debug)]
 /// Serializes and deserializes data
@@ -14,13 +13,13 @@ pub enum Serialization<T> {
 
 impl<T> Serialization<T>
 where
-    T: Serialize,
+    T: Encode,
 {
     /// Serializes given data to Vec<u8>
     pub fn serialize(t: T) -> Result<Self, base::Error> {
         let config = bincode::config::standard();
 
-        match bincode::serde::encode_to_vec(&t, config) {
+        match bincode::encode_to_vec(&t, config) {
             Ok(v) => Ok(Serialization::Serialized(v)),
             Err(_) => Err(base::Error::Serialize),
         }
@@ -37,13 +36,13 @@ where
 
 impl<T> TryFrom<Vec<u8>> for Serialization<T>
 where
-    T: for<'de> Deserialize<'de>,
+    T: Decode,
 {
     type Error = base::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         let config = bincode::config::standard();
-        match bincode::serde::decode_from_slice(&value, config) {
+        match bincode::decode_from_slice(&value, config) {
             Ok((t, _)) => Ok(Serialization::Deserialized(t)),
             Err(_) => Err(base::Error::Serialize),
         }
@@ -70,12 +69,11 @@ impl<T> From<Serialization<T>> for Vec<u8> {
 
 #[cfg(test)]
 mod test {
-    use serde::{Deserialize, Serialize};
 
     use crate::base::{CachedIndexFileStorer, IndexedByteStorage, Range};
 
     const BASE: &str = "/tmp/openvasd/unittest";
-    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+    #[derive(bincode::Decode, bincode::Encode, Clone, Debug, PartialEq)]
     struct Test {
         a: u32,
         b: u32,

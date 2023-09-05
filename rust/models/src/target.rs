@@ -10,6 +10,7 @@ use super::{credential::Credential, port::Port};
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Target {
     /// List of hosts to scan
     pub hosts: Vec<String>,
@@ -39,6 +40,7 @@ pub struct Target {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
 pub enum AliveTestMethods {
     Icmp,

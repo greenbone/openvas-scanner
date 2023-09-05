@@ -8,6 +8,7 @@
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct HostInfo {
     /// Number of all hosts, that are contained in a target
     pub all: u32,

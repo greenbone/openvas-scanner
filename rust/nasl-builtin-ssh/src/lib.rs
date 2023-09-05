@@ -963,18 +963,16 @@ impl Ssh {
                     loop {
                         match session.session.userauth_keyboard_interactive(None, None) {
                             Ok(AuthStatus::Info) => {
-                                let info = match session
-                                    .session
-                                    .userauth_keyboard_interactive_info()
-                                {
-                                    Ok(i) => i,
-                                    Err(_) => {
-                                        return Err(FunctionErrorKind::Dirty(format!(
+                                let info =
+                                    match session.session.userauth_keyboard_interactive_info() {
+                                        Ok(i) => i,
+                                        Err(_) => {
+                                            return Err(FunctionErrorKind::Dirty(format!(
                                             "Failed setting user authentication for SessionID {}",
                                             session_id
                                         )));
-                                    }
-                                };
+                                        }
+                                    };
                                 if verbose {
                                     ctx.logger().info(&format!("SSH kbdint name={}", info.name));
                                     ctx.logger().info(&format!(
@@ -1533,18 +1531,16 @@ impl Ssh {
                     loop {
                         match session.session.userauth_keyboard_interactive(None, None) {
                             Ok(AuthStatus::Info) => {
-                                let info = match session
-                                    .session
-                                    .userauth_keyboard_interactive_info()
-                                {
-                                    Ok(i) => i,
-                                    Err(_) => {
-                                        return Err(FunctionErrorKind::Dirty(format!(
+                                let info =
+                                    match session.session.userauth_keyboard_interactive_info() {
+                                        Ok(i) => i,
+                                        Err(_) => {
+                                            return Err(FunctionErrorKind::Dirty(format!(
                                             "Failed setting user authentication for SessionID {}",
                                             session_id
                                         )));
-                                    }
-                                };
+                                        }
+                                    };
                                 if verbose {
                                     ctx.logger().info(&format!("SSH kbdint name={}", info.name));
                                     ctx.logger().info(&format!(

@@ -12,6 +12,7 @@ use super::host_info::HostInfo;
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Status {
     /// Timestamp for the start of a scan
     pub start_time: Option<u32>,
@@ -40,6 +41,7 @@ impl Status {
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub enum Phase {
     /// A scan has been stored but not started yet
     #[default]

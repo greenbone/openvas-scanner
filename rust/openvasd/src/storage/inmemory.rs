@@ -100,7 +100,7 @@ impl<E> AppendFetchResult for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn append_fetch_result(
+    async fn append_fetched_result(
         &self,
         id: &str,
         (status, results): FetchResult,
@@ -274,10 +274,14 @@ mod tests {
         storage.insert_scan(scan).await.unwrap();
         let fetch_result = (models::Status::default(), vec![models::Result::default()]);
         storage
-            .append_fetch_result(&id, fetch_result)
+            .append_fetched_result(&id, fetch_result)
             .await
             .unwrap();
-        let results: Vec<_> = storage.get_results(&id, None, None).await.unwrap().collect();
+        let results: Vec<_> = storage
+            .get_results(&id, None, None)
+            .await
+            .unwrap()
+            .collect();
         assert_eq!(results.len(), 1);
 
         let result: models::Result = serde_json::from_slice(&results[0]).unwrap();

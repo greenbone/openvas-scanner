@@ -374,7 +374,6 @@ impl Config {
             if !key.is_empty() {
                 config.storage.fs.key = Some(key.clone());
             }
-
         }
         config
     }

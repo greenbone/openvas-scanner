@@ -4,7 +4,6 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 
-
 use crate::{crypt, scan::FetchResult};
 
 #[derive(Debug)]
@@ -109,7 +108,7 @@ pub trait ScanStorer {
 ///
 /// This is used when a scan is started and the results are fetched from ospd.
 pub trait AppendFetchResult {
-    async fn append_fetch_result(&self, id: &str, results: FetchResult) -> Result<(), Error>;
+    async fn append_fetched_result(&self, id: &str, results: FetchResult) -> Result<(), Error>;
 }
 
 #[async_trait]

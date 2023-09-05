@@ -58,10 +58,7 @@ impl<T> From<PoisonError<T>> for Error {
 impl OSPDWrapper {
     /// Creates a new instance of OSPDWrapper
     pub fn new(socket: PathBuf, r_timeout: Option<Duration>) -> Self {
-        Self {
-            socket,
-            r_timeout,
-        }
+        Self { socket, r_timeout }
     }
 
     fn check_socket(&self) -> Result<PathBuf, Error> {

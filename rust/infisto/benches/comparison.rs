@@ -7,7 +7,6 @@ use infisto::base::{CachedIndexFileStorer, IndexedByteStorage};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 
-
 const BASE: &str = "/tmp/openvasd";
 
 pub fn reading(c: &mut Criterion) {

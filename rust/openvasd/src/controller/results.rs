@@ -50,7 +50,7 @@ where
                                 // store them in the database.
                                 // When this happens we effectively lost the results
                                 // and need to escalate this.
-                                ctx.db.append_fetch_result(id, fr).await.unwrap();
+                                ctx.db.append_fetched_result(id, fr).await.unwrap();
                             }
                             Err(crate::scan::Error::Poisoned) => {
                                 quit_on_poison::<()>();
