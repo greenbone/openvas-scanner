@@ -16,7 +16,6 @@ members = [
   "nasl-interpreter",
   "nasl-cli",
   "nasl-c-lib",
-  "nasl-c-lib/libgpg-error-sys",
   "nasl-c-lib/libgcrypt-sys",
   "storage",
   "redis-storage",

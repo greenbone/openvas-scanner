@@ -1,3 +1,5 @@
+[build.env]
+passthrough = ["IN_CROSS=1", "CLEAN=1"]
 [target.aarch64-unknown-linux-gnu]
 dockerfile = "cross_aarch64.Dockerfile"
 [target.x86_64-unknown-linux-gnu]

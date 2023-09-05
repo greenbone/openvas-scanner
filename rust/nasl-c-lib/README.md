@@ -4,14 +4,10 @@ Contains functions and structures written in c and wrapper, to be able to use th
 
 This library uses the rust cc crate, which is able to compile c code with the system standard c compiler.
 
-For parts of the c implementation some external libraries are necessary in order to compile it. The following libraries are currently necessary:
+For parts of the c implementation some external libraries are necessary in order to compile it. 
+
+The following libraries are compiled as a static library:
 - libgcrypt
-
-
-To install all necessary libraries on Debian GNU/Linux 'Bullseye' 11:
-```
-apt-get install libgcrypt20-dev
-```
 
 ## Add new c functions
 

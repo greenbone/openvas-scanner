@@ -1,8 +1,16 @@
-use std::process::Command;
+use std::{process::Command, env};
 
 fn main() {
-    println!("cargo:rerun-if-changed=install_lib.sh");
-    let out = Command::new("sh").arg("install_lib.sh").output();
+    println!("cargo:rerun-if-changed=install-gcrypt.sh");
+    let target = env::var("TARGET").unwrap_or_default();
+    let cross = env::var("IN_CROSS").unwrap_or_default();
+    let clean = env::var("CLEAN").unwrap_or_default();
+    let out = Command::new("sh")
+        .arg("install-gcrypt.sh")
+        .env("TARGET", target)
+        .env("IN_CROSS", cross)
+        .env("CLEAN", clean)
+        .output();
     match out {
         Ok(out) => {
             match out.status.code() {
