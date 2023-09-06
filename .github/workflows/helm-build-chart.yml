@@ -6,6 +6,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  API_KEY: changeme
+  OPENVASD: 127.0.0.1:8080
+
 jobs:
   openvasd:
     runs-on: ubuntu-latest
@@ -21,7 +25,20 @@ jobs:
           helm uninstall openvasd || true 
           helm install openvasd charts/openvasd/ --values charts/openvasd/values.yaml
           kubectl rollout status --watch --timeout 600s deployment/openvasd
-          helm test openvasd
+          sleep 5
+          #helm test openvasd
+          #echo "POD_NAME=$(kubectl get pods --namespace default -l 'app.kubernetes.io/name=openvasd,app.kubernetes.io/instance=openvasd' -o jsonpath='{.items[0].metadata.name}')"
+      - id: smoketest
+        run: echo "POD_NAME=$(kubectl get pods |grep openvasd | awk '{print $1;}')" >> $GITHUB_OUTPUT
+      - name: forward port
+        run: |
+          echo "POD_NAME: ${{ steps.smoketest.outputs.POD_NAME }}"
+          echo "$(kubectl get pods)"
+          kubectl --namespace default port-forward ${{ steps.smoketest.outputs.POD_NAME }} 8080:3000 &
+      - name: smoketest
+        working-directory: rust/smoketest
+        run: |
+          make build run        
       - uses: greenbone/actions/helm-build-push@v3
         if: github.event_name == 'workflow_dispatch'
         with:
