@@ -99,10 +99,8 @@ where
         tokio::task::spawn_blocking(move || {
             let storage = storage.read().unwrap();
             let scans: Vec<Serialization<models::Scan>> = storage.by_range(&key, Range::All)?;
-            dbg!(&scans);
             let status: Vec<Serialization<models::Status>> =
                 storage.by_range(&status_key, Range::All)?;
-            dbg!(&status);
 
             match scans.first() {
                 Some(Serialization::Deserialized(scan)) => match status.first() {
