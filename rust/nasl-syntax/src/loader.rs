@@ -35,6 +35,8 @@ impl Display for LoadError {
     }
 }
 
+impl std::error::Error for LoadError {}
+
 /// Loads the content of the path to String by parsing each byte to a character.
 ///
 /// Unfortunately the feed is not completely written in utf8 enforcing us to parse the content

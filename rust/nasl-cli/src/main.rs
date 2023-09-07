@@ -85,6 +85,29 @@ enum FeedAction {
         /// When it is skipped it will be obtained via `openvas -s`
         path: Option<PathBuf>,
     },
+    /// Transpiles the feed based on a given ruleset.
+    ///
+    Transpile {
+        /// The path to the NASL plugins.
+        ///
+        path: PathBuf,
+        /// Describes the rules for changing the rules.
+        ///
+        /// The rules describe how to find a certain element and how to replace it.
+        /// Currently only toml in the following format is supported:
+        /// ```text
+        /// [[cmds]]
+        ///
+        /// [cmds.find]
+        /// FunctionByName = "register_host_detail"
+        ///
+        /// [cmds.with]
+        /// Name = "add_host_detail"
+        /// ```
+        rules: PathBuf,
+        /// Prints the changed file names
+        verbose: bool,
+    },
 }
 
 trait RunAction<T> {
@@ -135,6 +158,53 @@ impl RunAction<()> for FeedAction {
                     }),
                     Err(e) => Err(e),
                 }
+            }
+            FeedAction::Transpile {
+                path,
+                rules,
+                verbose,
+            } => {
+                #[derive(serde::Deserialize, serde::Serialize)]
+                struct Wrapper {
+                    cmds: Vec<feed::transpile::ReplaceCommand>,
+                }
+
+                // TODO add from impl
+                let rules = std::fs::read_to_string(rules).unwrap();
+                let rules: Wrapper = toml::from_str(&rules).unwrap();
+                let rules = rules.cmds;
+                let base = path.to_str().unwrap_or_default();
+                for r in feed::transpile::FeedReplacer::new(base, &rules) {
+                    let name = r.unwrap();
+                    if let Some((name, content)) = name {
+                        use std::io::Write;
+                        let mut f = std::fs::OpenOptions::new()
+                            .write(true)
+                            .truncate(true)
+                            .open(&name)
+                            .map_err(|e| {
+                                let kind =
+                                    CliErrorKind::Corrupt(format!("unable to open {name}: {e}"));
+                                CliError {
+                                    filename: name.clone(),
+                                    kind,
+                                }
+                            })?;
+                        f.write_all(content.as_bytes()).map_err(|e| {
+                            let kind =
+                                CliErrorKind::Corrupt(format!("unable to write {name}: {e}"));
+                            CliError {
+                                filename: name.clone(),
+                                kind,
+                            }
+                        })?;
+
+                        if *verbose {
+                            eprintln!("changed {name}");
+                        }
+                    }
+                }
+                Ok(())
             }
         }
     }
@@ -312,6 +382,13 @@ fn main() {
                 .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
                     .value_parser(value_parser!(PathBuf)))
                 )
+                .subcommand(Command::new("transpile")
+                .about("Transforms each nasl script and inc file based on the given rules.")
+                .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
+                    .value_parser(value_parser!(PathBuf)))
+                .arg(arg!(-r --rules <FILE> "Path to transpiler rules.").required(true)
+                    .value_parser(value_parser!(PathBuf)))
+                )
         )
         .subcommand(
             Command::new("syntax")
@@ -375,6 +452,25 @@ When piping a scan json it is enriched with the scan-config xml and may the port
                 Commands::Feed {
                     action: FeedAction::Transform { path },
                 }
+            }
+
+            Some(("transpile", args)) => {
+                let path = match args.get_one("path").cloned() {
+                    Some(x) => x,
+                    None => unreachable!("path is set to required"),
+                };
+                let rules = match args.get_one("rules").cloned() {
+                    Some(x) => x,
+                    None => unreachable!("rules is set to required"),
+                };
+                Commands::Feed {
+                    action: FeedAction::Transpile {
+                        path,
+                        rules,
+                        verbose: verbose > 0,
+                    },
+                }
+                // ah
             }
             _ => unreachable!("subcommand_required prevents None"),
         },

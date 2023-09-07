@@ -200,10 +200,10 @@ where
         let (key, lookup) = {
             match left {
                 Variable(ref token) => (Self::identifier(token)?, None),
-                Array(ref token, Some(stmt)) => {
+                Array(ref token, Some(stmt), _) => {
                     (Self::identifier(token)?, Some(self.resolve(stmt)?))
                 }
-                Array(ref token, None) => (Self::identifier(token)?, None),
+                Array(ref token, None, _) => (Self::identifier(token)?, None),
                 _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };

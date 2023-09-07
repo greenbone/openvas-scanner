@@ -62,7 +62,7 @@ impl Run<String> {
                                 }
                             }
                         }
-                        Err(_) => todo!(),
+                        Err(e) => Err(e.into()),
                     }
                 }
                 None => Err(LoadError::NotFound(script.to_string()).into()),

@@ -88,13 +88,21 @@ impl From<VerifyError> for CliError {
                 actual: _,
                 key,
             } => key,
-            VerifyError::MissingKeyring => "Signature check enabled but missing keyring. Set GNUPGHOME environment variable.",
+            VerifyError::MissingKeyring => {
+                "Signature check enabled but missing keyring. Set GNUPGHOME environment variable."
+            }
             VerifyError::BadSignature(_) => "Bad signature",
         };
         Self {
             filename: filename.to_string(),
             kind: CliErrorKind::Corrupt(value.to_string()),
         }
+    }
+}
+
+impl From<VerifyError> for CliErrorKind {
+    fn from(value: VerifyError) -> Self {
+        Self::Corrupt(value.to_string())
     }
 }
 

@@ -82,6 +82,25 @@ impl IdentifierType {
 
     }
 
+    /// Returns the length of the identifier
+    pub fn len(&self) -> usize {
+        $(
+        if self == &$define {
+            return stringify!($matcher).len();
+        }
+        )*
+        if let IdentifierType::Undefined(r) = self {
+            return r.len();
+        } else {
+            return 0;
+        }
+    }
+
+    /// Returns true when len == 0
+    pub fn is_empty(&self) -> bool {
+         self.len() == 0
+    }
+
 }
 impl Display for IdentifierType {
 
@@ -363,12 +382,12 @@ impl Display for Category {
             Category::X => write!(f, "X"),
             Category::String(x) => write!(f, "\"{x}\""),
             Category::Number(x) => write!(f, "{x}"),
-            Category::IPv4Address(_) => write!(f, "IPv4Address"),
+            Category::IPv4Address(x) => write!(f, "{x}"),
             Category::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
             Category::IllegalNumber(_) => write!(f, "IllegalNumber"),
             Category::Comment => write!(f, "Comment"),
             Category::Identifier(x) => write!(f, "{}", x),
-            Category::Unclosed(x) => write!(f, "{x:?}"),
+            Category::Unclosed(x) => write!(f, "Unclosed{x:?}"),
             Category::UnknownBase => write!(f, "UnknownBase"),
             Category::UnknownSymbol => write!(f, "UnknownSymbol"),
             Category::Data(x) => write!(f, "{x:?}"),
@@ -382,7 +401,20 @@ pub struct Token {
     /// The category or kind of a token
     pub category: Category,
     /// The line and the column of the start of the token
+    pub line_column: (usize, usize),
+    /// Byte position
     pub position: (usize, usize),
+}
+
+impl Token {
+    /// Returns UnknownSymbol without line column or position
+    pub fn unexpected_none() -> Self {
+        Self {
+            category: Category::UnknownSymbol,
+            line_column: (0, 0),
+            position: (0, 0),
+        }
+    }
 }
 
 impl Display for Token {
@@ -390,7 +422,7 @@ impl Display for Token {
         write!(
             f,
             "{}:{} {}",
-            self.position.0, self.position.1, self.category
+            self.line_column.0, self.line_column.1, self.category
         )
     }
 }
@@ -748,7 +780,12 @@ impl<'a> Iterator for Tokenizer<'a> {
             current if current.is_alphabetic() || current == '_' => self.tokenize_identifier(start),
             _ => UnknownSymbol,
         };
-        Some(Token { category, position })
+        let byte_position = (start, self.cursor.len_consumed());
+        Some(Token {
+            category,
+            line_column: position,
+            position: byte_position,
+        })
     }
 }
 
@@ -756,285 +793,169 @@ impl<'a> Iterator for Tokenizer<'a> {
 mod tests {
     use super::*;
 
-    fn build_token(input: (Category, usize, usize)) -> Token {
-        let (category, start, end) = input;
-        Token {
-            category,
-            position: (start, end),
-        }
-    }
-
     // use macro instead of a method to have correct line numbers on failure
     macro_rules! verify_tokens {
         ($code:expr, $expected:expr) => {{
+            use std::string::String;
             let tokenizer = Tokenizer::new($code);
-            let actual: Vec<Token> = tokenizer.clone().collect();
-            let expected: Vec<Token> = $expected.iter().map(|x| build_token(x.clone())).collect();
+            let actual: Vec<String> = tokenizer.map(|t| t.category().to_string()).collect();
+            let expected: Vec<String> = $expected.iter().map(|s| s.to_string()).collect();
             assert_eq!(actual, expected);
-            (tokenizer, actual)
         }};
     }
 
     #[test]
     fn skip_white_space() {
-        verify_tokens!("     (       ", [(Category::LeftParen, 1, 6)]);
+        verify_tokens!("     (       ", ["("]);
     }
 
     #[test]
     fn single_symbol_tokens() {
-        verify_tokens!("(", [(Category::LeftParen, 1, 1)]);
-        verify_tokens!(")", [(Category::RightParen, 1, 1)]);
-        verify_tokens!("[", [(Category::LeftBrace, 1, 1)]);
-        verify_tokens!("]", [(Category::RightBrace, 1, 1)]);
-        verify_tokens!("{", [(Category::LeftCurlyBracket, 1, 1)]);
-        verify_tokens!("}", [(Category::RightCurlyBracket, 1, 1)]);
-        verify_tokens!(",", [(Category::Comma, 1, 1)]);
-        verify_tokens!(".", [(Category::Dot, 1, 1)]);
-        verify_tokens!("-", [(Category::Minus, 1, 1)]);
-        verify_tokens!("+", [(Category::Plus, 1, 1)]);
-        verify_tokens!("%", [(Category::Percent, 1, 1)]);
-        verify_tokens!(";", [(Category::Semicolon, 1, 1)]);
-        verify_tokens!("/", [(Category::Slash, 1, 1)]);
-        verify_tokens!("*", [(Category::Star, 1, 1)]);
-        verify_tokens!(":", [(Category::DoublePoint, 1, 1)]);
-        verify_tokens!("~", [(Category::Tilde, 1, 1)]);
-        verify_tokens!("&", [(Category::Ampersand, 1, 1)]);
-        verify_tokens!("|", [(Category::Pipe, 1, 1)]);
-        verify_tokens!("^", [(Category::Caret, 1, 1)]);
+        verify_tokens!("(", ["("]);
+        verify_tokens!(")", [")"]);
+        verify_tokens!("[", ["["]);
+        verify_tokens!("]", ["]"]);
+        verify_tokens!("{", ["{"]);
+        verify_tokens!("}", ["}"]);
+        verify_tokens!(",", [","]);
+        verify_tokens!(".", ["."]);
+        verify_tokens!("-", ["-"]);
+        verify_tokens!("+", ["+"]);
+        verify_tokens!("%", ["%"]);
+        verify_tokens!(";", [";"]);
+        verify_tokens!("/", ["/"]);
+        verify_tokens!("*", ["*"]);
+        verify_tokens!(":", [":"]);
+        verify_tokens!("~", ["~"]);
+        verify_tokens!("&", ["&"]);
+        verify_tokens!("|", ["|"]);
+        verify_tokens!("^", ["^"]);
     }
 
     #[test]
     fn two_symbol_tokens() {
-        verify_tokens!("&", [(Category::Ampersand, 1, 1)]);
-        verify_tokens!("&&", [(Category::AmpersandAmpersand, 1, 1)]);
-        verify_tokens!("|", [(Category::Pipe, 1, 1)]);
-        verify_tokens!("||", [(Category::PipePipe, 1, 1)]);
-        verify_tokens!("!", [(Category::Bang, 1, 1)]);
-        verify_tokens!("!=", [(Category::BangEqual, 1, 1)]);
-        verify_tokens!("!~", [(Category::BangTilde, 1, 1)]);
-        verify_tokens!("=", [(Category::Equal, 1, 1)]);
-        verify_tokens!("==", [(Category::EqualEqual, 1, 1)]);
-        verify_tokens!("=~", [(Category::EqualTilde, 1, 1)]);
-        verify_tokens!(">", [(Category::Greater, 1, 1)]);
-        verify_tokens!(">>", [(Category::GreaterGreater, 1, 1)]);
-        verify_tokens!(">=", [(Category::GreaterEqual, 1, 1)]);
-        verify_tokens!("><", [(Category::GreaterLess, 1, 1)]);
-        verify_tokens!("<", [(Category::Less, 1, 1)]);
-        verify_tokens!("<<", [(Category::LessLess, 1, 1)]);
-        verify_tokens!("<=", [(Category::LessEqual, 1, 1)]);
-        verify_tokens!("-", [(Category::Minus, 1, 1)]);
-        verify_tokens!("--", [(Category::MinusMinus, 1, 1)]);
-        verify_tokens!("+", [(Category::Plus, 1, 1)]);
-        verify_tokens!("+=", [(Category::PlusEqual, 1, 1)]);
-        verify_tokens!("++", [(Category::PlusPlus, 1, 1)]);
-        verify_tokens!("/", [(Category::Slash, 1, 1)]);
-        verify_tokens!("/=", [(Category::SlashEqual, 1, 1)]);
-        verify_tokens!("*", [(Category::Star, 1, 1)]);
-        verify_tokens!("**", [(Category::StarStar, 1, 1)]);
-        verify_tokens!("*=", [(Category::StarEqual, 1, 1)]);
+        verify_tokens!("&", ["&"]);
+        verify_tokens!("&&", ["&&"]);
+        verify_tokens!("|", ["|"]);
+        verify_tokens!("||", ["||"]);
+        verify_tokens!("!", ["!"]);
+        verify_tokens!("!=", ["!="]);
+        verify_tokens!("!~", ["!~"]);
+        verify_tokens!("=", ["="]);
+        verify_tokens!("==", ["=="]);
+        verify_tokens!("=~", ["=~"]);
+        verify_tokens!(">", [">"]);
+        verify_tokens!(">>", [">>"]);
+        verify_tokens!(">=", [">="]);
+        verify_tokens!("><", ["><"]);
+        verify_tokens!("<", ["<"]);
+        verify_tokens!("<<", ["<<"]);
+        verify_tokens!("<=", ["<="]);
+        verify_tokens!("-", ["-"]);
+        verify_tokens!("--", ["--"]);
+        verify_tokens!("+", ["+"]);
+        verify_tokens!("+=", ["+="]);
+        verify_tokens!("++", ["++"]);
+        verify_tokens!("/", ["/"]);
+        verify_tokens!("/=", ["/="]);
+        verify_tokens!("*", ["*"]);
+        verify_tokens!("**", ["**"]);
+        verify_tokens!("*=", ["*="]);
     }
 
     #[test]
     fn three_symbol_tokens() {
-        verify_tokens!(">>>", [(Category::GreaterGreaterGreater, 1, 1)]);
-        verify_tokens!(">>=", [(Category::GreaterGreaterEqual, 1, 1)]);
-        verify_tokens!(">!<", [(Category::GreaterBangLess, 1, 1)]);
-        verify_tokens!("<<=", [(Category::LessLessEqual, 1, 1)]);
+        verify_tokens!(">>>", [">>>"]);
+        verify_tokens!(">>=", [">>="]);
+        verify_tokens!(">!<", [">!<"]);
+        verify_tokens!("<<=", ["<<="]);
     }
 
     #[test]
     fn four_symbol_tokens() {
-        verify_tokens!(">>>=", [(Category::GreaterGreaterGreaterEqual, 1, 1)]);
+        verify_tokens!(">>>=", [">>>="]);
     }
 
     #[test]
     fn unquotable_string() {
-        let code = "\"hello I am a closed string\\\"";
         verify_tokens!(
-            code,
-            [(
-                Category::String("hello I am a closed string\\".to_owned()),
-                1,
-                1,
-            )]
+            "\"hello I am a closed string\\\"",
+            ["\"hello I am a closed string\\\""]
         );
-        let code = "\"hello I am a unclosed string\\";
-        verify_tokens!(
-            code,
-            [(Category::Unclosed(UnclosedCategory::String), 1, 1,)]
-        );
+        verify_tokens!("\"hello I am a unclosed string\\", ["UnclosedString"]);
     }
 
     #[test]
     fn quotable_string() {
-        let code = "'Hello \\'you\\'!'";
         verify_tokens!(
-            code,
-            [(Category::Data("Hello \\'you\\'!".as_bytes().to_vec()), 1, 1)]
+            "'Hello \\'you\\'!'",
+            ["[72, 101, 108, 108, 111, 32, 92, 39, 121, 111, 117, 92, 39, 33]"]
         );
-        let code = "'Hello \\'you\\'!\\'";
-        verify_tokens!(code, [(Category::Unclosed(UnclosedCategory::Data), 1, 1)]);
+        verify_tokens!("'Hello \\'you\\'!\\'", ["UnclosedData"]);
     }
 
     #[test]
     fn numbers() {
-        use Base::*;
-        use Category::*;
-        verify_tokens!("0", [(Number(0), 1, 1)]);
-        verify_tokens!("0b01", [(Number(1), 1, 1)]);
-        verify_tokens!("1234567890", [(Number(1234567890), 1, 1)]);
-        verify_tokens!("012345670", [(Number(2739128), 1, 1)]);
-        verify_tokens!("0x1234567890ABCDEF", [(Number(1311768467294899695), 1, 1)]);
-        // That would be later illegal because a number if followed by a number
-        // but within tokenizing I think it is the best to ignore that and let it be handled by AST
-        verify_tokens!("0b02", [(Number(0), 1, 1), (Number(2), 1, 4)]);
-        verify_tokens!("0b2", [(IllegalNumber(Binary), 1, 1), (Number(2), 1, 3)]);
+        verify_tokens!("0", ["0"]);
+        verify_tokens!("0b01", ["1"]);
+        verify_tokens!("1234567890", ["1234567890"]);
+        verify_tokens!("012345670", ["2739128"]);
+        verify_tokens!("0x1234567890ABCDEF", ["1311768467294899695"]);
+        // // That would be later illegal because a number if followed by a number
+        // // but within tokenizing I think it is the best to ignore that and let it be handled by AST
+        verify_tokens!("0b02", ["0", "2"]);
+        verify_tokens!("0b2", ["IllegalNumber", "2"]);
     }
 
     #[test]
     fn single_line_comments() {
-        use Category::*;
-        verify_tokens!(
-            "# this is a comment\n;",
-            [(Comment, 1, 1), (Semicolon, 2, 1)]
-        );
+        verify_tokens!("# this is a comment\n;", ["Comment", ";"]);
     }
 
     #[test]
     fn identifier() {
-        use Category::*;
-        use IdentifierType::*;
-        verify_tokens!(
-            "help_lo",
-            [(Identifier(Undefined("help_lo".to_owned())), 1, 1)]
-        );
-        verify_tokens!(
-            "_hello",
-            [(Identifier(Undefined("_hello".to_owned())), 1, 1)]
-        );
-        verify_tokens!(
-            "_h4llo",
-            [(Identifier(Undefined("_h4llo".to_owned())), 1, 1)]
-        );
-        verify_tokens!(
-            "4_h4llo",
-            [
-                (Number(4), 1, 1),
-                (Identifier(Undefined("_h4llo".to_owned())), 1, 2)
-            ]
-        );
+        verify_tokens!("help_lo", ["help_lo"]);
+        verify_tokens!("_hello", ["_hello"]);
+        verify_tokens!("_h4llo", ["_h4llo"]);
+        verify_tokens!("4_h4llo", ["4", "_h4llo",]);
     }
 
     #[test]
     fn keywords() {
-        use Category::*;
-        use IdentifierType::*;
-        verify_tokens!("for", [(Identifier(For), 1, 1)]);
-        verify_tokens!("foreach", [(Identifier(ForEach), 1, 1)]);
-        verify_tokens!("if", [(Identifier(If), 1, 1)]);
-        verify_tokens!("else", [(Identifier(Else), 1, 1)]);
-        verify_tokens!("while", [(Identifier(While), 1, 1)]);
-        verify_tokens!("repeat", [(Identifier(Repeat), 1, 1)]);
-        verify_tokens!("until", [(Identifier(Until), 1, 1)]);
-        verify_tokens!("local_var", [(Identifier(LocalVar), 1, 1)]);
-        verify_tokens!("global_var", [(Identifier(GlobalVar), 1, 1)]);
-        verify_tokens!("NULL", [(Identifier(Null), 1, 1)]);
-        verify_tokens!("return", [(Identifier(Return), 1, 1)]);
-        verify_tokens!("include", [(Identifier(Include), 1, 1)]);
-        verify_tokens!("exit", [(Identifier(Exit), 1, 1)]);
-        verify_tokens!("break", [(Identifier(Break), 1, 1)]);
-        verify_tokens!("continue", [(Identifier(Continue), 1, 1)]);
+        verify_tokens!("for", ["for"]);
+        verify_tokens!("foreach", ["foreach"]);
+        verify_tokens!("if", ["if"]);
+        verify_tokens!("else", ["else"]);
+        verify_tokens!("while", ["while"]);
+        verify_tokens!("repeat", ["repeat"]);
+        verify_tokens!("until", ["until"]);
+        verify_tokens!("local_var", ["local_var"]);
+        verify_tokens!("global_var", ["global_var"]);
+        verify_tokens!("NULL", ["NULL"]);
+        verify_tokens!("return", ["return"]);
+        verify_tokens!("include", ["include"]);
+        verify_tokens!("exit", ["exit"]);
+        verify_tokens!("break", ["break"]);
+        verify_tokens!("continue", ["continue"]);
     }
 
     #[test]
     fn string_quoting() {
-        use Category::*;
         verify_tokens!(
             r"'webapps\\appliance\\'",
-            [(Data("webapps\\\\appliance\\\\".as_bytes().to_vec()), 1, 1)]
+            [
+                r"[119, 101, 98, 97, 112, 112, 115, 92, 92, 97, 112, 112, 108, 105, 97, 110, 99, 101, 92, 92]",
+            ]
         );
     }
 
     #[test]
     fn simplified_ipv4_address() {
-        use Category::*;
-        verify_tokens!(
-            "10.187.76.12",
-            [(IPv4Address("10.187.76.12".to_owned()), 1, 1)]
-        );
+        verify_tokens!("10.187.76.12", ["10.187.76.12",]);
     }
 
     #[test]
     fn repeat_x_times() {
-        use Category::*;
-        verify_tokens!(
-            "x() x 10;",
-            vec![
-                (Identifier(IdentifierType::Undefined("x".to_owned())), 1, 1),
-                (LeftParen, 1, 2),
-                (RightParen, 1, 3),
-                (X, 1, 5),
-                (Number(10), 1, 7),
-                (Semicolon, 1, 9),
-            ]
-        );
-    }
-
-    #[test]
-    fn tokenize_description_block() {
-        use Category::*;
-        use IdentifierType::*;
-
-        let code = r#"
-if(description)
-{
-  script_oid("1.3.6.1.4.1.25623.1.0.99999");
-  exit(0);
-}
-
-j = 123;
-j >>>= 8;
-display(j);
-exit(1);
-"#;
-        verify_tokens!(
-            code,
-            vec![
-                (Identifier(If), 2, 1),
-                (LeftParen, 2, 3), // start expression block
-                (Identifier(Undefined("description".to_owned())), 2, 4), // verify is description is true
-                (RightParen, 2, 15),                                     // end expression block
-                (LeftCurlyBracket, 3, 1),                                // start execution block
-                (Identifier(Undefined("script_oid".to_owned())), 4, 3), // lookup function script_oid
-                (LeftParen, 4, 13), // start parameter expression block
-                (String("1.3.6.1.4.1.25623.1.0.99999".to_owned()), 4, 14), // resolve prime to "1.3.6.1.4.1.25623.1.0.99999"
-                (RightParen, 4, 43),                                       // end expression block
-                (Semicolon, 4, 44),                                        // finish execution
-                (Identifier(Exit), 5, 3),                                  // lookup keyword exit
-                (LeftParen, 5, 7),         // start parameter expression block
-                (Number(0), 5, 8),         // call exit with 0
-                (RightParen, 5, 9),        // end expression block
-                (Semicolon, 5, 10),        // finish execution
-                (RightCurlyBracket, 6, 1), // finish expression block
-                (Identifier(Undefined("j".to_owned())), 8, 1), // lookup j
-                (Equal, 8, 3),             // assign to j
-                (Number(123), 8, 5),       // number 123
-                (Semicolon, 8, 8),         // finish execution
-                (Identifier(Undefined("j".to_owned())), 9, 1), // lookup j
-                (GreaterGreaterGreaterEqual, 9, 3), // shift j and assign to j
-                (Number(8), 9, 8),         // 8
-                (Semicolon, 9, 9),         // finish execution
-                (Identifier(Undefined("display".to_owned())), 10, 1), // lookup display
-                (LeftParen, 10, 8),        // start parameter expression block
-                (Identifier(Undefined("j".to_owned())), 10, 9), // resolve j primitive
-                (RightParen, 10, 10),      // finish parameter expression block
-                (Semicolon, 10, 11),       // finish execution
-                (Identifier(Exit), 11, 1), // lookup keyword exit
-                (LeftParen, 11, 5),        // start parameter expression block
-                (Number(1), 11, 6),        // call exit with 1
-                (RightParen, 11, 7),       // finish parameter expression block
-                (Semicolon, 11, 8)         // finish execution
-            ]
-        );
+        verify_tokens!("x() x 10;", ["x", "(", ")", "X", "10", ";"]);
     }
 }

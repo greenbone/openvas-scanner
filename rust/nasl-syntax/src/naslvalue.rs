@@ -254,7 +254,7 @@ impl From<storage::types::Primitive> for NaslValue {
             Array(x) => Self::Array(x.into_iter().map(Self::from).collect()),
             Dict(x) => Self::Dict(x.into_iter().map(|(k, v)| (k, Self::from(v))).collect()),
             Boolean(x) => Self::Boolean(x),
-            Null => todo!(),
+            Null => Self::Null,
         }
     }
 }
