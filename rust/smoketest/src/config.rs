@@ -1,23 +1,17 @@
-use clap::Parser;
+use std::env;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[derive(Debug)]
 pub struct Args {
     /// openvasd
-    #[arg(short, long)]
     openvasd: String,
     /// Scan Config
-    #[arg(short, long)]
     scan_config: String,
     /// API KEY
-    #[arg(short, long)]
-    api_key: Option<String>,
+    api_key: String,
     /// Client certificate
-    #[arg(short, long)]
-    cert: Option<String>,
+    cert: String,
     /// Client private key
-    #[arg(short, long)]
-    key: Option<String>,
+    key: String,
 }
 
 impl Args {
@@ -27,13 +21,34 @@ impl Args {
     pub fn scan_config(&self) -> &String {
         &self.scan_config
     }
-    pub fn api_key(&self) -> &Option<String> {
-        &self.api_key
+    pub fn api_key(&self) -> Option<&String> {
+        match self.api_key.is_empty() {
+            true => None,
+            false => Some(&self.api_key)
+        }
     }
-    pub fn key(&self) -> &Option<String> {
-        &self.key
+    pub fn key(&self) -> Option<&String> {
+        match self.key.is_empty() {
+            true => None,
+            false => Some(&self.key)
+        }
+        
     }
-    pub fn cert(&self) -> &Option<String> {
-        &self.cert
+    pub fn cert(&self) -> Option<&String> {
+        match self.cert.is_empty() {
+            true => None,
+            false => Some(&self.cert)
+        }
+    }
+
+    pub fn get_all() -> Self {
+        Self {
+            openvasd: env::var("OPENVASD").unwrap_or_default(),
+            scan_config: env::var("SCAN_CONFIG").unwrap_or_default(),
+            api_key: env::var("API_KEY").unwrap_or_default(),
+            key: env::var("KEY").unwrap_or_default(),
+            cert: env::var("CERT").unwrap_or_default()
+        }
     }
 }
+

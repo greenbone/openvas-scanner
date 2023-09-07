@@ -15,7 +15,11 @@ endif
 ifdef OPENVASD
 SERVER := $(OPENVASD)
 else
-SERVER := 127.0.0.1:3000
+SERVER := http://127.0.0.1:8080
+endif
+
+ifndef SCAN_CONFIG
+SCAN_CONFIG := ./simple_scan_ssh_only.json
 endif
 
 ifndef CARGO
@@ -33,10 +37,7 @@ build: prepare-scan
 	${CARGO} build
 
 run:
-	../target/debug/smoketest --openvasd http://$(SERVER) --api-key $(API_KEY) --scan-config ./simple_scan_ssh_only.json
-
-run-with-certs:
-	../target/debug/smoketest --openvasd https://$(SERVER) --cert $(CLIENT_CERT) --key $(CLIENT_KEY) --api-key $(API_KEY) --scan-config ./simple_scan_ssh_only.json
+	cargo test
 
 prepare-scan:
 	sed -i 's|<username>|'$(TARGET_USERNAME)'|' simple_scan_ssh_only.json

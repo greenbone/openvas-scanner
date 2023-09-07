@@ -1,3 +1,4 @@
+pub mod config;
 use models::{Phase, Result as ScanResult, Status};
 use reqwest::header;
 
@@ -7,9 +8,9 @@ use std::io::prelude::*;
 
 /// Creates a new client setting the header, API-KEY and Certs if existing
 pub fn new_client(
-    apikey: &Option<String>,
-    cert: &Option<String>,
-    key: &Option<String>,
+    apikey: Option<&String>,
+    cert: Option<&String>,
+    key: Option<&String>,
 ) -> reqwest::Client {
     let mut headers = header::HeaderMap::new();
     if let Some(k) = apikey {
