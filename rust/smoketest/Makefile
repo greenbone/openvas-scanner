@@ -22,6 +22,11 @@ ifndef CARGO
 	CARGO := cargo
 endif
 
+ifndef TARGET_USERNAME
+	TARGET_USERNAME := noname
+	TARGET_PASSWORD := nopass
+endif
+
 all: build run-with-certs
 
 build: prepare-scan
