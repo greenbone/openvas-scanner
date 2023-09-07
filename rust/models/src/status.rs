@@ -7,30 +7,19 @@ use std::fmt::Display;
 use super::host_info::HostInfo;
 
 /// Status information about a scan
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Status {
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
     /// Timestamp for the start of a scan
     pub start_time: Option<u32>,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
     /// Timestamp for the end of a scan
     pub end_time: Option<u32>,
     /// The phase, a scan is currently in
     pub status: Phase,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
     /// Information about the hosts of a running scan
     pub host_info: Option<HostInfo>,
 }
@@ -52,6 +41,7 @@ impl Status {
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub enum Phase {
     /// A scan has been stored but not started yet
     #[default]

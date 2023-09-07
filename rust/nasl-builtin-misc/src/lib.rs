@@ -265,7 +265,7 @@ fn localtime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functi
         (false, secs) => match NaiveDateTime::from_timestamp_opt(secs, 0) {
             Some(dt) => {
                 let offset = chrono::Local::now().offset().fix();
-                let dt: DateTime<FixedOffset> = DateTime::from_utc(dt, offset);
+                let dt: DateTime<FixedOffset> = DateTime::from_naive_utc_and_offset(dt, offset);
                 create_localtime_map(dt)
             }
             _ => create_localtime_map(Local::now()),

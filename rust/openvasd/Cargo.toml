@@ -11,6 +11,7 @@ osp = {path = "../osp"}
 nasl-interpreter = { path = "../nasl-interpreter" }
 feed = {path = "../feed"}
 storage = { path = "../storage" }
+infisto = { path = "../infisto" }
 hyper = { version = "0.14.26", features = ["full", "stream"] }
 tokio = { version = "1.28.1", features = ["full"] }
 tracing = "0.1.37"
@@ -36,3 +37,4 @@ async-traits = "0.0.0"
 base64 = "0.21.2"
 
 [dev-dependencies]
+bincode = "1"

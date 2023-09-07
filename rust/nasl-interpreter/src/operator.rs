@@ -140,17 +140,12 @@ where
             TokenCategory::Ampersand => self.execute(stmts, |a, b| num_expr!(& a b)),
             TokenCategory::Pipe => self.execute(stmts, |a, b| num_expr!(| a b)),
             TokenCategory::Caret => self.execute(stmts, |a, b| num_expr!(^ a b)),
-            TokenCategory::StarStar => self.execute(
-                stmts,
-                |a, b| {
-                    let (a, b) = as_i64(a, b);
-                    let result = (a as u32).pow(b as u32);
-                    Ok(NaslValue::Number(result as i64))
-                }
-            ),
-            TokenCategory::Tilde => {
-                self.execute(stmts, |a, _| Ok((!i64::from(&a)).into()))
-            }
+            TokenCategory::StarStar => self.execute(stmts, |a, b| {
+                let (a, b) = as_i64(a, b);
+                let result = (a as u32).pow(b as u32);
+                Ok(NaslValue::Number(result as i64))
+            }),
+            TokenCategory::Tilde => self.execute(stmts, |a, _| Ok((!i64::from(&a)).into())),
             // string
             TokenCategory::EqualTilde => self.execute(stmts, match_regex),
             TokenCategory::BangTilde => self.execute(stmts, not_match_regex),

@@ -873,10 +873,7 @@ mod tests {
             [(Category::Data("Hello \\'you\\'!".as_bytes().to_vec()), 1, 1)]
         );
         let code = "'Hello \\'you\\'!\\'";
-        verify_tokens!(
-            code,
-            [(Category::Unclosed(UnclosedCategory::Data), 1, 1)]
-        );
+        verify_tokens!(code, [(Category::Unclosed(UnclosedCategory::Data), 1, 1)]);
     }
 
     #[test]
@@ -887,17 +884,11 @@ mod tests {
         verify_tokens!("0b01", [(Number(1), 1, 1)]);
         verify_tokens!("1234567890", [(Number(1234567890), 1, 1)]);
         verify_tokens!("012345670", [(Number(2739128), 1, 1)]);
-        verify_tokens!(
-            "0x1234567890ABCDEF",
-            [(Number(1311768467294899695), 1, 1)]
-        );
+        verify_tokens!("0x1234567890ABCDEF", [(Number(1311768467294899695), 1, 1)]);
         // That would be later illegal because a number if followed by a number
         // but within tokenizing I think it is the best to ignore that and let it be handled by AST
         verify_tokens!("0b02", [(Number(0), 1, 1), (Number(2), 1, 4)]);
-        verify_tokens!(
-            "0b2",
-            [(IllegalNumber(Binary), 1, 1), (Number(2), 1, 3)]
-        );
+        verify_tokens!("0b2", [(IllegalNumber(Binary), 1, 1), (Number(2), 1, 3)]);
     }
 
     #[test]
@@ -927,8 +918,10 @@ mod tests {
         );
         verify_tokens!(
             "4_h4llo",
-            [(Number(4), 1, 1),
-                (Identifier(Undefined("_h4llo".to_owned())), 1, 2)]
+            [
+                (Number(4), 1, 1),
+                (Identifier(Undefined("_h4llo".to_owned())), 1, 2)
+            ]
         );
     }
 

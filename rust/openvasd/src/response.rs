@@ -51,11 +51,18 @@ impl Transform<Vec<u8>> for U8Streamer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default)]
+enum ArrayStreamState {
+    #[default]
+    First,
+    Running,
+    Finished,
+}
+
 struct ArrayStreamer<E, T> {
-    elements: Vec<E>,
+    elements: Box<dyn Iterator<Item = E> + Send>,
     transform: PhantomData<T>,
-    first: bool,
+    state: ArrayStreamState,
 }
 
 impl<E, T> Unpin for ArrayStreamer<E, T> {}
@@ -64,20 +71,20 @@ impl<E> ArrayStreamer<E, JsonTransformer>
 where
     E: Serialize,
 {
-    fn json(elements: Vec<E>) -> Self {
+    fn json(elements: Box<dyn Iterator<Item = E> + Send>) -> Self {
         Self {
             elements,
-            first: true,
+            state: ArrayStreamState::First,
             transform: PhantomData,
         }
     }
 }
 
 impl ArrayStreamer<Vec<u8>, U8Streamer> {
-    fn u8(elements: Vec<Vec<u8>>) -> Self {
+    fn u8(elements: Box<dyn Iterator<Item = Vec<u8>> + Send>) -> Self {
         Self {
             elements,
-            first: true,
+            state: ArrayStreamState::First,
             transform: PhantomData,
         }
     }
@@ -94,24 +101,24 @@ where
         _: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
         let out = {
-            if self.first && self.elements.is_empty() {
-                self.first = false;
-                Some("[]".to_string())
-            } else if self.first {
-                self.first = false;
-                Some("[".to_string())
-            } else {
-                match self.elements.pop() {
-                    Some(e) => {
-                        let e = T::transform(e);
-                        if self.elements.is_empty() {
-                            Some(format!("{}]", e))
-                        } else {
-                            Some(format!("{},", e))
-                        }
+            match self.state {
+                ArrayStreamState::First => {
+                    self.state = ArrayStreamState::Running;
+                    if let Some(e) = self.elements.next() {
+                        Some(format!("[{}", T::transform(e)))
+                    } else {
+                        Some("[".to_string())
                     }
-                    None => None,
                 }
+                ArrayStreamState::Running => match self.elements.next() {
+                    Some(e) => Some(format!(",{}", T::transform(e))),
+                    None => {
+                        self.state = ArrayStreamState::Finished;
+                        Some("]".to_string())
+                    }
+                },
+
+                ArrayStreamState::Finished => None,
             }
         };
 
@@ -144,10 +151,9 @@ impl Response {
             .header("feed-version", &self.feed_version)
     }
 
-    #[tracing::instrument]
     pub async fn create_stream<S, O, E>(&self, code: hyper::StatusCode, value: S) -> Result
     where
-        S: Stream<Item = std::result::Result<O, E>> + Send + std::fmt::Debug + 'static,
+        S: Stream<Item = std::result::Result<O, E>> + Send + 'static,
         O: Into<Bytes> + 'static,
         E: Into<Box<dyn std::error::Error + Send + Sync>> + 'static,
     {
@@ -169,14 +175,14 @@ impl Response {
         }
     }
 
-    pub async fn ok_json_stream<T>(&self, value: Vec<T>) -> Result
+    pub async fn ok_json_stream<T>(&self, value: Box<dyn Iterator<Item = T> + Send>) -> Result
     where
         T: Serialize + Send + std::fmt::Debug + 'static,
     {
         let stream = ArrayStreamer::json(value);
         self.create_stream(hyper::StatusCode::OK, stream).await
     }
-    pub async fn ok_byte_stream(&self, value: Vec<Vec<u8>>) -> Result {
+    pub async fn ok_byte_stream(&self, value: Box<dyn Iterator<Item = Vec<u8>> + Send>) -> Result {
         let stream = ArrayStreamer::u8(value);
         self.create_stream(hyper::StatusCode::OK, stream).await
     }

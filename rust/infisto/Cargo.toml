@@ -1,0 +1,24 @@
+[package]
+name = "infisto"
+description = "A library to store and retrieve serializeable vec data in a file that can be accessed by an index."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bincode = { version = "2.0.0-rc.3", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+rand = "0"
+chacha20 = "0"
+pbkdf2 = { version = "0", features = ["password-hash"] }
+sha2 = "0"
+
+[dev-dependencies]
+criterion = "0"
+uuid = "1.4.1"
+
+[[bench]]
+name = "comparison"
+harness = false

@@ -26,6 +26,7 @@ macro_rules! make_svc {
     ($controller:expr) => {{
         // start background service
         use std::sync::Arc;
+
         tokio::spawn(crate::controller::results::fetch(Arc::clone(&$controller)));
         tokio::spawn(crate::controller::feed::fetch(Arc::clone(&$controller)));
 
@@ -211,15 +212,12 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic]
     async fn add_scan_with_id_fails() {
-        let scan: models::Scan = models::Scan::default();
-        let controller = Arc::new(Context::default());
-        let id = post_scan_id(&scan, Arc::clone(&controller)).await;
-        let resp = get_scan(&id, Arc::clone(&controller)).await;
-        let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();
-
-        let _ = serde_json::from_slice::<models::Scan>(&resp).unwrap();
+        let mut scan: models::Scan = models::Scan::default();
+        scan.scan_id = Some(String::new());
+        let ctx = Arc::new(Context::default());
+        let resp = post_scan(&scan, Arc::clone(&ctx)).await;
+        assert_eq!(resp.status(), hyper::http::StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
@@ -301,8 +299,9 @@ mod tests {
                 break;
             }
         }
-        let resp = get_results(&id, Arc::clone(&controller), None, None).await;
+        let mut resp = get_results(&id, Arc::clone(&controller), None, None).await;
         assert_eq!(resp.len(), 4950);
+        resp.reverse();
         resp.iter().enumerate().for_each(|(i, r)| {
             assert_eq!(r.id, i);
         });
@@ -312,8 +311,9 @@ mod tests {
         let resp = get_results(&id, Arc::clone(&controller), Some(4949), None).await;
         assert_eq!(resp.len(), 1);
         assert_eq!(resp[0].id, 4949);
-        let resp = get_results(&id, Arc::clone(&controller), None, Some((4900, 4923))).await;
+        let mut resp = get_results(&id, Arc::clone(&controller), None, Some((4900, 4923))).await;
         assert_eq!(resp.len(), 24);
+        resp.reverse();
         for (i, r) in resp.iter().enumerate() {
             assert_eq!(r.id, i + 4900);
         }

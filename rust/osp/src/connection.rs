@@ -5,7 +5,8 @@
 use std::{
     io::{self, BufReader, Write},
     os::unix::net::UnixStream,
-    path::Path, time::Duration,
+    path::Path,
+    time::Duration,
 };
 
 use crate::{
@@ -15,7 +16,11 @@ use crate::{
 };
 
 /// Sends a command to the unix socket and returns the response
-pub fn send_command<T: AsRef<Path>>(address: T, r_timeout: Option<Duration>, cmd: ScanCommand) -> Result<Response, Error> {
+pub fn send_command<T: AsRef<Path>>(
+    address: T,
+    r_timeout: Option<Duration>,
+    cmd: ScanCommand,
+) -> Result<Response, Error> {
     let mut socket = UnixStream::connect(address)?;
     let cmd = cmd.try_to_xml()?;
     if let Some(rtimeout) = r_timeout {
@@ -64,7 +69,11 @@ pub fn get_delete_scan_results<T: AsRef<Path>, I: AsRef<str>>(
 }
 
 /// Starts a scan
-pub fn start_scan<T: AsRef<Path>>(address: T, r_timeout: Option<Duration>, scan: &models::Scan) -> Result<ScanID, Error> {
+pub fn start_scan<T: AsRef<Path>>(
+    address: T,
+    r_timeout: Option<Duration>,
+    scan: &models::Scan,
+) -> Result<ScanID, Error> {
     let cmd = ScanCommand::Start(scan);
     let response = send_command(address, r_timeout, cmd)?;
     match response {
@@ -77,7 +86,11 @@ pub fn start_scan<T: AsRef<Path>>(address: T, r_timeout: Option<Duration>, scan:
 }
 
 /// Stops a scan
-pub fn stop_scan<T: AsRef<Path>, I: AsRef<str>>(address: T, r_timeout: Option<Duration>, scan_id: I) -> Result<(), Error> {
+pub fn stop_scan<T: AsRef<Path>, I: AsRef<str>>(
+    address: T,
+    r_timeout: Option<Duration>,
+    scan_id: I,
+) -> Result<(), Error> {
     let cmd = ScanCommand::Stop(scan_id.as_ref());
     let response = send_command(address, r_timeout, cmd)?;
     match response {
@@ -87,7 +100,11 @@ pub fn stop_scan<T: AsRef<Path>, I: AsRef<str>>(address: T, r_timeout: Option<Du
 }
 
 /// Deletes a scan
-pub fn delete_scan<T: AsRef<Path>, I: AsRef<str>>(address: T, r_timeout: Option<Duration>, scan_id: I) -> Result<(), Error> {
+pub fn delete_scan<T: AsRef<Path>, I: AsRef<str>>(
+    address: T,
+    r_timeout: Option<Duration>,
+    scan_id: I,
+) -> Result<(), Error> {
     let cmd = ScanCommand::Delete(scan_id.as_ref());
     let response = send_command(address, r_timeout, cmd)?;
     match response {
