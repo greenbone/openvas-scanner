@@ -17,12 +17,14 @@ use crate::{
 
 /// Is used to parse Token to Statement
 pub struct Lexer<'a> {
+    // TODO: change to iterator of Token instead of Tokenizer
+    // to allopw statements of a Vec
     tokenizer: Tokenizer<'a>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum End {
-    Done(Category),
+    Done(Token),
     Continue,
 }
 
@@ -31,6 +33,13 @@ impl End {
         match self {
             End::Done(_) => true,
             End::Continue => false,
+        }
+    }
+
+    pub fn category(&self) -> Option<Category> {
+        match self {
+            End::Done(t) => Some(t.category.clone()),
+            End::Continue => None,
         }
     }
 }
@@ -92,14 +101,11 @@ impl<'a> Lexer<'a> {
                     return Err(unexpected_token!(token));
                 }
                 if abort(token.category()) {
-                    return Ok((
-                        End::Done(Category::UnknownSymbol),
-                        Statement::NoOp(Some(token)),
-                    ));
+                    return Ok((End::Done(token.clone()), Statement::NoOp(Some(token))));
                 }
                 self.prefix_statement(token, abort)
             })
-            .unwrap_or(Ok((End::Done(Category::UnknownSymbol), Statement::EoF)))?;
+            .unwrap_or(Ok((End::Done(Token::unexpected_none()), Statement::EoF)))?;
         match state {
             End::Continue => {}
             end => return Ok((end, left)),
@@ -109,7 +115,7 @@ impl<'a> Lexer<'a> {
         while let Some(token) = self.peek() {
             if abort(token.category()) {
                 self.token();
-                end_statement = End::Done(token.category().clone());
+                end_statement = End::Done(token.clone());
                 break;
             }
             let op =
@@ -117,8 +123,8 @@ impl<'a> Lexer<'a> {
 
             if self.needs_postfix(op.clone()) {
                 let (end, stmt) = self
-                    .postfix_statement(op, token, left)
-                    .expect("needs postfix should have been validated before")?;
+                    .postfix_statement(op, token.clone(), left)
+                    .ok_or_else(|| unexpected_token!(token.clone()))??;
                 self.token();
                 left = stmt;
                 if let End::Done(cat) = end {

@@ -19,7 +19,7 @@ install_gnu() {
 	[ ! -f "$NAME-$VERSION.tar.bz2" ] && curl --fail -O https://gnupg.org/ftp/gcrypt/$NAME/$NAME-$VERSION.tar.bz2 
 	[ ! -d "$NAME-$VERSION" ] && tar -xf $NAME-$VERSION.tar.bz2
 	cd $NAME-$VERSION
-	./configure --prefix $PREFIX --enable-static --disable-shared $HOST
+	./configure --prefix $PREFIX --enable-static --with-pic --disable-shared $HOST
 	make install
 }
 

@@ -23,12 +23,12 @@ The optional `--target, -t` option allows to set a host target to run the script
 When `-v` is set it is printing the statements to be executed as well as the returned NaslValue.
 
 As examples executing: `nasl-cli execute examples/hello.nasl` returns:
-```
+```text
 Hello, world!
 ```
 while executing `nasl-cli -v execute examples/hello.nasl` returns:
 
-```
+```text
 > if (description == 1) {{ ... }}
 => Null
 > display(Hello, world!)
@@ -214,7 +214,7 @@ As an example we assume that the data-objects feed is in `~/src/greenbone/data-o
 
 For that we need to execute:
 
-```
+```text
 echo '{ "target": { "hosts": ["localhost"], "ports": [] }, "vts": [] }'| \
 nasl-cli scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common \
   -l ~/src/greenbone/data-objects/content/22.04/port-lists/openvas-default-c7e03b6c-3bbe-11e1-a057-406186ea4fc5.xml \
@@ -226,7 +226,7 @@ Be aware that each call does a description run of the defined feed to gather the
 
 #### Usage
 
-```
+```text
 Transforms a scan-config xml to a scan json for openvasd.
 When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.
 

@@ -37,7 +37,7 @@ where
 
     fn script_oid(stmt: &Statement) -> Option<String> {
         match stmt {
-            Statement::Call(t, stms) => match t.category() {
+            Statement::Call(t, stms, _) => match t.category() {
                 TokenCategory::Identifier(IdentifierType::Undefined(s)) => match s as &str {
                     "script_oid" => stms.first().map(|x| x.to_string()),
                     _ => None,
@@ -52,8 +52,8 @@ where
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
         for stmt in nasl_syntax::parse(&code) {
-            if let Statement::If(_, stmts, _) = stmt? {
-                if let Statement::Block(x) = &*stmts {
+            if let Statement::If(_, _, stmts, _, _) = stmt? {
+                if let Statement::Block(_, x, _) = &*stmts {
                     for stmt in x {
                         if let Some(oid) = Self::script_oid(stmt) {
                             return Ok(oid);

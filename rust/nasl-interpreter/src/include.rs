@@ -55,7 +55,9 @@ mod tests {
                 .cloned()
                 .ok_or_else(|| LoadError::NotFound(String::default()))
         }
-        fn root_path(&self) -> Result<std::string::String, nasl_syntax::LoadError> { todo!() }
+        fn root_path(&self) -> Result<std::string::String, nasl_syntax::LoadError> {
+           Ok(String::default()) 
+        }
     }
 
     #[test]

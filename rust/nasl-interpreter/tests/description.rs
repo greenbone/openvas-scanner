@@ -12,8 +12,10 @@ impl Loader for NoOpLoader {
     fn load(&self, _: &str) -> Result<String, LoadError> {
         Ok(String::default())
     }
-    
-    fn root_path(&self) -> Result<std::string::String, nasl_syntax::LoadError> { todo!() }
+
+    fn root_path(&self) -> Result<std::string::String, nasl_syntax::LoadError> {
+        Ok(String::default())
+    }
 }
 
 #[cfg(test)]

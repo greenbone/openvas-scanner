@@ -14,23 +14,14 @@ pub mod tests {
     async fn check_server() {
         let args = Args::get_all();
         let cli = new_client(args.api_key(), args.cert(), args.key());
-       
+
         let status = match cli.head(args.openvasd()).send().await {
-            Ok(res) => {
-                if res.status().is_success() {
-                    true
-                } else {
-                    false
-                }
-            }
-            Err(_) => {
-                false
-            }
+            Ok(res) => res.status().is_success(),
+            Err(_) => false,
         };
-        assert_eq!(status, true);
-        
+        assert!(status);
     }
-    
+
     #[tokio::test]
     /// Run a successful scan. Get results and delete the scan
     async fn run_scan() {
@@ -48,7 +39,7 @@ pub mod tests {
                 match scan_status(&cli, args.openvasd(), &id).await {
                     Some(Phase::Succeeded) => {
                         if let Some(results) = scan_results(&cli, args.openvasd(), &id).await {
-                            assert_eq!(results.is_empty(), false)
+                            assert!(!results.is_empty())
                         }
                         assert!(delete_scan(&cli, args.openvasd(), &id).await);
                         success = true;

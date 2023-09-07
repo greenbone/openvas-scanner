@@ -173,7 +173,7 @@ impl InterpretError {
         self.origin
             .as_ref()
             .and_then(|stmt| stmt.as_token())
-            .map(|x| x.position)
+            .map(|x| x.line_column)
             .unwrap_or_default()
     }
 

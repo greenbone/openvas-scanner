@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use nasl_syntax::{DeclareScope, Statement, Token, TokenCategory};
+use nasl_syntax::{Statement, Token, TokenCategory};
 
 use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
 use nasl_builtin_utils::ContextType;
@@ -46,16 +46,24 @@ where
 }
 
 pub(crate) trait DeclareVariableExtension {
-    fn declare_variable(&mut self, scope: &DeclareScope, stmts: &[Statement]) -> InterpretResult;
+    fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
 impl<'a, K> DeclareVariableExtension for Interpreter<'a, K> {
-    fn declare_variable(&mut self, scope: &DeclareScope, stmts: &[Statement]) -> InterpretResult {
+    fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
-            match scope {
-                DeclareScope::Global => self.registrat.add_global(key, value),
-                DeclareScope::Local => self.registrat.add_local(key, value),
+            match scope.category() {
+                TokenCategory::Identifier(nasl_syntax::IdentifierType::GlobalVar) => {
+                    self.registrat.add_global(key, value)
+                }
+                TokenCategory::Identifier(nasl_syntax::IdentifierType::LocalVar) => {
+                    self.registrat.add_local(key, value)
+                }
+                _ => unreachable!(
+                    "{} should not be identified as an declare statement",
+                    scope.category()
+                ),
             }
         };
 
