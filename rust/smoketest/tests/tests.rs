@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 pub mod tests {
     use models::Phase;
     use smoketest::*;
@@ -40,9 +44,9 @@ pub mod tests {
             }
             std::thread::sleep(std::time::Duration::from_secs(1));
             loop {
+                std::thread::sleep(std::time::Duration::from_secs(1));
                 match scan_status(&cli, args.openvasd(), &id).await {
                     Some(Phase::Succeeded) => {
-                        tracing::info!("\tRun scan succeeded OK");
                         if let Some(results) = scan_results(&cli, args.openvasd(), &id).await {
                             assert_eq!(results.is_empty(), false)
                         }
@@ -54,8 +58,7 @@ pub mod tests {
                         success = false;
                         break;
                     }
-                    _ => {
-                        std::thread::sleep(std::time::Duration::from_secs(10));
+                    Some(_) => {
                         counter += 1;
                         assert!(counter <= 360);
                     }
@@ -64,5 +67,4 @@ pub mod tests {
         }
         assert!(success)
     }
-
 }

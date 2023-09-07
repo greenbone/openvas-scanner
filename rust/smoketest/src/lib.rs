@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 pub mod config;
 use models::{Phase, Result as ScanResult, Status};
 use reqwest::header;
@@ -74,12 +78,12 @@ pub async fn create_scan(
 pub async fn scan_action(
     cli: &reqwest::Client,
     server: &String,
-    id: &String,
+    id: &str,
     action: String,
 ) -> bool {
     let mut path = String::from(server);
     path.push_str("/scans/");
-    path.push_str(id.as_str());
+    path.push_str(id);
 
     let mut data = HashMap::new();
     data.insert("action", action.as_str());
@@ -95,10 +99,10 @@ pub async fn scan_action(
 }
 
 /// Given an ScanID, it fetches the current scan status.
-pub async fn scan_status(cli: &reqwest::Client, server: &String, id: &String) -> Option<Phase> {
+pub async fn scan_status(cli: &reqwest::Client, server: &String, id: &str) -> Option<Phase> {
     let mut path = String::from(server);
     path.push_str("/scans/");
-    path.push_str(id.as_str());
+    path.push_str(id);
     path.push_str("/status");
 
     let res = cli.get(path).send().await.unwrap();
@@ -127,11 +131,11 @@ pub async fn scan_status(cli: &reqwest::Client, server: &String, id: &String) ->
 pub async fn scan_results(
     cli: &reqwest::Client,
     server: &String,
-    id: &String,
+    id: &str,
 ) -> Option<Vec<ScanResult>> {
     let mut path = String::from(server);
     path.push_str("/scans/");
-    path.push_str(id.as_str());
+    path.push_str(id);
     path.push_str("/results");
 
     let res = cli.get(path).send().await.unwrap();
@@ -156,10 +160,10 @@ pub async fn scan_results(
     None
 }
 
-pub async fn delete_scan(cli: &reqwest::Client, server: &String, id: &String) -> bool {
+pub async fn delete_scan(cli: &reqwest::Client, server: &String, id: &str) -> bool {
     let mut path = String::from(server);
     path.push_str("/scans/");
-    path.push_str(id.as_str());
+    path.push_str(id);
 
     let res = cli.delete(path).send().await.unwrap();
 
