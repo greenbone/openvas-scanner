@@ -6,9 +6,9 @@
 
 ## SYNOPSIS
 
-*str* **aes_mac_gcm**(key: str, data: str);
+*str* **aes_mac_gcm**(key: str, data: str, iv: str);
 
-**aes_mac_gcm** It takes four named arguments key, data.
+**aes_mac_gcm** It takes three named arguments key, data, iv.
 
 ## DESCRIPTION
 

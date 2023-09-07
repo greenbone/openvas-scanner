@@ -13,7 +13,7 @@ nasl-builtin-std = {path = "../nasl-builtin-std", default-features = false}
 regex = "1"
 
 [features]
-#ssh_support= ["nasl-builtin-std/ssh_support"
 nasl-builtin-raw-ip = ["nasl-builtin-std/nasl-builtin-raw-ip"]
 nasl-builtin-ssh = ["nasl-builtin-std/nasl-builtin-ssh"]
-experimental = ["nasl-builtin-ssh", "nasl-builtin-raw-ip"]
+nasl-c-lib = ["nasl-builtin-std/nasl-c-lib"]
+experimental = ["nasl-builtin-ssh", "nasl-builtin-raw-ip", "nasl-c-lib"]
