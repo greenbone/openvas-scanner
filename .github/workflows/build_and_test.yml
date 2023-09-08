@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check Source Format
         run: |
           clang-format -i -style=file {src,misc,nasl}/*.{c,h}
@@ -28,7 +28,7 @@ jobs:
           - unstable
     container: greenbone/gvm-libs:${{ matrix.gvm-libs-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh
@@ -51,7 +51,7 @@ jobs:
           - unstable
     container: greenbone/gvm-libs:${{ matrix.gvm-libs-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh

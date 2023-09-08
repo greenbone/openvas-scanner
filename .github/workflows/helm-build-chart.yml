@@ -10,7 +10,7 @@ jobs:
   openvasd:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Start a local k8s cluster
         uses: jupyterhub/action-k3s-helm@v3
         with:
