@@ -24,7 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt update && sudo apt-get install -y libpcap-dev
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }} || rustup default ${{ matrix.toolchain }}
-      - run: cargo test
+      # Run unittests and integration test, but excludes the smoketest since it depends on a running openvasd server.
+      - run: cargo test --lib --tests --workspace --exclude smoketest
   clippy:
     runs-on: ubuntu-latest
     defaults:

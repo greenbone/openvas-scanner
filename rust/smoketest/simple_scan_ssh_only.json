@@ -1,0 +1,29 @@
+{"target": {"hosts": ["<hostname>"],
+    "ports": [
+      {
+        "protocol": "tcp",
+        "range": [
+          {
+            "start": 22,
+            "end": 22
+          }
+        ]
+      }
+    ],
+    "credentials": [
+      {
+        "service": "ssh",
+        "port": 22,
+        "up": {
+          "username": "<username>",
+          "password": "<password>"
+        }
+      }
+    ]
+  },
+  "vts": [
+    {
+      "oid": "1.3.6.1.4.1.25623.1.0.90022"
+    }
+  ]
+}

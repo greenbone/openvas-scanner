@@ -27,6 +27,7 @@ members = [
   "openvasd",
   "scanconfig",
   "infisto",
+  "smoketest",
 ]
 
 [workspace.package]
