@@ -3,4 +3,4 @@ OpenVAS = "OpenVAS"
 des_ede_cbc_encrypt = "des_ede_cbc_encrypt"
 
 [files]
-extend-exclude = ["osp/tests/response_*.xml"]
+extend-exclude = ["osp/tests/response_*.xml", "smoketest/configs/client_sample.cert"]
