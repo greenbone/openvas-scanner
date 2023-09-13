@@ -47,11 +47,11 @@ impl Args {
 
     pub fn get_all() -> Self {
         Self {
-            openvasd: env::var("OPENVASD").unwrap_or_default(),
+            openvasd: env::var("OPENVASD_SERVER").unwrap_or_default(),
             scan_config: env::var("SCAN_CONFIG").unwrap_or_default(),
             api_key: env::var("API_KEY").unwrap_or_default(),
-            key: env::var("KEY").unwrap_or_default(),
-            cert: env::var("CERT").unwrap_or_default()
+            key: env::var("CLIENT_KEY").unwrap_or_default(),
+            cert: env::var("CLIENT_CERT").unwrap_or_default()
         }
     }
 }

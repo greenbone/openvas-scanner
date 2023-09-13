@@ -18,23 +18,25 @@ jobs:
           metrics-enabled: false
       - name: deploy openvasd
         run: |
-          helm uninstall openvasd || true 
-          helm install openvasd charts/openvasd/ --values charts/openvasd/values.yaml
-          kubectl rollout status --watch --timeout 600s deployment/openvasd
+          helm uninstall openvasd --namespace openvasd|| true 
+          helm install --namespace openvasd --create-namespace openvasd charts/openvasd/ --values charts/openvasd/values.yaml
+          kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd
           sleep 5
       - id: smoketest
-        run: echo "POD_NAME=$(kubectl get pods |grep openvasd | awk '{print $1;}')" >> $GITHUB_OUTPUT
+        run: echo "POD_NAME=$(kubectl get pods --namespace openvasd |grep openvasd | awk '{print $1;}')" >> $GITHUB_OUTPUT
       - name: forward port
         run: |
           echo "POD_NAME: ${{ steps.smoketest.outputs.POD_NAME }}"
           echo "$(kubectl get pods)"
-          kubectl --namespace default port-forward ${{ steps.smoketest.outputs.POD_NAME }} 8080:3000 &
+          kubectl --namespace openvasd port-forward ${{ steps.smoketest.outputs.POD_NAME }} 8080:3000 &
       - name: smoketest
         working-directory: rust/smoketest
         env:
           API_KEY: changeme
-          OPENVASD: http://127.0.0.1:8080
-          SCAN_CONFIG: simple_scan_ssh_only.json
+          OPENVASD_SERVER: https://127.0.0.1:8080
+          SCAN_CONFIG: configs/simple_scan_ssh_only.json
+          CLIENT_KEY: configs/client_sample.key
+          CLIENT_CERT: configs/client_sample.cert
         run: |
           make build run
       - uses: greenbone/actions/helm-build-push@v3
