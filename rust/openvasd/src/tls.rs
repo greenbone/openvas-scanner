@@ -169,7 +169,9 @@ pub fn tls_config(
                                 .filter_map(|entry| {
                                     let entry = entry.ok()?;
                                     let file_type = entry.file_type().ok()?;
-                                    if file_type.is_file() {
+                                    if file_type.is_file()
+                                        || file_type.is_symlink() && !file_type.is_dir()
+                                    {
                                         Some(entry.path())
                                     } else {
                                         None
