@@ -12,12 +12,24 @@
 
 use std::{
     fmt::Display,
+    fs::File,
     io::{self, BufRead, BufReader, Read},
 };
 
 use hex::encode;
 use nasl_interpreter::{AsBufReader, LoadError};
 use sha2::{Digest, Sha256};
+
+use openpgp::{
+    parse::stream::{
+        DetachedVerifierBuilder, GoodChecksum, MessageLayer, MessageStructure, VerificationHelper,
+    },
+    parse::Parse,
+    policy::StandardPolicy,
+    Cert, KeyHandle,
+};
+use sequoia_ipc::keybox::{Keybox, KeyboxRecord};
+use sequoia_openpgp as openpgp;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Defines error cases that can happen while verifying
@@ -35,6 +47,10 @@ pub enum Error {
         /// The key of the file
         key: String,
     },
+    /// When signature check of the hashsumfile fails
+    BadSignature(String),
+    /// Signature is Disabled
+    SignatureCheckDisabled,
 }
 
 impl From<LoadError> for Error {
@@ -53,8 +69,143 @@ impl Display for Error {
                 actual,
                 key,
             } => write!(f, "{key} hash {actual} is not as expected ({expected})."),
+            Error::BadSignature(e) => write!(f, "{e}"),
+            Error::SignatureCheckDisabled => write!(
+                f,
+                "Signature check disabled. To enable it, set the GNUPGHOME environment variable"
+            ),
         }
     }
+}
+
+struct VHelper {
+    keyring: String,
+    not_before: Option<std::time::SystemTime>,
+    not_after: std::time::SystemTime,
+}
+
+impl VHelper {
+    fn new(keyring: String) -> Self {
+        Self {
+            keyring,
+            not_before: None,
+            not_after: std::time::SystemTime::now(),
+        }
+    }
+}
+
+impl VerificationHelper for VHelper {
+    fn get_certs(&mut self, _ids: &[KeyHandle]) -> openpgp::Result<Vec<Cert>> {
+        let file = File::open(self.keyring.as_str())?;
+        let kbx = Keybox::from_reader(file)?;
+
+        let certs = kbx
+            // Keep only records which were parsed successfully.
+            .filter_map(|kbx_record| kbx_record.ok())
+            // Map the OpenPGP records to the contained certs.
+            .filter_map(|kbx_record| match kbx_record {
+                KeyboxRecord::OpenPGP(r) => Some(r.cert()),
+                _ => None,
+            })
+            .collect::<openpgp::Result<Vec<Cert>>>()?;
+        Ok(certs)
+    }
+
+    fn check(&mut self, structure: MessageStructure) -> openpgp::Result<()> {
+        for layer in structure.into_iter() {
+            match layer {
+                MessageLayer::SignatureGroup { results } => {
+                    for result in results {
+                        match result {
+                            Ok(GoodChecksum { sig, ka, .. }) => {
+                                match (
+                                    sig.signature_creation_time(),
+                                    self.not_before,
+                                    self.not_after,
+                                ) {
+                                    (None, _, _) => {
+                                        eprintln!("Malformed signature:");
+                                    }
+                                    (Some(t), Some(not_before), not_after) => {
+                                        if t < not_before {
+                                            eprintln!(
+                                                "Signature by {:X} was created before \
+                                                 the --not-before date.",
+                                                ka.key().fingerprint()
+                                            );
+                                        } else if t > not_after {
+                                            eprintln!(
+                                                "Signature by {:X} was created after \
+                                                 the --not-after date.",
+                                                ka.key().fingerprint()
+                                            );
+                                        }
+                                    }
+                                    (Some(t), None, not_after) => {
+                                        if t > not_after {
+                                            eprintln!(
+                                                "Signature by {:X} was created after \
+                                                 the --not-after date.",
+                                                ka.key().fingerprint()
+                                            );
+                                        }
+                                    }
+                                };
+                            }
+                            Err(e) => return Err(anyhow::Error::msg(e.to_string())),
+                        }
+                    }
+                }
+                MessageLayer::Compression { .. } => (),
+                _ => unreachable!(),
+            }
+        }
+        Ok(())
+    }
+}
+
+pub fn signature_check(feed_path: &str) -> Result<(), Error> {
+    let mut gnupghome = match std::env::var("GNUPGHOME") {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(Error::SignatureCheckDisabled);
+        }
+    };
+    gnupghome.push_str("/pubring.kbx");
+
+    let helper = VHelper::new(gnupghome);
+
+    let mut sign_path = feed_path.to_owned();
+    sign_path.push_str("/sha256sums.asc");
+    let mut sig_file = File::open(sign_path).unwrap();
+    let mut signature = Vec::new();
+    let _ = sig_file.read_to_end(&mut signature);
+
+    let mut data_path = feed_path.to_owned();
+    data_path.push_str("/sha256sums");
+    let mut data_file = File::open(data_path).unwrap();
+    let mut data = Vec::new();
+    let _ = data_file.read_to_end(&mut data);
+
+    let v = match DetachedVerifierBuilder::from_bytes(&signature[..]) {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(Error::BadSignature(
+                "Siganture verification failed".to_string(),
+            ));
+        }
+    };
+
+    let p = &StandardPolicy::new();
+    if let Ok(mut verifier) = v.with_policy(p, None, helper) {
+        match verifier.verify_bytes(data) {
+            Ok(_) => return Ok(()),
+            Err(e) => return Err(Error::BadSignature(e.to_string())),
+        }
+    };
+    Err(Error::BadSignature(
+        "Siganture verification failed".to_string(),
+    ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

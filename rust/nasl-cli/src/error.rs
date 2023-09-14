@@ -88,6 +88,8 @@ impl From<VerifyError> for CliError {
                 actual: _,
                 key,
             } => key,
+            VerifyError::SignatureCheckDisabled => "",
+            VerifyError::BadSignature(_) => "",
         };
         Self {
             filename: filename.to_string(),
