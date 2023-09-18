@@ -46,7 +46,7 @@ jobs:
           fi
       - name: "Setup meta information (IS_VERSION_TAG: ${{ env.IS_VERSION_TAG }}, IS_LATEST_TAG: ${{ env.IS_LATEST_TAG }} )"
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ github.repository }}
           labels: |
@@ -102,7 +102,7 @@ jobs:
 
       - name: "Setup meta information debian:oldstable"
         id: old_stable_meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ github.repository }}
           labels: |
@@ -129,7 +129,7 @@ jobs:
 
       - name: "Setup meta information debian:testing"
         id: test_meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ github.repository }}
           labels: |
