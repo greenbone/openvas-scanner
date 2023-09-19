@@ -10,7 +10,3 @@ testsuiterun.nasl
 assets/
 *.rsa
 *.pem
-rust/nasl-c-lib/include
-rust/nasl-c-lib/bin
-rust/nasl-c-lib/share
-rust/nasl-c-lib/lib
