@@ -9,8 +9,9 @@ edition = "2021"
 nasl-builtin-utils = {path = "../nasl-builtin-utils"}
 nasl-syntax = {path = "../nasl-syntax"}
 # requires libssh > 3.0.0 to be installed
-libssh-rs = {git = "https://github.com/wez/libssh-rs.git", branch = "main"}
+libssh-rs = {git = "https://github.com/jjnicola/libssh-rs.git", branch = "main", features = ["vendored-openssl", "vendored"]}
 storage = {path = "../storage"}
+#openssl-sys = {version = "0.9.93", features = ["vendored"]}
 
 [dev-dependencies]
 nasl-interpreter = {path = "../nasl-interpreter"}

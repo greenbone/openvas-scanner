@@ -13,6 +13,6 @@ storage = { path = "../storage" }
 sha2 = "0.10.6"
 hex = "0.4.3"
 sequoia-ipc = "0.30.1"
-sequoia-openpgp = "1.16.1"
+sequoia-openpgp = { version ="1.16.1", default-features = false, features = ["crypto-openssl"] }
 anyhow = "1.0.75"
 tracing = "0.1.37"
