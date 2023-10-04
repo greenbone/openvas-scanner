@@ -191,7 +191,7 @@ pub fn signature_check(feed_path: &str) -> Result<(), Error> {
         Ok(v) => v,
         Err(_) => {
             return Err(Error::BadSignature(
-                "Siganture verification failed".to_string(),
+                "Signature verification failed".to_string(),
             ));
         }
     };
@@ -204,7 +204,7 @@ pub fn signature_check(feed_path: &str) -> Result<(), Error> {
         }
     };
     Err(Error::BadSignature(
-        "Siganture verification failed".to_string(),
+        "Signature verification failed".to_string(),
     ))
 }
 
