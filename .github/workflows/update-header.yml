@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 0 1 1 *' # At 00:00 on day-of-month 1 in January.
 
+permissions:
+  contents: write
+
 jobs:
   update-header:
     name: Update file header year
@@ -13,8 +16,5 @@ jobs:
     - name: Run update header
       uses: greenbone/actions/update-header@v3
       with:
-        github-user: ${{ secrets.GREENBONE_BOT }}
-        github-user-mail: ${{ secrets.GREENBONE_BOT_MAIL }}
-        github-user-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
         directories: nasl misc src tools
         target: main
