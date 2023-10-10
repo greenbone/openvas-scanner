@@ -54,9 +54,7 @@ impl NaslValue {
 
 impl PartialOrd for NaslValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let a: Vec<u8> = self.into();
-        let b: Vec<u8> = other.into();
-        Some(a.cmp(&b))
+        Some(self.cmp(other))
     }
 }
 
