@@ -1083,9 +1083,44 @@ apply_hosts_preferences_ordering (gvm_hosts_t *hosts)
     g_debug ("hosts_ordering: Sequential.");
 }
 
-static void
+static int
 apply_hosts_reverse_lookup_preferences (gvm_hosts_t *hosts)
 {
+#ifdef FEATURE_REVERSE_LOOKUP_EXCLUDED
+  const char *exclude_hosts = prefs_get ("exclude_hosts");
+  int hosts_excluded = 0;
+
+  if (prefs_get_bool ("reverse_lookup_unify"))
+    {
+      gvm_hosts_t *excluded;
+
+      excluded = gvm_hosts_reverse_lookup_unify_excluded (hosts);
+      g_debug ("reverse_lookup_unify: Skipped %lu host(s).", excluded->count);
+
+      // Get the amount of hosts which are excluded now for this option,
+      // but they are already in the exclude list.
+      // This is to avoid issues with the scan progress calculation, since
+      // the amount of excluded host could be duplicated.
+      hosts_excluded += gvm_hosts_exclude (excluded, exclude_hosts);
+
+      gvm_hosts_free (excluded);
+    }
+
+  if (prefs_get_bool ("reverse_lookup_only"))
+    {
+      gvm_hosts_t *excluded;
+
+      excluded = gvm_hosts_reverse_lookup_only_excluded (hosts);
+      g_debug ("reverse_lookup_unify: Skipped %lu host(s).", excluded->count);
+      // Get the amount of hosts which are excluded now for this option,
+      // but they are already in the exclude list.
+      // This is to avoid issues with the scan progress calculation, since
+      // the amount of excluded host could be duplicated.
+      hosts_excluded += gvm_hosts_exclude (excluded, exclude_hosts);
+      gvm_hosts_free (excluded);
+    }
+  return exclude_hosts ? hosts_excluded : 0;
+#else
   /* Reverse-lookup unify ? */
   if (prefs_get_bool ("reverse_lookup_unify"))
     g_debug ("reverse_lookup_unify: Skipped %d host(s).",
@@ -1095,6 +1130,9 @@ apply_hosts_reverse_lookup_preferences (gvm_hosts_t *hosts)
   if (prefs_get_bool ("reverse_lookup_only"))
     g_debug ("reverse_lookup_only: Skipped %d host(s).",
              gvm_hosts_reverse_lookup_only (hosts));
+
+  return 0;
+#endif
 }
 
 static int
@@ -1311,7 +1349,9 @@ attack_network (struct scan_globals *globals)
 
   /* Apply Hosts preferences. */
   apply_hosts_preferences_ordering (hosts);
-  apply_hosts_reverse_lookup_preferences (hosts);
+
+  int already_excluded = 0;
+  already_excluded = apply_hosts_reverse_lookup_preferences (hosts);
 
 #ifdef FEATURE_HOSTS_ALLOWED_ONLY
   // Remove hosts which are denied and/or keep the ones in the allowed host
@@ -1322,7 +1362,7 @@ attack_network (struct scan_globals *globals)
 
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  sprintf (buf, "%d", gvm_hosts_count (hosts));
+  sprintf (buf, "%d", gvm_hosts_count (hosts) + already_excluded);
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
