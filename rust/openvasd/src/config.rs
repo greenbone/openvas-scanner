@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 pub struct Feed {
     pub path: PathBuf,
     pub check_interval: Duration,
+    pub signature_check: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -40,6 +41,7 @@ impl Default for Feed {
         Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
+            signature_check: false,
         }
     }
 }
@@ -208,6 +210,14 @@ impl Config {
                     .action(ArgAction::Set)
                     .help("path to openvas feed"),
             )
+            .arg(
+                clap::Arg::new("feed-signature-check")
+                    .long("feed-signature-check")
+                    .short('x')
+                    .action(ArgAction::SetTrue)
+                    .help("Enable feed signature check"),
+            )
+
             .arg(
                 clap::Arg::new("feed-check-interval")
                     .env("FEED_CHECK_INTERVAL")

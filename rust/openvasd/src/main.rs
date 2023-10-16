@@ -21,7 +21,11 @@ where
 {
     let scanner = scan::OSPDWrapper::new(config.ospd.socket.clone(), config.ospd.read_timeout);
     let rc = config.ospd.result_check_interval;
-    let fc = (config.feed.path.clone(), config.feed.check_interval);
+    let fc = (
+        config.feed.path.clone(),
+        config.feed.check_interval,
+        config.feed.signature_check,
+    );
     let ctx = controller::ContextBuilder::new()
         .result_config(rc)
         .feed_config(fc)

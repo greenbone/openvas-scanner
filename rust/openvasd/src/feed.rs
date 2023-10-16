@@ -15,7 +15,7 @@ pub struct FeedIdentifier {
 
 impl FeedIdentifier {
     /// Get the oids from a feed
-    pub fn from_feed<S>(path: S) -> Result<Vec<String>, feed::UpdateError>
+    pub fn from_feed<S>(path: S, signature_check: bool) -> Result<Vec<String>, feed::UpdateError>
     where
         S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
     {
@@ -29,6 +29,35 @@ impl FeedIdentifier {
         let loader = nasl_interpreter::FSPluginLoader::new(path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
         let updater = feed::Update::init("1", 5, loader.clone(), storage, verifier);
+
+        if signature_check {
+            match updater.verify_signature() {
+                Ok(_) => tracing::info!("Signature check succsessful"),
+                Err(feed::VerifyError::MissingKeyring) => {
+                    tracing::warn!("Signature check enabled but missing keyring")
+                }
+                Err(feed::VerifyError::BadSignature(e)) => {
+                    tracing::warn!("{}", e);
+                    return Err(feed::UpdateError {
+                        key: feed::Hasher::Sha256.sum_file().to_string(),
+                        kind: feed::UpdateErrorKind::VerifyError(feed::VerifyError::BadSignature(
+                            e.to_string(),
+                        )),
+                    });
+                }
+                Err(e) => {
+                    tracing::warn!("Unexpected error during signature verification: {e}");
+                    return Err(feed::UpdateError {
+                        key: feed::Hasher::Sha256.sum_file().to_string(),
+                        kind: feed::UpdateErrorKind::VerifyError(feed::VerifyError::BadSignature(
+                            e.to_string(),
+                        )),
+                    });
+                }
+            }
+        } else {
+            tracing::warn!("Signature check disabled");
+        }
 
         for s in updater {
             s?;
