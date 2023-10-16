@@ -24,6 +24,7 @@ Configure it like:
 [feed]
 # path to the openvas feed. This is required for the /vts endpoint.
 path = "/var/lib/openvas/plugins"
+signature_check = false
 
 [feed.check_interval]
 # how often the feed should be checked for updates
@@ -169,6 +170,8 @@ Options:
           path to toml config file [env: OPENVASD_CONFIG=]
       --feed-path <feed-path>
           path to openvas feed [env: FEEED_PATH=]
+  -x, --feed-signature-check
+          Enable feed signature check
       --feed-check-interval <SECONDS>
           interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=]
       --tls-certs <tls-certs>
@@ -193,12 +196,17 @@ Options:
           Print help
 ```
 
+## Feed signature check.
+
+If the signature check is enabled, it is also required to set the the `GNUPGHOME` environment variable with the path to the keyring.
+
 # Options
 
 | Option                  | Long Command            | Short Command | Config Section             | Config Name      | Environment Variable  | Description                                                                                                      | Default Value            |
 | ----------------------- | ----------------------- | ------------- | -------------------------- | ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | Config Path             | --config                | -c            |                            |                  | OPENVASD_CONFIG       | Path to toml config file                                                                                         |                          |
 | Feed Path               | --feed-path             |               | feed                       | path             | FEEED_PATH            | Path to openvas feed                                                                                             | /var/lib/openvas/plugins |
+| Feed Signature Check    | --signature-check       | -x            | feed                       | signature_check  |                       | Enable feed signature check.                                                                                     | false                    |
 | Feed Check Interval     | --feed-check-interval   |               | feed.check_interval        | secs</br>nanos   | FEED_CHECK_INTERVAL   | Interval to check for feed updates in seconds. Using the config file, it can be set in seconds and nanoseconds   | 3600 (seconds)           |
 | TLS Certificates        | --tls-certs             |               | tls                        | certs            | TLS_CERTS             | Path to server TLS certs file. If none is given, TLS is disabled                                                 |                          |
 | TLS Key                 | --tls-key               |               | tls                        | key              | TLS_KEY               | Path to server TLS key                                                                                           |                          |
