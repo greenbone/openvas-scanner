@@ -74,6 +74,8 @@ enum FeedAction {
         ///
         /// When it is skipped it will be obtained via `openvas -s`
         path: Option<PathBuf>,
+        /// If the signature check of the sha256sums file must be performed.
+        signature_check: Option<bool>,
     },
     /// Transforms the feed into stdout
     ///
@@ -94,7 +96,11 @@ impl RunAction<()> for FeedAction {
     type Error = CliError;
     fn run(&self) -> Result<(), Self::Error> {
         match self {
-            FeedAction::Update { redis: _, path } => {
+            FeedAction::Update {
+                redis: _,
+                path,
+                signature_check: _,
+            } => {
                 let update_config: FeedUpdateConfiguration =
                     self.as_config().map_err(|kind| CliError {
                         filename: String::new(),
@@ -107,7 +113,11 @@ impl RunAction<()> for FeedAction {
                             kind: e.into(),
                             filename: format!("{path:?}"),
                         })?;
-                feed_update::run(dispatcher, update_config.plugin_path)
+                feed_update::run(
+                    dispatcher,
+                    update_config.plugin_path,
+                    update_config.check_enabled,
+                )
             }
             FeedAction::Transform { path } => {
                 let transform_config: TransformConfiguration =
@@ -118,7 +128,7 @@ impl RunAction<()> for FeedAction {
 
                 let mut o = json_storage::ArrayWrapper::new(io::stdout());
                 let dispatcher = json_storage::NvtDispatcher::as_dispatcher(&mut o);
-                match feed_update::run(dispatcher, transform_config.plugin_path) {
+                match feed_update::run(dispatcher, transform_config.plugin_path, false) {
                     Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                         filename: "".to_string(),
                         kind: se.into(),
@@ -165,6 +175,7 @@ struct FeedUpdateConfiguration {
     /// Plugin path is required for either
     plugin_path: PathBuf,
     redis_url: String,
+    check_enabled: bool,
 }
 
 struct TransformConfiguration {
@@ -213,11 +224,17 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
             FeedAction::Update {
                 redis: Some(redis_url),
                 path: Some(plugin_path),
+                signature_check: Some(check_enabled),
             } => Ok(FeedUpdateConfiguration {
                 redis_url,
                 plugin_path,
+                check_enabled,
             }),
-            FeedAction::Update { redis, path } => {
+            FeedAction::Update {
+                redis,
+                path,
+                signature_check,
+            } => {
                 // This is only valid as long as we don't have a proper configuration file and rely on openvas.
                 let config = read_openvas_config()?;
                 let redis_url = {
@@ -244,9 +261,19 @@ impl AsConfig<FeedUpdateConfiguration> for FeedAction {
                         get_path_from_openvas(config)
                     }
                 };
+
+                let check_enabled = {
+                    if let Some(c) = signature_check {
+                        c
+                    } else {
+                        false
+                    }
+                };
+
                 Ok(FeedUpdateConfiguration {
                     plugin_path,
                     redis_url,
+                    check_enabled,
                 })
             }
             _ => unreachable!("only update can be converted to FeedUpdateConfiguration"),
@@ -277,6 +304,7 @@ fn main() {
                 .about("Runs nasl scripts in description mode and updates data into redis")
                 .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
                     .value_parser(value_parser!(PathBuf)))
+                .arg(arg!(-x --"signature-check" "Enable NASL signature check.") .required(false).action(ArgAction::SetTrue))
                 .arg(arg!(-r --redis <VALUE> "Redis url. Must either start `unix://` or `redis://`.").required(false))
                 )
                 .subcommand(Command::new("transform")
@@ -333,8 +361,13 @@ When piping a scan json it is enriched with the scan-config xml and may the port
             Some(("update", args)) => {
                 let path = args.get_one::<PathBuf>("path").cloned();
                 let redis = args.get_one::<String>("redis").cloned();
+                let signature_check = args.get_one::<bool>("signature-check").cloned();
                 Commands::Feed {
-                    action: FeedAction::Update { redis, path },
+                    action: FeedAction::Update {
+                        redis,
+                        path,
+                        signature_check,
+                    },
                 }
             }
             Some(("transform", args)) => {

@@ -9,7 +9,7 @@ use storage::Dispatcher;
 
 use crate::CliError;
 
-pub fn run<S>(storage: S, path: PathBuf) -> Result<(), CliError>
+pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
     S: Sync + Send + Dispatcher<String>,
 {
@@ -20,25 +20,32 @@ where
     let verifier = feed::HashSumNameLoader::sha256(&loader)?;
     let updater = feed::Update::init("1", 5, loader.clone(), storage, verifier);
 
-    match updater.verify_signature() {
-        Ok(_) => tracing::info!("Signature check succsessful"),
-        Err(feed::VerifyError::SignatureCheckDisabled) => {
-            tracing::warn!("Signature check disabled")
+    if signature_check {
+        match updater.verify_signature() {
+            Ok(_) => tracing::info!("Signature check succsessful"),
+            Err(feed::VerifyError::MissingKeyring) => {
+                tracing::warn!("Signature check enabled but missing keyring");
+                return Err(feed::VerifyError::MissingKeyring.into());
+            }
+            Err(feed::VerifyError::BadSignature(e)) => {
+                tracing::warn!("{}", e);
+                return Err(CliError {
+                    filename: feed::Hasher::Sha256.sum_file().to_string(),
+                    kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(e)),
+                });
+            }
+            Err(e) => {
+                tracing::warn!("Unexpected error during signature verification: {e}");
+                return Err(CliError {
+                    filename: feed::Hasher::Sha256.sum_file().to_string(),
+                    kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
+                        e.to_string(),
+                    )),
+                });
+            }
         }
-        Err(feed::VerifyError::BadSignature(e)) => {
-            tracing::warn!("{}", e);
-            return Err(CliError {
-                filename: feed::Hasher::Sha256.sum_file().to_string(),
-                kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(e)),
-            });
-        }
-        Err(e) => {
-            tracing::warn!("Unexpected error during signature verification: {e}");
-            return Err(CliError {
-                filename: feed::Hasher::Sha256.sum_file().to_string(),
-                kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(e.to_string())),
-            });
-        }
+    } else {
+        tracing::warn!("Signature check disabled");
     }
 
     for s in updater {

@@ -49,8 +49,8 @@ pub enum Error {
     },
     /// When signature check of the hashsumfile fails
     BadSignature(String),
-    /// Signature is Disabled
-    SignatureCheckDisabled,
+    /// Missingkeyring
+    MissingKeyring,
 }
 
 impl From<LoadError> for Error {
@@ -70,9 +70,9 @@ impl Display for Error {
                 key,
             } => write!(f, "{key} hash {actual} is not as expected ({expected})."),
             Error::BadSignature(e) => write!(f, "{e}"),
-            Error::SignatureCheckDisabled => write!(
+            Error::MissingKeyring => write!(
                 f,
-                "Signature check disabled. To enable it, set the GNUPGHOME environment variable"
+                "Signature check is enabled but there is no keyring. Set the GNUPGHOME environment variable"
             ),
         }
     }
@@ -168,7 +168,7 @@ pub fn signature_check(feed_path: &str) -> Result<(), Error> {
     let mut gnupghome = match std::env::var("GNUPGHOME") {
         Ok(v) => v,
         Err(_) => {
-            return Err(Error::SignatureCheckDisabled);
+            return Err(Error::MissingKeyring);
         }
     };
     gnupghome.push_str("/pubring.kbx");

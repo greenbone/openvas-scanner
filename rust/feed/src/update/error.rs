@@ -45,7 +45,7 @@ impl From<verify::Error> for Error {
                 key,
             } => key,
             crate::VerifyError::BadSignature(e) => e,
-            crate::VerifyError::SignatureCheckDisabled => "",
+            crate::VerifyError::MissingKeyring => "",
         };
         Self {
             key: fin.to_string(),
