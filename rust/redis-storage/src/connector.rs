@@ -291,9 +291,14 @@ pub trait RedisAddNvt: RedisWrapper {
         }
 
         // Stores the OID under the filename key. This key is currently used
-        // for the dependency autoload, where the filename is used to fetch the OID
+        // for the dependency autoload, where the filename is used to fetch the OID.
+        //
+        // TODO: since openvas get the oid by position and it is stored in the second position,
+        // for backward compatibility a dummy item (it is the plugin's upload timestamp)
+        // under the filename key is added.
+        // Once openvas is no longer used, the dummy item can be removed.
         let key_name = format!("filename:{filename}");
-        self.lpush(&key_name, &oid)?;
+        self.rpush(&key_name, &["1", &oid])?;
         Ok(())
     }
 }
@@ -578,9 +583,12 @@ mod tests {
                             );
                         }
                         "filename:test.nasl" => {
-                            let values = values.first().unwrap().clone();
-                            let oid = String::from_utf8(values);
+                            assert_eq!(values.len(), 2);
+                            let mut vals = values.clone();
+                            let oid = String::from_utf8(vals.pop().unwrap());
                             assert_eq!(Ok("0.0.0.0.0.0.0.0.0.1".to_owned()), oid);
+                            let dummy = vals.pop().unwrap();
+                            assert_eq!(Ok("1".to_owned()), String::from_utf8(dummy));
                         }
                         _ => panic!("{key} should not occur"),
                     }
