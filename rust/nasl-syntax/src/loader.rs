@@ -53,6 +53,8 @@ where
 pub trait Loader {
     /// Resolves the given key to nasl code
     fn load(&self, key: &str) -> Result<String, LoadError>;
+    /// Return the root plugins folder
+    fn root_path(&self) -> Result<String, LoadError>;
 }
 
 /// Returns given key as BufReader
@@ -68,6 +70,9 @@ pub struct NoOpLoader {}
 /// Is a no operation loader for test purposes.
 impl Loader for NoOpLoader {
     fn load(&self, _: &str) -> Result<String, LoadError> {
+        Ok(String::default())
+    }
+    fn root_path(&self) -> Result<String, LoadError> {
         Ok(String::default())
     }
 }
@@ -148,5 +153,10 @@ where
         }
         // unfortunately nasl is still in iso-8859-1
         load_non_utf8_path(path.as_path())
+    }
+    /// Return the root path of the plugins directory
+    fn root_path(&self) -> Result<String, LoadError> {
+        let path = self.root.as_ref().to_str().unwrap_or_default().to_string();
+        Ok(path)
     }
 }

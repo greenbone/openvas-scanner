@@ -56,9 +56,10 @@ Usage `nasl-cli feed update [OPTIONS]`
 Options:
 - `-p`, `--path <FILE>`:   Path to the feed.
 - `-r`, `--redis <VALUE>`: Redis url. Must either start `unix://` or `redis://`.
-
+- `-x`, `--signature-check`: Enable NASL signature check.
 
 On `feed update` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
+Optionally, it is possible to perform a signature verification of the sha256sums file before uploading. To perform the signature check, also the environment variable `GNUPGHOME` must be set with the gnupg home directory, where the `pubring.kbx` file is stored.
 
 #### transform
 Runs nasl scripts in description mode and returns it as a json array into stdout.
@@ -73,6 +74,7 @@ Options:
 
 
 On `feed transform` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
+Optionally, it is possible to perform a signature verification of the sha256sums file before the transformation. To enable the signature check, the environment variable `GNUPGHOME` must be set with the gnupg home directory, where the `pubring.kbx` file is stored.
 
 It will produce a json array in stdout in the format described within [json-storage](../json-storage/README.md).
 

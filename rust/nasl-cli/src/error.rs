@@ -88,6 +88,8 @@ impl From<VerifyError> for CliError {
                 actual: _,
                 key,
             } => key,
+            VerifyError::MissingKeyring => "Signature check enabled but missing keyring. Set GNUPGHOME environment variable.",
+            VerifyError::BadSignature(_) => "Bad signature",
         };
         Self {
             filename: filename.to_string(),

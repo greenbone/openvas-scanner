@@ -34,20 +34,25 @@ pub struct FeedContext {
     pub path: PathBuf,
     /// The interval when to check for updates.
     pub verify_interval: std::time::Duration,
+    /// Enable signature check
+    pub signature_check: bool,
 }
 
-impl From<(PathBuf, std::time::Duration)> for FeedContext {
-    fn from((path, verify_interval): (PathBuf, std::time::Duration)) -> Self {
+impl From<(PathBuf, std::time::Duration, bool)> for FeedContext {
+    fn from(
+        (path, verify_interval, signature_check): (PathBuf, std::time::Duration, bool),
+    ) -> Self {
         Self {
             path,
             verify_interval,
+            signature_check,
         }
     }
 }
 
-impl From<(&str, std::time::Duration)> for FeedContext {
-    fn from((path, verify_interval): (&str, std::time::Duration)) -> Self {
-        (PathBuf::from(path), verify_interval).into()
+impl From<(&str, std::time::Duration, bool)> for FeedContext {
+    fn from((path, verify_interval, signature_check): (&str, std::time::Duration, bool)) -> Self {
+        (PathBuf::from(path), verify_interval, signature_check).into()
     }
 }
 

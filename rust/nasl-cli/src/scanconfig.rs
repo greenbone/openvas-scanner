@@ -43,7 +43,7 @@ pub(crate) fn run(
     };
 
     tracing::info!("loading feed. This may take a while.");
-    feed_update::run(Arc::clone(&storage), feed.to_owned())?;
+    feed_update::run(Arc::clone(&storage), feed.to_owned(), false)?;
     tracing::info!("feed loaded.");
     let ports = match port_list {
         Some(ports) => {

@@ -16,6 +16,7 @@ where
     tracing::debug!("Starting VTS synchronization loop");
     if let Some(cfg) = &ctx.feed_config {
         let interval = cfg.verify_interval;
+        let signature_check = cfg.signature_check;
         loop {
             let path = cfg.path.clone();
             if *ctx.abort.read().unwrap() {
@@ -33,7 +34,7 @@ where
                 };
 
                 if last_hash.is_empty() || last_hash.clone() != hash {
-                    FeedIdentifier::from_feed(&path).map(|x| (hash, x))
+                    FeedIdentifier::from_feed(&path, signature_check).map(|x| (hash, x))
                 } else {
                     Ok((String::new(), vec![]))
                 }

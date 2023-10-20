@@ -14,7 +14,7 @@ use nasl_interpreter::{
 };
 use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
 
-use crate::verify;
+use crate::verify::{self, signature_check};
 
 pub use self::error::ErrorKind;
 
@@ -159,6 +159,11 @@ where
             }
         }
         Err(ErrorKind::MissingExit(key.as_ref().into()))
+    }
+    /// Perform a signature check of the sha256sums file
+    pub fn verify_signature(&self) -> Result<(), verify::Error> {
+        let path = self.loader.root_path().unwrap();
+        signature_check(&path)
     }
 }
 
