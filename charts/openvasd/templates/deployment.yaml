@@ -169,8 +169,13 @@ spec:
         - containerPort: 3000
           protocol: TCP 
         env:
+          {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
           - name: LISTENING
-            value: "0.0.0.0:3000"
+            value: "0.0.0.0:443"
+          {{ else }}
+          - name: LISTENING
+            value: "0.0.0.0:80"
+          {{ end }}
           - name: OSPD_SOCKET
             value: /run/ospd/ospd-openvas.sock
           - name: OPENVASD_LOG

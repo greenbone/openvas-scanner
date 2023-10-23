@@ -61,14 +61,14 @@ Once you installed the containers, run the following commands to rollout the pod
 `kubectl rollout status --watch --timeout 600s deployment/openvasd`
 
 Get the pod name
-`export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=openvasd,app.kubernetes.io/instance=openvasd" -o jsonpath="{.items[0].metadata.name}")`
+`export POD_NAME=$(kubectl get pods --namespace openvasd -l "app.kubernetes.io/name=openvasd,app.kubernetes.io/instance=openvasd" -o jsonpath="{.items[0].metadata.name}")`
 
 Forward the port
-`kubectl --namespace default port-forward $POD_NAME 8080:3000`
+`kubectl --namespace openvasd port-forward $POD_NAME 8443:443`
 
 For testing, you can use the following command:
 
-`curl --verbose --key $CLIENT_KEY --cert $CLIENT_CERT --insecure --request HEAD https://127.0.0.1:8080 -H "X-API-KEY: changeme"`
+`curl --verbose --key $CLIENT_KEY --cert $CLIENT_CERT --insecure --request HEAD https://127.0.0.1:8443 -H "X-API-KEY: changeme"`
 
 
 # Design decisions
