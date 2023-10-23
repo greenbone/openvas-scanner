@@ -1,0 +1,24 @@
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+  className: "traefik"
+  hosts:
+    # Captures everything of / delegates it to openvasd although this is not feasible
+    # on deployments that contain multiple http services our current deployment model
+    # sees a sensor as an own machine.
+    # Currently it is configures with http instead of https in mind
+    # Do not use it in production environments.
+    - paths:
+        - path: /
+          pathType: ImplementationSpecific 
+          backend:
+            service:
+              name: openvasd
+              port:
+                number: 80
+openvasd: 
+  tls:
+    certificates:
+      deploy_server: false
+      deploy_client: false

@@ -27,6 +27,14 @@ helm install openvasd ./openvasd/ -f openvasd/values.yaml -f ~/openvasd.yaml
 
 it will use `nichtsfrei/openvas-scanner` instead of `greenbone/openvas-scanner`.
 
+# Preconfigured deployment scenarios
+
+## http single instance
+
+To deploy openvasd as http intance on the root path execute:
+```
+helm install --namespace openvasd --create-namespace openvasd openvasd/ --values openvasd/values.yaml --values openvasd/http-root.yaml
+```
 ## TLS configuration
 
 This chart is provided with server certificate and private key for example purposes and they should not be used in production systems. Certificate and key where created with [this scripts](../../rust/examples/tls/Self-Signed mTLS Method)

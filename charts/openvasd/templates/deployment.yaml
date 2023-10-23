@@ -42,12 +42,16 @@ spec:
         emptyDir: {}
       - name: ospd-logs
         emptyDir: {}
+      {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
       - name: server-private-key
         secret:
           secretName: server-private-key
+      {{ end }}
+      {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
       - name: client-certs
         secret:
           secretName: client-certs
+      {{ end }}
       initContainers:
       - name: nasl
         image: "{{ .Values.vulnerabilitytests.repository }}:{{ .Values.vulnerabilitytests.tag }}"
@@ -146,12 +150,16 @@ spec:
           mountPath: /etc/openvas
         - name: ospd-socket
           mountPath: /run/ospd/
+        {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
         - mountPath: "/etc/openvasd/tls/"
           name: server-private-key
           readOnly: true
+        {{ end }}
+        {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
         - mountPath: "/etc/openvasd/clientcerts"
           name: client-certs
           readOnly: true
+        {{ end }}
         securityContext:
           capabilities:
             add:
@@ -169,12 +177,16 @@ spec:
             value: {{ .Values.openvasd.loglevel | default "INFO" }} 
           - name: API_KEY
             value: {{ .Values.openvasd.apikey }}
+          {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
           - name: TLS_CERTS
             value: "/etc/openvasd/tls/certs.pem"
           - name: TLS_KEY
             value: "/etc/openvasd/tls/key.pem"
+          {{ end }}
+          {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
           - name: TLS_CLIENT_CERTS
             value: "/etc/openvasd/clientcerts/"
+          {{ end }}
       - name: ospd
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
