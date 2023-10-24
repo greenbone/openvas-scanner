@@ -12,6 +12,15 @@ use super::context::Context;
 use hyper::{Body, Method, Request, Response};
 
 use crate::scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper};
+
+enum HealthOpts {
+    /// Ready
+    Ready,
+    /// Started
+    Started,
+    /// Alive
+    Alive,
+}
 /// The supported paths of scannerd
 enum KnownPaths {
     /// /scans/{id}
@@ -22,6 +31,8 @@ enum KnownPaths {
     ScanStatus(String),
     /// /vts
     Vts,
+    /// /health
+    Health(HealthOpts),
     /// Not supported
     Unknown,
 }
@@ -44,6 +55,12 @@ impl KnownPaths {
                 None => KnownPaths::Scans(None),
             },
             Some("vts") => KnownPaths::Vts,
+            Some("health") => match parts.next() {
+                Some("ready") => KnownPaths::Health(HealthOpts::Ready),
+                Some("alive") => KnownPaths::Health(HealthOpts::Alive),
+                Some("started") => KnownPaths::Health(HealthOpts::Started),
+                _ => KnownPaths::Unknown,
+            }
             _ => {
                 tracing::trace!("Unknown path: {path}");
                 KnownPaths::Unknown
@@ -64,6 +81,9 @@ impl Display for KnownPaths {
             KnownPaths::ScanStatus(id) => write!(f, "/scans/{}/status", id),
             KnownPaths::Unknown => write!(f, "Unknown"),
             KnownPaths::Vts => write!(f, "/vts"),
+            KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
+            KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
+            KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
         }
     }
 }
@@ -113,6 +133,17 @@ where
     }
 
     match (req.method(), kp) {
+        (&Method::GET, Health(HealthOpts::Alive)) |
+        (&Method::GET, Health(HealthOpts::Started)) =>
+            Ok(ctx.response.empty(hyper::StatusCode::OK)),
+        (&Method::GET, Health(HealthOpts::Ready)) => {
+            let oids = ctx.db.oids().await?;
+            if oids.count() == 0 {
+                Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE))
+            } else {
+                Ok(ctx.response.empty(hyper::StatusCode::OK))
+            }
+        }
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {

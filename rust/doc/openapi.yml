@@ -71,6 +71,30 @@ paths:
                 type: "string"
           description: "Header"
 
+  /health/alive:
+    get:
+      description: "Get application's health information"
+      operationId: "get_health_alive"
+      responses:
+        "200":
+          description: "Ok"
+  /health/ready:
+    get:
+      description: "Get application's health information"
+      operationId: "get_health_ready"
+      responses:
+        "200":
+          description: "Ok"
+        "503":
+          description: "Service Unavailable"
+  /health/started:
+    get:
+      description: "Get application's health information"
+      operationId: "get_health_started"
+      responses:
+        "200":
+          description: "Ok"
+          
   /scans:
     post:
       description: "This request just creates the scan. It can be started afterwards with the scan_action request."
