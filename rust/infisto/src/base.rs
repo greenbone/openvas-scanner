@@ -403,7 +403,10 @@ impl Range {
 
 impl CachedIndexFileStorer {
     /// Initializes the storage.
-    pub fn init(base: &str) -> Result<Self, Error> {
+    pub fn init<P>(base: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
         let base = IndexedFileStorer::init(base)?;
         let cache = [None, None, None, None, None];
         Ok(Self { base, cache })

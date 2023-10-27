@@ -12,6 +12,7 @@ use super::port::Protocol;
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Result {
     /// Incremental ID of a result
     pub id: usize,
@@ -78,6 +79,7 @@ impl<T: Into<Result>> From<(usize, T)> for Result {
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub enum ResultType {
     /// Vulnerability
     Alarm,

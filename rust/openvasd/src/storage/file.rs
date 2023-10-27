@@ -170,7 +170,7 @@ where
         id: &str,
         (status, results): FetchResult,
     ) -> Result<(), Error> {
-        let key = format!("results_{}", id);
+        let key = format!("results_{id}");
         self.update_status(id, status).await?;
         let scan_key = format!("scan_{id}");
 
@@ -199,15 +199,19 @@ where
 {
     async fn insert_scan(&self, scan: models::Scan) -> Result<(), Error> {
         let id = scan.scan_id.clone().unwrap_or_default();
-        let key = format!("scan_{id}");
+        let scan_key = format!("scan_{id}");
         let status_key = format!("status_{id}");
+        let results_key = format!("results_{id}");
         let storage = Arc::clone(&self.storage);
         tokio::task::spawn_blocking(move || {
             let scan = infisto::bincode::Serialization::serialize(scan)?;
             let status = infisto::bincode::Serialization::serialize(models::Status::default())?;
+            let results =
+                infisto::bincode::Serialization::serialize(Vec::<models::Result>::default())?;
             let mut storage = storage.write().unwrap();
-            storage.put(&key, scan)?;
+            storage.put(&scan_key, scan)?;
             storage.put(&status_key, status)?;
+            storage.put(&results_key, results)?;
 
             let stored_key = infisto::bincode::Serialization::serialize(&id)?;
             storage.append("scans", stored_key)?;
