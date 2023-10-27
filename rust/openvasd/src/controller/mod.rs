@@ -48,7 +48,10 @@ pub(crate) use make_svc;
 mod tests {
     use super::context::Context;
     use super::entry::entrypoint;
-    use crate::controller::{ContextBuilder, NoOpScanner};
+    use crate::{
+        controller::{ContextBuilder, NoOpScanner},
+        storage::file,
+    };
     use async_trait::async_trait;
     use hyper::{Body, Method, Request, Response};
     use std::sync::{Arc, RwLock};
@@ -266,9 +269,7 @@ mod tests {
                 .unwrap();
             let resp = entrypoint(req, Arc::clone(&ctx)).await.unwrap();
             let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();
-            let mut resp = serde_json::from_slice::<Vec<models::Result>>(&resp).unwrap();
-            // on serializing the results the order is reversed
-            resp.reverse();
+            let resp = serde_json::from_slice::<Vec<models::Result>>(&resp).unwrap();
             resp
         }
         let scan: models::Scan = models::Scan::default();
@@ -276,8 +277,11 @@ mod tests {
             count: Arc::new(RwLock::new(0)),
         };
         let ns = std::time::Duration::from_nanos(10);
+        // let storage = file::encrypted("/tmp/aha", "key").unwrap();
+        let storage = file::unencrypted("/tmp/aha").unwrap();
         let ctx = ContextBuilder::new()
             .result_config(ns)
+            .storage(storage)
             .scanner(scanner)
             .build();
         let controller = Arc::new(ctx);
@@ -300,8 +304,8 @@ mod tests {
             }
         }
         let mut resp = get_results(&id, Arc::clone(&controller), None, None).await;
+        resp.sort_by(|a, b| a.id.cmp(&b.id));
         assert_eq!(resp.len(), 4950);
-        resp.reverse();
         resp.iter().enumerate().for_each(|(i, r)| {
             assert_eq!(r.id, i);
         });
@@ -313,7 +317,8 @@ mod tests {
         assert_eq!(resp[0].id, 4949);
         let mut resp = get_results(&id, Arc::clone(&controller), None, Some((4900, 4923))).await;
         assert_eq!(resp.len(), 24);
-        resp.reverse();
+        resp.sort_by(|a, b| a.id.cmp(&b.id));
+
         for (i, r) in resp.iter().enumerate() {
             assert_eq!(r.id, i + 4900);
         }

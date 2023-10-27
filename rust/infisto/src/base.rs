@@ -296,12 +296,14 @@ impl IndexedByteStorage for IndexedFileStorer {
     where
         T: AsRef<[u8]>,
     {
+        if data.is_empty() {
+            return Ok(());
+        }
         match self.load_index(key) {
             Ok(i) => self.append_all_index(key, &i, data).map(|_| ()),
             Err(Error::FileOpen(ioe)) => match ioe {
-                std::io::ErrorKind::NotFound if !data.is_empty() => {
+                std::io::ErrorKind::NotFound => {
                     let initial_index = self.create(key, &data[0])?;
-
                     self.append_all_index(key, &initial_index, &data[1..])
                         .map(|_| ())
                 }
@@ -403,7 +405,10 @@ impl Range {
 
 impl CachedIndexFileStorer {
     /// Initializes the storage.
-    pub fn init(base: &str) -> Result<Self, Error> {
+    pub fn init<P>(base: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
         let base = IndexedFileStorer::init(base)?;
         let cache = [None, None, None, None, None];
         Ok(Self { base, cache })

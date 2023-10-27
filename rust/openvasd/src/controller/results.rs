@@ -5,6 +5,7 @@
 //! Defines the result fetching loop.
 //!
 //! This loop should be run as background task to fetch results from the scanner.
+
 use crate::controller::quit_on_poison;
 use std::sync::Arc;
 

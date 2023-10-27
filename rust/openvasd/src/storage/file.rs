@@ -172,20 +172,21 @@ where
     ) -> Result<(), Error> {
         let key = format!("results_{}", id);
         self.update_status(id, status).await?;
-        let scan_key = format!("scan_{id}");
 
         let storage = Arc::clone(&self.storage);
         tokio::task::spawn_blocking(move || {
             let storage = &mut storage.write().unwrap();
             let mut serialized_results = Vec::with_capacity(results.len());
-            let ilen = storage.indices(&scan_key)?.len();
+            let ilen = match storage.indices(&key) {
+                Ok(x) => x.len(),
+                Err(_) => 0,
+            };
             for (i, mut result) in results.into_iter().enumerate() {
                 result.id = ilen + i;
                 let bytes = serde_json::to_vec(&result)?;
                 serialized_results.push(bytes);
             }
             storage.append_all(&key, &serialized_results)?;
-
             Ok(())
         })
         .await
