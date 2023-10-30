@@ -33,6 +33,8 @@ enum KnownPaths {
     Vts,
     /// /health
     Health(HealthOpts),
+    /// /notus/{os}
+    Notus(String),
     /// Not supported
     Unknown,
 }
@@ -55,6 +57,10 @@ impl KnownPaths {
                 None => KnownPaths::Scans(None),
             },
             Some("vts") => KnownPaths::Vts,
+            Some("notus") => match parts.next() {
+                Some(os) => KnownPaths::Notus(os.to_string()),
+                _ => KnownPaths::Unknown,
+            }
             Some("health") => match parts.next() {
                 Some("ready") => KnownPaths::Health(HealthOpts::Ready),
                 Some("alive") => KnownPaths::Health(HealthOpts::Alive),
@@ -81,6 +87,7 @@ impl Display for KnownPaths {
             KnownPaths::ScanStatus(id) => write!(f, "/scans/{}/status", id),
             KnownPaths::Unknown => write!(f, "Unknown"),
             KnownPaths::Vts => write!(f, "/vts"),
+            KnownPaths::Notus(os) => write!(f, "/notus/{}", os),
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
@@ -144,6 +151,7 @@ where
                 Ok(ctx.response.empty(hyper::StatusCode::OK))
             }
         }
+        (&Method::POST, Notus(_os)) => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
