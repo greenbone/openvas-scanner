@@ -277,7 +277,6 @@ mod tests {
             count: Arc::new(RwLock::new(0)),
         };
         let ns = std::time::Duration::from_nanos(10);
-        // let storage = file::encrypted("/tmp/aha", "key").unwrap();
         let storage = file::unencrypted("/tmp/aha").unwrap();
         let ctx = ContextBuilder::new()
             .result_config(ns)
