@@ -75,6 +75,8 @@ paths:
     get:
       description: "Get application's health information"
       operationId: "get_health_alive"
+      tags:
+        - "health"
       responses:
         "200":
           description: "Ok"
@@ -82,6 +84,8 @@ paths:
     get:
       description: "Get application's health information"
       operationId: "get_health_ready"
+      tags:
+        - "health"
       responses:
         "200":
           description: "Ok"
@@ -91,10 +95,39 @@ paths:
     get:
       description: "Get application's health information"
       operationId: "get_health_started"
+      tags:
+        - "health"
       responses:
         "200":
           description: "Ok"
-          
+
+
+  /notus/{os}:
+    post:
+      description: "Runs Notus with the given package list for the given OS"
+      operationId: "notus_run"
+      tags:
+        - "notus"
+      parameters:
+        - $ref: "#/components/parameters/NotusOS"
+      requestBody:
+        description: "Run Notus."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotusPkgList"
+      responses:
+        "204":
+          description: "Action performed"
+        "400":
+          description: "Bad request body"
+        "404":
+          description: "Scan not found"
+        "406":
+          description: "Unable to perform action because of the current scan status"
+        "501":
+          description: "Action not supported"
+
   /scans:
     post:
       description: "This request just creates the scan. It can be started afterwards with the scan_action request."
@@ -325,6 +358,13 @@ components:
       required: true
       schema:
         type: "string"
+    NotusOS:
+      name: os
+      in: path
+      description: "Operative System"
+      required: true
+      schema:
+        type: "string"
 
   schemas:
     ScanID:
@@ -350,6 +390,21 @@ components:
       required:
         - target
         - vts
+
+    NotusPkgList:
+      description: "Model representing a notus request"
+      type: "object"
+      properties:
+        message_type:
+          $ref: "#/components/schemas/NotusMessageType"
+        package_list:
+          description: "List of packages installed in the target"
+          type: "array"
+          items:
+            description: "Package"
+            type: "string"
+      required:
+        - package_list
 
     ScanResp:
       description: "Model representing a scan response."
@@ -412,6 +467,14 @@ components:
       required:
         - hosts
         - ports
+
+    NotusMessageType:
+      description: "Notus message type"
+      type: "string"
+      enum:
+        - result.scan
+        - scan.status
+        - scan.start
 
     AliveTestMethod:
       description: "Alive test method to be performed against the target"
