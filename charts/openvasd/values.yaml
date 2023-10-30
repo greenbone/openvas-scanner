@@ -21,6 +21,14 @@ openvasd:
   # openvasd is provided by the openvas image
   loglevel: TRACE
   apikey: changeme
+  tls:
+    # enables the server-/client-certs deployment via secret 
+    # templates/client-certs.yaml
+    # templates/server-certs.yaml
+    # deplying a client certificate without a server certificate will not have any effect.
+    certificates:
+      deploy_server: false
+      deploy_client: false
 
 # Required for version checks 
 notus:
@@ -87,31 +95,29 @@ service:
   type: ClusterIP
   port: 80
 
-# openvasd listens on root without any service prefix
-# in an environment with multiple http services it is 
-# wisely to configure ingress to rewrite targets to root for openvasd.
 ingress:
   enabled: false
-  className: "nginx"
   annotations:
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    # kubernetes.io/tls-acme: "true"
+    kubernetes.io/ingress.class: "traefik"
+  className: "traefik"
   hosts:
-    - host: chart-example.local
-      paths:
-        - path: /api/openvasd(/|$)(.*)
-          pathType: Prefix
+    # Captures everything of / delegates it to openvasd although this is not feasible
+    # on deployments that contain multiple http services our current deployment model
+    # sees a sensor as an own machine.
+    # Currently it is configures with http instead of https in mind
+    # Do not use it in production environments.
+    - paths:
+        - path: /
+          pathType: ImplementationSpecific 
           backend:
             service:
               name: openvasd
               port:
-                number: 3000
+                number: 80
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
-
 resources:
   {}
   # We usually recommend not to specify default resources and to leave this as a conscious

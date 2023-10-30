@@ -1,0 +1,7 @@
+ingress:
+  enabled: false
+openvasd: 
+  tls:
+    certificates:
+      deploy_server: true
+      deploy_client: true
