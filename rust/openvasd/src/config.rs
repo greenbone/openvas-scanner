@@ -188,8 +188,8 @@ impl Config {
     where
         P: AsRef<std::path::Path> + std::fmt::Display,
     {
-        let config = std::fs::read_to_string(path).unwrap_or_default();
-        toml::from_str(&config).unwrap_or_default()
+        let config = std::fs::read_to_string(path).unwrap();
+        toml::from_str(&config).unwrap()
     }
 
     pub fn load() -> Self {

@@ -20,40 +20,56 @@ pub(crate) fn quit_on_poison<T>() -> T {
 /// Combines all traits needed for a scanner.
 pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
-impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
+#[derive(Clone, Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ClientHash([u8; 32]);
 
-macro_rules! make_svc {
-    ($controller:expr) => {{
-        // start background service
-        use std::sync::Arc;
-
-        tokio::spawn(crate::controller::results::fetch(Arc::clone(&$controller)));
-        tokio::spawn(crate::controller::feed::fetch(Arc::clone(&$controller)));
-
-        use hyper::service::{make_service_fn, service_fn};
-        make_service_fn(|_conn| {
-            let controller = Arc::clone($controller);
-            async {
-                Ok::<_, crate::scan::Error>(service_fn(move |req| {
-                    crate::controller::entrypoint(req, Arc::clone(&controller))
-                }))
-            }
-        })
-    }};
+impl<T> From<T> for ClientHash
+where
+    T: AsRef<[u8]>,
+{
+    fn from(value: T) -> Self {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(value);
+        let hash = hasher.finalize();
+        Self(hash.into())
+    }
 }
 
-pub(crate) use make_svc;
+/// Contains information about an authorization model of a connection (e.g. mtls)
+#[derive(Default, Debug)]
+pub enum ClientIdentifier {
+    /// When there in no information available
+    #[default]
+    Unknown,
+    /// Contains a hashed number of an identifier
+    ///
+    /// openvasd uses the identifier as a key for results. This key is usually calculated by an
+    /// subject of a known client certificate. Based on that we don't need more information.
+    Known(ClientHash),
+}
+/// Is used to transfer the information if there is an identifier present within the connection
+pub trait ClientGossiper {
+    /// Gets the identifier
+    ///
+    /// Based on the concurrent nature, the actual information is boxed within a Arc and locked for
+    /// concurrent read write accesses.
+    fn client_identifier(&self) -> &std::sync::Arc<std::sync::RwLock<ClientIdentifier>>;
+}
+
+impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
 #[cfg(test)]
 mod tests {
     use super::context::Context;
     use super::entry::entrypoint;
     use crate::{
-        controller::{ContextBuilder, NoOpScanner},
+        controller::{ClientIdentifier, ContextBuilder, NoOpScanner},
         storage::file,
     };
     use async_trait::async_trait;
     use hyper::{Body, Method, Request, Response};
+    use infisto::base::IndexedFileStorer;
     use std::sync::{Arc, RwLock};
 
     #[derive(Debug, Clone)]
@@ -142,7 +158,8 @@ mod tests {
             .method(Method::HEAD)
             .body(Body::empty())
             .unwrap();
-        let resp = entrypoint(req, Arc::clone(&controller)).await.unwrap();
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Unknown));
+        let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
         assert_eq!(resp.headers().get("api-version").unwrap(), "1");
         assert_eq!(resp.headers().get("authentication").unwrap(), "");
     }
@@ -157,7 +174,9 @@ mod tests {
             .method(Method::GET)
             .body(Body::empty())
             .unwrap();
-        entrypoint(req, Arc::clone(&ctx)).await.unwrap()
+
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
+        entrypoint(req, Arc::clone(&ctx), cid).await.unwrap()
     }
 
     async fn get_scan<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> Response<Body>
@@ -170,7 +189,8 @@ mod tests {
             .method(Method::GET)
             .body(Body::empty())
             .unwrap();
-        entrypoint(req, Arc::clone(&ctx)).await.unwrap()
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
+        entrypoint(req, Arc::clone(&ctx), cid).await.unwrap()
     }
 
     async fn post_scan<S, DB>(scan: &models::Scan, ctx: Arc<Context<S, DB>>) -> Response<Body>
@@ -183,7 +203,8 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(&scan).unwrap().into())
             .unwrap();
-        entrypoint(req, Arc::clone(&ctx)).await.unwrap()
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
+        entrypoint(req, Arc::clone(&ctx), cid).await.unwrap()
     }
 
     async fn start_scan<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> Response<Body>
@@ -199,7 +220,8 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(action).unwrap().into())
             .unwrap();
-        entrypoint(req, Arc::clone(&ctx)).await.unwrap()
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
+        entrypoint(req, Arc::clone(&ctx), cid).await.unwrap()
     }
 
     async fn post_scan_id<S, DB>(scan: &models::Scan, ctx: Arc<Context<S, DB>>) -> String
@@ -216,8 +238,10 @@ mod tests {
 
     #[tokio::test]
     async fn add_scan_with_id_fails() {
-        let mut scan: models::Scan = models::Scan::default();
-        scan.scan_id = Some(String::new());
+        let scan: models::Scan = models::Scan {
+            scan_id: Some(String::new()),
+            ..Default::default()
+        };
         let ctx = Arc::new(Context::default());
         let resp = post_scan(&scan, Arc::clone(&ctx)).await;
         assert_eq!(resp.status(), hyper::http::StatusCode::BAD_REQUEST);
@@ -235,7 +259,8 @@ mod tests {
             .method(Method::DELETE)
             .body(Body::empty())
             .unwrap();
-        entrypoint(req, Arc::clone(&controller)).await.unwrap();
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
+        entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
         let resp = get_scan(&id, Arc::clone(&controller)).await;
         assert_eq!(resp.status(), 404);
     }
@@ -267,17 +292,19 @@ mod tests {
                 .method(Method::GET)
                 .body(Body::empty())
                 .unwrap();
-            let resp = entrypoint(req, Arc::clone(&ctx)).await.unwrap();
+            let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
+            let resp = entrypoint(req, Arc::clone(&ctx), cid).await.unwrap();
             let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();
-            let resp = serde_json::from_slice::<Vec<models::Result>>(&resp).unwrap();
-            resp
+            
+            serde_json::from_slice::<Vec<models::Result>>(&resp).unwrap()
         }
         let scan: models::Scan = models::Scan::default();
         let scanner = FakeScanner {
             count: Arc::new(RwLock::new(0)),
         };
         let ns = std::time::Duration::from_nanos(10);
-        let storage = file::unencrypted("/tmp/aha").unwrap();
+        let root = "/tmp/openvasd/fetch_results";
+        let storage = file::unencrypted(root).unwrap();
         let ctx = ContextBuilder::new()
             .result_config(ns)
             .storage(storage)
@@ -321,6 +348,12 @@ mod tests {
         for (i, r) in resp.iter().enumerate() {
             assert_eq!(r.id, i + 4900);
         }
+        unsafe {
+            IndexedFileStorer::init(root)
+                .unwrap()
+                .remove_base()
+                .unwrap()
+        };
     }
 
     #[tokio::test]
@@ -332,6 +365,17 @@ mod tests {
             .build();
         let controller = Arc::new(ctx);
         let resp = post_scan(&scan, Arc::clone(&controller)).await;
+
+        assert_eq!(resp.status(), 201);
+
+        let req = Request::builder()
+            .uri("/scans")
+            .method(Method::POST)
+            .body(serde_json::to_string(&scan).unwrap().into())
+            .unwrap();
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Unknown));
+        let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
+
         assert_eq!(resp.status(), 401);
         let req = Request::builder()
             .uri("/scans")
@@ -339,7 +383,8 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(&scan).unwrap().into())
             .unwrap();
-        let resp = entrypoint(req, Arc::clone(&controller)).await.unwrap();
+        let cid = Arc::new(RwLock::new(ClientIdentifier::Unknown));
+        let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
         assert_eq!(resp.status(), 201);
     }
 }

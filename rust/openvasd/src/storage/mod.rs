@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 
-use crate::{crypt, scan::FetchResult};
+use crate::{controller::ClientHash, crypt, scan::FetchResult};
 
 #[derive(Debug)]
 pub enum Error {
@@ -40,6 +40,31 @@ impl From<crypt::ParseError> for Error {
 impl From<std::string::FromUtf8Error> for Error {
     fn from(_: std::string::FromUtf8Error) -> Self {
         Self::Serialization
+    }
+}
+
+#[async_trait]
+pub trait ScanIDClientMapper {
+    async fn add_scan_client_id(&self, scan_id: String, client_id: ClientHash)
+        -> Result<(), Error>;
+    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static;
+
+    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error>;
+
+    async fn is_client_allowed<I>(&self, scan_id: I, client_id: &ClientHash) -> Result<bool, Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        let scans = self.get_scans_of_client_id(client_id).await?;
+        let sid = scan_id.as_ref();
+        for id in scans {
+            if id == sid {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 }
 
@@ -113,7 +138,13 @@ pub trait AppendFetchResult {
 
 #[async_trait]
 /// Combines the traits `ProgressGetter`, `ScanStorer` and `AppendFetchResult`.
-pub trait Storage: ProgressGetter + ScanStorer + AppendFetchResult + OIDStorer {}
+pub trait Storage:
+    ProgressGetter + ScanStorer + AppendFetchResult + OIDStorer + ScanIDClientMapper
+{
+}
 
 #[async_trait]
-impl<T> Storage for T where T: ProgressGetter + ScanStorer + AppendFetchResult + OIDStorer {}
+impl<T> Storage for T where
+    T: ProgressGetter + ScanStorer + AppendFetchResult + OIDStorer + ScanIDClientMapper
+{
+}
