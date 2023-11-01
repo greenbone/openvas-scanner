@@ -1,3 +1,5 @@
+pub mod ebuild;
+
 use std::cmp::{max, Ordering};
 
 use regex::Regex;
@@ -23,7 +25,13 @@ use regex::Regex;
 ///
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
-struct PackageVersion<'a>(&'a str);
+pub struct PackageVersion<'a>(&'a str);
+
+impl<'a> PackageVersion<'a> {
+    fn new(item: &'a str) -> Self {
+        Self(item)
+    }
+}
 
 impl<'a> PartialOrd for PackageVersion<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
