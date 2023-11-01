@@ -1,8 +1,8 @@
 use std::cmp::{max, Ordering};
 
-use regex::Regex;
+use regex::RegexBuilder;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 /// This struct represents a package Version string. It is used to compare Package Versions to
 /// determine, which of the Versions is newer than the other. For the comparison it uses the
 /// following algorithm:
@@ -23,7 +23,7 @@ use regex::Regex;
 ///
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
-struct PackageVersion<'a>(&'a str);
+pub struct PackageVersion<'a>(pub &'a str);
 
 impl<'a> PartialOrd for PackageVersion<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -33,11 +33,11 @@ impl<'a> PartialOrd for PackageVersion<'a> {
         }
 
         // Generate Regex to split versions into parts
-        let re = Regex::new(r"(\d+ | .)").unwrap();
+        let re = RegexBuilder::new(r"(\d+|.)").build().unwrap();
 
         // Split both version into its parts
-        let a_parts: Vec<&str> = re.split(self.0).into_iter().collect();
-        let b_parts: Vec<&str> = re.split(other.0).into_iter().collect();
+        let a_parts: Vec<&str> = re.find_iter(self.0).map(|m| m.as_str()).collect();
+        let b_parts: Vec<&str> = re.find_iter(other.0).map(|m| m.as_str()).collect();
 
         // Iterate through parts
         for i in 0..max(a_parts.len(), b_parts.len()) {
