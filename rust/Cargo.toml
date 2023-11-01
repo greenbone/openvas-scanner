@@ -28,10 +28,10 @@ members = [
   "scanconfig",
   "infisto",
   "smoketest",
+  "notus",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "GPL-2.0-or-later"
-
