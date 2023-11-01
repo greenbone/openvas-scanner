@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{hash::{self, Hasher, Hash}, collections::hash_map::DefaultHasher, ops::IndexMut, cmp::Ordering};
+use std::{hash::{Hasher, Hash}, collections::hash_map::DefaultHasher, cmp::Ordering};
 
 use super::PackageVersion;
 
@@ -22,6 +22,7 @@ impl Hash for EBuild {
     }
 }
 
+#[allow(dead_code)]
 impl EBuild {
     fn compare(&self, other: EBuild) -> Option<Ordering> {
         if self.name != other.name {
@@ -45,7 +46,7 @@ impl EBuild {
         if full_name.is_empty() {
             return None;
         }
-        let base_name = match full_name.find("/") {
+        let base_name = match full_name.find('/') {
             None => full_name,
             Some(i) => &full_name[i + 1 ..],
         };
@@ -53,7 +54,7 @@ impl EBuild {
             return None;
         }
 
-        let d_index = match base_name.find("-") {
+        let d_index = match base_name.find('-') {
             None => base_name.len(),
             Some(i) => i + 1,
         };
