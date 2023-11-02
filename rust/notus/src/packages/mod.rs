@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+pub mod deb;
+pub mod ebuild;
+pub mod rpm;
+
 use std::cmp::{max, Ordering};
 
 use regex::RegexBuilder;
@@ -28,6 +32,12 @@ use regex::RegexBuilder;
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
 pub struct PackageVersion<'a>(pub &'a str);
+
+impl<'a> PackageVersion<'a> {
+    fn new(item: &'a str) -> Self {
+        Self(item)
+    }
+}
 
 impl<'a> PartialOrd for PackageVersion<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
