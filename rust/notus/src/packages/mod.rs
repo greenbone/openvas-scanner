@@ -1,3 +1,4 @@
+pub mod deb;
 pub mod ebuild;
 pub mod rpm;
 
