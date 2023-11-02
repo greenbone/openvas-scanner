@@ -1,4 +1,5 @@
 pub mod ebuild;
+pub mod rpm;
 
 use std::cmp::{max, Ordering};
 
