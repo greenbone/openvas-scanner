@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 regex = "1.10.2"
+serde_json = "1.0.96"
+serde = { version = "1.0.163", features = ["derive"] }
+models = { path = "../models" }

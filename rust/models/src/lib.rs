@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+mod advisories;
 mod credential;
 mod host_info;
 mod parameter;
@@ -14,6 +15,7 @@ mod status;
 mod target;
 mod vt;
 
+pub use advisories::*;
 pub use credential::*;
 pub use host_info::*;
 pub use parameter::*;

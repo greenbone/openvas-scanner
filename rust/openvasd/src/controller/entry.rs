@@ -60,13 +60,13 @@ impl KnownPaths {
             Some("notus") => match parts.next() {
                 Some(os) => KnownPaths::Notus(os.to_string()),
                 _ => KnownPaths::Unknown,
-            }
+            },
             Some("health") => match parts.next() {
                 Some("ready") => KnownPaths::Health(HealthOpts::Ready),
                 Some("alive") => KnownPaths::Health(HealthOpts::Alive),
                 Some("started") => KnownPaths::Health(HealthOpts::Started),
                 _ => KnownPaths::Unknown,
-            }
+            },
             _ => {
                 tracing::trace!("Unknown path: {path}");
                 KnownPaths::Unknown
@@ -140,9 +140,9 @@ where
     }
 
     match (req.method(), kp) {
-        (&Method::GET, Health(HealthOpts::Alive)) |
-        (&Method::GET, Health(HealthOpts::Started)) =>
-            Ok(ctx.response.empty(hyper::StatusCode::OK)),
+        (&Method::GET, Health(HealthOpts::Alive)) | (&Method::GET, Health(HealthOpts::Started)) => {
+            Ok(ctx.response.empty(hyper::StatusCode::OK))
+        }
         (&Method::GET, Health(HealthOpts::Ready)) => {
             let oids = ctx.db.oids().await?;
             if oids.count() == 0 {
@@ -151,7 +151,13 @@ where
                 Ok(ctx.response.empty(hyper::StatusCode::OK))
             }
         }
-        (&Method::POST, Notus(_os)) => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+        (&Method::POST, Notus(_os)) => {
+            match crate::request::json_request::<models::Advisories>(&ctx.response, req).await {
+                // TODO: Call notus module
+                Ok(mut _scan) => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+                Err(resp) => Ok(resp),
+            }
+        }
         (&Method::POST, Scans(None)) => {
             match crate::request::json_request::<models::Scan>(&ctx.response, req).await {
                 Ok(mut scan) => {
