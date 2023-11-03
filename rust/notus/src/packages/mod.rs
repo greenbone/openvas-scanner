@@ -5,6 +5,7 @@
 pub mod deb;
 pub mod ebuild;
 pub mod rpm;
+pub mod slack;
 
 use std::cmp::{max, Ordering};
 
