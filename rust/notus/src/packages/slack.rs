@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
-use super::PackageVersion;
+use super::{Package, PackageVersion};
 use regex::Regex;
 use std::{
     cmp::Ordering,
@@ -30,7 +30,7 @@ impl Hash for Slack {
     }
 }
 
-impl Slack {
+impl Package for Slack {
     /// Returns a Some<Ordering> struct or None if not comparable
     fn compare(&self, other: &Slack) -> Option<Ordering> {
         if self.name != other.name {
@@ -80,7 +80,7 @@ impl Slack {
         s.finish()
     }
 
-    pub fn from_full_name(full_name: &str) -> Option<Self> {
+    fn from_full_name(full_name: &str) -> Option<Self> {
         if full_name.is_empty() {
             return None;
         }
@@ -124,7 +124,7 @@ impl Slack {
         })
     }
 
-    pub fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
+    fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
         if name.is_empty() || full_version.is_empty() {
             return None;
         }
@@ -169,6 +169,7 @@ mod slack_tests {
 
     use crate::packages;
 
+    use super::Package;
     use super::Slack;
 
     #[test]

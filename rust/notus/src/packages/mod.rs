@@ -131,6 +131,15 @@ impl<'a> PartialOrd for PackageVersion<'a> {
     }
 }
 
+/// 
+pub trait Package<Rhs=Self> {
+    fn compare(&self, other: &Rhs) -> Option<Ordering>;
+    fn from_full_name (a: &str) -> Option<Rhs>;
+    fn from_name_and_full_version (a: &str, b: &str) -> Option<Rhs>;
+    fn hash_calc(&self) -> u64;
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::packages::PackageVersion;

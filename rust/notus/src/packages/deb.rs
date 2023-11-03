@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
-use super::PackageVersion;
+use super::{PackageVersion, Package};
 use regex::Regex;
 use std::{
     cmp::Ordering,
@@ -27,25 +27,7 @@ impl Hash for Deb {
     }
 }
 
-impl Deb {
-    fn new(
-        name: String,
-        epoch: u64,
-        upstream_version: String,
-        debian_revision: String,
-        full_name: String,
-        full_version: String,
-    ) -> Self {
-        Self {
-            name,
-            full_name,
-            full_version,
-            epoch,
-            upstream_version,
-            debian_revision,
-        }
-    }
-
+impl Package for Deb {
     /// Returns a Some<Ordering> struct or None if not comparable
     fn compare(&self, other: &Deb) -> Option<Ordering> {
         if self.name != other.name {
@@ -81,7 +63,7 @@ impl Deb {
         s.finish()
     }
 
-    pub fn from_full_name(full_name: &str) -> Option<Self> {
+    fn from_full_name(full_name: &str) -> Option<Self> {
         if full_name.is_empty() {
             return None;
         }
@@ -141,7 +123,7 @@ impl Deb {
         })
     }
 
-    pub fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
+    fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
         if name.is_empty() || full_version.is_empty() {
             return None;
         }
@@ -194,7 +176,7 @@ impl Deb {
 mod deb_tests {
     use crate::packages;
 
-    use super::Deb;
+    use super::{Deb,Package};
 
     #[test]
     pub fn test_compare_gt() {

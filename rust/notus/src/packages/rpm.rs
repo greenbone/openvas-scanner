@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
-use super::PackageVersion;
+use super::{PackageVersion, Package};
 use regex::RegexBuilder;
 use std::{
     cmp::Ordering,
@@ -29,27 +29,7 @@ impl Hash for Rpm {
 
 static EXCEPTIONS: [&str; 2] = ["_fips", ".ksplice"];
 
-impl Rpm {
-    fn new(
-        name: String,
-        epoch: u64,
-        version: String,
-        release: String,
-        arch: String,
-        full_name: String,
-        full_version: String,
-    ) -> Self {
-        Self {
-            name,
-            full_name,
-            full_version,
-            epoch,
-            version,
-            release,
-            arch,
-        }
-    }
-
+impl Package for Rpm {
     /// Returns a Some<Ordering> struct or None if not comparable
     fn compare(&self, other: &Rpm) -> Option<Ordering> {
         if self.name != other.name {
@@ -94,7 +74,7 @@ impl Rpm {
         s.finish()
     }
 
-    pub fn from_full_name(full_name: &str) -> Option<Self> {
+    fn from_full_name(full_name: &str) -> Option<Self> {
         if full_name.is_empty() {
             return None;
         }
@@ -139,7 +119,7 @@ impl Rpm {
         })
     }
 
-    pub fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
+    fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
         if name.is_empty() || full_version.is_empty() {
             return None;
         }
@@ -188,7 +168,8 @@ mod rpm_tests {
     use crate::packages;
 
     use super::Rpm;
-
+    use super::Package;
+    
     #[test]
     pub fn test_from_full_name() {
         assert!(Rpm::from_full_name("").is_none());
@@ -342,76 +323,76 @@ mod rpm_tests {
 
     #[test]
     pub fn test_compare_gt() {
-        let package1 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-4.x86_64".to_string(),
-            "1.2.3-4.x86_64".to_string(),
-        );
-        let package2 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.4".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.4-4.x86_64".to_string(),
-            "1.2.4-4.x86_64".to_string(),
-        );
+        let package1 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
+            full_version: "1.2.3-4.x86_64".to_string(),
+        };
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.4".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.4-4.x86_64".to_string(),
+            full_version: "1.2.4-4.x86_64".to_string(),
+        };
         assert!(package2.compare(&package1).unwrap().is_gt());
 
-        let package2 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "5".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-5.x86_64".to_string(),
-            "1.2.3-5.x86_64".to_string(),
-        );
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "5".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-5.x86_64".to_string(),
+            full_version: "1.2.3-5.x86_64".to_string(),
+        };
         assert!(package2.compare(&package1).unwrap().is_gt());
     }
 
     #[test]
     pub fn test_compare_gt_different_architecture() {
-        let package1 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-4.x86_64".to_string(),
-            "1.2.3-4.x86_64".to_string(),
-        );
-        let package2 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "aarch64".to_string(),
-            "foo-bar-1.2.3-4.aarch64".to_string(),
-            "1.2.3-4.aarch64".to_string(),
-        );
-        let package3 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.4".to_string(),
-            "4".to_string(),
-            "aarch64".to_string(),
-            "foo-bar-1.2.4-4.aarch64".to_string(),
-            "1.2.4-4.aarch64".to_string(),
-        );
-        let package4 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "5".to_string(),
-            "aarch64".to_string(),
-            "foo-bar-1.2.3-5.aarch64".to_string(),
-            "1.2.3-5.aarch64".to_string(),
-        );
+        let package1 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
+            full_version: "1.2.3-4.x86_64".to_string(),
+        };
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "aarch64".to_string(),
+            full_name: "foo-bar-1.2.3-4.aarch64".to_string(),
+            full_version: "1.2.3-4.aarch64".to_string(),
+        };
+        let package3 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.4".to_string(),
+            release: "4".to_string(),
+            arch: "aarch64".to_string(),
+            full_name: "foo-bar-1.2.4-4.aarch64".to_string(),
+            full_version: "1.2.4-4.aarch64".to_string(),
+        };
+        let package4 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "5".to_string(),
+            arch: "aarch64".to_string(),
+            full_name: "foo-bar-1.2.3-5.aarch64".to_string(),
+            full_version: "1.2.3-5.aarch64".to_string(),
+        };
         //Not comparable, because different archs. Compare returns None.
         assert!(package2.compare(&package1).is_none());
         assert!(package1.compare(&package2).is_none());
@@ -423,106 +404,106 @@ mod rpm_tests {
 
     #[test]
     pub fn test_compare_gt_different_epoch() {
-        let package1 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-4.x86_64".to_string(),
-            "1.2.3-4.x86_64".to_string(),
-        );
-        let package2 = Rpm::new(
-            "foo-bar".to_string(),
-            1,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-4.x86_64".to_string(),
-            "1:1.2.3-4.x86_64".to_string(),
-        );
+        let package1 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
+            full_version: "1.2.3-4.x86_64".to_string(),
+        };
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 1,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
+            full_version: "1:1.2.3-4.x86_64".to_string(),
+        };
         assert!(!package1.compare(&package2).unwrap().is_gt());
         assert!(package2.compare(&package1).unwrap().is_gt());
     }
 
     #[test]
     pub fn test_compare_gt_different_name() {
-        let package1 = Rpm::new(
-            "foo".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-1.2.3-4.x86_64".to_string(),
-            "1.2.3-4.x86_64".to_string(),
-        );
-        let package2 = Rpm::new(
-            "bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "bar-1.2.3-4.x86_64".to_string(),
-            "1.2.3-4.x86_64".to_string(),
-        );
+        let package1 = Rpm {
+            name: "foo".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-1.2.3-4.x86_64".to_string(),
+            full_version: "1.2.3-4.x86_64".to_string(),
+        };
+        let package2 = Rpm {
+            name: "bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "bar-1.2.3-4.x86_64".to_string(),
+            full_version: "1.2.3-4.x86_64".to_string(),
+        };
         assert!(package2.compare(&package1).is_none());
         assert!(package1.compare(&package2).is_none());
     }
 
     #[test]
     pub fn test_compare_less() {
-        let package1 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-4.x86_64".to_string(),
-            "1.2.3-4.x86_64".to_string(),
-        );
-        let package2 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.4".to_string(),
-            "4".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.4-4.x86_64".to_string(),
-            "1.2.4-4.x86_64".to_string(),
-        );
+        let package1 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
+            full_version: "1.2.3-4.x86_64".to_string(),
+        };
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.4".to_string(),
+            release: "4".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.4-4.x86_64".to_string(),
+            full_version: "1.2.4-4.x86_64".to_string(),
+        };
         assert!(package1.compare(&package2).unwrap().is_lt());
 
-        let package2 = Rpm::new(
-            "foo-bar".to_string(),
-            0,
-            "1.2.3".to_string(),
-            "5".to_string(),
-            "x86_64".to_string(),
-            "foo-bar-1.2.3-5.x86_64".to_string(),
-            "1.2.3-5.x86_64".to_string(),
-        );
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: "1.2.3".to_string(),
+            release: "5".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "foo-bar-1.2.3-5.x86_64".to_string(),
+            full_version: "1.2.3-5.x86_64".to_string(),
+        };
         assert!(package1.compare(&package2).unwrap().is_lt());
     }
 
     #[test]
     pub fn test_compare_equal() {
-        let package1 = Rpm::new(
-            "docker-engine".to_string(),
-            0,
-            "18.09.0.200".to_string(),
-            "20.h47.28.15.eulerosv2r10".to_string(),
-            "x86_64".to_string(),
-            "docker-engine-18.09.0.200-200.h47.28.15.eulerosv2r10.x86_64".to_string(),
-            "18.09.0.200-200.h47.28.15.eulerosv2r10.x86_64".to_string(),
-        );
-        let package2 = Rpm::new(
-            "docker-engine".to_string(),
-            1,
-            "18.09.0".to_string(),
-            "20.h62.33.19.eulerosv2r10".to_string(),
-            "x86_64".to_string(),
-            "docker-engine-1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64".to_string(),
-            "1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64".to_string(),
-        );
+        let package1 = Rpm {
+            name: "docker-engine".to_string(),
+            epoch: 0,
+            version: "18.09.0.200".to_string(),
+            release: "20.h47.28.15.eulerosv2r10".to_string(),
+            arch: "x86_64".to_string(),
+            full_name:"docker-engine-18.09.0.200-200.h47.28.15.eulerosv2r10.x86_64".to_string(),
+            full_version: "18.09.0.200-200.h47.28.15.eulerosv2r10.x86_64".to_string(),
+        };
+        let package2 = Rpm {
+            name: "docker-engine".to_string(),
+            epoch: 1,
+            version: "18.09.0".to_string(),
+            release: "20.h62.33.19.eulerosv2r10".to_string(),
+            arch: "x86_64".to_string(),
+            full_name: "docker-engine-1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64".to_string(),
+            full_version: "1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64".to_string(),
+        };
 
         assert!(package2.compare(&package1).unwrap().is_gt())
     }

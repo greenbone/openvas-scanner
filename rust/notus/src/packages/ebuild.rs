@@ -8,7 +8,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use super::PackageVersion;
+use super::{Package, PackageVersion};
 
 // Supported packages types.
 
@@ -27,8 +27,8 @@ impl Hash for EBuild {
 }
 
 #[allow(dead_code)]
-impl EBuild {
-    fn compare(&self, other: EBuild) -> Option<Ordering> {
+impl Package for EBuild {
+    fn compare(&self, other: &EBuild) -> Option<Ordering> {
         if self.name != other.name {
             return None;
         }
@@ -45,7 +45,7 @@ impl EBuild {
         s.finish()
     }
 
-    pub fn from_full_name(full_name: &str) -> Option<Self> {
+    fn from_full_name(full_name: &str) -> Option<Self> {
         if full_name.is_empty() {
             return None;
         }
@@ -74,7 +74,7 @@ impl EBuild {
         })
     }
 
-    pub fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
+    fn from_name_and_full_version(name: &str, full_version: &str) -> Option<Self> {
         if name.is_empty() || full_version.is_empty() {
             return None;
         }
@@ -101,6 +101,7 @@ mod ebuild_tests {
     };
 
     use super::EBuild;
+    use super::Package;
 
     #[test]
     pub fn test_guard() {
@@ -131,14 +132,14 @@ mod ebuild_tests {
         assert!(apache2
             .clone()
             .unwrap()
-            .compare(apache1.clone().unwrap())
+            .compare(&apache1.clone().unwrap())
             .unwrap()
             .is_gt());
 
         assert!(apache1
             .clone()
             .unwrap()
-            .compare(apache2.clone().unwrap())
+            .compare(&apache2.clone().unwrap())
             .unwrap()
             .is_le());
 
@@ -148,18 +149,18 @@ mod ebuild_tests {
         assert!(apache2
             .clone()
             .unwrap()
-            .compare(apache3.clone().unwrap())
+            .compare(&apache3.clone().unwrap())
             .unwrap()
             .is_le());
         assert!(apache2
             .clone()
             .unwrap()
-            .compare(apache3.clone().unwrap())
+            .compare(&apache3.clone().unwrap())
             .unwrap()
             .is_ge());
 
         let apache4 = EBuild::from_name_and_full_version("apache", "2.4.51-r3");
         assert!(apache4.is_some());
-        assert!(apache4.unwrap().compare(apache3.unwrap()).unwrap().is_ne());
+        assert!(apache4.unwrap().compare(&apache3.unwrap()).unwrap().is_ne());
     }
 }
