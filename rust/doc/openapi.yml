@@ -133,7 +133,7 @@ paths:
               examples:
                 schema:
                   description: "Schema of a list of results response"
-                get results 0-3:
+                get results:
                   $ref: "#/components/examples/notus_results"
         "400":
           description: "Bad request body"
@@ -408,17 +408,11 @@ components:
         - vts
 
     NotusPkgList:
-      description: "Model representing a notus request"
-      type: "object"
-      properties:
-        message_type:
-          $ref: "#/components/schemas/NotusMessageType"
-        package_list:
-          description: "List of packages installed in the target"
-          type: "array"
-          items:
-            description: "Package"
-            type: "string"
+      description: "List of packages installed in the target"
+      type: "array"
+      items:
+        description: "Package"
+        type: "string"
       required:
         - package_list
 
@@ -483,14 +477,6 @@ components:
       required:
         - hosts
         - ports
-
-    NotusMessageType:
-      description: "Notus message type"
-      type: "string"
-      enum:
-        - result.scan
-        - scan.status
-        - scan.start
 
     AliveTestMethod:
       description: "Alive test method to be performed against the target"
@@ -651,21 +637,41 @@ components:
             $ref: "#/components/schemas/Parameter"
 
     NotusResult:
-      description: "A result of a Notus run"
+      description: "A result for an OID"
       type: "object"
       properties:
         oid:
           description: "Vulnerability OID"
           type: "string"
-        package:
-          description: "Vulnerable Package"
+        vulnerable_packages:
+          description: "List of vulnerable Packages"
+          type: "array"
+          items:
+            $ref: "#/components/schemas/NotusVulnPkgs"
+
+    NotusVulnPkgs:
+      description: "A vulnerable package"
+      type: "object"
+      properties:
+        package_name:
+          description: "Name of the vulnerable package"
+          type: "string"
+        installed_version:
+          description: "Version installed of the vulnerable package"
           type: "string"
         package_fix:
           description: "List of packages which fix the vulnerability"
           type: array
           items:
-            description: "A single packages which fix the vulnerability"
-            type: "string"
+            description: "List of package's version which fix the vulnerability"
+            type: "object"
+            properties:
+              version:
+                description: "Version"
+                type: "string"
+              specifier:
+                description: "Specifier"
+                type: "string"
 
     Result:
       description: "A result of a Scan"
@@ -1114,21 +1120,46 @@ components:
     notus_simple:
       description: "A simple example for notus run."
       value:
-        {
-          "message_type":"scan.start",
-          "package_list":["pkg1, pkg2, pkg3"]
-        }
+        [
+          "foo",
+          "bar",
+          "foo2",
+        ]
     notus_results:
       description: "A simple example for notus run response including a vulnerable package list and their fix"
       value:
         [
           {
-            oid: "1.3.6.1.4.1.25623.1.0.100196",
-            package: "pkg1",
-            package_fix:
-              [
-                "pkg1.2",
-                "pkg1.3",
-              ]
-          }
-        ]
+            "oid": "1.2.3",
+            "vulnerable_packages": [
+                {
+                    "package_name": "foo",
+                    "installed_version": "1.2.3",
+                    "fixed_versions": [
+                        {
+                            "version": "1.2.2",
+                            "specifier": "<"
+                        },
+                        {
+                              "version": "1.2.5",
+                            "specifier": ">="
+                        }
+                    ]
+                },
+                {
+                    "package_name": "foo",
+                    "installed_version": "1.2.4",
+                    "fixed_versions": [
+                        {
+                            "version": "1.2.2",
+                            "specifier": "<"
+                        },
+                        {
+                            "version": "1.2.5",
+                            "specifier": ">="
+                        }
+                    ]
+                }
+            ]
+        }
+      ]
