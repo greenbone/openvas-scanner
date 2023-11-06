@@ -100,7 +100,8 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
             let dispatcher: DefaultDispatcher<String> = DefaultDispatcher::default();
-            let version = feed::version(&loader, &dispatcher).unwrap();
+            let version =
+                feed::version(&loader, &dispatcher).unwrap_or_else(|_| String::from("UNDEFINED"));
             self.response.set_feed_version(&version);
         }
         self

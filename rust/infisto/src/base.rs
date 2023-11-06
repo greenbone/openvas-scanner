@@ -282,6 +282,18 @@ impl IndexedFileStorer {
             .map_err(Error::Remove)?;
         Ok(())
     }
+
+    /// Removes base dir and all its content.
+    ///
+    /// # Safety
+    /// Does remove the whole base dir and its content.
+    /// Do not use carelessly.
+    pub unsafe fn remove_base(self) -> Result<(), Error> {
+        fs::remove_dir_all(self.base)
+            .map_err(|e| e.kind())
+            .map_err(Error::Remove)
+            .map(|_| ())
+    }
 }
 
 impl IndexedByteStorage for IndexedFileStorer {

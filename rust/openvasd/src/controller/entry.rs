@@ -6,12 +6,18 @@
 //!
 //! All known paths must be handled in the entrypoint function.
 
-use std::{fmt::Display, sync::Arc};
+use std::{
+    fmt::Display,
+    sync::{Arc, RwLock},
+};
 
-use super::context::Context;
+use super::{context::Context, ClientIdentifier};
 use hyper::{Body, Method, Request, Response};
 
-use crate::scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper};
+use crate::{
+    controller::ClientHash,
+    scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper},
+};
 
 enum HealthOpts {
     /// Ready
@@ -38,6 +44,10 @@ enum KnownPaths {
 }
 
 impl KnownPaths {
+    pub fn requires_id(&self) -> bool {
+        !matches!(self, Self::Health(_) | Self::Vts)
+    }
+
     #[tracing::instrument]
     /// Parses a path and returns the corresponding `KnownPaths` variant.
     fn from_path(path: &str) -> Self {
@@ -60,11 +70,18 @@ impl KnownPaths {
                 Some("alive") => KnownPaths::Health(HealthOpts::Alive),
                 Some("started") => KnownPaths::Health(HealthOpts::Started),
                 _ => KnownPaths::Unknown,
-            }
+            },
             _ => {
                 tracing::trace!("Unknown path: {path}");
                 KnownPaths::Unknown
             }
+        }
+    }
+
+    fn scan_id(&self) -> Option<&str> {
+        match self {
+            Self::Scans(Some(id)) | Self::ScanResults(id, _) | Self::ScanStatus(id) => Some(id),
+            _ => None,
         }
     }
 }
@@ -89,12 +106,10 @@ impl Display for KnownPaths {
 }
 
 /// Is used to handle all incomng requests.
-///
-/// First it will be checked if a known path is requested and if the method is supported.
-/// Than corresponding functions will be called to handle the request.
 pub async fn entrypoint<'a, S, DB>(
     req: Request<Body>,
     ctx: Arc<Context<S, DB>>,
+    cid: Arc<RwLock<ClientIdentifier>>,
 ) -> Result<Response<Body>, Error>
 where
     S: ScanStarter
@@ -102,40 +117,65 @@ where
         + ScanDeleter
         + scan::ScanResultFetcher
         + std::marker::Send
-        + 'static
-        + std::marker::Sync,
+        + std::marker::Sync
+        + 'static,
     DB: crate::storage::Storage + std::marker::Send + 'static + std::marker::Sync,
 {
     use KnownPaths::*;
     // on head requests we just return an empty response without checking the api key
-    tracing::trace!(
-        "{} {}:{:?}",
-        req.method(),
-        req.uri().path(),
-        req.uri().query()
-    );
     if req.method() == Method::HEAD {
         return Ok(ctx.response.empty(hyper::StatusCode::OK));
     }
     let kp = KnownPaths::from_path(req.uri().path());
-    if let Some(key) = ctx.api_key.as_ref() {
-        match req.headers().get("x-api-key") {
-            Some(v) if v == key => {}
-            Some(v) => {
-                tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
-                return Ok(ctx.response.unauthorized());
+    let cid: Option<ClientHash> = {
+        let cid = cid.read().unwrap();
+        match &*cid {
+            ClientIdentifier::Unknown => {
+                if let Some(key) = ctx.api_key.as_ref() {
+                    match req.headers().get("x-api-key") {
+                        Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
+                        Some(v) => {
+                            tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
+                            None
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
             }
-            _ => {
-                tracing::debug!("{} {} unauthorized", req.method(), kp);
-                return Ok(ctx.response.unauthorized());
-            }
+            ClientIdentifier::Known(cid) => Some(cid.clone()),
+        }
+    };
+
+    if kp.requires_id() && cid.is_none() {
+        tracing::debug!("{} {} unauthorized", req.method(), kp);
+        return Ok(ctx.response.unauthorized());
+    }
+    let cid = cid.unwrap_or_default();
+
+    if let Some(scan_id) = kp.scan_id() {
+        if !ctx.db.is_client_allowed(scan_id.to_owned(), &cid).await? {
+            tracing::debug!(
+                "client {:x?} is not allowed to operate on scan {} ",
+                &cid.0,
+                scan_id
+            );
+            // we return 404 instead of 401 to not leak any ids
+            return Ok(ctx.response.not_found("scans", scan_id));
         }
     }
 
+    tracing::debug!(
+        "{} {}:{:?}",
+        req.method(),
+        req.uri().path(),
+        req.uri().query(),
+    );
     match (req.method(), kp) {
-        (&Method::GET, Health(HealthOpts::Alive)) |
-        (&Method::GET, Health(HealthOpts::Started)) =>
-            Ok(ctx.response.empty(hyper::StatusCode::OK)),
+        (&Method::GET, Health(HealthOpts::Alive)) | (&Method::GET, Health(HealthOpts::Started)) => {
+            Ok(ctx.response.empty(hyper::StatusCode::OK))
+        }
         (&Method::GET, Health(HealthOpts::Ready)) => {
             let oids = ctx.db.oids().await?;
             if oids.count() == 0 {
@@ -156,6 +196,7 @@ where
                     let resp = ctx.response.created(&id);
                     scan.scan_id = Some(id.clone());
                     ctx.db.insert_scan(scan).await?;
+                    ctx.db.add_scan_client_id(id.clone(), cid).await?;
                     tracing::debug!("Scan with ID {} created", &id);
                     Ok(resp)
                 }
@@ -202,7 +243,7 @@ where
         }
         (&Method::GET, Scans(None)) => {
             if ctx.enable_get_scans {
-                match ctx.db.get_scan_ids().await {
+                match ctx.db.get_scans_of_client_id(&cid).await {
                     Ok(scans) => Ok(ctx.response.ok(&scans)),
                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                 }
@@ -226,7 +267,8 @@ where
                     ctx.scanner.stop_scan(id.clone()).await?;
                 }
                 ctx.db.remove_scan(&id).await?;
-                ctx.scanner.delete_scan(id).await?;
+                ctx.scanner.delete_scan(id.clone()).await?;
+                ctx.db.remove_scan_id(id).await?;
                 Ok(ctx.response.no_content())
             }
             Err(crate::storage::Error::NotFound) => Ok(ctx.response.not_found("scans", &id)),

@@ -1,6 +1,8 @@
 [feed]
 # path to the openvas feed. This is required for the /vts endpoint.
 path = "/var/lib/openvas/plugins"
+# disables or enables the signnature check
+signature_check = true
 
 [feed.check_interval]
 # how often the feed should be checked for updates
