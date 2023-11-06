@@ -159,7 +159,7 @@ where
 }
 
 pub async fn run<'a, S, DB>(
-    ctx: controller::Context<S, DB>,
+    mut ctx: controller::Context<S, DB>,
     config: &config::Config,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
@@ -177,6 +177,10 @@ where
     let addr = incoming.local_addr();
     if let Some((roots, certs, key)) = tls::tls_config(config)? {
         tracing::info!("listening on https://{}", addr);
+        if !roots.is_empty() && ctx.api_key.is_some() {
+            tracing::warn!("Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored.");
+            ctx.api_key = None;
+        }
         let inc = tls::TlsAcceptor::new(roots, certs, key, incoming);
         serve(ctx, inc).await?;
     } else {
