@@ -4,6 +4,7 @@
 
 /// Represents an Advisories json file for notus
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
+#[derive(Debug)]
 pub struct Advisories {
     /// Version of the file, some version might not be supported by notus
     pub version: String,
@@ -15,6 +16,7 @@ pub struct Advisories {
 
 /// Enum of supported package types
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
+#[derive(Debug)]
 pub enum PackageType {
     #[cfg_attr(feature = "serde_support", serde(rename = "deb"))]
     DEB,
@@ -28,6 +30,7 @@ pub enum PackageType {
 
 /// Representing a single Advisory entry
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
+#[derive(Debug)]
 pub struct Advisory {
     /// OID to identify vulnerability
     pub oid: String,
@@ -37,6 +40,7 @@ pub struct Advisory {
 
 /// Fixed Package entry
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
+#[derive(Debug)]
 pub struct FixedPackage {
     /// Name of the affected package
     pub name: String,
@@ -47,19 +51,29 @@ pub struct FixedPackage {
 
 /// Version entry
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize), serde(untagged))]
+#[derive(Debug)]
 pub enum VersionEntry {
+    ByFullName {
+        specifier: Specifier,
+    },
     /// Contains a version and a specifier
-    ByFullVersion {
+    ByNameAndFullVersion {
         full_version: String,
         specifier: Specifier,
     },
 
     /// Contains a version Range
-    ByRange { range: Range },
+    ByRange {
+        range: Range,
+    },
 }
 
 /// A specifier can be one of: >, <, >=, <=, =
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Deserialize, serde::Serialize)
+)]
+#[derive(Clone, Debug)]
 pub enum Specifier {
     /// >
     #[cfg_attr(feature = "serde_support", serde(rename = ">"))]
@@ -80,6 +94,7 @@ pub enum Specifier {
 
 /// Version range
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
+#[derive(Debug)]
 pub struct Range {
     pub start: String,
     pub end: String,
