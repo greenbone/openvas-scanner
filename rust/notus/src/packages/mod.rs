@@ -32,15 +32,9 @@ use regex::RegexBuilder;
 ///
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
-pub struct PackageVersion<'a>(pub &'a str);
+pub struct PackageVersion(pub String);
 
-impl<'a> PackageVersion<'a> {
-    fn new(item: &'a str) -> Self {
-        Self(item)
-    }
-}
-
-impl<'a> PartialOrd for PackageVersion<'a> {
+impl PartialOrd for PackageVersion {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // Check if both strings are equal
         if self.0 == other.0 {
@@ -51,14 +45,20 @@ impl<'a> PartialOrd for PackageVersion<'a> {
         let re = RegexBuilder::new(r"(\d+|.)").build().unwrap();
 
         // Split both version into its parts
-        let a_parts: Vec<&str> = re.find_iter(self.0).map(|m| m.as_str()).collect();
-        let b_parts: Vec<&str> = re.find_iter(other.0).map(|m| m.as_str()).collect();
+        let a_parts: Vec<String> = re
+            .find_iter(self.0.as_str())
+            .map(|m| m.as_str().to_string())
+            .collect();
+        let b_parts: Vec<String> = re
+            .find_iter(other.0.as_str())
+            .map(|m| m.as_str().to_string())
+            .collect();
 
         // Iterate through parts
         for i in 0..max(a_parts.len(), b_parts.len()) {
             // get current part of a, when not at the end
             let a_part = match i < a_parts.len() {
-                true => a_parts[i],
+                true => &a_parts[i],
                 false => {
                     // "~" is sorted before everything, even the end of a string
                     if b_parts[i] == "~" {
@@ -71,7 +71,7 @@ impl<'a> PartialOrd for PackageVersion<'a> {
 
             // get current part of b, when not at the end
             let b_part = match i < b_parts.len() {
-                true => b_parts[i],
+                true => &b_parts[i],
                 false => {
                     // "~" is sorted before everything, even the end of a string
                     if a_parts[i] == "~" {
@@ -131,14 +131,13 @@ impl<'a> PartialOrd for PackageVersion<'a> {
     }
 }
 
-/// 
-pub trait Package<Rhs=Self> {
-    fn compare(&self, other: &Rhs) -> Option<Ordering>;
-    fn from_full_name (a: &str) -> Option<Rhs>;
-    fn from_name_and_full_version (a: &str, b: &str) -> Option<Rhs>;
-    fn hash_calc(&self) -> u64;
+///
+pub trait Package<Rhs = Self>: PartialOrd<Rhs> {
+    fn get_name(&self) -> String;
+    fn get_version(&self) -> String;
+    fn from_full_name(a: &str) -> Option<Rhs>;
+    fn from_name_and_full_version(a: &str, b: &str) -> Option<Rhs>;
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -146,80 +145,80 @@ mod tests {
 
     #[test]
     fn test_version_1() {
-        let v1 = PackageVersion("1.2.3");
-        let v2 = PackageVersion("1.2.12");
+        let v1 = PackageVersion("1.2.3".to_string());
+        let v2 = PackageVersion("1.2.12".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_2() {
-        let v1 = PackageVersion("1.2.3");
-        let v2 = PackageVersion("1.2.3~rc");
+        let v1 = PackageVersion("1.2.3".to_string());
+        let v2 = PackageVersion("1.2.3~rc".to_string());
 
         assert!(v1 > v2);
     }
 
     #[test]
     fn test_version_3() {
-        let v1 = PackageVersion("1.2.3");
-        let v2 = PackageVersion("1.2.3");
+        let v1 = PackageVersion("1.2.3".to_string());
+        let v2 = PackageVersion("1.2.3".to_string());
 
         assert!(v1 == v2);
     }
 
     #[test]
     fn test_version_4() {
-        let v1 = PackageVersion("1.2.3");
-        let v2 = PackageVersion("1.2.3a");
+        let v1 = PackageVersion("1.2.3".to_string());
+        let v2 = PackageVersion("1.2.3a".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_5() {
-        let v1 = PackageVersion("1.2.3a");
-        let v2 = PackageVersion("1.2.3b");
+        let v1 = PackageVersion("1.2.3a".to_string());
+        let v2 = PackageVersion("1.2.3b".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_6() {
-        let v1 = PackageVersion("1.2.3a");
-        let v2 = PackageVersion("1.2.3-2");
+        let v1 = PackageVersion("1.2.3a".to_string());
+        let v2 = PackageVersion("1.2.3-2".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_7() {
-        let v1 = PackageVersion("1.2");
-        let v2 = PackageVersion("1.2.3");
+        let v1 = PackageVersion("1.2".to_string());
+        let v2 = PackageVersion("1.2.3".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_8() {
-        let v1 = PackageVersion("1.2.3.1");
-        let v2 = PackageVersion("1.2.3_a");
+        let v1 = PackageVersion("1.2.3.1".to_string());
+        let v2 = PackageVersion("1.2.3_a".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_9() {
-        let v1 = PackageVersion("1.2.3_a");
-        let v2 = PackageVersion("1.2.3_1");
+        let v1 = PackageVersion("1.2.3_a".to_string());
+        let v2 = PackageVersion("1.2.3_1".to_string());
 
         assert!(v1 < v2);
     }
 
     #[test]
     fn test_version_10() {
-        let v1 = PackageVersion("20211016ubuntu0.20.04.1");
-        let v2 = PackageVersion("20211016~20.04.1");
+        let v1 = PackageVersion("20211016ubuntu0.20.04.1".to_string());
+        let v2 = PackageVersion("20211016~20.04.1".to_string());
 
         assert!(v1 > v2);
     }
