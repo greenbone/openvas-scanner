@@ -79,8 +79,10 @@ where
                             }
                         }
                     }
+                    // No advisory for package
                     None => continue,
                 },
+                // Unable to parse user input
                 None => continue, // TODO: Some Error handling, at least Logging
             }
         }
@@ -88,13 +90,13 @@ where
         results
     }
 
-    pub fn scan(&mut self, os: String, packages: Vec<String>) -> Result<NotusResults, NotusError> {
+    pub fn scan(&mut self, os: &str, packages: Vec<String>) -> Result<NotusResults, NotusError> {
         // Load advisories if not loaded
-        if !self.loaded_advisories.contains_key(&os) {
+        if !self.loaded_advisories.contains_key(&os.to_string()) {
             self.loaded_advisories
-                .insert(os.clone(), self.load_new_advisories(&os)?);
+                .insert(os.to_string(), self.load_new_advisories(&os)?);
         }
-        let advisories = &self.loaded_advisories[&os];
+        let advisories = &self.loaded_advisories[&os.to_string()];
 
         // Parse and compare package list depending on package type of loaded advisories
         let results = match advisories {

@@ -38,34 +38,23 @@ pub struct Advisory {
     pub fixed_packages: Vec<FixedPackage>,
 }
 
-/// Fixed Package entry
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug)]
-pub struct FixedPackage {
-    /// Name of the affected package
-    pub name: String,
-    /// Field containing information about vulnerable package version
-    #[cfg_attr(feature = "serde_support", serde(flatten))]
-    pub version: VersionEntry,
-}
-
 /// Version entry
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize), serde(untagged))]
 #[derive(Debug)]
-pub enum VersionEntry {
+pub enum FixedPackage {
     ByFullName {
+        full_name: String,
         specifier: Specifier,
     },
     /// Contains a version and a specifier
     ByNameAndFullVersion {
+        name: String,
         full_version: String,
         specifier: Specifier,
     },
 
     /// Contains a version Range
-    ByRange {
-        range: Range,
-    },
+    ByRange { name: String, range: Range },
 }
 
 /// A specifier can be one of: >, <, >=, <=, =

@@ -37,7 +37,7 @@ where
     P: AsRef<Path>,
 {
     fn load_package_advisories(&self, os: &str) -> Result<Advisories, Error> {
-        let notus_file = self.path.as_ref().join(os);
+        let notus_file = self.path.as_ref().join(format!("{os}.notus"));
         let mut file = File::open(notus_file)?;
         let mut buf = String::new();
         file.read_to_string(&mut buf)?;
@@ -60,6 +60,6 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
         let loader = JSONAdvisoriesLoader::new(path).unwrap();
-        let _ = loader.load_package_advisories("debian_10.notus").unwrap();
+        let _ = loader.load_package_advisories("debian_10").unwrap();
     }
 }

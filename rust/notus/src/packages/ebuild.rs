@@ -114,6 +114,7 @@ mod ebuild_tests {
         }
     }
 
+    #[test]
     pub fn test_comparability() {
         let apache1 = EBuild::from_full_name("www-servers/apache-2.4.51-r2").unwrap();
         let apache2 =

@@ -102,6 +102,7 @@ pub enum ResultType {
 pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
 
 #[cfg_attr(feature = "serde_support", derive(serde::Serialize))]
+#[derive(Debug)]
 pub struct VulnerablePackage {
     pub name: String,
     pub installed_version: String,
@@ -109,6 +110,7 @@ pub struct VulnerablePackage {
 }
 
 #[cfg_attr(feature = "serde_support", derive(serde::Serialize))]
+#[derive(Debug)]
 pub enum FixedVersion {
     Single {
         version: String,

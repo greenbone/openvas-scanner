@@ -23,17 +23,18 @@ impl PackageAdvisories {
             // Iterate through fixed_packages of single advisories
             for fixed_package in advisory.fixed_packages {
                 // Create Advisory for fixed package information
-                let adv = match Advisory::create(advisory.oid.clone(), &fixed_package) {
+                let (pkg_name, adv) = match Advisory::create(advisory.oid.clone(), &fixed_package) {
                     Some(adv) => adv,
+                    // Notus data on system are wrong!
                     None => continue, // TODO: Some handling, at least logging
                 };
                 // Add advisory to map
-                match advisory_map.get_mut(&fixed_package.name) {
+                match advisory_map.get_mut(&pkg_name) {
                     Some(advisories) => {
                         advisories.push(adv);
                     }
                     None => {
-                        advisory_map.insert(fixed_package.name, vec![adv]);
+                        advisory_map.insert(pkg_name, vec![adv]);
                     }
                 };
             }
@@ -80,59 +81,71 @@ impl<P> Advisory<P>
 where
     P: Package,
 {
-    pub fn create(oid: String, fixed_package: &FixedPackage) -> Option<Self> {
-        match &fixed_package.version {
+    pub fn create(oid: String, fixed_package: &FixedPackage) -> Option<(String, Self)> {
+        match &fixed_package {
             // Package information can be either given by full name, name and full version
             // or as a range
-            models::VersionEntry::ByFullName { specifier } => {
+            models::FixedPackage::ByFullName {
+                specifier,
+                full_name,
+            } => {
                 // Parse package from full name
-                let package = match P::from_full_name(&fixed_package.name) {
+                let package = match P::from_full_name(full_name) {
                     Some(pkg) => pkg,
                     None => return None,
                 };
                 // Create Advisory Entry
-                Some(Advisory {
-                    oid,
-                    package_information: PackageInformation::Single {
-                        specifier: specifier.clone(),
-                        package,
+                Some((
+                    package.get_name(),
+                    Advisory {
+                        oid,
+                        package_information: PackageInformation::Single {
+                            specifier: specifier.clone(),
+                            package,
+                        },
                     },
-                })
+                ))
             }
-            models::VersionEntry::ByNameAndFullVersion {
+            models::FixedPackage::ByNameAndFullVersion {
                 full_version,
                 specifier,
+                name,
             } => {
                 // Parse package from name and full version
-                let package = match P::from_name_and_full_version(&fixed_package.name, full_version)
-                {
+                let package = match P::from_name_and_full_version(name, full_version) {
                     Some(pkg) => pkg,
                     None => return None,
                 };
                 // Create Advisory Entry
-                Some(Advisory {
-                    oid,
-                    package_information: PackageInformation::Single {
-                        specifier: specifier.clone(),
-                        package,
+                Some((
+                    package.get_name(),
+                    Advisory {
+                        oid,
+                        package_information: PackageInformation::Single {
+                            specifier: specifier.clone(),
+                            package,
+                        },
                     },
-                })
+                ))
             }
-            models::VersionEntry::ByRange { range } => {
+            models::FixedPackage::ByRange { range, name } => {
                 // Parse both packages from name and full version
-                let start = match P::from_name_and_full_version(&fixed_package.name, &range.start) {
+                let start = match P::from_name_and_full_version(name, &range.start) {
                     Some(pkg) => pkg,
                     None => return None,
                 };
-                let end = match P::from_name_and_full_version(&fixed_package.name, &range.end) {
+                let end = match P::from_name_and_full_version(name, &range.end) {
                     Some(pkg) => pkg,
                     None => return None,
                 };
                 // Create Advisory Entry
-                Some(Advisory {
-                    oid,
-                    package_information: PackageInformation::Range { start, end },
-                })
+                Some((
+                    start.get_name(),
+                    Advisory {
+                        oid,
+                        package_information: PackageInformation::Range { start, end },
+                    },
+                ))
             }
         }
     }
