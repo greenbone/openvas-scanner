@@ -92,11 +92,14 @@ where
 
     pub fn scan(&mut self, os: &str, packages: Vec<String>) -> Result<NotusResults, NotusError> {
         // Load advisories if not loaded
-        if !self.loaded_advisories.contains_key(&os.to_string()) {
-            self.loaded_advisories
-                .insert(os.to_string(), self.load_new_advisories(&os)?);
-        }
-        let advisories = &self.loaded_advisories[&os.to_string()];
+        let advisories = match self.loaded_advisories.get(os) {
+            Some(adv) => adv,
+            None => {
+                self.loaded_advisories
+                    .insert(os.to_string(), self.load_new_advisories(os)?);
+                &self.loaded_advisories[&os.to_string()]
+            }
+        };
 
         // Parse and compare package list depending on package type of loaded advisories
         let results = match advisories {
