@@ -21,11 +21,10 @@ impl PartialOrd for EBuild {
         if self.name != other.name {
             return None;
         }
-        println!("AAA");
+
         if self.full_version == other.full_version {
             return Some(Ordering::Equal);
         }
-        println!("BBB");
 
         self.full_version.partial_cmp(&other.full_version)
     }
