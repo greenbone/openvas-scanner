@@ -21,9 +21,11 @@ impl PartialOrd for EBuild {
         if self.name != other.name {
             return None;
         }
+
         if self.full_version == other.full_version {
             return Some(Ordering::Equal);
         }
+
         self.full_version.partial_cmp(&other.full_version)
     }
 }
@@ -44,13 +46,13 @@ impl Package for EBuild {
 
         let d_index = match base_name.find('-') {
             None => base_name.len(),
-            Some(i) => i + 1,
+            Some(i) => i,
         };
         let full_version = base_name[d_index..].to_string();
         if full_version.is_empty() {
             return None;
         }
-        let name = full_name[..full_name.len() - base_name.len()].to_string();
+        let name = full_name[..full_name.len() - full_version.len()].to_string();
 
         Some(EBuild {
             name,
@@ -66,6 +68,7 @@ impl Package for EBuild {
         let name = name.trim();
         let full_version = full_version.trim();
         let mut full_name = name.to_owned();
+        full_name.push('-');
         full_name.push_str(full_version);
 
         Some(EBuild {
@@ -121,7 +124,6 @@ mod ebuild_tests {
             EBuild::from_name_and_full_version("www-servers/apache", "2.4.51-r3").unwrap();
 
         assert!(apache2 > apache1);
-
         assert!(apache1 <= apache2);
 
         let apache3 =
