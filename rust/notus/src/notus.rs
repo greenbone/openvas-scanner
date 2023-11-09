@@ -1,30 +1,13 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
 
 use models::{NotusResults, VulnerablePackage};
 
 use crate::{
     advisory::{Advisories, PackageAdvisories},
+    error::Error,
     loader::AdvisoriesLoader,
     packages::Package,
 };
-
-#[derive(PartialEq, PartialOrd, Debug)]
-
-pub enum NotusError {
-    InvalidOS,
-    JSONParseError,
-    UnsupportedVersion(String),
-}
-
-impl Display for NotusError {
-    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            NotusError::InvalidOS => todo!(),
-            NotusError::JSONParseError => todo!(),
-            NotusError::UnsupportedVersion(_) => todo!(),
-        }
-    }
-}
 
 pub struct Notus<L>
 where
@@ -45,52 +28,72 @@ where
         }
     }
 
-    fn load_new_advisories(&self, os: &str) -> Result<PackageAdvisories, NotusError> {
-        // TODO: Error handling
-        let advisories = self.loader.load_package_advisories(os).unwrap();
+    fn load_new_advisories(&self, os: &str) -> Result<PackageAdvisories, Error> {
+        let advisories = self.loader.load_package_advisories(os)?;
 
-        Ok(PackageAdvisories::from(advisories))
+        match PackageAdvisories::try_from(advisories) {
+            Ok(adv) => Ok(adv),
+            Err(Error::AdvisoryParseError(_, pkg)) => {
+                Err(Error::AdvisoryParseError(os.to_string(), pkg))
+            }
+            Err(err) => Err(err),
+        }
     }
 
-    fn parse_and_compare<P: Package>(
-        packages: Vec<String>,
-        advisories: &Advisories<P>,
-    ) -> NotusResults {
+    fn parse<P: Package>(packages: &Vec<String>) -> Result<Vec<P>, Error> {
+        // Parse all packages
+        let mut parsed_packages = vec![];
+        for package in packages {
+            match P::from_full_name(package) {
+                Some(package) => parsed_packages.push(package),
+                // Unable to parse user input
+                None => return Err(Error::PackageParseError(package.clone())),
+            }
+        }
+
+        Ok(parsed_packages)
+    }
+
+    fn compare<P: Package>(packages: &Vec<P>, advisories: &Advisories<P>) -> NotusResults {
         let mut results: NotusResults = HashMap::new();
         for package in packages {
-            match P::from_full_name(&package) {
-                Some(package) => match advisories.get(&package.get_name()) {
-                    Some(advisories) => {
-                        for advisory in advisories {
-                            if advisory.is_vulnerable(&package) {
-                                let vul_pkg = VulnerablePackage {
-                                    name: package.get_name(),
-                                    installed_version: package.get_version(),
-                                    fixed_version: advisory.get_fixed_version(),
-                                };
-                                match results.get_mut(&advisory.get_oid()) {
-                                    Some(vul_pkgs) => {
-                                        vul_pkgs.push(vul_pkg);
-                                    }
-                                    None => {
-                                        results.insert(advisory.get_oid(), vec![vul_pkg]);
-                                    }
+            match advisories.get(&package.get_name()) {
+                Some(advisories) => {
+                    for advisory in advisories {
+                        if advisory.is_vulnerable(package) {
+                            let vul_pkg = VulnerablePackage {
+                                name: package.get_name(),
+                                installed_version: package.get_version(),
+                                fixed_version: advisory.get_fixed_version(),
+                            };
+                            match results.get_mut(&advisory.get_oid()) {
+                                Some(vul_pkgs) => {
+                                    vul_pkgs.push(vul_pkg);
+                                }
+                                None => {
+                                    results.insert(advisory.get_oid(), vec![vul_pkg]);
                                 }
                             }
                         }
                     }
-                    // No advisory for package
-                    None => continue,
-                },
-                // Unable to parse user input
-                None => continue, // TODO: Some Error handling, at least Logging
+                }
+                // No advisory for package
+                None => continue,
             }
         }
 
         results
     }
 
-    pub fn scan(&mut self, os: &str, packages: Vec<String>) -> Result<NotusResults, NotusError> {
+    fn parse_and_compare<P: Package>(
+        packages: &Vec<String>,
+        advisories: &Advisories<P>,
+    ) -> Result<NotusResults, Error> {
+        let packages = Self::parse(packages)?;
+        Ok(Self::compare(&packages, advisories))
+    }
+
+    pub fn scan(&mut self, os: &str, packages: &Vec<String>) -> Result<NotusResults, Error> {
         // Load advisories if not loaded
         let advisories = match self.loaded_advisories.get(os) {
             Some(adv) => adv,
@@ -103,10 +106,10 @@ where
 
         // Parse and compare package list depending on package type of loaded advisories
         let results = match advisories {
-            PackageAdvisories::Deb(adv) => Self::parse_and_compare(packages, adv),
-            PackageAdvisories::EBuild(adv) => Self::parse_and_compare(packages, adv),
-            PackageAdvisories::Rpm(adv) => Self::parse_and_compare(packages, adv),
-            PackageAdvisories::Slack(adv) => Self::parse_and_compare(packages, adv),
+            PackageAdvisories::Deb(adv) => Self::parse_and_compare(packages, adv)?,
+            PackageAdvisories::EBuild(adv) => Self::parse_and_compare(packages, adv)?,
+            PackageAdvisories::Rpm(adv) => Self::parse_and_compare(packages, adv)?,
+            PackageAdvisories::Slack(adv) => Self::parse_and_compare(packages, adv)?,
         };
 
         Ok(results)

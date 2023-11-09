@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use models::{FixedPackage, FixedVersion, Specifier};
 
-use crate::packages::{deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, Package};
+use crate::{
+    error::Error,
+    packages::{deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, Package},
+};
 
 pub type Advisories<P> = HashMap<String, Vec<Advisory<P>>>;
 
@@ -17,7 +20,7 @@ impl PackageAdvisories {
     fn fill_advisory_map<P: Package>(
         advisory_map: &mut Advisories<P>,
         advisories: Vec<models::Advisory>,
-    ) {
+    ) -> Result<(), Error> {
         // Iterate through advisories of parse file
         for advisory in advisories {
             // Iterate through fixed_packages of single advisories
@@ -26,7 +29,7 @@ impl PackageAdvisories {
                 let (pkg_name, adv) = match Advisory::create(advisory.oid.clone(), &fixed_package) {
                     Some(adv) => adv,
                     // Notus data on system are wrong!
-                    None => continue, // TODO: Some handling, at least logging
+                    None => return Err(Error::AdvisoryParseError("".to_string(), fixed_package)),
                 };
                 // Add advisory to map
                 match advisory_map.get_mut(&pkg_name) {
@@ -39,34 +42,37 @@ impl PackageAdvisories {
                 };
             }
         }
+        Ok(())
     }
 }
 
-impl From<models::Advisories> for PackageAdvisories {
-    fn from(value: models::Advisories) -> Self {
+impl TryFrom<models::Advisories> for PackageAdvisories {
+    fn try_from(value: models::Advisories) -> Result<Self, Self::Error> {
         match value.package_type {
             models::PackageType::DEB => {
                 let mut advisory_map: Advisories<Deb> = HashMap::new();
-                Self::fill_advisory_map(&mut advisory_map, value.advisories);
-                Self::Deb(advisory_map)
+                Self::fill_advisory_map(&mut advisory_map, value.advisories)?;
+                Ok(Self::Deb(advisory_map))
             }
             models::PackageType::EBUILD => {
                 let mut advisory_map: Advisories<EBuild> = HashMap::new();
-                Self::fill_advisory_map(&mut advisory_map, value.advisories);
-                Self::EBuild(advisory_map)
+                Self::fill_advisory_map(&mut advisory_map, value.advisories)?;
+                Ok(Self::EBuild(advisory_map))
             }
             models::PackageType::RPM => {
                 let mut advisory_map: Advisories<Rpm> = HashMap::new();
-                Self::fill_advisory_map(&mut advisory_map, value.advisories);
-                Self::Rpm(advisory_map)
+                Self::fill_advisory_map(&mut advisory_map, value.advisories)?;
+                Ok(Self::Rpm(advisory_map))
             }
             models::PackageType::SLACK => {
                 let mut advisory_map: Advisories<Slack> = HashMap::new();
-                Self::fill_advisory_map(&mut advisory_map, value.advisories);
-                Self::Slack(advisory_map)
+                Self::fill_advisory_map(&mut advisory_map, value.advisories)?;
+                Ok(Self::Slack(advisory_map))
             }
         }
     }
+
+    type Error = Error;
 }
 
 pub struct Advisory<P>

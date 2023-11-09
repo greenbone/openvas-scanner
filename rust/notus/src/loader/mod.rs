@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::io::Error;
-
 use models::Advisories;
+
+use crate::error::Error;
 
 pub mod json;
 
