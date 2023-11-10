@@ -1718,6 +1718,7 @@ checksum = "43794a0ace135be66a25d3ae77d41b91615fb68ae937f904090203e81f755b65"
 name = "notus"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "models",
  "regex",
  "serde",

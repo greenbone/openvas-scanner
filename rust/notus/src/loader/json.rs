@@ -15,14 +15,14 @@ use crate::error::Error;
 use super::AdvisoriesLoader;
 
 #[derive(Debug)]
-pub struct JSONAdvisoriesLoader<P>
+pub struct JSONAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
     path: P,
 }
 
-impl<P> JSONAdvisoriesLoader<P>
+impl<P> JSONAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
@@ -43,7 +43,7 @@ where
     }
 }
 
-impl<P> AdvisoriesLoader for JSONAdvisoriesLoader<P>
+impl<P> AdvisoriesLoader for JSONAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
@@ -75,13 +75,13 @@ mod tests {
 
     use crate::{error::Error, loader::AdvisoriesLoader};
 
-    use super::JSONAdvisoriesLoader;
+    use super::JSONAdvisoryLoader;
 
     #[test]
     fn test_load_advisories() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoriesLoader::new(path).unwrap();
+        let loader = JSONAdvisoryLoader::new(path).unwrap();
         let _ = loader.load_package_advisories("debian_10").unwrap();
     }
 
@@ -90,7 +90,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data_foo");
         assert!(
-            matches!(JSONAdvisoriesLoader::new(path.clone()).expect_err("Should fail"), Error::MissingAdvisoryDir(p) if p == path)
+            matches!(JSONAdvisoryLoader::new(path.clone()).expect_err("Should fail"), Error::MissingAdvisoryDir(p) if p == path)
         );
     }
 
@@ -99,7 +99,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data/debian_10.notus");
         assert!(
-            matches!(JSONAdvisoriesLoader::new(path.clone()).expect_err("Should fail"), Error::AdvisoryDirIsFile(p) if p == path)
+            matches!(JSONAdvisoryLoader::new(path.clone()).expect_err("Should fail"), Error::AdvisoryDirIsFile(p) if p == path)
         );
     }
 
@@ -107,7 +107,7 @@ mod tests {
     fn test_err_unknown_os() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoriesLoader::new(path).unwrap();
+        let loader = JSONAdvisoryLoader::new(path).unwrap();
 
         let os = "foo";
         assert!(
@@ -119,7 +119,7 @@ mod tests {
     fn test_err_json_parse() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoriesLoader::new(path.clone()).unwrap();
+        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
 
         let os = "debian_10_json_parse_err";
         assert!(
