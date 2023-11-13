@@ -375,6 +375,9 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
             config.feed.path = path.clone();
         }
+        if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
+            config.notus.advisory_path = path.clone();
+        }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());
         }

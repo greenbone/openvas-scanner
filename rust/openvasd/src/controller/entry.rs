@@ -24,7 +24,7 @@ enum HealthOpts {
     /// Alive
     Alive,
 }
-/// The supported paths of scannerd
+/// The supported paths of openvasd
 enum KnownPaths {
     /// /scans/{id}
     Scans(Option<String>),
