@@ -8,7 +8,7 @@ use std::cmp::Ordering;
 
 // Supported packages types.
 /// Represent a based Redhat package
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Deb {
     name: String,
     full_name: String,

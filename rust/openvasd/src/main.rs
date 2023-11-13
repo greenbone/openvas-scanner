@@ -6,6 +6,7 @@ mod config;
 mod controller;
 mod crypt;
 mod feed;
+mod notus;
 mod request;
 mod response;
 mod scan;
@@ -26,7 +27,11 @@ where
         config.feed.check_interval,
         config.feed.signature_check,
     );
-    let ctx = controller::ContextBuilder::new()
+    let ctx_builder = controller::ContextBuilder::new();
+
+    // TODO: Configure Notus for Context
+
+    let ctx = ctx_builder
         .result_config(rc)
         .feed_config(fc)
         .scanner(scanner)

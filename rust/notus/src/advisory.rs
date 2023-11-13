@@ -13,6 +13,7 @@ use crate::{
 
 pub type Advisories<P> = HashMap<String, Vec<Advisory<P>>>;
 
+#[derive(Debug, Clone)]
 pub enum PackageAdvisories {
     Deb(Advisories<Deb>),
     EBuild(Advisories<EBuild>),
@@ -79,6 +80,7 @@ impl TryFrom<models::Advisories> for PackageAdvisories {
     type Error = Error;
 }
 
+#[derive(Debug, Clone)]
 pub struct Advisory<P>
 where
     P: Package,
@@ -191,6 +193,7 @@ where
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum PackageInformation<P>
 where
     P: Package,

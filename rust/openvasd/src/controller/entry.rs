@@ -6,12 +6,15 @@
 //!
 //! All known paths must be handled in the entrypoint function.
 
-use std::{fmt::Display, sync::Arc};
+use std::{borrow::BorrowMut, fmt::Display, sync::Arc};
 
 use super::context::Context;
 use hyper::{Body, Method, Request, Response};
 
-use crate::scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper};
+use crate::{
+    notus::NotusScanner,
+    scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper},
+};
 
 enum HealthOpts {
     /// Ready
@@ -95,7 +98,7 @@ impl Display for KnownPaths {
     }
 }
 
-/// Is used to handle all incomng requests.
+/// Is used to handle all incoming requests.
 ///
 /// First it will be checked if a known path is requested and if the method is supported.
 /// Than corresponding functions will be called to handle the request.
@@ -151,10 +154,33 @@ where
                 Ok(ctx.response.empty(hyper::StatusCode::OK))
             }
         }
-        (&Method::POST, Notus(_os)) => {
-            match crate::request::json_request::<models::Advisories>(&ctx.response, req).await {
-                // TODO: Call notus module
-                Ok(mut _scan) => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+        (&Method::POST, Notus(os)) => {
+            match crate::request::json_request::<Vec<String>>(&ctx.response, req).await {
+                Ok(packages) => match &ctx.notus {
+                    Some(notus) => match notus.scan(&os, &packages).await {
+                        Ok(results) => Ok(ctx.response.ok(&results)),
+                        Err(err) => match err {
+                            // 404
+                            notus::error::Error::UnknownOs(_) => {
+                                Ok(ctx.response.not_found("advisories", &os))
+                            }
+                            // 501
+                            notus::error::Error::LoadAdvisoryError(_, _)
+                            | notus::error::Error::JSONParseError(_, _)
+                            | notus::error::Error::AdvisoryParseError(_, _)
+                            | notus::error::Error::MissingAdvisoryDir(_)
+                            | notus::error::Error::AdvisoryDirIsFile(_)
+                            | notus::error::Error::UnsupportedVersion(_, _, _) => {
+                                Ok(ctx.response.internal_server_error(&err))
+                            }
+                            // 401
+                            notus::error::Error::PackageParseError(_) => {
+                                Ok(ctx.response.bad_request(&format!("{err}")))
+                            }
+                        },
+                    },
+                    None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+                },
                 Err(resp) => Ok(resp),
             }
         }
