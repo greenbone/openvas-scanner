@@ -109,7 +109,7 @@ pub struct VulnerablePackage {
     pub fixed_version: FixedVersion,
 }
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize), serde(untagged))]
 #[derive(Debug)]
 pub enum FixedVersion {
     Single {

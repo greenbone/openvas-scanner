@@ -4,14 +4,15 @@
 
 #[cfg(test)]
 mod tests {
-    use models::{FixedVersion, Specifier};
-    use notus::{loader::json::JSONAdvisoriesLoader, notus::Notus};
+
+    use models::{FixedPackage, FixedVersion, Specifier};
+    use notus::{error::Error, loader::json::JSONAdvisoryLoader, notus::Notus};
 
     #[test]
     fn test_notus() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoriesLoader::new(path).unwrap();
+        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader);
 
         let packages = vec![
@@ -23,7 +24,7 @@ mod tests {
             "foo-1.2.3".to_string(),        // no vul
         ];
 
-        let results = notus.scan("debian_10", packages).unwrap();
+        let results = notus.scan("debian_10", &packages).unwrap();
         assert_eq!(results.len(), 2);
 
         let result1 = &results["1.3.6.1.4.1.25623.1.1.7.2.2023.10089729899100"];
@@ -58,5 +59,37 @@ mod tests {
                 _ => panic!("Unexpected vulnerable package: {}", vul_pkg.name),
             }
         }
+    }
+
+    #[test]
+    fn test_err_package_parse_error() {
+        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
+        path.push_str("/data");
+        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
+        let mut notus = Notus::new(loader);
+
+        let pkg_name = "wepofkewf~.124.sdefpo3-_~s#";
+
+        let packages = vec![pkg_name.to_string()];
+
+        let os = "debian_10";
+        assert!(
+            matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::PackageParseError(p) if p == pkg_name)
+        );
+    }
+
+    #[test]
+    fn test_err_advisory_parse_error() {
+        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
+        path.push_str("/data");
+        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
+        let mut notus = Notus::new(loader);
+
+        let packages = vec![];
+
+        let os = "debian_10_advisory_parse_err";
+        assert!(
+            matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::AdvisoryParseError(p, FixedPackage::ByRange { name, range }) if p == os && name == "gitlab-ce" && range.start == "?" && range.end == "=" )
+        );
     }
 }
