@@ -20,6 +20,11 @@ pub struct Feed {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Notus {
+    pub advisory_path: PathBuf,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OspdWrapper {
     pub result_check_interval: Duration,
     pub socket: PathBuf,
@@ -42,6 +47,14 @@ impl Default for Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
             signature_check: false,
+        }
+    }
+}
+
+impl Default for Notus {
+    fn default() -> Self {
+        Notus {
+            advisory_path: PathBuf::from("/var/lib/notus/products"),
         }
     }
 }
@@ -148,6 +161,8 @@ pub struct Config {
     #[serde(default)]
     pub feed: Feed,
     #[serde(default)]
+    pub notus: Notus,
+    #[serde(default)]
     pub endpoints: Endpoints,
     #[serde(default)]
     pub tls: Tls,
@@ -204,7 +219,7 @@ impl Config {
             )
             .arg(
                 clap::Arg::new("feed-path")
-                    .env("FEEED_PATH")
+                    .env("FEED_PATH")
                     .long("feed-path")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
@@ -226,6 +241,13 @@ impl Config {
                     .value_name("SECONDS")
                     .help("interval to check for feed updates in seconds"),
             )
+            .arg(
+                clap::Arg::new("notus-advisories")
+                    .env("NOTUS_SCANNER_PRODUCTS_DIRECTORY")
+                    .long("products-directory")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .action(ArgAction::Set)
+                    .help("Path containing the Notus products directory"))
             .arg(
                 clap::Arg::new("tls-certs")
                     .env("TLS_CERTS")
@@ -352,6 +374,9 @@ impl Config {
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
             config.feed.path = path.clone();
+        }
+        if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
+            config.notus.advisory_path = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());

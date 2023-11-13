@@ -9,7 +9,7 @@ use super::{Package, PackageVersion};
 // Supported packages types.
 
 /// Represent a based Ebuild package
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct EBuild {
     name: String,
     full_name: String,

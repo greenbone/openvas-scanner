@@ -13,6 +13,7 @@ use crate::{
     packages::Package,
 };
 
+#[derive(Debug)]
 pub struct Notus<L>
 where
     L: AdvisoriesLoader,

@@ -2,10 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use ::notus::{loader::json::JSONAdvisoryLoader, notus::Notus};
+use notus::NotusWrapper;
+
 mod config;
 mod controller;
 mod crypt;
 mod feed;
+mod notus;
 mod request;
 mod response;
 mod scan;
@@ -26,7 +30,18 @@ where
         config.feed.check_interval,
         config.feed.signature_check,
     );
-    let ctx = controller::ContextBuilder::new()
+    let mut ctx_builder = controller::ContextBuilder::new();
+
+    // TODO: Configure Notus for Context
+    match JSONAdvisoryLoader::new(config.notus.advisory_path.to_string_lossy().to_string()) {
+        Ok(loader) => {
+            let notus = Notus::new(loader);
+            ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
+        }
+        Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),
+    }
+
+    let ctx = ctx_builder
         .result_config(rc)
         .feed_config(fc)
         .scanner(scanner)

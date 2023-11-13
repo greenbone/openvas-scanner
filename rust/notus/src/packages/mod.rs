@@ -11,7 +11,7 @@ use std::cmp::{max, Ordering};
 
 use regex::RegexBuilder;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 /// This struct represents a package Version string. It is used to compare Package Versions to
 /// determine, which of the Versions is newer than the other. For the comparison it uses the
 /// following algorithm:
