@@ -9,9 +9,9 @@
  */
 
 #include "table_driven_lsc.h"
-#include "kb_cache.h"
 
 #include "base/networking.h"
+#include "kb_cache.h"
 #include "network.h"
 #include "plugutils.h"
 
@@ -219,12 +219,12 @@ cleanup:
  */
 struct notus_info
 {
-  char *schema; //schema is http or https
-  char *host; // server hostname 
-  char *alpn; // Application layer protocol negotiation: http/1.0, http/1.1, h2 
+  char *schema; // schema is http or https
+  char *host;   // server hostname
+  char *alpn; // Application layer protocol negotiation: http/1.0, http/1.1, h2
   char *http_version; // same version as in application layer
-  int port; // server port
-  int tls; // 0: TLS encapsulation diable. Otherwise enable
+  int port;           // server port
+  int tls;            // 0: TLS encapsulation diable. Otherwise enable
 };
 
 typedef struct notus_info *notus_info_t;
@@ -335,24 +335,24 @@ call_notus_via_http (int sockfd, GString *message)
 
   /* receive the response */
   response = g_string_new (NULL);
- 
+
   int flags = 0;
   do
     {
       bytes = recv (sockfd, buffer, sizeof (buffer), flags);
 
-      g_message("leidos: %d", bytes);
+      g_message ("leidos: %d", bytes);
       if (bytes < 0)
         g_message ("ERROR reading response from socket");
-      if (bytes == 0){
-        g_message("leidos: %d", bytes);
-        break;
-      }
+      if (bytes == 0)
+        {
+          g_message ("leidos: %d", bytes);
+          break;
+        }
       flags = MSG_DONTWAIT;
       g_string_append (response, buffer);
     }
   while (bytes == EAGAIN || bytes == EINTR);
-
 
   return response;
 }
@@ -554,46 +554,51 @@ enum fixed_type
   SINGLE,
 };
 
-struct fixed_version {
+struct fixed_version
+{
   char *version;
   char *specifier;
 };
 typedef struct fixed_version fixed_version_t;
 
-struct version_range {
+struct version_range
+{
   char *start;
   char *stop;
 };
 typedef struct version_range version_range_t;
 
-struct vulnerable_pkg {
-  char *pkg_name; //package name
+struct vulnerable_pkg
+{
+  char *pkg_name;        // package name
   char *install_version; // installed version of the vulnerable package
-  enum fixed_type type; // fixed version type: range or single
+  enum fixed_type type;  // fixed version type: range or single
   union
   {
-    version_range_t *range; // range of vulnerable versions
+    version_range_t *range;   // range of vulnerable versions
     fixed_version_t *version; // version and specifier for the fixed versions
   };
 };
 
 typedef struct vulnerable_pkg vuln_pkg_t;
 
-struct advisory {
-  char *oid; // Advisory OID 
-  vuln_pkg_t *pkgs[100]; // list of vulnerable packages, installed version and fixed versions
-  size_t count; //Count of vulnerable packages this adivsory has
+struct advisory
+{
+  char *oid;             // Advisory OID
+  vuln_pkg_t *pkgs[100]; // list of vulnerable packages, installed version and
+                         // fixed versions
+  size_t count;          // Count of vulnerable packages this adivsory has
 };
 
 typedef struct advisory advisory_t;
 
-struct advisories {
+struct advisories
+{
   advisory_t **advisories;
   size_t count;
-  size_t max_size; 
+  size_t max_size;
 };
 typedef struct advisories advisories_t;
-
 
 /** @brief Initialize a new adivisories struct with 100 slots
  *
@@ -603,9 +608,10 @@ typedef struct advisories advisories_t;
 static advisories_t *
 advisories_new ()
 {
-  advisories_t *advisories_list = g_malloc0 (sizeof(advisories_t));
+  advisories_t *advisories_list = g_malloc0 (sizeof (advisories_t));
   advisories_list->max_size = 100;
-  advisories_list->advisories = g_malloc0_n (advisories_list->max_size, sizeof (advisory_t));
+  advisories_list->advisories =
+    g_malloc0_n (advisories_list->max_size, sizeof (advisory_t));
 
   return advisories_list;
 }
@@ -618,16 +624,18 @@ into.
  *
  */
 static void
-advisories_add(advisories_t *advisories_list, advisory_t *advisory){
-
+advisories_add (advisories_t *advisories_list, advisory_t *advisory)
+{
   // Reallocate more memory if the list is full
   if (advisories_list->count == advisories_list->max_size)
     {
       advisories_list->max_size *= 2;
       advisories_list->advisories =
-        g_realloc_n(advisories_list->advisories, advisories_list->max_size, sizeof(*advisories_list->advisories));
+        g_realloc_n (advisories_list->advisories, advisories_list->max_size,
+                     sizeof (*advisories_list->advisories));
       memset (advisories_list->advisories + advisories_list->count, '\0',
-              (advisories_list->max_size - advisories_list->count) * sizeof(advisory_t *));
+              (advisories_list->max_size - advisories_list->count)
+                * sizeof (advisory_t *));
     }
   advisories_list->advisories[advisories_list->count] = advisory;
   advisories_list->count++;
@@ -644,8 +652,8 @@ static advisory_t *
 advisory_new (char *oid)
 {
   advisory_t *adv = NULL;
-  adv = g_malloc0 (sizeof(advisory_t));
-  adv->oid = g_strdup(oid);
+  adv = g_malloc0 (sizeof (advisory_t));
+  adv->oid = g_strdup (oid);
   adv->count = 0;
   return adv;
 }
@@ -658,12 +666,14 @@ advisory_new (char *oid)
  *  @param adv[in/out] The advisory to add the vulnerable package into
  *  @param vuln[in] The vulnerable package to add.
  */
-static void 
+static void
 advisory_add_vuln_pkg (advisory_t *adv, vuln_pkg_t *vuln)
 {
   if (adv->count == 100)
     {
-      g_warning ("%s: Failed adding new vulnerable package to the advisory %s. No more free slots", __func__, adv->oid);
+      g_warning ("%s: Failed adding new vulnerable package to the advisory %s. "
+                 "No more free slots",
+                 __func__, adv->oid);
       return;
     }
 
@@ -677,7 +687,7 @@ advisory_add_vuln_pkg (advisory_t *adv, vuln_pkg_t *vuln)
  *  It free()'s all vulnerable packages that belong to this advisory.
  */
 static void
-advisory_free(advisory_t *advisory)
+advisory_free (advisory_t *advisory)
 {
   if (advisory == NULL)
     return;
@@ -685,18 +695,21 @@ advisory_free(advisory_t *advisory)
   g_free (advisory->oid);
   for (size_t i = 0; i < advisory->count; i++)
     {
-      if (advisory->pkgs[i] != NULL) {
-        g_free (advisory->pkgs[i]->pkg_name);
-        g_free (advisory->pkgs[i]->install_version);
-        if (advisory->pkgs[i]->type == RANGE) {
-          g_free (advisory->pkgs[i]->range->start);
-          g_free (advisory->pkgs[i]->range->stop);
+      if (advisory->pkgs[i] != NULL)
+        {
+          g_free (advisory->pkgs[i]->pkg_name);
+          g_free (advisory->pkgs[i]->install_version);
+          if (advisory->pkgs[i]->type == RANGE)
+            {
+              g_free (advisory->pkgs[i]->range->start);
+              g_free (advisory->pkgs[i]->range->stop);
+            }
+          else if (advisory->pkgs[i]->type == SINGLE)
+            {
+              g_free (advisory->pkgs[i]->version->version);
+              g_free (advisory->pkgs[i]->version->specifier);
+            }
         }
-        else if (advisory->pkgs[i]->type == SINGLE) {
-          g_free (advisory->pkgs[i]->version->version);
-          g_free (advisory->pkgs[i]->version->specifier);
-        }
-      }
     }
   advisory = NULL;
 }
@@ -707,13 +720,13 @@ advisory_free(advisory_t *advisory)
  *  It free()'s all advisories members.
  */
 static void
-advisories_free(advisories_t *advisories)
+advisories_free (advisories_t *advisories)
 {
   if (advisories == NULL)
     return;
 
   for (size_t i = 0; i < advisories->count; i++)
-   advisory_free (advisories->advisories[i]);
+    advisory_free (advisories->advisories[i]);
   advisories = NULL;
 }
 
@@ -731,29 +744,31 @@ advisories_free(advisories_t *advisories)
  *  @return a vulnerable packages struct.
  */
 static vuln_pkg_t *
-vulnerable_pkg_new (const char* pkg_name, const char* install_version, enum fixed_type type, char *item1, char *item2)
+vulnerable_pkg_new (const char *pkg_name, const char *install_version,
+                    enum fixed_type type, char *item1, char *item2)
 {
   vuln_pkg_t *vuln = NULL;
   version_range_t *range = NULL;
   fixed_version_t *fixed_ver = NULL;
-  
-  vuln = g_malloc0(sizeof(vuln_pkg_t));
+
+  vuln = g_malloc0 (sizeof (vuln_pkg_t));
   vuln->pkg_name = g_strdup (pkg_name);
   vuln->install_version = g_strdup (install_version);
   vuln->type = type;
   if (type == RANGE)
     {
-      range = g_malloc0(sizeof(range_t));
-      range->start = g_strdup(item1);
-      range->stop = g_strdup(item2);
+      range = g_malloc0 (sizeof (range_t));
+      range->start = g_strdup (item1);
+      range->stop = g_strdup (item2);
       vuln->range = range;
     }
-  else {
-    fixed_ver = g_malloc0(sizeof(fixed_version_t));
-    fixed_ver->version = g_strdup(item1);
-    fixed_ver->specifier = g_strdup(item2);
-    vuln->version = fixed_ver;
-  }  
+  else
+    {
+      fixed_ver = g_malloc0 (sizeof (fixed_version_t));
+      fixed_ver->version = g_strdup (item1);
+      fixed_ver->specifier = g_strdup (item2);
+      vuln->version = fixed_ver;
+    }
 
   return vuln;
 }
@@ -777,8 +792,8 @@ process_notus_response (const gchar *resp, const size_t len)
   JsonReader *reader = NULL;
   GError *err = NULL;
 
-  advisories_t *advisories = advisories_new();
-  
+  advisories_t *advisories = advisories_new ();
+
   parser = json_parser_new ();
   if (!json_parser_load_from_data (parser, resp, len, &err))
     {
@@ -792,13 +807,12 @@ process_notus_response (const gchar *resp, const size_t len)
       g_message ("No es un object");
     }
 
-  char **members = json_reader_list_members(reader);
+  char **members = json_reader_list_members (reader);
 
-  
   for (int i = 0; members[i]; i++)
     {
       advisory_t *advisory;
-      
+
       if (!json_reader_read_member (reader, members[i]))
         {
           g_debug ("No member oid");
@@ -807,14 +821,14 @@ process_notus_response (const gchar *resp, const size_t len)
       if (!json_reader_is_array (reader))
         {
           g_debug ("Is not an array");
-          goto cleanup_advisories;                
+          goto cleanup_advisories;
         }
 
-      advisory = advisory_new(g_strdup (members[i]));
+      advisory = advisory_new (g_strdup (members[i]));
 
-      int count_pkgs = json_reader_count_elements(reader);
+      int count_pkgs = json_reader_count_elements (reader);
       g_debug ("There are %d packages for advisory %s", count_pkgs, members[i]);
-      for (int j=0; j< count_pkgs; j++ )
+      for (int j = 0; j < count_pkgs; j++)
         {
           vuln_pkg_t *pkg = NULL;
           char *name = NULL;
@@ -824,88 +838,90 @@ process_notus_response (const gchar *resp, const size_t len)
           char *version = NULL;
           char *specifier = NULL;
           enum fixed_type type = UNKNOWN;
-          
+
           json_reader_read_element (reader, j);
           if (!json_reader_is_object (reader))
             {
-              g_warning ("%s: Package %d of advisory %s is not an object", __func__, j, members[i]);
-              advisories_free(advisories);
+              g_warning ("%s: Package %d of advisory %s is not an object",
+                         __func__, j, members[i]);
+              advisories_free (advisories);
               goto cleanup_advisories;
             }
 
           json_reader_read_member (reader, "name");
-          name = g_strdup(json_reader_get_string_value(reader));
+          name = g_strdup (json_reader_get_string_value (reader));
           json_reader_end_member (reader);
           g_debug ("name: %s", name);
 
           json_reader_read_member (reader, "installed_version");
-          installed_version = g_strdup(json_reader_get_string_value(reader));
+          installed_version = g_strdup (json_reader_get_string_value (reader));
           json_reader_end_member (reader);
-          g_debug("installed_version: %s", installed_version);
+          g_debug ("installed_version: %s", installed_version);
 
           json_reader_read_member (reader, "fixed_version");
-          g_debug ("Fixed_version has %d members", json_reader_count_members(reader));
+          g_debug ("Fixed_version has %d members",
+                   json_reader_count_members (reader));
 
           // Version Range
           json_reader_read_member (reader, "start");
-          start = g_strdup(json_reader_get_string_value(reader));
+          start = g_strdup (json_reader_get_string_value (reader));
           json_reader_end_member (reader);
           json_reader_read_member (reader, "end");
-          stop = g_strdup(json_reader_get_string_value(reader));
+          stop = g_strdup (json_reader_get_string_value (reader));
           json_reader_end_member (reader);
-          g_debug("start %s, end: %s", start, stop);
+          g_debug ("start %s, end: %s", start, stop);
 
           // version and specifier
           json_reader_read_member (reader, "version");
-          version = g_strdup(json_reader_get_string_value(reader));
+          version = g_strdup (json_reader_get_string_value (reader));
           json_reader_end_member (reader);
           json_reader_read_member (reader, "specifier");
-          specifier = g_strdup(json_reader_get_string_value(reader));
+          specifier = g_strdup (json_reader_get_string_value (reader));
           json_reader_end_member (reader);
-          g_debug("version %s, specifier: %s", version, specifier);
+          g_debug ("version %s, specifier: %s", version, specifier);
 
-         //end read fixes version member
-         json_reader_end_member(reader);
+          // end read fixes version member
+          json_reader_end_member (reader);
 
-         // end package element
-         json_reader_end_element(reader);
+          // end package element
+          json_reader_end_element (reader);
 
-         char *item1 = NULL, *item2=NULL;
-         if (start && stop)
-           {
-             type = RANGE;
-             item1 = start;
-             item2 = stop;
-           }
-         else if (version && specifier)
-           {
-             type = SINGLE;
-             item1 = version;
-             item2 = specifier;             
-           }
-         else
-           {
-             g_warning("%s: Error parsing json element", __func__);
-             g_free (name);
-             g_free (installed_version);
-             g_free(item1);
-             g_free(item2);
-             advisories_free(advisories);
-             goto cleanup_advisories;
-           }
-         
-         pkg = vulnerable_pkg_new(name, installed_version, type, item1, item2);
-         g_free (name);
-         g_free (installed_version);
-         g_free(item1);
-         g_free(item2);
+          char *item1 = NULL, *item2 = NULL;
+          if (start && stop)
+            {
+              type = RANGE;
+              item1 = start;
+              item2 = stop;
+            }
+          else if (version && specifier)
+            {
+              type = SINGLE;
+              item1 = version;
+              item2 = specifier;
+            }
+          else
+            {
+              g_warning ("%s: Error parsing json element", __func__);
+              g_free (name);
+              g_free (installed_version);
+              g_free (item1);
+              g_free (item2);
+              advisories_free (advisories);
+              goto cleanup_advisories;
+            }
 
-         advisory_add_vuln_pkg(advisory, pkg);
+          pkg =
+            vulnerable_pkg_new (name, installed_version, type, item1, item2);
+          g_free (name);
+          g_free (installed_version);
+          g_free (item1);
+          g_free (item2);
 
+          advisory_add_vuln_pkg (advisory, pkg);
         }
       // end advisory
-      json_reader_end_member(reader);
-      advisories_add(advisories, advisory);
+      json_reader_end_member (reader);
+      advisories_add (advisories, advisory);
     }
 
 cleanup_advisories:
@@ -998,76 +1014,80 @@ notus_get_response (const char *pkg_list, const char *os)
  *
  *  @param ip_str Target's IP address.
  *  @param hostname Targer's hostname.
- *  @param pkg_list List of packages installed in the target. The packages are "\n" separated.
+ *  @param pkg_list List of packages installed in the target. The packages are
+ * "\n" separated.
  *  @param os Name of the target's operative sistem.
  *
  *  @result Count of stored results. -1 on error.
  */
 int
-call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list, const char *os)
+call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
+               const char *os)
 {
-  GString *response= NULL;
+  GString *response = NULL;
   gchar *body = NULL;
   advisories_t *advisories = NULL;
   int res_count = 0;
-  if ((response = notus_get_response(pkg_list, os)) == NULL)
+  if ((response = notus_get_response (pkg_list, os)) == NULL)
     return -1;
-  
-  gchar **head_body = g_strsplit(response->str, "\r\n\r\n", 1);
-  body = g_strdup(head_body[1]);
-  g_strfreev(head_body);
-  g_string_free(response, TRUE);
 
-  advisories = process_notus_response(body, strlen(body));
+  gchar **head_body = g_strsplit (response->str, "\r\n\r\n", 1);
+  body = g_strdup (head_body[1]);
+  g_strfreev (head_body);
+  g_string_free (response, TRUE);
+
+  advisories = process_notus_response (body, strlen (body));
 
   for (size_t i = 0; i < advisories->count; i++)
     {
-      advisory_t *advisory  = advisories->advisories[i];
+      advisory_t *advisory = advisories->advisories[i];
       gchar *buffer;
-      GString *result = g_string_new(NULL);
+      GString *result = g_string_new (NULL);
       for (size_t j = 0; j < advisory->count; j++)
-      {
-        vuln_pkg_t *pkg = advisory->pkgs[j];
-        GString *res= g_string_new(NULL);
-        
-      
-        if (pkg->type == RANGE)
-          {         
-            g_string_printf(res, "\nVulnerable package: %s\n"
-                            "Installed version: %s\n"
-                            "Fixed version: <%s, >%s\n",
-                            pkg->pkg_name, pkg->install_version,
-                            pkg->range->start, pkg->range->stop);
-          }
-        else if (pkg->type == SINGLE)
-          {         
-            g_string_printf(res, "\nVulnerable package: %s\n"
-                            "Installed version: %s\n"
-                            "Fixed version: %s%s\n",
-                            pkg->pkg_name, pkg->install_version,
-                            pkg->version->specifier, pkg->version->version);
-          }
-        else {
-          g_warning("%s: Unknown fixed version type.", __func__);
-          advisories_free(advisories);
-          return -1;
+        {
+          vuln_pkg_t *pkg = advisory->pkgs[j];
+          GString *res = g_string_new (NULL);
+
+          if (pkg->type == RANGE)
+            {
+              g_string_printf (res,
+                               "\nVulnerable package: %s\n"
+                               "Installed version: %s\n"
+                               "Fixed version: <%s, >%s\n",
+                               pkg->pkg_name, pkg->install_version,
+                               pkg->range->start, pkg->range->stop);
+            }
+          else if (pkg->type == SINGLE)
+            {
+              g_string_printf (res,
+                               "\nVulnerable package: %s\n"
+                               "Installed version: %s\n"
+                               "Fixed version: %s%s\n",
+                               pkg->pkg_name, pkg->install_version,
+                               pkg->version->specifier, pkg->version->version);
+            }
+          else
+            {
+              g_warning ("%s: Unknown fixed version type.", __func__);
+              advisories_free (advisories);
+              return -1;
+            }
+          g_string_append (result, g_strdup (res->str));
+          g_string_free (res, TRUE);
         }
-        g_string_append(result, g_strdup(res->str));
-        g_string_free(res, TRUE);
-      }
 
       // type|||IP|||HOSTNAME|||package|||OID|||the result message|||URI
-      buffer = g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s",
-                                "ALARM", ip_str, hostname ? hostname : " ", "package", advisory->oid,
-                                result->str, "");
-      g_string_free(result, TRUE);
+      buffer = g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s", "ALARM",
+                                ip_str, hostname ? hostname : " ", "package",
+                                advisory->oid, result->str, "");
+      g_string_free (result, TRUE);
       kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
-                                       buffer);
+                                           buffer);
       res_count++;
-      g_free(buffer);
+      g_free (buffer);
     }
 
-  advisories_free(advisories);
+  advisories_free (advisories);
   return res_count;
 }
 
