@@ -9,7 +9,7 @@ use tokio::sync::RwLock;
 
 #[async_trait]
 pub trait NotusScanner {
-    async fn scan(&self, os: &str, packages: &Vec<String>) -> Result<NotusResults, Error>;
+    async fn scan(&self, os: &str, packages: &[String]) -> Result<NotusResults, Error>;
 }
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ impl NotusWrapper {
 
 #[async_trait]
 impl NotusScanner for NotusWrapper {
-    async fn scan(&self, os: &str, packages: &Vec<String>) -> Result<NotusResults, Error> {
+    async fn scan(&self, os: &str, packages: &[String]) -> Result<NotusResults, Error> {
         self.notus.write().await.scan(os, packages)
     }
 }
