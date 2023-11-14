@@ -16,6 +16,9 @@
 #include "plugutils.h"
 
 #include <ctype.h> // for tolower()
+#include <curl/curl.h>
+#include <curl/easy.h>
+#include <curl/urlapi.h>
 #include <gnutls/gnutls.h>
 #include <gvm/base/prefs.h>
 #include <gvm/util/mqtt.h>      // for mqtt_reset
@@ -489,30 +492,29 @@ end:
 static int
 parse_server (const char *server, notus_info_t *notusdata)
 {
-  char **splitted_server;
+  CURLU *h = curl_url ();
+  char *schema = NULL;
+  char *host = NULL;
+  char *port = NULL;
 
   if (!server)
     return -1;
 
-  splitted_server = g_strsplit (server, ":", 0);
-  if (splitted_server == NULL)
+  // char *server = "http://localhost:5556";
+  if (curl_url_set (h, CURLUPART_URL, server, 0) > 0)
     {
-      g_warning ("%s: Invalid openvasd server", server);
+      g_warning ("%s: Error parsing URL %s", __func__, server);
       return -1;
     }
 
-  if (splitted_server[0] == NULL || splitted_server[1] == NULL
-      || splitted_server[2] == NULL)
-    {
-      g_warning ("%s: Invalid openvasd server %s. "
-                 "Valid is http://example.com:1234 "
-                 "or https://example.com.1234",
-                 __func__, server);
-      g_strfreev (splitted_server);
-      return -1;
-    }
+  curl_url_get (h, CURLUPART_SCHEME, &schema, 0);
+  curl_url_get (h, CURLUPART_HOST, &host, 0);
+  curl_url_get (h, CURLUPART_PORT, &port, 0);
 
-  (*notusdata)->schema = g_strdup (schema_tolower (splitted_server[0]));
+  (*notusdata)->host = g_strdup (host);
+  (*notusdata)->port = atoi (port);
+
+  (*notusdata)->schema = g_strdup (schema_tolower (schema));
   if (g_strrstr ((*notusdata)->schema, "https"))
     {
       (*notusdata)->tls = 1;
@@ -528,22 +530,18 @@ parse_server (const char *server, notus_info_t *notusdata)
   else
     {
       g_warning ("%s: Invalid openvasd server schema", server);
-      g_strfreev (splitted_server);
+      curl_url_cleanup (h);
+      curl_free (schema);
+      curl_free (host);
+      curl_free (port);
       return -1;
     }
 
-  if (strlen (splitted_server[1]) > 2)
-    {
-      (*notusdata)->host = &splitted_server[1][2];
-    }
-  else
-    {
-      g_warning ("%s: Invalid openvasd server", server);
-      g_strfreev (splitted_server);
-      return -1;
-    }
+  curl_url_cleanup (h);
+  curl_free (schema);
+  curl_free (host);
+  curl_free (port);
 
-  (*notusdata)->port = atoi (splitted_server[2]);
   return 0;
 }
 
