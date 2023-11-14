@@ -6,8 +6,6 @@ use std::cmp::Ordering;
 
 use super::{Package, PackageVersion};
 
-// Supported packages types.
-
 /// Represent a based Ebuild package
 #[derive(Debug, PartialEq, Clone)]
 pub struct EBuild {

@@ -3,8 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use super::{Package, PackageVersion};
-use regex::Regex;
+use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::Ordering;
+
+static RE: Lazy<Regex> = lazy_regex!(r"(..*)-(..*)-(..*)-(\d)(?:_slack(..*))?");
+static RE_VERSION: Lazy<Regex> = lazy_regex!(r"(..*)-(..*)-(\d)(?:_slack(..*))?");
 
 // Supported packages types.
 /// Represent a based Redhat package
@@ -56,10 +59,8 @@ impl Package for Slack {
         }
         let full_name = full_name.trim();
 
-        let re = Regex::new(r"(..*)-(..*)-(..*)-(\d)(?:_slack(..*))?").unwrap();
-
         // Get all fields
-        let (name, version, arch, build, target) = match re.captures(full_name) {
+        let (name, version, arch, build, target) = match RE.captures(full_name) {
             Some(c) => (
                 c.get(1).map_or("", |m| m.as_str()),
                 c.get(2).map_or("", |m| m.as_str()),
@@ -102,10 +103,8 @@ impl Package for Slack {
         let name = name.trim();
         let full_version = full_version.trim();
 
-        let re = Regex::new(r"(..*)-(..*)-(\d)(?:_slack(..*))?").unwrap();
-
         // Get all fields
-        let (version, arch, build, target) = match re.captures(full_version) {
+        let (version, arch, build, target) = match RE_VERSION.captures(full_version) {
             Some(c) => (
                 c.get(1).map_or("", |m| m.as_str()),
                 c.get(2).map_or("", |m| m.as_str()),

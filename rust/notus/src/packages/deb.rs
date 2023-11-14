@@ -3,8 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use super::{Package, PackageVersion};
-use regex::Regex;
+use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::Ordering;
+
+static RE: Lazy<Regex> = lazy_regex!(r"(.*)-(?:(\d*):)?(\d.*)-(.*)");
+static RE_WO_REVISION: Lazy<Regex> = lazy_regex!(r"(.*)-(?:(\d*):)?(\d.*)");
+static RE_VERSION: Lazy<Regex> = lazy_regex!(r"(?:(\d*):)?(\d.*)-(.*)");
+static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(r"(?:(\d*):)?(\d.*)");
 
 // Supported packages types.
 /// Represent a based Redhat package
@@ -52,18 +57,15 @@ impl Package for Deb {
         }
         let full_name = full_name.trim();
 
-        let re = Regex::new(r"(.*)-(?:(\d*):)?(\d.*)-(.*)").unwrap();
-        let re_wo_revision = Regex::new(r"(.*)-(?:(\d*):)?(\d.*)").unwrap();
-
         // Get all fields
-        let (name, epochstr, upstream_version, debian_revision) = match re.captures(full_name) {
+        let (name, epochstr, upstream_version, debian_revision) = match RE.captures(full_name) {
             Some(c) => (
                 c.get(1).map_or("", |m| m.as_str()),
                 c.get(2).map_or("", |m| m.as_str()),
                 c.get(3).map_or("", |m| m.as_str()),
                 c.get(4).map_or("", |m| m.as_str()),
             ),
-            None => match re_wo_revision.captures(full_name) {
+            None => match RE_WO_REVISION.captures(full_name) {
                 None => {
                     return None;
                 }
@@ -114,18 +116,15 @@ impl Package for Deb {
         let name = name.trim();
         let full_version = full_version.trim();
 
-        let re_version = Regex::new(r"(?:(\d*):)?(\d.*)-(.*)").unwrap();
-        let re_version_wo_revision = Regex::new(r"(?:(\d*):)?(\d.*)").unwrap();
-
         // Get all fields
-        let (epochstr, upstream_version, debian_revision) = match re_version.captures(full_version)
+        let (epochstr, upstream_version, debian_revision) = match RE_VERSION.captures(full_version)
         {
             Some(c) => (
                 c.get(1).map_or("0", |m| m.as_str()), //Defaults to 0
                 c.get(2).map_or("", |m| m.as_str()),
                 c.get(3).map_or("", |m| m.as_str()),
             ),
-            None => match re_version_wo_revision.captures(full_version) {
+            None => match RE_VERSION_WO_REVISION.captures(full_version) {
                 None => {
                     return None;
                 }

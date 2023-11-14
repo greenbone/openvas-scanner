@@ -7,9 +7,10 @@ pub mod ebuild;
 pub mod rpm;
 pub mod slack;
 
+use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::{max, Ordering};
 
-use regex::RegexBuilder;
+static RE: Lazy<Regex> = lazy_regex!(r"(\d+|.)");
 
 #[derive(PartialEq, Debug, Clone)]
 /// This struct represents a package Version string. It is used to compare Package Versions to
@@ -41,15 +42,12 @@ impl PartialOrd for PackageVersion {
             return Some(Ordering::Equal);
         }
 
-        // Generate Regex to split versions into parts
-        let re = RegexBuilder::new(r"(\d+|.)").build().unwrap();
-
         // Split both version into its parts
-        let a_parts: Vec<String> = re
+        let a_parts: Vec<String> = RE
             .find_iter(self.0.as_str())
             .map(|m| m.as_str().to_string())
             .collect();
-        let b_parts: Vec<String> = re
+        let b_parts: Vec<String> = RE
             .find_iter(other.0.as_str())
             .map(|m| m.as_str().to_string())
             .collect();
