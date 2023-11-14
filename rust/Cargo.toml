@@ -29,6 +29,8 @@ members = [
   "infisto",
   "smoketest",
   "notus",
+  "plugin-scheduler",
+  "dep-graph",
 ]
 
 [workspace.package]

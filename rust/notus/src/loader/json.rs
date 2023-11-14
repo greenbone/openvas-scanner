@@ -14,7 +14,7 @@ use crate::error::Error;
 
 use super::AdvisoriesLoader;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JSONAdvisoryLoader<P>
 where
     P: AsRef<Path>,

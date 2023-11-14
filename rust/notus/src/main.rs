@@ -41,17 +41,17 @@ fn main() {
         }
     };
 
-    let packages = match matches.get_one::<PathBuf>("pkg-file") {
+    let mut buf;
+    match matches.get_one::<PathBuf>("pkg-file") {
         Some(path) => {
-            let mut buf = String::new();
+            buf = String::new();
             File::open(path).unwrap().read_to_string(&mut buf).unwrap();
-            buf.split(",").map(str::to_string).collect::<Vec<String>>()
         }
         None => {
-            let list = matches.get_one::<String>("pkg-list").unwrap();
-            list.split(",").map(str::to_string).collect::<Vec<String>>()
+            buf = matches.get_one::<String>("pkg-list").unwrap().to_string();
         }
     };
+    let packages = buf.split(',').map(str::to_string).collect::<Vec<String>>();
 
     let os = matches.get_one::<String>("os").unwrap();
 

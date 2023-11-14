@@ -13,6 +13,7 @@ use crate::{
     packages::Package,
 };
 
+#[derive(Debug)]
 pub struct Notus<L>
 where
     L: AdvisoriesLoader,
@@ -44,7 +45,7 @@ where
         }
     }
 
-    fn parse<P: Package>(packages: &Vec<String>) -> Result<Vec<P>, Error> {
+    fn parse<P: Package>(packages: &[String]) -> Result<Vec<P>, Error> {
         // Parse all packages
         let mut parsed_packages = vec![];
         for package in packages {
@@ -90,14 +91,14 @@ where
     }
 
     fn parse_and_compare<P: Package>(
-        packages: &Vec<String>,
+        packages: &[String],
         advisories: &Advisories<P>,
     ) -> Result<NotusResults, Error> {
         let packages = Self::parse(packages)?;
         Ok(Self::compare(&packages, advisories))
     }
 
-    pub fn scan(&mut self, os: &str, packages: &Vec<String>) -> Result<NotusResults, Error> {
+    pub fn scan(&mut self, os: &str, packages: &[String]) -> Result<NotusResults, Error> {
         // Load advisories if not loaded
         let advisories = match self.loaded_advisories.get(os) {
             Some(adv) => adv,

@@ -18,6 +18,7 @@ pub struct Storage<E> {
     scans: RwLock<HashMap<String, Progress>>,
     oids: RwLock<Vec<String>>,
     hash: RwLock<String>,
+    client_id: RwLock<Vec<(ClientHash, String)>>,
 
     crypter: E,
 }
@@ -31,6 +32,7 @@ where
             scans: RwLock::new(HashMap::new()),
             oids: RwLock::new(vec![]),
             hash: RwLock::new(String::new()),
+            client_id: RwLock::new(vec![]),
             crypter,
         }
     }
@@ -63,6 +65,50 @@ impl Default for Storage<crate::crypt::ChaCha20Crypt> {
     }
 }
 
+#[async_trait]
+impl<E> ScanIDClientMapper for Storage<E>
+where
+    E: crate::crypt::Crypt + Send + Sync + 'static,
+{
+    async fn add_scan_client_id(
+        &self,
+        scan_id: String,
+        client_id: ClientHash,
+    ) -> Result<(), Error> {
+        let mut ids = self.client_id.write().await;
+        ids.push((client_id, scan_id));
+
+        Ok(())
+    }
+
+    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        let mut ids = self.client_id.write().await;
+        let ssid = scan_id.as_ref();
+        let mut to_remove = vec![];
+        for (i, (_, sid)) in ids.iter().enumerate() {
+            if sid == ssid {
+                to_remove.push(i);
+            }
+        }
+        for i in to_remove {
+            ids.remove(i);
+        }
+
+        Ok(())
+    }
+
+    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
+        let ids = self.client_id.read().await;
+        Ok(ids
+            .iter()
+            .filter(|(cid, _)| cid == client_id)
+            .map(|(_, s)| s.to_owned())
+            .collect())
+    }
+}
 #[async_trait]
 impl<E> ScanStorer for Storage<E>
 where
@@ -215,6 +261,40 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    async fn id_mapper() {
+        let storage = Storage::default();
+        storage
+            .add_scan_client_id("s1".to_owned(), "0".into())
+            .await
+            .unwrap();
+        storage
+            .add_scan_client_id("s2".to_owned(), "0".into())
+            .await
+            .unwrap();
+        storage
+            .add_scan_client_id("s3".to_owned(), "0".into())
+            .await
+            .unwrap();
+        storage
+            .add_scan_client_id("s4".to_owned(), "1".into())
+            .await
+            .unwrap();
+        assert_eq!(
+            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            vec!["s1", "s2", "s3"]
+        );
+        assert_eq!(
+            storage.get_scans_of_client_id(&"1".into()).await.unwrap(),
+            vec!["s4"]
+        );
+        storage.remove_scan_id("s2").await.unwrap();
+        assert_eq!(
+            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            vec!["s1", "s3"]
+        );
+    }
+
+    #[tokio::test]
     async fn store_delete_scan() {
         let storage = Storage::default();
         let scan = Scan::default();
@@ -229,10 +309,12 @@ mod tests {
     async fn encrypt_decrypt_passwords() {
         let storage = Storage::default();
         let mut scan = Scan::default();
-        let mut pw = models::Credential::default();
-        pw.credential_type = models::CredentialType::UP {
-            username: "test".to_string(),
-            password: "test".to_string(),
+        let pw = models::Credential {
+            credential_type: models::CredentialType::UP {
+                username: "test".to_string(),
+                password: "test".to_string(),
+            },
+            ..Default::default()
         };
 
         scan.target.credentials = vec![pw];

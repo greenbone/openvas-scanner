@@ -29,16 +29,19 @@ use core::task::{Context, Poll};
 use futures_util::{ready, Future};
 use hyper::server::accept::Accept;
 use hyper::server::conn::{AddrIncoming, AddrStream};
-use rustls::server::{AllowAnyAuthenticatedClient, NoClientAuth};
+use rustls::server::{AllowAnyAuthenticatedClient, ClientCertVerifier};
 use rustls::RootCertStore;
 use rustls_pemfile::{read_one, Item};
-use std::path::{Path, PathBuf};
+
+use std::path::Path;
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use std::{fs, io};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_rustls::rustls::ServerConfig;
+
+use crate::controller::{ClientGossiper, ClientIdentifier};
 
 enum State {
     Handshaking(tokio_rustls::Accept<AddrStream>),
@@ -53,14 +56,35 @@ enum State {
 /// On streaming the connection will be read/written.
 pub struct TlsStream {
     state: State,
+    pub client_identifier: Arc<RwLock<ClientIdentifier>>,
 }
 
 impl TlsStream {
-    fn new(stream: AddrStream, config: Arc<ServerConfig>) -> TlsStream {
+    fn new(
+        stream: AddrStream,
+
+        roots: RootCertStore,
+        certs: Vec<rustls::Certificate>,
+        key: rustls::PrivateKey,
+    ) -> TlsStream {
+        let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));
+        let inner = AllowAnyAuthenticatedClient::new(roots);
+        let verifier = ClientSnitch::new(inner, client_identifier.clone()).boxed();
+        let config: Arc<ServerConfig> = Arc::new(server_config(verifier, certs, key).unwrap());
+
         let accept = tokio_rustls::TlsAcceptor::from(config).accept(stream);
         TlsStream {
             state: State::Handshaking(accept),
+            client_identifier,
         }
+    }
+}
+
+impl ClientGossiper for TlsStream {
+    fn client_identifier(
+        &self,
+    ) -> &std::sync::Arc<std::sync::RwLock<crate::controller::ClientIdentifier>> {
+        &self.client_identifier
     }
 }
 
@@ -122,13 +146,25 @@ impl AsyncWrite for TlsStream {
 
 /// Handles the actual tls connection based on the given address and config.
 pub struct TlsAcceptor {
-    config: Arc<ServerConfig>,
+    roots: RootCertStore,
+    certs: Vec<rustls::Certificate>,
+    key: rustls::PrivateKey,
     incoming: AddrIncoming,
 }
 
 impl TlsAcceptor {
-    pub fn new(config: Arc<ServerConfig>, incoming: AddrIncoming) -> TlsAcceptor {
-        TlsAcceptor { config, incoming }
+    pub fn new(
+        roots: RootCertStore,
+        certs: Vec<rustls::Certificate>,
+        key: rustls::PrivateKey,
+        incoming: AddrIncoming,
+    ) -> TlsAcceptor {
+        TlsAcceptor {
+            roots,
+            certs,
+            key,
+            incoming,
+        }
     }
 }
 
@@ -142,14 +178,95 @@ impl Accept for TlsAcceptor {
     ) -> Poll<Option<Result<Self::Conn, Self::Error>>> {
         let pin = self.get_mut();
         match ready!(Pin::new(&mut pin.incoming).poll_accept(cx)) {
-            Some(Ok(sock)) => Poll::Ready(Some(Ok(TlsStream::new(sock, pin.config.clone())))),
+            Some(Ok(sock)) => Poll::Ready(Some(Ok(TlsStream::new(
+                sock,
+                pin.roots.clone(),
+                pin.certs.clone(),
+                pin.key.clone(),
+            )))),
             Some(Err(e)) => Poll::Ready(Some(Err(e))),
             None => Poll::Ready(None),
         }
     }
 }
 
-/// Creates a rustls ServerConfig based on the given config.
+struct ClientSnitch {
+    inner: AllowAnyAuthenticatedClient,
+    client_identifier: Arc<RwLock<ClientIdentifier>>,
+}
+
+impl ClientSnitch {
+    /// Construct a new `AllowAnyAnonymousOrAuthenticatedClient`.
+    ///
+    /// `roots` is the list of trust anchors to use for certificate validation.
+    pub fn new(
+        inner: AllowAnyAuthenticatedClient,
+        client_identifier: Arc<RwLock<ClientIdentifier>>,
+    ) -> Self {
+        Self {
+            inner,
+            client_identifier,
+        }
+    }
+
+    /// Update the verifier to validate client certificates against the provided DER format
+    /// unparsed certificate revocation lists (CRLs).
+    #[allow(dead_code)]
+    pub fn with_crls(
+        self,
+        crls: impl IntoIterator<Item = rustls::server::UnparsedCertRevocationList>,
+        client_identifier: Arc<RwLock<ClientIdentifier>>,
+    ) -> Result<Self, rustls::CertRevocationListError> {
+        // This function is needed to keep it functioning like the original verifier.
+        Ok(Self {
+            inner: self.inner.with_crls(crls)?,
+            client_identifier,
+        })
+    }
+
+    /// Wrap this verifier in an [`Arc`] and coerce it to `dyn ClientCertVerifier`
+    #[inline(always)]
+    pub fn boxed(self) -> Arc<dyn rustls::server::ClientCertVerifier> {
+        // This function is needed to keep it functioning like the original verifier.
+        Arc::new(self)
+    }
+}
+
+impl rustls::server::ClientCertVerifier for ClientSnitch {
+    fn offer_client_auth(&self) -> bool {
+        self.inner.offer_client_auth()
+    }
+
+    fn client_auth_mandatory(&self) -> bool {
+        false
+    }
+
+    fn client_auth_root_subjects(&self) -> &[rustls::DistinguishedName] {
+        self.inner.client_auth_root_subjects()
+    }
+
+    fn verify_client_cert(
+        &self,
+        end_entity: &rustls::Certificate,
+        intermediates: &[rustls::Certificate],
+        now: std::time::SystemTime,
+    ) -> Result<rustls::server::ClientCertVerified, rustls::Error> {
+        match self
+            .inner
+            .verify_client_cert(end_entity, intermediates, now)
+        {
+            Ok(r) => {
+                let mut ci = self.client_identifier.write().unwrap();
+                *ci = ClientIdentifier::Known(end_entity.into());
+                Ok(r)
+            }
+            Err(_) => todo!(),
+        }
+    }
+}
+/// Data required to create a TlsConfig
+type TlsData = (RootCertStore, Vec<rustls::Certificate>, rustls::PrivateKey);
+/// Creates a root cert store, the certificates and a private key so that a tls configuration can be created.
 ///
 /// When the tls certificate cannot be loaded it will return None.
 /// When client certificates are provided it will return a ServerConfig with
@@ -157,60 +274,34 @@ impl Accept for TlsAcceptor {
 /// client authentication.
 pub fn tls_config(
     config: &crate::config::Config,
-) -> Result<Option<Arc<ServerConfig>>, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Option<TlsData>, Box<dyn std::error::Error + Send + Sync>> {
     if let Some(certs_path) = &config.tls.certs {
         match load_certs(certs_path) {
             Ok(certs) => {
                 if let Some(key_path) = &config.tls.key {
                     let key = load_private_key(key_path)?;
-                    let verifier = {
-                        if let Some(client_certs_dir) = &config.tls.client_certs {
-                            let client_certs: Vec<PathBuf> = std::fs::read_dir(client_certs_dir)?
-                                .filter_map(|entry| {
-                                    let entry = entry.ok()?;
-                                    let file_type = entry.file_type().ok()?;
-                                    if file_type.is_file()
-                                        || file_type.is_symlink() && !file_type.is_dir()
-                                    {
-                                        Some(entry.path())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect();
-                            if client_certs.is_empty() {
-                                tracing::info!(
-                                    "no client certs found, starting without certificate based client auth"
-                                );
-                                NoClientAuth::boxed()
+                    let client_certs = if let Some(cpath) = &config.tls.client_certs {
+                        let rd = std::fs::read_dir(cpath)?;
+                        rd.filter_map(|entry| {
+                            let entry = entry.ok()?;
+                            let file_type = entry.file_type().ok()?;
+                            if file_type.is_file() || file_type.is_symlink() && !file_type.is_dir()
+                            {
+                                Some(entry.path())
                             } else {
-                                tracing::info!(
-                                    "client certs found, starting with certificate based client auth"
-                                );
-                                let mut client_auth_roots = RootCertStore::empty();
-                                for root in client_certs.iter().flat_map(load_certs).flatten() {
-                                    client_auth_roots.add(&root)?;
-                                }
-                                AllowAnyAuthenticatedClient::new(client_auth_roots).boxed()
+                                None
                             }
-                        } else {
-                            tracing::info!(
-                                "no client certs found, starting without certificate based client auth"
-                            );
-                            NoClientAuth::boxed()
-                        }
+                        })
+                        .collect()
+                    } else {
+                        vec![]
                     };
+                    let mut roots = RootCertStore::empty();
+                    for root in client_certs.iter().flat_map(load_certs).flatten() {
+                        roots.add(&root)?;
+                    }
 
-                    let mut cfg = rustls::ServerConfig::builder()
-                        .with_safe_defaults()
-                        //.with_client_cert_verifier()
-                        .with_client_cert_verifier(verifier)
-                        .with_single_cert(certs, key)
-                        .map_err(|e| error(format!("{}", e)))?;
-                    // Configure ALPN to accept HTTP/2, HTTP/1.1, and HTTP/1.0 in that order.
-                    cfg.alpn_protocols =
-                        vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
-                    Ok(Some(std::sync::Arc::new(cfg)))
+                    Ok(Some((roots, certs, key)))
                 } else {
                     Err(error("TLS enabled, but private key is missing".to_string()).into())
                 }
@@ -221,6 +312,20 @@ pub fn tls_config(
         tracing::info!("No Server certificates given, starting without TLS");
         Ok(None)
     }
+}
+
+fn server_config(
+    verifier: Arc<dyn ClientCertVerifier>,
+    certs: Vec<rustls::Certificate>,
+    key: rustls::PrivateKey,
+) -> Result<ServerConfig, Box<dyn std::error::Error + Send + Sync>> {
+    let mut cfg = rustls::ServerConfig::builder()
+        .with_safe_defaults()
+        .with_client_cert_verifier(verifier)
+        .with_single_cert(certs, key)
+        .map_err(|e| error(format!("{}", e)))?;
+    cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
+    Ok(cfg)
 }
 
 fn error(err: String) -> io::Error {
