@@ -258,6 +258,86 @@ where
 }
 
 #[async_trait]
+impl<S> ScanIDClientMapper for Storage<S>
+where
+    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+{
+    async fn add_scan_client_id(
+        &self,
+        scan_id: String,
+        client_id: ClientHash,
+    ) -> Result<(), Error> {
+        let key = "idmap";
+        let storage = Arc::clone(&self.storage);
+
+        tokio::task::spawn_blocking(move || {
+            let idt = infisto::serde::Serialization::serialize((client_id, scan_id))?;
+            let mut storage = storage.write().unwrap();
+            storage.append(key, idt)?;
+            Ok(())
+        })
+        .await
+        .unwrap()
+    }
+    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        let key = "idmap";
+        let storage = Arc::clone(&self.storage);
+
+        tokio::task::spawn_blocking(move || {
+            use infisto::serde::Serialization;
+            let mut storage = storage.write().unwrap();
+            let sid = scan_id.as_ref();
+
+            let ids: Vec<Serialization<(ClientHash, String)>> =
+                storage.by_range(key, infisto::base::Range::All)?;
+            let new: Vec<Serialization<(ClientHash, String)>> = ids
+                .into_iter()
+                .map(|x| x.deserialize())
+                .filter_map(|x| x.ok())
+                .filter(|(_, x)| x != sid)
+                .map(infisto::serde::Serialization::serialize)
+                .filter_map(|x| x.ok())
+                .collect();
+
+            storage.remove(key)?;
+            storage.append_all(key, &new)?;
+            Ok(())
+        })
+        .await
+        .unwrap()
+    }
+
+    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
+        let key = "idmap";
+        let storage = Arc::clone(&self.storage);
+        let client_id = client_id.clone();
+
+        tokio::task::spawn_blocking(move || {
+            use infisto::serde::Serialization;
+            let storage = storage.read().unwrap();
+
+            let ids: Vec<Serialization<(ClientHash, String)>> =
+                match storage.by_range(key, infisto::base::Range::All) {
+                    Ok(x) => x,
+                    Err(_) => vec![],
+                };
+            let new: Vec<String> = ids
+                .into_iter()
+                .map(|x| x.deserialize())
+                .filter_map(|x| x.ok())
+                .filter(|(x, _)| x == &client_id)
+                .map(|(_, x)| x)
+                .collect();
+            Ok(new)
+        })
+        .await
+        .unwrap()
+    }
+}
+#[async_trait]
 impl<S> OIDStorer for Storage<S>
 where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
@@ -308,6 +388,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use infisto::base::IndexedByteStorage;
     use models::Scan;
 
     use super::*;
@@ -393,8 +474,10 @@ mod tests {
     async fn file_storage_test() {
         let mut scans = Vec::with_capacity(100);
         for i in 0..100 {
-            let mut scan = Scan::default();
-            scan.scan_id = Some(i.to_string());
+            let scan = Scan {
+                scan_id: Some(i.to_string()),
+                ..Default::default()
+            };
             scans.push(scan);
         }
 
@@ -419,8 +502,10 @@ mod tests {
             .await
             .unwrap();
 
-        let mut status = models::Status::default();
-        status.status = models::Phase::Running;
+        let status = models::Status {
+            status: models::Phase::Running,
+            ..Default::default()
+        };
 
         let results = vec![models::Result::default()];
         storage
@@ -443,5 +528,51 @@ mod tests {
 
         let ids = storage.get_scan_ids().await.unwrap();
         assert_eq!(0, ids.len());
+    }
+
+    #[tokio::test]
+    async fn id_mapper() {
+        let storage =
+            infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/file_storage_id_mapper_test")
+                .unwrap();
+
+        let storage = crate::storage::file::Storage::new(storage);
+        storage
+            .add_scan_client_id("s1".to_owned(), "0".into())
+            .await
+            .unwrap();
+        storage
+            .add_scan_client_id("s2".to_owned(), "0".into())
+            .await
+            .unwrap();
+        storage
+            .add_scan_client_id("s3".to_owned(), "0".into())
+            .await
+            .unwrap();
+        storage
+            .add_scan_client_id("s4".to_owned(), "1".into())
+            .await
+            .unwrap();
+        assert_eq!(
+            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            vec!["s1", "s2", "s3"]
+        );
+        assert_eq!(
+            storage.get_scans_of_client_id(&"1".into()).await.unwrap(),
+            vec!["s4"]
+        );
+        storage.remove_scan_id("s2").await.unwrap();
+        assert_eq!(
+            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            vec!["s1", "s3"]
+        );
+        assert!(!storage.is_client_allowed("s1", &"1".into()).await.unwrap());
+        assert!(storage.is_client_allowed("s4", &"1".into()).await.unwrap());
+
+        let mut storage =
+            infisto::base::IndexedFileStorer::init("/tmp/openvasd/file_storage_id_mapper_test")
+                .unwrap();
+        let key = "idmap";
+        storage.remove(key).unwrap();
     }
 }

@@ -1,2 +1,4 @@
 target/
 libsrc/
+*.rsa
+*.cert
