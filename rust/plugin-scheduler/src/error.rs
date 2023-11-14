@@ -18,7 +18,7 @@ where
     /// A plugin is missing in the PluginCollection.
     PluginNotFound(Vec<String>, String),
 
-    /// An error in the plugin execution error. Plugins corresponds to Categories. These categories
+    /// An error in the plugin execution error. Plugins belong to Categories. These categories
     /// are ran in a specific order, like category 1 runs before category 2. When a plugin of
     /// category 1 has a dependency to a plugin of category 2, it is impossible to run the
     /// dependency plugin before its dependant.
