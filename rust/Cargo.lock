@@ -1885,6 +1885,7 @@ dependencies = [
  "infisto",
  "models",
  "nasl-interpreter",
+ "notus",
  "osp",
  "pbkdf2",
  "rand 0.8.5",
