@@ -17,8 +17,6 @@
 
 #include <ctype.h> // for tolower()
 #include <curl/curl.h>
-#include <curl/easy.h>
-#include <curl/urlapi.h>
 #include <gnutls/gnutls.h>
 #include <gvm/base/prefs.h>
 #include <gvm/util/mqtt.h>      // for mqtt_reset
@@ -222,6 +220,7 @@ cleanup:
  */
 struct notus_info
 {
+  char *server; // original openvasd server URL
   char *schema; // schema is http or https
   char *host;   // server hostname
   char *alpn; // Application layer protocol negotiation: http/1.0, http/1.1, h2
@@ -232,6 +231,23 @@ struct notus_info
 
 typedef struct notus_info *notus_info_t;
 
+/** @brief Initialize a notus info struct and stores the server URL
+ *
+ *  @param server Original server to store and to get the info from
+ *
+ *  @return the initialized struct. NULL on error.
+ */
+static notus_info_t
+init_notus_info (const char *server)
+{
+  notus_info_t notusdata;
+  notusdata = g_malloc0 (sizeof (struct notus_info));
+  if (!notusdata)
+    return NULL;
+  notusdata->server = g_strdup (server);
+  return notusdata;
+}
+
 /** @brief Free notus info structure
  *
  */
@@ -240,6 +256,7 @@ free_notus_info (notus_info_t notusdata)
 {
   if (notusdata)
     {
+      g_free (notusdata->server);
       g_free (notusdata->schema);
       g_free (notusdata->host);
       g_free (notusdata->alpn);
@@ -304,182 +321,6 @@ make_package_list_as_json_str (const char *packages)
   return json_str;
 }
 
-/** @brief Call notus on plain HTTP
- *
- *  @param sockfd An opened socket to the server
- *  @param message HTTP message to be sent to the server
- *
- *  @return GString with the server response or NULL
- */
-static GString *
-call_notus_via_http (int sockfd, GString *message)
-{
-  int bytes, sent, total;
-  GString *response;
-  char buffer[4096];
-
-  /* send the request */
-  total = message->len;
-  sent = 0;
-
-  /* send the request */
-  total = message->len;
-  sent = 0;
-  do
-    {
-      bytes = write (sockfd, message->str + sent, total - sent);
-      if (bytes < 0)
-        g_message ("ERROR writing message to socket");
-      if (bytes == 0)
-        break;
-      sent += bytes;
-    }
-  while (sent < total);
-
-  /* receive the response */
-  response = g_string_new (NULL);
-
-  int flags = 0;
-  do
-    {
-      bytes = recv (sockfd, buffer, sizeof (buffer), flags);
-
-      g_message ("leidos: %d", bytes);
-      if (bytes < 0)
-        g_message ("ERROR reading response from socket");
-      if (bytes == 0)
-        {
-          g_message ("leidos: %d", bytes);
-          break;
-        }
-      flags = MSG_DONTWAIT;
-      g_string_append (response, buffer);
-    }
-  while (bytes == EAGAIN || bytes == EINTR);
-
-  return response;
-}
-
-/** @brief Call notus over HTTPS
- *
- *  @param sockfd An opened socket to the server
- *  @param message HTTP message to be sent to the server
- *  @param alpn Application layer to be set for protocol negotiation
- *
- *  @return GString with the server response or NULL
- */
-static GString *
-call_notus_via_https (int sockfd, GString *message, const char *alpn)
-{
-  int ret, ii;
-  char buffer[4096];
-  GString *response;
-  gnutls_session_t session;
-  gnutls_anon_client_credentials_t anoncred;
-  gnutls_datum_t protocol;
-
-  gnutls_global_init ();
-
-  gnutls_anon_allocate_client_credentials (&anoncred);
-
-  /* Initialize TLS session
-   */
-  gnutls_init (&session, GNUTLS_CLIENT);
-
-  /* Use default priorities */
-  gnutls_priority_set_direct (
-    session, "PERFORMANCE:+ANON-ECDH:+ANON-DH",
-    //"NORMAL:-VERS-TLS-ALL:+VERS-TLS1.3:+ARCFOUR-128",
-    //"NORMAL:-VERS-TLS-ALL:+VERS-TLS1.2:+ARCFOUR-128:%COMPAT",
-    NULL);
-
-  // Set alpn
-  protocol.data = (void *) alpn;
-  protocol.size = strlen (alpn);
-  gnutls_alpn_set_protocols (session, &protocol, 1, 0);
-
-  // Use the anonymous credentials to the current session, since it is
-  // not required for notus. No sensitive data is sent/received.
-  gnutls_credentials_set (session, GNUTLS_CRD_ANON, anoncred);
-
-  gnutls_transport_set_int (session, sockfd);
-  gnutls_handshake_set_timeout (session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
-
-  response = g_string_new (NULL);
-  /* Perform the TLS handshake
-   */
-  do
-    {
-      ret = gnutls_handshake (session);
-    }
-  while (ret < 0 && gnutls_error_is_fatal (ret) == 0);
-
-  if (ret < 0)
-    {
-      g_warning ("%s: Handshake failed\n", __func__);
-      gnutls_perror (ret);
-      goto end;
-    }
-  else
-    {
-      char *desc;
-      desc = gnutls_session_get_desc (session);
-      g_debug ("- Session info: %s\n", desc);
-      gnutls_free (desc);
-    }
-
-  // Send request
-  do
-    {
-      ret = gnutls_record_send (session, message->str, message->len);
-    }
-  while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
-
-  // Receive response
-  do
-    {
-      ret = gnutls_record_recv (session, buffer, 4096);
-      g_string_append (response, buffer);
-    }
-  while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
-
-  if (ret == 0)
-    {
-      goto end;
-    }
-  else if (ret < 0 && gnutls_error_is_fatal (ret) == 0)
-    {
-      g_warning ("%s: %s\n", __func__, gnutls_strerror (ret));
-    }
-  else if (ret < 0)
-    {
-      g_warning ("%s: %s\n", __func__, gnutls_strerror (ret));
-      goto end;
-    }
-
-  if (ret > 0)
-    {
-      g_debug ("%s: Received %d bytes: ", __func__, ret);
-      for (ii = 0; ii < ret; ii++)
-        {
-          fputc (buffer[ii], stdout);
-        }
-      fputs ("\n", stdout);
-    }
-
-  do
-    {
-      ret = gnutls_bye (session, GNUTLS_SHUT_RDWR);
-    }
-  while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
-
-end:
-  gnutls_deinit (session);
-  gnutls_anon_free_client_credentials (anoncred);
-  gnutls_global_deinit ();
-  return response;
-}
-
 /** @brief Parse the server URL
  *
  *  @param[in] server String containing the server URL
@@ -490,20 +331,19 @@ end:
  *  @return 0 on success, -1 on error.
  */
 static int
-parse_server (const char *server, notus_info_t *notusdata)
+parse_server (notus_info_t *notusdata)
 {
   CURLU *h = curl_url ();
   char *schema = NULL;
   char *host = NULL;
   char *port = NULL;
 
-  if (!server)
+  if (!notusdata)
     return -1;
 
-  // char *server = "http://localhost:5556";
-  if (curl_url_set (h, CURLUPART_URL, server, 0) > 0)
+  if (curl_url_set (h, CURLUPART_URL, (*notusdata)->server, 0) > 0)
     {
-      g_warning ("%s: Error parsing URL %s", __func__, server);
+      g_warning ("%s: Error parsing URL %s", __func__, (*notusdata)->server);
       return -1;
     }
 
@@ -511,8 +351,25 @@ parse_server (const char *server, notus_info_t *notusdata)
   curl_url_get (h, CURLUPART_HOST, &host, 0);
   curl_url_get (h, CURLUPART_PORT, &port, 0);
 
+  if (!schema || !host)
+    {
+      g_warning ("%s: Invalid URL %s. It must be in format: "
+                 "schema://host:port. E.g. http://localhost:8080",
+                 __func__, (*notusdata)->server);
+      curl_url_cleanup (h);
+      curl_free (schema);
+      curl_free (host);
+      curl_free (port);
+      return -1;
+    }
+
   (*notusdata)->host = g_strdup (host);
-  (*notusdata)->port = atoi (port);
+  if (port)
+    (*notusdata)->port = atoi (port);
+  else if (g_strcmp0 (schema, "https"))
+    (*notusdata)->port = 443;
+  else
+    (*notusdata)->port = 80;
 
   (*notusdata)->schema = g_strdup (schema_tolower (schema));
   if (g_strrstr ((*notusdata)->schema, "https"))
@@ -529,7 +386,7 @@ parse_server (const char *server, notus_info_t *notusdata)
     }
   else
     {
-      g_warning ("%s: Invalid openvasd server schema", server);
+      g_warning ("%s: Invalid openvasd server schema", (*notusdata)->server);
       curl_url_cleanup (h);
       curl_free (schema);
       curl_free (host);
@@ -930,31 +787,150 @@ cleanup_advisories:
   return advisories;
 }
 
+struct string
+{
+  char *ptr;
+  size_t len;
+};
+
+/** @brief Initialize the string struct to hold the response
+ *
+ *  @param s[in/out] The string struct to be initialized
+ */
+static void
+init_string (struct string *s)
+{
+  s->len = 0;
+  s->ptr = g_malloc0 (s->len + 1);
+  if (s->ptr == NULL)
+    {
+      g_warning ("%s: Error allocating memory for response", __func__);
+      return;
+    }
+  s->ptr[0] = '\0';
+}
+
+/** @brief Call back function.
+ *
+ *  @description The function signature is the necessary to work with
+ *  libcurl. It stores the response in s. It reallocate mememory if necessary.
+ */
+static size_t
+response_callback_fn (void *ptr, size_t size, size_t nmemb, struct string *s)
+{
+  size_t new_len = s->len + size * nmemb;
+  char *ptr_aux = g_realloc (s->ptr, new_len + 1);
+  s->ptr = ptr_aux;
+  if (s->ptr == NULL)
+    {
+      g_warning ("%s: Error allocating memory for response", __func__);
+      return 0; // no memory left
+    }
+  memcpy (s->ptr + s->len, ptr, size * nmemb);
+  s->ptr[new_len] = '\0';
+  s->len = new_len;
+
+  return size * nmemb;
+}
+
+/** @brief Send a request to the server
+ *
+ *  @param[in] notusdata Structure containing information necessary for the
+request
+ *  @param[in] os Target's operative system. Necessary for the URL path part.
+ *  @param[in] pkg_list The package list installed in the target, to be checked
+ *  @param[out] response The string containing the results in json format.
+ *
+ *  @return the http code or -1 on error
+ */
+static long
+send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
+              char **response)
+{
+  CURL *curl;
+  GString *url = NULL;
+  long http_code = -1;
+  struct string resp;
+  struct curl_slist *customheader = NULL;
+  GString *xapikey = NULL;
+  if ((curl = curl_easy_init ()) == NULL)
+    {
+      g_message ("Not possible to initialize curl library");
+      return http_code;
+    }
+
+  url = g_string_new (notusdata->server);
+  g_string_append (url, "/notus/");
+  g_string_append (url, os);
+
+  // Set URL
+  if (curl_easy_setopt (curl, CURLOPT_URL, url->str) != CURLE_OK)
+    {
+      g_warning ("Not possible to set the URL");
+      curl_easy_cleanup (curl);
+      g_string_free (url, FALSE);
+      return http_code;
+    }
+
+  // Accept an insecure connection. Don't verify the server certificate
+  curl_easy_setopt (curl, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt (curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+  // Set API KEY
+  xapikey = g_string_new ("X-APIKEY: ");
+  g_string_append (xapikey, g_strdup (prefs_get ("x-apikey")));
+  customheader = curl_slist_append (customheader, xapikey->str);
+  // SET Content type
+  customheader =
+    curl_slist_append (customheader, "Content-Type: application/json");
+  curl_easy_setopt (curl, CURLOPT_HTTPHEADER, customheader);
+  // Set body
+  curl_easy_setopt (curl, CURLOPT_POSTFIELDS, pkg_list);
+  curl_easy_setopt (curl, CURLOPT_POSTFIELDSIZE, strlen (pkg_list));
+
+  // Init the struct where the response is stored and set the callback function
+  init_string (&resp);
+  curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, response_callback_fn);
+  curl_easy_setopt (curl, CURLOPT_WRITEDATA, &resp);
+
+  if (curl_easy_perform (curl) != CURLE_OK)
+    {
+      curl_easy_cleanup (curl);
+      g_free (resp.ptr);
+      return http_code;
+    }
+
+  curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+  curl_easy_cleanup (curl);
+
+  *response = g_strdup (resp.ptr);
+  g_free (resp.ptr);
+  return http_code;
+}
+
 /** @brief Sent the installed package list and OS to notus
  *
  *  @param pkg_list Installed package list
  *  @param os The target's OS
  *
- *  @return GString containing the server response or NULL
+ *  @return String containing the server response or NULL
  *          Must be free()'ed by the caller.
  */
-static GString *
+static char *
 notus_get_response (const char *pkg_list, const char *os)
 {
   const char *server = NULL;
-  int timeout = -2; // Default to 20
-  int sockfd;
   char *json_pkglist;
-  GString *message;
-  GString *response;
+  char *response = NULL;
   notus_info_t notusdata;
 
   // Parse the server and get the port, host, schema
   // and necessary information to build the message
-  notusdata = g_malloc0 (sizeof (struct notus_info));
   server = prefs_get ("openvasd_server");
+  notusdata = init_notus_info (server);
 
-  if (parse_server (server, &notusdata) < 0)
+  if (parse_server (&notusdata) < 0)
     {
       free_notus_info (notusdata);
       return NULL;
@@ -968,41 +944,10 @@ notus_get_response (const char *pkg_list, const char *os)
       return NULL;
     }
 
-  // Build the message to be sent to rs-notus
-  message = g_string_new (NULL);
-  g_string_printf (message,
-                   "POST /notus/%s HTTP/%s\r\n"
-                   "Host: %s:%d\r\n"
-                   "user-agent: openvas\r\n"
-                   "Content-Type: application/json\r\n"
-                   "Content-Length %lu\r\n"
-                   "X-API-KEY: %s\r\n\r\n%s",
-                   os, notusdata->http_version, notusdata->host,
-                   notusdata->port, strlen (json_pkglist),
-                   prefs_get ("openvasd-apikey"), json_pkglist);
-  g_debug ("Request:\n%s\n", message->str);
+  if (send_request (notusdata, os, json_pkglist, &response) == -1)
+    g_warning ("Error sending request to openvasd");
 
-  // Create the socket
-  sockfd = open_sock_opt_hn (notusdata->host, notusdata->port, SOCK_STREAM,
-                             IPPROTO_IP, timeout);
-  if (sockfd < 0)
-    {
-      g_message ("%s: Error creating socket", __func__);
-      g_string_free (message, TRUE);
-      g_free (json_pkglist);
-      return NULL;
-    }
-
-  // Send the message to the server
-  if (notusdata->tls)
-    response = call_notus_via_https (sockfd, message, notusdata->alpn);
-  else
-    response = call_notus_via_http (sockfd, message);
-
-  // cleanup
-  shutdown (sockfd, SHUT_RDWR);
-  close (sockfd);
-  g_string_free (message, TRUE);
+  free_notus_info (notusdata);
   g_free (json_pkglist);
 
   return response;
@@ -1022,17 +967,11 @@ int
 call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
                const char *os)
 {
-  GString *response = NULL;
-  gchar *body = NULL;
+  char *body = NULL;
   advisories_t *advisories = NULL;
   int res_count = 0;
-  if ((response = notus_get_response (pkg_list, os)) == NULL)
+  if ((body = notus_get_response (pkg_list, os)) == NULL)
     return -1;
-
-  gchar **head_body = g_strsplit (response->str, "\r\n\r\n", 1);
-  body = g_strdup (head_body[1]);
-  g_strfreev (head_body);
-  g_string_free (response, TRUE);
 
   advisories = process_notus_response (body, strlen (body));
 
