@@ -46,7 +46,7 @@ enum KnownPaths {
 
 impl KnownPaths {
     pub fn requires_id(&self) -> bool {
-        !matches!(self, Self::Health(_) | Self::Vts)
+        !matches!(self, Self::Health(_) | Self::Vts | Self::Notus(_))
     }
 
     #[tracing::instrument]
