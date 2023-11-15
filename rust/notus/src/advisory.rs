@@ -47,6 +47,7 @@ impl PackageAdvisories {
                 };
             }
         }
+
         Ok(())
     }
 }

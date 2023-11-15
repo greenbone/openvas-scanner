@@ -3,8 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use super::{Package, PackageVersion};
-use regex::RegexBuilder;
+use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::Ordering;
+
+static RE: Lazy<Regex> = lazy_regex!(r"^(.*)-(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
+static RE_VERSION: Lazy<Regex> = lazy_regex!(r"^(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
 
 // Supported packages types.
 /// Represent a based Redhat package
@@ -65,12 +68,8 @@ impl Package for Rpm {
         }
         let full_name = full_name.trim();
 
-        let re = RegexBuilder::new(r"^(.*)-(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$")
-            .build()
-            .unwrap();
-
         // Get all fields
-        let (name, epochstr, version, release, arch) = match re.captures(full_name) {
+        let (name, epochstr, version, release, arch) = match RE.captures(full_name) {
             None => {
                 return None;
             }
@@ -112,12 +111,8 @@ impl Package for Rpm {
         let name = name.trim();
         let full_version = full_version.trim();
 
-        let re = RegexBuilder::new(r"^(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$")
-            .build()
-            .unwrap();
-
         // Get all fields
-        let (epochstr, version, release, arch) = match re.captures(full_version) {
+        let (epochstr, version, release, arch) = match RE_VERSION.captures(full_version) {
             None => {
                 return None;
             }
