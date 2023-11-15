@@ -268,7 +268,7 @@ free_notus_info (notus_info_t notusdata)
  *
  */
 static char *
-schema_tolower (char *s)
+help_tolower (char *s)
 {
   for (char *p = s; *p; p++)
     *p = tolower (*p);
@@ -371,7 +371,7 @@ parse_server (notus_info_t *notusdata)
   else
     (*notusdata)->port = 80;
 
-  (*notusdata)->schema = g_strdup (schema_tolower (schema));
+  (*notusdata)->schema = g_strdup (help_tolower (schema));
   if (g_strrstr ((*notusdata)->schema, "https"))
     {
       (*notusdata)->tls = 1;
@@ -852,23 +852,35 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
   long http_code = -1;
   struct string resp;
   struct curl_slist *customheader = NULL;
+  char *os_aux;
   GString *xapikey = NULL;
   if ((curl = curl_easy_init ()) == NULL)
     {
-      g_message ("Not possible to initialize curl library");
+      g_warning ("Not possible to initialize curl library");
       return http_code;
     }
 
   url = g_string_new (notusdata->server);
   g_string_append (url, "/notus/");
-  g_string_append (url, os);
 
+  //
+  os_aux = help_tolower (g_strdup (os));
+  for (size_t i = 0; i < strlen (os_aux); i++)
+    {
+      if (os_aux[i] == ' ')
+        os_aux[i] = '_';
+    }
+
+  g_string_append (url, os_aux);
+
+  g_debug ("%s: URL: %s", __func__, url->str);
   // Set URL
   if (curl_easy_setopt (curl, CURLOPT_URL, url->str) != CURLE_OK)
     {
       g_warning ("Not possible to set the URL");
       curl_easy_cleanup (curl);
       g_string_free (url, FALSE);
+      g_free (os_aux);
       return http_code;
     }
 
@@ -893,10 +905,13 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
   curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, response_callback_fn);
   curl_easy_setopt (curl, CURLOPT_WRITEDATA, &resp);
 
-  if (curl_easy_perform (curl) != CURLE_OK)
+  int ret = CURLE_OK;
+  if ((ret = curl_easy_perform (curl)) != CURLE_OK)
     {
+      g_warning ("%s: Error sending request: %d", __func__, ret);
       curl_easy_cleanup (curl);
       g_free (resp.ptr);
+      g_free (os_aux);
       return http_code;
     }
 
@@ -904,7 +919,9 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
 
   curl_easy_cleanup (curl);
 
+  g_debug ("Server response %s", resp.ptr);
   *response = g_strdup (resp.ptr);
+  g_free (os_aux);
   g_free (resp.ptr);
   return http_code;
 }

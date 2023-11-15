@@ -766,7 +766,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
-      && prefs_get_bool ("mqtt_enabled"))
+      && (prefs_get_bool ("mqtt_enabled")
+          || prefs_get_bool ("openvasd_lsc_enabled")))
     {
       if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL))
         {
