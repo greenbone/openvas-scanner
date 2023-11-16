@@ -343,6 +343,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
 
   if (prefs_get ("openvasd_server"))
     {
+      g_message ("Running Notus for %s via openvasd", ip_str);
       err = call_rs_notus (ip_str, hostname, package_list, os_release);
       g_free (package_list);
       g_free (os_release);
@@ -769,7 +770,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
       && (prefs_get_bool ("mqtt_enabled")
           || prefs_get_bool ("openvasd_lsc_enabled")))
     {
-      if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL))
+      if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL)
+          < 0)
         {
           char buffer[2048];
           snprintf (

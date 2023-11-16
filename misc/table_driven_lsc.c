@@ -250,6 +250,7 @@ init_notus_info (const char *server)
 
 /** @brief Free notus info structure
  *
+ * @param notusdata The data to free()
  */
 static void
 free_notus_info (notus_info_t notusdata)
@@ -266,6 +267,9 @@ free_notus_info (notus_info_t notusdata)
 
 /** @brief helper function to lower case
  *
+ *  @param s the string to lower case
+ *
+ *  @return pointer to the modified string.
  */
 static char *
 help_tolower (char *s)
@@ -281,7 +285,8 @@ help_tolower (char *s)
  * @param packages The installed package list in the target system to be
  * evaluated
  *
- * @return JSON string on success. Must be freed by caller. NULL on error.
+ * @return String in json format on success. Must be freed by caller. NULL on
+ * error.
  */
 static gchar *
 make_package_list_as_json_str (const char *packages)
@@ -402,27 +407,35 @@ parse_server (notus_info_t *notusdata)
   return 0;
 }
 
+/** @brief Fixed version format
+ */
 enum fixed_type
 {
-  UNKNOWN,
-  RANGE,
-  SINGLE,
+  UNKNOWN, // Unknown
+  RANGE,   // Range of version which fixed the package
+  SINGLE,  // A single version with a specifier (gt or lt)
 };
 
+/** @brief Fixed version
+ */
 struct fixed_version
 {
-  char *version;
-  char *specifier;
+  char *version;   // a version
+  char *specifier; // a lt or gt specifier
 };
 typedef struct fixed_version fixed_version_t;
 
+/** @brief Specify a version range
+ */
 struct version_range
 {
-  char *start;
-  char *stop;
+  char *start; // <= the version
+  char *stop;  // >= the version
 };
 typedef struct version_range version_range_t;
 
+/** @brief Define a vulnerable package
+ */
 struct vulnerable_pkg
 {
   char *pkg_name;        // package name
@@ -437,6 +450,8 @@ struct vulnerable_pkg
 
 typedef struct vulnerable_pkg vuln_pkg_t;
 
+/** brief define an advisory with a list of vulnerable packages
+ */
 struct advisory
 {
   char *oid;             // Advisory OID
@@ -447,6 +462,8 @@ struct advisory
 
 typedef struct advisory advisory_t;
 
+/** brief define a advisories list
+ */
 struct advisories
 {
   advisory_t **advisories;
@@ -487,7 +504,7 @@ advisories_add (advisories_t *advisories_list, advisory_t *advisory)
       advisories_list->max_size *= 2;
       advisories_list->advisories =
         g_realloc_n (advisories_list->advisories, advisories_list->max_size,
-                     sizeof (*advisories_list->advisories));
+                     sizeof (advisory_t));
       memset (advisories_list->advisories + advisories_list->count, '\0',
               (advisories_list->max_size - advisories_list->count)
                 * sizeof (advisory_t *));
@@ -502,7 +519,6 @@ advisories_add (advisories_t *advisories_list, advisory_t *advisory)
  *
  *  @return initialized advisory_t struct
  */
-
 static advisory_t *
 advisory_new (char *oid)
 {
@@ -596,7 +612,8 @@ advisories_free (advisories_t *advisories)
  *  @param item2 Depending on the type is the "specifer" for SINGLE type,
  *               or the "greather than" for RANGE type
  *
- *  @return a vulnerable packages struct.
+ *  @return a vulnerable packages struct. Members are a copy of the passed
+ *          parametes. They must be free separately.
  */
 static vuln_pkg_t *
 vulnerable_pkg_new (const char *pkg_name, const char *install_version,
@@ -787,6 +804,8 @@ cleanup_advisories:
   return advisories;
 }
 
+/** @brief Define a string struct for storing the response.
+ */
 struct string
 {
   char *ptr;
@@ -810,10 +829,10 @@ init_string (struct string *s)
   s->ptr[0] = '\0';
 }
 
-/** @brief Call back function.
+/** @brief Call back function to stored the response.
  *
  *  @description The function signature is the necessary to work with
- *  libcurl. It stores the response in s. It reallocate mememory if necessary.
+ *  libcurl. It stores the response in s. It reallocate memory if necessary.
  */
 static size_t
 response_callback_fn (void *ptr, size_t size, size_t nmemb, struct string *s)
@@ -872,6 +891,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
     }
 
   g_string_append (url, os_aux);
+  g_free (os_aux);
 
   g_debug ("%s: URL: %s", __func__, url->str);
   // Set URL
@@ -879,8 +899,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
     {
       g_warning ("Not possible to set the URL");
       curl_easy_cleanup (curl);
-      g_string_free (url, FALSE);
-      g_free (os_aux);
+      g_string_free (url, TRUE);
       return http_code;
     }
 
@@ -890,8 +909,11 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
 
   // Set API KEY
   xapikey = g_string_new ("X-APIKEY: ");
-  g_string_append (xapikey, g_strdup (prefs_get ("x-apikey")));
-  customheader = curl_slist_append (customheader, xapikey->str);
+  if (prefs_get ("x-apikey"))
+    {
+      g_string_append (xapikey, prefs_get ("x-apikey"));
+      customheader = curl_slist_append (customheader, xapikey->str);
+    }
   // SET Content type
   customheader =
     curl_slist_append (customheader, "Content-Type: application/json");
@@ -910,8 +932,9 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
     {
       g_warning ("%s: Error sending request: %d", __func__, ret);
       curl_easy_cleanup (curl);
+      g_string_free (xapikey, TRUE);
       g_free (resp.ptr);
-      g_free (os_aux);
+      g_string_free (url, TRUE);
       return http_code;
     }
 
@@ -922,6 +945,8 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
   g_debug ("Server response %s", resp.ptr);
   *response = g_strdup (resp.ptr);
   g_free (os_aux);
+  g_string_free (xapikey, TRUE);
+  g_string_free (url, TRUE);
   g_free (resp.ptr);
   return http_code;
 }
@@ -992,6 +1017,7 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
 
   advisories = process_notus_response (body, strlen (body));
 
+  // Process the advisories, generate results and store them in the kb
   for (size_t i = 0; i < advisories->count; i++)
     {
       advisory_t *advisory = advisories->advisories[i];
@@ -1025,11 +1051,13 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
             }
           else
             {
-              g_warning ("%s: Unknown fixed version type.", __func__);
+              g_warning ("%s: Unknown fixed version type for advisory %s",
+                         __func__, advisory->oid);
+              g_string_free (result, TRUE);
               advisories_free (advisories);
               return -1;
             }
-          g_string_append (result, g_strdup (res->str));
+          g_string_append (result, res->str);
           g_string_free (res, TRUE);
         }
 
