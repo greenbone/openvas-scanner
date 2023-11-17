@@ -61,3 +61,8 @@ type = "inmemory"
 path = "/var/lib/openvasd/storage"
 # Sets the key used to ecrypt the storage data. It is recommended to set it via the `STORAGE_KEY` environment variable.
 #key = "changeme"
+
+
+[notus]
+# path to the notus feed. This is required for the /notus endpoint.
+advisory_path = "/var/lib/notus/products/"
