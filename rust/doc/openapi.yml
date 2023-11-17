@@ -101,7 +101,26 @@ paths:
         "200":
           description: "Ok"
 
-
+  /notus:
+    get:
+      description: "Get Notus supported OS products"
+      operationId: "get_notus"
+      tags:
+        - "notus"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "string"
+              examples:
+                schema:
+                  description: "Schema of supported OS products"
+                get notus products:
+                  $ref: "#/components/examples/notus_products"
   /notus/{os}:
     post:
       description: "Runs Notus with the given package list for the given OS"
@@ -1117,6 +1136,20 @@ components:
           "1.3.6.1.4.1.25623.1.0.10441",
           "1.3.6.1.4.1.25623.1.0.100313",
         ]
+    notus_products:
+      description: "A simple example for supported OS products by notus"
+      value:
+        [
+          "debian_10",
+          "debian_11",
+          "debian_12",
+          "debian_12",
+          "slackware_10.0",
+          "suse_linux_enterprise_module_for_live_patching_15-sp1",
+          "suse_manager_debian_9.0",
+          "slackware_10.1",
+          "slackware_10.2"
+        ]
     notus_simple:
       description: "A simple example for notus run."
       value:
@@ -1135,30 +1168,18 @@ components:
                 {
                     "package_name": "foo",
                     "installed_version": "1.2.3",
-                    "fixed_versions": [
-                        {
-                            "version": "1.2.2",
-                            "specifier": "<"
-                        },
-                        {
-                              "version": "1.2.5",
-                            "specifier": ">="
-                        }
-                    ]
+                    "fixed_versions": {
+                            "start": "1.2.2",
+                            "end": "1.2.5"
+                    }
                 },
                 {
-                    "package_name": "foo",
+                    "package_name": "bar",
                     "installed_version": "1.2.4",
-                    "fixed_versions": [
-                        {
-                            "version": "1.2.2",
-                            "specifier": "<"
-                        },
-                        {
+                    "fixed_versions": {
                             "version": "1.2.5",
                             "specifier": ">="
-                        }
-                    ]
+                    }
                 }
             ]
         }

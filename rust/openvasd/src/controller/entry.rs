@@ -39,7 +39,7 @@ enum KnownPaths {
     /// /health
     Health(HealthOpts),
     /// /notus/{os}
-    Notus(String),
+    Notus(Option<String>),
     /// Not supported
     Unknown,
 }
@@ -67,8 +67,8 @@ impl KnownPaths {
             },
             Some("vts") => KnownPaths::Vts,
             Some("notus") => match parts.next() {
-                Some(os) => KnownPaths::Notus(os.to_string()),
-                _ => KnownPaths::Unknown,
+                Some(os) => KnownPaths::Notus(Some(os.to_string())),
+                None => KnownPaths::Notus(None),
             },
             Some("health") => match parts.next() {
                 Some("ready") => KnownPaths::Health(HealthOpts::Ready),
@@ -103,7 +103,8 @@ impl Display for KnownPaths {
             KnownPaths::ScanStatus(id) => write!(f, "/scans/{}/status", id),
             KnownPaths::Unknown => write!(f, "Unknown"),
             KnownPaths::Vts => write!(f, "/vts"),
-            KnownPaths::Notus(os) => write!(f, "/notus/{}", os),
+            KnownPaths::Notus(Some(os)) => write!(f, "/notus/{}", os),
+            KnownPaths::Notus(None) => write!(f, "/notus"),
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
@@ -190,7 +191,14 @@ where
                 Ok(ctx.response.empty(hyper::StatusCode::OK))
             }
         }
-        (&Method::POST, Notus(os)) => {
+        (&Method::GET, Notus(None)) => {
+            // TODO: get the OS list and send it
+            // let os = ctx.db.notus_os().await?;
+            // Ok(ctx.response.ok_json_stream(os).await)
+            Ok(ctx.response.empty(hyper::StatusCode::OK))
+        }
+
+        (&Method::POST, Notus(Some(os))) => {
             match crate::request::json_request::<Vec<String>>(&ctx.response, req).await {
                 Ok(packages) => match &ctx.notus {
                     Some(notus) => match notus.scan(&os, &packages).await {
