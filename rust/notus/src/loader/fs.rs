@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{self, Read},
     path::Path,
 };
@@ -15,14 +15,14 @@ use crate::error::Error;
 use super::AdvisoriesLoader;
 
 #[derive(Debug, Clone)]
-pub struct JSONAdvisoryLoader<P>
+pub struct FSAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
-    path: P,
+    root: P,
 }
 
-impl<P> JSONAdvisoryLoader<P>
+impl<P> FSAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
@@ -39,16 +39,16 @@ where
             ));
         }
 
-        Ok(Self { path })
+        Ok(Self { root: path })
     }
 }
 
-impl<P> AdvisoriesLoader for JSONAdvisoryLoader<P>
+impl<P> AdvisoriesLoader for FSAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
     fn load_package_advisories(&self, os: &str) -> Result<Advisories, Error> {
-        let notus_file = self.path.as_ref().join(format!("{os}.notus"));
+        let notus_file = self.root.as_ref().join(format!("{os}.notus"));
         let notus_file_str = notus_file.to_string_lossy().to_string();
         let mut file = match File::open(notus_file) {
             Ok(file) => file,
@@ -68,6 +68,29 @@ where
             Err(err) => Err(Error::JSONParseError(notus_file_str, err)),
         }
     }
+
+    fn get_available_os(&self) -> Result<Vec<String>, Error> {
+        let paths = fs::read_dir(self.root.as_ref()).map_err(|err| {
+            Error::UnreadableAdvisoryDir(self.root.as_ref().to_string_lossy().to_string(), err)
+        })?;
+
+        let mut available_os = vec![];
+        for path in paths {
+            if let Ok(dir_entry) = path {
+                let file = dir_entry.path();
+                if file.is_file() {
+                    if let Some(p) = file.file_name() {
+                        if p.to_string_lossy().ends_with(".notus") {
+                            if let Some(stem) = file.file_stem() {
+                                available_os.push(stem.to_string_lossy().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(available_os)
+    }
 }
 
 #[cfg(test)]
@@ -75,13 +98,13 @@ mod tests {
 
     use crate::{error::Error, loader::AdvisoriesLoader};
 
-    use super::JSONAdvisoryLoader;
+    use super::FSAdvisoryLoader;
 
     #[test]
     fn test_load_advisories() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoryLoader::new(path).unwrap();
+        let loader = FSAdvisoryLoader::new(path).unwrap();
         let _ = loader.load_package_advisories("debian_10").unwrap();
     }
 
@@ -90,7 +113,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data_foo");
         assert!(
-            matches!(JSONAdvisoryLoader::new(path.clone()).expect_err("Should fail"), Error::MissingAdvisoryDir(p) if p == path)
+            matches!(FSAdvisoryLoader::new(path.clone()).expect_err("Should fail"), Error::MissingAdvisoryDir(p) if p == path)
         );
     }
 
@@ -99,7 +122,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data/debian_10.notus");
         assert!(
-            matches!(JSONAdvisoryLoader::new(path.clone()).expect_err("Should fail"), Error::AdvisoryDirIsFile(p) if p == path)
+            matches!(FSAdvisoryLoader::new(path.clone()).expect_err("Should fail"), Error::AdvisoryDirIsFile(p) if p == path)
         );
     }
 
@@ -107,7 +130,7 @@ mod tests {
     fn test_err_unknown_os() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoryLoader::new(path).unwrap();
+        let loader = FSAdvisoryLoader::new(path).unwrap();
 
         let os = "foo";
         assert!(
@@ -119,11 +142,25 @@ mod tests {
     fn test_err_json_parse() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
 
         let os = "debian_10_json_parse_err";
         assert!(
             matches!(loader.load_package_advisories(os).expect_err("Should fail"), Error::JSONParseError(p, _) if p == format!("{path}/{os}.notus"))
         );
+    }
+
+    #[test]
+    fn test_available_os() {
+        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
+        path.push_str("/data");
+        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
+
+        let available_os = loader.get_available_os().unwrap();
+
+        assert_eq!(available_os.len(), 3);
+        assert!(available_os.contains(&"debian_10".to_string()));
+        assert!(available_os.contains(&"debian_10_json_parse_err".to_string()));
+        assert!(available_os.contains(&"debian_10_advisory_parse_err".to_string()));
     }
 }

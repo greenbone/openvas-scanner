@@ -6,10 +6,11 @@ use models::Advisories;
 
 use crate::error::Error;
 
-pub mod json;
+pub mod fs;
 
 /// Trait for and AdvisoryLoader
 pub trait AdvisoriesLoader {
     /// Depending on the given os string, the corresponding Advisories are loaded
     fn load_package_advisories(&self, os: &str) -> Result<Advisories, Error>;
+    fn get_available_os(&self) -> Result<Vec<String>, Error>;
 }

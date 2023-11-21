@@ -191,12 +191,13 @@ where
                 Ok(ctx.response.empty(hyper::StatusCode::OK))
             }
         }
-        (&Method::GET, Notus(None)) => {
-            // TODO: get the OS list and send it
-            // let os = ctx.db.notus_os().await?;
-            // Ok(ctx.response.ok_json_stream(os).await)
-            Ok(ctx.response.empty(hyper::StatusCode::OK))
-        }
+        (&Method::GET, Notus(None)) => match &ctx.notus {
+            Some(notus) => match notus.get_available_os().await {
+                Ok(result) => Ok(ctx.response.ok(&result)),
+                Err(err) => Ok(ctx.response.internal_server_error(&err)),
+            },
+            None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+        },
 
         (&Method::POST, Notus(Some(os))) => {
             match crate::request::json_request::<Vec<String>>(&ctx.response, req).await {
@@ -211,6 +212,7 @@ where
                             // 501
                             notus::error::Error::LoadAdvisoryError(_, _)
                             | notus::error::Error::JSONParseError(_, _)
+                            | notus::error::Error::UnreadableAdvisoryDir(_, _)
                             | notus::error::Error::AdvisoryParseError(_, _)
                             | notus::error::Error::MissingAdvisoryDir(_)
                             | notus::error::Error::AdvisoryDirIsFile(_)

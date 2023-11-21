@@ -12,6 +12,8 @@ pub enum Error {
     MissingAdvisoryDir(String),
     // The given notus advisory directory is a file
     AdvisoryDirIsFile(String),
+    // The given notus advisory directory is not readable
+    UnreadableAdvisoryDir(String, io::Error),
     // There are no corresponding notus files for the given Operating System
     UnknownOs(String),
     // General error while loading notus advisories
@@ -37,6 +39,7 @@ impl Display for Error {
             Error::LoadAdvisoryError(path, err) => write!(f, "Unable to load advisories from {path}: {err}"),
             Error::PackageParseError(pkg) => write!(f, "Unable to parse the given package {pkg}"),
             Error::AdvisoryParseError(path, pkg) => write!(f, "Unable to parse fixed package information {:?} in the advisories {path}", pkg),
+            Error::UnreadableAdvisoryDir(path, err) => write!(f, "The directory {path} is not readable: {err}"),
         }
     }
 }

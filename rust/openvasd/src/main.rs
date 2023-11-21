@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use ::notus::{loader::json::JSONAdvisoryLoader, notus::Notus};
+use ::notus::{loader::fs::FSAdvisoryLoader, notus::Notus};
 use controller::ClientGossiper;
 use futures_util::ready;
 use notus::NotusWrapper;
@@ -113,7 +113,7 @@ fn create_context<DB>(
     let mut ctx_builder = controller::ContextBuilder::new();
 
     // TODO: Configure Notus for Context
-    match JSONAdvisoryLoader::new(config.notus.advisory_path.to_string_lossy().to_string()) {
+    match FSAdvisoryLoader::new(config.notus.advisory_path.to_string_lossy().to_string()) {
         Ok(loader) => {
             let notus = Notus::new(loader);
             ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));

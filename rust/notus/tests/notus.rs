@@ -6,13 +6,13 @@
 mod tests {
 
     use models::{FixedPackage, FixedVersion, Specifier};
-    use notus::{error::Error, loader::json::JSONAdvisoryLoader, notus::Notus};
+    use notus::{error::Error, loader::fs::FSAdvisoryLoader, notus::Notus};
 
     #[test]
     fn test_notus() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader);
 
         let packages = vec![
@@ -65,7 +65,7 @@ mod tests {
     fn test_err_package_parse_error() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader);
 
         let pkg_name = "wepofkewf~.124.sdefpo3-_~s#";
@@ -82,7 +82,7 @@ mod tests {
     fn test_err_advisory_parse_error() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = JSONAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader);
 
         let packages = vec![];

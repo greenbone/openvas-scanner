@@ -119,4 +119,8 @@ where
 
         Ok(results)
     }
+
+    pub fn get_available_os(&self) -> Result<Vec<String>, Error> {
+        self.loader.get_available_os()
+    }
 }

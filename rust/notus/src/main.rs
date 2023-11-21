@@ -5,7 +5,7 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
 use clap::{arg, value_parser, ArgAction, Command};
-use notus::{loader::json::JSONAdvisoryLoader, notus::Notus};
+use notus::{loader::fs::FSAdvisoryLoader, notus::Notus};
 
 fn main() {
     let matches = Command::new("nasl-cli")
@@ -33,7 +33,7 @@ fn main() {
         .get_matches();
 
     let advisory_path = matches.get_one::<PathBuf>("path").unwrap();
-    let loader = match JSONAdvisoryLoader::new(advisory_path) {
+    let loader = match FSAdvisoryLoader::new(advisory_path) {
         Ok(loader) => loader,
         Err(err) => {
             eprintln!("{err}");
