@@ -5,14 +5,8 @@
 use crate::{
     error::SyntaxError,
     lexer::{End, Lexer},
-    token::{Category, Token},
-    unclosed_token, unexpected_token, Statement,
+    token::{Category}, Statement, StatementKind,
 };
-
-pub(crate) trait Variables {
-    /// Parses variables, function calls.
-    fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError>;
-}
 
 pub(crate) trait CommaGroup {
     fn parse_comma_group(
@@ -36,9 +30,9 @@ impl<'a> CommaGroup for Lexer<'a> {
             }
             let (stmtend, param) =
                 self.statement(0, &|c| c == &category || c == &Category::Comma)?;
-            match param {
-                Statement::Parameter(nparams) => params.extend_from_slice(&nparams),
-                param => params.push(param),
+            match param.kind() {
+                StatementKind::Parameter(nparams) => params.extend_from_slice(nparams),
+                _ => params.push(param),
             }
             match stmtend {
                 End::Done(endcat) => {
@@ -56,52 +50,13 @@ impl<'a> CommaGroup for Lexer<'a> {
     }
 }
 
-impl<'a> Variables for Lexer<'a> {
-    fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        if !matches!(
-            token.category(),
-            Category::Identifier(crate::IdentifierType::Undefined(_))
-        ) {
-            return Err(unexpected_token!(token));
-        }
-        use End::*;
-
-        if let Some(nt) = self.peek() {
-            match nt.category() {
-                Category::LeftParen => {
-                    self.token();
-                    let (end, params) = self.parse_comma_group(Category::RightParen)?;
-                    return match end {
-                        Done(end) => Ok((Continue, Statement::Call(token, params, end))),
-                        Continue => Err(unclosed_token!(nt)),
-                    };
-                }
-                Category::LeftBrace => {
-                    self.token();
-                    let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
-                    let lookup = lookup.as_returnable_or_err()?;
-                    return match end {
-                        Done(end) => Ok((
-                            Continue,
-                            Statement::Array(token, Some(Box::new(lookup)), Some(end)),
-                        )),
-                        Continue => Err(unclosed_token!(token)),
-                    };
-                }
-                _ => {}
-            }
-        }
-        Ok((Continue, Statement::Variable(token)))
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::{
-        parse, {AssignOrder, Statement},
+        parse, Statement, {AssignOrder, StatementKind},
     };
 
-    use Statement::*;
+    use StatementKind::*;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -109,37 +64,39 @@ mod test {
 
     #[test]
     fn variables() {
-        assert!(matches!(result("a;"), Variable(_)));
+        assert_eq!(result("a;").kind(), &StatementKind::Variable)
     }
 
     #[test]
     fn arrays() {
-        assert!(matches!(result("a[0];"), Array(..)));
-        match result("a = [1, 2, 3];") {
+        assert!(matches!(result("a[0];").kind(), Array(Some(_))));
+        let re = result("a = [1, 2, 3];");
+        match re.kind() {
             Assign(super::Category::Equal, AssignOrder::AssignReturn, arr, _) => {
-                assert!(matches!(*arr, Array(..)))
+                assert!(matches!(arr.kind(), Array(None)))
             }
-            actual => unreachable!("{actual} must be an assign statement"),
+            _ => panic!("{re} must be an assign statement"),
         }
 
-        match result("a[0] = [1, 2, 4];") {
+        let re = result("a[0] = [1, 2, 4];");
+        match re.kind() {
             Assign(super::Category::Equal, AssignOrder::AssignReturn, arr, _) => {
-                assert!(matches!(*arr, Array(..)))
+                assert!(matches!(arr.kind(), &Array(Some(_))))
             }
-            actual => unreachable!("{actual} must be an assign statement"),
+            _ => panic!("{re} must be an assign statement"),
         }
     }
 
     #[test]
     fn anon_function_call() {
-        assert!(matches!(result("a(1, 2, 3);"), Call(..)))
+        assert!(matches!(result("a(1, 2, 3);").kind(), &Call(..)))
     }
 
     #[test]
     fn named_function_call() {
         assert!(matches!(
-            result("script_tag(name:\"cvss_base\", value:1 + 1 % 2);"),
-            Call(..)
+            result("script_tag(name:\"cvss_base\", value:1 + 1 % 2);").kind(),
+            &Call(..)
         ));
     }
 }

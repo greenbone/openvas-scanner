@@ -18,44 +18,39 @@ pub enum AssignOrder {
 
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
-// TODO: change from enum to struct that contains a Kind. This would allow us to redefine Statement
-// to contain start an end token, may comments so that a future formatter can just depend on
-// Statement rather than have to reimplement logic
-pub enum Statement {
+pub enum StatementKind {
     /// Either a Number, String, Boolean or Null
-    Primitive(Token),
+    Primitive,
     /// Attack category set by script_category
-    AttackCategory(Token),
+    AttackCategory,
     /// Is a variable
-    Variable(Token),
+    Variable,
     /// Is a array variable, it contains the lookup token as well as an optional lookup statement
-    Array(Token, Option<Box<Statement>>, Option<Token>),
+    Array(Option<Box<Statement>>),
     /// Is a call of a function
-    // TODO: change to Box<Statement> and use Parameter
-    Call(Token, Vec<Statement>, Token),
+    Call(Box<Statement>),
     /// Special exit call
-    Exit(Token, Box<Statement>, Token),
+    Exit(Box<Statement>),
     /// Special Return statement
-    Return(Token, Box<Statement>),
+    Return(Box<Statement>),
     /// Special Break statement
-    Break(Token),
+    Break,
     /// Special Continue statement
-    Continue(Token),
+    Continue,
     /// Special include call
-    Include(Token, Box<Statement>, Token),
+    Include(Box<Statement>),
     /// Declares a new variable in either global or local scope
-    Declare(Token, Vec<Statement>),
+    Declare(Vec<Statement>),
     /// Parameter within a function
     Parameter(Vec<Statement>),
     /// Named parameter on a function
-    NamedParameter(Token, Box<Statement>),
+    NamedParameter(Box<Statement>),
     /// Assignment to a variable
     Assign(TokenCategory, AssignOrder, Box<Statement>, Box<Statement>),
     /// An Operator (e.g. +, -, *)
     Operator(TokenCategory, Vec<Statement>),
     /// If statement, containing a condition, expression to be executed when the condition is true and an optional else expression
     If(
-        Token,
         Box<Statement>,
         Box<Statement>,
         Option<Token>,
@@ -64,100 +59,54 @@ pub enum Statement {
     /// For statement, containing a declaration/assignment, a condition, a execution per round before body execution, body execution
     /// e.g. `for (i = 0; i < 10; i++) display("hi");`
     For(
-        Token,
         Box<Statement>,
         Box<Statement>,
         Box<Statement>,
         Box<Statement>,
     ),
     /// While statement, containing a condition and a block
-    While(Token, Box<Statement>, Box<Statement>),
+    While(Box<Statement>, Box<Statement>),
     /// repeat statement, containing a block and a condition
-    Repeat(Token, Box<Statement>, Box<Statement>),
+    Repeat(Box<Statement>, Box<Statement>),
     /// foreach statement, containing a variable in array and a block
-    ForEach(Token, Token, Box<Statement>, Box<Statement>),
+    ForEach(Token, Box<Statement>, Box<Statement>),
     /// A set of expression within { ... }
-    Block(Token, Vec<Statement>, Token),
+    Block(Vec<Statement>),
     /// Function declaration; contains an identifier token, parameter statement and a block statement
-    // TODO: change to Box<Statement> as Parameter statement for statements instead of
-    // Vec<Statement>
-    FunctionDeclaration(Token, Token, Vec<Statement>, Token, Box<Statement>),
+    // The third token can be deleted as it is end statement end token
+    FunctionDeclaration(Token, Box<Statement>, Box<Statement>),
     /// An empty operation, e.g. ;
-    NoOp(Option<Token>),
+    NoOp,
     /// End of File
     EoF,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Is the definition of a Statement
+///
+/// start returns a token of the beginning of that statement while end contains
+/// the end of the statement. So as an example of the statement:
+/// 'my_function(1);' start will point to 'my_function' and end to ';'.
+pub struct Statement {
+    kind: StatementKind,
+    start: Token,
+    end: Option<Token>,
+}
 impl Statement {
-    /// Returns true when Statement may returns something
+    /// Returns the StatementKind.
     ///
-    /// Since nasl is a dynamic, typeless language there is no guarantee.
-    /// In uncertain things like a function it returns true.
-    pub fn is_returnable(&self) -> bool {
-        matches!(
-            self,
-            Statement::Primitive(_)
-                | Statement::Variable(_)
-                | Statement::Call(_, _, _)
-                | Statement::Return(_, _)
-                | Statement::Assign(
-                    _,
-                    AssignOrder::AssignReturn | AssignOrder::ReturnAssign,
-                    _,
-                    _
-                )
-                | Statement::Array(_, _, _)
-                | Statement::Operator(_, _)
-        )
-    }
-
-    /// Returns Self when it is returnable otherwise a unexpected statement error
-    pub fn as_returnable_or_err(self) -> Result<Self, SyntaxError> {
-        if self.is_returnable() {
-            Ok(self)
-        } else {
-            Err(unexpected_statement!(self))
-        }
-    }
-
-    fn first_stmts_token(stmts: &[Statement]) -> Option<&Token> {
-        match stmts.first() {
-            Some(stmt) => stmt.as_token(),
-            None => None,
-        }
+    /// A StatementKind is used for execution and contains all necessary data
+    /// for an interpreter to execute.
+    pub fn kind(&self) -> &StatementKind {
+        &self.kind
     }
 
     /// Retrieves the stored token in a Statement.
     ///
     /// If a Statement contains multiple Statements (e.g. Declare) than just the first one is returned.
     /// Returns None on EoF, when a slice of vectors is empty or on AttackCategory
-    pub fn as_token(&self) -> Option<&Token> {
-        match self {
-            Statement::Continue(token)
-            | Statement::Break(token)
-            | Statement::AttackCategory(token)
-            | Statement::Primitive(token) => Some(token),
-            Statement::Variable(token) => Some(token),
-            Statement::Array(token, _, _) => Some(token),
-            Statement::Call(token, _, _) => Some(token),
-            Statement::Exit(_, stmt, _) => stmt.as_token(),
-            Statement::Return(_, stmt) => stmt.as_token(),
-            Statement::Include(_, stmt, _) => stmt.as_token(),
-            Statement::Declare(_, stmts) => Statement::first_stmts_token(stmts),
-            Statement::Parameter(stmts) => Statement::first_stmts_token(stmts),
-            Statement::NamedParameter(token, _) => Some(token),
-            Statement::Assign(_, _, stmt, _) => stmt.as_token(),
-            Statement::Operator(_, stmts) => Statement::first_stmts_token(stmts),
-            Statement::FunctionDeclaration(kw, _, _, _, _)
-            | Statement::Block(kw, _, _)
-            | Statement::If(kw, _, _, _, _)
-            | Statement::While(kw, _, _)
-            | Statement::Repeat(kw, _, _)
-            | Statement::ForEach(kw, _, _, _)
-            | Statement::For(kw, _, _, _, _) => Some(kw),
-            Statement::NoOp(token) => token.as_ref(),
-            Statement::EoF => None,
-        }
+    pub fn as_token(&self) -> &Token {
+        &self.start
     }
 
     /// Retrieves the stored token in a Statement.
@@ -165,125 +114,119 @@ impl Statement {
     /// If a Statement contains multiple Statements (e.g. Declare) than just the first one is returned.
     /// Returns None on EoF, when a slice of vectors is empty or on AttackCategory
     pub fn as_tokens(&self) -> Vec<&Token> {
-        match self {
-            Statement::AttackCategory(token)
-            | Statement::Continue(token)
-            | Statement::Break(token)
-            | Statement::NoOp(Some(token))
-            | Statement::Array(token, None, _)
-            | Statement::Primitive(token)
-            | Statement::Variable(token) => vec![token],
-            Statement::Array(token, Some(stmt), end) => {
-                let mut results = vec![token];
-                results.extend(stmt.as_tokens());
-                if let Some(end) = end {
-                    results.push(end)
-                }
-                results
+        let mut results = vec![&self.start];
+        match self.kind() {
+            StatementKind::Primitive
+            | StatementKind::AttackCategory
+            | StatementKind::Variable
+            | StatementKind::NoOp
+            | StatementKind::Break
+            | StatementKind::Continue
+            | StatementKind::Array(None)
+            | StatementKind::EoF => {
+                // doesn't contain further statements
             }
-            Statement::Block(kw, stmts, end) | Statement::Call(kw, stmts, end) => {
-                let mut results = Vec::with_capacity(stmts.len() + 2);
-                results.push(kw);
-                for stmt in stmts {
+            StatementKind::NamedParameter(x)
+            | StatementKind::Exit(x)
+            | StatementKind::Return(x)
+            | StatementKind::Include(x)
+            | StatementKind::Call(x)
+            | StatementKind::Array(Some(x)) => {
+                results.extend(x.as_tokens());
+            }
+            StatementKind::Block(x)
+            | StatementKind::Operator(_, x)
+            | StatementKind::Parameter(x)
+            | StatementKind::Declare(x) => {
+                for stmt in x {
                     results.extend(stmt.as_tokens());
                 }
-                results.push(end);
-                results
             }
-            Statement::Include(kw, stmt, end) | Statement::Exit(kw, stmt, end) => {
-                let mut results = Vec::with_capacity(3);
-                results.push(kw);
-                results.extend(stmt.as_tokens());
-                results.push(end);
-                results
+            StatementKind::While(x, y)
+            | StatementKind::Repeat(x, y)
+            | StatementKind::Assign(_, _, x, y) => {
+                results.extend(x.as_tokens());
+                results.extend(y.as_tokens());
             }
-            Statement::NamedParameter(kw, stmt) | Statement::Return(kw, stmt) => {
-                let mut results = Vec::with_capacity(2);
-                results.push(kw);
-                results.extend(stmt.as_tokens());
-                results
-            }
-            Statement::Declare(kw, stmts) => {
-                let mut results = Vec::with_capacity(2);
-                results.push(kw);
-                for stmt in stmts {
-                    results.extend(stmt.as_tokens());
+            StatementKind::If(r, x, y, z) => {
+                results.extend(r.as_tokens());
+                results.extend(x.as_tokens());
+                if let Some(y) = y {
+                    results.push(y);
                 }
-                results
-            }
-            Statement::Parameter(stmts) => stmts.iter().flat_map(|stmt| stmt.as_tokens()).collect(),
-            Statement::Assign(_, _, stmt1, stmt2) => {
-                let mut tokens = stmt1.as_tokens();
-                tokens.extend(stmt2.as_tokens());
-                tokens
-            }
-            Statement::Operator(_, stmts) => {
-                let mut results = Vec::with_capacity(stmts.len());
-                for stmt in stmts {
-                    results.extend(stmt.as_tokens());
+                if let Some(z) = z {
+                    results.extend(z.as_tokens());
                 }
-                results
             }
-            Statement::If(kw, cond, stmt, ekw, estmt) => {
-                let mut results = vec![kw];
-                results.extend(cond.as_tokens());
-                results.extend(stmt.as_tokens());
-                if let Some(ekw) = ekw {
-                    results.push(ekw);
-                }
-                if let Some(estmt) = estmt {
-                    results.extend(estmt.as_tokens());
-                }
-                results
+            StatementKind::For(r, x, y, z) => {
+                results.extend(r.as_tokens());
+                results.extend(x.as_tokens());
+                results.extend(y.as_tokens());
+                results.extend(z.as_tokens());
             }
-            Statement::For(kw, decl, cond, post, stmt) => {
-                let mut results = vec![kw];
-                results.extend(decl.as_tokens());
-                results.extend(cond.as_tokens());
-                results.extend(post.as_tokens());
-                results.extend(stmt.as_tokens());
-                results
+            StatementKind::ForEach(x, y, z) => {
+                results.push(x);
+                results.extend(y.as_tokens());
+                results.extend(z.as_tokens());
             }
-            Statement::Repeat(kw, cond, stmt) | Statement::While(kw, cond, stmt) => {
-                let mut results = vec![kw];
-                results.extend(cond.as_tokens());
-                results.extend(stmt.as_tokens());
-                results
+            StatementKind::FunctionDeclaration(x, y, w) => {
+                results.push(x);
+                results.extend(y.as_tokens());
+                results.extend(w.as_tokens());
             }
-            Statement::ForEach(kw, token, arr, stmt) => {
-                let mut results = vec![kw, token];
-                results.extend(arr.as_tokens());
-                results.extend(stmt.as_tokens());
-                results
-            }
-            Statement::FunctionDeclaration(kw, name, params, rp, stmt) => {
-                let mut results = vec![kw, name];
-                for stmt in params {
-                    results.extend(stmt.as_tokens());
-                }
-                results.push(rp);
-                results.extend(stmt.as_tokens());
-                results
-            }
-            Statement::EoF | Statement::NoOp(None) => vec![],
+        };
+        if let Some(t) = self.end.as_ref() {
+            results.push(t);
+        }
+        results
+    }
+
+    /// Returns the end token
+    pub fn end(&self) -> &Token {
+        self.end.as_ref().unwrap_or(&self.start)
+    }
+
+    /// Returns children of blocks and calls.
+    pub fn children(&self) -> &[Statement] {
+        match self.kind() {
+            StatementKind::If(..)
+            | StatementKind::For(..)
+            | StatementKind::ForEach(..)
+            | StatementKind::While(..)
+            | StatementKind::Repeat(..)
+            | StatementKind::Assign(..)
+            | StatementKind::NamedParameter(_)
+            | StatementKind::Exit(_)
+            | StatementKind::Return(_)
+            | StatementKind::Include(_)
+            | StatementKind::Array(_)
+            | StatementKind::Primitive
+            | StatementKind::AttackCategory
+            | StatementKind::Variable
+            | StatementKind::NoOp
+            | StatementKind::Break
+            | StatementKind::Continue
+            | StatementKind::EoF => &[],
+
+            // contains Parameter
+            StatementKind::Call(x) | StatementKind::FunctionDeclaration(_, x, _) => x.children(),
+
+            StatementKind::Block(x)
+            | StatementKind::Operator(_, x)
+            | StatementKind::Parameter(x)
+            | StatementKind::Declare(x) => x,
         }
     }
 
     /// Calculates the position of the statement
     pub fn position(&self) -> (usize, usize) {
-        match self {
-            Statement::Array(id, _, Some(end)) | Statement::Call(id, _, end) => {
-                (id.position.0, end.position.1)
-            }
-            _ => {
-                let tokens = self.as_tokens();
-                if let (Some(t1), Some(t2)) = (tokens.first(), tokens.last()) {
-                    (t1.position.0, t2.position.1)
-                } else {
-                    (0, 0)
-                }
-            }
-        }
+        (
+            self.start.position.0,
+            self.end
+                .as_ref()
+                .map(|x| x.position.1)
+                .unwrap_or_else(|| self.start.position.1),
+        )
     }
 
     /// Calculates the byte range of the statement
@@ -312,7 +255,7 @@ impl Statement {
     /// "#;
     /// let results: usize = nasl_syntax::parse(code)
     ///     .filter_map(|s| s.ok())
-    ///     .map(|s| s.find(&|s| matches!(s, nasl_syntax::Statement::Call(..))).len())
+    ///     .map(|s| s.find(&|s| matches!(s.kind(), nasl_syntax::StatementKind::Call(..))).len())
     ///     .sum();
     ///
     /// assert_eq!(results, 10);
@@ -327,66 +270,117 @@ impl Statement {
             vec![self]
         } else {
             let mut results = vec![];
-            match self {
-                Statement::Primitive(_)
-                | Statement::AttackCategory(_)
-                | Statement::Variable(_)
-                | Statement::NoOp(_)
-                | Statement::EoF
-                | Statement::Break(_)
-                | Statement::Array(_, None, _)
-                | Statement::Continue(_) => {
+            match self.kind() {
+                StatementKind::Primitive
+                | StatementKind::AttackCategory
+                | StatementKind::Variable
+                | StatementKind::NoOp
+                | StatementKind::Break
+                | StatementKind::Continue
+                | StatementKind::Array(None)
+                | StatementKind::EoF => {
                     // doesn't contain further statements
                 }
-                Statement::Parameter(stmts)
-                | Statement::Call(_, stmts, _)
-                | Statement::Declare(_, stmts)
-                | Statement::Operator(_, stmts)
-                | Statement::Block(_, stmts, _) => {
-                    for s in stmts {
-                        results.extend(Self::find(s, wanted))
-                    }
+                StatementKind::NamedParameter(x)
+                | StatementKind::Exit(x)
+                | StatementKind::Return(x)
+                | StatementKind::Include(x)
+                | StatementKind::Call(x)
+                | StatementKind::Array(Some(x)) => {
+                    results.extend(Self::find(x, wanted));
                 }
-                Statement::NamedParameter(_, stmt)
-                | Statement::Exit(_, stmt, _)
-                | Statement::Return(_, stmt)
-                | Statement::Include(_, stmt, _)
-                | Statement::Array(_, Some(stmt), _) => {
-                    results.extend(Self::find(stmt, wanted));
-                }
-                Statement::While(_, stmt, stmt2)
-                | Statement::Repeat(_, stmt, stmt2)
-                | Statement::ForEach(_, _, stmt, stmt2)
-                | Statement::Assign(_, _, stmt, stmt2) => {
-                    results.extend(Self::find(stmt, wanted));
-                    results.extend(Self::find(stmt2, wanted));
-                }
-                Statement::If(_, stmt, stmt2, _, stmt3) => {
-                    results.extend(Self::find(stmt, wanted));
-                    results.extend(Self::find(stmt2, wanted));
-                    if let Some(stmt3) = stmt3 {
-                        results.extend(Self::find(stmt3, wanted));
-                    }
-                }
-                Statement::For(_, stmt, stmt2, stmt3, stmt4) => {
-                    results.extend(Self::find(stmt, wanted));
-                    results.extend(Self::find(stmt2, wanted));
-                    results.extend(Self::find(stmt3, wanted));
-                    results.extend(Self::find(stmt4, wanted));
-                }
-                Statement::FunctionDeclaration(_, _, stmts, _, stmt) => {
-                    results.extend(Self::find(stmt, wanted));
-                    for stmt in stmts {
+                StatementKind::Block(x)
+                | StatementKind::Operator(_, x)
+                | StatementKind::Parameter(x)
+                | StatementKind::Declare(x) => {
+                    for stmt in x {
                         results.extend(Self::find(stmt, wanted));
                     }
                 }
+                StatementKind::While(x, y)
+                | StatementKind::Repeat(x, y)
+                | StatementKind::Assign(_, _, x, y) => {
+                    results.extend(Self::find(x, wanted));
+                    results.extend(Self::find(y, wanted));
+                }
+                StatementKind::If(r, x, _, z) => {
+                    results.extend(Self::find(r, wanted));
+                    results.extend(Self::find(x, wanted));
+
+                    if let Some(z) = z {
+                        results.extend(Self::find(z, wanted));
+                    }
+                }
+                StatementKind::For(r, x, y, z) => {
+                    results.extend(Self::find(r, wanted));
+                    results.extend(Self::find(x, wanted));
+                    results.extend(Self::find(y, wanted));
+                    results.extend(Self::find(z, wanted));
+                }
+                StatementKind::ForEach(_, y, z) => {
+                    results.extend(Self::find(y, wanted));
+                    results.extend(Self::find(z, wanted));
+                }
+                StatementKind::FunctionDeclaration(_, y, w) => {
+                    results.extend(Self::find(y, wanted));
+                    results.extend(Self::find(w, wanted));
+                }
             };
+
             results
         }
     }
+
+    /// Returns the initial token of a Statement
+    pub fn start(&self) -> &Token {
+        &self.start
+    }
+
+    /// Returns self if it is a returnable or an SyntaxError otherwise
+    pub fn as_returnable_or_err(self) -> Result<Self, SyntaxError> {
+        if self.kind().is_returnable() {
+            Ok(self)
+        } else {
+            Err(unexpected_statement!(self))
+        }
+    }
+
+    /// Creates a statement with the same start and end token
+    pub fn with_start_token(token: Token, kind: StatementKind) -> Self {
+        Self {
+            kind,
+            start: token,
+            end: None,
+        }
+    }
+
+    /// Creates a statement with the start and end token
+    pub fn with_start_end_token(start: Token, end: Token, kind: StatementKind) -> Self {
+        Self {
+            kind,
+            start,
+            end: Some(end),
+        }
+    }
+
+    /// Creates a Statement without a token.
+    ///
+    /// This should only be used when artificially creating a Statement without
+    /// code relevance e.g. expanding i++ to 'return i and then add 1 to i'.
+    pub fn without_token(kind: StatementKind) -> Self {
+        Self {
+            kind,
+            start: Token::default(),
+            end: None,
+        }
+    }
+
+    pub(crate) fn set_end(&mut self, cat: Token) {
+        self.end = Some(cat)
+    }
 }
 
-impl fmt::Display for Statement {
+impl std::fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let as_str_list = |v: &[Statement]| {
             v.iter()
@@ -394,38 +388,39 @@ impl fmt::Display for Statement {
                 .reduce(|a, b| format!("{a}, {b}"))
                 .unwrap_or_default()
         };
-        match self {
-            Statement::Primitive(x) => write!(f, "{}", x.category()),
-            Statement::AttackCategory(x) => write!(f, "{x:?}"),
-            Statement::Variable(x) => write!(f, "{}", x.category()),
-            Statement::Array(x, e, _) => match e {
+        let x = self.start();
+        match self.kind() {
+            StatementKind::Primitive => write!(f, "{}", x.category()),
+            StatementKind::AttackCategory => write!(f, "{x:?}"),
+            StatementKind::Variable => write!(f, "{}", x.category()),
+            StatementKind::Array(e) => match e {
                 Some(e) => {
                     write!(f, "{}[{e}]", x.category())
                 }
                 None => write!(f, "{}", x.category()),
             },
-            Statement::Call(name, args, _) => {
-                write!(f, "{}({});", name.category(), as_str_list(args))
+            StatementKind::Call(args) => {
+                write!(f, "{}{};", x.category(), args)
             }
-            Statement::Exit(_, x, _) => write!(f, "exit({x});"),
-            Statement::Return(_, x) => write!(f, "return {x};"),
-            Statement::Include(_, x, _) => write!(f, "include({x});"),
-            Statement::Declare(s, x) => {
-                write!(f, "{s} {}", as_str_list(x),)
+            StatementKind::Exit(x) => write!(f, "exit({x});"),
+            StatementKind::Return(x) => write!(f, "return {x};"),
+            StatementKind::Include(x) => write!(f, "include({x});"),
+            StatementKind::Declare(y) => {
+                write!(f, "{x} {}", as_str_list(y),)
             }
-            Statement::Parameter(x) => write!(f, "({})", as_str_list(x),),
-            Statement::NamedParameter(n, s) => write!(f, "{}: {s}", n.category()),
-            Statement::Assign(c, o, l, r) => match (o, &**r) {
-                (AssignOrder::AssignReturn, Statement::NoOp(_)) => write!(f, "{c}{l}"),
-                (AssignOrder::ReturnAssign, Statement::NoOp(_)) => write!(f, "{l}{c}"),
+            StatementKind::Parameter(x) => write!(f, "({})", as_str_list(x),),
+            StatementKind::NamedParameter(s) => write!(f, "{}: {s}", x.category()),
+            StatementKind::Assign(c, o, l, r) => match (o, r.kind().clone()) {
+                (AssignOrder::AssignReturn, StatementKind::NoOp) => write!(f, "{c}{l}"),
+                (AssignOrder::ReturnAssign, StatementKind::NoOp) => write!(f, "{l}{c}"),
                 _ => write!(f, "{l} {c} {r}"),
             },
-            Statement::Operator(o, args) => match &args[..] {
+            StatementKind::Operator(o, args) => match &args[..] {
                 [l, r] => write!(f, "{l} {o} {r}"),
                 [l] => write!(f, "{o}{l}"),
                 _ => write!(f, "({o} ({}))", as_str_list(args)),
             },
-            Statement::If(_, c, x, _, e) => {
+            StatementKind::If(c, x, _, e) => {
                 let r = write!(f, "if ({c}) {x}");
                 if let Some(e) = e {
                     write!(f, " else {e}")
@@ -433,19 +428,45 @@ impl fmt::Display for Statement {
                     r
                 }
             }
-            Statement::For(_, i, c, u, e) => write!(f, "for ({i}; {c}; {u}) {{ {e} }}"),
-            Statement::While(_, c, e) => write!(f, "while ({c}) {{{e}}}"),
-            Statement::Repeat(_, e, c) => write!(f, "repeat {e} until {c}"),
-            Statement::ForEach(_, v, a, e) => write!(f, "foreach {}({a}) {{{e}}}", v.category()),
-            Statement::Block(..) => write!(f, "{{ ... }}"),
-            Statement::FunctionDeclaration(_, n, p, _, _) => {
-                write!(f, "function {}({}) {{ ... }}", n.category(), as_str_list(p))
+            StatementKind::For(i, c, u, e) => write!(f, "for ({i}; {c}; {u}) {{ {e} }}"),
+            StatementKind::While(c, e) => write!(f, "while ({c}) {{{e}}}"),
+            StatementKind::Repeat(e, c) => write!(f, "repeat {e} until {c}"),
+            StatementKind::ForEach(v, a, e) => {
+                write!(f, "foreach {}({a}) {{{e}}}", v.category())
             }
-            Statement::NoOp(_) => write!(f, "NoOp"),
-            Statement::EoF => write!(f, "EoF"),
-            Statement::Break(_) => write!(f, "break"),
-            Statement::Continue(_) => write!(f, "continue"),
+            StatementKind::Block(..) => write!(f, "{{ ... }}"),
+            StatementKind::FunctionDeclaration(n, p, _) => {
+                write!(f, "function {}({}) {{ ... }}", n.category(), p)
+            }
+            StatementKind::NoOp => write!(f, "NoOp"),
+            StatementKind::EoF => write!(f, "EoF"),
+            StatementKind::Break => write!(f, "break"),
+            StatementKind::Continue => write!(f, "continue"),
         }
+    }
+}
+
+impl StatementKind {
+    /// Returns true when Statement may returns something
+    ///
+    /// Since nasl is a dynamic, typeless language there is no guarantee.
+    /// In uncertain things like a function it returns true.
+    pub fn is_returnable(&self) -> bool {
+        matches!(
+            self,
+            StatementKind::Primitive
+                | StatementKind::Variable
+                | StatementKind::Call(..)
+                | StatementKind::Return(..)
+                | StatementKind::Assign(
+                    _,
+                    AssignOrder::AssignReturn | AssignOrder::ReturnAssign,
+                    _,
+                    _
+                )
+                | StatementKind::Array(..)
+                | StatementKind::Operator(..)
+        )
     }
 }
 
@@ -479,34 +500,38 @@ mod position {
         "#;
         let parser = parse(code);
         let expected = [
-            "a = 1 + 1",
-            "b = 2 * 2",
-            "a = ++a",
-            "arr = mkarray(a, b, c      )",
-            "arr[++a]",
-            "exit(1)",
-            "return 1",
-            "include('test.inc')",
-            "local_var a, b, c",
-            "global_var a, b, c",
-            "if (a) display(1); else display(2)",
-            "for (i = 1; i < 10; i++) display(i)",
-            "while(TRUE) display(i)",
-            "foreach a(q) display(a)",
-            "repeat display(\"q\"); until 1",
+            "a = 1 + 1;",
+            "b = 2 * 2;",
+            "a = ++a;",
+            "arr = mkarray(a, b, c      );",
+            "arr[++a];",
+            "exit(1);",
+            "return 1;",
+            "include('test.inc');",
+            "local_var a, b, c;",
+            "global_var a, b, c;",
+            "if (a) display(1); else display(2);",
+            "for (i = 1; i < 10; i++) display(i);",
+            "while(TRUE) display(i);",
+            "foreach a(q) display(a);",
+            "repeat display(\"q\"); until 1;",
             r#"{
            a;
            b;
         }"#,
             "function register_packages( buf ) { return 1; }",
         ];
-        let ranges: Vec<_> = parser.map(|x| x.unwrap().range()).collect();
+        let mut tests = 0;
 
         let mut ri = expected.iter();
-        assert_eq!(ranges.len(), expected.len());
-        for range in ranges {
+        for stmt in parser {
+            let stmt = stmt.unwrap();
             let a: &str = ri.next().unwrap();
+            let range = stmt.range();
+            tests += 1;
             assert_eq!(&code[range], a);
         }
+
+        assert_eq!(tests, expected.len());
     }
 }

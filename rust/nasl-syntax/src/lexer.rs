@@ -13,7 +13,7 @@ use crate::{
     postfix_extension::Postfix,
     prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
-    unexpected_statement, unexpected_token, Statement,
+    unexpected_statement, unexpected_token, Statement, StatementKind,
 };
 
 /// Is used to parse Token to Statement
@@ -30,6 +30,7 @@ pub struct Lexer<'a> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum End {
+    // TODO remove Token from Done as it is in the returned Statement
     Done(Token),
     Continue,
 }
@@ -45,12 +46,12 @@ impl End {
         }
     }
 
-    pub fn category(&self) -> Option<Category> {
-        match self {
-            End::Done(t) => Some(t.category.clone()),
-            End::Continue => None,
-        }
-    }
+    // pub fn category(&self) -> &Option<Category> {
+    //     match self {
+    //         End::Done(t) => &Some(t.category),
+    //         End::Continue => &None,
+    //     }
+    // }
 }
 
 impl Not for End {
@@ -89,6 +90,38 @@ impl<'a> Lexer<'a> {
         }
         None
     }
+
+    pub(crate) fn parse_comma_group(
+        &mut self,
+        category: Category,
+    ) -> Result<(End, Vec<Statement>), SyntaxError> {
+        let mut params = vec![];
+        let mut end = End::Continue;
+        while let Some(token) = self.peek() {
+            if *token.category() == category {
+                self.token();
+                end = End::Done(token);
+                break;
+            }
+            let (stmtend, param) =
+                self.statement(0, &|c| c == &category || c == &Category::Comma)?;
+            match param.kind() {
+                StatementKind::Parameter(nparams) => params.extend_from_slice(nparams),
+                _ => params.push(param),
+            }
+            match stmtend {
+                End::Done(endcat) => {
+                    if endcat.category() == &category {
+                        end = End::Done(endcat);
+                        break;
+                    }
+                }
+                End::Continue => {}
+            };
+        }
+        Ok((end, params))
+    }
+
     /// Returns the next expression.
     ///
     /// It uses a prefix_extension to verify if a token is prefix relevant and if parsing should continue
@@ -107,6 +140,14 @@ impl<'a> Lexer<'a> {
         if self.depth >= MAX_DEPTH {
             return Err(max_recursion!(MAX_DEPTH));
         }
+        fn done(token: Token, mut left: Statement) -> Result<(End, Statement), SyntaxError> {
+            left.set_end(token.clone());
+            Ok((End::Done(token), left))
+        }
+
+        fn cont(left: Statement) -> Result<(End, Statement), SyntaxError> {
+            Ok((End::Continue, left))
+        }
         // reset unhandled_token when min_bp is 0
         let (state, mut left) = self
             .token()
@@ -115,25 +156,27 @@ impl<'a> Lexer<'a> {
                     return Err(unexpected_token!(token));
                 }
                 if abort(token.category()) {
-                    return Ok((End::Done(token.clone()), Statement::NoOp(Some(token))));
+                    let result = Statement::with_start_token(token.clone(), StatementKind::NoOp);
+                    return done(token, result);
                 }
                 self.prefix_statement(token, abort)
             })
-            .unwrap_or(Ok((End::Done(Token::unexpected_none()), Statement::EoF)))?;
+            .unwrap_or(Ok((
+                End::Done(Token::unexpected_none()),
+                Statement::without_token(StatementKind::EoF),
+            )))?;
         match state {
             End::Continue => {}
-            end => {
-                return Ok((end, left));
+            End::Done(x) => {
+                return done(x, left);
             }
         }
 
-        let mut end_statement = End::Continue;
         while let Some(token) = self.peek() {
             if abort(token.category()) {
                 self.token();
-                end_statement = End::Done(token.clone());
                 self.depth = 0;
-                break;
+                return done(token, left);
             }
             let op =
                 Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
@@ -146,23 +189,22 @@ impl<'a> Lexer<'a> {
                 left = stmt;
                 if let End::Done(cat) = end {
                     self.depth = 0;
-                    end_statement = End::Done(cat);
-                    break;
+                    return done(cat, left);
                 }
                 continue;
             }
 
-            if let Some(min_bp_reached) = self.needs_infix(op.clone(), min_binding_power) {
+            if let Some(min_bp_reached) = self.needs_infix(&op, min_binding_power) {
                 if !min_bp_reached {
-                    break;
+                    // TODO could be changed to unexpected statement so that it doesn't need to be done in the iterator
+                    return cont(left);
                 }
                 self.token();
                 let (end, nl) = self.infix_statement(op, token, left, abort)?;
                 left = nl;
                 if let End::Done(cat) = end {
                     self.depth = 0;
-                    end_statement = End::Done(cat);
-                    break;
+                    return done(cat, left);
                 } else {
                     // jump to the next without handling it as an error
                     continue;
@@ -172,7 +214,7 @@ impl<'a> Lexer<'a> {
             return Err(unexpected_token!(token));
         }
 
-        Ok((end_statement, left))
+        Ok((End::Continue, left))
     }
 }
 
@@ -187,15 +229,18 @@ impl<'a> Iterator for Lexer<'a> {
         }
 
         match result {
-            Ok((_, Statement::EoF)) => None,
-            Ok((End::Done(_), stmt)) => Some(Ok(stmt)),
-            Ok((End::Continue, stmt)) => {
-                if matches!(stmt, Statement::NoOp(_)) {
-                    Some(Ok(stmt))
-                } else {
+            Ok((end, stmt)) => {
+                if matches!(stmt.kind(), &StatementKind::EoF) {
+                    return None;
+                }
+                if matches!(stmt.kind(), &StatementKind::NoOp) {
+                    return Some(Ok(stmt));
+                }
+                match end {
+                    End::Done(_) => Some(Ok(stmt)),
                     // This verifies if a statement was not finished yet; this can happen on assignments
                     // and missing semicolons.
-                    Some(Err(unexpected_statement!(stmt)))
+                    End::Continue => Some(Err(unexpected_statement!(stmt))),
                 }
             }
             Err(x) => Some(Err(x)),

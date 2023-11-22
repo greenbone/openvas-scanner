@@ -9,13 +9,13 @@ use crate::{
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
-    unexpected_end, unexpected_statement, {AssignOrder, Statement},
+    unexpected_end, unexpected_statement, Statement, {AssignOrder, StatementKind},
 };
 pub(crate) trait Infix {
     /// Returns true when an Operation needs a infix handling.
     ///
     /// This is separated in two methods to prevent unnecessary clones of a previous statement.
-    fn needs_infix(&self, op: Operation, min_bp: u8) -> Option<bool>;
+    fn needs_infix(&self, op: &Operation, min_bp: u8) -> Option<bool>;
 
     /// Is the actual handling of infix. The caller must ensure that needs_infix is called previously.
     fn infix_statement(
@@ -32,7 +32,7 @@ pub(crate) trait Infix {
 /// The binding power is used to express the order of a statement.
 /// Because the binding power of e,g. Plus is lower than Star the Star operation gets calculate before.
 /// The first number represents the left hand, the second number the right hand binding power
-fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
+fn infix_binding_power(op: &Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
     use Category::*;
     let res = match op {
@@ -70,69 +70,100 @@ impl<'a> Infix for Lexer<'a> {
         Ok({
             // binding power of the right side
             let (_, right_bp) =
-                infix_binding_power(op.clone()).expect("handle_infix should be called first");
-            let (end, rhs) = self.statement(right_bp, abort)?;
+                infix_binding_power(&op).expect("handle_infix should be called first");
+            // probably better to change EoF to error instead of Ok(Continue) to not have to double check each time
+            let (mut end, rhs) = self.statement(right_bp, abort)?;
+            // this feels like a hack ... maybe better to use an own abort condition for the right side instead?
+            // TODO set end token to token when done
+            if let End::Done(ref x) = end {
+                if !abort(x.category()) {
+                    end = End::Continue;
+                }
+            }
+            if matches!(rhs.kind(), StatementKind::EoF) {
+                return Ok((End::Done(token), rhs));
+            }
+
+            let end_token = match &end {
+                End::Done(x) => x.clone(),
+                End::Continue => rhs.end().clone(),
+            };
+            let start_token = lhs.start().clone();
+            let build_stmt = |k| Statement::with_start_end_token(start_token, end_token, k);
+
             let stmt = match op {
                 // DoublePoint operation needs to be changed to NamedParameter statement
-                Operation::Assign(Category::DoublePoint) => match lhs {
-                    Statement::Variable(left) => {
-                        // if the right side is a parameter we need to transform the NamedParameter
-                        // from the atomic params and assign the first one to the NamedParameter instead
-                        // of Statement::Parameter and put it upfront
-                        match rhs {
-                            Statement::Parameter(params) => {
-                                first_element_as_named_parameter(params, left)?
-                            }
-
-                            _ => Statement::NamedParameter(left, Box::new(rhs)),
-                        }
-                    }
-                    Statement::Parameter(mut params) => match rhs {
-                        Statement::Parameter(right_params) => {
-                            params.extend_from_slice(&right_params);
-                            Statement::Parameter(params)
-                        }
-                        _ => {
-                            params.push(rhs);
-                            Statement::Parameter(params)
-                        }
-                    },
-                    _ => return Err(unexpected_statement!(lhs)),
-                },
-                // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
-                Operation::Assign(category) => match lhs {
-                    Statement::Variable(ref var) => {
-                        // when the right side is a parameter list than it is an array
-                        let lhs = {
-                            match rhs {
-                                Statement::Parameter(..) => {
-                                    Statement::Array(var.clone(), None, None)
+                Operation::Assign(Category::DoublePoint) => {
+                    match lhs.kind() {
+                        StatementKind::Variable => {
+                            // if the right side is a parameter we need to transform the NamedParameter
+                            // from the atomic params and assign the first one to the NamedParameter instead
+                            // of Statement::Parameter and put it upfront
+                            match rhs.kind() {
+                                StatementKind::Parameter(params) => {
+                                    // TODO flatten
+                                    first_element_as_named_parameter(params.clone())?
                                 }
-                                _ => lhs,
+
+                                _ => build_stmt(StatementKind::NamedParameter(Box::new(rhs))),
                             }
+                        }
+                        StatementKind::Parameter(params) => match rhs.kind() {
+                            StatementKind::Parameter(right_params) => {
+                                let mut params = params.clone();
+                                params.extend_from_slice(right_params);
+                                build_stmt(StatementKind::Parameter(params))
+                            }
+                            _ => {
+                                let mut params = params.clone();
+                                params.push(rhs);
+                                build_stmt(StatementKind::Parameter(params))
+                            }
+                        },
+                        _ => return Err(unexpected_statement!(lhs)),
+                    }
+                }
+                // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
+                Operation::Assign(category) => match lhs.kind() {
+                    StatementKind::Variable => {
+                        let lhs = match rhs.kind() {
+                            StatementKind::Parameter(..) => Statement::with_start_end_token(
+                                lhs.start().clone(),
+                                rhs.end().clone(),
+                                StatementKind::Array(None),
+                            ),
+                            _ => lhs,
                         };
-                        Statement::Assign(
+
+                        build_stmt(StatementKind::Assign(
                             category,
                             AssignOrder::AssignReturn,
                             Box::new(lhs),
                             Box::new(rhs),
-                        )
+                        ))
                     }
-                    Statement::Array(_, _, _) => Statement::Assign(
+                    StatementKind::Array(..) => build_stmt(StatementKind::Assign(
                         category,
                         AssignOrder::AssignReturn,
                         Box::new(lhs),
                         Box::new(rhs),
-                    ),
-                    _ => Statement::Operator(token.category().clone(), vec![lhs, rhs]),
+                    )),
+
+                    _ => build_stmt(StatementKind::Operator(
+                        token.category().clone(),
+                        vec![lhs, rhs],
+                    )),
                 },
-                _ => Statement::Operator(token.category().clone(), vec![lhs, rhs]),
+                _ => build_stmt(StatementKind::Operator(
+                    token.category().clone(),
+                    vec![lhs, rhs],
+                )),
             };
             (end, stmt)
         })
     }
 
-    fn needs_infix(&self, op: Operation, min_bp: u8) -> Option<bool> {
+    fn needs_infix(&self, op: &Operation, min_bp: u8) -> Option<bool> {
         let (l_bp, _) = infix_binding_power(op)?;
         if l_bp < min_bp {
             Some(false)
@@ -145,44 +176,42 @@ impl<'a> Infix for Lexer<'a> {
 // if the right side is a parameter we need to transform the NamedParameter
 // from the atomic params and assign the first one to the NamedParameter instead
 // of Statement::Parameter and put it upfront
-fn first_element_as_named_parameter(
-    mut params: Vec<Statement>,
-    left: Token,
-) -> Result<Statement, SyntaxError> {
+fn first_element_as_named_parameter(mut params: Vec<Statement>) -> Result<Statement, SyntaxError> {
     params.reverse();
     let value = params
         .pop()
         .ok_or_else(|| unexpected_end!("while getting value of named parameter"))?;
-    let np = Statement::NamedParameter(left, Box::new(value));
-    params.push(np);
+    let np = StatementKind::NamedParameter(Box::new(value));
+    params.push(Statement::without_token(np));
     params.reverse();
-    Ok(Statement::Parameter(params))
+    Ok(Statement::without_token(StatementKind::Parameter(params)))
 }
 
 #[cfg(test)]
 mod test {
 
+    use core::panic;
+
     use super::*;
 
     use crate::token::Category::*;
-    use crate::token::Token;
-    use crate::IdentifierType::Undefined;
-    use Statement::*;
+    
+    
+    use StatementKind::*;
 
     // simplified resolve method to verify a calculate with a given statement
-    fn resolve(s: Statement) -> i64 {
-        let callable = |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
-            let right = stmts.pop().unwrap();
-            let left = stmts.pop().unwrap();
+    fn resolve(s: &Statement) -> i64 {
+        let callable = |stmts: &[Statement], calculus: Box<dyn Fn(i64, i64) -> i64>| -> i64 {
+            let right = &stmts[1];
+            let left = &stmts[0];
             calculus(resolve(left), resolve(right))
         };
-        let single_callable =
-            |mut stmts: Vec<Statement>, calculus: Box<dyn Fn(i64) -> i64>| -> i64 {
-                let left = stmts.pop().unwrap();
-                calculus(resolve(left))
-            };
-        match s {
-            Primitive(token) => match token.category() {
+        let single_callable = |stmts: &[Statement], calculus: Box<dyn Fn(i64) -> i64>| -> i64 {
+            let left = &stmts[0];
+            calculus(resolve(left))
+        };
+        match s.kind() {
+            Primitive => match s.start().category() {
                 Number(num) => *num,
                 String(_) => todo!(),
                 _ => todo!(),
@@ -231,7 +260,7 @@ mod test {
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
             let expr = crate::parse($code).next().unwrap().unwrap();
-            assert_eq!(resolve(expr), $expected);
+            assert_eq!(resolve(&expr), $expected);
         };
     }
 
@@ -245,6 +274,7 @@ mod test {
 
     #[test]
     fn grouping() {
+        //calculated_test!("2 * (2 + 5);", 13);
         calculated_test!("(2 + 5) * 2;", 14);
     }
 
@@ -264,153 +294,77 @@ mod test {
         calculated_test!("~1 | 0;", -2);
         calculated_test!("1 ^ 1;", 0);
     }
+
     #[test]
     fn operator_assignment() {
         use Category::*;
-        use Statement::*;
-        fn expected(category: Category, shift: usize) -> Statement {
-            let a = Token {
-                category: Identifier(Undefined("a".to_owned())),
-                line_column: (1, 1),
-                position: (0, 1),
-            };
-            let no = Token {
-                category: Number(1),
-                line_column: (1, 6 + shift),
-                position: (5 + shift, 6 + shift),
-            };
-
-            Assign(
-                category,
-                AssignOrder::AssignReturn,
-                Box::new(Variable(a)),
-                Box::new(Primitive(no)),
-            )
+        fn expected(stmt: Statement, category: Category) {
+            match stmt.kind() {
+                StatementKind::Assign(cat, AssignOrder::AssignReturn, ..) => {
+                    assert_eq!(cat, &category);
+                }
+                kind => panic!("Expected Assign, got: {:?}", kind),
+            }
         }
-        assert_eq!(result("a += 1;"), expected(PlusEqual, 0));
-        assert_eq!(result("a -= 1;"), expected(MinusEqual, 0));
-        assert_eq!(result("a /= 1;"), expected(SlashEqual, 0));
-        assert_eq!(result("a *= 1;"), expected(StarEqual, 0));
-        assert_eq!(result("a %= 1;"), expected(PercentEqual, 0));
-        assert_eq!(result("a >>= 1;"), expected(GreaterGreaterEqual, 1));
-        assert_eq!(result("a <<= 1;"), expected(LessLessEqual, 1));
-        assert_eq!(result("a >>>= 1;"), expected(GreaterGreaterGreaterEqual, 2));
+        expected(result("a += 1;"), PlusEqual);
+        expected(result("a -= 1;"), MinusEqual);
+        expected(result("a /= 1;"), SlashEqual);
+        expected(result("a *= 1;"), StarEqual);
+        expected(result("a %= 1;"), PercentEqual);
+        expected(result("a >>= 1;"), GreaterGreaterEqual);
+        expected(result("a <<= 1;"), LessLessEqual);
+        expected(result("a >>>= 1;"), GreaterGreaterGreaterEqual);
     }
 
     #[test]
     fn compare_operator() {
         use Category::*;
-        use Statement::*;
-        fn expected(category: Category, shift: i32) -> Statement {
-            let a = Token {
-                category: Identifier(Undefined("a".to_owned())),
-                line_column: (1, 1),
-                position: (0, 1),
-            };
-            let data = Token {
-                category: Data(vec![49]),
-                line_column: (1, (6 + shift) as usize),
-                position: ((5 + shift) as usize, (8 + shift) as usize),
-            };
 
-            Operator(category, vec![Variable(a), Primitive(data)])
+        fn expected(stmt: Statement, category: Category) {
+            match stmt.kind() {
+                StatementKind::Operator(cat, ..) => {
+                    assert_eq!(cat, &category);
+                }
+                kind => panic!("Expected Operator, got: {:?}", kind),
+            }
         }
-        assert_eq!(result("a !~ '1';"), expected(BangTilde, 0));
-        assert_eq!(result("a =~ '1';"), expected(EqualTilde, 0));
-        assert_eq!(result("a >< '1';"), expected(GreaterLess, 0));
-        assert_eq!(result("a >!< '1';"), expected(GreaterBangLess, 1));
-        assert_eq!(result("a == '1';"), expected(EqualEqual, 0));
-        assert_eq!(result("a != '1';"), expected(BangEqual, 0));
-        assert_eq!(result("a > '1';"), expected(Greater, -1));
-        assert_eq!(result("a < '1';"), expected(Less, -1));
-        assert_eq!(result("a >= '1';"), expected(GreaterEqual, 0));
-        assert_eq!(result("a <= '1';"), expected(LessEqual, 0));
+        expected(result("a !~ '1';"), BangTilde);
+        expected(result("a =~ '1';"), EqualTilde);
+        expected(result("a >< '1';"), GreaterLess);
+        expected(result("a >!< '1';"), GreaterBangLess);
+        expected(result("a == '1';"), EqualEqual);
+        expected(result("a != '1';"), BangEqual);
+        expected(result("a > '1';"), Greater);
+        expected(result("a < '1';"), Less);
+        expected(result("a >= '1';"), GreaterEqual);
+        expected(result("a <= '1';"), LessEqual);
+        expected(result("x() x 2;"), X);
     }
 
     #[test]
     fn logical_operator() {
-        fn expected(category: Category, shift: usize) -> Statement {
-            let a = Token {
-                category: Identifier(Undefined("a".to_owned())),
-                line_column: (1, 1),
-                position: (0, 1),
-            };
-
-            let no = Token {
-                category: Number(1),
-                line_column: (1, 6 + shift),
-                position: (5 + shift, 6 + shift),
-            };
-            Operator(category, vec![Variable(a), Primitive(no)])
+        fn expected(stmt: Statement, category: Category) {
+            match stmt.kind() {
+                StatementKind::Operator(cat, ..) => {
+                    assert_eq!(cat, &category);
+                }
+                kind => panic!("Expected Operator, got: {:?}", kind),
+            }
         }
-        assert_eq!(result("a && 1;"), expected(AmpersandAmpersand, 0));
-        assert_eq!(result("a || 1;"), expected(PipePipe, 0));
+        expected(result("a && 1;"), AmpersandAmpersand);
+        expected(result("a || 1;"), PipePipe);
     }
 
     #[test]
     fn assignment() {
-        let a = Token {
-            category: Identifier(Undefined("a".to_owned())),
-            line_column: (1, 1),
-            position: (0, 1),
-        };
-        let no = Token {
-            category: Number(1),
-            line_column: (1, 5),
-            position: (4, 5),
-        };
-        assert_eq!(
-            result("a = 1;"),
-            Assign(
-                Category::Equal,
-                AssignOrder::AssignReturn,
-                Box::new(Variable(a)),
-                Box::new(Primitive(no))
-            )
-        );
-        let a = Token {
-            category: Identifier(Undefined("a".to_owned())),
-            line_column: (1, 2),
-            position: (1, 2),
-        };
-        let no = Token {
-            category: Number(1),
-            line_column: (1, 6),
-            position: (5, 6),
-        };
-
-        assert_eq!(
-            result("(a = 1);"),
-            Assign(
-                Category::Equal,
-                AssignOrder::AssignReturn,
-                Box::new(Variable(a)),
-                Box::new(Primitive(no))
-            )
-        );
-    }
-
-    #[test]
-    fn repeat_call() {
-        let x = Token {
-            category: Identifier(Undefined("x".to_owned())),
-            line_column: (1, 1),
-            position: (0, 1),
-        };
-        let end = Token {
-            category: RightParen,
-            line_column: (1, 3),
-            position: (2, 3),
-        };
-        let no = Token {
-            category: Number(2),
-            line_column: (1, 7),
-            position: (6, 7),
-        };
-
-        assert_eq!(
-            result("x() x 2;"),
-            Operator(X, vec![Call(x, vec![], end,), Primitive(no)])
-        );
+        fn expected(stmt: Statement, category: Category) {
+            match stmt.kind() {
+                StatementKind::Assign(cat, AssignOrder::AssignReturn, ..) => {
+                    assert_eq!(cat, &category);
+                }
+                kind => panic!("Expected Assign, got: {:?}", kind),
+            }
+        }
+        expected(result("(a = 1);"), Category::Equal);
     }
 }

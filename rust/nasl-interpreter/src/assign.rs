@@ -9,7 +9,7 @@ use nasl_syntax::{AssignOrder, Statement, TokenCategory};
 use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
 use nasl_builtin_utils::ContextType;
 use nasl_syntax::NaslValue;
-use Statement::*;
+use nasl_syntax::StatementKind::*;
 
 /// Is a trait to handle function assignments within nasl.
 pub(crate) trait AssignExtension {
@@ -198,12 +198,13 @@ where
         right: &Statement,
     ) -> InterpretResult {
         let (key, lookup) = {
-            match left {
-                Variable(ref token) => (Self::identifier(token)?, None),
-                Array(ref token, Some(stmt), _) => {
-                    (Self::identifier(token)?, Some(self.resolve(stmt)?))
-                }
-                Array(ref token, None, _) => (Self::identifier(token)?, None),
+            match left.kind() {
+                Variable => (Self::identifier(left.as_token())?, None),
+                Array(Some(stmt)) => (
+                    Self::identifier(left.as_token())?,
+                    Some(self.resolve(stmt)?),
+                ),
+                Array(None) => (Self::identifier(left.as_token())?, None),
                 _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };
