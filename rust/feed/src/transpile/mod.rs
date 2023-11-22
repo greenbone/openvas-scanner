@@ -11,7 +11,7 @@ use crate::{verify, NaslFileFinder};
 pub enum FindParameter {
     /// Find a parameter by name
     Name(String),
-    /// Find a parameter by name
+    /// Find a parameter by name and value
     NameValue(String, String),
     /// Find a parameter by index
     Index(usize),
@@ -59,7 +59,7 @@ pub enum ParameterOperation {
     RemoveNamed(String),
     /// Removes a parameter found by index
     Remove(usize),
-    /// Removes a parameter found by index
+    /// Removes all parameter
     RemoveAll,
     /// Renames a parameter
     Rename {
@@ -107,7 +107,7 @@ impl std::fmt::Display for ParameterOperation {
 pub enum Replace {
     /// Replaces name of a function
     Name(String),
-    /// Replaces name of a function
+    /// Remove finding
     Remove,
     /// Replace parameter
     Parameter(ParameterOperation),
@@ -258,7 +258,6 @@ impl<'a> Matcher for FunctionNameMatcher<'a> {
 impl Find {
     /// Checks if statement matches the wanted search operation
     pub fn matches(&self, s: &Statement) -> bool {
-        //  FunctionNameMatcher { name, parameter }.matches(s)
         let (name, parameter) = match self {
             Find::FunctionByName(name) => (Some(name as &str), None),
             Find::FunctionByParameter(x) => (None, Some(x as &[_])),
@@ -270,7 +269,7 @@ impl Find {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-/// Describes what should be replaces
+/// Describes what should be replaced
 pub struct ReplaceCommand {
     /// The identifier to find
     pub find: Find,
