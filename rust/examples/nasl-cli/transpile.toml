@@ -6,28 +6,33 @@
 # nasl-cli -v feed transpile -p /tmp/feed -r example/replace.toml
 # ```
 
+# Transforms
+# > register_product(cpe: ..., location: ..., port: ..., service: 'www')
+# To:
+# > register_product(cpe: ..., location: ..., port: ..., service: 'www', service_to_be: 'world-wide-web')
 [[cmds]]
 
 [cmds.find]
 FunctionByNameAndParameter = [
     "register_product",
     [
-    { Name = "cpe" },
-    { Name = "location" },
-    { Name = "port" },
-    { NameValue = [
-    "service",
-    "\"www\"",
-] },
-],
+        { Name = "cpe" },
+        { Name = "location" },
+        { Name = "port" },
+        { NameValue = [
+            "service",
+            "\"www\"",
+        ] },
+    ],
 ]
 
 [cmds.with.Parameter.Push]
-Named = [
-    "service_to_be",
-    "\"world-wide-web\"",
-]
+Named = [ "service_to_be", "\"world-wide-web\"", ]
 
+# Transforms
+# > register_product(cpe: ..., location: ..., port: ..., service: 'www', service_to_be: 'world-wide-web')
+# To:
+# > register_product(cpe: ..., location: ..., port: ..., service_to_be: 'world-wide-web')
 [[cmds]]
 
 [cmds.find]
@@ -45,6 +50,10 @@ FunctionByNameAndParameter = [
 [cmds.with.Parameter]
 RemoveNamed = "service"
 
+# Transforms
+# > register_product(cpe: ..., location: ..., port: ..., service_to_be: 'world-wide-web')
+# To:
+# > register_product(cpe: ..., location: ..., port: ..., service: 'world-wide-web')
 [[cmds]]
 
 [cmds.find]
@@ -54,6 +63,10 @@ FunctionByName = "register_product"
 previous = "service_to_be"
 new = "service"
 
+# Transforms
+# > register_host_detail
+# To:
+# > add_host_detail
 [[cmds]]
 
 [cmds.find]

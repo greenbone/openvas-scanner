@@ -264,7 +264,6 @@ impl Hasher {
 
 /// Loads a given hashsums file and lazily verifies the loaded filename key of the sums file and verifies
 /// the hash within the sums file with an calculated hash of the found content.
-//
 pub struct HashSumNameLoader<'a, R> {
     reader: &'a dyn AsBufReader<R>,
     hasher: Hasher,

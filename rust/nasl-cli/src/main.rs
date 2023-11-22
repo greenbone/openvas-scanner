@@ -95,7 +95,7 @@ enum FeedAction {
         ///
         /// The rules describe how to find a certain element and how to replace it.
         /// Currently only toml in the following format is supported:
-        /// ```text
+        /// ```toml
         /// [[cmds]]
         ///
         /// [cmds.find]
@@ -169,7 +169,6 @@ impl RunAction<()> for FeedAction {
                     cmds: Vec<feed::transpile::ReplaceCommand>,
                 }
 
-                // TODO add from impl
                 let rules = std::fs::read_to_string(rules).unwrap();
                 let rules: Wrapper = toml::from_str(&rules).unwrap();
                 let rules = rules.cmds;
@@ -470,7 +469,6 @@ When piping a scan json it is enriched with the scan-config xml and may the port
                         verbose: verbose > 0,
                     },
                 }
-                // ah
             }
             _ => unreachable!("subcommand_required prevents None"),
         },
