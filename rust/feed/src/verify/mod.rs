@@ -301,7 +301,7 @@ impl<'a, R: Read> HashSumNameLoader<'a, R> {
 /// Defines a file name loader to load filenames
 pub trait FileNameLoader {
     /// Returns the next filename
-    fn next_filename(&mut self) -> Option<Result<HashSumFileItem<&dyn Read>, Error>>;
+    fn next_filename(&mut self) -> Option<Result<String, Error>>;
 }
 
 impl<'a, R> Iterator for HashSumNameLoader<'a, R>
