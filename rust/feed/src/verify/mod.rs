@@ -299,46 +299,59 @@ impl<'a, R: Read> HashSumNameLoader<'a, R> {
 /// Defines a file name loader to load filenames
 pub trait FileNameLoader {
     /// Returns the next filename
-    fn next_filename(&mut self) -> Option<Result<String, Error>>;
+    fn next_filename(&mut self) -> Option<Result<HashSumFileItem<&dyn Read>, Error>>;
 }
 
-impl<R> FileNameLoader for HashSumNameLoader<'_, R>
+impl<'a, R> Iterator for HashSumNameLoader<'a, R>
 where
     R: Read,
 {
-    fn next_filename(&mut self) -> Option<Result<String, Error>> {
-        let verify_sum_line = |l: &str| -> Result<String, Error> {
-            let (expected, name) = l
-                .rsplit_once("  ")
-                .ok_or_else(|| Error::SumsFileCorrupt(self.hasher.clone()))?;
-            let actual = self
-                .hasher
-                .hash(&mut self.reader.as_bufreader(name)?, name)?;
-            let name = name.to_owned();
-            if actual != expected {
-                Err(Error::HashInvalid {
-                    expected: expected.into(),
-                    actual,
-                    key: name,
-                })
-            } else {
-                Ok(name)
-            }
-        };
+    type Item = Result<HashSumFileItem<'a, R>, Error>;
 
+    fn next(&mut self) -> Option<Self::Item> {
         match self.buf.next()? {
-            Ok(x) => Some(verify_sum_line(&x)),
+            Ok(line) => {
+                let (hashsum, file_name) = match line.rsplit_once("  ") {
+                    Some((hashsum, file_name)) => (hashsum, file_name),
+                    None => return Some(Err(Error::SumsFileCorrupt(self.hasher.clone()))),
+                };
+
+                Some(Ok(HashSumFileItem {
+                    file_name: file_name.to_string(),
+                    hashsum: hashsum.to_string(),
+                    hasher: self.hasher.clone(),
+                    reader: self.reader,
+                }))
+            }
             Err(_) => Some(Err(Error::SumsFileCorrupt(self.hasher.clone()))),
         }
     }
 }
-impl<R> Iterator for HashSumNameLoader<'_, R>
-where
-    R: Read,
-{
-    type Item = Result<String, Error>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next_filename()
+pub struct HashSumFileItem<'a, R> {
+    file_name: String,
+    hashsum: String,
+    hasher: Hasher,
+    reader: &'a dyn AsBufReader<R>,
+}
+
+impl<'a, R: Read> HashSumFileItem<'a, R> {
+    pub fn verify(&self) -> Result<(), Error> {
+        let hashsum = self.hasher.hash(
+            &mut self.reader.as_bufreader(&self.file_name)?,
+            &self.file_name,
+        )?;
+        if self.hashsum != self.hashsum {
+            return Err(Error::HashInvalid {
+                expected: self.hashsum.clone(),
+                actual: hashsum,
+                key: self.file_name.clone(),
+            });
+        }
+        Ok(())
+    }
+
+    pub fn get_filename(&self) -> String {
+        self.file_name.clone()
     }
 }

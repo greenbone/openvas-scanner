@@ -6,7 +6,7 @@ mod error;
 
 pub use error::Error;
 
-use std::{fmt::Display, fs::File, marker::PhantomData};
+use std::{fmt::Display, fs::File, io::Read, marker::PhantomData};
 
 use nasl_interpreter::{
     logger::DefaultLogger, AsBufReader, Context, ContextType, Interpreter, Loader, NaslValue,
@@ -14,7 +14,7 @@ use nasl_interpreter::{
 };
 use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
 
-use crate::verify::{self, signature_check};
+use crate::verify::{self, signature_check, HashSumFileItem};
 
 pub use self::error::ErrorKind;
 
@@ -69,12 +69,13 @@ pub fn feed_version<K: Default + AsRef<str>>(
     Ok(feed_version)
 }
 
-impl<S, L, V, K> Update<S, L, V, K>
+impl<'a, S, L, V, K, R> Update<S, L, V, K>
 where
     S: Sync + Send + Dispatcher<K>,
     K: AsRef<str> + Display + Default + From<String>,
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<String, verify::Error>>,
+    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
+    R: Read + 'a,
 {
     /// Creates an updater. This updater is implemented as a iterator.
     ///
@@ -167,11 +168,12 @@ where
     }
 }
 
-impl<S, L, V, K> Iterator for Update<S, L, V, K>
+impl<'a, S, L, V, K, R> Iterator for Update<S, L, V, K>
 where
     S: Sync + Send + Dispatcher<K>,
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<String, verify::Error>>,
+    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
+    R: Read + 'a,
     K: AsRef<str> + Display + Default + From<String>,
 {
     type Item = Result<String, Error>;
@@ -179,13 +181,16 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.verifier.find(|x| {
             if let Ok(x) = x {
-                x.ends_with(".nasl")
+                x.get_filename().ends_with(".nasl")
             } else {
                 true
             }
         }) {
             Some(Ok(k)) => {
-                let k: K = k.into();
+                if let Err(e) = k.verify() {
+                    return Some(Err(e.into()));
+                }
+                let k: K = k.get_filename().into();
                 self.single(&k)
                     .map(|_| k.as_ref().into())
                     .map_err(|kind| Error {

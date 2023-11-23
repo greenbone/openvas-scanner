@@ -4,12 +4,15 @@
 
 //! Is a module to get oids within a feed
 
-use std::fs::File;
+use std::{fs::File, io::Read};
 
 use nasl_interpreter::{AsBufReader, Loader};
 use nasl_syntax::{IdentifierType, Statement, TokenCategory};
 
-use crate::{update, verify};
+use crate::{
+    update,
+    verify::{self, HashSumFileItem},
+};
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
 pub struct Oid<L, V> {
@@ -17,10 +20,11 @@ pub struct Oid<L, V> {
     loader: L,
     verifier: V,
 }
-impl<L, V> Oid<L, V>
+impl<'a, L, V, R> Oid<L, V>
 where
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<String, verify::Error>>,
+    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
+    R: Read + 'a,
 {
     /// Creates an oid finder. Returns a tuple of (filename, oid).
     ///
@@ -66,26 +70,35 @@ where
     }
 }
 
-impl<L, V> Iterator for Oid<L, V>
+impl<'a, L, V, R> Iterator for Oid<L, V>
 where
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<String, verify::Error>>,
+    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
+    R: Read + 'a,
 {
     type Item = Result<(String, String), update::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.verifier.find(|x| {
             if let Ok(x) = x {
-                x.ends_with(".nasl")
+                x.get_filename().ends_with(".nasl")
             } else {
                 true
             }
         }) {
-            Some(Ok(k)) => Some(
-                self.single(k.clone())
-                    .map(|x| (k.clone(), x))
-                    .map_err(|e| update::Error { kind: e, key: k }),
-            ),
+            Some(Ok(k)) => {
+                if let Err(e) = k.verify() {
+                    return Some(Err(e.into()));
+                }
+                Some(
+                    self.single(k.get_filename())
+                        .map(|x| (k.get_filename(), x))
+                        .map_err(|e| update::Error {
+                            kind: e,
+                            key: k.get_filename(),
+                        }),
+                )
+            }
             Some(Err(e)) => Some(Err(e.into())),
             None => None,
         }
