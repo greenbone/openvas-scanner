@@ -1,4 +1,4 @@
-use std::{process::Command, env};
+use std::{env, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=install-gcrypt.sh");

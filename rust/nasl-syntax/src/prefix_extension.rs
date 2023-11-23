@@ -50,10 +50,10 @@ impl<'a> Lexer<'a> {
                 Box::new(Statement::Variable(value)),
                 Box::new(Statement::NoOp(None)),
             )),
-            (_, Statement::Array(token, resolver)) => Ok(Statement::Assign(
+            (_, Statement::Array(token, resolver, end)) => Ok(Statement::Assign(
                 assign,
                 AssignOrder::AssignReturn,
-                Box::new(Statement::Array(token, resolver)),
+                Box::new(Statement::Array(token, resolver, end)),
                 Box::new(Statement::NoOp(None)),
             )),
             _ => Err(unexpected_token!(token)),
@@ -86,7 +86,7 @@ impl<'a> Prefix for Lexer<'a> {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp => Ok((Done(token.category().clone()), Statement::NoOp(Some(token)))),
+            Operation::NoOp => Ok((Done(token.clone()), Statement::NoOp(Some(token)))),
         }
     }
 }
@@ -107,18 +107,17 @@ mod test {
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
     }
-    fn token(category: Category, start: usize, end: usize) -> Token {
-        Token {
-            category,
-            position: (start, end),
-        }
-    }
 
     #[test]
     fn operations() {
-        fn expected(category: Category) -> Statement {
-            Statement::Operator(category, vec![Statement::Primitive(token(Number(1), 1, 2))])
-        }
+        let no = Token {
+            category: Number(1),
+            line_column: (1, 2),
+            position: (1, 2),
+        };
+        let expected = |category: Category| -> Statement {
+            Statement::Operator(category, vec![Statement::Primitive(no.clone())])
+        };
 
         assert_eq!(result("-1;"), expected(Category::Minus));
         assert_eq!(result("+1;"), expected(Category::Plus));
@@ -128,8 +127,19 @@ mod test {
 
     #[test]
     fn single_statement() {
-        assert_eq!(result("1;"), Primitive(token(Number(1), 1, 1)));
-        assert_eq!(result("'a';"), Primitive(token(Data(vec![97]), 1, 1)));
+        let no = Token {
+            category: Number(1),
+            line_column: (1, 1),
+            position: (0, 1),
+        };
+        let data = Token {
+            category: Data(vec![97]),
+            line_column: (1, 1),
+            position: (0, 3),
+        };
+
+        assert_eq!(result("1;"), Primitive(no));
+        assert_eq!(result("'a';"), Primitive(data));
     }
 
     #[test]
@@ -140,7 +150,8 @@ mod test {
                 vec![
                     Primitive(Token {
                         category: Number(1),
-                        position: (1, 1),
+                        line_column: (1, 1),
+                        position: (0, 1),
                     }),
                     Operator(
                         Star,
@@ -150,13 +161,15 @@ mod test {
                                 AssignOrder::AssignReturn,
                                 Box::new(Variable(Token {
                                     category: Identifier(Undefined("a".to_owned())),
-                                    position: (1, 7),
+                                    line_column: (1, 7),
+                                    position: (6, 7),
                                 })),
                                 Box::new(NoOp(None)),
                             ),
                             Primitive(Token {
                                 category: Number(1),
-                                position: (1, 11),
+                                line_column: (1, 11),
+                                position: (10, 11),
                             }),
                         ],
                     ),
@@ -176,12 +189,19 @@ mod test {
                 Box::new(Array(
                     Token {
                         category: Identifier(Undefined("a".to_owned())),
-                        position: (1, 3),
+                        line_column: (1, 3),
+                        position: (2, 3),
                     },
                     Some(Box::new(Primitive(Token {
                         category: Number(0),
-                        position: (1, 5),
+                        line_column: (1, 5),
+                        position: (4, 5),
                     }))),
+                    Some(Token {
+                        category: RightBrace,
+                        line_column: (1, 6),
+                        position: (5, 6),
+                    }),
                 )),
                 Box::new(NoOp(None)),
             )

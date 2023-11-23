@@ -64,6 +64,7 @@ impl SyntaxError {
 /// syntax_error!(
 ///     ErrorKind::UnexpectedToken(Token {
 ///         category: TokenCategory::UnknownSymbol,
+///         line_column: (42, 42),
 ///         position: (42, 42),
 ///     })
 /// );
@@ -85,6 +86,7 @@ macro_rules! syntax_error {
 /// use nasl_syntax::{unexpected_token, Token, TokenCategory};
 /// unexpected_token!(Token {
 ///     category: TokenCategory::UnknownSymbol,
+///     line_column: (42, 42),
 ///     position: (42, 42),
 /// });
 /// ```
@@ -144,6 +146,7 @@ macro_rules! unclosed_statement {
 /// unclosed_token!(Token {
 ///     category: TokenCategory::UnknownSymbol,
 ///     position: (42, 42),
+///     line_column: (42, 42),
 /// });
 /// ```
 #[macro_export]

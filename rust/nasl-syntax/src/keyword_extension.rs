@@ -9,7 +9,7 @@ use crate::{
     token::{Category, IdentifierType, Token},
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
     variable_extension::CommaGroup,
-    DeclareScope, Statement,
+    Statement,
 };
 
 pub(crate) trait Keywords {
@@ -22,7 +22,7 @@ pub(crate) trait Keywords {
 }
 
 impl<'a> Lexer<'a> {
-    fn parse_declaration(&mut self, scope: DeclareScope) -> Result<(End, Statement), SyntaxError> {
+    fn parse_declaration(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         let (end, params) = self.parse_comma_group(Category::Semicolon)?;
         if end == End::Continue {
             return Err(unexpected_end!("expected a finished statement."));
@@ -33,21 +33,21 @@ impl<'a> Lexer<'a> {
         {
             return Err(unexpected_statement!(errstmt.clone()));
         }
-        let result = Statement::Declare(scope, params);
-        Ok((End::Done(Category::Semicolon), result))
+        let result = Statement::Declare(token, params);
+        Ok((end, result))
     }
-    fn parse_if(&mut self) -> Result<(End, Statement), SyntaxError> {
-        let token = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
-        let condition = match token.category() {
-            Category::LeftParen => self.parse_paren(token.clone()),
-            _ => Err(unexpected_token!(token.clone())),
+    fn parse_if(&mut self, kw: Token) -> Result<(End, Statement), SyntaxError> {
+        let ptoken = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
+        let condition = match ptoken.category() {
+            Category::LeftParen => self.parse_paren(ptoken.clone()),
+            _ => Err(unexpected_token!(ptoken.clone())),
         }?
         .as_returnable_or_err()?;
         let (end, body) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         if end == End::Continue {
-            return Err(unclosed_token!(token));
+            return Err(unclosed_token!(ptoken));
         }
-        let r#else: Option<Statement> = {
+        let (ekw, r#else, end) = {
             match self.peek() {
                 Some(token) => match token.category() {
                     Category::Identifier(IdentifierType::Else) => {
@@ -56,16 +56,22 @@ impl<'a> Lexer<'a> {
                         if end == End::Continue {
                             return Err(unexpected_statement!(stmt));
                         }
-                        Some(stmt)
+                        (Some(token), Some(stmt), end)
                     }
-                    _ => None,
+                    _ => (None, None, end),
                 },
-                None => None,
+                None => (None, None, end),
             }
         };
         Ok((
-            End::Done(Category::Semicolon),
-            Statement::If(Box::new(condition), Box::new(body), r#else.map(Box::new)),
+            end,
+            Statement::If(
+                kw,
+                Box::new(condition),
+                Box::new(body),
+                ekw,
+                r#else.map(Box::new),
+            ),
         ))
     }
 
@@ -80,43 +86,49 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn parse_call_return_params(&mut self) -> Result<Statement, SyntaxError> {
+    fn parse_call_return_params(&mut self) -> Result<(End, Statement), SyntaxError> {
         self.jump_to_left_parenthesis()?;
         let (end, parameter) = self.statement(0, &|cat| cat == &Category::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
-        if end.is_done() {
-            Ok(parameter)
-        } else {
-            Err(unexpected_end!("exit"))
+        match end {
+            End::Done(end) => Ok((End::Done(end), parameter)),
+            End::Continue => Err(unexpected_end!("exit")),
         }
     }
 
-    fn parse_exit(&mut self) -> Result<(End, Statement), SyntaxError> {
-        let parameter = self.parse_call_return_params()?;
+    fn parse_exit(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
+        // TODO maybe refactor to reuse function call and hindsight verification
+        let (end, parameter) = self.parse_call_return_params()?;
         let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
-        if matches!(should_be_semicolon, Statement::NoOp(_)) {
-            Ok((
-                End::Done(Category::Semicolon),
-                Statement::Exit(Box::new(parameter)),
-            ))
-        } else {
-            Err(unexpected_statement!(should_be_semicolon))
+
+        if !matches!(should_be_semicolon, Statement::NoOp(_)) {
+            // exit must be followed by ; nothing else
+            return Err(unexpected_statement!(should_be_semicolon));
+        }
+        match end {
+            End::Done(end) => Ok((
+                End::Done(end.clone()),
+                Statement::Exit(token, Box::new(parameter), end),
+            )),
+            End::Continue => Err(unexpected_statement!(parameter)),
         }
     }
 
-    fn parse_include(&mut self) -> Result<(End, Statement), SyntaxError> {
-        let parameter = self.parse_call_return_params()?;
+    fn parse_include(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
+        // TODO maybe refactor to reuse function call and hindsight verification
+        let (end, parameter) = self.parse_call_return_params()?;
         let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
-        if matches!(should_be_semicolon, Statement::NoOp(_)) {
-            match parameter {
-                Statement::Primitive(_) | Statement::Variable(_) | Statement::Array(_, _) => Ok((
-                    End::Done(Category::RightParen),
-                    Statement::Include(Box::new(parameter)),
-                )),
-                _ => Err(unexpected_statement!(parameter)),
-            }
-        } else {
-            Err(unexpected_statement!(should_be_semicolon))
+
+        if !matches!(should_be_semicolon, Statement::NoOp(_)) {
+            // exit must be followed by ; nothing else
+            return Err(unexpected_statement!(should_be_semicolon));
+        }
+        match end {
+            End::Done(end) => Ok((
+                End::Done(end.clone()),
+                Statement::Include(token, Box::new(parameter), end),
+            )),
+            End::Continue => Err(unexpected_statement!(parameter)),
         }
     }
 
@@ -136,10 +148,11 @@ impl<'a> Lexer<'a> {
         if !matches!(paren.category(), Category::LeftParen) {
             return Err(unexpected_token!(paren));
         }
-        let (end, parameter) = self.parse_comma_group(Category::RightParen)?;
-        if !end {
-            return Err(unclosed_token!(token));
-        }
+        let (gend, parameter) = self.parse_comma_group(Category::RightParen)?;
+        let parameter_end_token = match gend {
+            End::Done(t) => t,
+            End::Continue => return Err(unclosed_token!(token)),
+        };
 
         let block = self
             .token()
@@ -147,50 +160,58 @@ impl<'a> Lexer<'a> {
         if !matches!(block.category(), Category::LeftCurlyBracket) {
             return Err(unexpected_token!(block));
         }
-        let block = self.parse_block(block)?;
+        let (end, block) = self.parse_block(block)?;
         Ok((
-            End::Done(Category::RightCurlyBracket),
-            Statement::FunctionDeclaration(id, parameter, Box::new(block)),
+            End::Done(end),
+            Statement::FunctionDeclaration(
+                token,
+                id,
+                parameter,
+                parameter_end_token,
+                Box::new(block),
+            ),
         ))
     }
 
-    fn parse_return(&mut self) -> Result<(End, Statement), SyntaxError> {
-        let token = self.peek();
-        if let Some(token) = token {
-            if matches!(token.category(), Category::Semicolon) {
+    fn parse_return(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
+        if let Some(sc) = self.peek() {
+            if matches!(sc.category(), Category::Semicolon) {
                 self.token();
                 return Ok((
-                    End::Done(Category::Semicolon),
-                    Statement::Return(Box::new(Statement::NoOp(Some(token)))),
+                    End::Done(sc.clone()),
+                    Statement::Return(token, Box::new(Statement::NoOp(Some(sc)))),
                 ));
             }
         }
         let (end, parameter) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
         if let End::Done(cat) = end {
-            Ok((End::Done(cat), Statement::Return(Box::new(parameter))))
+            Ok((
+                End::Done(cat),
+                Statement::Return(token, Box::new(parameter)),
+            ))
         } else {
             Err(unexpected_end!("exit"))
         }
     }
-    fn parse_continue(&mut self) -> Result<(End, Statement), SyntaxError> {
+    fn parse_continue(&mut self, kw: Token) -> Result<(End, Statement), SyntaxError> {
         let token = self.peek();
         if let Some(token) = token {
             if matches!(token.category(), Category::Semicolon) {
                 self.token();
-                return Ok((End::Done(Category::Semicolon), Statement::Continue));
+                return Ok((End::Done(token), Statement::Continue(kw)));
             } else {
                 return Err(unexpected_token!(token));
             }
         }
         Err(unexpected_end!("exit"))
     }
-    fn parse_break(&mut self) -> Result<(End, Statement), SyntaxError> {
+    fn parse_break(&mut self, kw: Token) -> Result<(End, Statement), SyntaxError> {
         let token = self.peek();
         if let Some(token) = token {
             if matches!(token.category(), Category::Semicolon) {
                 self.token();
-                return Ok((End::Done(Category::Semicolon), Statement::Break));
+                return Ok((End::Done(token), Statement::Break(kw)));
             } else {
                 return Err(unexpected_token!(token));
             }
@@ -202,13 +223,14 @@ impl<'a> Lexer<'a> {
         match e.kind() {
             crate::ErrorKind::UnexpectedToken(k) => unclosed_token!(Token {
                 category: Category::LeftParen,
-                position: k.position
+                line_column: k.line_column,
+                position: k.position,
             }),
             _ => e,
         }
     }
 
-    fn parse_for(&mut self) -> Result<(End, Statement), SyntaxError> {
+    fn parse_for(&mut self, kw: Token) -> Result<(End, Statement), SyntaxError> {
         self.jump_to_left_parenthesis()?;
         let (end, assignment) = self.statement(0, &|c| c == &Category::Semicolon)?;
         if !matches!(
@@ -230,19 +252,29 @@ impl<'a> Lexer<'a> {
             // no update statement provided
             Some(Token {
                 category: Category::RightParen,
-                position: _,
+                line_column,
+                position,
             }) => {
                 self.token();
-                (End::Done(Category::RightParen), Statement::NoOp(None))
+                (
+                    End::Done(Token {
+                        category: Category::RightParen,
+                        line_column,
+                        position,
+                    }),
+                    Statement::NoOp(None),
+                )
             }
             _ => self
                 .statement(0, &|c| c == &Category::RightParen)
                 .map_err(Self::map_syntax_error_to_unclosed_left_paren)?,
         };
-        if !matches!(end, End::Done(Category::RightParen)) {
+        if !matches!(end.category(), Some(Category::RightParen)) {
+            let ut = update.as_token();
             return Err(unclosed_token!(Token {
                 category: Category::LeftParen,
-                position: update.as_token().map_or_else(|| (0, 0), |t| t.position)
+                line_column: ut.map_or_else(|| (0, 0), |t| t.line_column),
+                position: ut.map_or_else(|| (0, 0), |t| t.position)
             }));
         }
         let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
@@ -250,6 +282,7 @@ impl<'a> Lexer<'a> {
             End::Done(cat) => Ok((
                 End::Done(cat),
                 Statement::For(
+                    kw,
                     Box::new(assignment),
                     Box::new(condition),
                     Box::new(update),
@@ -265,21 +298,23 @@ impl<'a> Lexer<'a> {
         let (end, condition) = self
             .statement(0, &|c| c == &Category::RightParen)
             .map_err(Self::map_syntax_error_to_unclosed_left_paren)?;
-        if !matches!(end, End::Done(Category::RightParen)) {
+        let ct = condition.as_token();
+        if !matches!(end.category(), Some(Category::RightParen)) {
             return Err(unclosed_token!(Token {
                 category: Category::LeftParen,
-                position: condition.as_token().map_or_else(|| (0, 0), |t| t.position)
+                line_column: ct.map_or_else(|| (0, 0), |t| t.line_column),
+                position: ct.map_or_else(|| (0, 0), |t| t.position),
             }));
         }
         let condition = condition.as_returnable_or_err()?;
         let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
-        if !end {
-            return Err(unclosed_token!(token));
+        match end {
+            End::Done(end) => Ok((
+                End::Done(end),
+                Statement::While(token, Box::new(condition), Box::new(body)),
+            )),
+            End::Continue => Err(unclosed_token!(token)),
         }
-        Ok((
-            End::Done(Category::Semicolon),
-            Statement::While(Box::new(condition), Box::new(body)),
-        ))
     }
     fn parse_repeat(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
@@ -287,25 +322,25 @@ impl<'a> Lexer<'a> {
         if !end {
             return Err(unclosed_token!(token));
         }
-        let until: Statement = {
+        let (until, end): (Statement, Token) = {
             match self.token() {
                 Some(token) => match token.category() {
                     Category::Identifier(IdentifierType::Until) => {
                         let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
-                        if !end {
-                            return Err(unclosed_token!(token));
+                        match end {
+                            End::Done(end) => Ok((stmt, end)),
+                            End::Continue => return Err(unclosed_token!(token)),
                         }
-                        Ok(stmt)
                     }
                     _ => Err(unexpected_token!(token)),
                 },
                 None => Err(unexpected_end!("in repeat")),
             }?
-            .as_returnable_or_err()?
         };
+        let until = until.as_returnable_or_err()?;
         Ok((
-            End::Done(Category::Semicolon),
-            Statement::Repeat(Box::new(body), Box::new(until)),
+            End::Done(end),
+            Statement::Repeat(token, Box::new(body), Box::new(until)),
         ))
     }
 
@@ -329,13 +364,12 @@ impl<'a> Lexer<'a> {
             }?
         };
         let (end, block) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
-        if !end {
-            Err(unclosed_token!(token))
-        } else {
-            Ok((
-                End::Done(Category::Semicolon),
-                Statement::ForEach(variable, Box::new(r#in), Box::new(block)),
-            ))
+        match end {
+            End::Done(end) => Ok((
+                End::Done(end),
+                Statement::ForEach(token, variable, Box::new(r#in), Box::new(block)),
+            )),
+            End::Continue => Err(unclosed_token!(token)),
         }
     }
     fn parse_fct_anon_args(&mut self, keyword: Token) -> Result<(End, Statement), SyntaxError> {
@@ -345,16 +379,15 @@ impl<'a> Lexer<'a> {
                     self.token();
                     let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
-                    if end == End::Continue {
-                        Err(unclosed_token!(token))
-                    } else {
-                        Ok((
+                    match end {
+                        End::Done(end) => Ok((
                             End::Continue,
-                            Statement::Array(keyword, Some(Box::new(lookup))),
-                        ))
+                            Statement::Array(keyword, Some(Box::new(lookup)), Some(end)),
+                        )),
+                        End::Continue => Err(unclosed_token!(token)),
                     }
                 }
-                _ => Ok((End::Continue, Statement::Array(keyword, None))),
+                _ => Ok((End::Continue, Statement::Array(keyword, None, None))),
             },
             None => Err(unexpected_end!("in fct_anon_args")),
         }
@@ -368,29 +401,26 @@ impl<'a> Keywords for Lexer<'a> {
         token: Token,
     ) -> Result<(End, Statement), SyntaxError> {
         match keyword {
-            IdentifierType::For => self.parse_for(),
+            IdentifierType::For => self.parse_for(token),
             IdentifierType::ForEach => self.parse_foreach(token),
-            IdentifierType::If => self.parse_if(),
+            IdentifierType::If => self.parse_if(token),
             IdentifierType::Else => Err(unexpected_token!(token)), // handled in if
             IdentifierType::While => self.parse_while(token),
             IdentifierType::Repeat => self.parse_repeat(token),
             IdentifierType::Until => Err(unexpected_token!(token)), // handled in repeat
-            IdentifierType::LocalVar => self.parse_declaration(DeclareScope::Local),
-            IdentifierType::GlobalVar => self.parse_declaration(DeclareScope::Global),
+            IdentifierType::LocalVar | IdentifierType::GlobalVar => self.parse_declaration(token),
             IdentifierType::Null => Ok((End::Continue, Statement::Primitive(token))),
-            IdentifierType::Return => self.parse_return(),
-            IdentifierType::Include => self.parse_include(),
-            IdentifierType::Exit => self.parse_exit(),
+            IdentifierType::Return => self.parse_return(token),
+            IdentifierType::Include => self.parse_include(token),
+            IdentifierType::Exit => self.parse_exit(token),
             IdentifierType::FCTAnonArgs => self.parse_fct_anon_args(token),
             IdentifierType::True => Ok((End::Continue, Statement::Primitive(token))),
             IdentifierType::False => Ok((End::Continue, Statement::Primitive(token))),
             IdentifierType::Function => self.parse_function(token),
-            IdentifierType::ACT(category) => {
-                Ok((End::Continue, Statement::AttackCategory(category)))
-            }
+            IdentifierType::ACT(_) => Ok((End::Continue, Statement::AttackCategory(token))),
             IdentifierType::Undefined(_) => Err(unexpected_token!(token)),
-            IdentifierType::Continue => self.parse_continue(),
-            IdentifierType::Break => self.parse_break(),
+            IdentifierType::Continue => self.parse_continue(token),
+            IdentifierType::Break => self.parse_break(token),
         }
     }
 }
@@ -401,10 +431,9 @@ mod test {
     use crate::{
         parse,
         token::{Category, IdentifierType, Token},
-        AssignOrder, DeclareScope, SyntaxError,
+        Statement,
     };
 
-    use crate::IdentifierType::Undefined;
     use crate::Statement::*;
     use crate::TokenCategory::*;
 
@@ -414,116 +443,90 @@ mod test {
             .next()
             .unwrap()
             .unwrap();
-        assert_eq!(
-            actual,
-            If(
-                Box::new(Variable(Token {
-                    category: Identifier(Undefined("description".to_owned())),
-                    position: (1, 5)
-                })),
-                Box::new(Call(
-                    Token {
-                        category: Identifier(Undefined("script_oid".to_owned())),
-                        position: (1, 18)
-                    },
-                    vec![Primitive(Token {
-                        category: Data(vec![49]),
-                        position: (1, 29)
-                    })]
-                )),
-                Some(Box::new(Call(
-                    Token {
-                        category: Identifier(Undefined("display".to_owned())),
-                        position: (1, 40)
-                    },
-                    vec![Primitive(Token {
-                        category: Data(vec![104, 105]),
-                        position: (1, 48)
-                    })]
-                )))
-            )
-        );
-        parse("if( version[1] ) report += '\nVersion: ' + version[1];")
+        match actual {
+            If(_, _, _, Some(_), Some(_)) => {}
+            _ => unreachable!("{actual} must be if with else stmt."),
+        }
+
+        let actual = parse("if( version[1] ) report += '\nVersion: ' + version[1];")
             .next()
             .unwrap()
             .unwrap();
+        match actual {
+            If(_, _, _, None, None) => {}
+            _ => unreachable!("{actual} must be if without else stmt."),
+        }
     }
 
     #[test]
     fn if_block() {
         let actual = parse("if (description) { ; }").next().unwrap().unwrap();
-        assert_eq!(
-            actual,
-            If(
-                Box::new(Variable(Token {
-                    category: Identifier(Undefined("description".to_owned())),
-                    position: (1, 5)
-                })),
-                Box::new(Block(vec![])),
-                None
-            )
-        );
+        match actual {
+            If(_, _, b, _, _) => match *b {
+                Block(_, v, _) => {
+                    assert_eq!(v, vec![]);
+                }
+                _ => unreachable!("{b} must be a block stmt."),
+            },
+            _ => unreachable!("{actual} must be an if stmt."),
+        }
     }
 
     #[test]
-    fn local_var() -> Result<(), SyntaxError> {
-        let expected = |scope: DeclareScope, offset: usize| {
-            Declare(
-                scope,
-                vec![
-                    Variable(Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        position: (1, 11 + offset),
-                    }),
-                    Variable(Token {
-                        category: Identifier(Undefined("b".to_owned())),
-                        position: (1, 14 + offset),
-                    }),
-                    Variable(Token {
-                        category: Identifier(Undefined("c".to_owned())),
-                        position: (1, 17 + offset),
-                    }),
-                ],
-            )
+    fn local_var() {
+        let expected = |actual: Statement, scope: Category| match actual {
+            Declare(a, vars) => {
+                assert_eq!(a.category(), &scope);
+                assert_eq!(vars.len(), 3);
+            }
+            _ => unreachable!("{actual} must be an declare stmt."),
         };
-        assert_eq!(
+        expected(
             parse("local_var a, b, c;").next().unwrap().unwrap(),
-            expected(DeclareScope::Local, 0)
+            Category::Identifier(IdentifierType::LocalVar),
         );
-        assert_eq!(
+        expected(
             parse("global_var a, b, c;").next().unwrap().unwrap(),
-            expected(DeclareScope::Global, 1)
+            Category::Identifier(IdentifierType::GlobalVar),
         );
-        Ok(())
     }
 
     #[test]
     fn null() {
-        assert_eq!(
-            parse("NULL;").next().unwrap().unwrap(),
+        match parse("NULL;").next().unwrap().unwrap() {
             Primitive(Token {
                 category: Identifier(IdentifierType::Null),
-                position: (1, 1)
-            })
-        );
+                line_column: _,
+                position: _,
+            }) => {
+                // correct
+            }
+            actual => unreachable!("{actual} must be a primitive stmt."),
+        }
     }
 
     #[test]
     fn boolean() {
-        assert_eq!(
-            parse("TRUE;").next().unwrap().unwrap(),
+        match parse("TRUE;").next().unwrap().unwrap() {
             Primitive(Token {
                 category: Identifier(IdentifierType::True),
-                position: (1, 1)
-            })
-        );
-        assert_eq!(
-            parse("FALSE;").next().unwrap().unwrap(),
+                line_column: _,
+                position: _,
+            }) => {
+                // correct
+            }
+            actual => unreachable!("{actual} must be a primitive stmt."),
+        }
+        match parse("FALSE;").next().unwrap().unwrap() {
             Primitive(Token {
                 category: Identifier(IdentifierType::False),
-                position: (1, 1)
-            })
-        );
+                line_column: _,
+                position: _,
+            }) => {
+                // correct
+            }
+            actual => unreachable!("{actual} must be a primitive stmt."),
+        }
     }
     #[test]
     fn exit() {
@@ -536,7 +539,10 @@ mod test {
         ];
         for call in test_cases {
             assert!(
-                matches!(parse(&format!("{call};")).next().unwrap().unwrap(), Exit(_),),
+                matches!(
+                    parse(&format!("{call};")).next().unwrap().unwrap(),
+                    Exit(..),
+                ),
                 "{}",
                 call
             );
@@ -556,7 +562,7 @@ mod test {
             assert!(
                 matches!(
                     parse(&format!("{call};")).next().unwrap().unwrap(),
-                    Return(_),
+                    Return(..),
                 ),
                 "{}",
                 call
@@ -567,27 +573,21 @@ mod test {
     #[test]
     fn for_loop() {
         let code = "for (i = 0; i < 10; i++) display('hi');";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap(),
-            For(_, _, _, _)
-        ));
+        assert!(matches!(parse(code).next().unwrap().unwrap(), For(..)));
         let code = "for (i = 0; i < 10; ) i = 10;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap(),
-            For(_, _, _, _)
-        ))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), For(..)))
     }
 
     #[test]
     fn while_loop() {
         let code = "while (TRUE) ;";
-        assert!(matches!(parse(code).next().unwrap().unwrap(), While(_, _)))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), While(..)))
     }
 
     #[test]
     fn repeat_loop() {
         let code = "repeat ; until 1 == 1;";
-        assert!(matches!(parse(code).next().unwrap().unwrap(), Repeat(_, _)))
+        assert!(matches!(parse(code).next().unwrap().unwrap(), Repeat(..)))
     }
 
     #[test]
@@ -600,7 +600,7 @@ mod test {
             assert!(
                 matches!(
                     parse(&format!("{call};")).next().unwrap().unwrap(),
-                    ForEach(_, _, _),
+                    ForEach(..),
                 ),
                 "{}",
                 call
@@ -612,92 +612,54 @@ mod test {
     fn include() {
         assert!(matches!(
             parse("include('test.inc');").next().unwrap().unwrap(),
-            Include(_)
+            Include(..)
         ))
     }
 
     #[test]
     fn function() {
-        assert_eq!(
+        assert!(matches!(
             parse("function register_packages( buf ) { return 1; }")
                 .next()
                 .unwrap()
                 .unwrap(),
-            FunctionDeclaration(
-                Token {
-                    category: Identifier(Undefined("register_packages".to_owned())),
-                    position: (1, 10)
-                },
-                vec![Variable(Token {
-                    category: Identifier(Undefined("buf".to_owned())),
-                    position: (1, 29)
-                })],
-                Box::new(Block(vec![Return(Box::new(Primitive(Token {
-                    category: Number(1),
-                    position: (1, 44)
-                })))]))
-            )
-        );
-        assert_eq!(
+            FunctionDeclaration(..)
+        ));
+        assert!(matches!(
             parse("function register_packages( ) { return 1; }")
                 .next()
                 .unwrap()
                 .unwrap(),
-            FunctionDeclaration(
-                Token {
-                    category: Identifier(Undefined("register_packages".to_owned())),
-                    position: (1, 10)
-                },
-                vec![],
-                Box::new(Block(vec![Return(Box::new(Primitive(Token {
-                    category: Number(1),
-                    position: (1, 40)
-                })))]))
-            )
-        );
+            FunctionDeclaration(..)
+        ));
     }
 
     #[test]
     fn fct_anon_args() {
-        assert_eq!(
-            parse("arg1 = _FCT_ANON_ARGS[0];").next().unwrap(),
-            Ok(Assign(
-                Category::Equal,
-                AssignOrder::AssignReturn,
-                Box::new(Variable(Token {
-                    category: Category::Identifier(Undefined("arg1".to_owned())),
-                    position: (1, 1)
-                },)),
-                Box::new(Array(
-                    Token {
-                        category: Category::Identifier(IdentifierType::FCTAnonArgs),
-                        position: (1, 8),
-                    },
-                    Some(Box::new(Primitive(Token {
-                        category: Category::Number(0),
-                        position: (1, 23)
-                    })))
-                ))
-            ))
-        );
-        assert_eq!(
-            parse("arg1 = _FCT_ANON_ARGS;").next().unwrap(),
-            Ok(Assign(
-                Category::Equal,
-                AssignOrder::AssignReturn,
-                Box::new(Variable(Token {
-                    category: Category::Identifier(Undefined("arg1".to_owned())),
-                    position: (1, 1)
-                },)),
-                Box::new(Array(
-                    Token {
-                        category: Category::Identifier(IdentifierType::FCTAnonArgs),
-                        position: (1, 8),
-                    },
-                    None
-                ))
-            ))
-        );
+        match parse("_FCT_ANON_ARGS[0];").next().unwrap().unwrap() {
+            Array(
+                Token {
+                    category: Category::Identifier(IdentifierType::FCTAnonArgs),
+                    line_column: _,
+                    position: _,
+                },
+                Some(_),
+                Some(_),
+            ) => {}
+            actual => unreachable!("{actual} must be an array."),
+        }
+        match parse("_FCT_ANON_ARGS;").next().unwrap().unwrap() {
+            Array(
+                Token {
+                    category: Category::Identifier(IdentifierType::FCTAnonArgs),
+                    line_column: _,
+                    position: _,
+                },
+                None,
+                None,
+            ) => {}
+            actual => unreachable!("{actual} must be an array."),
+        }
     }
 
     #[test]

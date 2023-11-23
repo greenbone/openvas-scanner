@@ -295,7 +295,7 @@ mod tests {
             let cid = Arc::new(RwLock::new(ClientIdentifier::Known("42".into())));
             let resp = entrypoint(req, Arc::clone(&ctx), cid).await.unwrap();
             let resp = hyper::body::to_bytes(resp.into_body()).await.unwrap();
-            
+
             serde_json::from_slice::<Vec<models::Result>>(&resp).unwrap()
         }
         let scan: models::Scan = models::Scan::default();

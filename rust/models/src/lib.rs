@@ -40,7 +40,6 @@ where
 #[cfg(test)]
 //#[cfg(feature = "serde_support")]
 mod tests {
-    use crate::Target;
 
     use super::scan::Scan;
 
@@ -179,7 +178,7 @@ mod tests {
         // tests that it doesn't panic when parsing the json
         let s: Scan = serde_json::from_str(json_str).unwrap();
 
-        let b = bincode::encode_to_vec(&s, bincode::config::standard()).unwrap();
+        let _b = bincode::encode_to_vec(s, bincode::config::standard()).unwrap();
         //let _: Target = bincode::deserialize(&b).unwrap();
     }
 }

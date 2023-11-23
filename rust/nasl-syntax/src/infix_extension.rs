@@ -105,7 +105,9 @@ impl<'a> Infix for Lexer<'a> {
                         // when the right side is a parameter list than it is an array
                         let lhs = {
                             match rhs {
-                                Statement::Parameter(_) => Statement::Array(var.clone(), None),
+                                Statement::Parameter(..) => {
+                                    Statement::Array(var.clone(), None, None)
+                                }
                                 _ => lhs,
                             }
                         };
@@ -116,7 +118,7 @@ impl<'a> Infix for Lexer<'a> {
                             Box::new(rhs),
                         )
                     }
-                    Statement::Array(_, _) => Statement::Assign(
+                    Statement::Array(_, _, _) => Statement::Assign(
                         category,
                         AssignOrder::AssignReturn,
                         Box::new(lhs),
@@ -222,13 +224,6 @@ mod test {
         }
     }
 
-    fn token(category: Category, start: usize, end: usize) -> Token {
-        Token {
-            category,
-            position: (start, end),
-        }
-    }
-
     fn result(code: &str) -> Statement {
         crate::parse(code).next().unwrap().unwrap()
     }
@@ -274,11 +269,22 @@ mod test {
         use Category::*;
         use Statement::*;
         fn expected(category: Category, shift: usize) -> Statement {
+            let a = Token {
+                category: Identifier(Undefined("a".to_owned())),
+                line_column: (1, 1),
+                position: (0, 1),
+            };
+            let no = Token {
+                category: Number(1),
+                line_column: (1, 6 + shift),
+                position: (5 + shift, 6 + shift),
+            };
+
             Assign(
                 category,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 1))),
-                Box::new(Primitive(token(Number(1), 1, 6 + shift))),
+                Box::new(Variable(a)),
+                Box::new(Primitive(no)),
             )
         }
         assert_eq!(result("a += 1;"), expected(PlusEqual, 0));
@@ -296,19 +302,18 @@ mod test {
         use Category::*;
         use Statement::*;
         fn expected(category: Category, shift: i32) -> Statement {
-            Operator(
-                category,
-                vec![
-                    Variable(Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        position: (1, 1),
-                    }),
-                    Primitive(Token {
-                        category: Data(vec![49]),
-                        position: (1, (6 + shift) as usize),
-                    }),
-                ],
-            )
+            let a = Token {
+                category: Identifier(Undefined("a".to_owned())),
+                line_column: (1, 1),
+                position: (0, 1),
+            };
+            let data = Token {
+                category: Data(vec![49]),
+                line_column: (1, (6 + shift) as usize),
+                position: ((5 + shift) as usize, (8 + shift) as usize),
+            };
+
+            Operator(category, vec![Variable(a), Primitive(data)])
         }
         assert_eq!(result("a !~ '1';"), expected(BangTilde, 0));
         assert_eq!(result("a =~ '1';"), expected(EqualTilde, 0));
@@ -325,19 +330,18 @@ mod test {
     #[test]
     fn logical_operator() {
         fn expected(category: Category, shift: usize) -> Statement {
-            Operator(
-                category,
-                vec![
-                    Variable(Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        position: (1, 1),
-                    }),
-                    Primitive(Token {
-                        category: Number(1),
-                        position: (1, 6 + shift),
-                    }),
-                ],
-            )
+            let a = Token {
+                category: Identifier(Undefined("a".to_owned())),
+                line_column: (1, 1),
+                position: (0, 1),
+            };
+
+            let no = Token {
+                category: Number(1),
+                line_column: (1, 6 + shift),
+                position: (5 + shift, 6 + shift),
+            };
+            Operator(category, vec![Variable(a), Primitive(no)])
         }
         assert_eq!(result("a && 1;"), expected(AmpersandAmpersand, 0));
         assert_eq!(result("a || 1;"), expected(PipePipe, 0));
@@ -345,52 +349,68 @@ mod test {
 
     #[test]
     fn assignment() {
+        let a = Token {
+            category: Identifier(Undefined("a".to_owned())),
+            line_column: (1, 1),
+            position: (0, 1),
+        };
+        let no = Token {
+            category: Number(1),
+            line_column: (1, 5),
+            position: (4, 5),
+        };
         assert_eq!(
             result("a = 1;"),
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 1))),
-                Box::new(Primitive(Token {
-                    category: Number(1),
-                    position: (1, 5)
-                }))
+                Box::new(Variable(a)),
+                Box::new(Primitive(no))
             )
         );
+        let a = Token {
+            category: Identifier(Undefined("a".to_owned())),
+            line_column: (1, 2),
+            position: (1, 2),
+        };
+        let no = Token {
+            category: Number(1),
+            line_column: (1, 6),
+            position: (5, 6),
+        };
+
         assert_eq!(
             result("(a = 1);"),
             Assign(
                 Category::Equal,
                 AssignOrder::AssignReturn,
-                Box::new(Variable(token(Identifier(Undefined("a".to_owned())), 1, 2))),
-                Box::new(Primitive(Token {
-                    category: Number(1),
-                    position: (1, 6)
-                }))
+                Box::new(Variable(a)),
+                Box::new(Primitive(no))
             )
         );
     }
 
     #[test]
     fn repeat_call() {
+        let x = Token {
+            category: Identifier(Undefined("x".to_owned())),
+            line_column: (1, 1),
+            position: (0, 1),
+        };
+        let end = Token {
+            category: RightParen,
+            line_column: (1, 3),
+            position: (2, 3),
+        };
+        let no = Token {
+            category: Number(2),
+            line_column: (1, 7),
+            position: (6, 7),
+        };
+
         assert_eq!(
             result("x() x 2;"),
-            Operator(
-                X,
-                vec![
-                    Call(
-                        Token {
-                            category: Identifier(Undefined("x".to_owned())),
-                            position: (1, 1)
-                        },
-                        vec![]
-                    ),
-                    Primitive(Token {
-                        category: Number(2),
-                        position: (1, 7)
-                    })
-                ]
-            )
+            Operator(X, vec![Call(x, vec![], end,), Primitive(no)])
         );
     }
 }

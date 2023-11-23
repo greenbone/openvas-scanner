@@ -28,20 +28,19 @@ impl Args {
     pub fn api_key(&self) -> Option<&String> {
         match self.api_key.is_empty() {
             true => None,
-            false => Some(&self.api_key)
+            false => Some(&self.api_key),
         }
     }
     pub fn key(&self) -> Option<&String> {
         match self.key.is_empty() {
             true => None,
-            false => Some(&self.key)
+            false => Some(&self.key),
         }
-        
     }
     pub fn cert(&self) -> Option<&String> {
         match self.cert.is_empty() {
             true => None,
-            false => Some(&self.cert)
+            false => Some(&self.cert),
         }
     }
 
@@ -51,8 +50,7 @@ impl Args {
             scan_config: env::var("SCAN_CONFIG").unwrap_or_default(),
             api_key: env::var("API_KEY").unwrap_or_default(),
             key: env::var("CLIENT_KEY").unwrap_or_default(),
-            cert: env::var("CLIENT_CERT").unwrap_or_default()
+            cert: env::var("CLIENT_CERT").unwrap_or_default(),
         }
     }
 }
-

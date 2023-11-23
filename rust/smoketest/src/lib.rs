@@ -75,12 +75,7 @@ pub async fn create_scan(
 }
 
 /// Sends an action for the given ScanID.
-pub async fn scan_action(
-    cli: &reqwest::Client,
-    server: &String,
-    id: &str,
-    action: String,
-) -> bool {
+pub async fn scan_action(cli: &reqwest::Client, server: &String, id: &str, action: String) -> bool {
     let mut path = String::from(server);
     path.push_str("/scans/");
     path.push_str(id);

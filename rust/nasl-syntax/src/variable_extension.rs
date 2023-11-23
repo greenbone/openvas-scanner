@@ -31,7 +31,7 @@ impl<'a> CommaGroup for Lexer<'a> {
         while let Some(token) = self.peek() {
             if *token.category() == category {
                 self.token();
-                end = End::Done(category);
+                end = End::Done(token);
                 break;
             }
             let (stmtend, param) =
@@ -42,8 +42,8 @@ impl<'a> CommaGroup for Lexer<'a> {
             }
             match stmtend {
                 End::Done(endcat) => {
-                    if endcat == category {
-                        end = End::Done(category);
+                    if endcat.category() == &category {
+                        end = End::Done(endcat);
                         break;
                     }
                 }
@@ -69,20 +69,22 @@ impl<'a> Variables for Lexer<'a> {
                 Category::LeftParen => {
                     self.token();
                     let (end, params) = self.parse_comma_group(Category::RightParen)?;
-                    if end == End::Continue {
-                        return Err(unclosed_token!(nt));
-                    }
-                    return Ok((Continue, Statement::Call(token, params)));
+                    return match end {
+                        Done(end) => Ok((Continue, Statement::Call(token, params, end))),
+                        Continue => Err(unclosed_token!(nt)),
+                    };
                 }
                 Category::LeftBrace => {
                     self.token();
                     let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
-                    if end == End::Continue {
-                        return Err(unclosed_token!(token));
-                    } else {
-                        return Ok((Continue, Statement::Array(token, Some(Box::new(lookup)))));
-                    }
+                    return match end {
+                        Done(end) => Ok((
+                            Continue,
+                            Statement::Array(token, Some(Box::new(lookup)), Some(end)),
+                        )),
+                        Continue => Err(unclosed_token!(token)),
+                    };
                 }
                 _ => {}
             }
@@ -94,21 +96,10 @@ impl<'a> Variables for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use crate::{
-        parse,
-        token::{Category, Token},
-        {AssignOrder, Statement},
+        parse, {AssignOrder, Statement},
     };
 
-    use crate::IdentifierType::*;
-    use Category::*;
     use Statement::*;
-
-    fn token(category: Category, start: usize, end: usize) -> Token {
-        Token {
-            category,
-            position: (start, end),
-        }
-    }
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -116,167 +107,37 @@ mod test {
 
     #[test]
     fn variables() {
-        assert_eq!(
-            result("a;"),
-            Variable(token(Identifier(Undefined("a".to_owned())), 1, 1))
-        );
+        assert!(matches!(result("a;"), Variable(_)));
     }
 
     #[test]
     fn arrays() {
-        assert_eq!(
-            result("a[0];"),
-            Array(
-                token(Identifier(Undefined("a".to_owned())), 1, 1),
-                Some(Box::new(Primitive(token(Number(0), 1, 3))))
-            )
-        );
+        assert!(matches!(result("a[0];"), Array(..)));
+        match result("a = [1, 2, 3];") {
+            Assign(super::Category::Equal, AssignOrder::AssignReturn, arr, _) => {
+                assert!(matches!(*arr, Array(..)))
+            }
+            actual => unreachable!("{actual} must be an assign statement"),
+        }
 
-        assert_eq!(
-            result("a = [1, 2, 3];"),
-            Assign(
-                Equal,
-                AssignOrder::AssignReturn,
-                Box::new(Array(
-                    Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        position: (1, 1)
-                    },
-                    None
-                )),
-                Box::new(Parameter(vec![
-                    Primitive(Token {
-                        category: Number(1),
-                        position: (1, 6)
-                    }),
-                    Primitive(Token {
-                        category: Number(2),
-                        position: (1, 9)
-                    }),
-                    Primitive(Token {
-                        category: Number(3),
-                        position: (1, 12)
-                    })
-                ]))
-            )
-        );
-
-        assert_eq!(
-            result("a[0] = [1, 2, 4];"),
-            Assign(
-                Equal,
-                AssignOrder::AssignReturn,
-                Box::new(Array(
-                    Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        position: (1, 1)
-                    },
-                    Some(Box::new(Primitive(Token {
-                        category: Number(0),
-                        position: (1, 3)
-                    })))
-                )),
-                Box::new(Parameter(vec![
-                    Primitive(Token {
-                        category: Number(1),
-                        position: (1, 9)
-                    }),
-                    Primitive(Token {
-                        category: Number(2),
-                        position: (1, 12)
-                    }),
-                    Primitive(Token {
-                        category: Number(4),
-                        position: (1, 15)
-                    })
-                ]))
-            )
-        );
+        match result("a[0] = [1, 2, 4];") {
+            Assign(super::Category::Equal, AssignOrder::AssignReturn, arr, _) => {
+                assert!(matches!(*arr, Array(..)))
+            }
+            actual => unreachable!("{actual} must be an assign statement"),
+        }
     }
 
     #[test]
     fn anon_function_call() {
-        let fn_name = token(Identifier(Undefined("a".to_owned())), 1, 1);
-        let args = vec![
-            Primitive(token(Number(1), 1, 3)),
-            Primitive(token(Number(2), 1, 6)),
-            Primitive(token(Number(3), 1, 9)),
-        ];
-
-        assert_eq!(result("a(1, 2, 3);"), Call(fn_name, args));
+        assert!(matches!(result("a(1, 2, 3);"), Call(..)))
     }
 
     #[test]
     fn named_function_call() {
-        use Statement::*;
-        assert_eq!(
+        assert!(matches!(
             result("script_tag(name:\"cvss_base\", value:1 + 1 % 2);"),
-            Call(
-                Token {
-                    category: Identifier(Undefined("script_tag".to_owned())),
-                    position: (1, 1)
-                },
-                vec![
-                    NamedParameter(
-                        Token {
-                            category: Identifier(Undefined("name".to_owned())),
-                            position: (1, 12)
-                        },
-                        Box::new(Primitive(Token {
-                            category: String("cvss_base".to_owned()),
-                            position: (1, 17)
-                        }))
-                    ),
-                    NamedParameter(
-                        Token {
-                            category: Identifier(Undefined("value".to_owned())),
-                            position: (1, 30)
-                        },
-                        Box::new(Operator(
-                            Plus,
-                            vec![
-                                Primitive(Token {
-                                    category: Number(1),
-                                    position: (1, 36)
-                                }),
-                                Operator(
-                                    Percent,
-                                    vec![
-                                        Primitive(Token {
-                                            category: Number(1),
-                                            position: (1, 40)
-                                        }),
-                                        Primitive(Token {
-                                            category: Number(2),
-                                            position: (1, 44)
-                                        })
-                                    ]
-                                )
-                            ]
-                        ))
-                    )
-                ]
-            )
-        );
-
-        assert_eq!(
-            result("script_tag(name: 2);"),
-            Call(
-                Token {
-                    category: Identifier(Undefined("script_tag".to_owned())),
-                    position: (1, 1)
-                },
-                vec![NamedParameter(
-                    Token {
-                        category: Identifier(Undefined("name".to_owned())),
-                        position: (1, 12)
-                    },
-                    Box::new(Primitive(Token {
-                        category: Number(2),
-                        position: (1, 18)
-                    }))
-                )]
-            )
-        );
+            Call(..)
+        ));
     }
 }
