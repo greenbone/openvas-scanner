@@ -343,7 +343,7 @@ impl<'a, R: Read> HashSumFileItem<'a, R> {
             &mut self.reader.as_bufreader(&self.file_name)?,
             &self.file_name,
         )?;
-        if self.hashsum != self.hashsum {
+        if self.hashsum != hashsum {
             return Err(Error::HashInvalid {
                 expected: self.hashsum.clone(),
                 actual: hashsum,
