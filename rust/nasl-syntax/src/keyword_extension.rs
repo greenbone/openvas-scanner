@@ -39,9 +39,9 @@ impl<'a> Lexer<'a> {
     fn parse_if(&mut self, kw: Token) -> Result<(End, Statement), SyntaxError> {
         let ptoken = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
         let condition = match ptoken.category() {
-            Category::LeftParen => self.parse_paren(ptoken.clone()),
-            _ => Err(unexpected_token!(ptoken.clone())),
-        }?
+            Category::LeftParen => self.parse_paren(ptoken.clone())?,
+            _ => return Err(unexpected_token!(ptoken.clone())),
+        }
         .as_returnable_or_err()?;
         let (end, body) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
         if end == End::Continue {
