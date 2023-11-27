@@ -74,22 +74,22 @@ Ensure (ipc_openvas, ipc_data_from_json_parse_error)
 
   // malformed json string
   json_fake = g_strdup (
-    "{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
-    "22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
-    "Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] "
-    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 "
+    "{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
+    "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
+    "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
+    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 "
     "[en] (X11, U; Greenbone OS "
-    "22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
-    "Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] "
-    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 "
+    "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
+    "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
+    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 "
     "[en] (X11, U; Greenbone OS "
-    "22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
-    "Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] "
-    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 "
+    "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
+    "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
+    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 "
     "[en] (X11, U; Greenbone OS "
-    "22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
-    "Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 [en] "
-    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":1,\"user-agent\":\"Mozilla/5.0 "
+    "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
+    "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
+    "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 "
     "[en] (X11, U; Greenbone OS 22.04.4)\"}{\"type\":");
 
   // Read received data
@@ -107,8 +107,8 @@ Ensure (ipc_openvas, ipc_data_from_json_parse_many_objects)
 
   // malformed json string
   json_fake =
-    g_strdup ("{\"type\":0,\"source\":\"TLS "
-              "certificate\",\"hostname\":\"localhost\"}{\"type\":1,\"user-"
+    g_strdup ("{\"type\":1,\"source\":\"TLS "
+              "certificate\",\"hostname\":\"localhost\"}{\"type\":2,\"user-"
               "agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
               "22.04.4)\"}");
 

@@ -291,25 +291,27 @@ ipc_lsc_destroy (ipc_lsc_t *data)
  *
  */
 void
-ipc_data_destroy (ipc_data_t *data)
+ipc_data_destroy (ipc_data_t **data)
 {
-  if (data == NULL)
+  if (*data == NULL)
     return;
-  switch (data->type)
+  switch ((*data)->type)
     {
     case IPC_DT_HOSTNAME:
-      ipc_hostname_destroy (data->ipc_hostname);
+      ipc_hostname_destroy ((*data)->ipc_hostname);
       break;
     case IPC_DT_USER_AGENT:
-      ipc_user_agent_destroy (data->ipc_user_agent);
+      ipc_user_agent_destroy ((*data)->ipc_user_agent);
       break;
     case IPC_DT_LSC:
-      ipc_lsc_destroy (data->ipc_lsc);
+      ipc_lsc_destroy ((*data)->ipc_lsc);
       break;
     case IPC_DT_ERROR:
-      return;
+    case IPC_DT_NO_DATA:
+      break;
     }
-  g_free (data);
+  g_free (*data);
+  *data = NULL;
 }
 
 /**
@@ -435,6 +437,7 @@ ipc_data_from_json (const char *json, size_t len)
   switch (type)
     {
     case IPC_DT_ERROR:
+    case IPC_DT_NO_DATA:
       goto cleanup;
     case IPC_DT_HOSTNAME:
       if ((hn = calloc (1, sizeof (*hn))) == NULL)

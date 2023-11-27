@@ -20,6 +20,27 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+/** @brief LSC ran or didn't
+ * 0 didn't run. 1 ran.
+ */
+static int lsc_flag = 0;
+
+/** @brief Set lsc_flag to 1
+ */
+void
+set_lsc_flag (void)
+{
+  lsc_flag = 1;
+}
+
+/** @brief Get lsc_flag value.
+ */
+int
+lsc_has_run (void)
+{
+  return lsc_flag;
+}
+
 /**
  * @brief Split the package list string and creates a json array.
  *
@@ -248,6 +269,8 @@ run_table_driven_lsc (const char *scan_id, const char *ip_str,
   // Run table driven lsc
   if (json_str == NULL)
     return -1;
+
+  g_message ("Running LSC via Notus for %s", ip_str);
   err = mqtt_publish ("scanner/package/cmd/notus", json_str);
   if (err)
     {

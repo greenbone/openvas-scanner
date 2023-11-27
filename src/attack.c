@@ -313,9 +313,27 @@ append_vhost (const char *vhost, const char *source)
 }
 
 static void
+call_lsc (const char *scan_id, const char *ip_str, const char *package_list,
+          const char *os_release)
+{
+  if (run_table_driven_lsc (scan_id, ip_str, NULL, package_list, os_release))
+    {
+      char buffer[2048];
+      snprintf (buffer, sizeof (buffer),
+                "ERRMSG|||%s||| ||| ||| ||| Unable to "
+                "launch table driven lsc",
+                ip_str);
+      kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
+                                           buffer);
+      g_warning ("%s: Unable to launch table driven LSC", __func__);
+    }
+}
+
+static int
 read_ipc (struct attack_start_args *args)
 {
   const struct ipc_contexts *ipc_ctxs = NULL;
+  int ipc_msg_flag = IPC_DT_NO_DATA;
 
   ipc_ctxs = procs_get_ipc_contexts ();
   if (ipc_ctxs != NULL)
@@ -336,9 +354,13 @@ read_ipc (struct attack_start_args *args)
                   switch (ipc_get_data_type_from_data (idata))
                     {
                     case IPC_DT_ERROR:
+                      ipc_msg_flag |= IPC_DT_ERROR;
                       g_warning ("%s: Unknown data type.", __func__);
                       break;
+                    case IPC_DT_NO_DATA:
+                      break;
                     case IPC_DT_HOSTNAME:
+                      ipc_msg_flag |= IPC_DT_HOSTNAME;
                       if (ipc_get_hostname_from_data (idata) == NULL)
                         g_warning ("%s: ihost data is NULL ignoring new vhost",
                                    __func__);
@@ -348,6 +370,7 @@ read_ipc (struct attack_start_args *args)
                           ipc_get_hostname_source_from_data (idata));
                       break;
                     case IPC_DT_USER_AGENT:
+                      ipc_msg_flag |= IPC_DT_USER_AGENT;
                       if (ipc_get_user_agent_from_data (idata) == NULL)
                         g_warning ("%s: iuser_agent data is NULL, ignoring new "
                                    "user agent",
@@ -365,6 +388,8 @@ read_ipc (struct attack_start_args *args)
                         }
                       break;
                     case IPC_DT_LSC:
+                      ipc_msg_flag |= IPC_DT_LSC;
+                      set_lsc_flag ();
                       if (!scan_is_stopped ()
                           && prefs_get_bool ("table_driven_lsc")
                           && prefs_get_bool ("mqtt_enabled"))
@@ -376,7 +401,11 @@ read_ipc (struct attack_start_args *args)
                           kb_t hostkb = NULL;
 
                           if (!ipc_get_lsc_data_ready_flag (idata))
-                            return;
+                            {
+                              g_warning ("%s: Unknown data type.", __func__);
+                              ipc_msg_flag |= IPC_DT_ERROR;
+                              break;
+                            }
 
                           hostkb = args->host_kb;
                           /* Get the OS release. TODO: have a list with
@@ -390,32 +419,19 @@ read_ipc (struct attack_start_args *args)
                           gvm_host_get_addr6 (args->host, &hostip);
                           addr6_to_str (&hostip, ip_str);
 
-                          g_message ("Running LSC via Notus for %s", ip_str);
-                          if (run_table_driven_lsc (args->globals->scan_id,
-                                                    ip_str, NULL, package_list,
-                                                    os_release))
-                            {
-                              char buffer[2048];
-                              snprintf (buffer, sizeof (buffer),
-                                        "ERRMSG|||%s||| ||| ||| ||| Unable to "
-                                        "launch table driven lsc",
-                                        ip_str);
-                              kb_check_push_str (args->main_kb,
-                                                 "internal/results", buffer);
-                              g_warning (
-                                "%s: Unable to launch table driven LSC",
-                                __func__);
-                            }
+                          call_lsc (args->globals->scan_id, ip_str,
+                                    package_list, os_release);
                           g_free (os_release);
                           g_free (package_list);
                         }
                       break;
                     }
-                  ipc_data_destroy (idata);
+                  ipc_data_destroy (&idata);
                 }
             }
         }
     }
+  return ipc_msg_flag;
 }
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
@@ -652,19 +668,19 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
-      && prefs_get_bool ("mqtt_enabled") && atoi(nvticache_feed_version()) > 1)
+      && !lsc_has_run () && prefs_get_bool ("mqtt_enabled"))
     {
-      if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL))
-        {
-          char buffer[2048];
-          snprintf (
-            buffer, sizeof (buffer),
-            "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
-            ip_str);
-          kb_item_push_str_with_main_kb_check (get_main_kb (),
-                                               "internal/results", buffer);
-          g_warning ("%s: Unable to launch table driven LSC", __func__);
-        }
+      gchar *package_list;
+      gchar *os_release;
+      kb_t hostkb = NULL;
+
+      hostkb = args->host_kb;
+      /* Get the OS release. */
+      os_release = kb_item_get_str (hostkb, "ssh/login/release_notus");
+      /* Get the package list. */
+      package_list = kb_item_get_str (hostkb, "ssh/login/package_list_notus");
+
+      call_lsc (args->globals->scan_id, ip_str, package_list, os_release);
     }
 
   pluginlaunch_wait (get_main_kb (), args->host_kb);

@@ -1106,7 +1106,7 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
     return NULL;
 
   json = ipc_data_to_json (lsc);
-  ipc_data_destroy (lsc);
+  ipc_data_destroy (&lsc);
   if (ipc_send (lexic->script_infos->ipc_context, IPC_MAIN, json, strlen (json))
       < 0)
     g_warning ("Unable to send the package list for LSC to the host process");

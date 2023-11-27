@@ -14,6 +14,12 @@
 #include <glib.h>
 #include <gvm/util/kb.h> // for kb_t
 
+void
+set_lsc_flag (void);
+
+int
+lsc_has_run (void);
+
 int
 run_table_driven_lsc (const char *, const char *, const char *, const char *,
                       const char *);
