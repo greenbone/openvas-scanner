@@ -92,7 +92,7 @@ impl Default for Box<dyn Loader> {
 ///
 /// So when the root path is `/var/lib/openvas/plugins` than it will be extended to
 /// `/var/lib/openvas/plugins/plugin_feed_info.inc`.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct FSPluginLoader<P>
 where
     P: AsRef<Path>,

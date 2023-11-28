@@ -56,12 +56,18 @@ where
                 if matches!(err.kind(), io::ErrorKind::NotFound) {
                     return Err(Error::UnknownOs(os.to_string()));
                 }
-                return Err(Error::LoadAdvisoryError(notus_file_str, err));
+                return Err(Error::LoadAdvisoryError(
+                    notus_file_str,
+                    crate::error::LoadAdvisoryErrorKind::IOError(err),
+                ));
             }
         };
         let mut buf = String::new();
         if let Err(err) = file.read_to_string(&mut buf) {
-            return Err(Error::LoadAdvisoryError(notus_file_str, err));
+            return Err(Error::LoadAdvisoryError(
+                notus_file_str,
+                crate::error::LoadAdvisoryErrorKind::IOError(err),
+            ));
         }
         match serde_json::from_str(&buf) {
             Ok(adv) => Ok(adv),
@@ -75,15 +81,13 @@ where
         })?;
 
         let mut available_os = vec![];
-        for path in paths {
-            if let Ok(dir_entry) = path {
-                let file = dir_entry.path();
-                if file.is_file() {
-                    if let Some(p) = file.file_name() {
-                        if p.to_string_lossy().ends_with(".notus") {
-                            if let Some(stem) = file.file_stem() {
-                                available_os.push(stem.to_string_lossy().to_string());
-                            }
+        for dir_entry in paths.flatten() {
+            let file = dir_entry.path();
+            if file.is_file() {
+                if let Some(p) = file.file_name() {
+                    if p.to_string_lossy().ends_with(".notus") {
+                        if let Some(stem) = file.file_stem() {
+                            available_os.push(stem.to_string_lossy().to_string());
                         }
                     }
                 }

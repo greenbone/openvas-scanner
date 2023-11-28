@@ -7,6 +7,7 @@ use models::Advisories;
 use crate::error::Error;
 
 pub mod fs;
+pub mod hashsum;
 
 /// Trait for and AdvisoryLoader
 pub trait AdvisoriesLoader {

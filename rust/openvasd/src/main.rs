@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use ::notus::{loader::fs::FSAdvisoryLoader, notus::Notus};
+use ::notus::{loader::hashsum::HashsumAdvisoryLoader, notus::Notus};
 use controller::ClientGossiper;
 use futures_util::ready;
+use nasl_interpreter::FSPluginLoader;
 use notus::NotusWrapper;
 
 pub mod config;
@@ -112,8 +113,8 @@ fn create_context<DB>(
     );
     let mut ctx_builder = controller::ContextBuilder::new();
 
-    // TODO: Configure Notus for Context
-    match FSAdvisoryLoader::new(config.notus.advisory_path.to_string_lossy().to_string()) {
+    let loader = FSPluginLoader::new(config.notus.advisory_path.to_string_lossy().to_string());
+    match HashsumAdvisoryLoader::new(loader) {
         Ok(loader) => {
             let notus = Notus::new(loader);
             ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));

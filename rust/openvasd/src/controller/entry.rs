@@ -209,20 +209,12 @@ where
                             notus::error::Error::UnknownOs(_) => {
                                 Ok(ctx.response.not_found("advisories", &os))
                             }
-                            // 501
-                            notus::error::Error::LoadAdvisoryError(_, _)
-                            | notus::error::Error::JSONParseError(_, _)
-                            | notus::error::Error::UnreadableAdvisoryDir(_, _)
-                            | notus::error::Error::AdvisoryParseError(_, _)
-                            | notus::error::Error::MissingAdvisoryDir(_)
-                            | notus::error::Error::AdvisoryDirIsFile(_)
-                            | notus::error::Error::UnsupportedVersion(_, _, _) => {
-                                Ok(ctx.response.internal_server_error(&err))
-                            }
                             // 401
                             notus::error::Error::PackageParseError(_) => {
                                 Ok(ctx.response.bad_request(&format!("{err}")))
                             }
+                            // 501
+                            _ => Ok(ctx.response.internal_server_error(&err)),
                         },
                     },
                     None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),

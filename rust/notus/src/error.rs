@@ -5,27 +5,45 @@
 use std::{fmt::Display, io};
 
 use models::FixedPackage;
+use nasl_syntax::LoadError;
+
+#[derive(Debug)]
+pub enum LoadAdvisoryErrorKind {
+    IOError(io::Error),
+    LoadError(LoadError),
+}
+
+impl Display for LoadAdvisoryErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoadAdvisoryErrorKind::IOError(e) => write!(f, "{e}"),
+            LoadAdvisoryErrorKind::LoadError(e) => write!(f, "{e}"),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum Error {
     // The directory containing the notus advisories does not exist
     MissingAdvisoryDir(String),
-    // The given notus advisory directory is a file
+    /// The given notus advisory directory is a file
     AdvisoryDirIsFile(String),
-    // The given notus advisory directory is not readable
+    /// The given notus advisory directory is not readable
     UnreadableAdvisoryDir(String, io::Error),
-    // There are no corresponding notus files for the given Operating System
+    /// There are no corresponding notus files for the given Operating System
     UnknownOs(String),
-    // General error while loading notus advisories
-    LoadAdvisoryError(String, io::Error),
-    // Unable to parse notus advisory file due to a JSON error
+    /// General error while loading notus advisories
+    LoadAdvisoryError(String, LoadAdvisoryErrorKind),
+    /// Unable to parse notus advisory file due to a JSON error
     JSONParseError(String, serde_json::Error),
-    // The version of the notus advisory file is not supported
+    /// The version of the notus advisory file is not supported
     UnsupportedVersion(String, String, String),
-    // Unable to parse a given package
+    /// Unable to parse a given package
     PackageParseError(String),
-    // Unable to parse a package in the notus advisory file
+    /// Unable to parse a package in the notus advisory file
     AdvisoryParseError(String, FixedPackage),
+    /// Some issues caused by a HashsumLoader
+    HashsumLoadError(feed::VerifyError),
 }
 
 impl Display for Error {
@@ -40,6 +58,7 @@ impl Display for Error {
             Error::PackageParseError(pkg) => write!(f, "Unable to parse the given package {pkg}"),
             Error::AdvisoryParseError(path, pkg) => write!(f, "Unable to parse fixed package information {:?} in the advisories {path}", pkg),
             Error::UnreadableAdvisoryDir(path, err) => write!(f, "The directory {path} is not readable: {err}"),
+            Error::HashsumLoadError(err) => write!(f, "Hashsum verification failed: {err}"),
         }
     }
 }

@@ -12,3 +12,5 @@ serde = { version = "1.0.163" }
 clap = { version = "~4" }
 
 models = { path = "../models" }
+feed = { path = "../feed" }
+nasl-syntax = { path = "../nasl-syntax" }
