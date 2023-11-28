@@ -24,6 +24,8 @@ pub enum ErrorKind {
     MissingSemicolon(Statement),
     /// An token is unclosed
     UnclosedStatement(Statement),
+    /// Maximal recursion depth reached. Simplify NASL code.
+    MaxRecursionDepth(u8),
     /// The cursor is already at the end but that is not expected
     EoF,
     /// An IO Error occurred while loading a NASL file
@@ -50,6 +52,7 @@ impl SyntaxError {
             ErrorKind::UnclosedStatement(s) => s.as_token(),
             ErrorKind::EoF => None,
             ErrorKind::IOError(_) => None,
+            ErrorKind::MaxRecursionDepth(_) => None,
         }
     }
 }
@@ -177,6 +180,25 @@ macro_rules! unexpected_end {
     }};
 }
 
+/// Creates an maximal recursion depth reached error.
+///
+/// To prevent stack overflows the Lexer veriefies it's depth and returns an error.
+///
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
+/// use nasl_syntax::max_recursion;
+/// max_recursion!(255);
+/// ```
+#[macro_export]
+macro_rules! max_recursion {
+    ($reason:expr) => {{
+        use $crate::syntax_error;
+        use $crate::ErrorKind;
+        syntax_error!(ErrorKind::MaxRecursionDepth($reason))
+    }};
+}
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)
@@ -194,6 +216,10 @@ impl fmt::Display for ErrorKind {
             ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {stmt}"),
             ErrorKind::EoF => write!(f, "end of file."),
             ErrorKind::IOError(kind) => write!(f, "IOError: {kind}"),
+            ErrorKind::MaxRecursionDepth(max) => write!(
+                f,
+                "Maximal recursion depth of {max} reached, the NASL script is too complex."
+            ),
         }
     }
 }
