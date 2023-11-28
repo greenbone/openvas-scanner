@@ -1348,7 +1348,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1729,8 +1729,10 @@ name = "notus"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "feed",
  "lazy-regex",
  "models",
+ "nasl-syntax",
  "serde",
  "serde_json",
 ]
