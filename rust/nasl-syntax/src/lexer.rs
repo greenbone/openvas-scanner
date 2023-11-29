@@ -25,7 +25,7 @@ pub struct Lexer<'a> {
     // is the current depth call within a statement call. The current
     // implementation relies that the iterator implementation resets depth to 0
     // after a statement, or error, has been returned.
-    depth: u8,
+    pub(crate) depth: u8,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,7 +115,6 @@ impl<'a> Lexer<'a> {
                     return Err(unexpected_token!(token));
                 }
                 if abort(token.category()) {
-                    self.depth = 0;
                     return Ok((End::Done(token.clone()), Statement::NoOp(Some(token))));
                 }
                 self.prefix_statement(token, abort)
@@ -124,7 +123,6 @@ impl<'a> Lexer<'a> {
         match state {
             End::Continue => {}
             end => {
-                self.depth = 0;
                 return Ok((end, left));
             }
         }

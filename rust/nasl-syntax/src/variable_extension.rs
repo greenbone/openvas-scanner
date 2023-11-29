@@ -50,6 +50,8 @@ impl<'a> CommaGroup for Lexer<'a> {
                 End::Continue => {}
             };
         }
+
+        self.depth = 0;
         Ok((end, params))
     }
 }
