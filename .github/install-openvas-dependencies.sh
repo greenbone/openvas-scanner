@@ -26,6 +26,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libroken19-heimdal \
     libhdb9-heimdal \
     libpopt0 \
+    libcurl4-gnutls-dev \
     && rm -rf /var/lib/apt/lists/*
 
 curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.2.tar.gz -k
