@@ -9,7 +9,7 @@ use nasl_syntax::{AsBufReader, Loader};
 
 use crate::error::Error;
 
-use super::AdvisoriesLoader;
+use super::{AdvisoriesLoader, FeedStamp};
 
 #[derive(Debug, Clone)]
 pub struct HashsumAdvisoryLoader<R, L> {
@@ -48,7 +48,7 @@ where
         Ok(ret)
     }
 
-    fn load_package_advisories(&self, os: &str) -> Result<models::Advisories, crate::error::Error> {
+    fn load_package_advisories(&self, os: &str) -> Result<(models::Advisories, FeedStamp), Error> {
         let mut loader =
             HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
         let file_item = loader
@@ -74,8 +74,22 @@ where
             })?;
 
         match serde_json::from_str(&file) {
-            Ok(adv) => Ok(adv),
+            Ok(adv) => Ok((adv, FeedStamp::Hashsum(file_item.get_hashsum()))),
             Err(err) => Err(Error::JSONParseError(os.to_string(), err)),
         }
+    }
+
+    fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool {
+        if let Ok(mut loader) = HashSumNameLoader::sha256(&self.loader) {
+            if let Some(Ok(file_item)) = loader.find(|entry| {
+                if let Ok(item) = entry {
+                    return item.get_filename() == format!("{os}.notus");
+                }
+                false
+            }) {
+                return *stamp != FeedStamp::Hashsum(file_item.get_hashsum());
+            }
+        }
+        false
     }
 }

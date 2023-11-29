@@ -9,7 +9,7 @@ use models::{NotusResults, VulnerablePackage};
 use crate::{
     advisory::{Advisories, PackageAdvisories},
     error::Error,
-    loader::AdvisoriesLoader,
+    loader::{AdvisoriesLoader, FeedStamp},
     packages::Package,
 };
 
@@ -19,7 +19,7 @@ where
     L: AdvisoriesLoader,
 {
     loader: L,
-    loaded_advisories: HashMap<String, PackageAdvisories>,
+    loaded_advisories: HashMap<String, (PackageAdvisories, FeedStamp)>,
 }
 
 impl<L> Notus<L>
@@ -33,11 +33,11 @@ where
         }
     }
 
-    fn load_new_advisories(&self, os: &str) -> Result<PackageAdvisories, Error> {
-        let advisories = self.loader.load_package_advisories(os)?;
+    fn load_new_advisories(&self, os: &str) -> Result<(PackageAdvisories, FeedStamp), Error> {
+        let (advisories, stamp) = self.loader.load_package_advisories(os)?;
 
         match PackageAdvisories::try_from(advisories) {
-            Ok(adv) => Ok(adv),
+            Ok(adv) => Ok((adv, stamp)),
             Err(Error::AdvisoryParseError(_, pkg)) => {
                 Err(Error::AdvisoryParseError(os.to_string(), pkg))
             }
@@ -101,11 +101,20 @@ where
     pub fn scan(&mut self, os: &str, packages: &[String]) -> Result<NotusResults, Error> {
         // Load advisories if not loaded
         let advisories = match self.loaded_advisories.get(os) {
-            Some(adv) => adv,
+            Some((adv, stamp)) => {
+                if self.loader.has_changed(os, stamp) {
+                    self.loaded_advisories.remove(os);
+                    self.loaded_advisories
+                        .insert(os.to_string(), self.load_new_advisories(os)?);
+                    &self.loaded_advisories[&os.to_string()].0
+                } else {
+                    adv
+                }
+            }
             None => {
                 self.loaded_advisories
                     .insert(os.to_string(), self.load_new_advisories(os)?);
-                &self.loaded_advisories[&os.to_string()]
+                &self.loaded_advisories[&os.to_string()].0
             }
         };
 

@@ -6,13 +6,14 @@ use std::{
     fs::{self, File},
     io::{self, Read},
     path::Path,
+    time::SystemTime,
 };
 
 use models::Advisories;
 
 use crate::error::Error;
 
-use super::AdvisoriesLoader;
+use super::{AdvisoriesLoader, FeedStamp};
 
 #[derive(Debug, Clone)]
 pub struct FSAdvisoryLoader<P>
@@ -47,7 +48,7 @@ impl<P> AdvisoriesLoader for FSAdvisoryLoader<P>
 where
     P: AsRef<Path>,
 {
-    fn load_package_advisories(&self, os: &str) -> Result<Advisories, Error> {
+    fn load_package_advisories(&self, os: &str) -> Result<(Advisories, FeedStamp), Error> {
         let notus_file = self.root.as_ref().join(format!("{os}.notus"));
         let notus_file_str = notus_file.to_string_lossy().to_string();
         let mut file = match File::open(notus_file) {
@@ -69,8 +70,15 @@ where
                 crate::error::LoadAdvisoryErrorKind::IOError(err),
             ));
         }
+        let mod_time = match file.metadata() {
+            Ok(metadata) => match metadata.modified() {
+                Ok(time) => time,
+                Err(_) => SystemTime::UNIX_EPOCH,
+            },
+            Err(_) => SystemTime::UNIX_EPOCH,
+        };
         match serde_json::from_str(&buf) {
-            Ok(adv) => Ok(adv),
+            Ok(adv) => Ok((adv, FeedStamp::Time(mod_time))),
             Err(err) => Err(Error::JSONParseError(notus_file_str, err)),
         }
     }
@@ -94,6 +102,24 @@ where
             }
         }
         Ok(available_os)
+    }
+
+    fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool {
+        let notus_file = self.root.as_ref().join(format!("{os}.notus"));
+
+        if let Ok(file) = File::open(notus_file) {
+            let mod_time = match file.metadata() {
+                Ok(metadata) => match metadata.modified() {
+                    Ok(time) => time,
+                    Err(_) => return false,
+                },
+                Err(_) => return false,
+            };
+
+            return *stamp != FeedStamp::Time(mod_time);
+        }
+
+        false
     }
 }
 

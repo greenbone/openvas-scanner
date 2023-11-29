@@ -356,6 +356,10 @@ impl<'a, R: Read> HashSumFileItem<'a, R> {
     pub fn get_filename(&self) -> String {
         self.file_name.clone()
     }
+
+    pub fn get_hashsum(&self) -> String {
+        self.hashsum.clone()
+    }
 }
 
 /// Finds .nasl and .inc files within a given path.
