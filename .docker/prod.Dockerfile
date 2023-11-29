@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libhdb9-heimdal \
   libpopt0 \
   libcurl4-gnutls-dev \
-  zlib1g\
+  zlib1g \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir

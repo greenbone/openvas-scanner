@@ -835,8 +835,9 @@ init_string (struct string *s)
  *  libcurl. It stores the response in s. It reallocate memory if necessary.
  */
 static size_t
-response_callback_fn (void *ptr, size_t size, size_t nmemb, struct string *s)
+response_callback_fn (void *ptr, size_t size, size_t nmemb, void *struct_string)
 {
+  struct string *s = struct_string;
   size_t new_len = s->len + size * nmemb;
   char *ptr_aux = g_realloc (s->ptr, new_len + 1);
   s->ptr = ptr_aux;
