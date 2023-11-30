@@ -200,7 +200,7 @@ configure_file (src/openvas_log_conf.cmake_in src/openvas_log.conf)
 enable_testing ()
 
 add_custom_target (tests
-                   DEPENDS attack-test pcap-test ipc-openvas-test)
+                   DEPENDS attack-test pcap-test ipc-openvas-test lsc-test)
 
 ## Program
 

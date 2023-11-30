@@ -136,6 +136,7 @@ set (LINK_LIBS_FOR_TESTS cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS}
                        ${PCAP_LDFLAGS}
+                       ${CURL_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
 
@@ -160,12 +161,27 @@ add_executable (ipc-openvas-test EXCLUDE_FROM_ALL ipc_openvas_tests.c)
 add_test (ipc-openvas-test ipc-openvas-test)
 target_include_directories (ipc-openvas-test PRIVATE ${CGREEN_INCLUDE_DIRS})
 target_link_libraries (ipc-openvas-test cgreen
-                       ${GLIB_LDFLAGS}
+  ${GLIB_LDFLAGS}
                        ${GLIB_JSON_LDFLAGS}
                        ${CURL_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 add_custom_target (tests-ipc-openvas
                   DEPENDS ipc-openvas-test)
+
+# lsc-tests
+add_executable (lsc-test EXCLUDE_FROM_ALL table_driven_lsc_tests.c)
+add_test (lsc-test lsc-test)
+target_include_directories (lsc-test PRIVATE ${CGREEN_INCLUDE_DIRS})
+target_link_libraries (lsc-test openvas_misc_shared openvas_nasl cgreen
+                       ${LIBGVM_BASE_LDFLAGS}
+                       ${LIBGVM_UTIL_LDFLAGS}
+                       ${GLIB_LDFLAGS}
+                       ${GLIB_JSON_LDFLAGS}
+                       ${CURL_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS})
+
+add_custom_target (tests-lsc
+                  DEPENDS lsc-test)
 
 ## End
