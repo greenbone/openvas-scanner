@@ -36,6 +36,7 @@ impl<'a> Grouping for Lexer<'a> {
         if !end {
             Err(unclosed_token!(token))
         } else {
+            self.depth = 0;
             match right {
                 Statement::Assign(category, _, variable, stmt) => Ok(Statement::Assign(
                     category,
@@ -53,6 +54,7 @@ impl<'a> Grouping for Lexer<'a> {
         while let Some(token) = self.peek() {
             if token.category() == &Category::RightCurlyBracket {
                 self.token();
+                self.depth = 0;
                 return Ok((token.clone(), Statement::Block(kw, results, token)));
             }
             let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
