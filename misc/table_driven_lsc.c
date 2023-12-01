@@ -12,7 +12,6 @@
 
 #include "base/networking.h"
 #include "kb_cache.h"
-#include "network.h"
 #include "plugutils.h"
 
 #include <ctype.h> // for tolower()
