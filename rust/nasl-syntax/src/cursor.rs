@@ -15,6 +15,8 @@ pub struct Cursor<'a> {
     /// is needed to calculate the length when e.g. tokenizing
     initial_len: usize,
     chars: Chars<'a>,
+    // extend line with byte position and save all previous lines
+    // this is handy for lookups that are not line specific.
     line: usize,
     col: usize,
 }

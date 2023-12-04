@@ -1,0 +1,76 @@
+# This demo shows how to use a configuration to rename:
+# `www` to `world-wide-web` when in register_product the parameter cpe, location, port are set and when service is set to `www`
+# `register_host_detail` to `add_host_detail`
+# To test it get a community feed and run:
+# ```
+# nasl-cli -v feed transpile -p /tmp/feed -r example/replace.toml
+# ```
+
+# Transforms
+# > register_product(cpe: ..., location: ..., port: ..., service: 'www')
+# To:
+# > register_product(cpe: ..., location: ..., port: ..., service: 'www', service_to_be: 'world-wide-web')
+[[cmds]]
+
+[cmds.find]
+FunctionByNameAndParameter = [
+    "register_product",
+    [
+        { Name = "cpe" },
+        { Name = "location" },
+        { Name = "port" },
+        { NameValue = [
+            "service",
+            "\"www\"",
+        ] },
+    ],
+]
+
+[cmds.with.Parameter.Push]
+Named = [ "service_to_be", "\"world-wide-web\"", ]
+
+# Transforms
+# > register_product(cpe: ..., location: ..., port: ..., service: 'www', service_to_be: 'world-wide-web')
+# To:
+# > register_product(cpe: ..., location: ..., port: ..., service_to_be: 'world-wide-web')
+[[cmds]]
+
+[cmds.find]
+FunctionByNameAndParameter = [
+    "register_product",
+    [
+    { Name = "cpe" },
+    { Name = "location" },
+    { Name = "port" },
+    { Name = "service" },
+    { Name = "service_to_be" },
+],
+]
+
+[cmds.with.Parameter]
+RemoveNamed = "service"
+
+# Transforms
+# > register_product(cpe: ..., location: ..., port: ..., service_to_be: 'world-wide-web')
+# To:
+# > register_product(cpe: ..., location: ..., port: ..., service: 'world-wide-web')
+[[cmds]]
+
+[cmds.find]
+FunctionByName = "register_product"
+
+[cmds.with.Parameter.Rename]
+previous = "service_to_be"
+new = "service"
+
+# Transforms
+# > register_host_detail
+# To:
+# > add_host_detail
+[[cmds]]
+
+[cmds.find]
+FunctionByName = "register_host_detail"
+
+[cmds.with]
+Name = "add_host_detail"

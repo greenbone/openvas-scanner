@@ -9,12 +9,12 @@ Each resolve call will result in a [NaslValue](./src/naslvalue.rs) or an [Interp
 
 An interpreter requires:
 
-- register: &'a mut Register - to hold all the available data like functions or variables
-- context: &'a Context - to hold all configuration regarding to the current context:
- - key: &str - is used to identify the key-value store. It is usually either an OID or a filename (on description runs). 
- - storage: &dyn storage - the storage implementation to be used,
- - loader: &'a dyn Loader - is used to load script dependencies on `include`,
- - logger: Box<dyn NaslLogger> - the default logger
+- `register: &'a mut Register` - to hold all the available data like functions or variables
+- `context: &'a Context` - to hold all configuration regarding to the current context:
+ - `key: &str` - is used to identify the key-value store. It is usually either an OID or a filename (on description runs). 
+ - `storage: &dyn storage` - the storage implementation to be used,
+ - `loader: &'a dyn Loader` - is used to load script dependencies on `include`,
+ - `logger: Box<dyn NaslLogger>` - the default logger
 
 
 ## Example

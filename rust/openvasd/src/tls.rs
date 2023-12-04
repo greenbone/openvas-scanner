@@ -260,7 +260,7 @@ impl rustls::server::ClientCertVerifier for ClientSnitch {
                 *ci = ClientIdentifier::Known(end_entity.into());
                 Ok(r)
             }
-            Err(_) => todo!(),
+            Err(e) => Err(e),
         }
     }
 }

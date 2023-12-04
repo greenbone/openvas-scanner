@@ -12,7 +12,7 @@ mod array;
 /// It contains all functions that are defined as a standard library function within NASL.
 ///
 /// It does not contain user defined functions, as they created on runtime while executing a nasl
-/// script. This is handled within the [nasl_interpreter::Interpreter].
+/// script. This is handled within the `nasl_interpreter::Interpreter`.
 pub struct Std;
 
 impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Std {
