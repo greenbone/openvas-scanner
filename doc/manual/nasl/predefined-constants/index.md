@@ -1,0 +1,63 @@
+## Predefined Constants
+
+These constants are actually variables, i.e., their value can be modified in a script.
+
+- Boolean constants
+  - FALSE = 0
+- TRUE = 1
+- Plug-in categories
+  - ACT_INIT: the plug-in just sets a few KB items (kinds of global variables for all plug-ins).
+  - ACT_SCANNER: the plug-in is a port scanner or something like it (e.g., ping).
+  - ACT_SETTINGS: just like ACT_INIT, but run after the scanners, once it is sure that the host is alive (for performance).
+  - ACT_GATHER_INFO: the plug-in identifies services, gathers data, parses banners, etc.
+  - ACT_ATTACK: the plug-in launches a soft attack, e.g. a web directory traversal.
+  - ACT_MIXED_ATTACK: the plug-in launches an attack that might have dangerous side effects (crashing the service most of the time).
+  - ACT_DESTRUCTIVE_ATTACK: the plug-in tries to destroy data or launch some dangerous attack (e.g., testing a buffer overflow is likely to crash a vulnerable service).
+  - ACT_DENIAL: the plugin tries to crash a service.
+  - ACT_KILL_HOST: the plug-in tries to crash the target host or disable it (e.g., saturate the CPU, kill some vital service, ...).
+  - ACT_FLOOD: the plug-in tries to crash the target host or disable it by flooding it with incorrect packets or requests. It may saturate the network or kill some routing, switching or filtering device on the way.
+  - ACT_END: The plug-in runs at the very end of the scan
+- Network constants
+  - Encapsulation types
+    - ENCAPS_AUTO = 0, Request auto detection.
+    - ENCAPS_IP = 1, this is the “transport” value for a pure TCP socket.
+    - ENCAPS_SSLv23 = 2, this is the “transport” value for a SSL connection in compatibility mode. Note that the find_service plugin will never declare a port with this "encapsulation", but you may use it in a script.
+    - ENCAPS_SSLv2 = 3, The old SSL version which only supports server side certificates. By the way, there is only one plugin that really tries to destroy data. This is http_methods.nasl
+    - ENCAPS_SSLv3 = 4, The new SSL version: it supports server and client side certificates, more ciphers, and fixes a few security holes.
+    - ENCAPS_TLSv1 = 5, TLSv1 is defined RFC 2246. Some people call it “SSL v3.1”.
+    - ENCAPS_TLSv11 = 6
+    - ENCAPS_TLSv12 = 7
+    - ENCAPS_TLSv13 = 8
+    - ENCAPS_TLScustom = 9, SSL/TLS using custom priorities.
+    - ENCAPS_MAX = 10
+  - Sockets options
+    - MSG_OOB, a socket option used to send “out of band data”.
+  - Raw sockets
+    - IPPROTO_ICMP as defined in the system C include files.
+    - IPPROTO_ICMPV6 (from netinet/ip.h)
+    - IPPROTO_IGMP
+    - IPPROTO_IP
+    - IPPROTO_TCP
+    - IPPROTO_UDP
+    - IP_RF = 0x8000 (reserved fragment flag)
+    - IP_DF = 0x4000 (dont fragment flag)
+    - IP_MF = 0x2000 (more fragments flag)
+    - IP_OFFMASK = 0x1fff (mask for fragmenting bits)
+    - pcap_timeout = 5
+    - TH_ACK = 0x10. This TCP flag indicates that the packet contains a valid acknowledgment.
+    - TH_FIN = 0x01. This TCP flag indicates that the packet negotiates the end of the session.
+    - TH_PUSH = 0x08.
+    - TH_RST = 0x04. This TCP flag indicates that the connection was refused or “reset by peer”.
+    - TH_SYN = 0x02. This belong to the initial handshake (connection opening).
+    - TH_URG = 0x20. This TCP flag indicates that the packet contains urgent data
+- Miscellaneous constants
+  - NULL is the undefined value
+- openvas-scanner glue
+  - description is set to 1 when openvas-scanner parses the script the first time (to get its name, description, summary, etc.), then to 0 when it is run.
+  - COMMAND_LINE is set to 0 when the script is run by openvas-scanner or to 1 when it is run by the NASL standalone interpreter.
+- NASL constants
+  - ERR_NOERR = 0
+  - ERR_ETIMEDOUT = 1
+  - ERR_ECONNRESET = 2
+  - ERR_EUNREACH = 3
+  - ERR_EUNKNOWN = 99
