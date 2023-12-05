@@ -13,7 +13,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
         let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
-        let mut notus = Notus::new(loader);
+        let mut notus = Notus::new(loader, false);
 
         let packages = vec![
             "gitlab-ce-16.0.1".to_string(), // vul
@@ -66,7 +66,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
         let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
-        let mut notus = Notus::new(loader);
+        let mut notus = Notus::new(loader, false);
 
         let pkg_name = "wepofkewf~.124.sdefpo3-_~s#";
 
@@ -83,7 +83,7 @@ mod tests {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
         let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
-        let mut notus = Notus::new(loader);
+        let mut notus = Notus::new(loader, false);
 
         let packages = vec![];
 
