@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use storage::DefaultDispatcher;
 
 use crate::{
+    notus::NotusWrapper,
     response,
     scan::{Error, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper},
 };
@@ -56,7 +57,7 @@ impl From<(&str, std::time::Duration, bool)> for FeedContext {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 /// Context builder is used to build the context of the application.
 pub struct ContextBuilder<S, DB, T> {
     scanner: T,
@@ -67,6 +68,7 @@ pub struct ContextBuilder<S, DB, T> {
     enable_get_scans: bool,
     marker: std::marker::PhantomData<S>,
     response: response::Response,
+    notus: Option<NotusWrapper>,
 }
 
 impl<S>
@@ -83,6 +85,7 @@ impl<S>
             marker: std::marker::PhantomData,
             enable_get_scans: false,
             response: response::Response::default(),
+            notus: None,
         }
     }
 }
@@ -122,6 +125,12 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self
     }
 
+    /// Set notus
+    pub fn notus(mut self, notus: NotusWrapper) -> Self {
+        self.notus = Some(notus);
+        self
+    }
+
     /// Sets the storage.
     #[allow(dead_code)]
     pub fn storage<NDB>(self, storage: NDB) -> ContextBuilder<S, NDB, T> {
@@ -134,6 +143,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             enable_get_scans,
             marker,
             response,
+            notus,
         } = self;
         ContextBuilder {
             scanner,
@@ -144,6 +154,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             enable_get_scans,
             marker,
             response,
+            notus,
         }
     }
 }
@@ -166,6 +177,7 @@ where
             marker: _,
             response,
             storage,
+            notus,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
@@ -176,6 +188,7 @@ where
             api_key,
             enable_get_scans,
             response,
+            notus,
         }
     }
 }
@@ -191,6 +204,7 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             abort: Default::default(),
             api_key: self.api_key,
             enable_get_scans: self.enable_get_scans,
+            notus: self.notus,
         }
     }
 }
@@ -219,6 +233,8 @@ pub struct Context<S, DB> {
     pub enable_get_scans: bool,
     /// Aborts the background loops
     pub abort: RwLock<bool>,
+    /// Notus Scanner
+    pub notus: Option<NotusWrapper>,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -2,13 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use ::notus::{loader::hashsum::HashsumAdvisoryLoader, notus::Notus};
 use controller::ClientGossiper;
 use futures_util::ready;
+use nasl_interpreter::FSPluginLoader;
+use notus::NotusWrapper;
 
 pub mod config;
 pub mod controller;
 pub mod crypt;
 pub mod feed;
+pub mod notus;
 pub mod request;
 pub mod response;
 pub mod scan;
@@ -107,7 +111,18 @@ fn create_context<DB>(
         config.feed.check_interval,
         config.feed.signature_check,
     );
-    controller::ContextBuilder::new()
+    let mut ctx_builder = controller::ContextBuilder::new();
+
+    let loader = FSPluginLoader::new(config.notus.advisory_path.to_string_lossy().to_string());
+    match HashsumAdvisoryLoader::new(loader) {
+        Ok(loader) => {
+            let notus = Notus::new(loader, config.feed.signature_check);
+            ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
+        }
+        Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),
+    }
+
+    ctx_builder
         .result_config(rc)
         .feed_config(fc)
         .scanner(scanner)

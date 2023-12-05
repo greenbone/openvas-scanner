@@ -1,0 +1,87 @@
+{
+    "version": "1.3",
+    "package_type": "deb",
+    "advisories": [
+        {
+            "oid": "1.3.6.1.4.1.25623.1.1.7.2.2023.10089729899100",
+            "fixed_packages": [
+                {
+                    "name": "gitlab-ce",
+                    "range": {
+                        "start": "?",
+                        "end": "="
+                    }
+                },
+                {
+                    "name": "gitlab-ce",
+                    "range": {
+                        "start": "16.0.0",
+                        "end": "16.0.7"
+                    }
+                },
+                {
+                    "name": "gitlab-ce",
+                    "range": {
+                        "start": "16.1.0",
+                        "end": "16.1.2"
+                    }
+                }
+            ]
+        },
+        {
+            "oid": "1.3.6.1.4.1.25623.1.1.7.2.2023.0988598199100",
+            "fixed_packages": [
+                {
+                    "name": "grafana",
+                    "full_version": "8.5.24",
+                    "specifier": ">="
+                },
+                {
+                    "name": "grafana",
+                    "range": {
+                        "start": "9.0.0",
+                        "end": "9.2.17"
+                    }
+                },
+                {
+                    "name": "grafana",
+                    "range": {
+                        "start": "9.3.0",
+                        "end": "9.3.13"
+                    }
+                },
+                {
+                    "name": "grafana",
+                    "range": {
+                        "start": "9.4.0",
+                        "end": "9.4.9"
+                    }
+                },
+                {
+                    "name": "grafana8",
+                    "full_version": "8.5.24",
+                    "specifier": ">="
+                },
+                {
+                    "name": "grafana9",
+                    "full_version": "9.2.17",
+                    "specifier": ">="
+                },
+                {
+                    "name": "grafana9",
+                    "range": {
+                        "start": "9.3.0",
+                        "end": "9.3.13"
+                    }
+                },
+                {
+                    "name": "grafana9",
+                    "range": {
+                        "start": "9.4.0",
+                        "end": "9.4.9"
+                    }
+                }
+            ]
+        }
+    ]
+}

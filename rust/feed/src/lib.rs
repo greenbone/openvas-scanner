@@ -19,3 +19,4 @@ pub use verify::FileNameLoader;
 pub use verify::HashSumNameLoader;
 pub use verify::Hasher;
 pub use verify::NaslFileFinder;
+pub use verify::SignatureChecker;
