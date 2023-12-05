@@ -169,7 +169,7 @@ impl VerificationHelper for VHelper {
 pub trait SignatureChecker {
     /// For signature check the GNUPGHOME environment variable
     /// must be set with the path to the keyring.
-    /// If this is satisfied, the signature check is perfomed
+    /// If this is satisfied, the signature check is performed
     fn signature_check(feed_path: &str) -> Result<(), Error> {
         let mut gnupghome = match std::env::var("GNUPGHOME") {
             Ok(v) => v,
