@@ -14,7 +14,7 @@ use nasl_interpreter::{
 };
 use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
 
-use crate::verify::{self, signature_check, HashSumFileItem};
+use crate::verify::{self, SignatureChecker, HashSumFileItem};
 
 pub use self::error::ErrorKind;
 
@@ -69,6 +69,16 @@ pub fn feed_version<K: Default + AsRef<str>>(
     Ok(feed_version)
 }
 
+
+impl<'a, R, S, L, V, K> SignatureChecker for Update<S, L, V, K>
+where
+    S: Sync + Send + Dispatcher<K>,
+    K: AsRef<str> + Display + Default + From<String>,
+    L: Sync + Send + Loader + AsBufReader<File>,
+    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
+    R: Read + 'a,
+{}
+    
 impl<'a, S, L, V, K, R> Update<S, L, V, K>
 where
     S: Sync + Send + Dispatcher<K>,
@@ -163,8 +173,9 @@ where
     }
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
+        //self::SignatureChecker::signature_check(&path)
         let path = self.loader.root_path().unwrap();
-        signature_check(&path)
+        <Update<S, L, V, K> as self::SignatureChecker>::signature_check(&path)
     }
 }
 

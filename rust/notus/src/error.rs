@@ -44,6 +44,8 @@ pub enum Error {
     AdvisoryParseError(String, FixedPackage),
     /// Some issues caused by a HashsumLoader
     HashsumLoadError(feed::VerifyError),
+    /// Signature check error
+    SignatureCheckError(feed::VerifyError),
 }
 
 impl Display for Error {
@@ -59,6 +61,7 @@ impl Display for Error {
             Error::AdvisoryParseError(path, pkg) => write!(f, "Unable to parse fixed package information {:?} in the advisories {path}", pkg),
             Error::UnreadableAdvisoryDir(path, err) => write!(f, "The directory {path} is not readable: {err}"),
             Error::HashsumLoadError(err) => write!(f, "Hashsum verification failed: {err}"),
+            Error::SignatureCheckError(err) => write!(f, "Signature check failed: {err}"),
         }
     }
 }

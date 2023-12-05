@@ -40,7 +40,7 @@ fn main() {
             return;
         }
     };
-
+    
     let mut buf;
     match matches.get_one::<PathBuf>("pkg-file") {
         Some(path) => {
@@ -55,7 +55,7 @@ fn main() {
 
     let os = matches.get_one::<String>("os").unwrap();
 
-    let mut notus = Notus::new(loader);
+    let mut notus = Notus::new(loader, false);
     match notus.scan(os, &packages) {
         Ok(results) => {
             let json = match matches.contains_id("pretty") {

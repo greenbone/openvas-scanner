@@ -1735,6 +1735,7 @@ dependencies = [
  "nasl-syntax",
  "serde",
  "serde_json",
+ "tracing",
 ]
 
 [[package]]

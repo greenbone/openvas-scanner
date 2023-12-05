@@ -116,7 +116,7 @@ fn create_context<DB>(
     let loader = FSPluginLoader::new(config.notus.advisory_path.to_string_lossy().to_string());
     match HashsumAdvisoryLoader::new(loader) {
         Ok(loader) => {
-            let notus = Notus::new(loader);
+            let notus = Notus::new(loader, config.feed.signature_check);
             ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
         }
         Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),

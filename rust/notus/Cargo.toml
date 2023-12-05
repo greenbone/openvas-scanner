@@ -14,3 +14,4 @@ clap = { version = "~4" }
 models = { path = "../models" }
 feed = { path = "../feed" }
 nasl-syntax = { path = "../nasl-syntax" }
+tracing = "0.1.40"

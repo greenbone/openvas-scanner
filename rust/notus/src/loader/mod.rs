@@ -23,4 +23,6 @@ pub trait AdvisoriesLoader {
     fn load_package_advisories(&self, os: &str) -> Result<(Advisories, FeedStamp), Error>;
     fn get_available_os(&self) -> Result<Vec<String>, Error>;
     fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool;
+    fn verify_signature(&self) -> Result<(), feed::VerifyError>;
+    fn get_root_dir(&self) -> Result<String, Error>;
 }

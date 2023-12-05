@@ -20,20 +20,23 @@ where
 {
     loader: L,
     loaded_advisories: HashMap<String, (PackageAdvisories, FeedStamp)>,
+    signature_check: bool,
 }
 
 impl<L> Notus<L>
 where
     L: AdvisoriesLoader,
 {
-    pub fn new(loader: L) -> Self {
+    pub fn new(loader: L, signature_check: bool) -> Self {
         Notus {
             loader,
             loaded_advisories: Default::default(),
+            signature_check,
         }
     }
 
     fn load_new_advisories(&self, os: &str) -> Result<(PackageAdvisories, FeedStamp), Error> {
+        tracing::debug!("Loading notus advisories from {:?}", self.loader.get_root_dir());
         let (advisories, stamp) = self.loader.load_package_advisories(os)?;
 
         match PackageAdvisories::try_from(advisories) {
@@ -98,11 +101,35 @@ where
         Ok(Self::compare(&packages, advisories))
     }
 
+    fn signature_check (&self) -> Result<(), Error> {
+        if self.signature_check {
+            match self.loader.verify_signature() {
+                Ok(_) => tracing::info!("Signature check succsessful"),
+                Err(feed::VerifyError::MissingKeyring) => {
+                    tracing::warn!("Signature check enabled but missing keyring");
+                    return Err(Error::SignatureCheckError(feed::VerifyError::MissingKeyring));
+                }
+                Err(feed::VerifyError::BadSignature(e)) => {
+                    tracing::warn!("{}", e);
+                    return Err(Error::SignatureCheckError(feed::VerifyError::BadSignature(e)));
+                }
+                Err(e) => {
+                    tracing::warn!("Unexpected error during signature verification: {e}");
+                    return Err(Error::HashsumLoadError(e));
+                }
+            }
+        } else {
+            tracing::warn!("Signature check disabled");
+        }
+        Ok(())
+    }
+    
     pub fn scan(&mut self, os: &str, packages: &[String]) -> Result<NotusResults, Error> {
         // Load advisories if not loaded
         let advisories = match self.loaded_advisories.get(os) {
             Some((adv, stamp)) => {
                 if self.loader.has_changed(os, stamp) {
+                    self.signature_check()?;
                     self.loaded_advisories.remove(os);
                     self.loaded_advisories
                         .insert(os.to_string(), self.load_new_advisories(os)?);
@@ -112,6 +139,7 @@ where
                 }
             }
             None => {
+                self.signature_check()?;
                 self.loaded_advisories
                     .insert(os.to_string(), self.load_new_advisories(os)?);
                 &self.loaded_advisories[&os.to_string()].0
@@ -130,6 +158,7 @@ where
     }
 
     pub fn get_available_os(&self) -> Result<Vec<String>, Error> {
+        self.signature_check()?;
         self.loader.get_available_os()
     }
 }

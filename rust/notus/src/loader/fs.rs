@@ -12,6 +12,7 @@ use std::{
 use models::Advisories;
 
 use crate::error::Error;
+use feed::SignatureChecker;
 
 use super::{AdvisoriesLoader, FeedStamp};
 
@@ -43,6 +44,11 @@ where
         Ok(Self { root: path })
     }
 }
+
+impl<P> SignatureChecker for FSAdvisoryLoader<P>
+where
+    P: AsRef<Path>,
+{}
 
 impl<P> AdvisoriesLoader for FSAdvisoryLoader<P>
 where
@@ -121,6 +127,18 @@ where
 
         false
     }
+
+    /// Perform a signature check of the sha256sums file
+    fn verify_signature(&self) -> Result<(), feed::VerifyError> {
+        let p = self.root.as_ref().to_str().unwrap_or_default();
+        <FSAdvisoryLoader<P> as self::SignatureChecker>::signature_check(p)
+    }
+    /// Get the notus products root directory
+    fn get_root_dir(&self) -> Result<String, Error> {
+        let path = self.root.as_ref().to_str().unwrap();
+        Ok(path.to_string())
+    }
+
 }
 
 #[cfg(test)]

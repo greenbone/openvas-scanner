@@ -4,7 +4,7 @@
 
 use std::{io::Read, marker::PhantomData};
 
-use feed::HashSumNameLoader;
+use feed::{HashSumNameLoader, SignatureChecker};
 use nasl_syntax::{AsBufReader, Loader};
 
 use crate::error::Error;
@@ -16,6 +16,13 @@ pub struct HashsumAdvisoryLoader<R, L> {
     loader: L,
     read_type: PhantomData<R>,
 }
+
+impl<R, L> SignatureChecker for HashsumAdvisoryLoader<R, L>
+where
+    L: Loader + AsBufReader<R>,
+    R: Read,
+{}
+
 
 impl<R, L> HashsumAdvisoryLoader<R, L>
 where
@@ -91,5 +98,15 @@ where
             }
         }
         false
+    }
+
+    /// Perform a signature check of the sha256sums file
+    fn verify_signature(&self) -> Result<(), feed::VerifyError> {
+        let path = self.loader.root_path().unwrap();
+        <HashsumAdvisoryLoader<R,L> as self::SignatureChecker>::signature_check(&path)
+    }
+    fn get_root_dir(&self) -> Result<String, Error> {
+        let p = self.loader.root_path().unwrap();
+        Ok(p)
     }
 }
