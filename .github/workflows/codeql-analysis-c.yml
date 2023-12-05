@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: ${{ github.repository }}-build:unstable
+    container: greenbone/gvm-libs:unstable
 
     strategy:
       fail-fast: false
@@ -26,7 +26,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
+    - name: install dependencies
+      run: |
+          sh .github/install-openvas-dependencies.sh
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:

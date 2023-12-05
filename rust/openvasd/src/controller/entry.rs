@@ -6,16 +6,15 @@
 //!
 //! All known paths must be handled in the entrypoint function.
 
-use std::{
-    fmt::Display,
-    sync::{Arc, RwLock},
-};
+use std::sync::RwLock;
+use std::{fmt::Display, sync::Arc};
 
 use super::{context::Context, ClientIdentifier};
 use hyper::{Body, Method, Request, Response};
 
 use crate::{
     controller::ClientHash,
+    notus::NotusScanner,
     scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper},
 };
 
@@ -27,7 +26,7 @@ enum HealthOpts {
     /// Alive
     Alive,
 }
-/// The supported paths of scannerd
+/// The supported paths of openvasd
 enum KnownPaths {
     /// /scans/{id}
     Scans(Option<String>),
@@ -39,13 +38,15 @@ enum KnownPaths {
     Vts,
     /// /health
     Health(HealthOpts),
+    /// /notus/{os}
+    Notus(Option<String>),
     /// Not supported
     Unknown,
 }
 
 impl KnownPaths {
     pub fn requires_id(&self) -> bool {
-        !matches!(self, Self::Health(_) | Self::Vts)
+        !matches!(self, Self::Health(_) | Self::Vts | Self::Notus(_))
     }
 
     #[tracing::instrument]
@@ -65,6 +66,10 @@ impl KnownPaths {
                 None => KnownPaths::Scans(None),
             },
             Some("vts") => KnownPaths::Vts,
+            Some("notus") => match parts.next() {
+                Some(os) => KnownPaths::Notus(Some(os.to_string())),
+                None => KnownPaths::Notus(None),
+            },
             Some("health") => match parts.next() {
                 Some("ready") => KnownPaths::Health(HealthOpts::Ready),
                 Some("alive") => KnownPaths::Health(HealthOpts::Alive),
@@ -98,6 +103,8 @@ impl Display for KnownPaths {
             KnownPaths::ScanStatus(id) => write!(f, "/scans/{}/status", id),
             KnownPaths::Unknown => write!(f, "Unknown"),
             KnownPaths::Vts => write!(f, "/vts"),
+            KnownPaths::Notus(Some(os)) => write!(f, "/notus/{}", os),
+            KnownPaths::Notus(None) => write!(f, "/notus"),
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
@@ -105,7 +112,7 @@ impl Display for KnownPaths {
     }
 }
 
-/// Is used to handle all incomng requests.
+/// Is used to handle all incoming requests.
 pub async fn entrypoint<'a, S, DB>(
     req: Request<Body>,
     ctx: Arc<Context<S, DB>>,
@@ -182,6 +189,37 @@ where
                 Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE))
             } else {
                 Ok(ctx.response.empty(hyper::StatusCode::OK))
+            }
+        }
+        (&Method::GET, Notus(None)) => match &ctx.notus {
+            Some(notus) => match notus.get_available_os().await {
+                Ok(result) => Ok(ctx.response.ok(&result)),
+                Err(err) => Ok(ctx.response.internal_server_error(&err)),
+            },
+            None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+        },
+
+        (&Method::POST, Notus(Some(os))) => {
+            match crate::request::json_request::<Vec<String>>(&ctx.response, req).await {
+                Ok(packages) => match &ctx.notus {
+                    Some(notus) => match notus.scan(&os, &packages).await {
+                        Ok(results) => Ok(ctx.response.ok(&results)),
+                        Err(err) => match err {
+                            // 404
+                            notus::error::Error::UnknownOs(_) => {
+                                Ok(ctx.response.not_found("advisories", &os))
+                            }
+                            // 401
+                            notus::error::Error::PackageParseError(_) => {
+                                Ok(ctx.response.bad_request(&format!("{err}")))
+                            }
+                            // 501
+                            _ => Ok(ctx.response.internal_server_error(&err)),
+                        },
+                    },
+                    None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+                },
+                Err(resp) => Ok(resp),
             }
         }
         (&Method::POST, Scans(None)) => {

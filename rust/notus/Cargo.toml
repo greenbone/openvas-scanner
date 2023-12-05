@@ -1,0 +1,17 @@
+[package]
+name = "notus"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lazy-regex = "3.1.0"
+serde_json = "1.0.96"
+serde = { version = "1.0.163" }
+clap = { version = "~4" }
+
+models = { path = "../models" }
+feed = { path = "../feed" }
+nasl-syntax = { path = "../nasl-syntax" }
+tracing = "0.1.40"
