@@ -4,6 +4,8 @@
 
 use std::collections::HashMap;
 
+use crate::Specifier;
+
 use super::port::Protocol;
 
 /// Scan result
@@ -94,4 +96,28 @@ pub enum ResultType {
     DeadHost,
     /// Detail information about the host
     HostDetail,
+}
+
+/// Notus Results are a Map from OIDs to vulnerable Packages
+pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
+
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize))]
+#[derive(Debug)]
+pub struct VulnerablePackage {
+    pub name: String,
+    pub installed_version: String,
+    pub fixed_version: FixedVersion,
+}
+
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize), serde(untagged))]
+#[derive(Debug)]
+pub enum FixedVersion {
+    Single {
+        version: String,
+        specifier: Specifier,
+    },
+    Range {
+        start: String,
+        end: String,
+    },
 }

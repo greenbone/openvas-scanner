@@ -410,6 +410,7 @@ static int
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
+  const char *openvasd_server_uri;
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
@@ -431,19 +432,28 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   nvticache_reset ();
 
   /* Init MQTT communication */
-  mqtt_server_uri = prefs_get ("mqtt_server_uri");
-  if (mqtt_server_uri)
+  openvasd_server_uri = prefs_get ("openvasd_server");
+  if (openvasd_server_uri)
     {
-      if ((mqtt_init (mqtt_server_uri)) != 0)
+      g_message ("%s: LSC via openvasd", __func__);
+      prefs_set ("openvasd_lsc_enabled", "yes");
+    }
+  else
+    {
+      mqtt_server_uri = prefs_get ("mqtt_server_uri");
+      if (mqtt_server_uri)
         {
-          g_message ("%s: INIT MQTT: FAIL", __func__);
-          send_message_to_client_and_finish_scan (
-            "ERRMSG||| ||| ||| ||| |||MQTT initialization failed");
-        }
-      else
-        {
-          g_message ("%s: INIT MQTT: SUCCESS", __func__);
-          prefs_set ("mqtt_enabled", "yes");
+          if ((mqtt_init (mqtt_server_uri)) != 0)
+            {
+              g_message ("%s: INIT MQTT: FAIL", __func__);
+              send_message_to_client_and_finish_scan (
+                "ERRMSG||| ||| ||| ||| |||MQTT initialization failed");
+            }
+          else
+            {
+              g_message ("%s: INIT MQTT: SUCCESS", __func__);
+              prefs_set ("mqtt_enabled", "yes");
+            }
         }
     }
 

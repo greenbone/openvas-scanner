@@ -6,19 +6,20 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-models = {path = "../models"}
-osp = {path = "../osp"}
+models = { path = "../models" }
+osp = { path = "../osp" }
 nasl-interpreter = { path = "../nasl-interpreter" }
-feed = {path = "../feed"}
+feed = { path = "../feed" }
 storage = { path = "../storage" }
 infisto = { path = "../infisto" }
+notus = { path = "../notus" }
 hyper = { version = "0.14.26", features = ["full", "stream"] }
 tokio = { version = "1.28.1", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 serde_json = "1.0.96"
 serde = { version = "1.0.163", features = ["derive"] }
-uuid = {version = "1", features = ["v4", "fast-rng", "serde"]}
+uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 hyper-rustls = "0.24.0"
 rustls = {version = "0.21.1", features = ["dangerous_configuration"]}
 tokio-rustls = "0.24.0"

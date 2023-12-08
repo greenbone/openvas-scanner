@@ -8,6 +8,7 @@ use std::ops::Not;
 use crate::{
     error::SyntaxError,
     infix_extension::Infix,
+    max_recursion,
     operation::Operation,
     postfix_extension::Postfix,
     prefix_extension::Prefix,
@@ -20,6 +21,11 @@ pub struct Lexer<'a> {
     // TODO: change to iterator of Token instead of Tokenizer
     // to allopw statements of a Vec
     tokenizer: Tokenizer<'a>,
+
+    // is the current depth call within a statement call. The current
+    // implementation relies that the iterator implementation resets depth to 0
+    // after a statement, or error, has been returned.
+    pub(crate) depth: u8,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -27,6 +33,9 @@ pub enum End {
     Done(Token),
     Continue,
 }
+
+/// Is the maximum depth allowed within one continuous statement call.
+const MAX_DEPTH: u8 = 42;
 
 impl End {
     pub fn is_done(&self) -> bool {
@@ -55,7 +64,8 @@ impl Not for End {
 impl<'a> Lexer<'a> {
     /// Creates a Lexer
     pub fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
-        Lexer { tokenizer }
+        let depth = 0;
+        Lexer { tokenizer, depth }
     }
 
     /// Returns next token of tokenizer
@@ -93,6 +103,10 @@ impl<'a> Lexer<'a> {
         min_binding_power: u8,
         abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
+        self.depth += 1;
+        if self.depth >= MAX_DEPTH {
+            return Err(max_recursion!(MAX_DEPTH));
+        }
         // reset unhandled_token when min_bp is 0
         let (state, mut left) = self
             .token()
@@ -108,7 +122,9 @@ impl<'a> Lexer<'a> {
             .unwrap_or(Ok((End::Done(Token::unexpected_none()), Statement::EoF)))?;
         match state {
             End::Continue => {}
-            end => return Ok((end, left)),
+            end => {
+                return Ok((end, left));
+            }
         }
 
         let mut end_statement = End::Continue;
@@ -116,6 +132,7 @@ impl<'a> Lexer<'a> {
             if abort(token.category()) {
                 self.token();
                 end_statement = End::Done(token.clone());
+                self.depth = 0;
                 break;
             }
             let op =
@@ -128,6 +145,7 @@ impl<'a> Lexer<'a> {
                 self.token();
                 left = stmt;
                 if let End::Done(cat) = end {
+                    self.depth = 0;
                     end_statement = End::Done(cat);
                     break;
                 }
@@ -142,6 +160,7 @@ impl<'a> Lexer<'a> {
                 let (end, nl) = self.infix_statement(op, token, left, abort)?;
                 left = nl;
                 if let End::Done(cat) = end {
+                    self.depth = 0;
                     end_statement = End::Done(cat);
                     break;
                 } else {
@@ -162,6 +181,11 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.statement(0, &|cat| cat == &Category::Semicolon);
+        // simulate eof if end::continue is stuck in a recursive loop
+        if self.depth >= MAX_DEPTH {
+            return None;
+        }
+
         match result {
             Ok((_, Statement::EoF)) => None,
             Ok((End::Done(_), stmt)) => Some(Ok(stmt)),

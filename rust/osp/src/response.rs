@@ -203,7 +203,7 @@ pub enum Response {
     ///      </progress>
     ///  </scan>
     ///</get_scans_response>
-    ///```
+    /// ```
     #[serde(rename = "get_scans_response")]
     GetScans {
         #[serde(flatten)]

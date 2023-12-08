@@ -28,6 +28,7 @@ members = [
   "scanconfig",
   "infisto",
   "smoketest",
+  "notus",
   "plugin-scheduler",
   "dep-graph",
 ]

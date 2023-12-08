@@ -295,6 +295,7 @@ sudo apt install -y \
   rsync \
   nmap \
   libjson-glib-dev \
+  libcurl4-gnutls-dev \
   libbsd-dev
 ```
 
