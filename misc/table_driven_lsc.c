@@ -894,6 +894,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
   struct curl_slist *customheader = NULL;
   char *os_aux;
   GString *xapikey = NULL;
+
   if ((curl = curl_easy_init ()) == NULL)
     {
       g_warning ("Not possible to initialize curl library");
@@ -916,13 +917,13 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
 
   g_debug ("%s: URL: %s", __func__, url->str);
   // Set URL
-  if (curl_easy_setopt (curl, CURLOPT_URL, url->str) != CURLE_OK)
+  if (curl_easy_setopt (curl, CURLOPT_URL, g_strdup (url->str)) != CURLE_OK)
     {
       g_warning ("Not possible to set the URL");
       curl_easy_cleanup (curl);
-      g_string_free (url, TRUE);
       return http_code;
     }
+  g_string_free (url, TRUE);
 
   // Accept an insecure connection. Don't verify the server certificate
   curl_easy_setopt (curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -933,7 +934,8 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
     {
       xapikey = g_string_new ("X-APIKEY: ");
       g_string_append (xapikey, prefs_get ("x-apikey"));
-      customheader = curl_slist_append (customheader, xapikey->str);
+      customheader = curl_slist_append (customheader, g_strdup (xapikey->str));
+      g_string_free (xapikey, TRUE);
     }
   // SET Content type
   customheader =
@@ -953,22 +955,18 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
     {
       g_warning ("%s: Error sending request: %d", __func__, ret);
       curl_easy_cleanup (curl);
-      g_string_free (xapikey, FALSE);
       g_free (resp.ptr);
-      g_string_free (url, FALSE);
       return http_code;
     }
 
   curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
 
   curl_easy_cleanup (curl);
-
   g_debug ("Server response %s", resp.ptr);
   *response = g_strdup (resp.ptr);
-  g_free (os_aux);
-  g_string_free (xapikey, FALSE);
-  g_string_free (url, FALSE);
   g_free (resp.ptr);
+  // already free()'ed with curl_easy_cleanup().
+
   return http_code;
 }
 
