@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libhdb9-heimdal \
   libpopt0 \
   libcurl4 \
+  libcurl3-gnutls \
   zlib1g \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
