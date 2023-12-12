@@ -5,14 +5,14 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
 use clap::{arg, value_parser, ArgAction, Command};
-use notus::{loader::fs::FSAdvisoryLoader, notus::Notus};
+use notus::{loader::fs::FSProductLoader, notus::Notus};
 
 fn main() {
     let matches = Command::new("nasl-cli")
         .version("1.0")
         .about("Is a CLI tool around Notus.")
         .arg(
-            arg!(-p --path <FILE> "Path to the notus advisories.")
+            arg!(-p --path <FILE> "Path to the notus products.")
                 .required(true)
                 .value_parser(value_parser!(PathBuf)),
         )
@@ -32,15 +32,15 @@ fn main() {
         )
         .get_matches();
 
-    let advisory_path = matches.get_one::<PathBuf>("path").unwrap();
-    let loader = match FSAdvisoryLoader::new(advisory_path) {
+    let products_path = matches.get_one::<PathBuf>("path").unwrap();
+    let loader = match FSProductLoader::new(products_path) {
         Ok(loader) => loader,
         Err(err) => {
             eprintln!("{err}");
             return;
         }
     };
-    
+
     let mut buf;
     match matches.get_one::<PathBuf>("pkg-file") {
         Some(path) => {

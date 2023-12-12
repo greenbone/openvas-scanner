@@ -7,7 +7,7 @@ use std::fs::File;
 use async_trait::async_trait;
 use models::NotusResults;
 use nasl_interpreter::FSPluginLoader;
-use notus::{error::Error, loader::hashsum::HashsumAdvisoryLoader, notus::Notus};
+use notus::{error::Error, loader::hashsum::HashsumProductLoader, notus::Notus};
 use tokio::sync::RwLock;
 
 #[async_trait]
@@ -18,11 +18,11 @@ pub trait NotusScanner {
 
 #[derive(Debug)]
 pub struct NotusWrapper {
-    notus: RwLock<Notus<HashsumAdvisoryLoader<File, FSPluginLoader<String>>>>,
+    notus: RwLock<Notus<HashsumProductLoader<File, FSPluginLoader<String>>>>,
 }
 
 impl NotusWrapper {
-    pub fn new(notus: Notus<HashsumAdvisoryLoader<File, FSPluginLoader<String>>>) -> Self {
+    pub fn new(notus: Notus<HashsumProductLoader<File, FSPluginLoader<String>>>) -> Self {
         Self {
             notus: RwLock::new(notus),
         }

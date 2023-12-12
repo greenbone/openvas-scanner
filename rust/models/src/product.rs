@@ -2,16 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-/// Represents an Advisories json file for notus
+/// Represents an product json file for notus
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
 #[derive(Debug)]
-pub struct Advisories {
+pub struct Product {
     /// Version of the file, some version might not be supported by notus
     pub version: String,
     /// Package type, important for parsing the corresponding package
     pub package_type: PackageType,
-    /// List of advisories
-    pub advisories: Vec<Advisory>,
+    /// List of vulnerability tests for product
+    #[cfg_attr(feature = "serde_support", serde(rename = "advisories"))]
+    pub vulnerability_tests: Vec<VulnerabilityTest>,
 }
 
 /// Enum of supported package types
@@ -28,10 +29,10 @@ pub enum PackageType {
     SLACK,
 }
 
-/// Representing a single Advisory entry
+/// Representing a single Vulnerability Test entry
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
 #[derive(Debug)]
-pub struct Advisory {
+pub struct VulnerabilityTest {
     /// OID to identify vulnerability
     pub oid: String,
     /// List of affected packages, including the fixed version

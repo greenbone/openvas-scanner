@@ -65,4 +65,4 @@ path = "/var/lib/openvasd/storage"
 
 [notus]
 # path to the notus feed. This is required for the /notus endpoint.
-advisory_path = "/var/lib/notus/products/"
+products_path = "/var/lib/notus/products/"

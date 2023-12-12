@@ -4,7 +4,7 @@
 
 use std::time::SystemTime;
 
-use models::Advisories;
+use models::Product;
 
 use crate::error::Error;
 
@@ -17,12 +17,20 @@ pub enum FeedStamp {
     Hashsum(String),
 }
 
-/// Trait for and AdvisoryLoader
-pub trait AdvisoriesLoader {
-    /// Depending on the given os string, the corresponding Advisories are loaded
-    fn load_package_advisories(&self, os: &str) -> Result<(Advisories, FeedStamp), Error>;
-    fn get_available_os(&self) -> Result<Vec<String>, Error>;
+/// Trait for an ProductLoader
+pub trait ProductLoader {
+    /// Load product file corresponding to the given string. The given name must match the name of
+    /// the product file without its extension. Also a stamp is returned to be able to check if the
+    /// file has changed. This is useful when caching loaded products.
+    fn load_product(&self, os: &str) -> Result<(Product, FeedStamp), Error>;
+    /// Get a list of all available products. This list contains the exact strings, that can also be
+    /// used for `load_product`.
+    fn get_products(&self) -> Result<Vec<String>, Error>;
+    /// Check if a requested product file has changed based on a stamp created with `load_product`.
+    /// Useful for checking if a requested product has changed.
     fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool;
+    /// Verify the signature of the Hashsum file
     fn verify_signature(&self) -> Result<(), feed::VerifyError>;
+    /// Get the root directory of the notus products
     fn get_root_dir(&self) -> Result<String, Error>;
 }

@@ -5,6 +5,6 @@
 pub mod loader;
 pub mod packages;
 
-pub mod advisory;
 pub mod error;
 pub mod notus;
+pub mod vts;

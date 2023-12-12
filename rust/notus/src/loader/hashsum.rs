@@ -9,22 +9,22 @@ use nasl_syntax::{AsBufReader, Loader};
 
 use crate::error::Error;
 
-use super::{AdvisoriesLoader, FeedStamp};
+use super::{FeedStamp, ProductLoader};
 
 #[derive(Debug, Clone)]
-pub struct HashsumAdvisoryLoader<R, L> {
+pub struct HashsumProductLoader<R, L> {
     loader: L,
     read_type: PhantomData<R>,
 }
 
-impl<R, L> SignatureChecker for HashsumAdvisoryLoader<R, L>
+impl<R, L> SignatureChecker for HashsumProductLoader<R, L>
 where
     L: Loader + AsBufReader<R>,
     R: Read,
-{}
+{
+}
 
-
-impl<R, L> HashsumAdvisoryLoader<R, L>
+impl<R, L> HashsumProductLoader<R, L>
 where
     L: Loader + AsBufReader<R>,
     R: Read,
@@ -37,12 +37,12 @@ where
     }
 }
 
-impl<R, L> AdvisoriesLoader for HashsumAdvisoryLoader<R, L>
+impl<R, L> ProductLoader for HashsumProductLoader<R, L>
 where
     L: Loader + AsBufReader<R>,
     R: Read,
 {
-    fn get_available_os(&self) -> Result<Vec<String>, crate::error::Error> {
+    fn get_products(&self) -> Result<Vec<String>, crate::error::Error> {
         let mut ret = vec![];
         let loader = HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
 
@@ -55,7 +55,7 @@ where
         Ok(ret)
     }
 
-    fn load_package_advisories(&self, os: &str) -> Result<(models::Advisories, FeedStamp), Error> {
+    fn load_product(&self, os: &str) -> Result<(models::Product, FeedStamp), Error> {
         let mut loader =
             HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
         let file_item = loader
@@ -65,7 +65,7 @@ where
                 }
                 false
             })
-            .ok_or_else(|| Error::UnknownOs(os.to_string()))?
+            .ok_or_else(|| Error::UnknownProduct(os.to_string()))?
             .map_err(Error::HashsumLoadError)?;
 
         file_item.verify().map_err(Error::HashsumLoadError)?;
@@ -74,9 +74,9 @@ where
             .loader
             .load(file_item.get_filename().as_str())
             .map_err(|e| {
-                Error::LoadAdvisoryError(
+                Error::LoadProductError(
                     os.to_string(),
-                    crate::error::LoadAdvisoryErrorKind::LoadError(e),
+                    crate::error::LoadProductErrorKind::LoadError(e),
                 )
             })?;
 
@@ -103,7 +103,7 @@ where
     /// Perform a signature check of the sha256sums file
     fn verify_signature(&self) -> Result<(), feed::VerifyError> {
         let path = self.loader.root_path().unwrap();
-        <HashsumAdvisoryLoader<R,L> as self::SignatureChecker>::signature_check(&path)
+        <HashsumProductLoader<R, L> as self::SignatureChecker>::signature_check(&path)
     }
     fn get_root_dir(&self) -> Result<String, Error> {
         let p = self.loader.root_path().unwrap();

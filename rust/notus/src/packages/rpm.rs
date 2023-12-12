@@ -9,7 +9,6 @@ use std::cmp::Ordering;
 static RE: Lazy<Regex> = lazy_regex!(r"^(.*)-(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
 static RE_VERSION: Lazy<Regex> = lazy_regex!(r"^(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
 
-// Supported packages types.
 /// Represent a based Redhat package
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rpm {

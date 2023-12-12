@@ -12,7 +12,6 @@ use std::cmp::{max, Ordering};
 
 static RE: Lazy<Regex> = lazy_regex!(r"(\d+|.)");
 
-#[derive(PartialEq, Debug, Clone)]
 /// This struct represents a package Version string. It is used to compare Package Versions to
 /// determine, which of the Versions is newer than the other. For the comparison it uses the
 /// following algorithm:
@@ -33,6 +32,7 @@ static RE: Lazy<Regex> = lazy_regex!(r"(\d+|.)");
 ///
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
+#[derive(PartialEq, Debug, Clone)]
 pub struct PackageVersion(pub String);
 
 impl PartialOrd for PackageVersion {
@@ -129,11 +129,16 @@ impl PartialOrd for PackageVersion {
     }
 }
 
-///
+/// Representation of a Package, containing functions to parse and compare packages.
 pub trait Package<Rhs = Self>: PartialOrd<Rhs> {
+    /// Get the name of a package
     fn get_name(&self) -> String;
+    /// Get the version of a package
     fn get_version(&self) -> String;
+    /// Parse a package given its full name including its version, separated with a `-` (Hyphen)
     fn from_full_name(a: &str) -> Option<Rhs>;
+    /// Parse a package given its name and version separately. The version must contain all parts
+    /// of a version corresponding to its implementation.
     fn from_name_and_full_version(a: &str, b: &str) -> Option<Rhs>;
 }
 

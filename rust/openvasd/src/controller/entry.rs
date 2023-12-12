@@ -206,7 +206,7 @@ where
                         Ok(results) => Ok(ctx.response.ok(&results)),
                         Err(err) => match err {
                             // 404
-                            notus::error::Error::UnknownOs(_) => {
+                            notus::error::Error::UnknownProduct(_) => {
                                 Ok(ctx.response.not_found("advisories", &os))
                             }
                             // 401
