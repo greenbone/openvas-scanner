@@ -313,10 +313,21 @@ append_vhost (const char *vhost, const char *source)
 }
 
 static void
-call_lsc (const char *scan_id, const char *ip_str, const char *package_list,
-          const char *os_release)
+call_lsc (struct attack_start_args *args, const char *ip_str)
 {
-  if (run_table_driven_lsc (scan_id, ip_str, NULL, package_list, os_release)
+  char *package_list = NULL;
+  char *os_release = NULL;
+  kb_t hostkb = NULL;
+
+  hostkb = args->host_kb;
+  /* Get the OS release. TODO: have a list with
+   * supported OS. */
+  os_release = kb_item_get_str (hostkb, "ssh/login/release_notus");
+  /* Get the package list. */
+  package_list = kb_item_get_str (hostkb, "ssh/login/package_list_notus");
+
+  if (run_table_driven_lsc (args->globals->scan_id, ip_str, NULL, package_list,
+                            os_release)
       < 0)
     {
       char buffer[2048];
@@ -328,6 +339,8 @@ call_lsc (const char *scan_id, const char *ip_str, const char *package_list,
                                            buffer);
       g_warning ("%s: Unable to launch table driven LSC", __func__);
     }
+  g_free (package_list);
+  g_free (os_release);
 }
 
 static int
@@ -377,9 +390,6 @@ process_ipc_data (struct attack_start_args *args, const gchar *result)
             {
               struct in6_addr hostip;
               gchar ip_str[INET6_ADDRSTRLEN];
-              gchar *package_list;
-              gchar *os_release;
-              kb_t hostkb = NULL;
 
               if (!ipc_get_lsc_data_ready_flag (idata))
                 {
@@ -388,21 +398,10 @@ process_ipc_data (struct attack_start_args *args, const gchar *result)
                   break;
                 }
 
-              hostkb = args->host_kb;
-              /* Get the OS release. TODO: have a list with
-               * supported OS. */
-              os_release = kb_item_get_str (hostkb, "ssh/login/release_notus");
-              /* Get the package list. */
-              package_list =
-                kb_item_get_str (hostkb, "ssh/login/package_list_notus");
-
               gvm_host_get_addr6 (args->host, &hostip);
               addr6_to_str (&hostip, ip_str);
 
-              call_lsc (args->globals->scan_id, ip_str, package_list,
-                        os_release);
-              g_free (os_release);
-              g_free (package_list);
+              call_lsc (args, ip_str);
             }
           break;
         }
@@ -683,19 +682,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
       && (prefs_get_bool ("mqtt_enabled")
           || prefs_get_bool ("openvasd_lsc_enabled")))
     {
-      gchar *package_list;
-      gchar *os_release;
-      kb_t hostkb = NULL;
-
-      hostkb = args->host_kb;
-      /* Get the OS release. */
-      os_release = kb_item_get_str (hostkb, "ssh/login/release_notus");
-      /* Get the package list. */
-      package_list = kb_item_get_str (hostkb, "ssh/login/package_list_notus");
-
-      call_lsc (args->globals->scan_id, ip_str, package_list, os_release);
-      g_free (package_list);
-      g_free (os_release);
+      call_lsc (args, ip_str);
     }
 
   pluginlaunch_wait (get_main_kb (), args->host_kb);
