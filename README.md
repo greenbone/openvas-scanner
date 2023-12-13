@@ -68,9 +68,9 @@ This project is maintained by [Greenbone AG](https://www.greenbone.net/).
 ## Contributing
 
 Your contributions are highly appreciated. Please [create a pull
-request](https://github.com/greenbone/openvas-scanner/pulls) on GitHub. Bigger
-changes need to be discussed with the development team via the [issues section
-at GitHub](https://github.com/greenbone/openvas-scanner/issues) first.
+request](https://github.com/greenbone/openvas-scanner/pulls) on GitHub.
+Remember to commit the contribution agreement as explained in RELICENSING folder with your first PR.
+Bigger changes should be discussed with the development team via the [issues section at GitHub](https://github.com/greenbone/openvas-scanner/issues) first.
 
 ## License
 
