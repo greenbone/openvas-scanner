@@ -1,0 +1,29 @@
+{{- if .Values.routing.enabled -}}
+{{- $svcPort := .Values.service.port -}}
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: openvasd-route
+  namespace: openvasd
+  {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
+spec:
+  entryPoints:
+   - websecure
+  routes:
+  - match: HostSNI(`*`)
+    services:
+    - name: openvasd
+      port: {{ $svcPort }}
+  tls:
+    passthrough: true
+  {{ else }}
+spec:
+  entryPoints:
+   - web
+  routes:
+  - match: HostSNI(`*`)
+    services:
+    - name: openvasd
+      port: {{ $svcPort }}
+  {{ end }}
+{{- end }}

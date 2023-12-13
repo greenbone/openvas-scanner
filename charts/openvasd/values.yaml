@@ -20,15 +20,16 @@ openvasd:
   # Can be set to TRACE, DEBUG, INFO, WARNING, ERROR
   # openvasd is provided by the openvas image
   loglevel: TRACE
-  apikey: changeme
+  # When set it will be the used API-KEY. It is not required when deploy_client is true.
+  # apikey: changeme
   tls:
     # enables the server-/client-certs deployment via secret 
-    # templates/client-certs.yaml
-    # templates/server-certs.yaml
+    # server-key
+    # client-certs
     # deplying a client certificate without a server certificate will not have any effect.
     certificates:
-      deploy_server: false
-      deploy_client: false
+      deploy_server: true
+      deploy_client: true
 
 # Required for version checks 
 notus:
@@ -93,31 +94,12 @@ securityContext:
 
 service:
   type: ClusterIP
-  port: 80
+  port: 443
 
-ingress:
-  enabled: false
-  annotations:
-    kubernetes.io/ingress.class: "traefik"
-  className: "traefik"
-  hosts:
-    # Captures everything of / delegates it to openvasd although this is not feasible
-    # on deployments that contain multiple http services our current deployment model
-    # sees a sensor as an own machine.
-    # Currently it is configures with http instead of https in mind
-    # Do not use it in production environments.
-    - paths:
-        - path: /
-          pathType: ImplementationSpecific 
-          backend:
-            service:
-              name: openvasd
-              port:
-                number: 80
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+# enables routing.yaml
+routing:
+  enabled: true
+
 resources:
   {}
   # We usually recommend not to specify default resources and to leave this as a conscious

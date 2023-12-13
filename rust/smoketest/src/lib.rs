@@ -29,11 +29,11 @@ pub fn new_client(
     // There are key-cert credentials
     if let Some(k) = key {
         if let Some(c) = cert {
-            let mut file = File::open(k).unwrap();
+            let mut file = File::open(k).unwrap_or_else(|_| panic!("{k} not found"));
             let mut ident = String::new();
             file.read_to_string(&mut ident).unwrap();
 
-            let mut file = File::open(c).unwrap();
+            let mut file = File::open(c).unwrap_or_else(|_| panic!("{c} not found"));
             let mut aux = String::new();
             file.read_to_string(&mut aux).unwrap();
 

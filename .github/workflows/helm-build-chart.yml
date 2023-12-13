@@ -18,20 +18,28 @@ jobs:
           metrics-enabled: false
       - name: deploy openvasd
         run: |
+          cd rust/examples/tls/Self-Signed\ mTLS\ Method
+          sh server_certificates.sh
+          sh client_certificates.sh
+          kubectl create namespace openvasd || true
+          kubectl create secret generic server-private-key \
+                --from-file=key.pem=./server.rsa \
+                --from-file=certs.pem=./server.pem \
+                --namespace openvasd
+          kubectl create secret generic client-certs \
+                --from-file=client1.pem=./client.pem \
+                --namespace openvasd
+          cd -
           helm uninstall openvasd --namespace openvasd|| true
           helm install --namespace openvasd --create-namespace openvasd charts/openvasd/ --values charts/openvasd/values.yaml --values charts/openvasd/mtls-wo-ingress.yaml
-          kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd
-      - name: forward port
-        run: |
-          kubectl --namespace openvasd port-forward deployment/openvasd 8443:443&
+          kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd 
+          echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
       - name: smoketest
         working-directory: rust/smoketest
         env:
-          API_KEY: changeme
-          OPENVASD_SERVER: https://127.0.0.1:8443
           SCAN_CONFIG: configs/simple_scan_ssh_only.json
-          CLIENT_KEY: configs/client_sample.key
-          CLIENT_CERT: configs/client_sample.cert
+          CLIENT_KEY: ../examples/tls/Self-Signed mTLS Method/client.rsa
+          CLIENT_CERT: ../examples/tls/Self-Signed mTLS Method/client.pem
         run: |
           make build run
       - uses: greenbone/actions/helm-build-push@v3
