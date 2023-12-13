@@ -1,89 +1,93 @@
-Contains the helm chart to deploy openvasd.
+# Helm Chart for `openvasd` deployment 
 
-# Install
+## Requirements
 
-To install openvasd helm chart from a local path execute
+This Helm chart is tested with k3s and Traefik. Note that other options may require unsupported changes.
+
+## mTLS (Enabled by Default)
+
+To use mTLS, store the server certificate and key as a secret named 'server-private-key', containing key.pem and certs.pem. For example, deploying `openvasd` into the 'openvasd' namespace with a generated certificate:
+
+```bash
+cd ../../rust/examples/tls/Self-Signed\ mTLS\ Method
+sh server_certificates.sh
+kubectl create secret generic server-private-key \
+      --from-file=key.pem=./server.rsa \
+      --from-file=certs.pem=./server.pem \
+      --namespace openvasd
 
 ```
+
+Additionally, populate client certificates within a 'client-certs' secret:
+
+```bash
+cd ../../rust/examples/tls/Self-Signed\ mTLS\ Method
+
+kubectl create secret generic client-certs \
+      --from-file=client1.pem=./client.pem \
+      --namespace openvasd
+```
+
+There can be multiple client certificates.
+
+Verify that the secrets are deployed:
+
+```bash
+kubectl describe secrets --namespace openvasd
+```
+
+## Install
+
+To install `openvasd` Helm Chart from a local path, execute:
+
+```bash
 helm install openvasd ./openvasd/ -f openvasd/values.yaml --namespace openvasd --create-namespace openvasd
 ```
 
-You can also provide override the initial values within `openvasd/values.yaml` by providing an additional `-f` flag.
+You can also override initial values within openvasd/values.yaml by providing an additional -f flag. For example:
 
-As an example imagine you want to override the openvas image to your forked one you can create `~/openvasd.yaml` file containing:
-
-```
-# Contains openvasd
-openvas:
-  repository: example/openvas-scanner
-  pullPolicy: Always
-  tag: "edge"
-```
-
-if you then execute:
-```
-helm install openvasd ./openvasd/ -f openvasd/values.yaml -f ~/openvasd.yaml
-```
-
-it will use `nichtsfrei/openvas-scanner` instead of `greenbone/openvas-scanner`.
-
-# Preconfigured deployment scenarios
-
-## http single instance
-
-To deploy openvasd as http intance on the root path execute:
-```
+```bash
 helm install --namespace openvasd --create-namespace openvasd openvasd/ --values openvasd/values.yaml --values openvasd/http-root.yaml
 ```
-## TLS configuration
 
-This chart is provided with server certificate and private key for example purposes and they should not be used in production systems. Certificate and key where created with [this scripts](../../rust/examples/tls/Self-Signed mTLS Method)
+This will start `openvasd` with http and with a API-KEY `changeme`.
 
-If you want to use your own key/cert pair, you have to base64 encode them and replace the ones in [server-private-key.yaml](templates/server-private-key.yaml).
+## Preconfigured deployment scenarios
 
-If you want to enable Self-signed mTLS for client authentication replace the certificate in [client-cets.yaml](templates/client-certs). You can add as many certificates as you have authenticated clients.
+### mTLS
 
-For encoding the certificates use the following command
+This is enabled by default. Please read the requirements sections.
+
+### HTTP Single Instance
+
+To deploy `openvasd` as an HTTP instance on the root path, execute:
+
+```bash
+helm install --namespace openvasd --create-namespace openvasd openvasd/ --values openvasd/values.yaml --values openvasd/http-root.yaml
 ```
-echo -n "$(cat certs.pem)" | base64
-echo -n "$(cat key.pem)" | base64
-```
-
-You can verify that the secrets where mounted with the following command:
-
-`kubectl describe secrets --namespace openvasd`
-
 
 ## Accessing the service
 
-Once you installed the containers, run the following commands to rollout the pods and forward the por to access the service
-
-`kubectl rollout status --watch --timeout 600s deployment/openvasd`
-
-Get the pod name
-`export POD_NAME=$(kubectl get pods --namespace openvasd -l "app.kubernetes.io/name=openvasd,app.kubernetes.io/instance=openvasd" -o jsonpath="{.items[0].metadata.name}")`
-
-Forward the port
-`kubectl --namespace openvasd port-forward $POD_NAME 8443:443`
+When `routing.enabled` is enabled, you can access `openvasd` directly via either `http://localhost` (if you provide the the http-root.yaml values) or via `https://localhost`
 
 For testing, you can use the following command:
 
-`curl --verbose --key $CLIENT_KEY --cert $CLIENT_CERT --insecure --request HEAD https://127.0.0.1:8443 -H "X-API-KEY: changeme"`
+```bash
+curl --verbose --insecure --key $CLIENT_KEY --cert $CLIENT_CERT --request HEAD https://127.0.0.1
+```
 
+## Design decisions
 
-# Design decisions
+### IngressRouteTCP instead of Ingress
 
-## OSPD and Redis via unix socket
+To enable passthrough, IngressRouteTCP is used instead of the usual Ingress definition.
 
-Although it is possible to start OSPD with TLS, it is used in unix socket mode to prevent a user to bypass openvasd and interfere with those scans.
+### OSPD and Redis via unix socket
 
-Unfortunately the redis instance is shared between ospd and openvas without any clear separation. It is crucial that the redis instance used by them cannot be modified elsewhere.
-To ensure redis is not used by another container, it is also started in unix socket mode.
+OSPD is used in Unix socket mode to prevent users from bypassing `openvasd` and interfering with scans. 
 
-## No scaling
+The Redis instance is shared between OSPD and OpenVAS, started in Unix socket mode to ensure it is not used by another container.
 
-Due to the current architectural limitation replica count and auto-scaling is completely disabled.
+### No scaling
 
-The reason for that is that openvasd requires ospd which has no cluster capabilities nor a database setup that allows sharing via multiple instances.
-
-That means that each replica would have a completely own state and reqires vertical scaling via deployment so that a customer can choose which openvasd to use.
+Due to current architectural limitations, replica count and auto-scaling are disabled. OSPD lacks cluster capabilities and a database setup that allows sharing via multiple instances. Each replica would have its own state, requiring vertical scaling via deployment.
