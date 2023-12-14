@@ -14,8 +14,10 @@
 enum ipc_data_type
 {
   IPC_DT_ERROR = -1,
-  IPC_DT_HOSTNAME = 0,
-  IPC_DT_USER_AGENT,
+  IPC_DT_NO_DATA = 0,
+  IPC_DT_HOSTNAME = 1,
+  IPC_DT_USER_AGENT = 2,
+  IPC_DT_LSC = 4,
 };
 
 typedef struct ipc_data ipc_data_t;
@@ -33,6 +35,12 @@ ipc_get_hostname_source_from_data (ipc_data_t *data);
 gchar *
 ipc_get_user_agent_from_data (ipc_data_t *data);
 
+gboolean
+ipc_get_lsc_data_ready_flag (ipc_data_t *data);
+
+gchar *
+ipc_get_lsc_os_release_from_data (ipc_data_t *data);
+
 // prototypes for handling of ipc_data_t and json
 ipc_data_t *
 ipc_data_type_from_hostname (const char *source, size_t source_len,
@@ -40,6 +48,9 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
 
 ipc_data_t *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len);
+
+ipc_data_t *
+ipc_data_type_from_lsc (gboolean data_ready);
 
 void
 ipc_data_destroy (ipc_data_t **data);

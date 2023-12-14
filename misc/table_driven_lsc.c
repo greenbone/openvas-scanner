@@ -29,6 +29,27 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+/** @brief LSC ran or didn't
+ * 0 didn't run. 1 ran.
+ */
+static int lsc_flag = 0;
+
+/** @brief Set lsc_flag to 1
+ */
+void
+set_lsc_flag (void)
+{
+  lsc_flag = 1;
+}
+
+/** @brief Get lsc_flag value.
+ */
+int
+lsc_has_run (void)
+{
+  return lsc_flag;
+}
+
 /**
  * @brief Split the package list string and creates a json array.
  *
@@ -77,7 +98,7 @@ add_packages_str_to_list (JsonBuilder *builder, const gchar *packages)
  *
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
-gchar *
+static gchar *
 make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
                                      const char *hostname,
                                      const char *os_release,
@@ -150,7 +171,7 @@ make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
  * @param len length of json
  * @return gchar* Status of table driven lsc or NULL
  */
-gchar *
+static gchar *
 get_status_of_table_driven_lsc_from_json (const char *scan_id,
                                           const char *host_ip, const char *json,
                                           int len)
@@ -873,6 +894,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
   struct curl_slist *customheader = NULL;
   char *os_aux;
   GString *xapikey = NULL;
+
   if ((curl = curl_easy_init ()) == NULL)
     {
       g_warning ("Not possible to initialize curl library");
@@ -895,24 +917,25 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
 
   g_debug ("%s: URL: %s", __func__, url->str);
   // Set URL
-  if (curl_easy_setopt (curl, CURLOPT_URL, url->str) != CURLE_OK)
+  if (curl_easy_setopt (curl, CURLOPT_URL, g_strdup (url->str)) != CURLE_OK)
     {
       g_warning ("Not possible to set the URL");
       curl_easy_cleanup (curl);
-      g_string_free (url, TRUE);
       return http_code;
     }
+  g_string_free (url, TRUE);
 
   // Accept an insecure connection. Don't verify the server certificate
   curl_easy_setopt (curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt (curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
   // Set API KEY
-  xapikey = g_string_new ("X-APIKEY: ");
   if (prefs_get ("x-apikey"))
     {
+      xapikey = g_string_new ("X-APIKEY: ");
       g_string_append (xapikey, prefs_get ("x-apikey"));
-      customheader = curl_slist_append (customheader, xapikey->str);
+      customheader = curl_slist_append (customheader, g_strdup (xapikey->str));
+      g_string_free (xapikey, TRUE);
     }
   // SET Content type
   customheader =
@@ -932,22 +955,18 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
     {
       g_warning ("%s: Error sending request: %d", __func__, ret);
       curl_easy_cleanup (curl);
-      g_string_free (xapikey, TRUE);
       g_free (resp.ptr);
-      g_string_free (url, TRUE);
       return http_code;
     }
 
   curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
 
   curl_easy_cleanup (curl);
-
   g_debug ("Server response %s", resp.ptr);
   *response = g_strdup (resp.ptr);
-  g_free (os_aux);
-  g_string_free (xapikey, TRUE);
-  g_string_free (url, TRUE);
   g_free (resp.ptr);
+  // already free()'ed with curl_easy_cleanup().
+
   return http_code;
 }
 
@@ -1005,7 +1024,7 @@ notus_get_response (const char *pkg_list, const char *os)
  *
  *  @result Count of stored results. -1 on error.
  */
-int
+static int
 call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
                const char *os)
 {
@@ -1077,3 +1096,148 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
 }
 
 #endif // End RSNOTUS
+
+/**
+ * @brief Publish the necessary data to start a Table driven LSC scan.
+ *
+ * If the gather-package-list.nasl plugin was launched, and it generated
+ * a valid package list for a supported OS, the table driven LSC scan
+ * which is subscribed to the topic will perform a scan an publish the
+ * the results to be handle by the sensor/client.
+ *
+ * @param scan_id     Scan Id.
+ * @param kb
+ * @param ip_str      IP string of host.
+ * @param hostname    Name of host.
+ *
+ * @return 0 on success, less than 0 on error.
+ */
+int
+run_table_driven_lsc (const char *scan_id, const char *ip_str,
+                      const char *hostname, const char *package_list,
+                      const char *os_release)
+{
+  int err = 0;
+  if (!os_release || !package_list)
+    return 0;
+
+  if (prefs_get ("openvasd_server"))
+    {
+      g_message ("Running Notus for %s via openvasd", ip_str);
+      err = call_rs_notus (ip_str, hostname, package_list, os_release);
+
+      return err;
+    }
+  else
+    {
+      gchar *json_str;
+      gchar *topic;
+      gchar *payload;
+      gchar *status = NULL;
+      int topic_len;
+      int payload_len;
+
+      // Subscribe to status topic
+      err = mqtt_subscribe ("scanner/status");
+      if (err)
+        {
+          g_warning ("%s: Error starting lsc. Unable to subscribe", __func__);
+          return -1;
+        }
+      /* Get the OS release. TODO: have a list with supported OS. */
+
+      json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
+                                                      os_release, package_list);
+
+      // Run table driven lsc
+      if (json_str == NULL)
+        return -1;
+
+      g_message ("Running Notus for %s", ip_str);
+      err = mqtt_publish ("scanner/package/cmd/notus", json_str);
+      if (err)
+        {
+          g_warning ("%s: Error publishing message for Notus.", __func__);
+          g_free (json_str);
+          return -1;
+        }
+
+      g_free (json_str);
+
+      // Wait for Notus scanner to start or interrupt
+      while (!status)
+        {
+          err = mqtt_retrieve_message (&topic, &topic_len, &payload,
+                                       &payload_len, 60000);
+          if (err == -1 || err == 1)
+            {
+              g_warning ("%s: Unable to retrieve status message from notus. %s",
+                         __func__, err == 1 ? "Timeout after 60 s." : "");
+              return -1;
+            }
+
+          // Get status if it belongs to corresponding scan and host
+          // Else wait for next status message
+          status = get_status_of_table_driven_lsc_from_json (
+            scan_id, ip_str, payload, payload_len);
+
+          g_free (topic);
+          g_free (payload);
+        }
+      // If started wait for it to finish or interrupt
+      if (!g_strcmp0 (status, "running"))
+        {
+          g_debug ("%s: table driven LSC with scan id %s successfully started "
+                   "for host %s",
+                   __func__, scan_id, ip_str);
+          g_free (status);
+          status = NULL;
+          while (!status)
+            {
+              err = mqtt_retrieve_message (&topic, &topic_len, &payload,
+                                           &payload_len, 60000);
+              if (err == -1)
+                {
+                  g_warning (
+                    "%s: Unable to retrieve status message from notus.",
+                    __func__);
+                  return -1;
+                }
+              if (err == 1)
+                {
+                  g_warning (
+                    "%s: Unablet to retrieve message. Timeout after 60s.",
+                    __func__);
+                  return -1;
+                }
+
+              status = get_status_of_table_driven_lsc_from_json (
+                scan_id, ip_str, payload, payload_len);
+              g_free (topic);
+              g_free (payload);
+            }
+        }
+      else
+        {
+          g_warning ("%s: Unable to start lsc. Got status: %s", __func__,
+                     status);
+          g_free (status);
+          return -1;
+        }
+
+      if (g_strcmp0 (status, "finished"))
+        {
+          g_warning (
+            "%s: table driven lsc with scan id %s did not finish successfully "
+            "for host %s. Last status was %s",
+            __func__, scan_id, ip_str, status);
+          err = -1;
+        }
+      else
+        g_debug ("%s: table driven lsc with scan id %s successfully finished "
+                 "for host %s",
+                 __func__, scan_id, ip_str);
+      g_free (status);
+    }
+  return err;
+}

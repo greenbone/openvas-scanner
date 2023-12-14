@@ -18,7 +18,7 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/plugutils.h"
-#include "../misc/table_driven_lsc.h" /* for make_table_driven_lsc_info_json_str */
+#include "../misc/table_driven_lsc.h" /*for run_table_driven_lsc */
 #include "../misc/user_agent.h"       /* for user_agent_set */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
@@ -312,173 +312,55 @@ append_vhost (const char *vhost, const char *source)
   g_info ("%s: add vhost '%s' from '%s'", __func__, vhost, source);
 }
 
-/**
- * @brief Publish the necessary data to start a Table driven LSC scan.
- *
- * If the gather-package-list.nasl plugin was launched, and it generated
- * a valid package list for a supported OS, the table driven LSC scan
- * which is subscribed to the topic will perform a scan an publish the
- * the results to be handle by the sensor/client.
- *
- * @param scan_id     Scan Id.
- * @param kb
- * @param ip_str      IP string of host.
- * @param hostname    Name of host.
- *
- * @return 0 on success, less than 0 on error.
- */
-static int
-run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
-                      const char *hostname)
+static void
+call_lsc (struct attack_start_args *args, const char *ip_str)
 {
-  int err = 0;
-  gchar *package_list;
-  gchar *os_release;
+  char *package_list = NULL;
+  char *os_release = NULL;
+  kb_t hostkb = NULL;
 
-  os_release = kb_item_get_str (kb, "ssh/login/release_notus");
-  /* Get the package list. Currently only rpm support */
-  package_list = kb_item_get_str (kb, "ssh/login/package_list_notus");
-  if (!os_release || !package_list)
-    return 0;
+  hostkb = args->host_kb;
+  /* Get the OS release. TODO: have a list with
+   * supported OS. */
+  os_release = kb_item_get_str (hostkb, "ssh/login/release_notus");
+  /* Get the package list. */
+  package_list = kb_item_get_str (hostkb, "ssh/login/package_list_notus");
 
-  if (prefs_get ("openvasd_server"))
+  if (run_table_driven_lsc (args->globals->scan_id, ip_str, NULL, package_list,
+                            os_release)
+      < 0)
     {
-      g_message ("Running Notus for %s via openvasd", ip_str);
-      err = call_rs_notus (ip_str, hostname, package_list, os_release);
-      g_free (package_list);
-      g_free (os_release);
-
-      return err;
+      char buffer[2048];
+      snprintf (buffer, sizeof (buffer),
+                "ERRMSG|||%s||| ||| ||| ||| Unable to "
+                "launch table driven lsc",
+                ip_str);
+      kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
+                                           buffer);
+      g_warning ("%s: Unable to launch table driven LSC", __func__);
     }
-  else
-    {
-      gchar *json_str;
-      gchar *topic;
-      gchar *payload;
-      gchar *status = NULL;
-      int topic_len;
-      int payload_len;
-
-      // Subscribe to status topic
-      err = mqtt_subscribe ("scanner/status");
-      if (err)
-        {
-          g_warning ("%s: Error starting lsc. Unable to subscribe", __func__);
-          return -1;
-        }
-      /* Get the OS release. TODO: have a list with supported OS. */
-
-      json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
-                                                      os_release, package_list);
-      g_free (package_list);
-      g_free (os_release);
-
-      // Run table driven lsc
-      if (json_str == NULL)
-        return -1;
-
-      g_message ("Running Notus for %s", ip_str);
-      err = mqtt_publish ("scanner/package/cmd/notus", json_str);
-      if (err)
-        {
-          g_warning ("%s: Error publishing message for Notus.", __func__);
-          g_free (json_str);
-          return -1;
-        }
-
-      g_free (json_str);
-
-      // Wait for Notus scanner to start or interrupt
-      while (!status)
-        {
-          err = mqtt_retrieve_message (&topic, &topic_len, &payload,
-                                       &payload_len, 60000);
-          if (err == -1 || err == 1)
-            {
-              g_warning ("%s: Unable to retrieve status message from notus. %s",
-                         __func__, err == 1 ? "Timeout after 60 s." : "");
-              return -1;
-            }
-
-          // Get status if it belongs to corresponding scan and host
-          // Else wait for next status message
-          status = get_status_of_table_driven_lsc_from_json (
-            scan_id, ip_str, payload, payload_len);
-
-          g_free (topic);
-          g_free (payload);
-        }
-      // If started wait for it to finish or interrupt
-      if (!g_strcmp0 (status, "running"))
-        {
-          g_debug ("%s: table driven LSC with scan id %s successfully started "
-                   "for host %s",
-                   __func__, scan_id, ip_str);
-          g_free (status);
-          status = NULL;
-          while (!status)
-            {
-              err = mqtt_retrieve_message (&topic, &topic_len, &payload,
-                                           &payload_len, 60000);
-              if (err == -1)
-                {
-                  g_warning (
-                    "%s: Unable to retrieve status message from notus.",
-                    __func__);
-                  return -1;
-                }
-              if (err == 1)
-                {
-                  g_warning (
-                    "%s: Unablet to retrieve message. Timeout after 60s.",
-                    __func__);
-                  return -1;
-                }
-
-              status = get_status_of_table_driven_lsc_from_json (
-                scan_id, ip_str, payload, payload_len);
-              g_free (topic);
-              g_free (payload);
-            }
-        }
-      else
-        {
-          g_warning ("%s: Unable to start lsc. Got status: %s", __func__,
-                     status);
-          g_free (status);
-          return -1;
-        }
-
-      if (g_strcmp0 (status, "finished"))
-        {
-          g_warning (
-            "%s: table driven lsc with scan id %s did not finish successfully "
-            "for host %s. Last status was %s",
-            __func__, scan_id, ip_str, status);
-          err = -1;
-        }
-      else
-        g_debug ("%s: table driven lsc with scan id %s successfully finished "
-                 "for host %s",
-                 __func__, scan_id, ip_str);
-      g_free (status);
-    }
-  return err;
+  g_free (package_list);
+  g_free (os_release);
 }
 
-static void
-process_ipc_data (const gchar *result)
+static int
+process_ipc_data (struct attack_start_args *args, const gchar *result)
 {
   ipc_data_t *idata;
+  int ipc_msg_flag = IPC_DT_NO_DATA;
 
   if ((idata = ipc_data_from_json (result, strlen (result))) != NULL)
     {
       switch (ipc_get_data_type_from_data (idata))
         {
         case IPC_DT_ERROR:
+          ipc_msg_flag |= IPC_DT_ERROR;
           g_warning ("%s: Unknown data type.", __func__);
           break;
+        case IPC_DT_NO_DATA:
+          break;
         case IPC_DT_HOSTNAME:
+          ipc_msg_flag |= IPC_DT_HOSTNAME;
           if (ipc_get_hostname_from_data (idata) == NULL)
             g_warning ("%s: ihost data is NULL ignoring new vhost", __func__);
           else
@@ -486,6 +368,7 @@ process_ipc_data (const gchar *result)
                           ipc_get_hostname_source_from_data (idata));
           break;
         case IPC_DT_USER_AGENT:
+          ipc_msg_flag |= IPC_DT_USER_AGENT;
           if (ipc_get_user_agent_from_data (idata) == NULL)
             g_warning ("%s: iuser_agent data is NULL, ignoring new user agent",
                        __func__);
@@ -498,15 +381,40 @@ process_ipc_data (const gchar *result)
               g_free (old_ua);
             }
           break;
+        case IPC_DT_LSC:
+          ipc_msg_flag |= IPC_DT_LSC;
+          set_lsc_flag ();
+          if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
+              && (prefs_get_bool ("mqtt_enabled")
+                  || prefs_get_bool ("openvasd_lsc_enabled")))
+            {
+              struct in6_addr hostip;
+              gchar ip_str[INET6_ADDRSTRLEN];
+
+              if (!ipc_get_lsc_data_ready_flag (idata))
+                {
+                  g_warning ("%s: Unknown data type.", __func__);
+                  ipc_msg_flag |= IPC_DT_ERROR;
+                  break;
+                }
+
+              gvm_host_get_addr6 (args->host, &hostip);
+              addr6_to_str (&hostip, ip_str);
+
+              call_lsc (args, ip_str);
+            }
+          break;
         }
       ipc_data_destroy (&idata);
     }
+  return ipc_msg_flag;
 }
 
-static void
-read_ipc (struct ipc_context *ctx)
+static int
+read_ipc (struct attack_start_args *args, struct ipc_context *ctx)
 {
   char *results;
+  int ipc_msg_flag = IPC_DT_NO_DATA;
 
   while ((results = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
     {
@@ -521,11 +429,12 @@ read_ipc (struct ipc_context *ctx)
             memcpy (message, &results[pos], len);
             pos = j + 1;
             len = 0;
-            process_ipc_data (message);
+            ipc_msg_flag |= process_ipc_data (args, message);
             g_free (message);
           }
     }
   g_free (results);
+  return ipc_msg_flag;
 }
 
 /**
@@ -614,9 +523,11 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     {
       for (int i = 0; i < procs_get_ipc_contexts ()->len; i++)
         {
-          read_ipc (&procs_get_ipc_contexts ()->ctxs[i]);
+          read_ipc (args, &procs_get_ipc_contexts ()->ctxs[i]);
         }
     }
+
+  /* Start the plugin */
   launch_error = 0;
   pid = plugin_launch (globals, plugin, ip, vhosts, args->host_kb,
                        get_main_kb (), nvti, &launch_error);
@@ -767,21 +678,11 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
+      && !lsc_has_run ()
       && (prefs_get_bool ("mqtt_enabled")
           || prefs_get_bool ("openvasd_lsc_enabled")))
     {
-      if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL)
-          < 0)
-        {
-          char buffer[2048];
-          snprintf (
-            buffer, sizeof (buffer),
-            "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
-            ip_str);
-          kb_item_push_str_with_main_kb_check (get_main_kb (),
-                                               "internal/results", buffer);
-          g_warning ("%s: Unable to launch table driven LSC", __func__);
-        }
+      call_lsc (args, ip_str);
     }
 
   pluginlaunch_wait (get_main_kb (), args->host_kb);

@@ -34,6 +34,14 @@ struct ipc_user_agent
 
 typedef struct ipc_user_agent ipc_user_agent_t;
 
+// ipc_lsc is used to send / retrieve the table driven LSC data.
+struct ipc_lsc
+{
+  gboolean data_ready; // flag indicating that lsc data is in the kb
+};
+
+typedef struct ipc_lsc ipc_lsc_t;
+
 // ipc_data is used to send / retrieve a given data of the union member
 struct ipc_data
 {
@@ -42,6 +50,7 @@ struct ipc_data
   {
     ipc_user_agent_t *ipc_user_agent;
     ipc_hostname_t *ipc_hostname;
+    ipc_lsc_t *ipc_lsc;
   };
 };
 
@@ -110,6 +119,22 @@ ipc_get_user_agent_from_data (ipc_data_t *data)
   return data->ipc_user_agent->user_agent;
 }
 
+/**
+ * @brief Get the package list from LSC IPC data
+ *
+ * @param data Data structure of IPC_DT_LSC type.
+ *
+ * @Return True if the data is ready for running with LSC, False otherwise.
+ */
+gboolean
+ipc_get_lsc_data_ready_flag (ipc_data_t *data)
+{
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_LSC))
+    return FALSE;
+
+  return data->ipc_lsc->data_ready;
+}
+
 // Hostname
 
 /**
@@ -120,11 +145,11 @@ ipc_get_user_agent_from_data (ipc_data_t *data)
  *
  * @return a heap initialized ipc_data or NULL on failure.
  */
-struct ipc_data *
+ipc_data_t *
 ipc_data_type_from_hostname (const char *source, size_t source_len,
                              const char *hostname, size_t hostname_len)
 {
-  struct ipc_data *data = NULL;
+  ipc_data_t *data = NULL;
   ipc_hostname_t *hnd = NULL;
   if (source == NULL || hostname == NULL)
     return NULL;
@@ -169,10 +194,10 @@ ipc_hostname_destroy (ipc_hostname_t *data)
  *
  * @return a heap initialized ipc_data or NULL on failure.
  */
-struct ipc_data *
+ipc_data_t *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len)
 {
-  struct ipc_data *data = NULL;
+  ipc_data_t *data = NULL;
   ipc_user_agent_t *uad = NULL;
   gchar *ua_str = NULL;
 
@@ -212,6 +237,51 @@ ipc_user_agent_destroy (ipc_user_agent_t *data)
   g_free (data);
 }
 
+// Table driven LSC
+
+/**
+ * @brief initializes ipc_data for the table driven LSC.
+ *
+ * @param os_release        The OS release
+ *
+ * @return a heap initialized ipc_data or NULL on failure.
+ */
+ipc_data_t *
+ipc_data_type_from_lsc (gboolean data_ready)
+{
+  ipc_data_t *data = NULL;
+  ipc_lsc_t *lscd = NULL;
+
+  if (data_ready != FALSE && data_ready != TRUE)
+    return NULL;
+
+  if ((data = calloc (1, sizeof (*data))) == NULL)
+    return NULL;
+  data->type = IPC_DT_LSC;
+
+  if ((lscd = calloc (1, sizeof (*lscd))) == NULL)
+    goto failure_exit;
+
+  lscd->data_ready = data_ready;
+  data->ipc_lsc = lscd;
+  return data;
+
+failure_exit:
+  free (data);
+  return NULL;
+}
+
+/**
+ * @brief Free a LSC data structure
+ *
+ * @param data The lsc data structure to be free()'ed
+ */
+static void
+ipc_lsc_destroy (ipc_lsc_t *data)
+{
+  g_free (data);
+}
+
 // General IPC data functios
 
 /**
@@ -233,7 +303,11 @@ ipc_data_destroy (ipc_data_t **data)
     case IPC_DT_USER_AGENT:
       ipc_user_agent_destroy ((*data)->ipc_user_agent);
       break;
+    case IPC_DT_LSC:
+      ipc_lsc_destroy ((*data)->ipc_lsc);
+      break;
     case IPC_DT_ERROR:
+    case IPC_DT_NO_DATA:
       break;
     }
   g_free (*data);
@@ -248,7 +322,7 @@ ipc_data_destroy (ipc_data_t **data)
  * @return a heap allocated achar array containing the json or NULL on failure.
  */
 const char *
-ipc_data_to_json (struct ipc_data *data)
+ipc_data_to_json (ipc_data_t *data)
 {
   JsonBuilder *builder;
   JsonGenerator *gen;
@@ -256,6 +330,7 @@ ipc_data_to_json (struct ipc_data *data)
   gchar *json_str;
   ipc_hostname_t *hn = NULL;
   ipc_user_agent_t *ua = NULL;
+  ipc_lsc_t *lsc = NULL;
   enum ipc_data_type type = IPC_DT_ERROR;
 
   if (data == NULL)
@@ -284,6 +359,12 @@ ipc_data_to_json (struct ipc_data *data)
       ua = data->ipc_user_agent;
       json_builder_set_member_name (builder, "user-agent");
       builder = json_builder_add_string_value (builder, ua->user_agent);
+      break;
+
+    case IPC_DT_LSC:
+      lsc = data->ipc_lsc;
+      json_builder_set_member_name (builder, "data_ready");
+      builder = json_builder_add_boolean_value (builder, lsc->data_ready);
       break;
 
     default:
@@ -315,7 +396,7 @@ ipc_data_to_json (struct ipc_data *data)
  *
  * @return a heap allocated ipc_data or NULL on failure.
  */
-struct ipc_data *
+ipc_data_t *
 ipc_data_from_json (const char *json, size_t len)
 {
   JsonParser *parser = NULL;
@@ -325,6 +406,8 @@ ipc_data_from_json (const char *json, size_t len)
   ipc_data_t *ret = NULL;
   ipc_user_agent_t *ua;
   ipc_hostname_t *hn;
+  ipc_lsc_t *lsc;
+
   enum ipc_data_type type = IPC_DT_ERROR;
 
   if ((ret = calloc (1, sizeof (*ret))) == NULL)
@@ -354,6 +437,7 @@ ipc_data_from_json (const char *json, size_t len)
   switch (type)
     {
     case IPC_DT_ERROR:
+    case IPC_DT_NO_DATA:
       goto cleanup;
     case IPC_DT_HOSTNAME:
       if ((hn = calloc (1, sizeof (*hn))) == NULL)
@@ -390,6 +474,18 @@ ipc_data_from_json (const char *json, size_t len)
       ua->user_agent_len = strlen (ua->user_agent);
       json_reader_end_member (reader);
       ret->ipc_user_agent = ua;
+      break;
+
+    case IPC_DT_LSC:
+      if ((lsc = calloc (1, sizeof (*lsc))) == NULL)
+        goto cleanup;
+      if (!json_reader_read_member (reader, "data_ready"))
+        {
+          goto cleanup;
+        }
+      lsc->data_ready = json_reader_get_boolean_value (reader);
+      json_reader_end_member (reader);
+      ret->ipc_lsc = lsc;
       break;
     }
 
