@@ -6,13 +6,13 @@
 mod tests {
 
     use models::{FixedPackage, FixedVersion, Specifier};
-    use notus::{error::Error, loader::fs::FSAdvisoryLoader, notus::Notus};
+    use notus::{error::Error, loader::fs::FSProductLoader, notus::Notus};
 
     #[test]
     fn test_notus() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSProductLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader, false);
 
         let packages = vec![
@@ -65,7 +65,7 @@ mod tests {
     fn test_err_package_parse_error() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSProductLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader, false);
 
         let pkg_name = "wepofkewf~.124.sdefpo3-_~s#";
@@ -79,17 +79,17 @@ mod tests {
     }
 
     #[test]
-    fn test_err_advisory_parse_error() {
+    fn test_err_product_parse_error() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
         path.push_str("/data");
-        let loader = FSAdvisoryLoader::new(path.clone()).unwrap();
+        let loader = FSProductLoader::new(path.clone()).unwrap();
         let mut notus = Notus::new(loader, false);
 
         let packages = vec![];
 
-        let os = "debian_10_advisory_parse_err";
+        let os = "debian_10_product_parse_err";
         assert!(
-            matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::AdvisoryParseError(p, FixedPackage::ByRange { name, range }) if p == os && name == "gitlab-ce" && range.start == "?" && range.end == "=" )
+            matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::VulnerabilityTestParseError(p, FixedPackage::ByRange { name, range }) if p == os && name == "gitlab-ce" && range.start == "?" && range.end == "=" )
         );
     }
 }

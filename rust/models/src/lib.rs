@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-mod advisories;
 mod credential;
 mod host_info;
 mod parameter;
 mod port;
+mod product;
 mod result;
 mod scan;
 mod scan_action;
@@ -15,11 +15,11 @@ mod status;
 mod target;
 mod vt;
 
-pub use advisories::*;
 pub use credential::*;
 pub use host_info::*;
 pub use parameter::*;
 pub use port::*;
+pub use product::*;
 pub use result::*;
 pub use scan::*;
 pub use scan_action::*;

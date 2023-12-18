@@ -11,7 +11,6 @@ static RE_WO_REVISION: Lazy<Regex> = lazy_regex!(r"(.*)-(?:(\d*):)?(\d.*)");
 static RE_VERSION: Lazy<Regex> = lazy_regex!(r"(?:(\d*):)?(\d.*)-(.*)");
 static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(r"(?:(\d*):)?(\d.*)");
 
-// Supported packages types.
 /// Represent a based Redhat package
 #[derive(Debug, PartialEq, Clone)]
 pub struct Deb {

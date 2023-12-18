@@ -21,7 +21,7 @@ pub struct Feed {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Notus {
-    pub advisory_path: PathBuf,
+    pub products_path: PathBuf,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -54,7 +54,7 @@ impl Default for Feed {
 impl Default for Notus {
     fn default() -> Self {
         Notus {
-            advisory_path: PathBuf::from("/var/lib/notus/products"),
+            products_path: PathBuf::from("/var/lib/notus/products"),
         }
     }
 }
@@ -242,7 +242,7 @@ impl Config {
                     .help("interval to check for feed updates in seconds"),
             )
             .arg(
-                clap::Arg::new("notus-advisories")
+                clap::Arg::new("notus-products")
                     .env("NOTUS_SCANNER_PRODUCTS_DIRECTORY")
                     .long("products-directory")
                     .value_parser(clap::builder::PathBufValueParser::new())
@@ -375,8 +375,8 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
             config.feed.path = path.clone();
         }
-        if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
-            config.notus.advisory_path = path.clone();
+        if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
+            config.notus.products_path = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());
