@@ -443,7 +443,13 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       mqtt_server_uri = prefs_get ("mqtt_server_uri");
       if (mqtt_server_uri)
         {
+#ifdef AUTH_MQTT
+          const char *mqtt_user = prefs_get ("mqtt_user");
+          const char *mqtt_pass = prefs_get ("mqtt_pass");
+          if ((mqtt_init_auth (mqtt_server_uri, mqtt_user, mqtt_pass)) != 0)
+#else
           if ((mqtt_init (mqtt_server_uri)) != 0)
+#endif
             {
               g_message ("%s: INIT MQTT: FAIL", __func__);
               send_message_to_client_and_finish_scan (
