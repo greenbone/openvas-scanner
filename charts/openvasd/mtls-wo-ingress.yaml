@@ -1,5 +1,10 @@
-ingress:
+# this settings will startup openvasd without exposing the 443 port
+routing:
   enabled: false
+
+service:
+  type: ClusterIP
+  port: 443
 openvasd: 
   tls:
     certificates:
