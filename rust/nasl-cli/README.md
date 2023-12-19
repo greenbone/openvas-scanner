@@ -78,6 +78,26 @@ Optionally, it is possible to perform a signature verification of the sha256sums
 
 It will produce a json array in stdout in the format described within [json-storage](../json-storage/README.md).
 
+#### transpile
+
+Tool for feed manipulation. Transforms each nasl script and inc file based on the given rules.
+Currently it is able to rename, remove, add, push parameter or functions within a feed.
+
+Usage `nasl-cli feed transpile [OPTIONS] --rules <FILE>`
+
+Options:
+- `-p`, `--path <FILE>`: Path to the feed.
+- `-r`, `--rules <FILE>`: Path to transpiler rules.
+- `-h`, `--help`: Print help
+
+An example can be found in [examples](../examples/nasl-cli/transpile.toml) folder. This example demonstrates how to
+- rename service `www` to `word-wide-web` in register_product
+- `register_host_detail` to `add_host_detail`
+
+to execute it call:
+
+`nasl-cli -v feed transpile -p /tmp/feed -r examples/nasl-cli/transpile.toml`
+
 ##### NVT
 
 Describes meta information for a nasl script. Each nasl script must have a description block that may looks something like:
