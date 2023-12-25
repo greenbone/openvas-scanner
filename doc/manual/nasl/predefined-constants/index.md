@@ -4,7 +4,7 @@ These constants are actually variables, i.e., their value can be modified in a s
 
 - Boolean constants
   - FALSE = 0
-- TRUE = 1
+  - TRUE = 1
 - Plug-in categories
   - ACT_INIT: the plug-in just sets a few KB items (kinds of global variables for all plug-ins).
   - ACT_SCANNER: the plug-in is a port scanner or something like it (e.g., ping).
