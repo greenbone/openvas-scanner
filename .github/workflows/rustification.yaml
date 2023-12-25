@@ -81,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: FEED_DIR="feed/" sh .github/prepare-feed.sh
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: rs-binaries
           path: assets
@@ -109,7 +109,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: apt-get update && apt-get install -y docker.io
       - run: FEED_DIR="feed/" sh .github/prepare-feed.sh
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: rs-binaries
           path: assets
