@@ -5,7 +5,7 @@
 - A comment starts with a # and finishes at the end of the current line. It is ignored by the lexical analyzer.
 - “Blanks” may be inserted anywhere between two lexical tokens. 
 A blank may be a sequence of white space, horizontal or vertical tabulation, line feed, form feed or carriage return characters; or a comment.
-- Token are parsed by a lexical analyzer and returned to thee parser.
+- Token are parsed by a lexical analyzer and returned to the parser.
   - As the lexical analyzer returns the longer token it finds, expressions like `a+++++b` without any white space are erroneous because they will be interpreted as `a++ ++ + b`, i.e., `(a++ ++) + b` just like in ANSI C .
   - You have to insert spaces: `a++ + ++b`
   - You cannot insert spaces in the middle of multiple character tokens, e.g., `x = a + +;` will not parse. Write `x = a ++;`
