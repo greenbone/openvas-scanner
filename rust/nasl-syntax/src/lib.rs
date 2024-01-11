@@ -7,7 +7,6 @@
 mod cursor;
 mod error;
 mod grouping_extension;
-mod infix_extension;
 mod keyword_extension;
 mod lexer;
 mod loader;
