@@ -12,7 +12,7 @@ use crate::{
     postfix_extension::Postfix,
     prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
-    unexpected_statement, unexpected_token, Statement, StatementKind, AssignOrder, unexpected_end,
+    unexpected_end, unexpected_statement, unexpected_token, AssignOrder, Statement, StatementKind,
 };
 
 /// Is used to parse Token to Statement
@@ -103,7 +103,12 @@ fn first_element_as_named_parameter(mut params: Vec<Statement>) -> Result<Statem
     params.reverse();
     Ok(Statement::without_token(StatementKind::Parameter(params)))
 }
-
+enum InFixState {
+    NoInfix,
+    ReturnContinue(Statement),
+    ReturnEnd(Token, Statement),
+    Unfinished(Statement),
+}
 impl<'a> Lexer<'a> {
     /// Creates a Lexer
     pub fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
@@ -267,15 +272,39 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    fn needs_infix(&self, op: &Operation, min_bp: u8) -> Option<bool> {
-        let (l_bp, _) = infix_binding_power(op)?;
-        if l_bp < min_bp {
-            Some(false)
-        } else {
-            Some(true)
-        }
-    }
+    /// Returns an infix state
+    ///
+    /// On NoInfix the operation is not infix based. 
+    /// On ReturnContinue the operation does not have the required binding power.
+    /// On ReturnEnd the statement is finished.
+    /// On Unfinished the upper loop should continue while caching the statement.
+    fn handle_infix(
+        &mut self,
+        op: &Operation,
+        min_bp: u8,
+        token: Token,
+        left: Statement,
+        abort: &impl Fn(&Category) -> bool,
+    ) -> Result<InFixState, SyntaxError> {
+        // returns three states 1. not handled, 2. return continue, 3. return done 4. continue
+        // loop
 
+        Ok(match infix_binding_power(op) {
+            None => InFixState::NoInfix,
+            Some((x, _)) if x < min_bp => InFixState::ReturnContinue(left),
+            Some(_) => {
+                self.token();
+                let (end, nl) = self.infix_statement(op.clone(), token, left, abort)?;
+                match end {
+                    End::Done(cat) => {
+                        self.depth = 0;
+                        InFixState::ReturnEnd(cat, nl)
+                    }
+                    End::Continue => InFixState::Unfinished(nl),
+                }
+            }
+        })
+    }
 
     /// Returns the next expression.
     ///
@@ -348,25 +377,14 @@ impl<'a> Lexer<'a> {
                 }
                 continue;
             }
-
-            if let Some(min_bp_reached) = self.needs_infix(&op, min_binding_power) {
-                if !min_bp_reached {
-                    // TODO could be changed to unexpected statement so that it doesn't need to be done in the iterator
-                    return cont(left);
+            match self.handle_infix(&op, min_binding_power, token.clone(), left, abort)? {
+                InFixState::NoInfix => return Err(unexpected_token!(token)),
+                InFixState::ReturnContinue(left) => return cont(left),
+                InFixState::ReturnEnd(cat, left) => return done(cat, left),
+                InFixState::Unfinished(nl) => {
+                    left = nl;
                 }
-                self.token();
-                let (end, nl) = self.infix_statement(op, token, left, abort)?;
-                left = nl;
-                if let End::Done(cat) = end {
-                    self.depth = 0;
-                    return done(cat, left);
-                } else {
-                    // jump to the next without handling it as an error
-                    continue;
-                }
-            }
-            // Due to peeking it can end up in an endless loop
-            return Err(unexpected_token!(token));
+            };
         }
 
         Ok((End::Continue, left))
@@ -411,8 +429,7 @@ mod infix {
     use super::*;
 
     use crate::token::Category::*;
-    
-    
+
     use StatementKind::*;
 
     // simplified resolve method to verify a calculate with a given statement
