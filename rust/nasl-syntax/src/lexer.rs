@@ -89,19 +89,7 @@ fn infix_binding_power(op: &Operation) -> Option<(u8, u8)> {
     Some(res)
 }
 
-// if the right side is a parameter we need to transform the NamedParameter
-// from the atomic params and assign the first one to the NamedParameter instead
-// of Statement::Parameter and put it upfront
-fn first_element_as_named_parameter(mut params: Vec<Statement>) -> Result<Statement, SyntaxError> {
-    params.reverse();
-    let value = params
-        .pop()
-        .ok_or_else(|| unexpected_end!("while getting value of named parameter"))?;
-    let np = StatementKind::NamedParameter(Box::new(value));
-    params.push(Statement::without_token(np));
-    params.reverse();
-    Ok(Statement::without_token(StatementKind::Parameter(params)))
-}
+
 enum InFixState {
     NoInfix,
     ReturnContinue(Statement),
@@ -195,26 +183,8 @@ impl<'a> Lexer<'a> {
                         // if the right side is a parameter we need to transform the NamedParameter
                         // from the atomic params and assign the first one to the NamedParameter instead
                         // of Statement::Parameter and put it upfront
-                        match rhs.kind() {
-                            // StatementKind::Parameter(params) => {
-                            //     first_element_as_named_parameter(params.clone())?
-                            // }
-
-                            _ => build_stmt(StatementKind::NamedParameter(Box::new(rhs))),
-                        }
+                        build_stmt(StatementKind::NamedParameter(Box::new(rhs)))
                     }
-                    StatementKind::Parameter(params) => match rhs.kind() {
-                        StatementKind::Parameter(right_params) => {
-                            let mut params = params.clone();
-                            params.extend_from_slice(right_params);
-                            build_stmt(StatementKind::Parameter(params))
-                        }
-                        _ => {
-                            let mut params = params.clone();
-                            params.push(rhs);
-                            build_stmt(StatementKind::Parameter(params))
-                        }
-                    },
                     _ => return Err(unexpected_statement!(lhs)),
                 }
             }
