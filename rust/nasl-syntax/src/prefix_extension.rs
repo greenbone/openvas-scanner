@@ -114,7 +114,7 @@ impl<'a> Prefix for Lexer<'a> {
         abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         use End::*;
-        let op = Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
+        let op = Operation::new(&token).ok_or_else(|| unexpected_token!(token.clone()))?;
         match op {
             Operation::Operator(kind) => {
                 let bp = prefix_binding_power(&token)?;

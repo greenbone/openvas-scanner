@@ -30,7 +30,7 @@ pub(crate) enum Operation {
 
 impl Operation {
     /// May create a new Operation based on given token. It returns None when the token.category is unknown.
-    pub(crate) fn new(token: Token) -> Option<Operation> {
+    pub(crate) fn new(token: &Token) -> Option<Operation> {
         match token.category() {
             Category::Plus
             | Category::Star

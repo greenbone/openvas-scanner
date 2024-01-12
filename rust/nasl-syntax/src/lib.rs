@@ -12,7 +12,6 @@ mod lexer;
 mod loader;
 mod naslvalue;
 mod operation;
-mod postfix_extension;
 mod prefix_extension;
 mod statement;
 mod token;

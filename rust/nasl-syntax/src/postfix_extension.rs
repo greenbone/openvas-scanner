@@ -26,31 +26,6 @@ pub(crate) trait Postfix {
     ) -> Option<Result<(End, Statement), SyntaxError>>;
 }
 
-impl<'a> Lexer<'a> {
-    fn as_assign_statement(
-        lhs: Statement,
-        token: Token,
-        assign: Category,
-    ) -> Option<Result<(End, Statement), SyntaxError>> {
-        match lhs.kind() {
-            StatementKind::Variable | StatementKind::Array(..) => Some(Ok((
-                End::Continue,
-                Statement::with_start_end_token(
-                    lhs.end().clone(),
-                    token,
-                    StatementKind::Assign(
-                        assign,
-                        AssignOrder::ReturnAssign,
-                        Box::new(lhs),
-                        Box::new(Statement::without_token(StatementKind::NoOp)),
-                    ),
-                ),
-            ))),
-            _ => Some(Err(unexpected_token!(token))),
-        }
-    }
-}
-
 impl<'a> Postfix for Lexer<'a> {
     fn postfix_statement(
         &mut self,
@@ -59,12 +34,22 @@ impl<'a> Postfix for Lexer<'a> {
         lhs: Statement,
     ) -> Option<Result<(End, Statement), SyntaxError>> {
         match op {
-            Operation::Assign(Category::PlusPlus) => {
-                Self::as_assign_statement(lhs, token, Category::PlusPlus)
-            }
-            Operation::Assign(Category::MinusMinus) => {
-                Self::as_assign_statement(lhs, token, Category::MinusMinus)
-            }
+            Operation::Assign(c) if matches!(c, Category::PlusPlus | Category::MinusMinus) => match lhs.kind() {
+                StatementKind::Variable | StatementKind::Array(..) => Some(Ok((
+                    End::Continue,
+                    Statement::with_start_end_token(
+                        lhs.end().clone(),
+                        token,
+                        StatementKind::Assign(
+                            c,
+                            AssignOrder::ReturnAssign,
+                            Box::new(lhs),
+                            Box::new(Statement::without_token(StatementKind::NoOp)),
+                        ),
+                    ),
+                ))),
+                _ => Some(Err(unexpected_token!(token))),
+            },
             _ => None,
         }
     }

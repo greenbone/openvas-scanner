@@ -9,7 +9,6 @@ use crate::{
     error::SyntaxError,
     max_recursion,
     operation::Operation,
-    postfix_extension::Postfix,
     prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
     unexpected_end, unexpected_statement, unexpected_token, AssignOrder, Statement, StatementKind,
@@ -172,115 +171,101 @@ impl<'a> Lexer<'a> {
     fn infix_statement(
         &mut self,
         op: Operation,
+        right_bp: u8,
         token: Token,
         lhs: Statement,
         abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
-        Ok({
-            // binding power of the right side
-            let (_, right_bp) =
-                infix_binding_power(&op).expect("handle_infix should be called first");
-            // probably better to change EoF to error instead of Ok(Continue) to not have to double check each time
-            let (mut end, rhs) = self.statement(right_bp, abort)?;
-            // this feels like a hack ... maybe better to use an own abort condition for the right side instead?
-            // TODO set end token to token when done
-            if let End::Done(ref x) = end {
-                if !abort(x.category()) {
-                    end = End::Continue;
-                }
-            }
-            if matches!(rhs.kind(), StatementKind::EoF) {
-                return Ok((End::Done(token), rhs));
-            }
+        let (end, rhs) = self.statement(right_bp, abort)?;
+        if matches!(rhs.kind(), StatementKind::EoF) {
+            return Ok((End::Done(token), rhs));
+        }
+        let end_token = match &end {
+            End::Done(x) if abort(x.category()) => x.clone(),
+            End::Done(_) | End::Continue => rhs.end().clone(),
+        };
+        let start_token = lhs.start().clone();
+        let build_stmt = |k| Statement::with_start_end_token(start_token, end_token, k);
 
-            let end_token = match &end {
-                End::Done(x) => x.clone(),
-                End::Continue => rhs.end().clone(),
-            };
-            let start_token = lhs.start().clone();
-            let build_stmt = |k| Statement::with_start_end_token(start_token, end_token, k);
-
-            let stmt = match op {
-                // DoublePoint operation needs to be changed to NamedParameter statement
-                Operation::Assign(Category::DoublePoint) => {
-                    match lhs.kind() {
-                        StatementKind::Variable => {
-                            // if the right side is a parameter we need to transform the NamedParameter
-                            // from the atomic params and assign the first one to the NamedParameter instead
-                            // of Statement::Parameter and put it upfront
-                            match rhs.kind() {
-                                StatementKind::Parameter(params) => {
-                                    // TODO flatten
-                                    first_element_as_named_parameter(params.clone())?
-                                }
-
-                                _ => build_stmt(StatementKind::NamedParameter(Box::new(rhs))),
-                            }
-                        }
-                        StatementKind::Parameter(params) => match rhs.kind() {
-                            StatementKind::Parameter(right_params) => {
-                                let mut params = params.clone();
-                                params.extend_from_slice(right_params);
-                                build_stmt(StatementKind::Parameter(params))
-                            }
-                            _ => {
-                                let mut params = params.clone();
-                                params.push(rhs);
-                                build_stmt(StatementKind::Parameter(params))
-                            }
-                        },
-                        _ => return Err(unexpected_statement!(lhs)),
-                    }
-                }
-                // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
-                Operation::Assign(category) => match lhs.kind() {
+        let stmt = match op {
+            // DoublePoint operation needs to be changed to NamedParameter statement
+            Operation::Assign(Category::DoublePoint) => {
+                match lhs.kind() {
                     StatementKind::Variable => {
-                        let lhs = match rhs.kind() {
-                            StatementKind::Parameter(..) => Statement::with_start_end_token(
-                                lhs.start().clone(),
-                                rhs.end().clone(),
-                                StatementKind::Array(None),
-                            ),
-                            _ => lhs,
-                        };
+                        // if the right side is a parameter we need to transform the NamedParameter
+                        // from the atomic params and assign the first one to the NamedParameter instead
+                        // of Statement::Parameter and put it upfront
+                        match rhs.kind() {
+                            // StatementKind::Parameter(params) => {
+                            //     first_element_as_named_parameter(params.clone())?
+                            // }
 
-                        build_stmt(StatementKind::Assign(
-                            category,
-                            AssignOrder::AssignReturn,
-                            Box::new(lhs),
-                            Box::new(rhs),
-                        ))
+                            _ => build_stmt(StatementKind::NamedParameter(Box::new(rhs))),
+                        }
                     }
-                    StatementKind::Array(..) => build_stmt(StatementKind::Assign(
+                    StatementKind::Parameter(params) => match rhs.kind() {
+                        StatementKind::Parameter(right_params) => {
+                            let mut params = params.clone();
+                            params.extend_from_slice(right_params);
+                            build_stmt(StatementKind::Parameter(params))
+                        }
+                        _ => {
+                            let mut params = params.clone();
+                            params.push(rhs);
+                            build_stmt(StatementKind::Parameter(params))
+                        }
+                    },
+                    _ => return Err(unexpected_statement!(lhs)),
+                }
+            }
+            // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
+            Operation::Assign(category) => match lhs.kind() {
+                StatementKind::Variable => {
+                    let lhs = match rhs.kind() {
+                        StatementKind::Parameter(..) => Statement::with_start_end_token(
+                            lhs.start().clone(),
+                            rhs.end().clone(),
+                            StatementKind::Array(None),
+                        ),
+                        _ => lhs,
+                    };
+
+                    build_stmt(StatementKind::Assign(
                         category,
                         AssignOrder::AssignReturn,
                         Box::new(lhs),
                         Box::new(rhs),
-                    )),
+                    ))
+                }
+                StatementKind::Array(..) => build_stmt(StatementKind::Assign(
+                    category,
+                    AssignOrder::AssignReturn,
+                    Box::new(lhs),
+                    Box::new(rhs),
+                )),
 
-                    _ => build_stmt(StatementKind::Operator(
-                        token.category().clone(),
-                        vec![lhs, rhs],
-                    )),
-                },
                 _ => build_stmt(StatementKind::Operator(
                     token.category().clone(),
                     vec![lhs, rhs],
                 )),
-            };
-            (end, stmt)
-        })
+            },
+            _ => build_stmt(StatementKind::Operator(
+                token.category().clone(),
+                vec![lhs, rhs],
+            )),
+        };
+        Ok((end, stmt))
     }
 
     /// Returns an infix state
     ///
-    /// On NoInfix the operation is not infix based. 
+    /// On NoInfix the operation is not infix based.
     /// On ReturnContinue the operation does not have the required binding power.
     /// On ReturnEnd the statement is finished.
     /// On Unfinished the upper loop should continue while caching the statement.
     fn handle_infix(
         &mut self,
-        op: &Operation,
+        op: Operation,
         min_bp: u8,
         token: Token,
         left: Statement,
@@ -289,12 +274,12 @@ impl<'a> Lexer<'a> {
         // returns three states 1. not handled, 2. return continue, 3. return done 4. continue
         // loop
 
-        Ok(match infix_binding_power(op) {
+        Ok(match infix_binding_power(&op) {
             None => InFixState::NoInfix,
             Some((x, _)) if x < min_bp => InFixState::ReturnContinue(left),
-            Some(_) => {
+            Some((_, y)) => {
                 self.token();
-                let (end, nl) = self.infix_statement(op.clone(), token, left, abort)?;
+                let (end, nl) = self.infix_statement(op, y, token, left, abort)?;
                 match end {
                     End::Done(cat) => {
                         self.depth = 0;
@@ -362,29 +347,38 @@ impl<'a> Lexer<'a> {
                 self.depth = 0;
                 return done(token, left);
             }
-            let op =
-                Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
-
-            if self.needs_postfix(op.clone()) {
-                let (end, stmt) = self
-                    .postfix_statement(op, token.clone(), left)
-                    .ok_or_else(|| unexpected_token!(token.clone()))??;
-                self.token();
-                left = stmt;
-                if let End::Done(cat) = end {
-                    self.depth = 0;
-                    return done(cat, left);
+            let op = Operation::new(&token).ok_or_else(|| unexpected_token!(token.clone()))?;
+            match op {
+                Operation::Assign(c) if matches!(c, Category::PlusPlus | Category::MinusMinus) => {
+                    let token = self.token().expect("expected token");
+                    match left.kind() {
+                        StatementKind::Variable | StatementKind::Array(..) => {
+                            left = Statement::with_start_end_token(
+                                left.end().clone(),
+                                token,
+                                StatementKind::Assign(
+                                    c.clone(),
+                                    AssignOrder::ReturnAssign,
+                                    Box::new(left),
+                                    Box::new(Statement::without_token(StatementKind::NoOp)),
+                                ),
+                            );
+                        }
+                        _ => return Err(unexpected_token!(token)),
+                    }
                 }
-                continue;
+                op => {
+                    match self.handle_infix(op, min_binding_power, token.clone(), left, abort)? {
+                        InFixState::NoInfix => return Err(unexpected_token!(token)),
+                        InFixState::ReturnContinue(left) => return cont(left),
+                        InFixState::ReturnEnd(cat, left) => return done(cat, left),
+                        InFixState::Unfinished(nl) => {
+                            left = nl;
+                            continue;
+                        }
+                    }
+                }
             }
-            match self.handle_infix(&op, min_binding_power, token.clone(), left, abort)? {
-                InFixState::NoInfix => return Err(unexpected_token!(token)),
-                InFixState::ReturnContinue(left) => return cont(left),
-                InFixState::ReturnEnd(cat, left) => return done(cat, left),
-                InFixState::Unfinished(nl) => {
-                    left = nl;
-                }
-            };
         }
 
         Ok((End::Continue, left))
@@ -599,5 +593,30 @@ mod infix {
             }
         }
         expected(result("(a = 1);"), Category::Equal);
+    }
+}
+
+#[cfg(test)]
+mod postfix {
+    use crate::{parse, token::Category, AssignOrder, Statement, StatementKind};
+
+    use Category::*;
+
+    fn result(code: &str) -> Statement {
+        parse(code).next().unwrap().unwrap()
+    }
+
+    #[test]
+    fn variable_assignment_operator() {
+        let expected = |stmt: Statement, assign_operator: Category| match stmt.kind() {
+            StatementKind::Assign(operator, AssignOrder::ReturnAssign, _, _) => {
+                assert_eq!(operator, &assign_operator)
+            }
+            kind => panic!("expected Assign, but got: {:?}", kind),
+        };
+        expected(result("a++;"), PlusPlus);
+        expected(result("a--;"), MinusMinus);
+        expected(result("a[1]++;"), PlusPlus);
+        expected(result("a[1]--;"), MinusMinus);
     }
 }
