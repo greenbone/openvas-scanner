@@ -286,7 +286,7 @@ where
 {
     let positional = resolve_positional_arguments(register);
 
-    Ok(match positional.get(0) {
+    Ok(match positional.first() {
         Some(NaslValue::String(x)) => match register.named(x) {
             Some(ContextType::Function(_, _)) => true.into(),
             _ => ctx.nasl_fn_defined(x).into(),
