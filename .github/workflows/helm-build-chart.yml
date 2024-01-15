@@ -19,16 +19,7 @@ jobs:
       - name: deploy openvasd
         run: |
           cd rust/examples/tls/Self-Signed\ mTLS\ Method
-          sh server_certificates.sh
-          sh client_certificates.sh
-          kubectl create namespace openvasd || true
-          kubectl create secret generic server-private-key \
-                --from-file=key.pem=./server.rsa \
-                --from-file=certs.pem=./server.pem \
-                --namespace openvasd
-          kubectl create secret generic client-certs \
-                --from-file=client1.pem=./client.pem \
-                --namespace openvasd
+          make delete deploy
           cd -
           helm uninstall openvasd --namespace openvasd|| true
           helm install --namespace openvasd --create-namespace openvasd charts/openvasd/ --values charts/openvasd/values.yaml --values charts/openvasd/mtls-wo-ingress.yaml

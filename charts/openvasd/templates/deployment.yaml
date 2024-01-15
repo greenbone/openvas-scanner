@@ -43,9 +43,9 @@ spec:
       - name: ospd-logs
         emptyDir: {}
       {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
-      - name: server-private-key
+      - name: ingress-certificate
         secret:
-          secretName: server-private-key
+          secretName: ingress-certificate
       {{ end }}
       {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
       - name: client-certs
@@ -160,7 +160,7 @@ spec:
           mountPath: /run/ospd/
         {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
         - mountPath: "/etc/openvasd/tls/"
-          name: server-private-key
+          name: ingress-certificate
           readOnly: true
         {{ end }}
         {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
