@@ -101,7 +101,7 @@ mod test {
         store.append(key, serialized).unwrap();
         let results: Vec<super::Serialization<Test>> = store.by_range(key, Range::All).unwrap();
         assert_eq!(results.len(), 1);
-        let test2 = match results.get(0).unwrap() {
+        let test2 = match results.first().unwrap() {
             super::Serialization::Deserialized(t) => t.clone(),
             _ => panic!("Serialization::try_from failed"),
         };
