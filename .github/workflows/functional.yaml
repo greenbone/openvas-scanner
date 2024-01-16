@@ -1,0 +1,64 @@
+name: functional
+
+on:
+  workflow_call:
+
+# smoke test definition.
+# It depends on build.yml that is controlled via control.yml
+#
+jobs:
+  # TESTS that are possible before pushing an image
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    container:
+      image: greenbone/gvm-libs:stable
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
+      - name: install openvas
+        run: |
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -- install
+      - uses: actions/download-artifact@v3
+        with:
+          name: rs-binaries
+          path: assets
+      - name: prepare setup
+        run: |
+          apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
+            docker.io
+          FEED_DIR="feed/" sh .github/prepare-feed.sh
+          install -m 755 assets/linux/amd64/feed-verifier /usr/local/bin/
+          install -m 755 assets/linux/amd64/nasl-cli /usr/local/bin/
+          echo "db_address = tcp://redis:6379" >> /etc/openvas/openvas.conf
+          # TODO export as env variable
+          mv ./feed/* "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
+      - run: openvas -s
+      - name: verify feed syntax
+        run: nasl-cli syntax --quiet "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
+      - name: verify feed update
+        run: feed-verifier || (cat /var/log/gvm/openvas.log && false)
+      - name: verify nasl tests
+        run: |
+          mkdir -p /etc/openvas
+          cd nasl/tests
+          make check
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.16.0'
+      - name: verify lint
+        run: |
+          make build
+          ./run -e openvas-nasl-lint
+        working-directory: smoketest_lint

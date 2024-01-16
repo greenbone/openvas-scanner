@@ -1,0 +1,32 @@
+name: "Linting"
+
+on: [workflow_call]
+
+jobs:
+  C:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v4
+      - name: Formatting
+        run: |
+          clang-format -i -style=file {src,misc,nasl}/*.{c,h}
+          git diff --exit-code
+  Rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt update && sudo apt-get install -y libpcap-dev
+      - run: rustup update stable && rustup default stable || rustup default stable 
+      - run: cargo install cargo-audit
+      - run: cargo install typos-cli
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+      - name: Audit
+        run: cargo audit
+      - run: typos
+      - name: Formatting
+        run: cargo fmt --check

@@ -10,6 +10,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     clang-tools \
     cmake \
     curl \
+    git \
     lcov \
     libgnutls28-dev \
     libgpgme-dev \
@@ -28,6 +29,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libpopt0 \
     libcurl4 \
     libcurl4-gnutls-dev \
+    libhiredis0.14 \
     && rm -rf /var/lib/apt/lists/*
 
 curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.2.tar.gz -k

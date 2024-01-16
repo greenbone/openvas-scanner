@@ -1,0 +1,70 @@
+name: Container
+
+on: 
+  workflow_call:
+    inputs:
+      is_latest_tag:
+        required: true
+        type: string
+      is_version_tag:
+        required: true
+        type: string
+    secrets:
+      dockerhub_user:
+        required: true
+      dockerhub_token:
+        required: true
+
+jobs:
+  debian_stable:
+    name: debian:stable
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: rs-binaries
+          path: assets
+      - name: "Set labels and tags"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ github.repository }}
+          labels: |
+            org.opencontainers.image.vendor=Greenbone
+            org.opencontainers.image.base.name=greenbone/gvm-libs
+          flavor: latest=false # no auto latest container tag for git tags
+          tags: |
+            # when IS_LATEST_TAG is set create a stable and a latest tag
+            type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
+            type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
+            # if tag version is set than create a version tags
+            type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
+            type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
+            # if on main or a branch TODO calculate upfront
+            type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
+            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
+            # use pr-$PR_ID for pull requests (will not be uploaded)
+            type=ref,event=pr
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.dockerhub_user }}
+          password: ${{ secrets.dockerhub_token }}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == 'main') }}
+          file: .docker/prod.Dockerfile
+          build-args: |
+            REPOSITORY=${{ github.repository }}
+          platforms: linux/amd64,linux/aarch64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

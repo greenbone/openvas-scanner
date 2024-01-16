@@ -1,0 +1,28 @@
+name: "Unit-Tests"
+
+on: [workflow_call]
+
+jobs:
+  C:
+    runs-on: ubuntu-latest
+    container: greenbone/gvm-libs:stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
+      - name: unit-tests
+        run: |
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+          CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test
+  Rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt update && sudo apt-get install -y libpcap-dev
+      - run: rustup update stable && rustup default stable || rustup default stable 
+      - name: unit-tests
+        run: cargo test --lib --tests --workspace

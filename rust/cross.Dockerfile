@@ -17,10 +17,9 @@ RUN ./configure --host=x86_64-unknown-linux-gnu --with-pcap=linux
 RUN cat config.log
 RUN make install
 
-RUN curl --output /tmp/zlib.tar.gz https://www.zlib.net/zlib-1.3.1.tar.gz
-WORKDIR /tmp
-RUN tar xvf zlib.tar.gz
-WORKDIR /tmp/zlib-1.3.1
+RUN mkdir /tmp/zlib
+RUN curl -sf -L https://www.zlib.net/current/zlib.tar.gz | tar zxvf - --strip-components=1 -C /tmp/zlib
+WORKDIR /tmp/zlib
 RUN ./configure
 RUN make install
 RUN ldconfig

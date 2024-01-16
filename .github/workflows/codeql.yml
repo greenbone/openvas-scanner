@@ -2,9 +2,9 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ main, oldstable, stable, middleware ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, oldstable, stable, middleware ]
+    branches: [ main ]
   schedule:
     - cron: '30 5 * * 0' # 5:30h on Sundays
 
@@ -16,12 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: greenbone/gvm-libs:unstable
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'c' ]
+    container: greenbone/gvm-libs:edge
 
     steps:
     - name: Checkout repository
@@ -32,7 +27,7 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
-        languages: ${{ matrix.language }}
+        languages: 'c'
       # build between init and analyze ...
     - name: Configure and Compile openvas-scanner
       run: |
