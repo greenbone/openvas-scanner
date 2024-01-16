@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+  schedule:
+    # rebuild image every sunday
+    - cron: "0 0 * * 0"
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+  linting:
+    uses: ./.github/workflows/ci.yml
+  container:
+    needs: [build]
+    uses: ./.github/workflows/push-container.yml
+  # although it seems a bit odd, but that way we ensure
+  # that we test the latest greatest thing.
+  smoketests:
+    needs: [container]
+    uses: ./.github/workflows/smoketest.yaml

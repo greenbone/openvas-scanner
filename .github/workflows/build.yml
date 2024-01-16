@@ -1,0 +1,25 @@
+name: "Build"
+
+on: [workflow_call]
+
+jobs:
+  OpenVAS:
+    runs-on: ubuntu-latest
+    container: greenbone/gvm-libs:stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
+      - name: build 
+        run: |
+          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
+          scan-build -o ~/scan-build-report cmake --build build
+      - name: Upload scan-build report
+        uses: actions/upload-artifact@v3
+        with:
+          name: scan-build-report
+          path: ~/scan-build-report/
+          retention-days: 7
+  OpenVAS_Daemon:
+    uses: ./.github/workflows/build-rust.yml

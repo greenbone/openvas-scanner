@@ -1,22 +1,6 @@
 name: Build Container
 
-on:
-  push:
-    branches: [ main, stable, oldstable, middleware ]
-    tags: ["v*"]
-    paths:
-      - .github/workflows/build-container.yml
-      - .docker/build.Dockerfile
-  pull_request:
-    branches: [ main, stable, oldstable, middleware ]
-    paths:
-      - .github/workflows/build-container.yml
-      - .docker/build.Dockerfile
-  workflow_dispatch:
-  repository_dispatch:
-  schedule:
-    # rebuild image every sunday
-    - cron: "0 0 * * 0"
+on: [workflow_call]
 
 jobs:
   build:

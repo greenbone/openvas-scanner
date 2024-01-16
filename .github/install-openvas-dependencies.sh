@@ -10,6 +10,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     clang-tools \
     cmake \
     curl \
+    git \
     lcov \
     libgnutls28-dev \
     libgpgme-dev \
