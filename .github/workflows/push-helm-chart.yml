@@ -1,0 +1,27 @@
+name: "Helm Push"
+
+on: 
+  workflow_call:
+    inputs:
+      registry:
+        required: true
+        type: string
+    secrets:
+      user:
+        required: true
+      token:
+        required: true
+
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: greenbone/actions/helm-build-push@v3
+        with:
+          chart-name: openvasd
+          registry: ${{ inputs.registry }}
+          registry-subpath: helm-charts/
+          registry-user: ${{ secrets.user }}
+          registry-token: ${{ secrets.token }}

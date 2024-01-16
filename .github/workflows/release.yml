@@ -1,19 +1,29 @@
 name: "release"
-
-on:
-  pull_request:
-    types: [closed]
-  workflow_dispatch:
+on: 
+  workflow_call:
     inputs:
-      release:
-        description: "Use 'major' for incompatible changes, 'minor' for new features, and 'patch' for fixes."
-        type: choice
-        options:
-          - "major"
-          - "minor"
-          - "patch"
+      new_version:
         required: true
-        default: "patch"
+        type: string
+      latest_version:
+        required: true
+        type: string
+      release_kind:
+        required: true
+        type: string
+      release_ref:
+        required: true
+        type: string
+      project:
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+      name:
+        required: true
+      email:
+        required: true
 
 
 # This job first determines the target branch of the closed pull request. If the target branch is "main",
@@ -34,115 +44,30 @@ on:
 # Once the version is found and enhanced, each CMakeLists file is updated to the new
 # version, and a commit is created in the found branch.
 jobs:
-  calculate_version:
-    runs-on: "ubuntu-latest"
-    if: |
-        github.event_name == 'workflow_dispatch' ||
-        (
-          github.event.pull_request.merged == true &&
-          contains(github.event.pull_request.labels.*.name, 'major_release') ||
-          contains(github.event.pull_request.labels.*.name, 'minor_release') ||
-          contains(github.event.pull_request.labels.*.name, 'patch_release')
-        )
-    outputs:
-      new_version: ${{ steps.version.outputs.new_version }}
-      latest_version: ${{ steps.version.outputs.latest_version }}
-      release_kind:  ${{ steps.version.outputs.release_kind }}
-      release_ref:  ${{ steps.version.outputs.release_ref }}
-      project:  ${{ steps.version.outputs.project}}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
-          fetch-depth: '0'
-      - name: set RELEASE_KIND = ${{ github.event.inputs.release }}
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          echo "RELEASE_KIND=${{ github.event.inputs.release }}" >> $GITHUB_ENV
-      - name: set RELEASE_KIND = major
-        if: ${{ (contains(github.event.pull_request.labels.*.name, 'major_release')) }}
-        run: |
-          echo "RELEASE_KIND=major" >> $GITHUB_ENV
-      - name: set RELEASE_KIND = minor
-        if: ${{ (contains(github.event.pull_request.labels.*.name, 'minor_release')) }}
-        run: |
-          echo "RELEASE_KIND=minor" >> $GITHUB_ENV
-      - name: set RELEASE_KIND = patch
-        if: ${{ (contains(github.event.pull_request.labels.*.name, 'patch_release')) }}
-        run: |
-          echo "RELEASE_KIND=patch" >> $GITHUB_ENV
-      - name: set RELEASE_REF
-        run: |
-          if [[ "${{ github.event_name }}" = "workflow_dispatch" ]]; then
-            echo "RELEASE_REF=${{ github.ref_name }}" >> $GITHUB_ENV
-          else
-            echo "RELEASE_REF=${{ github.base_ref }}" >> $GITHUB_ENV
-          fi
-      - name: "LATEST_VERSION"
-        run: |
-          if [[ "${{ env.RELEASE_REF }}" = "main" ]]; then
-            echo "LATEST_VERSION=$(git tag | grep "^v" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
-          else
-            echo "LATEST_VERSION=$(git tag | grep "^v${{ env.RELEASE_REF }}" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
-          fi
-      - name: "default LATEST_VERSION"
-        run: |
-          # default to 0.1.0 when there is no previous tag and on main branch
-          if ([[ -z "${{ env.LATEST_VERSION }}" ]] &&  [[ "${{ env.RELEASE_REF }}" = "main" ]]); then
-            echo "LATEST_VERSION=0.1.0" >> $GITHUB_ENV
-          fi
-      # safeguard
-      - name: RELEASE_REF != NULL
-        run: ([ -n "${{ env.RELEASE_REF }}" ])
-      - name: LATEST_VERSION != NULL
-        run: ([ -n "${{ env.LATEST_VERSION }}" ])
-      - name: RELEASE_KIND != NULL
-        run: ([ -n "${{ env.RELEASE_KIND }}" ])
-      - name: "NEW_VERSION"
-        run: |
-          echo "NEW_VERSION=$(sh .github/enhance_version.sh ${{ env.LATEST_VERSION }} ${{ env.RELEASE_KIND }})" >> $GITHUB_ENV
-      - name: NEW_VERSION != NULL
-        run: ([ -n "${{ env.NEW_VERSION }}" ])
-      - name: set output
-        id: version
-        run: |
-          echo "latest_version=$LATEST_VERSION" >> "$GITHUB_OUTPUT"
-          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "release_kind=$RELEASE_KIND" >> "$GITHUB_OUTPUT"
-          echo "release_ref=$RELEASE_REF" >> "$GITHUB_OUTPUT"
-          echo "project=$(echo "${{ github.repository }}" | sed 's/.*\///' )" >> "$GITHUB_OUTPUT"
-
-  build-binaries:
-    needs: calculate_version
-    uses: ./.github/workflows/build-rust.yml
-
-
   release:
     name: release
-    needs: 
-      - build-binaries
-      - calculate_version
     runs-on: "ubuntu-latest"
     env:
-      RELEASE_KIND: ${{needs.calculate_version.outputs.release_kind}}
-      RELEASE_REF: ${{needs.calculate_version.outputs.release_ref}}
-      LATEST_VERSION: ${{needs.calculate_version.outputs.latest_version}}
-      NEW_VERSION: ${{needs.calculate_version.outputs.new_version}}
-      PROJECT: ${{needs.calculate_version.outputs.project}}
+      RELEASE_KIND: ${{inputs.release_kind}}
+      RELEASE_REF: ${{inputs.release_ref}}
+      LATEST_VERSION: ${{inputs.latest_version}}
+      NEW_VERSION: ${{inputs.new_version}}
+      PROJECT: ${{inputs.project}}
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          token: ${{ secrets.token }}
           fetch-depth: '0'
       - name: set git credentials
         run: |
-             git config --global user.email "${{ secrets.GREENBONE_BOT_MAIL }}"
-             git config --global user.name "${{ secrets.GREENBONE_BOT }}"
+             git config --global user.email "${{ secrets.email }}"
+             git config --global user.name "${{ secrets.name }}"
       - name: "create working branch for previous major release (${{ env.LATEST_VERSION }})"
         if: ( env.RELEASE_KIND == 'major' )
         run: |
-          # save a branch so that we can easily create PR for that version when we want to fix something
+          # checkout latest version 
           git checkout "v${{ env.LATEST_VERSION }}"
+          # get just the major version of latest version 
           export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
           git checkout -b "$BRANCH_NAME"
           git push origin "$BRANCH_NAME"
@@ -189,7 +114,6 @@ jobs:
             touch /tmp/changelog.md
           fi
           echo "${{ secrets.GREENBONE_BOT_TOKEN }}" | gh auth login --with-token
-          # lets see how smart it is
           export nrn="v${{ env.NEW_VERSION }}"
           gh release create "$nrn" -F /tmp/changelog.md
       - name: "sign ${{ env.PROJECT }}"

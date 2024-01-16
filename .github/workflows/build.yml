@@ -1,27 +1,24 @@
-name: "rs-build"
+name: "Build"
 
 on: [workflow_call]
 
-# This job builds the targets for x86_64 as well as aarch64. It is intented to
-# be included in the other jobs by calling:
-# ```
-# jobs:
-#   name:
-#     uses: ./.github/workflows/build-rust.yml
-# ```
-#
-# It saves the binaris:
-# - nasl-cli
-# - feed-verofier
-#
-# as rs-binaries.
-#
 jobs:
-  build:
+  C:
+    runs-on: ubuntu-latest
+    container: greenbone/gvm-libs:stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: install dependencies
+        run: |
+          sh .github/install-openvas-dependencies.sh
+      - name: build 
+        run: |
+          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
+          cmake --build build
+  Rust:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v4
-      # create branch of version
       - uses: actions/cache@v3
         with:
           path: |
@@ -47,12 +44,14 @@ jobs:
           patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/nasl-cli
           patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release/nasl-cli
       - run: mkdir assets/
-      - run: mv rust/target/aarch64-unknown-linux-gnu/release/openvasd assets/openvasd-aarch64-unknown-linux-gnu
-      - run: mv rust/target/x86_64-unknown-linux-gnu/release/openvasd assets/openvasd-x86_64-unknown-linux-gnu
-      - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
-      - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu
-      - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/feed-verifier-aarch64-unknown-linux-gnu
-      - run: mv rust/target/x86_64-unknown-linux-gnu/release/feed-verifier assets/feed-verifier-x86_64-unknown-linux-gnu
+      - run: mkdir -p assets/linux/amd64
+      - run: mkdir -p assets/linux/arm64
+      - run: mv rust/target/aarch64-unknown-linux-gnu/release/openvasd assets/linux/arm64/openvasd
+      - run: mv rust/target/x86_64-unknown-linux-gnu/release/openvasd assets/linux/amd64/openvasd
+      - run: mv rust/target/aarch64-unknown-linux-gnu/release/nasl-cli assets/linux/arm64/nasl-cli
+      - run: mv rust/target/x86_64-unknown-linux-gnu/release/nasl-cli assets/linux/amd64/nasl-cli
+      - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/linux/arm64/feed-verifier
+      - run: mv rust/target/x86_64-unknown-linux-gnu/release/feed-verifier assets/linux/amd64/feed-verifier
       - name: archive
         uses: actions/upload-artifact@v3
         with:

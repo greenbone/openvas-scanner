@@ -1,0 +1,51 @@
+name: Smoketests
+
+on:
+  workflow_call:
+    inputs:
+      docker_repo:
+        type: string
+        default: "greenbone/openvas-scanner"
+      docker_tag:
+        required: true
+        type: string
+
+# smoke test definition.
+# It depends on build.yml that is controlled via control.yml
+#
+jobs:
+  openvasd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Set openvas-scanner-image'
+        run: |
+          echo "openvas:" >> st.yaml
+          echo "  repository: ${{ inputs.docker_repo }}" >> st.yaml
+          echo "  pullPolicy: Always" >> st.yaml
+          echo "  tag: \"${{ inputs.docker_tag }}\"" >> st.yaml
+          cat st.yaml
+      - name: Start a local k8s cluster
+        uses: jupyterhub/action-k3s-helm@v3
+        with:
+          k3s-channel: latest
+          metrics-enabled: false
+      - name: deploy openvasd
+        run: |
+          cd rust/examples/tls/Self-Signed\ mTLS\ Method
+          make delete deploy
+          cd -
+
+          helm uninstall openvasd --namespace openvasd|| true
+          helm install --namespace openvasd --create-namespace openvasd charts/openvasd/ --values charts/openvasd/values.yaml --values charts/openvasd/mtls-wo-ingress.yaml --values st.yaml
+
+          kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd 
+          echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
+      - name: smoketest
+        working-directory: rust/smoketest
+        env:
+          SCAN_CONFIG: configs/simple_scan_ssh_only.json
+          CLIENT_KEY: ../examples/tls/Self-Signed mTLS Method/client.rsa
+          CLIENT_CERT: ../examples/tls/Self-Signed mTLS Method/client.pem
+        run: |
+          make build run

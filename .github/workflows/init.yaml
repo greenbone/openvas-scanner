@@ -1,0 +1,149 @@
+name: Initialize
+
+on: 
+  workflow_call:
+    inputs:
+      release:
+        type: string
+    outputs:
+      docker_build_is_latest:
+        description: "Is used to set the tags latest and stable"
+        value: ${{ jobs.init.outputs.is_latest_tag }}
+      docker_build_is_version:
+        description: "Is used to set the version tags: major, major-minor, major-minor-patch"
+        value: ${{ jobs.init.outputs.is_version_tag }}
+      docker_test_tag:
+        description: "Is used to smoke test the latest push image"
+        value: ${{ jobs.init.outputs.docker_tag }}
+      release_new_version:
+        description: "new_version, is a release information"
+        value: ${{ jobs.init.outputs.new_version }}
+      release_latest_version:
+        description: "latest_version, is a release information"
+        value: ${{ jobs.init.outputs.latest_version }}
+      release_kind:
+        description: "release_kind, is a release information"
+        value: ${{ jobs.init.outputs.release_kind }}
+      release_ref:
+        description: "release_ref, is a release information"
+        value: ${{ jobs.init.outputs.release_ref }}
+      release_project:
+        description: "The name of the project to be released"
+        value: ${{ jobs.init.outputs.project }}
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+    outputs:
+      is_latest_tag: ${{ steps.version.outputs.is_latest_tag }}
+      is_version_tag: ${{ steps.version.outputs.is_version_tag }}
+      docker_tag: ${{ steps.version.outputs.docker_tag }}
+      new_version: ${{ steps.version.outputs.new_version }}
+      latest_version: ${{ steps.version.outputs.latest_version }}
+      release_kind:  ${{ steps.version.outputs.release_kind }}
+      release_ref:  ${{ steps.version.outputs.release_ref }}
+      project:  ${{ steps.version.outputs.project}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: "set IS_VERSION_TAG"
+        run: |
+          echo "IS_VERSION_TAG=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}" >> $GITHUB_ENV
+          # set defaults
+          echo "IS_LATEST_TAG=false" >> $GITHUB_ENV
+      - name: "set IS_LATEST_TAG"
+        if: ( env.IS_VERSION_TAG == 'true' )
+        run: |
+          # find the latest version that is not ourself
+          export LATEST_VERSION=$(git tag -l | grep -v '${{ github.ref_name }}' | sort -r --version-sort)
+          # get major minor patch versions
+          IFS='.' read -r latest_major latest_minor latest_patch << EOF
+          $LATEST_VERSION
+          EOF
+          IFS='.' read -r tag_major tag_minor tag_patch << EOF
+          ${{ github.ref_name }}
+          EOF
+          # remove leading v
+          latest_major=$(echo $latest_major | cut -c2-)
+          tag_major=$(echo $tag_major | cut -c2-)
+          echo "$tag_major >= $latest_major"
+          if [[ $tag_major -ge $latest_major && ($tag_minor -ne 0 || $tag_patch -ne 0) ]]; then
+            # set this tag to latest and stable
+            echo "IS_LATEST_TAG=true" >> $GITHUB_ENV
+          fi
+          echo "VERSION=$tag_major.$tag_minor.$tag_patch" >> $GITHUB_ENV
+      - name: "set DOCKER_TAG = edge"
+        if: ( env.IS_VERSION_TAG != 'true' )
+        run: |
+          echo "DOCKER_TAG=edge" >> $GITHUB_ENV
+      - name: "set DOCKER_TAG = ${{ env.VERSION }}"
+        if: ( env.IS_VERSION_TAG == 'true' )
+        run: |
+          echo "DOCKER_TAG=$VERSION" >> $GITHUB_ENV
+          
+      - name: "set KIND = no_release" 
+        run: echo "KIND=no_release" >> $GITHUB_ENV
+      - name: "override KIND = ${{ inputs.release }}"
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "KIND=${{ inputs.release }}" >> $GITHUB_ENV
+      - name: "override KIND = major" 
+        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'major_release')
+        run: echo "KIND=major" >> $GITHUB_ENV
+      - name: "override KIND = minor" 
+        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'minor_release')
+        run: echo "KIND=minor" >> $GITHUB_ENV
+      - name: "override KIND = patch" 
+        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'patch_release')
+        run: echo "KIND=patch" >> $GITHUB_ENV
+      - name: "set RELEASE_REF = ${{ github.ref_name }}"
+        if: github.base_ref == '' 
+        run: echo "RELEASE_REF=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: "set RELEASE_REF = ${{ github.base_ref }}"
+        if: github.base_ref != '' 
+        run: echo "RELEASE_REF=${{ github.base_ref }}" >> $GITHUB_ENV
+      - name: RELEASE_REF != NULL
+        run: ([ -n "${{ env.RELEASE_REF }}" ])
+
+      - name: "LATEST_VERSION"
+        if: inputs.release != 'no_release'
+        run: |
+          git tag
+          if [[ "${{ env.RELEASE_REF }}" = "main" ]]; then
+            echo "LATEST_VERSION=$(git tag | grep "^v" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
+          else
+            echo "LATEST_VERSION=$(git tag | grep "^v${{ env.RELEASE_REF }}" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
+          fi
+      - name: "default LATEST_VERSION"
+        run: |
+          # default to 0.1.0 when there is no previous tag and on main branch
+          if ([[ -z "${{ env.LATEST_VERSION }}" ]] &&  [[ "${{ env.RELEASE_REF }}" = "main" ]]); then
+            echo "LATEST_VERSION=0.1.0" >> $GITHUB_ENV
+          fi
+
+      - name: LATEST_VERSION != NULL
+        if: env.KIND != 'no_release'
+        run: ([ -n "${{ env.LATEST_VERSION }}" ])
+      - name: RELEASE_KIND != NULL
+        run: ([ -n "${{ env.KIND }}" ])
+      - name: "NEW_VERSION"
+        if: env.KIND != 'no_release'
+        run: |
+          echo "NEW_VERSION=$(sh .github/enhance_version.sh ${{ env.LATEST_VERSION }} ${{ env.KIND }})" >> $GITHUB_ENV
+      - name: NEW_VERSION != NULL
+        if: env.KIND != 'no_release'
+        run: ([ -n "${{ env.NEW_VERSION }}" ])
+      - name: set output
+        id: version
+        run: |
+          # release
+          echo "latest_version=${{ env.LATEST_VERSION }}">> "$GITHUB_OUTPUT"
+          echo "new_version=${{ env.NEW_VERSION }}">> "$GITHUB_OUTPUT"
+          echo "release_kind=${{ env.KIND }}">> "$GITHUB_OUTPUT"
+          echo "release_ref=${{ env.RELEASE_REF }}">> "$GITHUB_OUTPUT"
+          echo "project=$(echo "${{ github.repository }}" | sed 's/.*\///' )" >> "$GITHUB_OUTPUT"
+          # docker
+          echo "is_latest_tag=${{ env.IS_LATEST_TAG }}">> "$GITHUB_OUTPUT"
+          echo "is_version_tag=${{ env.IS_VERSION_TAG }}">> "$GITHUB_OUTPUT"
+          echo "docker_tag=${{ env.DOCKER_TAG }}">> "$GITHUB_OUTPUT"
