@@ -91,7 +91,7 @@ pub struct Source {
     /// type of the source
     pub s_type: String,
     /// source reference, e.g. an OID in case of a nvt type
-    pub value: String,
+    pub name: String,
     /// description about the source
     pub description: String,
 }
