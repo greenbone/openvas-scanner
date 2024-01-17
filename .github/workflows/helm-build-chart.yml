@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start a local k8s cluster
-        uses: jupyterhub/action-k3s-helm@v3
+        uses: jupyterhub/action-k3s-helm@v4
         with:
           k3s-channel: latest
           metrics-enabled: false
