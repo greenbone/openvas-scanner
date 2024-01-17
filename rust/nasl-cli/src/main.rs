@@ -7,16 +7,14 @@ mod error;
 mod execute;
 mod feed;
 mod interpret;
+mod notusupdate;
 mod scanconfig;
 mod syntax;
 
 use configparser::ini::Ini;
 pub use error::*;
 
-use std::{
-    path::PathBuf,
-    process,
-};
+use std::{path::PathBuf, process};
 use storage::StorageError;
 
 use clap::{arg, ArgAction, ArgMatches, Command};
@@ -63,7 +61,8 @@ fn main() {
     let matches = syntax::extend_args(matches);
     let matches = scanconfig::extend_args(matches);
     let matches = execute::extend_args(matches);
-    let matches = feed::extend_args(matches).get_matches();
+    let matches = feed::extend_args(matches);
+    let matches = notusupdate::extend_args(matches).get_matches();
     let result = run(&matches);
 
     match result {
@@ -83,7 +82,13 @@ fn main() {
 }
 
 fn run(matches: &ArgMatches) -> Result<(), CliError> {
-    let functions = [feed::run, syntax::run, execute::run, scanconfig::run];
+    let functions = [
+        feed::run,
+        syntax::run,
+        execute::run,
+        scanconfig::run,
+        notusupdate::run,
+    ];
     for f in functions.iter() {
         if let Some(result) = f(matches) {
             return result;

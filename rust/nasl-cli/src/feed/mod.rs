@@ -4,6 +4,9 @@ use std::{io, path::PathBuf};
 use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
 
+
+use redis_storage::FEEDUPDATE_SELECTOR;
+
 use storage::StorageError;
 
 use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
@@ -72,12 +75,13 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
                 .cloned()
                 .unwrap_or(false);
 
-            let dispatcher = redis_storage::NvtDispatcher::as_dispatcher(&redis)
-                .map_err(StorageError::from)
-                .map_err(|e| CliError {
-                    kind: e.into(),
-                    filename: format!("{path:?}"),
-                });
+            let dispatcher =
+                redis_storage::NvtDispatcher::as_dispatcher(&redis, FEEDUPDATE_SELECTOR)
+                    .map_err(StorageError::from)
+                    .map_err(|e| CliError {
+                        kind: e.into(),
+                        filename: format!("{path:?}"),
+                    });
             Some(dispatcher.and_then(|dispatcher| update::run(dispatcher, path, signature_check)))
         }
         Some(("transform", args)) => {

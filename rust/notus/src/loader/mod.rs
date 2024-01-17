@@ -4,7 +4,7 @@
 
 use std::time::SystemTime;
 
-use models::Product;
+use models::{Product, ProductsAdivisories};
 
 use crate::error::Error;
 
@@ -29,6 +29,19 @@ pub trait ProductLoader {
     /// Check if a requested product file has changed based on a stamp created with `load_product`.
     /// Useful for checking if a requested product has changed.
     fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool;
+    /// Verify the signature of the Hashsum file
+    fn verify_signature(&self) -> Result<(), feed::VerifyError>;
+    /// Get the root directory of the notus products
+    fn get_root_dir(&self) -> Result<String, Error>;
+}
+
+/// Trait for an AdvisoryLoader
+pub trait AdvisoryLoader {
+    /// Get a list of all available products. This list contains the exact strings, that can also be
+    /// used for `load_product`.
+    fn get_advisories(&self) -> Result<Vec<String>, Error>;
+    /// Load advisories files present in the path.
+    fn load_advisory(&self, os: &str) -> Result<ProductsAdivisories, Error>;
     /// Verify the signature of the Hashsum file
     fn verify_signature(&self) -> Result<(), feed::VerifyError>;
     /// Get the root directory of the notus products

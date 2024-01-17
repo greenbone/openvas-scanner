@@ -38,6 +38,24 @@ Hello, world!
 
 Usage: `nasl-cli execute [OPTIONS] [-t HOST] <script>`
 
+### notus
+Load up Notus Advisories into redis.
+It performs the signature check, the hashsum check and the upload.
+    
+Signature check is optional. It must be enabled with the command line option but also the environment variable `GPGHOME` to the gnupg keyring must be set.
+    
+Usage:
+`GPGHOME=/path/to/.gnupg nasl-cli notus update --path <path-to-the-advisories> --signature-check`
+#### update
+Updates notus data into redis
+
+Usage: nasl-cli notus update [OPTIONS] --path <FILE>
+
+Options:
+  -p, --path <directory>      Path to the notus advisories.
+  -x, --signature-check  Enable NASL signature check.
+  -r, --redis <VALUE>    Redis url. Must either start `unix://` or `redis://`.
+  -h, --help             Print help
 
 ### feed
 

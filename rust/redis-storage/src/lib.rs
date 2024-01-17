@@ -10,3 +10,4 @@ pub use connector::NvtDispatcher;
 pub mod dberror;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
+pub use connector::{NOTUSUPDATE_SELECTOR, NOTUS_KEY};
