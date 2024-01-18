@@ -374,7 +374,7 @@ impl RedisCtx {
 /// In this case we need to wait until we get the OID so that we can build the key additionally
 /// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
-pub struct NvtDispatcher<R, K>
+pub struct CacheDispatcher<R, K>
 where
     R: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
 {
@@ -383,7 +383,7 @@ where
     phanton: PhantomData<K>,
 }
 
-impl<K> NvtDispatcher<RedisCtx, K>
+impl<K> CacheDispatcher<RedisCtx, K>
 where
     K: AsRef<str>,
 {
@@ -394,10 +394,10 @@ where
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<NvtDispatcher<RedisCtx, K>> {
+    ) -> RedisStorageResult<CacheDispatcher<RedisCtx, K>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
-        Ok(NvtDispatcher {
+        Ok(CacheDispatcher {
             cache: Arc::new(Mutex::new(rctx)),
             kbs: Arc::new(Mutex::new(Vec::new())),
             phanton: PhantomData,
@@ -411,7 +411,7 @@ where
     pub fn as_dispatcher(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<PerNVTDispatcher<NvtDispatcher<RedisCtx, K>, K>> {
+    ) -> RedisStorageResult<PerNVTDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
         let cache = Self::init(redis_url, selector)?;
         cache.reset()?;
         Ok(PerNVTDispatcher::new(cache))
@@ -426,7 +426,7 @@ where
     }
 }
 
-impl<S, K> storage::nvt::NvtDispatcher<K> for NvtDispatcher<S, K>
+impl<S, K> storage::nvt::NvtDispatcher<K> for CacheDispatcher<S, K>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
     K: AsRef<str>,
@@ -454,7 +454,7 @@ where
     }
 }
 
-impl<S, K> storage::Retriever<K> for NvtDispatcher<S, K>
+impl<S, K> storage::Retriever<K> for CacheDispatcher<S, K>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
 {
@@ -496,7 +496,7 @@ mod tests {
     use storage::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use storage::Dispatcher;
 
-    use super::{NvtDispatcher, RedisAddAdvisory, RedisAddNvt, RedisWrapper};
+    use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisWrapper};
 
     #[derive(Clone)]
     struct FakeRedis {
@@ -579,7 +579,7 @@ mod tests {
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
         let kbs = Arc::new(Mutex::new(Vec::new()));
-        let rcache = NvtDispatcher {
+        let rcache = CacheDispatcher {
             cache,
             kbs,
             phanton: PhantomData,

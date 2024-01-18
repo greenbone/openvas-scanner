@@ -28,7 +28,7 @@ impl Run<String> {
             Db::Redis(url) => ContextBuilder::new(
                 key,
                 Box::new(
-                    redis_storage::NvtDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap(),
+                    redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap(),
                 ),
             ),
         };

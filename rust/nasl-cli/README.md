@@ -42,7 +42,7 @@ Usage: `nasl-cli execute [OPTIONS] [-t HOST] <script>`
 Load up Notus Advisories into redis.
 It performs the signature check, the hashsum check and the upload.
     
-Signature check is optional. It must be enabled with the command line option but also the environment variable `GPGHOME` to the gnupg keyring must be set.
+Signature check is optional. It must be enabled with the command line option but also the environment variable `GNUPGHOME` to the gnupg keyring must be set.
     
 Usage:
 `GPGHOME=/path/to/.gnupg nasl-cli notus update --path <path-to-the-advisories> --signature-check`

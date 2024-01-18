@@ -76,7 +76,7 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
                 .unwrap_or(false);
 
             let dispatcher =
-                redis_storage::NvtDispatcher::as_dispatcher(&redis, FEEDUPDATE_SELECTOR)
+                redis_storage::CacheDispatcher::as_dispatcher(&redis, FEEDUPDATE_SELECTOR)
                     .map_err(StorageError::from)
                     .map_err(|e| CliError {
                         kind: e.into(),
