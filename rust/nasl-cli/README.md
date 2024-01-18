@@ -38,25 +38,6 @@ Hello, world!
 
 Usage: `nasl-cli execute [OPTIONS] [-t HOST] <script>`
 
-### notus
-Load up Notus Advisories into redis.
-It performs the signature check, the hashsum check and the upload.
-    
-Signature check is optional. It must be enabled with the command line option but also the environment variable `GNUPGHOME` to the gnupg keyring must be set.
-    
-Usage:
-`GPGHOME=/path/to/.gnupg nasl-cli notus update --path <path-to-the-advisories> --signature-check`
-#### update
-Updates notus data into redis
-
-Usage: nasl-cli notus update [OPTIONS] --path <FILE>
-
-Options:
-  -p, --path <directory>      Path to the notus advisories.
-  -x, --signature-check  Enable NASL signature check.
-  -r, --redis <VALUE>    Redis url. Must either start `unix://` or `redis://`.
-  -h, --help             Print help
-
 ### feed
 
 Handles feed related tasks.
@@ -66,18 +47,27 @@ Usage: `nasl-cli feed <COMMAND>`
 #### update
 
 Runs nasl scripts in description mode and updates data into redis so that ospd-openvas can read the data.
+Also, load the Notus advisories up into the redis cache. The path to the notus advisories must be provided.
 
 When either path or redis is not set it will get the defaults by calling `openvas -s`.
 
 Usage `nasl-cli feed update [OPTIONS]`
 
+Usage example, load both:
+`GPGHOME=/path/to/.gnupg nasl-cli feed update --notus-path <path-to-the-advisories> --signature-check`
+
 Options:
-- `-p`, `--path <FILE>`:   Path to the feed.
-- `-r`, `--redis <VALUE>`: Redis url. Must either start `unix://` or `redis://`.
+- `-v`, `--vts-only`: Load only nvts into redis cache
+- `-n`, `--notus-only`: Load only Notus advisories into redis cache
+- `--vts-path <FILE>`: Path to the feed.
+- `--notus-path <FILE>`: Path to the notus advisories.
 - `-x`, `--signature-check`: Enable NASL signature check.
+- `-r`, `--redis <VALUE>`: Redis url. Must either start `unix://` or `redis://`.
 
 On `feed update` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
 Optionally, it is possible to perform a signature verification of the sha256sums file before uploading. To perform the signature check, also the environment variable `GNUPGHOME` must be set with the gnupg home directory, where the `pubring.kbx` file is stored.
+
+Notus advisories and VTs can be uploaded independtently using the options `--vts-only` and `--notus-only` respectively. They can not be used together. 
 
 #### transform
 Runs nasl scripts in description mode and returns it as a json array into stdout.
