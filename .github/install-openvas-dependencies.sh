@@ -17,6 +17,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libksba-dev \
     libpaho-mqtt-dev \
     libpcap-dev \
+    libhiredis-dev \
     libssh-gcrypt-dev \
     libbsd-dev \
     libgnutls30 \
