@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Defines NVT
+//! Defines an item in storage. Currently support Kb items, Nvts in the cache, and notus advisories in the cache
+
 use std::{
     collections::BTreeMap,
     fmt::Display,
@@ -441,7 +442,7 @@ pub struct Nvt {
 }
 
 /// Is a specialized Dispatcher for NVT information within the description block.
-pub trait NvtDispatcher<K> {
+pub trait ItemDispatcher<K> {
     /// Dispatches the feed version as well as NVT.
     ///
     /// The NVT is collected when a description run is finished.
@@ -468,19 +469,19 @@ pub trait NvtDispatcher<K> {
 
 /// Collects the information while being in a description run and calls the dispatch method
 /// on exit.
-pub struct PerNVTDispatcher<S, K>
+pub struct PerItemDispatcher<S, K>
 where
-    S: NvtDispatcher<K>,
+    S: ItemDispatcher<K>,
 {
     nvt: Arc<Mutex<Option<Nvt>>>,
     dispatcher: S,
     phantom: PhantomData<K>,
 }
 
-impl<S, K> PerNVTDispatcher<S, K>
+impl<S, K> PerItemDispatcher<S, K>
 where
     K: AsRef<str>,
-    S: NvtDispatcher<K>,
+    S: ItemDispatcher<K>,
 {
     /// Creates a new NvtDispatcher without a feed_version and nvt.
     pub fn new(dispatcher: S) -> Self {
@@ -525,10 +526,10 @@ where
     }
 }
 
-impl<S, K> Dispatcher<K> for PerNVTDispatcher<S, K>
+impl<S, K> Dispatcher<K> for PerItemDispatcher<S, K>
 where
     K: AsRef<str> + Send + Sync,
-    S: NvtDispatcher<K> + Send + Sync,
+    S: ItemDispatcher<K> + Send + Sync,
 {
     fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), StorageError> {
         match scope {
@@ -549,10 +550,10 @@ where
     }
 }
 
-impl<S, K> Retriever<K> for PerNVTDispatcher<S, K>
+impl<S, K> Retriever<K> for PerItemDispatcher<S, K>
 where
     K: AsRef<str>,
-    S: NvtDispatcher<K> + Retriever<K>,
+    S: ItemDispatcher<K> + Retriever<K>,
 {
     fn retrieve(&self, key: &K, scope: &crate::Retrieve) -> Result<Vec<Field>, StorageError> {
         self.dispatcher.retrieve(key, scope)

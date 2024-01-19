@@ -10,10 +10,10 @@ use crate::dberror::DbError;
 use crate::dberror::RedisStorageResult;
 use redis::*;
 
-use storage::nvt::Nvt;
-use storage::nvt::NvtPreference;
-use storage::nvt::NvtRef;
-use storage::nvt::PerNVTDispatcher;
+use storage::item::Nvt;
+use storage::item::NvtPreference;
+use storage::item::NvtRef;
+use storage::item::PerItemDispatcher;
 use storage::Kb;
 use storage::Notus;
 use storage::StorageError;
@@ -31,21 +31,21 @@ enum KbNvtPos {
     Name,
 }
 
-impl TryFrom<storage::nvt::NVTKey> for KbNvtPos {
+impl TryFrom<storage::item::NVTKey> for KbNvtPos {
     type Error = StorageError;
 
-    fn try_from(value: storage::nvt::NVTKey) -> Result<Self, Self::Error> {
+    fn try_from(value: storage::item::NVTKey) -> Result<Self, Self::Error> {
         Ok(match value {
-            storage::nvt::NVTKey::FileName => Self::Filename,
-            storage::nvt::NVTKey::Name => Self::Name,
-            storage::nvt::NVTKey::Dependencies => Self::Dependencies,
-            storage::nvt::NVTKey::RequiredKeys => Self::RequiredKeys,
-            storage::nvt::NVTKey::MandatoryKeys => Self::MandatoryKeys,
-            storage::nvt::NVTKey::ExcludedKeys => Self::ExcludedKeys,
-            storage::nvt::NVTKey::RequiredPorts => Self::RequiredPorts,
-            storage::nvt::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
-            storage::nvt::NVTKey::Category => Self::Category,
-            storage::nvt::NVTKey::Family => Self::Family,
+            storage::item::NVTKey::FileName => Self::Filename,
+            storage::item::NVTKey::Name => Self::Name,
+            storage::item::NVTKey::Dependencies => Self::Dependencies,
+            storage::item::NVTKey::RequiredKeys => Self::RequiredKeys,
+            storage::item::NVTKey::MandatoryKeys => Self::MandatoryKeys,
+            storage::item::NVTKey::ExcludedKeys => Self::ExcludedKeys,
+            storage::item::NVTKey::RequiredPorts => Self::RequiredPorts,
+            storage::item::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
+            storage::item::NVTKey::Category => Self::Category,
+            storage::item::NVTKey::Family => Self::Family,
             // tags must also be handled manually due to differentiation
             _ => {
                 return Err(StorageError::UnexpectedData(format!(
@@ -411,10 +411,10 @@ where
     pub fn as_dispatcher(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<PerNVTDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
+    ) -> RedisStorageResult<PerItemDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
         let cache = Self::init(redis_url, selector)?;
         cache.reset()?;
-        Ok(PerNVTDispatcher::new(cache))
+        Ok(PerItemDispatcher::new(cache))
     }
 
     /// Reset the NVT Cache and release the redis namespace
@@ -426,7 +426,7 @@ where
     }
 }
 
-impl<S, K> storage::nvt::NvtDispatcher<K> for CacheDispatcher<S, K>
+impl<S, K> storage::item::ItemDispatcher<K> for CacheDispatcher<S, K>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
     K: AsRef<str>,
@@ -466,6 +466,7 @@ where
         Ok(match scope {
             // currently not supported
             storage::Retrieve::NVT(_) => Vec::new(),
+            storage::Retrieve::NOTUS(_) => Vec::new(),
             storage::Retrieve::KB(s) => {
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
                 kbs.iter()
@@ -492,8 +493,8 @@ mod tests {
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
-    use storage::nvt::PerNVTDispatcher;
-    use storage::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
+    use storage::item::PerItemDispatcher;
+    use storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use storage::Dispatcher;
 
     use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisWrapper};
@@ -528,7 +529,7 @@ mod tests {
     impl RedisAddNvt for FakeRedis {}
     impl RedisAddAdvisory for FakeRedis {}
 
-    use storage::nvt::NVTField::*;
+    use storage::item::NVTField::*;
     use storage::Field::NVT;
     #[test]
     fn transform_nvt() {
@@ -584,7 +585,7 @@ mod tests {
             kbs,
             phanton: PhantomData,
         };
-        let dispatcher = PerNVTDispatcher::new(rcache);
+        let dispatcher = PerItemDispatcher::new(rcache);
         for c in commands {
             dispatcher.dispatch(&"test.nasl", c).unwrap();
         }

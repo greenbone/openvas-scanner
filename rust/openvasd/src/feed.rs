@@ -87,7 +87,7 @@ impl FeedIdentifier {
 
 impl storage::Dispatcher<String> for FeedIdentifier {
     fn dispatch(&self, _: &String, scope: storage::Field) -> Result<(), storage::StorageError> {
-        use storage::nvt::NVTField::Oid;
+        use storage::item::NVTField::Oid;
         if let storage::Field::NVT(Oid(x)) = scope {
             let mut oids = self.oids.write()?;
             oids.push(x);

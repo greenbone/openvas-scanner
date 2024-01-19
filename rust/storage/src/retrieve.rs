@@ -5,18 +5,23 @@
 use std::marker::PhantomData;
 
 use crate::{
-    nvt::{NVTField, NVTKey},
+    item::{NVTField, NVTKey},
     Field, StorageError,
 };
+
+use models::Vulnerability;
+
 /// Retrieve command for a given Field
 ///
 /// Defines what kind of information needs to be gathered.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Retrieve {
+pub enum Retrieve{
     /// Metadata of the NASL script.
     NVT(Option<NVTKey>),
     /// Knowledge Base item
     KB(String),
+    /// Metadata of the Notus advisory
+    NOTUS(Option<String>)
 }
 
 impl Retrieve {
@@ -25,6 +30,7 @@ impl Retrieve {
         match self {
             Retrieve::NVT(_) => "nvt",
             Retrieve::KB(_) => "kb",
+            Retrieve::NOTUS(_) => "notus",
         }
     }
 
@@ -71,7 +77,10 @@ impl Retrieve {
                 } else {
                     false
                 }
-            }
+            },
+
+            Retrieve::NOTUS(None) =>matches!(field, Field::NOTUS(_)),
+            Retrieve::NOTUS(Some(_)) => matches!(field, Field::NOTUS(_)),
         }
     }
 }

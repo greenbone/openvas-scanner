@@ -30,10 +30,10 @@ mod tests {
     use nasl_syntax::logger::DefaultLogger;
     use nasl_syntax::parse;
     use nasl_syntax::NaslValue;
-    use storage::nvt::TagKey::*;
-    use storage::nvt::ACT::*;
-    use storage::nvt::{NVTField::*, NvtPreference, PreferenceType};
-    use storage::nvt::{NvtRef, TagValue};
+    use storage::item::TagKey::*;
+    use storage::item::ACT::*;
+    use storage::item::{NVTField::*, NvtPreference, PreferenceType};
+    use storage::item::{NvtRef, TagValue};
     use storage::DefaultDispatcher;
     use storage::Field::NVT;
     use storage::Retriever;
