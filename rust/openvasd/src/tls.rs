@@ -25,174 +25,21 @@
 //!    server.await?;
 //!}
 //!```
-use core::task::{Context, Poll};
-use futures_util::{ready, Future};
-use hyper::server::accept::Accept;
-use hyper::server::conn::{AddrIncoming, AddrStream};
 use rustls::server::{AllowAnyAuthenticatedClient, ClientCertVerifier};
 use rustls::RootCertStore;
 use rustls_pemfile::{read_one, Item};
 
 use std::path::Path;
-use std::pin::Pin;
 use std::sync::{Arc, RwLock};
 
 use std::{fs, io};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use tokio_rustls::rustls::ServerConfig;
 
-use crate::controller::{ClientGossiper, ClientIdentifier};
+use crate::controller::ClientIdentifier;
 
-enum State {
-    Handshaking(tokio_rustls::Accept<AddrStream>),
-    Streaming(tokio_rustls::server::TlsStream<AddrStream>),
-}
 
-/// Holds the state of the tls connection
-///
-/// On the first read/write the connection will be handshaked and the state
-/// will change to streaming.
-///
-/// On streaming the connection will be read/written.
-pub struct TlsStream {
-    state: State,
-    pub client_identifier: Arc<RwLock<ClientIdentifier>>,
-}
-
-impl TlsStream {
-    fn new(
-        stream: AddrStream,
-
-        roots: RootCertStore,
-        certs: Vec<rustls::Certificate>,
-        key: rustls::PrivateKey,
-    ) -> TlsStream {
-        let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));
-        let inner = AllowAnyAuthenticatedClient::new(roots);
-        let verifier = ClientSnitch::new(inner, client_identifier.clone()).boxed();
-        let config: Arc<ServerConfig> = Arc::new(server_config(verifier, certs, key).unwrap());
-
-        let accept = tokio_rustls::TlsAcceptor::from(config).accept(stream);
-        TlsStream {
-            state: State::Handshaking(accept),
-            client_identifier,
-        }
-    }
-}
-
-impl ClientGossiper for TlsStream {
-    fn client_identifier(
-        &self,
-    ) -> &std::sync::Arc<std::sync::RwLock<crate::controller::ClientIdentifier>> {
-        &self.client_identifier
-    }
-}
-
-impl AsyncRead for TlsStream {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut Context,
-        buf: &mut ReadBuf,
-    ) -> Poll<io::Result<()>> {
-        let pin = self.get_mut();
-        match pin.state {
-            State::Handshaking(ref mut accept) => match ready!(Pin::new(accept).poll(cx)) {
-                Ok(mut stream) => {
-                    let result = Pin::new(&mut stream).poll_read(cx, buf);
-                    pin.state = State::Streaming(stream);
-                    result
-                }
-                Err(err) => Poll::Ready(Err(err)),
-            },
-            State::Streaming(ref mut stream) => Pin::new(stream).poll_read(cx, buf),
-        }
-    }
-}
-
-impl AsyncWrite for TlsStream {
-    fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<io::Result<usize>> {
-        let pin = self.get_mut();
-        match pin.state {
-            State::Handshaking(ref mut accept) => match ready!(Pin::new(accept).poll(cx)) {
-                Ok(mut stream) => {
-                    let result = Pin::new(&mut stream).poll_write(cx, buf);
-                    pin.state = State::Streaming(stream);
-                    result
-                }
-                Err(err) => Poll::Ready(Err(err)),
-            },
-            State::Streaming(ref mut stream) => Pin::new(stream).poll_write(cx, buf),
-        }
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        match self.state {
-            State::Handshaking(_) => Poll::Ready(Ok(())),
-            State::Streaming(ref mut stream) => Pin::new(stream).poll_flush(cx),
-        }
-    }
-
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        match self.state {
-            State::Handshaking(_) => Poll::Ready(Ok(())),
-            State::Streaming(ref mut stream) => Pin::new(stream).poll_shutdown(cx),
-        }
-    }
-}
-
-/// Handles the actual tls connection based on the given address and config.
-pub struct TlsAcceptor {
-    roots: RootCertStore,
-    certs: Vec<rustls::Certificate>,
-    key: rustls::PrivateKey,
-    incoming: AddrIncoming,
-}
-
-impl TlsAcceptor {
-    pub fn new(
-        roots: RootCertStore,
-        certs: Vec<rustls::Certificate>,
-        key: rustls::PrivateKey,
-        incoming: AddrIncoming,
-    ) -> TlsAcceptor {
-        TlsAcceptor {
-            roots,
-            certs,
-            key,
-            incoming,
-        }
-    }
-}
-
-impl Accept for TlsAcceptor {
-    type Conn = TlsStream;
-    type Error = io::Error;
-
-    fn poll_accept(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Result<Self::Conn, Self::Error>>> {
-        let pin = self.get_mut();
-        match ready!(Pin::new(&mut pin.incoming).poll_accept(cx)) {
-            Some(Ok(sock)) => Poll::Ready(Some(Ok(TlsStream::new(
-                sock,
-                pin.roots.clone(),
-                pin.certs.clone(),
-                pin.key.clone(),
-            )))),
-            Some(Err(e)) => Poll::Ready(Some(Err(e))),
-            None => Poll::Ready(None),
-        }
-    }
-}
-
-struct ClientSnitch {
+pub struct ClientSnitch {
     inner: AllowAnyAuthenticatedClient,
-    client_identifier: Arc<RwLock<ClientIdentifier>>,
+    pub client_identifier: Arc<RwLock<ClientIdentifier>>,
 }
 
 impl ClientSnitch {
@@ -314,17 +161,17 @@ pub fn tls_config(
     }
 }
 
-fn server_config(
+pub fn server_config(
     verifier: Arc<dyn ClientCertVerifier>,
     certs: Vec<rustls::Certificate>,
     key: rustls::PrivateKey,
-) -> Result<ServerConfig, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<rustls::ServerConfig, Box<dyn std::error::Error + Send + Sync>> {
     let mut cfg = rustls::ServerConfig::builder()
         .with_safe_defaults()
         .with_client_cert_verifier(verifier)
         .with_single_cert(certs, key)
         .map_err(|e| error(format!("{}", e)))?;
-    cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
+    cfg.alpn_protocols = vec![b"h2".to_vec()];
     Ok(cfg)
 }
 

@@ -13,14 +13,14 @@ feed = { path = "../feed" }
 storage = { path = "../storage" }
 infisto = { path = "../infisto" }
 notus = { path = "../notus" }
-hyper = { version = "0.14.26", features = ["full", "stream"] }
+hyper = { version = "1", features = ["full"] }
+hyper-rustls = "0"
 tokio = { version = "1.28.1", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 serde_json = "1.0.96"
 serde = { version = "1.0.163", features = ["derive"] }
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
-hyper-rustls = "0.24.0"
 rustls = {version = "0.21.1", features = ["dangerous_configuration"]}
 tokio-rustls = "0.24.0"
 futures-util = "0.3.28"
@@ -34,8 +34,11 @@ rand = "0.8.5"
 pbkdf2 = { version = "0.12.2", features = ["password-hash"] }
 sha2 = "0.10.7"
 generic-array = "0.14.7"
-async-traits = "0.0.0"
 base64 = "0.21.2"
+hyper-util = { version = "0", features = [ "tokio", "server-auto", "server" ]}
+http-body-util = "0.1.0"
+http-body = "1"
 
 [dev-dependencies]
 bincode = "1"
+tracing-test = "0.1"
