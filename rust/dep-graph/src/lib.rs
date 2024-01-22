@@ -269,8 +269,8 @@ mod tests {
     #[test]
     fn iter_thousand_graph() {
         let mut nodes: Vec<Node<_>> = (0..1000).map(|i| Node::new(format!("{}", i))).collect();
-        for i in 1..1000 {
-            nodes[i].add_dep("0".to_string());
+        for item in nodes.iter_mut().take(1000).skip(1) {
+            item.add_dep("0".to_string());
         }
 
         let r = DepGraph::new(&nodes);

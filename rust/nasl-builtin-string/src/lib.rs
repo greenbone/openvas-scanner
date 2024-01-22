@@ -141,7 +141,7 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Func
 /// If this function retrieves anything but a string it returns NULL
 fn toupper<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
-    Ok(match positional.get(0) {
+    Ok(match positional.first() {
         Some(NaslValue::String(x)) => x.to_uppercase().into(),
         Some(NaslValue::Data(x)) => x
             .iter()
@@ -158,7 +158,7 @@ fn toupper<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Function
 /// If this function retrieves anything but a string it returns NULL
 fn tolower<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
-    Ok(match positional.get(0) {
+    Ok(match positional.first() {
         Some(NaslValue::String(x)) => x.to_lowercase().into(),
         Some(NaslValue::Data(x)) => x
             .iter()
@@ -175,7 +175,7 @@ fn tolower<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Function
 /// If this function retrieves anything but a string it returns 0
 fn strlen<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
-    Ok(match positional.get(0) {
+    Ok(match positional.first() {
         Some(NaslValue::String(x)) => x.len().into(),
         Some(NaslValue::Data(x)) => x.len().into(),
         _ => 0_i64.into(),
@@ -224,7 +224,7 @@ fn hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
         }
         Ok(s.into())
     };
-    match positional.get(0) {
+    match positional.first() {
         Some(NaslValue::String(x)) => hexler(x),
         Some(NaslValue::Data(x)) => hexler(&x.iter().map(|x| *x as char).collect::<String>()),
         _ => Ok(NaslValue::Null),
@@ -235,7 +235,7 @@ fn hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
 fn hexstr_to_data<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
-    match resolve_positional_arguments(register).get(0) {
+    match resolve_positional_arguments(register).first() {
         Some(NaslValue::String(x)) => match decode_hex(x) {
             Ok(y) => Ok(NaslValue::Data(y)),
             Err(_) => Err((
@@ -259,7 +259,7 @@ fn hexstr_to_data<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, F
 ///
 /// The first positional argument must be byte data, all other arguments are ignored. If either the no argument was given or the first positional is not byte data, a error is returned.
 fn data_to_hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
-    match resolve_positional_arguments(register).get(0) {
+    match resolve_positional_arguments(register).first() {
         Some(NaslValue::Data(x)) => Ok(encode_hex(x)?.into()),
         Some(x) => Err(("first positional argument", "data", x.to_string().as_str()).into()),
         None => Err("0".into()),
@@ -285,7 +285,7 @@ fn crap<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErr
     match register.named("length") {
         None => {
             let positional = resolve_positional_arguments(register);
-            match positional.get(0) {
+            match positional.first() {
                 Some(NaslValue::Number(x)) => Ok(NaslValue::String(data.repeat(*x as usize))),
                 x => Err(("0", "numeric", x).into()),
             }
@@ -302,7 +302,7 @@ fn crap<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErr
 /// Takes one required positional argument of string type.
 fn chomp<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
-    match positional.get(0) {
+    match positional.first() {
         Some(NaslValue::String(x)) => Ok(x.trim_end().to_owned().into()),
         Some(NaslValue::Data(x)) => Ok(x
             .iter()
@@ -322,7 +322,7 @@ fn chomp<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionEr
 /// The optional third positional argument is an *int* containing an offset from where to start the search.
 fn stridx<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
-    let haystack = match positional.get(0) {
+    let haystack = match positional.first() {
         Some(NaslValue::String(x)) => x,
         x => return Err(("0", "string", x).into()),
     };

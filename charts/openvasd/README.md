@@ -6,12 +6,12 @@ This Helm chart is tested with k3s and Traefik. Note that other options may requ
 
 ## mTLS (Enabled by Default)
 
-To use mTLS, store the server certificate and key as a secret named 'server-private-key', containing key.pem and certs.pem. For example, deploying `openvasd` into the 'openvasd' namespace with a generated certificate:
+To use mTLS, store the server certificate and key as a secret named 'ingress-certificate', containing key.pem and certs.pem. For example, deploying `openvasd` into the 'openvasd' namespace with a generated certificate:
 
 ```bash
 cd ../../rust/examples/tls/Self-Signed\ mTLS\ Method
 sh server_certificates.sh
-kubectl create secret generic server-private-key \
+kubectl create secret generic ingress-certificate \
       --from-file=key.pem=./server.rsa \
       --from-file=certs.pem=./server.pem \
       --namespace openvasd

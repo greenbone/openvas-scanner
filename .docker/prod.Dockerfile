@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libcurl4 \
   libcurl3-gnutls \
   zlib1g \
+  libhiredis0.14 \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir
