@@ -18,6 +18,7 @@ serde_json = "1"
 [features]
 default = ["serde_support"]
 serde_support = ["serde"]
+smoketest = []
 
 [dev-dependencies]
 serde_json = "1"

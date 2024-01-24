@@ -43,9 +43,9 @@ spec:
       - name: ospd-logs
         emptyDir: {}
       {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
-      - name: server-private-key
+      - name: ingress-certificate
         secret:
-          secretName: server-private-key
+          secretName: ingress-certificate
       {{ end }}
       {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
       - name: client-certs
@@ -59,22 +59,30 @@ spec:
         volumeMounts:
           - name: nasl-plugins
             mountPath: /mnt/nasl
-        command: ['sh', '-c']
-        args: ['cp -rv /var/lib/openvas/22.04/vt-data/nasl/* /mnt/nasl/']
-      - name: notus-advisories
+        env:
+          - name: MOUNT_PATH 
+            value: "/mnt/nasl"
+      - name: normalize-nasl-feed
+        image: "{{ .Values.vulnerabilitytests.repository }}:{{ .Values.vulnerabilitytests.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: nasl-plugins
+            mountPath: /mnt/nasl
+        command: ['/bin/sh', '-c']
+        # flatten nasl data
+        args:
+          - mv -vf /mnt/nasl/22.04/vt-data/nasl/* /mnt/nasl/;
+            rm -r /mnt/nasl/22.04;
+            rm -r /mnt/nasl/21.04;
+      - name: notus-data
         image: "{{ .Values.notusdata.repository }}:{{ .Values.notusdata.tag }}"
         imagePullPolicy: Always
         volumeMounts:
           - name: notus-data
             mountPath: /mnt/notus
-        command: ['cp', '-rv', '/var/lib/notus/advisories', '/mnt/notus/']
-      - name: notus-products
-        image: "{{ .Values.notusdata.repository }}:{{ .Values.notusdata.tag }}"
-        imagePullPolicy: Always
-        volumeMounts:
-          - name: notus-data
-            mountPath: /mnt/notus
-        command: ['cp', '-rv', '/var/lib/notus/products', '/mnt/notus/']
+        env:
+          - name: MOUNT_PATH 
+            value: "/mnt/notus"
       - name: mqtt-broker-openvas-fix
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
@@ -152,7 +160,7 @@ spec:
           mountPath: /run/ospd/
         {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
         - mountPath: "/etc/openvasd/tls/"
-          name: server-private-key
+          name: ingress-certificate
           readOnly: true
         {{ end }}
         {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}

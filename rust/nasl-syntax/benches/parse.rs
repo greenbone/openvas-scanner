@@ -8,14 +8,22 @@ use nasl_syntax::parse;
 pub fn simple_parse_benchmark(c: &mut Criterion) {
     let code = include_str!("simple_parse.nasl");
     c.bench_function("simple_parse", |b| {
-        b.iter(|| parse(black_box(&code)).map(|x| x.unwrap()).count())
+        b.iter(|| {
+            if let Some(err) = parse(black_box(code)).find_map(|x| x.err()) {
+                panic!("Unexpected error: {err}");
+            }
+        })
     });
 }
 
 pub fn parse_large_benchmark(c: &mut Criterion) {
     let code = include_str!("smb_nt.inc");
     c.bench_function(&format!("smb_nt.inc {}", code.len()), |b| {
-        b.iter(|| parse(black_box(&code)).map(|x| x.unwrap()).count())
+        b.iter(|| {
+            if let Some(err) = parse(black_box(code)).find_map(|x| x.err()) {
+                panic!("Unexpected error: {err}");
+            }
+        })
     });
 }
 

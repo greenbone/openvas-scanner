@@ -11,8 +11,6 @@ Usage of api-key is optional. For details on how to configure it, see the [openv
 
 In case of running the test against a mTLS enabled `openvasd`, you need to configure the client key and cert as well in the smoke test environment. For details on how to configure it, see the [openvasd documentation](../openvasd/README.md).
 
-WARNING: Don't use the provided key/cert pair for production. This smoketest includes client cert/key example files which work with the provided one in the helm charts.
-
 For creation of the key/cert pair for mTLS authentication, see the tls section in the [openvasd documentation](../openvasd/README.md). Also, you find certificate generators in the [examples](../examples/tls)
 
 For authenticated scans, you can set a custom target (default is 127.0.0.1), username and password.

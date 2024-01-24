@@ -35,7 +35,7 @@ build: prepare-scan
 	${CARGO} build
 
 run:
-	cargo test --tests
+	${CARGO} test --tests --features=smoketest
 
 prepare-scan:
 	sed -i 's|<username>|'$(TARGET_USERNAME)'|' configs/simple_scan_ssh_only.json

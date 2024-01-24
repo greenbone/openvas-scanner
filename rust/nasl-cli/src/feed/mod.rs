@@ -3,7 +3,7 @@ use std::{io, path::PathBuf};
 
 use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
-pub use feed::transpile;
+
 use storage::StorageError;
 
 use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
