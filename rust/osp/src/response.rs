@@ -344,36 +344,25 @@ impl From<&ScanResult> for models::ResultType {
             ("HOST_START", ResultType::Log) => models::ResultType::HostStart,
             ("HOST_END", ResultType::Log) => models::ResultType::HostEnd,
             ("DEADHOST", ResultType::Log) => models::ResultType::DeadHost,
-            (_, ResultType::Log) =>
-            // is either set on nasl-script as proto or on openvas when
-            // a host is dead
-            // we need to clarify if we transform the host detail from
-            // xml to json as map[string]string or if we just keep it as is
-            // and let the user handle it
-            {
-                if sr.port == "general/Host_Details" {
-                    models::ResultType::HostDetail
-                } else {
-                    models::ResultType::Log
-                }
-            }
+            ("Host Details", ResultType::Log) => models::ResultType::HostDetail,
+            (_, ResultType::Log) => models::ResultType::Log,
             (_, ResultType::Alarm) => models::ResultType::Alarm,
             (_, ResultType::Error) => models::ResultType::Error,
-            // hostdetails are sent via log messages
+            // host details are sent via log messages
             (_, ResultType::HostDetail) => unreachable!(),
         }
     }
 }
 
-#[derive(Deserialize, Debug)]
-struct Detail {
-    name: String,
-    value: String,
+#[derive(Deserialize, Debug, Default)]
+struct HostDetail {
+    detail: Vec<models::Detail>,
 }
 
-#[derive(Deserialize, Debug)]
-struct HostDetail {
-    detail: Vec<Detail>,
+impl HostDetail {
+    pub fn extract(&self) -> Option<models::Detail> {
+        self.detail.first().cloned()
+    }
 }
 
 impl From<&ScanResult> for models::Result {
@@ -394,14 +383,10 @@ impl From<&ScanResult> for models::Result {
             "" => None,
             _ => Some(result.description.clone()),
         };
-        let details = match r_type {
+        let detail = match r_type {
             models::ResultType::HostDetail => match urlencoding::decode(&result.description) {
                 Ok(decoded) => match quick_xml::de::from_str::<HostDetail>(&decoded) {
-                    Ok(details) => details
-                        .detail
-                        .into_iter()
-                        .map(|d| (d.name, d.value))
-                        .collect(),
+                    Ok(details) => details,
                     Err(_) => Default::default(),
                 },
                 Err(_) => Default::default(),
@@ -424,7 +409,7 @@ impl From<&ScanResult> for models::Result {
             oid: Some(result.test_id.clone()),
             r_type,
             message,
-            details,
+            detail: detail.extract(),
         }
     }
 }
@@ -745,7 +730,7 @@ mod tests {
   <scan id="9750f1f8-07aa-49cc-9c31-2f9e469c8f65" target="192.168.1.252" end_time="1432824234" progress="100" status="finished" start_time="1432824206">
     <results>
       <result name="HOST_START" type="Log Message" severity="0.0" host="127.0.0.1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:24:07 2023</result>
-      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;test&lt;/name&gt;&lt;value&gt;bla&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;test&lt;/name&gt;&lt;value&gt;bla&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
 </result>
       <result name="HOST_END" type="Log Message" severity="0.0" host="127.0.0.1" hostname="" test_id="" port="" qod="" uri="">Mon May  8 09:31:41 2023</result>
     </results>
@@ -768,7 +753,7 @@ mod tests {
 <get_scans_response status_text="OK" status="200">
   <scan id="9750f1f8-07aa-49cc-9c31-2f9e469c8f65" target="192.168.1.252" end_time="1432824234" progress="100" status="finished" start_time="1432824206">
     <results>
-      <result name="SSL/TLS: Collect and Report Certificate Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="98" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;test&lt;/name&gt;&lt;value&gt;bla&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
+      <result name="Host Details" type="Log Message" severity="0.0" host="127.0.0.1" hostname="localhost" test_id="1.3.6.1.4.1.25623.1.0.103692" port="general/Host_Details" qod="80" uri="">&lt;host&gt;&lt;detail&gt;&lt;name&gt;test&lt;/name&gt;&lt;value&gt;bla&lt;/value&gt;&lt;source&gt;&lt;type&gt;nvt&lt;/type&gt;&lt;name&gt;1.3.6.1.4.1.25623.1.0.103692&lt;/name&gt;&lt;description&gt;SSL/TLS Certificate&lt;/description&gt;&lt;/source&gt;&lt;/detail&gt;&lt;/host&gt;
 </result>
     </results>
   </scan>
@@ -778,6 +763,14 @@ mod tests {
         let results: Vec<models::Result> = response.try_into().unwrap();
         assert_eq!(results.len(), 1);
         let result = results.first().unwrap();
-        assert_eq!(result.details["test"], "bla");
+        let detail = result.detail.clone().unwrap();
+        assert_eq!(detail.name, "test".to_string());
+        assert_eq!(detail.value, "bla".to_string());
+        assert_eq!(detail.source.s_type, "nvt".to_string());
+        assert_eq!(
+            detail.source.name,
+            "1.3.6.1.4.1.25623.1.0.103692".to_string()
+        );
+        assert_eq!(detail.source.description, "SSL/TLS Certificate".to_string());
     }
 }

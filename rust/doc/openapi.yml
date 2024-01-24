@@ -322,6 +322,8 @@ paths:
                   description: "Schema of a result"
                 get result 3:
                   $ref: "#/components/examples/scan_result"
+                host detail:
+                  $ref: "#/components/examples/host_detail"
         "404":
           description: "Result or Scan not found"
         "406":
@@ -732,9 +734,37 @@ components:
         message:
           description: "Additional information about the result."
           type: "string"
-        details:
-          description: "An object with key and value pairs. Only set on `host_detail` and should be treated as a `HashMap<String, String>` as there is not formalization possible."
+        detail:
+          description: "The detail object is only used for results of type host_detail. It contains information about a scanned hosted such as hardware information, architecture and many more."
           type: "object"
+          properties:
+            name:
+              description: "descriptive name of the detail"
+              type: "string"
+            value:
+              description: "value of the host detail"
+              type: "string"
+            source:
+              description: "source of the host detail"
+              type: "object"
+              properties:
+                type:
+                  description: "type of the source, e.g. nvt"
+                  type: "string"
+                name:
+                  description: "descriptive name of the source, in case of type nvt this is its OID"
+                  type: "string"
+                description:
+                  description: "Optional information about the detection, could contain how the data actually was collected."
+                  type: "string"
+              required:
+                - type
+                - name
+          required:
+            - name
+            - value
+            - source
+
       required:
         - type
 
@@ -1063,8 +1093,30 @@ components:
           "ip_address": "127.0.0.1",
           "hostname": "localhost",
           "oid": "1.3.6.1.4.1.25623.1.0.147696",
+          "port": 22,
           "protocol": "tcp",
           "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
+        }
+    host_detail:
+      description: "Example for a result of type host detail"
+      value:
+        {
+          "id": 3,
+          "type": "host_detail",
+          "ip_address": "127.0.0.1",
+          "hostname": "localhost",
+          "oid": "1.3.6.1.4.1.25623.1.0.103997",
+          "detail":
+            {
+              "name": "OS",
+              "value": "Debian GNU/Linux 11.5",
+              "source":
+                {
+                  "type": "nvt",
+                  "name": "1.3.6.1.4.1.25623.1.0.50282",
+                  "description": "Determine OS and list of installed packages via SSH login",
+                },
+            },
         }
 
     scan_status_stored:
@@ -1148,39 +1200,29 @@ components:
           "suse_linux_enterprise_module_for_live_patching_15-sp1",
           "suse_manager_debian_9.0",
           "slackware_10.1",
-          "slackware_10.2"
+          "slackware_10.2",
         ]
     notus_simple:
       description: "A simple example for notus run."
-      value:
-        [
-          "foo",
-          "bar",
-          "foo2",
-        ]
+      value: ["foo", "bar", "foo2"]
     notus_results:
       description: "A simple example for notus run response including a vulnerable package list and their fix"
       value:
         [
           {
             "oid": "1.2.3",
-            "vulnerable_packages": [
+            "vulnerable_packages":
+              [
                 {
-                    "package_name": "foo",
-                    "installed_version": "1.2.3",
-                    "fixed_versions": {
-                            "start": "1.2.2",
-                            "end": "1.2.5"
-                    }
+                  "package_name": "foo",
+                  "installed_version": "1.2.3",
+                  "fixed_versions": { "start": "1.2.2", "end": "1.2.5" },
                 },
                 {
-                    "package_name": "bar",
-                    "installed_version": "1.2.4",
-                    "fixed_versions": {
-                            "version": "1.2.5",
-                            "specifier": ">="
-                    }
-                }
-            ]
-        }
-      ]
+                  "package_name": "bar",
+                  "installed_version": "1.2.4",
+                  "fixed_versions": { "version": "1.2.5", "specifier": ">=" },
+                },
+              ],
+          },
+        ]
