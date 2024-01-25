@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Retriever, StorageError};
+use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Notus, Retriever, StorageError};
 
 /// Attack Category either set by script_category
 ///
@@ -460,6 +460,10 @@ pub trait NvtDispatcher<K> {
     fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
         Ok(())
     }
+    /// Stores an advisory
+    fn dispatch_advisory(&self, _: &K, _: Notus) -> Result<(), StorageError> {
+        Ok(())
+    }
 }
 
 /// Collects the information while being in a description run and calls the dispatch method
@@ -530,6 +534,7 @@ where
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
+            Field::NOTUS(adv) => self.dispatcher.dispatch_advisory(key, adv),
         }
     }
 

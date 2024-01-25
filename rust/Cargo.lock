@@ -1682,6 +1682,7 @@ dependencies = [
  "models",
  "nasl-interpreter",
  "nasl-syntax",
+ "notus",
  "redis-storage",
  "scanconfig",
  "serde",
@@ -2771,6 +2772,7 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 name = "storage"
 version = "0.1.0"
 dependencies = [
+ "models",
  "serde",
  "time",
  "tracing",

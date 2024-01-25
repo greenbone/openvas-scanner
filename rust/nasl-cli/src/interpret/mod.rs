@@ -9,6 +9,7 @@ use nasl_interpreter::{
     load_non_utf8_path, logger::DefaultLogger, logger::NaslLogger, ContextBuilder, FSPluginLoader,
     Interpreter, KeyDispatcherSet, LoadError, Loader, NaslValue, NoOpLoader, RegisterBuilder,
 };
+use redis_storage::FEEDUPDATE_SELECTOR;
 use storage::{DefaultDispatcher, Dispatcher, Retriever};
 
 use crate::{CliError, CliErrorKind, Db};
@@ -26,7 +27,10 @@ impl Run<String> {
             Db::InMemory => ContextBuilder::new(key, Box::<DefaultDispatcher<String>>::default()),
             Db::Redis(url) => ContextBuilder::new(
                 key,
-                Box::new(redis_storage::NvtDispatcher::as_dispatcher(url).unwrap()),
+                Box::new(
+                    redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR)
+                        .unwrap(),
+                ),
             ),
         };
 

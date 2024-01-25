@@ -26,6 +26,7 @@ use types::Primitive;
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
+
 /// Structure to hold a knowledge base item
 pub struct Kb {
     /// Key of the knowledge base entry
@@ -39,6 +40,19 @@ pub struct Kb {
     pub expire: Option<u64>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+
+/// Structure to hold a knowledge base item
+pub struct Notus {
+    /// Notus advisory metadata
+    pub value: Primitive,
+}
+
 /// Describes various Fields of supported items.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Field {
@@ -46,6 +60,8 @@ pub enum Field {
     NVT(NVTField),
     /// Knowledge Base item
     KB(Kb),
+    /// Notus advisories
+    NOTUS(Notus),
 }
 
 impl From<NVTField> for Field {
@@ -57,6 +73,11 @@ impl From<NVTField> for Field {
 impl From<Kb> for Field {
     fn from(value: Kb) -> Self {
         Self::KB(value)
+    }
+}
+impl From<Notus> for Field {
+    fn from(value: Notus) -> Self {
+        Self::NOTUS(value)
     }
 }
 
