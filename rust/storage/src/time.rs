@@ -37,10 +37,8 @@ impl AsUnixTimeStamp for String {
 impl AsUnixTimeStamp for &str {
     fn as_timestamp(&self) -> Option<i64> {
         let to_parse = {
-            // transforms `$Date: wanted (....) $` to wanted
-            self.splitn(2, "$Date: ")
-                .filter_map(|x| x.split(" $").next())
-                .filter_map(|x| x.split(" (").next())
+            // transforms `wanted (....)` to wanted
+            self.splitn(2, " (")
                 .find(|x| !x.is_empty())
                 .unwrap_or_default()
         };
@@ -60,7 +58,7 @@ mod tests {
 
     #[test]
     fn date_string() {
-        let example = "$Date: 2018-09-07 11:08:31 +0200 (Fri, 07 Sep 2018) $";
+        let example = "2018-09-07 11:08:31 +0200 (Fri, 07 Sep 2018)";
         assert_eq!(example.as_timestamp(), Some(1536311311));
     }
 
