@@ -59,9 +59,41 @@ pub struct Result {
 
     #[cfg_attr(
         feature = "serde_support",
-        serde(skip_serializing_if = "HashMap::is_empty", default)
+        serde(skip_serializing_if = "Option::is_none", default)
     )]
-    pub details: HashMap<String, String>,
+    pub detail: Option<Detail>,
+}
+
+/// Host Details information
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+
+pub struct Detail {
+    /// Descriptive name of a Host Detail
+    pub name: String,
+    /// Detected detail information
+    pub value: String,
+    /// Information about the source of the information
+    pub source: Source,
+}
+
+/// Host details source information
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct Source {
+    #[serde(rename = "type")]
+    /// type of the source
+    pub s_type: String,
+    /// source reference, e.g. an OID in case of a nvt type
+    pub name: String,
+    /// description about the source
+    pub description: String,
 }
 
 // is used for enumerate handling
