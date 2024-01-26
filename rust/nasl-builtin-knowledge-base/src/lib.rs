@@ -54,6 +54,7 @@ fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
             .map(|r| {
                 r.into_iter().find_map(|x| match x {
                     Field::NVT(_) => None,
+                    Field::NOTUS(_) => None,
                     Field::KB(kb) => kb.value.into(),
                 })
             })

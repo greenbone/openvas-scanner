@@ -7,16 +7,14 @@ mod error;
 mod execute;
 mod feed;
 mod interpret;
+mod notusupdate;
 mod scanconfig;
 mod syntax;
 
 use configparser::ini::Ini;
 pub use error::*;
 
-use std::{
-    path::PathBuf,
-    process,
-};
+use std::{path::PathBuf, process};
 use storage::StorageError;
 
 use clap::{arg, ArgAction, ArgMatches, Command};

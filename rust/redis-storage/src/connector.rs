@@ -15,6 +15,7 @@ use storage::nvt::NvtPreference;
 use storage::nvt::NvtRef;
 use storage::nvt::PerNVTDispatcher;
 use storage::Kb;
+use storage::Notus;
 use storage::StorageError;
 
 enum KbNvtPos {
@@ -89,6 +90,7 @@ pub enum NameSpaceSelector {
 }
 
 const CACHE_KEY: &str = "nvticache";
+pub const NOTUS_KEY: &str = "notuscache";
 const DB_INDEX: &str = "GVM.__GlobalDBIndex";
 
 impl NameSpaceSelector {
@@ -149,6 +151,8 @@ impl NameSpaceSelector {
 /// Default selector for a feed-update run
 pub const FEEDUPDATE_SELECTOR: &[NameSpaceSelector] =
     &[NameSpaceSelector::Key(CACHE_KEY), NameSpaceSelector::Free];
+pub const NOTUSUPDATE_SELECTOR: &[NameSpaceSelector] =
+    &[NameSpaceSelector::Key(NOTUS_KEY), NameSpaceSelector::Free];
 
 pub trait RedisWrapper {
     fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()>;
@@ -168,6 +172,23 @@ impl RedisWrapper for RedisCtx {
         self.kb.lpush(key, val).map_err(|e| e.into())
     }
 }
+
+pub trait RedisAddAdvisory: RedisWrapper {
+    /// Add an NVT in the redis cache.
+    ///
+    /// The NVT metadata is stored in two different keys:
+
+    /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
+    /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
+    ///   (which is especial and uses preferences id 0)
+    fn redis_add_advisory(&mut self, key: &str, adv: Notus) -> RedisStorageResult<()> {
+        let value = adv.value.to_string();
+        self.rpush(key, &value)?;
+        Ok(())
+    }
+}
+
+impl RedisAddAdvisory for RedisCtx {}
 
 pub trait RedisAddNvt: RedisWrapper {
     /// Get References. It returns a tuple of three strings
@@ -353,16 +374,16 @@ impl RedisCtx {
 /// In this case we need to wait until we get the OID so that we can build the key additionally
 /// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
-pub struct NvtDispatcher<R, K>
+pub struct CacheDispatcher<R, K>
 where
-    R: RedisWrapper + RedisAddNvt,
+    R: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
 {
     cache: Arc<Mutex<R>>,
     kbs: Arc<Mutex<Vec<Kb>>>,
     phanton: PhantomData<K>,
 }
 
-impl<K> NvtDispatcher<RedisCtx, K>
+impl<K> CacheDispatcher<RedisCtx, K>
 where
     K: AsRef<str>,
 {
@@ -373,10 +394,10 @@ where
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<NvtDispatcher<RedisCtx, K>> {
+    ) -> RedisStorageResult<CacheDispatcher<RedisCtx, K>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
-        Ok(NvtDispatcher {
+        Ok(CacheDispatcher {
             cache: Arc::new(Mutex::new(rctx)),
             kbs: Arc::new(Mutex::new(Vec::new())),
             phanton: PhantomData,
@@ -389,8 +410,9 @@ where
     /// before returning the underlying cache as a Dispatcher.
     pub fn as_dispatcher(
         redis_url: &str,
-    ) -> RedisStorageResult<PerNVTDispatcher<NvtDispatcher<RedisCtx, K>, K>> {
-        let cache = Self::init(redis_url, FEEDUPDATE_SELECTOR)?;
+        selector: &[NameSpaceSelector],
+    ) -> RedisStorageResult<PerNVTDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
+        let cache = Self::init(redis_url, selector)?;
         cache.reset()?;
         Ok(PerNVTDispatcher::new(cache))
     }
@@ -404,9 +426,9 @@ where
     }
 }
 
-impl<S, K> storage::nvt::NvtDispatcher<K> for NvtDispatcher<S, K>
+impl<S, K> storage::nvt::NvtDispatcher<K> for CacheDispatcher<S, K>
 where
-    S: RedisWrapper + RedisAddNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
     K: AsRef<str>,
 {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError> {
@@ -424,11 +446,17 @@ where
         kbs.push(kb);
         Ok(())
     }
+    fn dispatch_advisory(&self, key: &K, adv: storage::Notus) -> Result<(), StorageError> {
+        let mut cache = Arc::as_ref(&self.cache).lock()?;
+        cache
+            .redis_add_advisory(key.as_ref(), adv)
+            .map_err(|e| e.into())
+    }
 }
 
-impl<S, K> storage::Retriever<K> for NvtDispatcher<S, K>
+impl<S, K> storage::Retriever<K> for CacheDispatcher<S, K>
 where
-    S: RedisWrapper + RedisAddNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory,
 {
     fn retrieve(
         &self,
@@ -468,7 +496,7 @@ mod tests {
     use storage::nvt::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use storage::Dispatcher;
 
-    use super::{NvtDispatcher, RedisAddNvt, RedisWrapper};
+    use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisWrapper};
 
     #[derive(Clone)]
     struct FakeRedis {
@@ -498,6 +526,7 @@ mod tests {
         }
     }
     impl RedisAddNvt for FakeRedis {}
+    impl RedisAddAdvisory for FakeRedis {}
 
     use storage::nvt::NVTField::*;
     use storage::Field::NVT;
@@ -550,7 +579,7 @@ mod tests {
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
         let kbs = Arc::new(Mutex::new(Vec::new()));
-        let rcache = NvtDispatcher {
+        let rcache = CacheDispatcher {
             cache,
             kbs,
             phanton: PhantomData,
