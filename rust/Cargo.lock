@@ -1850,6 +1850,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "openvas"
+version = "0.1.0"
+dependencies = [
+ "models",
+]
+
+[[package]]
 name = "openvasd"
 version = "0.1.0"
 dependencies = [
