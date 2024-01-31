@@ -151,7 +151,7 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             let path = get_vts_path(args);
 
             let mut o = json_storage::ArrayWrapper::new(io::stdout());
-            let dispatcher = json_storage::NvtDispatcher::as_dispatcher(&mut o);
+            let dispatcher = json_storage::ItemDispatcher::as_dispatcher(&mut o);
             Some(match update::run(dispatcher, path, false) {
                 Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                     filename: "".to_string(),

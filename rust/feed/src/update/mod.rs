@@ -12,7 +12,7 @@ use nasl_interpreter::{
     logger::DefaultLogger, AsBufReader, Context, ContextType, Interpreter, Loader, NaslValue,
     Register,
 };
-use storage::{nvt::NVTField, Dispatcher, NoOpRetriever};
+use storage::{item::NVTField, Dispatcher, NoOpRetriever};
 
 use crate::verify::{self, HashSumFileItem, SignatureChecker};
 

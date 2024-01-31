@@ -7,7 +7,9 @@ use controller::ClientGossiper;
 use futures_util::ready;
 use nasl_interpreter::FSPluginLoader;
 use notus::NotusWrapper;
+use redis_storage::{CacheDispatcher, RedisCtx, NOTUSUPDATE_SELECTOR, FEEDUPDATE_SELECTOR, VtHelper};
 
+pub mod ospcmd;
 pub mod config;
 pub mod controller;
 pub mod crypt;
@@ -122,6 +124,16 @@ fn create_context<DB>(
         Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),
     }
 
+    if let Some(redis) = config.redis_socket.redis_socket.to_str()
+    {
+        let notus_cache: CacheDispatcher<RedisCtx, String> =
+            CacheDispatcher::init(redis , NOTUSUPDATE_SELECTOR).unwrap();
+        let vts_cache =
+            CacheDispatcher::init(redis, FEEDUPDATE_SELECTOR).unwrap();
+        let cache = VtHelper::new(notus_cache, vts_cache);
+        ctx_builder = ctx_builder.redis_cache(ospcmd::GetVtsWrapper::new(cache));
+    }
+    
     ctx_builder
         .result_config(rc)
         .feed_config(fc)

@@ -11,6 +11,7 @@ osp = { path = "../osp" }
 nasl-interpreter = { path = "../nasl-interpreter" }
 feed = { path = "../feed" }
 storage = { path = "../storage" }
+redis-storage = { path = "../redis-storage" }
 infisto = { path = "../infisto" }
 notus = { path = "../notus" }
 hyper = { version = "0.14.26", features = ["full", "stream"] }

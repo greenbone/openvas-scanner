@@ -5,7 +5,7 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-pub mod nvt;
+pub mod item;
 mod retrieve;
 pub use retrieve::*;
 pub mod time;
@@ -17,7 +17,7 @@ use std::{
     sync::{Arc, Mutex, PoisonError},
 };
 
-use nvt::NVTField;
+use item::NVTField;
 use types::Primitive;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -141,6 +141,8 @@ impl Display for StorageError {
         }
     }
 }
+
+impl std::error::Error for StorageError {}
 
 /// Defines the Dispatcher interface to distribute fields
 pub trait Dispatcher<K>: Sync + Send {
@@ -301,7 +303,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::nvt::NVTKey;
+    use crate::item::NVTKey;
 
     use super::Field::*;
     use super::NVTField::*;

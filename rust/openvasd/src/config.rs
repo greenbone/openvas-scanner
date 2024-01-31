@@ -25,6 +25,11 @@ pub struct Notus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct RedisSocket {
+    pub redis_socket: PathBuf,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OspdWrapper {
     pub result_check_interval: Duration,
     pub socket: PathBuf,
@@ -56,6 +61,12 @@ impl Default for Notus {
         Notus {
             products_path: PathBuf::from("/var/lib/notus/products"),
         }
+    }
+}
+
+impl Default for RedisSocket {
+    fn default() -> Self {
+        RedisSocket { redis_socket: PathBuf::from("unix:///run/redis-openvas/redis.sock") }
     }
 }
 
@@ -174,6 +185,8 @@ pub struct Config {
     pub log: Logging,
     #[serde(default)]
     pub storage: Storage,
+    #[serde(default)]
+    pub redis_socket: RedisSocket,
 }
 
 impl Display for Config {
@@ -248,6 +261,12 @@ impl Config {
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
                     .help("Path containing the Notus products directory"))
+            .arg(
+                clap::Arg::new("redis-socket  ")
+                    .long("redis-socket")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .action(ArgAction::Set)
+                    .help("Path to the redis socket"))
             .arg(
                 clap::Arg::new("tls-certs")
                     .env("TLS_CERTS")
@@ -377,6 +396,9 @@ impl Config {
         }
         if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
             config.notus.products_path = path.clone();
+        }
+        if let Some(path) = cmds.get_one::<PathBuf>("redis-socket") {
+            config.redis_socket.redis_socket = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());

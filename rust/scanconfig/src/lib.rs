@@ -217,8 +217,8 @@ where
                 }
             } else {
                 // lookup oids via family
-                use storage::nvt::NVTField;
-                use storage::nvt::NVTKey;
+                use storage::item::NVTField;
+                use storage::item::NVTKey;
                 use storage::Field;
                 use storage::Retrieve;
                 match retriever.retrieve_by_field(
@@ -362,13 +362,13 @@ mod tests {
             shop.as_dispatcher()
                 .dispatch(
                     &oid.to_string(),
-                    storage::Field::NVT(storage::nvt::NVTField::Oid(oid.to_owned().to_string())),
+                    storage::Field::NVT(storage::item::NVTField::Oid(oid.to_owned().to_string())),
                 )
                 .unwrap();
             shop.as_dispatcher()
                 .dispatch(
                     &oid.to_string(),
-                    storage::Field::NVT(storage::nvt::NVTField::Family(
+                    storage::Field::NVT(storage::item::NVTField::Family(
                         "Product detection".to_string(),
                     )),
                 )
