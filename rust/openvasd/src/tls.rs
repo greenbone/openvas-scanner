@@ -25,20 +25,25 @@
 //!    server.await?;
 //!}
 //!```
-use rustls::server::{AllowAnyAuthenticatedClient, ClientCertVerifier};
-use rustls::RootCertStore;
+
+use rustls::pki_types::{
+    CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
+};
+use rustls::server::danger::ClientCertVerifier;
+use rustls::server::WebPkiClientVerifier;
+use rustls::{RootCertStore, ServerConfig};
 use rustls_pemfile::{read_one, Item};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use std::{fs, io};
 
 use crate::controller::ClientIdentifier;
 
-
+#[derive(Debug)]
 pub struct ClientSnitch {
-    inner: AllowAnyAuthenticatedClient,
+    inner: Arc<dyn ClientCertVerifier>,
     pub client_identifier: Arc<RwLock<ClientIdentifier>>,
 }
 
@@ -47,7 +52,7 @@ impl ClientSnitch {
     ///
     /// `roots` is the list of trust anchors to use for certificate validation.
     pub fn new(
-        inner: AllowAnyAuthenticatedClient,
+        inner: Arc<dyn ClientCertVerifier>,
         client_identifier: Arc<RwLock<ClientIdentifier>>,
     ) -> Self {
         Self {
@@ -56,30 +61,15 @@ impl ClientSnitch {
         }
     }
 
-    /// Update the verifier to validate client certificates against the provided DER format
-    /// unparsed certificate revocation lists (CRLs).
-    #[allow(dead_code)]
-    pub fn with_crls(
-        self,
-        crls: impl IntoIterator<Item = rustls::server::UnparsedCertRevocationList>,
-        client_identifier: Arc<RwLock<ClientIdentifier>>,
-    ) -> Result<Self, rustls::CertRevocationListError> {
-        // This function is needed to keep it functioning like the original verifier.
-        Ok(Self {
-            inner: self.inner.with_crls(crls)?,
-            client_identifier,
-        })
-    }
-
     /// Wrap this verifier in an [`Arc`] and coerce it to `dyn ClientCertVerifier`
     #[inline(always)]
-    pub fn boxed(self) -> Arc<dyn rustls::server::ClientCertVerifier> {
+    pub fn boxed(self) -> Arc<dyn ClientCertVerifier> {
         // This function is needed to keep it functioning like the original verifier.
         Arc::new(self)
     }
 }
 
-impl rustls::server::ClientCertVerifier for ClientSnitch {
+impl ClientCertVerifier for ClientSnitch {
     fn offer_client_auth(&self) -> bool {
         self.inner.offer_client_auth()
     }
@@ -88,98 +78,119 @@ impl rustls::server::ClientCertVerifier for ClientSnitch {
         false
     }
 
-    fn client_auth_root_subjects(&self) -> &[rustls::DistinguishedName] {
-        self.inner.client_auth_root_subjects()
+    fn root_hint_subjects(&self) -> &[rustls::DistinguishedName] {
+        self.inner.root_hint_subjects()
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &rustls::pki_types::CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        self.inner.verify_tls12_signature(message, cert, dss)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &rustls::pki_types::CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        self.inner.verify_tls13_signature(message, cert, dss)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        self.inner.supported_verify_schemes()
     }
 
     fn verify_client_cert(
         &self,
-        end_entity: &rustls::Certificate,
-        intermediates: &[rustls::Certificate],
-        now: std::time::SystemTime,
-    ) -> Result<rustls::server::ClientCertVerified, rustls::Error> {
-        match self
+        end_entity: &rustls::pki_types::CertificateDer<'_>,
+        intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::server::danger::ClientCertVerified, rustls::Error> {
+        let result = self
             .inner
-            .verify_client_cert(end_entity, intermediates, now)
-        {
-            Ok(r) => {
-                let mut ci = self.client_identifier.write().unwrap();
-                *ci = ClientIdentifier::Known(end_entity.into());
-                Ok(r)
-            }
-            Err(e) => Err(e),
+            .verify_client_cert(end_entity, intermediates, now);
+        if result.is_ok() {
+            let mut ci = self.client_identifier.write().unwrap();
+            *ci = ClientIdentifier::Known(end_entity.into());
         }
+        result
     }
 }
 /// Data required to create a TlsConfig
-type TlsData = (RootCertStore, Vec<rustls::Certificate>, rustls::PrivateKey);
-/// Creates a root cert store, the certificates and a private key so that a tls configuration can be created.
-///
-/// When the tls certificate cannot be loaded it will return None.
-/// When client certificates are provided it will return a ServerConfig with
-/// client authentication otherwise it will return a ServerConfig without
-/// client authentication.
-pub fn tls_config(
-    config: &crate::config::Config,
-) -> Result<Option<TlsData>, Box<dyn std::error::Error + Send + Sync>> {
-    if let Some(certs_path) = &config.tls.certs {
-        match load_certs(certs_path) {
-            Ok(certs) => {
-                if let Some(key_path) = &config.tls.key {
-                    let key = load_private_key(key_path)?;
-                    let client_certs = if let Some(cpath) = &config.tls.client_certs {
-                        let rd = std::fs::read_dir(cpath)?;
-                        rd.filter_map(|entry| {
-                            let entry = entry.ok()?;
-                            let file_type = entry.file_type().ok()?;
-                            if file_type.is_file() || file_type.is_symlink() && !file_type.is_dir()
-                            {
-                                Some(entry.path())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect()
-                    } else {
-                        vec![]
-                    };
-                    let mut roots = RootCertStore::empty();
-                    for root in client_certs.iter().flat_map(load_certs).flatten() {
-                        roots.add(&root)?;
-                    }
+type Error = Box<dyn std::error::Error + Send + Sync>;
 
-                    Ok(Some((roots, certs, key)))
-                } else {
-                    Err(error("TLS enabled, but private key is missing".to_string()).into())
-                }
+pub fn config_to_tls_paths(
+    config: &crate::config::Config,
+) -> Result<Option<(PathBuf, PathBuf, Vec<PathBuf>)>, Error> {
+    let key_path = match &config.tls.key {
+        Some(x) => x,
+        None => return Ok(None),
+    };
+    let certs = match &config.tls.certs {
+        Some(x) => x,
+        None => return Ok(None),
+    };
+    //   .expect("When a tls.key is set, a certificate must be set as well");
+    let client_certs = match &config.tls.client_certs {
+        Some(x) => x,
+        None => return Ok(Some((key_path.to_path_buf(), certs.to_path_buf(), vec![]))),
+    };
+    let client_certs = std::fs::read_dir(client_certs)?;
+    let client_certs = client_certs
+        .filter_map(|x| {
+            let entry = x.ok()?;
+            let file_type = entry.file_type().ok()?;
+            if file_type.is_file() || file_type.is_symlink() && !file_type.is_dir() {
+                Some(entry.path())
+            } else {
+                None
             }
-            Err(e) => Err(error(format!("failed to load TLS certificates: {}", e)).into()),
-        }
-    } else {
-        tracing::info!("No Server certificates given, starting without TLS");
-        Ok(None)
-    }
+        })
+        .collect();
+    Ok(Some((
+        key_path.to_path_buf(),
+        certs.to_path_buf(),
+        client_certs,
+    )))
 }
 
-pub fn server_config(
-    verifier: Arc<dyn ClientCertVerifier>,
-    certs: Vec<rustls::Certificate>,
-    key: rustls::PrivateKey,
-) -> Result<rustls::ServerConfig, Box<dyn std::error::Error + Send + Sync>> {
-    let mut cfg = rustls::ServerConfig::builder()
-        .with_safe_defaults()
+pub type TlsData = (Arc<RwLock<ClientIdentifier>>, ServerConfig, bool);
+
+pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Error> {
+    let (key, certs, clients) = match config_to_tls_paths(config)? {
+        Some(x) => x,
+        None => return Ok(None),
+    };
+    let mut roots = RootCertStore::empty();
+    for root in clients.iter().flat_map(load_certs).flatten() {
+        roots.add(root)?;
+    }
+    let key = load_private_key(&key)?;
+    let certs = load_certs(&certs)?;
+
+    let inner = WebPkiClientVerifier::builder(roots.into()).build()?;
+    let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));
+    let verifier = ClientSnitch::new(inner, client_identifier.clone()).boxed();
+
+    let mut config: ServerConfig = ServerConfig::builder()
         .with_client_cert_verifier(verifier)
-        .with_single_cert(certs, key)
-        .map_err(|e| error(format!("{}", e)))?;
-    cfg.alpn_protocols = vec![b"h2".to_vec()];
-    Ok(cfg)
+        .with_single_cert(certs, key)?;
+
+    config.alpn_protocols = vec![b"h2".to_vec()];
+
+    Ok(Some((client_identifier, config, !clients.is_empty())))
 }
 
 fn error(err: String) -> io::Error {
     io::Error::new(io::ErrorKind::Other, err)
 }
+
 // Load public certificate from file.
-fn load_certs<P>(filename: &P) -> io::Result<Vec<rustls::Certificate>>
+fn load_certs<P>(filename: &P) -> io::Result<Vec<CertificateDer<'static>>>
 where
     P: AsRef<Path> + std::fmt::Debug,
 {
@@ -187,15 +198,12 @@ where
     let certfile = fs::File::open(filename)
         .map_err(|e| error(format!("failed to open {:?}: {}", filename, e)))?;
     let mut reader = io::BufReader::new(certfile);
-
-    // Load and return certificate.
-    let certs = rustls_pemfile::certs(&mut reader)
-        .map_err(|_| error("failed to load certificate".into()))?;
-    Ok(certs.into_iter().map(rustls::Certificate).collect())
+    rustls_pemfile::certs(&mut reader)
+        .map(|x| x.into_iter().map(CertificateDer::from).collect())
 }
 
 // Load private key from file.
-fn load_private_key<P>(filename: &P) -> io::Result<rustls::PrivateKey>
+fn load_private_key<P>(filename: &P) -> io::Result<PrivateKeyDer<'static>>
 where
     P: AsRef<Path> + std::fmt::Debug,
 {
@@ -204,19 +212,18 @@ where
         .map_err(|e| error(format!("failed to open {:?}: {}", filename, e)))?;
     let mut reader = io::BufReader::new(keyfile);
 
-    let mut keys = Vec::<Vec<u8>>::new();
     loop {
         match read_one(&mut reader)? {
             None => break,
-            Some(Item::RSAKey(key)) => keys.push(key),
-            Some(Item::PKCS8Key(key)) => keys.push(key),
-            Some(Item::ECKey(key)) => keys.push(key),
+            Some(Item::RSAKey(key)) => {
+                return Ok(PrivateKeyDer::from(PrivatePkcs1KeyDer::from(key)));
+            }
+            Some(Item::PKCS8Key(key)) => {
+                return Ok(PrivateKeyDer::from(PrivatePkcs8KeyDer::from(key)));
+            }
+            Some(Item::ECKey(key)) => return Ok(PrivateKeyDer::from(PrivateSec1KeyDer::from(key))),
             _ => {}
         }
     }
-    if keys.len() != 1 {
-        return Err(error("expected a single private key".into()));
-    }
-
-    Ok(rustls::PrivateKey(keys[0].clone()))
+    Err(error(format!("No key found {filename:?}")))
 }
