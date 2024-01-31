@@ -10,8 +10,9 @@ use storage::DefaultDispatcher;
 
 use crate::{
     notus::NotusWrapper,
+    ospcmd::{self, GetVtsWrapper},
     response,
-    scan::{Error, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper}, ospcmd::{self, getvts::GetVts, GetVtsWrapper},
+    scan::{Error, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper},
 };
 
 #[derive(Debug, Clone)]
@@ -70,7 +71,7 @@ pub struct ContextBuilder<S, DB, T> {
     marker: std::marker::PhantomData<S>,
     response: response::Response,
     notus: Option<NotusWrapper>,
-    redis_cache: Option<ospcmd::GetVtsWrapper<RedisCtx, String>>
+    redis_cache: Option<ospcmd::GetVtsWrapper<RedisCtx, String>>,
 }
 
 impl<S>
@@ -135,7 +136,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
     }
 
     /// Set redis cache
-    pub fn redis_cache(mut self, redis_cache:GetVtsWrapper<RedisCtx, String>) -> Self {
+    pub fn redis_cache(mut self, redis_cache: GetVtsWrapper<RedisCtx, String>) -> Self {
         self.redis_cache = Some(redis_cache);
         self
     }
@@ -250,7 +251,7 @@ pub struct Context<S, DB> {
     /// Notus Scanner
     pub notus: Option<NotusWrapper>,
     /// Redis cache
-    pub redis_cache: Option<GetVtsWrapper<RedisCtx, String>>
+    pub redis_cache: Option<GetVtsWrapper<RedisCtx, String>>,
 }
 
 #[derive(Debug, Clone, Default)]

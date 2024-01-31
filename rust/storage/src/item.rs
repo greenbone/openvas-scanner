@@ -368,15 +368,14 @@ impl NvtPreference {
     }
 }
 
-
 impl From<(&str, &str, &str, &str)> for NvtPreference {
     fn from(value: (&str, &str, &str, &str)) -> Self {
         let (id, name, class, default) = value;
-        Self {            
+        Self {
             id: Some(i32::from_str(id).expect("Invalid Preference ID {id}")),
             class: PreferenceType::from_str(class).expect("Invalid Preference type"),
             name: name.to_owned(),
-            default: default.to_owned()                
+            default: default.to_owned(),
         }
     }
 }
@@ -456,9 +455,8 @@ pub struct Nvt {
 }
 
 impl From<(&str, Vulnerability)> for Nvt {
-    fn from (v: (&str, Vulnerability))-> Nvt {
-
-        fn tag_to_vec (v: &Vulnerability) -> BTreeMap<TagKey, TagValue>{
+    fn from(v: (&str, Vulnerability)) -> Nvt {
+        fn tag_to_vec(v: &Vulnerability) -> BTreeMap<TagKey, TagValue> {
             let mut tags: BTreeMap<TagKey, TagValue> = BTreeMap::new();
             if !v.affected.is_empty() {
                 tags.insert(TagKey::Affected, TagValue::from(v.affected.as_ref()));
@@ -476,7 +474,10 @@ impl From<(&str, Vulnerability)> for Nvt {
                 tags.insert(TagKey::Solution, TagValue::from(v.solution.as_ref()));
             }
             if !v.solution_type.is_empty() {
-                tags.insert(TagKey::SolutionType, TagValue::from(v.solution_type.as_ref()));
+                tags.insert(
+                    TagKey::SolutionType,
+                    TagValue::from(v.solution_type.as_ref()),
+                );
             }
             if !v.vuldetect.is_empty() {
                 tags.insert(TagKey::Vuldetect, TagValue::from(v.vuldetect.as_ref()));
@@ -485,21 +486,30 @@ impl From<(&str, Vulnerability)> for Nvt {
                 tags.insert(TagKey::QodType, TagValue::from(v.qod_type.as_ref()));
             }
             if !v.severity_vector.is_empty() {
-                tags.insert(TagKey::SeverityVector, TagValue::from(v.severity_vector.as_ref()));
+                tags.insert(
+                    TagKey::SeverityVector,
+                    TagValue::from(v.severity_vector.as_ref()),
+                );
             }
             if v.creation_date != 0 {
                 tags.insert(TagKey::CreationDate, TagValue::from(v.creation_date as i64));
             }
             if v.last_modification != 0 {
-                tags.insert(TagKey::LastModification, TagValue::from(v.last_modification as i64));
+                tags.insert(
+                    TagKey::LastModification,
+                    TagValue::from(v.last_modification as i64),
+                );
             }
-            
+
             tags
         }
         fn get_refs(references: &HashMap<String, Vec<String>>) -> Vec<NvtRef> {
             let mut refs: Vec<NvtRef> = Vec::new();
             for (reftype, vals) in references {
-                let mut t = vals.iter().map(| r | NvtRef::from((reftype.as_str(), r.as_str()))).collect();
+                let mut t = vals
+                    .iter()
+                    .map(|r| NvtRef::from((reftype.as_str(), r.as_str())))
+                    .collect();
                 refs.append(&mut t);
             }
             refs
@@ -514,20 +524,20 @@ impl From<(&str, Vulnerability)> for Nvt {
             dependencies: Vec::new(),
             required_keys: Vec::new(),
             mandatory_keys: Vec::new(),
-            excluded_keys:  Vec::new(),
+            excluded_keys: Vec::new(),
             required_ports: Vec::new(),
-            required_udp_ports:  Vec::new(),
-            references:  get_refs(&adv.refs),
+            required_udp_ports: Vec::new(),
+            references: get_refs(&adv.refs),
             preferences: Vec::new(),
             category: ACT::GatherInfo,
-            family: adv.family
-        }        
+            family: adv.family,
+        }
     }
 }
 /// Is a specialized Retriever for NVT information
 pub trait ItemRetriever {
     /// Retrieves NVT information stored
-    fn retrieve_single_nvt (&self, oid: &str) -> Result<Nvt, StorageError>;        
+    fn retrieve_single_nvt(&self, oid: &str) -> Result<Nvt, StorageError>;
 }
 
 /// Is a specialized Dispatcher for NVT information within the description block.
@@ -571,7 +581,7 @@ where
 impl<S, K> PerItemDispatcher<S, K>
 where
     S: ItemDispatcher<K>,
-    K: AsRef<str>
+    K: AsRef<str>,
 {
     /// Creates a new NvtDispatcher without a feed_version and nvt.
     pub fn new(dispatcher: S) -> Self {

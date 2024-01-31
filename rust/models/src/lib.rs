@@ -5,7 +5,6 @@
 mod advisories;
 mod credential;
 mod host_info;
-mod nvt;
 mod parameter;
 mod port;
 mod product;
@@ -20,7 +19,6 @@ mod vt;
 pub use advisories::*;
 pub use credential::*;
 pub use host_info::*;
-pub use nvt::*;
 pub use parameter::*;
 pub use port::*;
 pub use product::*;

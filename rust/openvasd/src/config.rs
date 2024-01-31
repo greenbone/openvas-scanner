@@ -66,7 +66,9 @@ impl Default for Notus {
 
 impl Default for RedisSocket {
     fn default() -> Self {
-        RedisSocket { redis_socket: PathBuf::from("unix:///run/redis-openvas/redis.sock") }
+        RedisSocket {
+            redis_socket: PathBuf::from("unix:///run/redis-openvas/redis.sock"),
+        }
     }
 }
 

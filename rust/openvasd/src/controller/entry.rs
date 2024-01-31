@@ -11,10 +11,9 @@ use std::{fmt::Display, sync::Arc};
 
 use super::{context::Context, ClientIdentifier};
 use hyper::{Body, Method, Request, Response};
-use redis_storage::{CacheDispatcher, RedisCtx, NOTUSUPDATE_SELECTOR, FEEDUPDATE_SELECTOR, VtHelper};
 
 use crate::ospcmd::getvts::GetVts;
-use crate::ospcmd::{GetVtsWrapper, self};
+
 use crate::{
     controller::ClientHash,
     notus::NotusScanner,
@@ -83,8 +82,8 @@ impl KnownPaths {
             },
             Some("get_vts") => match parts.next() {
                 Some(vt_selection) => KnownPaths::GetVts(Some(vt_selection.to_string())),
-                _ => KnownPaths::GetVts(None)
-            }
+                _ => KnownPaths::GetVts(None),
+            },
             _ => {
                 tracing::trace!("Unknown path: {path}");
                 KnownPaths::Unknown
@@ -372,15 +371,13 @@ where
         //        None => Ok(ctx.response.empty(hyper::StatusCode::OK))
         //    }
         //}
-        (&Method::GET, GetVts(None)) => {
-            match &ctx.redis_cache {
-                Some(cache) => match cache.get_vts(None).await {
-                    Ok(nvts) => Ok(ctx.response.ok(&nvts)),
-                    Err(err) => Ok(ctx.response.internal_server_error(&err)),
-                }
-                None => Ok(ctx.response.empty(hyper::StatusCode::OK))
-            }
-        }        
+        (&Method::GET, GetVts(None)) => match &ctx.redis_cache {
+            Some(cache) => match cache.get_vts(None).await {
+                Ok(nvts) => Ok(ctx.response.ok(&nvts)),
+                Err(err) => Ok(ctx.response.internal_server_error(&err)),
+            },
+            None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
+        },
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
     }
 }
