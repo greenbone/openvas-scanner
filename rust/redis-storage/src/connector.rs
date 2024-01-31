@@ -298,12 +298,9 @@ pub trait RedisGetNvt: RedisWrapper {
         let mut prefs_list = self.lrange(&keyname, 0, -1)?;
         let mut prefs: Vec<NvtPreference> = Vec::new();
         for p in prefs_list.iter_mut() {
-            let pref = NvtPreference::from(
-                p.splitn(4, "|||")
-                    .collect_tuple::<(&str, &str, &str, &str)>()
-                    .unwrap(),
-            );
-            prefs.push(pref);
+            if let Some(sp) = p.splitn(4, "|||").collect_tuple::<(&str, &str, &str, &str)>(){
+                prefs.push(NvtPreference::from(sp));
+            }
         }
         Ok(prefs)
     }
@@ -314,10 +311,12 @@ pub trait RedisGetNvt: RedisWrapper {
 
         let tag_list = tags
             .split('|')
-            .map(|x| x.splitn(2, '=').collect_tuple::<(&str, &str)>().unwrap());
+            .map(|x| x.splitn(2, '=').collect_tuple::<(&str, &str)>().unwrap_or_default());
 
         for (k, v) in tag_list.into_iter() {
-            tag_map.insert(TagKey::from_str(k).unwrap(), TagValue::from(v));
+            if let Ok(tk) = TagKey::from_str(k) {
+                tag_map.insert(tk, TagValue::from(v));
+            }
         }
 
         tag_map
@@ -330,9 +329,11 @@ pub trait RedisGetNvt: RedisWrapper {
             return Ok(None);
         }
 
-        let adv: models::Vulnerability = serde_json::from_str(&nvt_data).unwrap();
-
-        Ok(Some(Nvt::from((oid, adv))))
+        if let Ok(adv) = serde_json::from_str::<models::Vulnerability>(&nvt_data) {
+            Ok(Some(Nvt::from((oid, adv))))
+        } else {
+            Ok(None)
+        }
     }
     /// Nvt metadata is stored under two different keys
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
@@ -604,10 +605,6 @@ where
         Self { notus, vts }
     }
 
-    // pub fn iter(&self) -> VtHelperIterator<R,K> {
-    //     VtHelperIterator { vthelper: self, index: 0 }
-    //}
-
     pub fn get_oids(&self) -> Result<Vec<String>, StorageError> {
         let mut oids: Vec<String> = Vec::new();
         if let Ok(vts) = self.vts.retrieve_keys("nvt:*") {
@@ -617,7 +614,7 @@ where
             oids.append(
                 &mut notus
                     .iter()
-                    .map(|x| x.split('/').last().unwrap().to_string())
+                    .map(|x| x.split('/').last().unwrap_or_default().to_string())
                     .collect(),
             );
         }
@@ -634,43 +631,6 @@ where
         }
     }
 
-    //pub fn retrieve_nvts(&self, vt_selection: Option<Vec<String>>) ->
-    //{
-    //
-    //    struct OidsIterator {
-    //        pub oids: Vec<String>,
-    //        index: usize,
-    //
-    //    }
-    //
-    //    impl Iterator for OidsIterator {
-    //        type Item = Nvt;
-    //
-    //        fn next(&mut self) -> Option<Nvt> {
-    //            if self.index < self.oids.len() {
-    //                let result = Some(&self.oids[self.index]);
-    //                self.index += 1;
-    //
-    //            } else {
-    //                None
-    //            }
-    //        }
-    //    }
-    //
-    //
-    //    let mut oids: Vec<String> = Vec::new();
-    //    if vt_selection.is_none() {
-    //        oids = match self.get_oids() {
-    //            Ok(l) => l,
-    //            Err(e)  => Vec::new(),
-    //        }
-    //    } else {
-    //        if let Some(oid_selection) = vt_selection {
-    //            oids = oid_selection;
-    //        }
-    //    }
-    //
-    //}
 }
 
 /// Cache implementation.

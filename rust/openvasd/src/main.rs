@@ -127,9 +127,22 @@ fn create_context<DB>(
     }
 
     if let Some(redis) = config.redis_socket.redis_socket.to_str() {
-        let notus_cache: CacheDispatcher<RedisCtx, String> =
-            CacheDispatcher::init(redis, NOTUSUPDATE_SELECTOR).unwrap();
-        let vts_cache = CacheDispatcher::init(redis, FEEDUPDATE_SELECTOR).unwrap();
+        let notus_cache: CacheDispatcher<RedisCtx, String>;
+        match CacheDispatcher::init(redis, NOTUSUPDATE_SELECTOR) {
+            Ok(c) => {notus_cache = c;},
+            Err(e) =>{
+                notus_cache = CacheDispatcher::default();
+                tracing::warn!("No notus cache found: {e}");
+            },
+        };
+        let vts_cache: CacheDispatcher<RedisCtx, String>;
+        match CacheDispatcher::init(redis, FEEDUPDATE_SELECTOR) {
+            Ok(c) => {vts_cache = c;},
+            Err(e) =>{
+                vts_cache = CacheDispatcher::default();
+                tracing::warn!("No vts cache found: {e}");
+            },
+        };
         let cache = VtHelper::new(notus_cache, vts_cache);
         ctx_builder = ctx_builder.redis_cache(ospcmd::GetVtsWrapper::new(cache));
     }

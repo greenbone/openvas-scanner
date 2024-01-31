@@ -51,7 +51,7 @@ where
     K: AsRef<str> + Sync + Send + 'static,
 {
     async fn get_oids(&self) -> Result<Vec<String>, StorageError> {
-        Ok(self.vthelper.read().await.get_oids().unwrap())
+        self.vthelper.read().await.get_oids()
     }
 
     async fn get_vts(
@@ -63,25 +63,21 @@ where
         if let Some(selection) = vt_selection {
             oids = selection;
         } else {
-            oids = self.get_oids().await.unwrap();
+            oids = self.get_oids().await?;
         }
 
         let mut nvts = Vec::new();
         for oid in oids {
             nvts.push(
                 serde_json::to_string(
-                    &self
-                        .vthelper
-                        .read()
-                        .await
-                        .retrieve_single_nvt(&oid)
-                        .unwrap()
-                        .unwrap(),
+                    match &self.vthelper.read().await.retrieve_single_nvt(&oid)? {
+                        Some(vt) => vt,
+                        None => continue,
+                    }
                 )
                 .unwrap(),
             );
         }
-
         Ok(nvts)
     }
 }
