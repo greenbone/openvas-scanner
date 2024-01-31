@@ -362,15 +362,6 @@ where
             Ok(ctx.response.ok_json_stream(oids).await)
         }
 
-        //(&Method::GET, GetVts(None)) => {
-        //    match &ctx.redis_cache {
-        //        Some(cache) => match  cache.get_oids().await {
-        //            Ok(result) => Ok(ctx.response.ok(&result)),
-        //            Err(err) => Ok(ctx.response.internal_server_error(&err)),
-        //        }
-        //        None => Ok(ctx.response.empty(hyper::StatusCode::OK))
-        //    }
-        //}
         (&Method::GET, GetVts(None)) => match &ctx.redis_cache {
             Some(cache) => match cache.get_vts(None).await {
                 Ok(nvts) => Ok(ctx.response.ok(&nvts)),
@@ -378,6 +369,18 @@ where
             },
             None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
         },
+        (&Method::GET, GetVts(Some(vt_selection))) => {
+            let selection: Vec<String> = vt_selection.split(',').map(|x| x.to_string()).collect();
+
+            match &ctx.redis_cache {
+                Some(cache) => match cache.get_vts(Some(selection)).await {
+                    Ok(nvts) => Ok(ctx.response.ok(&nvts)),
+                    Err(err) => Ok(ctx.response.internal_server_error(&err)),
+                },
+                None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
+            }
+        },
         _ => Ok(ctx.response.not_found("path", req.uri().path())),
+            
     }
 }
