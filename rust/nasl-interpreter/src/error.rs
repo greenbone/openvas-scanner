@@ -172,7 +172,7 @@ impl InterpretError {
     pub fn line_column(&self) -> (usize, usize) {
         self.origin
             .as_ref()
-            .and_then(|stmt| stmt.as_token())
+            .map(|stmt| stmt.as_token())
             .map(|x| x.line_column)
             .unwrap_or_default()
     }

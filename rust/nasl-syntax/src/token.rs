@@ -406,6 +406,16 @@ pub struct Token {
     pub position: (usize, usize),
 }
 
+impl Default for Token {
+    fn default() -> Self {
+        Token {
+            category: Category::UnknownSymbol,
+            line_column: (0, 0),
+            position: (0, 0),
+        }
+    }
+}
+
 impl Token {
     /// Returns UnknownSymbol without line column or position
     pub fn unexpected_none() -> Self {

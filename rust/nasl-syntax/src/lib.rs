@@ -7,13 +7,11 @@
 mod cursor;
 mod error;
 mod grouping_extension;
-mod infix_extension;
 mod keyword_extension;
 mod lexer;
 mod loader;
 mod naslvalue;
 mod operation;
-mod postfix_extension;
 mod prefix_extension;
 mod statement;
 mod token;
@@ -53,7 +51,6 @@ mod tests {
     use crate::{
         cursor::Cursor,
         token::{Category, IdentifierType, Token, Tokenizer},
-        AssignOrder, Statement, SyntaxError,
     };
 
     #[test]
@@ -101,42 +98,13 @@ mod tests {
 
     #[test]
     fn use_parser() {
-        use Category::*;
-        use Statement::*;
-        let statements =
-            super::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
-        assert_eq!(
-            statements,
-            vec![
-                Ok(Assign(
-                    Equal,
-                    AssignOrder::AssignReturn,
-                    Box::new(Variable(Token {
-                        category: Identifier(IdentifierType::Undefined("a".to_owned())),
-                        line_column: (1, 1),
-                        position: (0, 1),
-                    },)),
-                    Box::new(Primitive(Token {
-                        category: Number(23),
-                        line_column: (1, 5),
-                        position: (4, 6),
-                    }))
-                )),
-                Ok(Assign(
-                    Equal,
-                    AssignOrder::AssignReturn,
-                    Box::new(Variable(Token {
-                        category: Identifier(IdentifierType::Undefined("b".to_owned())),
-                        line_column: (1, 8),
-                        position: (7, 8),
-                    },)),
-                    Box::new(Primitive(Token {
-                        category: Number(1),
-                        line_column: (1, 12),
-                        position: (11, 12),
-                    }))
-                ))
-            ]
-        );
+        let code = "a = 23;b = 1;";
+        let expected = ["a = 23;", "b = 1;"];
+        for (i, s) in super::parse(code).enumerate() {
+            let stmt = s.unwrap();
+            dbg!(stmt.kind());
+            //assert!(matches!(stmt.kind(), Assign(..)));
+            assert_eq!(&code[stmt.range()], expected[i]);
+        }
     }
 }

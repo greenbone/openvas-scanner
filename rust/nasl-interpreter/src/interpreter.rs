@@ -5,7 +5,7 @@
 use std::{collections::HashMap, io};
 
 use nasl_syntax::{
-    IdentifierType, LoadError, NaslValue, Statement, Statement::*, Token, TokenCategory,
+    IdentifierType, LoadError, NaslValue, StatementKind::*, Token, TokenCategory, Statement,
 };
 use storage::StorageError;
 
@@ -13,7 +13,6 @@ use crate::{
     assign::AssignExtension,
     call::CallExtension,
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    include::IncludeExtension,
     loop_extension::LoopExtension,
     operator::OperatorExtension,
     InterpretError, InterpretErrorKind,
@@ -51,6 +50,27 @@ where
         }
     }
 
+
+    fn include(&mut self, name: &Statement) -> InterpretResult {
+        match self.resolve(name)? {
+            NaslValue::String(key) => {
+                let code = self.ctxconfigs.loader().load(&key)?;
+                let mut inter = Interpreter::new(self.registrat, self.ctxconfigs);
+                let result = nasl_syntax::parse(&code)
+                    .map(|parsed| match parsed {
+                        Ok(stmt) => inter.resolve(&stmt),
+                        Err(err) => Err(InterpretError::include_syntax_error(&key, err)),
+                    })
+                    .find(|e| e.is_err());
+                match result {
+                    Some(e) => e,
+                    None => Ok(NaslValue::Null),
+                }
+            }
+            _ => Err(InterpretError::unsupported(name, "string")),
+        }
+    }
+    
     /// Tries to interpret a statement and retries n times on a retry error
     ///
     /// When encountering a retrievable error:
@@ -83,9 +103,9 @@ where
 
     /// Interprets a Statement
     pub fn resolve(&mut self, statement: &Statement) -> InterpretResult {
-        match statement {
-            Array(name, position, _) => {
-                let name = Self::identifier(name)?;
+        match statement.kind(){
+            Array(position) => {
+                let name = Self::identifier(statement.start())?;
                 let val = self
                     .registrat
                     .named(&name)
@@ -95,6 +115,7 @@ where
                 match (position, val) {
                     (None, ContextType::Value(v)) => Ok(v),
                     (Some(p), ContextType::Value(NaslValue::Array(x))) => {
+                        let p: &Statement = p;
                         let position = self.resolve(p)?;
                         let position = i64::from(&position) as usize;
                         let result = x.get(position).unwrap_or(&NaslValue::Null);
@@ -112,31 +133,31 @@ where
                     }
                 }
             }
-            Exit(_, stmt, _) => {
+            Exit(stmt) => {
                 let rc = self.resolve(stmt)?;
                 match rc {
                     NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
                     _ => Err(InterpretError::unsupported(stmt, "numeric")),
                 }
             }
-            Return(_, stmt) => {
+            Return(stmt) => {
                 let rc = self.resolve(stmt)?;
                 Ok(NaslValue::Return(Box::new(rc)))
             }
-            Include(_, inc, _) => self.include(inc),
+            Include(inc ) => self.include(inc),
             NamedParameter(..) => {
                 unreachable!("named parameter should not be an executable statement.")
             }
-            For(_, assignment, condition, update, body) => {
+            For(assignment, condition, update, body) => {
                 self.for_loop(assignment, condition, update, body)
             }
-            While(_, condition, body) => self.while_loop(condition, body),
-            Repeat(_, body, condition) => self.repeat_loop(body, condition),
-            ForEach(_, variable, iterable, body) => self.for_each_loop(variable, iterable, body),
-            FunctionDeclaration(_, name, args, _, exec) => self.declare_function(name, args, exec),
-            Primitive(token) => TryFrom::try_from(token).map_err(|e: TokenCategory| e.into()),
-            Variable(token) => {
-                let name: NaslValue = TryFrom::try_from(token)?;
+            While(condition, body) => self.while_loop(condition, body),
+            Repeat(body, condition) => self.repeat_loop(body, condition),
+            ForEach(variable, iterable, body) => self.for_each_loop(variable, iterable, body),
+            FunctionDeclaration(name, args, exec) => self.declare_function(name, args.children(), exec),
+            Primitive => TryFrom::try_from(statement.as_token()).map_err(|e: TokenCategory| e.into()),
+            Variable => {
+                let name: NaslValue = TryFrom::try_from(statement.as_token())?;
                 match self.registrat.named(&name.to_string()) {
                     Some(ContextType::Value(result)) => Ok(result.clone()),
                     None => Ok(NaslValue::Null),
@@ -145,8 +166,8 @@ where
                     }
                 }
             }
-            Call(name, arguments, _) => self.call(name, arguments),
-            Declare(scope, stmts) => self.declare_variable(scope, stmts),
+            Call(arguments) => self.call(statement.as_token(), arguments.children()),
+            Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
             // array creation
             Parameter(x) => {
                 let mut result = vec![];
@@ -158,7 +179,7 @@ where
             }
             Assign(cat, order, left, right) => self.assign(cat, order, left, right),
             Operator(sign, stmts) => self.operator(sign, stmts),
-            If(_, condition, if_block, _, else_block) => match self.resolve(condition) {
+            If(condition, if_block, _, else_block) => match self.resolve(condition) {
                 Ok(value) => {
                     if bool::from(value) {
                         return self.resolve(if_block);
@@ -169,7 +190,7 @@ where
                 }
                 Err(err) => Err(err),
             },
-            Block(_, blocks, _) => {
+            Block(blocks) => {
                 self.registrat.create_child(HashMap::default());
                 for stmt in blocks {
                     match self.resolve(stmt) {
@@ -192,19 +213,19 @@ where
                 // currently blocks don't return something
                 Ok(NaslValue::Null)
             }
-            NoOp(_) => Ok(NaslValue::Null),
+            NoOp => Ok(NaslValue::Null),
             EoF => Ok(NaslValue::Null),
-            AttackCategory(t) => { 
-                match t.category() {
+            AttackCategory => { 
+                match statement.as_token().category() {
                     TokenCategory::Identifier(IdentifierType::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
-                    _ => unreachable!("AttackCategory must have ACT token but got {t:?}, this is an bug within the lexer.")
+                    _ => unreachable!("AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.", statement.as_token())
 
                 }
 
                 
             },
-            Continue(_) => Ok(NaslValue::Continue),
-            Break(_) => Ok(NaslValue::Break),
+            Continue => Ok(NaslValue::Continue),
+            Break => Ok(NaslValue::Break),
         }
         .map_err(|e| {
             if e.origin.is_none() {
