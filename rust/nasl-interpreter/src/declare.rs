@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use nasl_syntax::{Statement, Token, TokenCategory};
+use nasl_syntax::{Statement, StatementKind, Token, TokenCategory};
 
 use crate::{error::InterpretError, interpreter::InterpretResult, Interpreter};
 use nasl_builtin_utils::ContextType;
@@ -31,9 +31,9 @@ where
         let name = &Self::identifier(name)?;
         let mut names = vec![];
         for a in arguments {
-            match a {
-                Statement::Variable(token) => {
-                    let param_name = &Self::identifier(token)?;
+            match a.kind() {
+                StatementKind::Variable => {
+                    let param_name = &Self::identifier(a.as_token())?;
                     names.push(param_name.to_owned());
                 }
                 _ => return Err(InterpretError::unsupported(a, "variable")),
@@ -68,8 +68,8 @@ impl<'a, K> DeclareVariableExtension for Interpreter<'a, K> {
         };
 
         for stmt in stmts {
-            if let Statement::Variable(ref token) = stmt {
-                if let TokenCategory::Identifier(name) = token.category() {
+            if let StatementKind::Variable = stmt.kind() {
+                if let TokenCategory::Identifier(name) = stmt.as_token().category() {
                     add(&name.to_string());
                 }
             };

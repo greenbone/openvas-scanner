@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use nasl_syntax::Statement;
+use nasl_syntax::{Statement, StatementKind};
 
 use crate::{verify, NaslFileFinder};
 
@@ -136,11 +136,11 @@ impl Matcher for CallMatcher {
         // Although Exit and Include are handled differently they share the call nature and hence
         // are treated equially.
         matches!(
-            s,
-            &Statement::FunctionDeclaration(..)
-                | &Statement::Call(..)
-                | &Statement::Exit(..)
-                | &Statement::Include(..)
+            s.kind(),
+            &StatementKind::FunctionDeclaration(..)
+                | &StatementKind::Call(..)
+                | &StatementKind::Exit(..)
+                | &StatementKind::Include(..)
         )
     }
 }
@@ -151,50 +151,68 @@ struct FunctionNameMatcher<'a> {
     parameter: Option<&'a [FindParameter]>,
 }
 
+impl<'a> FunctionNameMatcher<'a> {
+    fn is_function(&self, s: &Statement) -> bool {
+        match s.kind() {
+            StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
+            StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
+            StatementKind::Call(..) => {
+                if let nasl_syntax::TokenCategory::Identifier(
+                    nasl_syntax::IdentifierType::Undefined(ref x),
+                ) = s.start().category()
+                {
+                    self.name.map(|y| x == y).unwrap_or(true)
+                } else {
+                    false
+                }
+            }
+            StatementKind::FunctionDeclaration(id, ..) => {
+                if let nasl_syntax::TokenCategory::Identifier(
+                    nasl_syntax::IdentifierType::Undefined(ref x),
+                ) = id.category()
+                {
+                    self.name.map(|y| x == y).unwrap_or(true)
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+}
+
 impl<'a> Matcher for FunctionNameMatcher<'a> {
     fn matches(&self, s: &Statement) -> bool {
-        if !match s {
-            Statement::Exit(t, ..)
-            | Statement::Include(t, ..)
-            | Statement::Call(t, ..)
-            | Statement::FunctionDeclaration(_, t, ..) => match t.category() {
-                nasl_syntax::TokenCategory::Identifier(nasl_syntax::IdentifierType::Undefined(
-                    aname,
-                )) => self.name.as_ref().map(|name| name == aname).unwrap_or(true),
-                nasl_syntax::TokenCategory::Identifier(nasl_syntax::IdentifierType::Exit) => {
-                    self.name.map(|name| name == "exit").unwrap_or(true)
-                }
-                nasl_syntax::TokenCategory::Identifier(nasl_syntax::IdentifierType::Include) => {
-                    self.name.map(|name| name == "include").unwrap_or(true)
-                }
-
-                _ => false,
-            },
-            _ => false,
-        } {
+        if !self.is_function(s) {
             return false;
         }
+
         if self.parameter.is_none() {
             return true;
         }
         let wanted = unsafe { self.parameter.unwrap_unchecked() };
 
-        let (named, anon) = match s {
-            Statement::Include(..) | Statement::Exit(..) => (vec![], 1),
-            Statement::Call(_, p, ..) => {
+        let (named, anon) = match s.kind() {
+            StatementKind::Include(..) | StatementKind::Exit(..) => (vec![], 1),
+            StatementKind::Call(p) => {
                 let named = p
+                    .children()
                     .iter()
-                    .filter_map(|p| match p {
-                        Statement::NamedParameter(name, value) => {
-                            Some((name.category().to_string(), value.to_string()))
+                    .filter_map(|p| match p.kind() {
+                        StatementKind::NamedParameter(value) => {
+                            Some((p.start().category().to_string(), value.to_string()))
                         }
                         _ => None,
                     })
                     .collect();
-                let anon = p.iter().filter(|p| p.is_returnable()).count();
+                let anon = p
+                    .children()
+                    .iter()
+                    .filter(|p| p.kind().is_returnable())
+                    .count();
                 (named, anon)
             }
-            Statement::FunctionDeclaration(_, _, p, _, _block) => {
+            StatementKind::FunctionDeclaration(_, p, _block) => {
                 let anon = {
                     // we don't know how many anon parameter an declared method is using.
                     // Theoretically we could guess by checking _block for _FC_ANON_ARGS and return
@@ -225,9 +243,10 @@ impl<'a> Matcher for FunctionNameMatcher<'a> {
                     0
                 };
                 let named = p
+                    .children()
                     .iter()
-                    .filter_map(|p| match p {
-                        Statement::Variable(name) => Some(name.category().to_string()),
+                    .filter_map(|p| match p.kind() {
+                        StatementKind::Variable => Some(p.start().category().to_string()),
                         _ => None,
                     })
                     .map(|x| (x, "".to_owned()))
@@ -315,29 +334,27 @@ impl CodeReplacer {
         (start, end)
     }
 
-    fn find_named_parameter<'a>(s: &'a Statement, wanted: &str) -> Option<&'a Statement> {
-        match s {
-            Statement::FunctionDeclaration(_, _, stmts, ..) | Statement::Call(_, stmts, ..) => {
-                use nasl_syntax::IdentifierType::Undefined;
-                use nasl_syntax::TokenCategory::Identifier;
-                for s in stmts {
-                    match s {
-                        Statement::Variable(t) | Statement::NamedParameter(t, _) => {
-                            if let nasl_syntax::Token {
-                                category: Identifier(Undefined(name)),
-                                ..
-                            } = t
-                            {
-                                if name == wanted {
-                                    return Some(s);
-                                }
-                            }
+    fn find_named_parameter<'a>(
+        stmts: &'a [Statement],
+        wanted: &str,
+    ) -> Option<(usize, &'a Statement)> {
+        use nasl_syntax::IdentifierType::Undefined;
+        use nasl_syntax::TokenCategory::Identifier;
+        for (i, s) in stmts.iter().enumerate() {
+            match s.kind() {
+                StatementKind::Variable | StatementKind::NamedParameter(_) => {
+                    if let nasl_syntax::Token {
+                        category: Identifier(Undefined(name)),
+                        ..
+                    } = s.start()
+                    {
+                        if name == wanted {
+                            return Some((i, s));
                         }
-                        _ => {}
                     }
                 }
+                _ => {}
             }
-            _ => {}
         }
         None
     }
@@ -372,31 +389,25 @@ impl CodeReplacer {
                 self.replace_range_with_offset("", &s.position());
                 Ok(())
             }
-            Replace::Name(name) => match s {
-                Statement::FunctionDeclaration(_, n, ..)
-                | Statement::Call(n, ..)
-                | Statement::Exit(n, ..)
-                | Statement::Include(n, ..) => {
+            Replace::Name(name) => match s.kind() {
+                // TODO introduce a id method on statement so that one has not
+                // to differentiate when renaming
+                StatementKind::FunctionDeclaration(n, ..) => {
                     self.replace_range_with_offset(name, &n.position);
+                    Ok(())
+                }
+                StatementKind::Call(..) | StatementKind::Exit(..) | StatementKind::Include(..) => {
+                    self.replace_range_with_offset(name, &s.start().position);
                     Ok(())
                 }
                 _ => Err(ReplaceError::Unsupported(r.clone(), s.clone())),
             },
             Replace::Parameter(params) => {
-                let range = match s {
-                    Statement::FunctionDeclaration(_, _, stmts, ..)
-                    | Statement::Call(_, stmts, ..) => match &stmts[..] {
-                        &[] => None,
-                        [first, ref tail @ ..] => {
-                            let first = first.range();
-                            let end = tail.last().map(|x| x.range().end).unwrap_or(first.end);
-                            let start = first.start;
-                            Some((start, end))
-                        }
-                    },
-                    Statement::Exit(_, stmt, ..) | Statement::Include(_, stmt, ..) => {
-                        Some(stmt.position())
-                    }
+                let parameter = match s.kind() {
+                    StatementKind::FunctionDeclaration(_, stmt, ..)
+                    | StatementKind::Call(stmt)
+                    | StatementKind::Exit(stmt, ..)
+                    | StatementKind::Include(stmt, ..) => stmt,
                     _ => return Err(ReplaceError::Unsupported(r.clone(), s.clone())),
                 };
 
@@ -412,9 +423,12 @@ impl CodeReplacer {
                         self.rename_parameter(s, previous, new)
                     }
                     ParameterOperation::RemoveAll => {
-                        if let Some(range) = range {
-                            self.replace_range_with_offset("", &range);
-                        }
+                        let range = {
+                            let ps = parameter.start();
+                            let pe = parameter.end();
+                            (ps.position.1, pe.position.0)
+                        };
+                        self.replace_range_with_offset("", &range);
                     }
                 };
 
@@ -485,12 +499,16 @@ impl CodeReplacer {
             })
         }
 
-        if let Some((pos, np)) = match s {
-            Statement::FunctionDeclaration(_, _, args, rp, _) => {
-                calculate_fn_decl(p, args.is_empty()).map(|x| (rp.position, x))
+        if let Some((pos, np)) = match s.kind() {
+            StatementKind::FunctionDeclaration(_, args, _) => {
+                let rp = args.end();
+
+                calculate_fn_decl(p, args.children().is_empty()).map(|x| (rp.position, x))
             }
-            Statement::Call(_, args, rp) => {
-                calculate_call(p, args.is_empty()).map(|x| (rp.position, x))
+            StatementKind::Call(args) => {
+                let rp = args.end();
+
+                calculate_call(p, args.children().is_empty()).map(|y| (rp.position, y))
             }
             _ => None,
         } {
@@ -503,19 +521,24 @@ impl CodeReplacer {
 
     fn add_parameter(&mut self, s: &Statement, i: usize, p: &Parameter) {
         fn calculate_known_index(s: &Statement, p: &Parameter) -> Option<String> {
-            match (matches!(s, Statement::Call(..)), p) {
+            match (matches!(s.kind(), StatementKind::Call(..)), p) {
                 (true, Parameter::Named(n, v)) => Some(format!("{n}: {v}, ")),
                 (true, Parameter::Anon(s)) => Some(format!("{s}, ")),
                 (false, Parameter::Named(n, _)) => Some(format!("{n}, ")),
                 (false, Parameter::Anon(_)) => None,
             }
         }
+
         fn calculate_unknown_index(
             s: &Statement,
             p: &Parameter,
             params: &[Statement],
         ) -> Option<String> {
-            let np = match (matches!(s, Statement::Call(..)), params.is_empty(), p) {
+            let np = match (
+                matches!(s.kind(), StatementKind::Call(..)),
+                params.is_empty(),
+                p,
+            ) {
                 (true, true, Parameter::Named(n, v)) => {
                     format!("{n}: {v}")
                 }
@@ -527,6 +550,7 @@ impl CodeReplacer {
                     format!(", {s}")
                 }
                 (true, true, Parameter::Anon(s)) => s.to_owned(),
+                // declaration
                 (false, true, Parameter::Named(n, _)) => n.to_owned(),
 
                 (false, false, Parameter::Named(n, _)) => format!(", {n}"),
@@ -534,69 +558,67 @@ impl CodeReplacer {
             };
             Some(np)
         }
-        match s {
-            Statement::FunctionDeclaration(_, _, params, end, _)
-            | Statement::Call(_, params, end)
-                if i <= params.len() || i == 0 =>
+        match s.kind() {
+            // TODO change params from Vec<Statement> to a struct either to make it easier to identify start and end
+            StatementKind::FunctionDeclaration(_, params, _) | StatementKind::Call(params)
+                if i <= params.children().len() || i == 0 =>
             {
-                let index_exits = params
-                    .get(i)
-                    .iter()
-                    .flat_map(|s| s.as_token())
-                    .map(|t| t.position)
-                    .next();
+                let get = &params.children().get(i);
+                let index_exits = get.iter().map(|t| t.position()).next();
                 let np = if index_exits.is_some() {
                     calculate_known_index(s, p)
                 } else {
-                    calculate_unknown_index(s, p, params)
+                    calculate_unknown_index(s, p, params.children())
                 };
 
-                if let Some(s) = np {
-                    let position = index_exits.unwrap_or(end.position);
+                if let Some(stringus) = np {
+                    let position = index_exits.unwrap_or_else(|| {
+                        // TODO reduct on empty
+                        params.end().position
+                    });
                     let new_position = self.range_with_offset(&position);
                     let before = &self.code[new_position.0..new_position.1];
-                    self.replace_range(&new_position, &format!("{s}{before}"), &position);
+                    self.replace_range(&new_position, &format!("{stringus}{before}"), &position);
                 }
             }
             _ => {}
         }
     }
 
-    fn remove_parameter(&mut self, s: &Statement) {
-        let position = s.position();
-        let (start, end) = self.range_with_offset(&position);
+    fn remove_parameter(&mut self, children: &[Statement], idx: usize, s: &Statement) {
         let new_position = {
-            let (count, last) = self
-                .code
-                .chars()
-                .skip(end)
-                .take_while(|x| x.is_whitespace() || x == &',' || x == &')')
-                .fold((0, '0'), |a, b| (a.0 + 1, b));
-            // unless it is the last parameter
-            if last == ')' {
-                let (count, last) = self.code[0..start]
-                    .chars()
-                    .rev()
-                    .take_while(|c| c.is_whitespace() || c == &',' || c == &'(')
-                    .fold((0, '0'), |a, b| (a.0 + 1, b));
-                let is_only_parameter = last == '(';
-                if is_only_parameter {
-                    (start, end)
-                } else {
-                    (start - count, end)
-                }
+            // if it is the last parameter and not the only parameter we need
+            // to remove from previous element end start to current element end start
+            // so that we remove previous separator ',' but keep the last separator ')'.
+            if idx == children.len() - 1 && idx != 0 {
+                let pe = children[idx - 1].end();
+                let se = s.end();
+                (pe.position.0, se.position.0)
+            } else if idx < children.len() - 1 {
+                // to remove unnecessary whitespaces we need to remove from
+                // current start to next start
+                let sst = s.start();
+                let ns = children[idx + 1].start();
+                (sst.position.0, ns.position.0)
             } else {
-                (start, end + count)
+                // for the last element we need remove
+                let sst = s.start();
+                let se = s.end();
+                (sst.position.0, se.position.0)
             }
         };
+
+        let new_position = self.range_with_offset(&new_position);
 
         self.replace_range(&new_position, "", &new_position);
     }
     fn remove_indexed_parameter(&mut self, s: &Statement, i: usize) {
-        match s {
-            Statement::FunctionDeclaration(_, _, stmts, ..) | Statement::Call(_, stmts, ..) => {
-                if let Some(x) = stmts.get(i) {
-                    self.remove_parameter(x);
+        match s.kind() {
+            StatementKind::FunctionDeclaration(_, stmts, ..) | StatementKind::Call(stmts) => {
+                let children = stmts.children();
+
+                if let Some(x) = children.get(i) {
+                    self.remove_parameter(children, i, x)
                 }
             }
             _ => {}
@@ -604,16 +626,20 @@ impl CodeReplacer {
     }
 
     fn remove_named_parameter(&mut self, s: &Statement, wanted: &str) {
-        Self::find_named_parameter(s, wanted).iter().for_each(|s| {
-            self.remove_parameter(s);
-        })
+        let stmts = s.children();
+        Self::find_named_parameter(stmts, wanted)
+            .iter()
+            .for_each(|(i, s)| {
+                self.remove_parameter(stmts, *i, s);
+            })
     }
 
     fn rename_parameter(&mut self, s: &Statement, previous: &str, new: &str) {
-        Self::find_named_parameter(s, previous)
+        let stmts = s.children();
+        Self::find_named_parameter(stmts, previous)
             .iter()
-            .for_each(|s| {
-                let pos = s.as_token().map(|x| x.position).unwrap_or_default();
+            .for_each(|(_, s)| {
+                let pos = s.start().position;
                 self.replace_range_with_offset(new, &pos)
             })
     }
@@ -927,6 +953,12 @@ if (user_ports = get_kb_list("sophos/xg_firewall/http-user/port")) {
             ParameterOperation::Remove(1),
             "function my_call(a, c){};"
         );
+
+        parameter_check!(
+            "function my_call(a){};",
+            ParameterOperation::Remove(0),
+            "function my_call(){};"
+        );
     }
 
     #[test]
@@ -1076,7 +1108,7 @@ if (user_ports = get_kb_list("sophos/xg_firewall/http-user/port")) {
         }
         funkerino(a: 42);
         funker(a: 42, b: 3);
-        ;
+        
         aha(b: 42);
         "#;
 
@@ -1104,6 +1136,7 @@ if (user_ports = get_kb_list("sophos/xg_firewall/http-user/port")) {
             },
         ];
         let result = CodeReplacer::replace(code, &replaces).unwrap();
+
         assert_eq!(result, expected.to_owned(),);
     }
 
@@ -1145,6 +1178,7 @@ if (user_ports = get_kb_list("sophos/xg_firewall/http-user/port")) {
             },
         ];
         let result = CodeReplacer::replace(code, &replaces).unwrap();
+
         assert_eq!(
             result,
             //code.replace("funker", "funkerino")

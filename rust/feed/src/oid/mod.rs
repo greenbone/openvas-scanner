@@ -7,7 +7,7 @@
 use std::{fs::File, io::Read};
 
 use nasl_interpreter::{AsBufReader, Loader};
-use nasl_syntax::{IdentifierType, Statement, TokenCategory};
+use nasl_syntax::{IdentifierType, Statement, StatementKind, TokenCategory};
 
 use crate::{
     update,
@@ -40,10 +40,11 @@ where
     }
 
     fn script_oid(stmt: &Statement) -> Option<String> {
-        match stmt {
-            Statement::Call(t, stms, _) => match t.category() {
+        match stmt.kind() {
+            StatementKind::Call(param) => match stmt.start().category() {
                 TokenCategory::Identifier(IdentifierType::Undefined(s)) => match s as &str {
-                    "script_oid" => stms.first().map(|x| x.to_string()),
+                    // maybe switch from children to patternmatching?
+                    "script_oid" => param.children().first().map(|x| x.to_string()),
                     _ => None,
                 },
                 _ => None,
@@ -56,8 +57,8 @@ where
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
         for stmt in nasl_syntax::parse(&code) {
-            if let Statement::If(_, _, stmts, _, _) = stmt? {
-                if let Statement::Block(_, x, _) = &*stmts {
+            if let StatementKind::If(_, stmts, _, _) = stmt?.kind() {
+                if let StatementKind::Block(x) = stmts.kind() {
                     for stmt in x {
                         if let Some(oid) = Self::script_oid(stmt) {
                             return Ok(oid);

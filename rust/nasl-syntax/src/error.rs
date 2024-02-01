@@ -47,9 +47,9 @@ impl SyntaxError {
         match &self.kind {
             ErrorKind::UnexpectedToken(t) => Some(t),
             ErrorKind::UnclosedToken(t) => Some(t),
-            ErrorKind::UnexpectedStatement(s) => s.as_token(),
-            ErrorKind::MissingSemicolon(s) => s.as_token(),
-            ErrorKind::UnclosedStatement(s) => s.as_token(),
+            ErrorKind::UnexpectedStatement(s) => Some(s.as_token()),
+            ErrorKind::MissingSemicolon(s) => Some(s.as_token()),
+            ErrorKind::UnclosedStatement(s) => Some(s.as_token()),
             ErrorKind::EoF => None,
             ErrorKind::IOError(_) => None,
             ErrorKind::MaxRecursionDepth(_) => None,
@@ -108,8 +108,8 @@ macro_rules! unexpected_token {
 ///
 /// Basic usage:
 /// ```rust
-/// use nasl_syntax::{unexpected_statement, Statement};
-/// unexpected_statement!(Statement::EoF);
+/// use nasl_syntax::{unexpected_statement, Statement, StatementKind};
+/// unexpected_statement!(Statement::without_token(StatementKind::EoF));
 /// ```
 #[macro_export]
 macro_rules! unexpected_statement {
@@ -126,8 +126,8 @@ macro_rules! unexpected_statement {
 ///
 /// Basic usage:
 /// ```rust
-/// use nasl_syntax::{unexpected_statement, Statement};
-/// unexpected_statement!(Statement::EoF);
+/// use nasl_syntax::{unclosed_statement, Statement, StatementKind};
+/// unclosed_statement!(Statement::without_token(StatementKind::EoF));
 /// ```
 #[macro_export]
 macro_rules! unclosed_statement {
@@ -255,7 +255,7 @@ mod tests {
     fn test_for_missing_semicolon(code: &str) {
         let result = parse(code).next().unwrap();
         match result {
-            Ok(_) => panic!("expected test to return Err"),
+            Ok(_) => panic!("expected test to return Err for {code}"),
             Err(e) => match e.kind {
                 ErrorKind::MissingSemicolon(_) => {}
                 _ => panic!("Expected MissingSemicolon but got: {e:?}"),
