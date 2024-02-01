@@ -68,7 +68,6 @@ fn retrieve_and_reset(id: Arc<RwLock<ClientIdentifier>>) -> ClientIdentifier {
     let cci = ci.clone();
     // reset client information
     *ci = ClientIdentifier::Unknown;
-    drop(ci);
     cci
 }
 pub async fn run<'a, S, DB>(
