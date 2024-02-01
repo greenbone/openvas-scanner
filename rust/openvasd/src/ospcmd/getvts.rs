@@ -10,8 +10,6 @@ use redis_storage::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper, Vt
 use storage::{StorageError, item::Nvt};
 use tokio::sync::RwLock;
 
-use serde_json;
-
 #[async_trait]
 pub trait GetVts {
     async fn get_oids(&self) -> Result<Vec<String>, StorageError>;

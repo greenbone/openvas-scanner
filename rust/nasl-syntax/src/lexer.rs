@@ -11,7 +11,7 @@ use crate::{
     operation::Operation,
     prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
-    unexpected_end, unexpected_statement, unexpected_token, AssignOrder, Statement, StatementKind,
+    unexpected_statement, unexpected_token, AssignOrder, Statement, StatementKind,
 };
 
 /// Is used to parse Token to Statement
