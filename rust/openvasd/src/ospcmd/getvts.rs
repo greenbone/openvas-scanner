@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 use async_trait::async_trait;
 
 use redis_storage::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper, VtHelper};
-use storage::StorageError;
+use storage::{StorageError, item::Nvt};
 use tokio::sync::RwLock;
 
 use serde_json;
@@ -17,7 +17,7 @@ pub trait GetVts {
     async fn get_oids(&self) -> Result<Vec<String>, StorageError>;
 
     async fn get_vts(&self, vt_selection: Option<Vec<String>>)
-        -> Result<Vec<String>, StorageError>;
+        -> Result<Vec<Nvt>, StorageError>;
 }
 
 #[derive(Debug, Default)]
@@ -57,7 +57,7 @@ where
     async fn get_vts(
         &self,
         vt_selection: Option<Vec<String>>,
-    ) -> Result<Vec<String>, StorageError> {
+    ) -> Result<Vec<Nvt>, StorageError> {
 
         let oids: Vec<String>;
         if let Some(selection) = vt_selection {
@@ -69,13 +69,10 @@ where
         let mut nvts = Vec::new();
         for oid in oids {
             nvts.push(
-                serde_json::to_string(
-                    match &self.vthelper.read().await.retrieve_single_nvt(&oid)? {
-                        Some(vt) => vt,
-                        None => continue,
-                    }
-                )
-                .unwrap(),
+                match self.vthelper.read().await.retrieve_single_nvt(&oid)? {
+                    Some(vt) => vt,
+                    None => continue,
+                }
             );
         }
         Ok(nvts)

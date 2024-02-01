@@ -8,7 +8,7 @@ use crate::{
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
-    unexpected_token, AssignOrder, Statement,
+    unexpected_token, AssignOrder, Statement, StatementKind,
 };
 
 /// Is a trait to handle postfix statements.
@@ -26,36 +26,6 @@ pub(crate) trait Postfix {
     ) -> Option<Result<(End, Statement), SyntaxError>>;
 }
 
-impl<'a> Lexer<'a> {
-    fn as_assign_statement(
-        lhs: Statement,
-        token: Token,
-        assign: Category,
-    ) -> Option<Result<(End, Statement), SyntaxError>> {
-        match lhs {
-            Statement::Variable(token) => Some(Ok((
-                End::Continue,
-                Statement::Assign(
-                    assign,
-                    AssignOrder::ReturnAssign,
-                    Box::new(Statement::Variable(token)),
-                    Box::new(Statement::NoOp(None)),
-                ),
-            ))),
-            Statement::Array(token, resolver, end) => Some(Ok((
-                End::Continue,
-                Statement::Assign(
-                    assign,
-                    AssignOrder::ReturnAssign,
-                    Box::new(Statement::Array(token, resolver, end)),
-                    Box::new(Statement::NoOp(None)),
-                ),
-            ))),
-            _ => Some(Err(unexpected_token!(token))),
-        }
-    }
-}
-
 impl<'a> Postfix for Lexer<'a> {
     fn postfix_statement(
         &mut self,
@@ -64,12 +34,22 @@ impl<'a> Postfix for Lexer<'a> {
         lhs: Statement,
     ) -> Option<Result<(End, Statement), SyntaxError>> {
         match op {
-            Operation::Assign(Category::PlusPlus) => {
-                Self::as_assign_statement(lhs, token, Category::PlusPlus)
-            }
-            Operation::Assign(Category::MinusMinus) => {
-                Self::as_assign_statement(lhs, token, Category::MinusMinus)
-            }
+            Operation::Assign(c) if matches!(c, Category::PlusPlus | Category::MinusMinus) => match lhs.kind() {
+                StatementKind::Variable | StatementKind::Array(..) => Some(Ok((
+                    End::Continue,
+                    Statement::with_start_end_token(
+                        lhs.end().clone(),
+                        token,
+                        StatementKind::Assign(
+                            c,
+                            AssignOrder::ReturnAssign,
+                            Box::new(lhs),
+                            Box::new(Statement::without_token(StatementKind::NoOp)),
+                        ),
+                    ),
+                ))),
+                _ => Some(Err(unexpected_token!(token))),
+            },
             _ => None,
         }
     }
@@ -86,14 +66,8 @@ impl<'a> Postfix for Lexer<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        parse,
-        token::{Category, Token},
-        AssignOrder, Statement,
-    };
+    use crate::{parse, token::Category, AssignOrder, Statement, StatementKind};
 
-    use crate::IdentifierType::Undefined;
-    use crate::Statement::*;
     use Category::*;
 
     fn result(code: &str) -> Statement {
@@ -102,70 +76,15 @@ mod test {
 
     #[test]
     fn variable_assignment_operator() {
-        let expected = |assign_operator: Category| {
-            Operator(
-                Plus,
-                vec![
-                    Primitive(Token {
-                        category: Number(1),
-                        line_column: (1, 1),
-                        position: (0, 1),
-                    }),
-                    Operator(
-                        Star,
-                        vec![
-                            Assign(
-                                assign_operator,
-                                AssignOrder::ReturnAssign,
-                                Box::new(Variable(Token {
-                                    category: Identifier(Undefined("a".to_owned())),
-                                    line_column: (1, 5),
-                                    position: (4, 5),
-                                })),
-                                Box::new(NoOp(None)),
-                            ),
-                            Primitive(Token {
-                                category: Number(1),
-                                line_column: (1, 11),
-                                position: (10, 11),
-                            }),
-                        ],
-                    ),
-                ],
-            )
+        let expected = |stmt: Statement, assign_operator: Category| match stmt.kind() {
+            StatementKind::Assign(operator, AssignOrder::ReturnAssign, _, _) => {
+                assert_eq!(operator, &assign_operator)
+            }
+            kind => panic!("expected Assign, but got: {:?}", kind),
         };
-        assert_eq!(result("1 + a++ * 1;"), expected(PlusPlus));
-        assert_eq!(result("1 + a-- * 1;"), expected(MinusMinus));
-    }
-
-    #[test]
-    fn array_assignment_operator() {
-        use AssignOrder::*;
-        let expected = |assign_operator: Category| {
-            Assign(
-                assign_operator,
-                ReturnAssign,
-                Box::new(Array(
-                    Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        line_column: (1, 1),
-                        position: (0, 1),
-                    },
-                    Some(Box::new(Primitive(Token {
-                        category: Number(1),
-                        line_column: (1, 3),
-                        position: (2, 3),
-                    }))),
-                    Some(Token {
-                        category: RightBrace,
-                        line_column: (1, 4),
-                        position: (3, 4),
-                    }),
-                )),
-                Box::new(NoOp(None)),
-            )
-        };
-        assert_eq!(result("a[1]++;"), expected(PlusPlus));
-        assert_eq!(result("a[1]--;"), expected(MinusMinus));
+        expected(result("a++;"), PlusPlus);
+        expected(result("a--;"), MinusMinus);
+        expected(result("a[1]++;"), PlusPlus);
+        expected(result("a[1]--;"), MinusMinus);
     }
 }

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use nasl_builtin_utils::lookup_keys::FC_ANON_ARGS;
-use nasl_syntax::{Statement, Statement::*, Token};
+use nasl_syntax::{Statement, StatementKind::*, Token};
 
 use crate::{
     error::{FunctionError, InterpretError},
@@ -31,14 +31,14 @@ where
         let mut position = vec![];
         // TODO simplify
         for p in arguments {
-            match p {
-                NamedParameter(token, val) => {
+            match p.kind() {
+                NamedParameter(val) => {
                     let val = self.resolve(val)?;
-                    let name = Self::identifier(token)?;
+                    let name = Self::identifier(p.as_token())?;
                     named.insert(name, ContextType::Value(val));
                 }
-                val => {
-                    let val = self.resolve(val)?;
+                _ => {
+                    let val = self.resolve(p)?;
                     position.push(val);
                 }
             }

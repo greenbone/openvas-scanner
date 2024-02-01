@@ -29,7 +29,7 @@ impl CliErrorKind {
     pub fn as_token(&self) -> Option<&Token> {
         match self {
             CliErrorKind::InterpretError(e) => match &e.origin {
-                Some(s) => s.as_token(),
+                Some(s) => Some(s.as_token()),
                 None => None,
             },
             CliErrorKind::SyntaxError(e) => e.as_token(),

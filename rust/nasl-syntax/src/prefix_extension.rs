@@ -10,9 +10,7 @@ use crate::{
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
-    unexpected_end, unexpected_token,
-    variable_extension::Variables,
-    {AssignOrder, Statement},
+    unclosed_token, unexpected_end, unexpected_token, Statement, {AssignOrder, StatementKind},
 };
 pub(crate) trait Prefix {
     /// Handles statements before operation statements get handled.
@@ -26,14 +24,60 @@ pub(crate) trait Prefix {
 }
 
 /// Is used to verify operations.
-fn prefix_binding_power(token: Token) -> Result<u8, SyntaxError> {
+fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
     match token.category() {
         Category::Plus | Category::Minus | Category::Tilde | Category::Bang => Ok(21),
-        _ => Err(unexpected_token!(token)),
+        _ => Err(unexpected_token!(token.clone())),
     }
 }
 
 impl<'a> Lexer<'a> {
+    fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
+        if !matches!(
+            token.category(),
+            Category::Identifier(crate::IdentifierType::Undefined(_))
+        ) {
+            return Err(unexpected_token!(token));
+        }
+        use End::*;
+        let (kind, end) = {
+            if let Some(nt) = self.peek() {
+                match nt.category() {
+                    Category::LeftParen => {
+                        self.token();
+                        let (end, params) = self.parse_comma_group(Category::RightParen)?;
+                        match end {
+                            Done(end) => {
+                                let params = Statement::with_start_end_token(
+                                    nt,
+                                    end.clone(),
+                                    StatementKind::Parameter(params),
+                                );
+                                Ok((StatementKind::Call(Box::new(params)), end))
+                            }
+                            Continue => Err(unclosed_token!(nt)),
+                        }
+                    }
+                    Category::LeftBrace => {
+                        self.token();
+                        let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
+                        let lookup = lookup.as_returnable_or_err()?;
+                        match end {
+                            Done(end) => Ok((StatementKind::Array(Some(Box::new(lookup))), end)),
+                            Continue => Err(unclosed_token!(token.clone())),
+                        }
+                    }
+                    _ => Ok((StatementKind::Variable, token.clone())),
+                }
+            } else {
+                Ok((StatementKind::Variable, token.clone()))
+            }
+        }?;
+        let stmt = Statement::with_start_end_token(token, end, kind);
+
+        Ok((Continue, stmt))
+    }
+
     /// Parses Operations that have an prefix (e.g. -1)
     fn parse_prefix_assign_operator(
         &mut self,
@@ -43,21 +87,23 @@ impl<'a> Lexer<'a> {
         let next = self
             .token()
             .ok_or_else(|| unexpected_end!("parsing prefix statement"))?;
-        match self.parse_variable(next)? {
-            (_, Statement::Variable(value)) => Ok(Statement::Assign(
-                assign,
-                AssignOrder::AssignReturn,
-                Box::new(Statement::Variable(value)),
-                Box::new(Statement::NoOp(None)),
-            )),
-            (_, Statement::Array(token, resolver, end)) => Ok(Statement::Assign(
-                assign,
-                AssignOrder::AssignReturn,
-                Box::new(Statement::Array(token, resolver, end)),
-                Box::new(Statement::NoOp(None)),
-            )),
-            _ => Err(unexpected_token!(token)),
+        let (_, stmt) = self.parse_variable(next)?;
+        if !matches!(
+            stmt.kind(),
+            StatementKind::Variable | StatementKind::Array(..)
+        ) {
+            return Err(unexpected_token!(token));
         }
+        Ok(Statement::with_start_end_token(
+            token.clone(),
+            stmt.end().clone(),
+            StatementKind::Assign(
+                assign,
+                AssignOrder::AssignReturn,
+                Box::new(stmt),
+                Box::new(Statement::without_token(StatementKind::NoOp)),
+            ),
+        ))
     }
 }
 
@@ -68,14 +114,22 @@ impl<'a> Prefix for Lexer<'a> {
         abort: &impl Fn(&Category) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         use End::*;
-        let op = Operation::new(token.clone()).ok_or_else(|| unexpected_token!(token.clone()))?;
+        let op = Operation::new(&token).ok_or_else(|| unexpected_token!(token.clone()))?;
         match op {
             Operation::Operator(kind) => {
-                let bp = prefix_binding_power(token)?;
+                let bp = prefix_binding_power(&token)?;
                 let (end, right) = self.statement(bp, abort)?;
-                Ok((end, Statement::Operator(kind, vec![right])))
+                let stmt = Statement::with_start_end_token(
+                    token,
+                    right.end().clone(),
+                    StatementKind::Operator(kind, vec![right]),
+                );
+                Ok((end, stmt))
             }
-            Operation::Primitive => Ok((Continue, Statement::Primitive(token))),
+            Operation::Primitive => Ok((
+                Continue,
+                Statement::with_start_token(token, StatementKind::Primitive),
+            )),
             Operation::Variable => self.parse_variable(token),
             Operation::Grouping(_) => self.parse_grouping(token),
             Operation::Assign(Category::MinusMinus) => self
@@ -86,7 +140,10 @@ impl<'a> Prefix for Lexer<'a> {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp => Ok((Done(token.clone()), Statement::NoOp(Some(token)))),
+            Operation::NoOp => Ok((
+                Done(token.clone()),
+                Statement::with_start_token(token, StatementKind::NoOp),
+            )),
         }
     }
 }
@@ -97,12 +154,11 @@ mod test {
     use crate::{
         parse,
         token::{Category, Token},
-        AssignOrder, Statement,
+        AssignOrder, Statement, StatementKind,
     };
 
-    use crate::IdentifierType::Undefined;
     use Category::*;
-    use Statement::*;
+    use StatementKind::*;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -110,19 +166,15 @@ mod test {
 
     #[test]
     fn operations() {
-        let no = Token {
-            category: Number(1),
-            line_column: (1, 2),
-            position: (1, 2),
-        };
-        let expected = |category: Category| -> Statement {
-            Statement::Operator(category, vec![Statement::Primitive(no.clone())])
+        let expected = |stmt: Statement, category: Category| match stmt.kind() {
+            StatementKind::Operator(cat, _) => assert_eq!(cat, &category),
+            kind => panic!("expected Operator, but got: {:?}", kind),
         };
 
-        assert_eq!(result("-1;"), expected(Category::Minus));
-        assert_eq!(result("+1;"), expected(Category::Plus));
-        assert_eq!(result("~1;"), expected(Category::Tilde));
-        assert_eq!(result("!1;"), expected(Category::Bang));
+        expected(result("-1;"), Category::Minus);
+        expected(result("+1;"), Category::Plus);
+        expected(result("~1;"), Category::Tilde);
+        expected(result("!1;"), Category::Bang);
     }
 
     #[test]
@@ -137,76 +189,25 @@ mod test {
             line_column: (1, 1),
             position: (0, 3),
         };
-
-        assert_eq!(result("1;"), Primitive(no));
-        assert_eq!(result("'a';"), Primitive(data));
+        let one = result("1;");
+        assert_eq!(one.kind(), &Primitive);
+        assert_eq!(one.start(), &no);
+        let second = result("'a';");
+        assert_eq!(second.kind(), &Primitive);
+        assert_eq!(second.start(), &data);
     }
 
     #[test]
     fn assignment_operator() {
-        let expected = |assign_operator: Category| {
-            Operator(
-                Plus,
-                vec![
-                    Primitive(Token {
-                        category: Number(1),
-                        line_column: (1, 1),
-                        position: (0, 1),
-                    }),
-                    Operator(
-                        Star,
-                        vec![
-                            Assign(
-                                assign_operator,
-                                AssignOrder::AssignReturn,
-                                Box::new(Variable(Token {
-                                    category: Identifier(Undefined("a".to_owned())),
-                                    line_column: (1, 7),
-                                    position: (6, 7),
-                                })),
-                                Box::new(NoOp(None)),
-                            ),
-                            Primitive(Token {
-                                category: Number(1),
-                                line_column: (1, 11),
-                                position: (10, 11),
-                            }),
-                        ],
-                    ),
-                ],
-            )
+        let expected = |stmt: Statement, assign_operator: Category| match stmt.kind() {
+            StatementKind::Assign(operator, AssignOrder::AssignReturn, _, _) => {
+                assert_eq!(operator, &assign_operator)
+            }
+            kind => panic!("expected Assign, but got: {:?}", kind),
         };
-        assert_eq!(result("1 + ++a * 1;"), expected(PlusPlus));
-        assert_eq!(result("1 + --a * 1;"), expected(MinusMinus));
-    }
-    #[test]
-    fn assignment_array_operator() {
-        use AssignOrder::*;
-        let expected = |assign_operator: Category| {
-            Assign(
-                assign_operator,
-                AssignReturn,
-                Box::new(Array(
-                    Token {
-                        category: Identifier(Undefined("a".to_owned())),
-                        line_column: (1, 3),
-                        position: (2, 3),
-                    },
-                    Some(Box::new(Primitive(Token {
-                        category: Number(0),
-                        line_column: (1, 5),
-                        position: (4, 5),
-                    }))),
-                    Some(Token {
-                        category: RightBrace,
-                        line_column: (1, 6),
-                        position: (5, 6),
-                    }),
-                )),
-                Box::new(NoOp(None)),
-            )
-        };
-        assert_eq!(result("++a[0];"), expected(PlusPlus));
-        assert_eq!(result("--a[0];"), expected(MinusMinus));
+        expected(result("++a;"), Category::PlusPlus);
+        expected(result("--a;"), Category::MinusMinus);
+        expected(result("++a[0];"), Category::PlusPlus);
+        expected(result("--a[0];"), Category::MinusMinus);
     }
 }

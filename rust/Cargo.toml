@@ -24,6 +24,7 @@ members = [
   "feed-verifier",
   "models",
   "osp",
+  "openvasctl",
   "openvasd",
   "scanconfig",
   "infisto",
