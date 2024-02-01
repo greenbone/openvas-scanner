@@ -89,7 +89,6 @@ fn infix_binding_power(op: &Operation) -> Option<(u8, u8)> {
     Some(res)
 }
 
-
 enum InFixState {
     NoInfix,
     ReturnContinue(Statement),

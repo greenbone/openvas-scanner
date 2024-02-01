@@ -19,13 +19,13 @@ where
     T: serde::de::DeserializeOwned,
     H: hyper::body::Body,
     <H as hyper::body::Body>::Error: std::error::Error,
-    
 {
     let body = req.into_body();
     let bytes = match body.collect().await {
         Ok(x) => x.to_bytes(),
         Err(e) => {
-            return Err(response.internal_server_error(&e));},
+            return Err(response.internal_server_error(&e));
+        }
     };
     match serde_json::from_slice(&bytes) {
         Ok(json) => Ok(json),
