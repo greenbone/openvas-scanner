@@ -198,7 +198,7 @@ impl Response {
     #[inline]
     pub async fn ok_json_stream<T, S>(&self, value: T) -> Result
     where
-        T: Iterator<Item = S> + Send + 'static, 
+        T: Iterator<Item = S> + Send + 'static,
         S: Serialize + Clone + Send + std::fmt::Debug + 'static,
     {
         let value = value.map(|x| serde_json::to_vec(&x).unwrap());

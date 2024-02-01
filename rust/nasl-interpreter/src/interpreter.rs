@@ -5,7 +5,7 @@
 use std::{collections::HashMap, io};
 
 use nasl_syntax::{
-    IdentifierType, LoadError, NaslValue, StatementKind::*, Token, TokenCategory, Statement,
+    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, Token, TokenCategory,
 };
 use storage::StorageError;
 
@@ -50,7 +50,6 @@ where
         }
     }
 
-
     fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name)? {
             NaslValue::String(key) => {
@@ -70,7 +69,7 @@ where
             _ => Err(InterpretError::unsupported(name, "string")),
         }
     }
-    
+
     /// Tries to interpret a statement and retries n times on a retry error
     ///
     /// When encountering a retrievable error:
@@ -215,14 +214,12 @@ where
             }
             NoOp => Ok(NaslValue::Null),
             EoF => Ok(NaslValue::Null),
-            AttackCategory => { 
+            AttackCategory => {
                 match statement.as_token().category() {
                     TokenCategory::Identifier(IdentifierType::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
                     _ => unreachable!("AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.", statement.as_token())
 
                 }
-
-                
             },
             Continue => Ok(NaslValue::Continue),
             Break => Ok(NaslValue::Break),

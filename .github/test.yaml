@@ -1,4 +1,0 @@
-openvas:
-  repository: temp-openvas-scanner
-  pullPolicy: Always
-  tag: "latest"

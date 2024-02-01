@@ -198,8 +198,7 @@ where
     let certfile = fs::File::open(filename)
         .map_err(|e| error(format!("failed to open {:?}: {}", filename, e)))?;
     let mut reader = io::BufReader::new(certfile);
-    rustls_pemfile::certs(&mut reader)
-        .map(|x| x.into_iter().map(CertificateDer::from).collect())
+    rustls_pemfile::certs(&mut reader).map(|x| x.into_iter().map(CertificateDer::from).collect())
 }
 
 // Load private key from file.

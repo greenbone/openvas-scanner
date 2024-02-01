@@ -16,7 +16,7 @@ The CI pipeline incorporates multiple jobs, each with a specific function in the
 
 ### 1. Initialization (`init`)
 
-If the initialization fails it will prevent furter execution of `build`.
+If the initialization fails it will prevent further execution of `build`.
 
 - **Purpose**: Sets the release type based on the input or event that triggered the workflow.
 - **Workflow File**: `init.yaml`
@@ -25,7 +25,7 @@ If the initialization fails it will prevent furter execution of `build`.
 - **Purpose**: Executes unit tests to validate code changes.
 - **Workflow File**: `tests.yml`
 
-If the unit tests fails it will prevent furter execution of `build`.
+If the unit tests fails it will prevent further execution of `build`.
 
 ### 3. Build (`build`)
 - **Purpose**: Compiles and builds the project, preparing it for testing and deployment.
@@ -33,7 +33,7 @@ If the unit tests fails it will prevent furter execution of `build`.
 - **Workflow File**: `build.yml`
 
 
-If the build fails it will prevent furter execution of `functional`.
+If the build fails it will prevent further execution of `functional`.
 
 ### 4. Linting (`linting`)
 - **Purpose**: Ensures code quality and consistency through linting.
@@ -47,7 +47,7 @@ If linting fails it will not prevent execution of the other steps, as it may be 
 - **Dependencies**: Needs a successful `build`.
 - **Workflow File**: `functional.yaml`
 
-If the functional tests fail it will prevent furter execution of `containerization`.
+If the functional tests fail it will prevent further execution of `containerization`.
 
 ### 6. Containerization
 - **Purpose**: Packages the build into Docker containers.

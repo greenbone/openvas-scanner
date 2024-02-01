@@ -5,7 +5,8 @@
 use crate::{
     error::SyntaxError,
     lexer::{End, Lexer},
-    token::{Category}, Statement, StatementKind,
+    token::Category,
+    Statement, StatementKind,
 };
 
 pub(crate) trait CommaGroup {
