@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
 
-use storage::nvt::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
+use storage::item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
 
 use nasl_builtin_utils::{get_named_parameter, NaslFunction};
 use nasl_syntax::NaslValue;

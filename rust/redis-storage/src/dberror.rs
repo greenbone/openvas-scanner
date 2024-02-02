@@ -82,3 +82,5 @@ impl From<DbError> for StorageError {
         }
     }
 }
+
+impl std::error::Error for DbError {}

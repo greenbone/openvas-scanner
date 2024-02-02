@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use storage::{self, nvt::PerNVTDispatcher, Kb, StorageError};
+use storage::{self, item::PerItemDispatcher, Kb, StorageError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -66,14 +66,14 @@ where
 }
 
 /// It will transform a Nvt to json and write it into the given Writer.
-pub struct NvtDispatcher<W>
+pub struct ItemDispatcher<W>
 where
     W: Write,
 {
     w: Arc<Mutex<W>>,
     kbs: Arc<Mutex<Vec<Kb>>>,
 }
-impl<S> NvtDispatcher<S>
+impl<S> ItemDispatcher<S>
 where
     S: Write,
 {
@@ -87,14 +87,14 @@ where
     }
 
     /// Returns a new instance as a Dispatcher
-    pub fn as_dispatcher<K>(w: S) -> PerNVTDispatcher<Self, K>
+    pub fn as_dispatcher<K>(w: S) -> PerItemDispatcher<Self, K>
     where
         K: AsRef<str>,
     {
-        PerNVTDispatcher::new(Self::new(w))
+        PerItemDispatcher::new(Self::new(w))
     }
 
-    fn as_json(&self, nvt: storage::nvt::Nvt) -> Result<(), storage::StorageError> {
+    fn as_json(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
         let mut context = self.w.lock().map_err(StorageError::from)?;
         serde_json::to_vec(&nvt)
             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
@@ -102,11 +102,11 @@ where
     }
 }
 
-impl<S, K> storage::nvt::NvtDispatcher<K> for NvtDispatcher<S>
+impl<S, K> storage::item::ItemDispatcher<K> for ItemDispatcher<S>
 where
     S: Write,
 {
-    fn dispatch_nvt(&self, nvt: storage::nvt::Nvt) -> Result<(), storage::StorageError> {
+    fn dispatch_nvt(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
         self.as_json(nvt)
     }
 
@@ -126,7 +126,7 @@ where
     }
 }
 
-impl<S, K> storage::Retriever<K> for NvtDispatcher<S>
+impl<S, K> storage::Retriever<K> for ItemDispatcher<S>
 where
     S: Write,
 {
@@ -138,6 +138,7 @@ where
         Ok(match scope {
             // currently not supported
             storage::Retrieve::NVT(_) => Vec::new(),
+            storage::Retrieve::NOTUS(_) => Vec::new(),
             storage::Retrieve::KB(s) => {
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
                 kbs.iter()
@@ -162,7 +163,7 @@ where
 mod tests {
     use std::collections::BTreeMap;
 
-    use storage::nvt::{Nvt, ACT};
+    use storage::item::{Nvt, ACT};
 
     use super::*;
 
@@ -174,9 +175,9 @@ mod tests {
             .join(".")
     }
 
-    fn generate_tags() -> BTreeMap<storage::nvt::TagKey, storage::nvt::TagValue> {
-        use storage::nvt::TagKey::*;
-        use storage::nvt::TagValue;
+    fn generate_tags() -> BTreeMap<storage::item::TagKey, storage::item::TagValue> {
+        use storage::item::TagKey::*;
+        use storage::item::TagValue;
         let ts = "2012-09-23 02:15:34 -0400";
         BTreeMap::from([
             (Affected, TagValue::parse(Affected, "Affected").unwrap()),
@@ -221,9 +222,9 @@ mod tests {
             (Vuldetect, TagValue::parse(Vuldetect, "Vuldetect").unwrap()),
         ])
     }
-    fn generate_preferences() -> Vec<storage::nvt::NvtPreference> {
-        use storage::nvt::NvtPreference;
-        use storage::nvt::PreferenceType;
+    fn generate_preferences() -> Vec<storage::item::NvtPreference> {
+        use storage::item::NvtPreference;
+        use storage::item::PreferenceType;
         [
             PreferenceType::CheckBox,
             PreferenceType::Entry,
@@ -261,8 +262,8 @@ mod tests {
         }
     }
 
-    fn generate_references() -> Vec<storage::nvt::NvtRef> {
-        use storage::nvt::NvtRef;
+    fn generate_references() -> Vec<storage::item::NvtRef> {
+        use storage::item::NvtRef;
         vec![NvtRef {
             class: "URL".to_owned(),
             id: "unix:///var/lib/really.sock".to_owned(),
@@ -273,7 +274,7 @@ mod tests {
     fn single_json() {
         let nvt = generate_nvt("test", ACT::DestructiveAttack);
         let mut buf = Vec::with_capacity(1208);
-        let dispatcher = super::NvtDispatcher::new(&mut buf);
+        let dispatcher = super::ItemDispatcher::new(&mut buf);
         dispatcher.as_json(nvt.clone()).unwrap();
         let single_json = String::from_utf8(buf).unwrap();
         let result: Nvt = serde_json::from_str(&single_json).unwrap();
@@ -284,7 +285,7 @@ mod tests {
     fn array_wrapper() {
         let mut buf = Vec::with_capacity(1208 * 11);
         let mut ja = ArrayWrapper::new(&mut buf);
-        let dispatcher = super::NvtDispatcher::new(&mut ja);
+        let dispatcher = super::ItemDispatcher::new(&mut ja);
         for nvt in [
             ACT::Init,
             ACT::Scanner,

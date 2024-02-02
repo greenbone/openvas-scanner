@@ -166,7 +166,10 @@ fn main() {
     };
     let (ncd, nasl_cli) = run_get(
         &mut kb,
-        &format!("{} feed update --vts-only", nasl_cli.to_str().unwrap_or_default()),
+        &format!(
+            "{} feed update --vts-only",
+            nasl_cli.to_str().unwrap_or_default()
+        ),
     )
     .expect("results");
     let mut errors = 0;

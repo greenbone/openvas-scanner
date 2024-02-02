@@ -86,7 +86,7 @@ pub struct Vulnerability {
     /// Solution Type
     pub solution_type: String,
     /// Vuldetect
-    pub vuldeterct: String,
+    pub vuldetect: String,
     /// Quality of detection
     pub qod_type: String,
     /// Severity vector
@@ -183,7 +183,7 @@ impl<'a> From<&VulnerabilityData<'a>> for Vulnerability {
             insight: data.adv.insight.to_owned(),
             solution: "Please install the updated package(s).".to_string(),
             solution_type: "VendorFix".to_string(),
-            vuldeterct: "Checks if a vulnerable package version is present on the target host."
+            vuldetect: "Checks if a vulnerable package version is present on the target host."
                 .to_string(),
             qod_type: data.adv.qod_type.to_owned(),
             severity_vector: sv.to_string(),

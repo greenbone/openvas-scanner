@@ -12,6 +12,8 @@ use super::{context::Context, ClientIdentifier};
 
 use hyper::{Method, Request};
 
+use crate::ospcmd::getvts::GetVts;
+
 use crate::{
     controller::ClientHash,
     notus::NotusScanner,
@@ -40,6 +42,8 @@ enum KnownPaths {
     Health(HealthOpts),
     /// /notus/{os}
     Notus(Option<String>),
+    /// /get_vts/
+    GetVts(Option<String>),
     /// Not supported
     Unknown,
 }
@@ -76,6 +80,10 @@ impl KnownPaths {
                 Some("started") => KnownPaths::Health(HealthOpts::Started),
                 _ => KnownPaths::Unknown,
             },
+            Some("get_vts") => match parts.next() {
+                Some(vt_selection) => KnownPaths::GetVts(Some(vt_selection.to_string())),
+                _ => KnownPaths::GetVts(None),
+            },
             _ => {
                 tracing::trace!("Unknown path: {path}");
                 KnownPaths::Unknown
@@ -108,6 +116,8 @@ impl Display for KnownPaths {
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
+            KnownPaths::GetVts(None) => write!(f, "/get_vts"),
+            KnownPaths::GetVts(Some(vt_selection)) => write!(f, "/get_vts/{}", vt_selection),
         }
     }
 }
@@ -393,6 +403,24 @@ where
                     let oids = ctx.db.oids().await?;
 
                     Ok(ctx.response.ok_json_stream(oids).await)
+                }
+                (&Method::GET, GetVts(None)) => match &ctx.redis_cache {
+                    Some(cache) => match cache.get_vts(None).await {
+                        Ok(nvts) => Ok(ctx.response.ok(&nvts)),
+                        Err(err) => Ok(ctx.response.internal_server_error(&err)),
+                    },
+                    None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
+                },
+                (&Method::GET, GetVts(Some(vt_selection))) => {
+                    let selection: Vec<String> = vt_selection.split(',').map(|x| x.to_string()).collect();
+
+                    match &ctx.redis_cache {
+                        Some(cache) => match cache.get_vts(Some(selection)).await {
+                            Ok(nvts) => Ok(ctx.response.ok(&nvts)),
+                            Err(err) => Ok(ctx.response.internal_server_error(&err)),
+                        },
+                        None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
+                    }
                 }
                 _ => Ok(ctx.response.not_found("path", req.uri().path())),
             }

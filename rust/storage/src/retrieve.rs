@@ -5,9 +5,10 @@
 use std::marker::PhantomData;
 
 use crate::{
-    nvt::{NVTField, NVTKey},
+    item::{NVTField, NVTKey, Nvt},
     Field, StorageError,
 };
+
 /// Retrieve command for a given Field
 ///
 /// Defines what kind of information needs to be gathered.
@@ -17,6 +18,8 @@ pub enum Retrieve {
     NVT(Option<NVTKey>),
     /// Knowledge Base item
     KB(String),
+    /// Metadata of the Notus advisory
+    NOTUS(Option<String>),
 }
 
 impl Retrieve {
@@ -25,6 +28,7 @@ impl Retrieve {
         match self {
             Retrieve::NVT(_) => "nvt",
             Retrieve::KB(_) => "kb",
+            Retrieve::NOTUS(_) => "notus",
         }
     }
 
@@ -72,12 +76,30 @@ impl Retrieve {
                     false
                 }
             }
+
+            Retrieve::NOTUS(None) => matches!(field, Field::NOTUS(_)),
+            Retrieve::NOTUS(Some(_)) => matches!(field, Field::NOTUS(_)),
         }
     }
 }
 
+/// Retrieves list of keys based on a key pattern.
+pub trait ListRetriever {
+    /// Gets Fields find by key and scope.
+    fn retrieve_keys(&self, _pattern: &str) -> Result<Vec<String>, StorageError>;
+}
+
 /// Retrieves fields based on a key and scope.
 pub trait Retriever<K> {
+    /// Returns VT's metainformation to be sent to a client.
+    fn retrieve_nvt(&self, _oid: &str) -> Result<Option<Nvt>, StorageError> {
+        Ok(Some(Nvt::default()))
+    }
+    /// Returns Advisories metainformation to be sent to a client.
+    fn retrieve_advisory(&self, _oid: &str) -> Result<Option<Nvt>, StorageError> {
+        Ok(Some(Nvt::default()))
+    }
+
     /// Gets Fields find by key and scope.
     fn retrieve(&self, key: &K, scope: &Retrieve) -> Result<Vec<Field>, StorageError>;
 

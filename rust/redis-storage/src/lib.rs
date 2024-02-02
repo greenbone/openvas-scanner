@@ -5,7 +5,9 @@
 #![doc = include_str!("../README.md")]
 /// Module with structures and methods to access redis.
 mod connector;
-pub use connector::CacheDispatcher;
+pub use connector::{
+    CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper, VtHelper,
+};
 /// Module to handle custom errors
 pub mod dberror;
 /// Default selector for feed update

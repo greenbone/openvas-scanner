@@ -24,7 +24,7 @@ pub use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;
-pub use storage::nvt::ACT;
+pub use storage::item::ACT;
 pub use token::Base as NumberBase;
 pub use token::Category as TokenCategory;
 pub use token::IdentifierType;

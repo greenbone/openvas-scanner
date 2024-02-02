@@ -5,10 +5,12 @@
 use std::{path::PathBuf, sync::RwLock};
 
 use async_trait::async_trait;
+use redis_storage::RedisCtx;
 use storage::DefaultDispatcher;
 
 use crate::{
     notus::NotusWrapper,
+    ospcmd::{self, GetVtsWrapper},
     response,
     scan::{Error, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper},
 };
@@ -69,6 +71,7 @@ pub struct ContextBuilder<S, DB, T> {
     marker: std::marker::PhantomData<S>,
     response: response::Response,
     notus: Option<NotusWrapper>,
+    redis_cache: Option<ospcmd::GetVtsWrapper<RedisCtx, String>>,
 }
 
 impl<S>
@@ -86,6 +89,7 @@ impl<S>
             enable_get_scans: false,
             response: response::Response::default(),
             notus: None,
+            redis_cache: None,
         }
     }
 }
@@ -131,6 +135,12 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self
     }
 
+    /// Set redis cache
+    pub fn redis_cache(mut self, redis_cache: GetVtsWrapper<RedisCtx, String>) -> Self {
+        self.redis_cache = Some(redis_cache);
+        self
+    }
+
     /// Sets the storage.
     #[allow(dead_code)]
     pub fn storage<NDB>(self, storage: NDB) -> ContextBuilder<S, NDB, T> {
@@ -144,6 +154,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             marker,
             response,
             notus,
+            redis_cache,
         } = self;
         ContextBuilder {
             scanner,
@@ -155,6 +166,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             marker,
             response,
             notus,
+            redis_cache,
         }
     }
 }
@@ -178,6 +190,7 @@ where
             response,
             storage,
             notus,
+            redis_cache,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
@@ -189,6 +202,7 @@ where
             enable_get_scans,
             response,
             notus,
+            redis_cache,
         }
     }
 }
@@ -205,6 +219,7 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             api_key: self.api_key,
             enable_get_scans: self.enable_get_scans,
             notus: self.notus,
+            redis_cache: self.redis_cache,
         }
     }
 }
@@ -235,6 +250,8 @@ pub struct Context<S, DB> {
     pub abort: RwLock<bool>,
     /// Notus Scanner
     pub notus: Option<NotusWrapper>,
+    /// Redis cache
+    pub redis_cache: Option<GetVtsWrapper<RedisCtx, String>>,
 }
 
 #[derive(Debug, Clone, Default)]

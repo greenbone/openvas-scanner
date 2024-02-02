@@ -10,7 +10,6 @@ license = "GPL-2.0-or-later"
 serde = {version = "1", features = ["derive"], optional = true}
 bincode = {version = "2.0.0-rc.3", optional = true }
 
-
 [features]
 default = ["serde_support", "bincode_support"]
 serde_support = ["serde"]
