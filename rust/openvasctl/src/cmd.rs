@@ -7,13 +7,17 @@ use std::{
     io::Result,
     process::{Child, Command},
 };
+/// This module provides functions to call the openvas executable for different
+/// purposes, e.g. start or stopping a scan.
 
-/// Check if it is possible to start openvas
+/// Check if it is possible to start openvas.
 pub fn check() -> bool {
     Command::new("openvas").spawn().is_ok()
 }
 
-/// Check if it is possible to start openvas with the sudo command
+/// Check if it is possible to start openvas with the sudo command. In most
+/// environments it is necessary to start openvas as sudo, as it is not possible
+/// to use all functionalities.
 pub fn check_sudo() -> bool {
     Command::new("sudo").args(["-n", "openvas"]).spawn().is_ok()
 }
@@ -30,7 +34,7 @@ pub fn read_openvas_config() -> Result<Ini> {
 }
 
 /// Start a new scan with the openvas executable with the given string. Before a scan can be
-/// started all data needed for the scan must put into redis before.
+/// started all data needed for the scan must be put into redis before.
 pub fn start(id: &str, sudo: bool, nice: Option<i8>) -> Result<Child> {
     match nice {
         Some(niceness) => match sudo {
@@ -58,7 +62,8 @@ pub fn start(id: &str, sudo: bool, nice: Option<i8>) -> Result<Child> {
     }
 }
 
-/// Stops a running scan
+/// Stops a running scan. Openvas internally sends an SIGUSR1 to the running
+/// openvas scan.
 pub fn stop(id: &str, sudo: bool) -> Result<Child> {
     match sudo {
         true => Command::new("sudo")
