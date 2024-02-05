@@ -72,11 +72,11 @@ Transforms a NVT to the json structure:
 
 ### Element
 
-To create a single json element per dispatch you can use the NvtDispatcher with a writer of your choice:
+To create a single json element per dispatch you can use the ItemDispatcher with a writer of your choice:
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let dispatcher = json_storage::NvtDispatcher::as_dispatcher::<String>(&mut buf);
+let dispatcher = json_storage::ItemDispatcher::as_dispatcher::<String>(&mut buf);
 ```
 
 ### Array
@@ -86,7 +86,7 @@ To create an array for elements per dispatch call:
 ```
 let mut buf = Vec::with_capacity(1208);
 let mut ja = json_storage::ArrayWrapper::new(&mut buf);
-let dispatcher = json_storage::NvtDispatcher::as_dispatcher::<String>(&mut ja);
+let dispatcher = json_storage::ItemDispatcher::as_dispatcher::<String>(&mut ja);
 // do your work
 ja.end();
 ```

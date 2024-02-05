@@ -24,38 +24,31 @@ where
                 break;
             };
             let last_hash = ctx.db.feed_hash().await;
-            let result = tokio::task::spawn_blocking(move || {
-                let hash = match FeedIdentifier::sumfile_hash(&path) {
+            if signature_check {
+                if let Err(err) = feed::verify::check_signature(&path) {
+                    tracing::warn!("Signature of {} is not corredct, skipping: {}", path.display(), err);
+
+                }
+            }
+
+            let hash = tokio::task::spawn_blocking(move || {
+                match FeedIdentifier::sumfile_hash(path) {
                     Ok(h) => h,
                     Err(e) => {
                         tracing::warn!("Failed to compute sumfile hash: {e:?}");
                         "".to_string()
                     }
-                };
-
-                if last_hash.is_empty() || last_hash.clone() != hash {
-                    FeedIdentifier::from_feed(&path, signature_check).map(|x| (hash, x))
-                } else {
-                    Ok((String::new(), vec![]))
                 }
             })
             .await
             .unwrap();
-            match result {
-                Ok((hash, oids)) => {
-                    if !oids.is_empty() {
-                        match ctx.db.push_oids(hash.clone(), oids).await {
-                            Ok(_) => {
-                                tracing::debug!("updated feed {hash}")
-                            }
-                            Err(e) => {
-                                tracing::warn!("unable to fetch new oids, leaving the old: {e:?}")
-                            }
-                        }
-                    }
+            if last_hash.is_empty() || last_hash != hash {
+                match ctx.db.synchronize_feeds(hash).await{
+                    Ok(_) => {},
+                    Err(e) => tracing::warn!("Unable to sync feed: {e}"),
                 }
-                Err(e) => tracing::warn!("unable to fetch new oids, leaving the old: {e:?}"),
-            };
+
+            }
             tokio::time::sleep(interval).await;
         }
     }

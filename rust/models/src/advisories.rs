@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 /// Represents an advisory json file for notus product.
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq, Eq)]
 pub struct ProductsAdivisories {
     /// Version of the advisory file
     pub version: String,
@@ -28,6 +28,7 @@ pub struct ProductsAdivisories {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+
 pub struct Advisories {
     /// The advisory's title.
     pub title: String,
@@ -156,41 +157,43 @@ impl ProductsAdivisories {
     }
 }
 
-pub struct VulnerabilityData<'a> {
-    pub adv: &'a Advisories,
-    pub product_data: &'a ProductsAdivisories,
-    pub filename: &'a String,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VulnerabilityData {
+    pub adv: Advisories,
+    pub famile: String,
+    pub filename: String,
 }
 
-impl<'a> From<&VulnerabilityData<'a>> for Vulnerability {
-    fn from(data: &VulnerabilityData<'a>) -> Self {
-        let sv = match &data.adv.severity.cvss_v2 {
+impl From<VulnerabilityData> for Vulnerability {
+    fn from(data: VulnerabilityData) -> Self {
+        let sv = match data.adv.severity.cvss_v2 {
             Some(cvss) => cvss,
-            None => match &data.adv.severity.cvss_v3 {
+            None => match data.adv.severity.cvss_v3 {
                 Some(cvss) => cvss,
-                None => "",
+                None => "".to_string(),
             },
         };
+        
 
         let refs = HashMap::new();
         Self {
             vt_params: Vec::new(),
             creation_date: data.adv.creation_date,
             last_modification: data.adv.last_modification,
-            summary: data.adv.summary.to_owned(),
+            summary: data.adv.summary,
             impact: "".to_string(),
-            affected: data.adv.affected.to_owned(),
-            insight: data.adv.insight.to_owned(),
+            affected: data.adv.affected,
+            insight: data.adv.insight,
             solution: "Please install the updated package(s).".to_string(),
             solution_type: "VendorFix".to_string(),
             vuldetect: "Checks if a vulnerable package version is present on the target host."
                 .to_string(),
-            qod_type: data.adv.qod_type.to_owned(),
-            severity_vector: sv.to_string(),
-            filename: data.filename.to_string(),
+            qod_type: data.adv.qod_type,
+            severity_vector: sv,
+            filename: data.filename,
             refs,
-            family: data.product_data.family.to_owned(),
-            name: data.adv.title.to_owned(),
+            family: data.famile,
+            name: data.adv.title,
             category: "3".to_string(),
         }
     }

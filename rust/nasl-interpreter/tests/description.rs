@@ -92,8 +92,8 @@ if(description)
         assert_eq!(results, Ok(NaslValue::Exit(23)));
         assert_eq!(
             storage
-                .retrieve(&key, &storage::Retrieve::NVT(None))
-                .unwrap(),
+                .retrieve(&key, storage::Retrieve::NVT(None))
+                .unwrap().collect::<Vec<_>>(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
                 NVT(FileName(key)),

@@ -11,9 +11,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use models::Vulnerability;
+use models::{Vulnerability, VulnerabilityData};
 
-use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Notus, Retriever, StorageError};
+use crate::{
+    time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, NotusAdvisory, Retriever, StorageError,
+};
 
 /// Attack Category either set by script_category
 ///
@@ -40,12 +42,13 @@ use crate::{time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, Notus, Retrieve
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub enum ACT {
     /// Defines a initializer
     Init,
@@ -98,11 +101,12 @@ impl FromStr for ACT {
 macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd, Hash)]
         #[cfg_attr(feature = "serde_support",
                    derive(serde::Serialize, serde::Deserialize),
                    serde(rename_all = "snake_case")
         )]
+        #[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
         pub enum $enum_name {
             $(
              #[doc = concat!(stringify!($matcher))]
@@ -238,8 +242,9 @@ macro_rules! make_nvt_fields {
     };
 }
 
+// "The full NVT" => Nvt(Nvt),
 make_nvt_fields! {
-    "Is an identifying field" => Oid(String),
+   "Is an identifying field" => Oid(String),
     "The filename of the NASL Plugin
 
 The filename is set on a description run and is not read from the NASL script." => FileName(String),
@@ -279,17 +284,19 @@ Category will be used to identify the type of the NASL plugin."### =>
     Category(ACT),
     r###"Family"### =>
     Family(String),
+   "Get complete NVTs" => Nvt(Nvt),
     r###"For deprecated functions"### =>
     NoOp
 }
 
 /// Preferences that can be set by a user when running a script.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct NvtPreference {
     /// Preference ID
     pub id: Option<i32>,
@@ -302,12 +309,13 @@ pub struct NvtPreference {
 }
 
 /// References defines where the information for that vulnerability attack is from.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
     pub class: String,
@@ -416,7 +424,8 @@ impl TagValue {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
@@ -452,6 +461,14 @@ pub struct Nvt {
     pub category: ACT,
     /// Family
     pub family: String,
+}
+
+impl From<VulnerabilityData> for Nvt {
+    fn from(value: VulnerabilityData) -> Self {
+        let oid = value.adv.oid.clone();
+        let v: Vulnerability = value.into();
+        (&oid as &str, v).into()
+    }
 }
 
 impl From<(&str, Vulnerability)> for Nvt {
@@ -534,12 +551,6 @@ impl From<(&str, Vulnerability)> for Nvt {
         }
     }
 }
-/// Is a specialized Retriever for NVT information
-pub trait ItemRetriever {
-    /// Retrieves NVT information stored
-    fn retrieve_single_nvt(&self, oid: &str) -> Result<Nvt, StorageError>;
-}
-
 /// Is a specialized Dispatcher for NVT information within the description block.
 pub trait ItemDispatcher<K> {
     /// Dispatches the feed version as well as NVT.
@@ -552,19 +563,16 @@ pub trait ItemDispatcher<K> {
     fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError>;
     /// Dispatches a knowledge base item.
     ///
-    /// Usually the NvtDispatcher is used on description = 1 runs were no KB item should occur. But
+    /// Usually the ItemDispatcher is used on description = 1 runs were no KB item should occur. But
     /// to have the possibility to have shared run this interface should allow to handle it
     /// accordingly.
     /// The default is set to return `Ok(())` without doing something to net enforce every
-    /// NvtDispatcher to implement it.
+    /// ItemDispatcher to implement it.
     fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
         Ok(())
     }
     /// Stores an advisory
-
-    fn dispatch_advisory(&self, _: &str, _: Notus) -> Result<(), StorageError> {
-        Ok(())
-    }
+    fn dispatch_advisory(&self, _: &str, _: Box<Option<NotusAdvisory>>) -> Result<(), StorageError>;
 }
 
 /// Collects the information while being in a description run and calls the dispatch method
@@ -583,7 +591,7 @@ where
     S: ItemDispatcher<K>,
     K: AsRef<str>,
 {
-    /// Creates a new NvtDispatcher without a feed_version and nvt.
+    /// Creates a new ItemDispatcher without a feed_version and nvt.
     pub fn new(dispatcher: S) -> Self {
         Self {
             nvt: Arc::new(Mutex::new(None)),
@@ -598,7 +606,6 @@ where
             .map_err(|x| StorageError::Dirty(format!("{x}")))?;
         let mut nvt = data.clone().unwrap_or_default();
 
-        // TODO optimize
         match f {
             NVTField::Oid(oid) => nvt.oid = oid,
             NVTField::FileName(s) => nvt.filename = s,
@@ -620,6 +627,7 @@ where
             NVTField::Category(s) => nvt.category = s,
             NVTField::Family(s) => nvt.family = s,
             NVTField::NoOp => {}
+            NVTField::Nvt(x) => nvt = x,
         };
         *data = Some(nvt);
         Ok(())
@@ -635,7 +643,7 @@ where
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
-            Field::NOTUS(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), adv),
+            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), adv),
         }
     }
 
@@ -655,15 +663,19 @@ where
     K: AsRef<str>,
     S: ItemDispatcher<K> + Retriever<K>,
 {
-    fn retrieve(&self, key: &K, scope: &crate::Retrieve) -> Result<Vec<Field>, StorageError> {
+    fn retrieve(
+        &self,
+        key: &K,
+        scope: crate::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         self.dispatcher.retrieve(key, scope)
     }
 
     fn retrieve_by_field(
         &self,
-        field: &Field,
-        scope: &crate::Retrieve,
-    ) -> Result<Vec<(K, Vec<Field>)>, StorageError> {
+        field: Field,
+        scope: crate::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
         self.dispatcher.retrieve_by_field(field, scope)
     }
 }

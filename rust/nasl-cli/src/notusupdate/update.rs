@@ -5,17 +5,16 @@
 use std::path::PathBuf;
 
 use crate::{CliError, CliErrorKind};
-use models::{Vulnerability, VulnerabilityData};
+
 use nasl_syntax::{FSPluginLoader, LoadError};
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
-use redis_storage::NOTUS_KEY;
-use storage::{Dispatcher, Field::NOTUS, Notus};
+use storage::Dispatcher;
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
     S: Sync + Send + Dispatcher<String>,
 {
-    let loader = FSPluginLoader::new(path.to_string_lossy().to_string());
+    let loader = FSPluginLoader::new(path);
     let advisories_files = match HashsumAdvisoryLoader::new(loader.clone()) {
         Ok(loader) => loader,
         Err(_) => {
@@ -28,7 +27,6 @@ where
         }
     };
 
-    // Perform signature check if enabled.
     if signature_check {
         match advisories_files.verify_signature() {
             Ok(_) => tracing::info!("Signature check succsessful"),
@@ -61,28 +59,21 @@ where
     for filename in advisories_files.get_advisories().unwrap().iter() {
         let advisories = advisories_files.load_advisory(filename).unwrap();
 
-        // Each products contains multiple advisories. Each advisory is converted
-        // to a Vulnerability, serialized, and stored as a single entry in the cache.
-        for adv in advisories.iter() {
-            let key = format!("internal/notus/advisories/{}", adv.oid);
-            let value = Vulnerability::from(&VulnerabilityData {
-                adv,
-                product_data: &advisories,
-                filename,
-            });
-
-            let serialized = serde_json::to_string(&value).unwrap();
-
+        for adv in advisories.advisories {
             let _ = storage.dispatch(
-                &key,
-                NOTUS(Notus {
-                    value: serialized.into(),
-                }),
+                &String::new(),
+                storage::Field::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
+                    adv,
+                    famile: advisories.family.clone(),
+                    filename: filename.to_owned(),
+                }))),
             );
         }
-        // Finally, set the "notuscache" key, so the cache can be found under this key.
-        let _ = storage.dispatch(&NOTUS_KEY.to_string(), NOTUS(Notus { value: 1.into() }));
     }
+    let _ = storage.dispatch(
+        &"notuscache".to_string(),
+        storage::Field::NotusAdvisory(Box::new(None)),
+    );
 
     Ok(())
 }

@@ -291,7 +291,6 @@ impl<'a> Lexer<'a> {
                 .map_err(Self::map_syntax_error_to_unclosed_left_paren)?,
         };
         if !Self::is_end_of_category(&end, Category::RightParen) {
-            dbg!(end, update.end().category());
             let ut = update.as_token();
             return Err(unclosed_token!(Token {
                 category: Category::LeftParen,

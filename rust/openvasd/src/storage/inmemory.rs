@@ -1,4 +1,12 @@
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
+
 use super::*;
+use nasl_interpreter::FSPluginLoader;
+use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
+use storage::item::{ItemDispatcher, Nvt, PerItemDispatcher};
 use tokio::sync::RwLock;
 
 #[derive(Clone, Debug, Default)]
@@ -16,24 +24,81 @@ struct Progress {
 #[derive(Debug)]
 pub struct Storage<E> {
     scans: RwLock<HashMap<String, Progress>>,
-    oids: RwLock<Vec<String>>,
+    nvts: Arc<RwLock<HashSet<Nvt>>>,
+    feed_version: Arc<RwLock<String>>,
     hash: RwLock<String>,
     client_id: RwLock<Vec<(ClientHash, String)>>,
-
+    nasl_feed_path: Arc<PathBuf>,
+    notus_feed_path: Arc<PathBuf>,
     crypter: E,
+}
+
+struct Dispa {
+    nvts: Arc<RwLock<HashSet<Nvt>>>,
+    feed_version: Arc<RwLock<String>>,
+}
+
+impl ItemDispatcher<String> for Dispa {
+    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .expect("Expected to be able to build a thread");
+        rt.block_on(async {
+            let mut nvts = self.nvts.write().await;
+            nvts.insert(nvt);
+        });
+        Ok(())
+    }
+
+    fn dispatch_feed_version(&self, version: String) -> Result<(), storage::StorageError> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .expect("Expected to be able to build a thread");
+        rt.block_on(async {
+            let mut feed_version = self.feed_version.write().await;
+            *feed_version = version;
+        });
+        Ok(())
+    }
+
+    fn dispatch_advisory(
+        &self,
+        _: &str,
+        x: Box<Option<storage::NotusAdvisory>>,
+    ) -> Result<(), storage::StorageError> {
+        if let Some(x) = *x {
+            let nvt: Nvt = x.into();
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .build()
+                .expect("Expected to be able to build a thread");
+            rt.block_on(async {
+                let mut nvts = self.nvts.write().await;
+                nvts.insert(nvt);
+            });
+        }
+        Ok(())
+    }
 }
 
 impl<E> Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    pub fn new(crypter: E) -> Self {
+    pub fn new<S>(crypter: E, nasl_feed_path: S, notus_feed_path: S) -> Self
+    where
+        S: AsRef<Path>,
+    {
         Self {
             scans: RwLock::new(HashMap::new()),
-            oids: RwLock::new(vec![]),
+            nvts: Arc::new(RwLock::new(HashSet::with_capacity(100000))),
             hash: RwLock::new(String::new()),
             client_id: RwLock::new(vec![]),
             crypter,
+            feed_version: Arc::new(RwLock::new(String::new())),
+            // TODO cleanup
+            nasl_feed_path: Arc::new(nasl_feed_path.as_ref().to_path_buf()),
+
+            notus_feed_path: Arc::new(notus_feed_path.as_ref().to_path_buf()),
         }
     }
 
@@ -61,7 +126,11 @@ where
 
 impl Default for Storage<crate::crypt::ChaCha20Crypt> {
     fn default() -> Self {
-        Self::new(crate::crypt::ChaCha20Crypt::default())
+        Self::new(
+            crate::crypt::ChaCha20Crypt::default(),
+            "/var/lib/openvas/feed".to_string(),
+            "/var/lib/notus/feed".to_string(),
+        )
     }
 }
 
@@ -229,24 +298,98 @@ where
     }
 }
 
+impl From<feed::VerifyError> for Error {
+    fn from(value: feed::VerifyError) -> Self {
+        Error::Storage(Box::new(value))
+    }
+}
+impl From<feed::UpdateError> for Error {
+    fn from(value: feed::UpdateError) -> Self {
+        Error::Storage(Box::new(value))
+    }
+}
+impl From<notus::error::Error> for Error {
+    fn from(value: notus::error::Error) -> Self {
+        Error::Storage(Box::new(value))
+    }
+}
 #[async_trait]
-impl<E> OIDStorer for Storage<E>
+impl<E> NVTStorer for Storage<E>
 where
     E: Send + Sync + 'static,
 {
-    async fn push_oids(&self, hash: String, mut oids: Vec<String>) -> Result<(), Error> {
-        let mut o = self.oids.write().await;
-        o.clear();
-        o.append(&mut oids);
-        o.shrink_to_fit();
-        let mut f = self.hash.write().await;
-        *f = hash;
-        Ok(())
+    async fn synchronize_feeds(&self, hash: String) -> Result<(), Error> {
+        tracing::debug!("starting feed update in memory");
+        let mut h = self.hash.write().await;
+        *h = hash;
+        drop(h);
+
+        let notus_feed_path = self.notus_feed_path.clone();
+        let nvts = self.nvts.clone();
+        let notus_feed = tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting notus feed update");
+            let loader = FSPluginLoader::new(notus_feed_path.as_ref());
+            let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
+            for filename in advisories_files.get_advisories()?.iter() {
+                let advisories = advisories_files.load_advisory(filename)?;
+
+                for adv in advisories.advisories {
+                    let data = models::VulnerabilityData {
+                        adv,
+                        famile: advisories.family.clone(),
+                        filename: filename.to_owned(),
+                    };
+                    let nvt: Nvt = data.into();
+
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .build()
+                        .expect("Expected to be able to build a thread");
+                    rt.block_on(async {
+                        let mut nvts = nvts.write().await;
+                        nvts.insert(nvt);
+                    });
+                }
+            }
+            tracing::debug!("finished notus feed update");
+            Ok(())
+        });
+
+        let nvts = self.nvts.clone();
+        let feed_version = self.feed_version.clone();
+        let nasl_feed_path = self.nasl_feed_path.clone();
+        let active_feed = tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting nasl feed update");
+            let oversion = "0.1";
+            let loader = FSPluginLoader::new(nasl_feed_path.as_ref());
+            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+
+            let store = PerItemDispatcher::new(Dispa { nvts, feed_version });
+            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            if let Some(x) = fu.find_map(|x| x.err()) {
+                Err(Error::from(x))
+            } else {
+                tracing::debug!("finished nasl feed update");
+                Ok(())
+            }
+        });
+
+        let nasl_result = active_feed.await.unwrap();
+        let notus_result: Result<(), Error> = notus_feed.await.unwrap();
+        tracing::debug!("finished feed update");
+
+        match (nasl_result, notus_result) {
+            (Ok(_), Ok(_)) => Ok(()),
+            (Ok(_), Err(err)) => Err(err),
+            (Err(err), Ok(_)) => Err(err),
+            (Err(err), Err(_)) => Err(err),
+        }
     }
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
-        let o = self.oids.read().await.clone();
-        Ok(Box::new(o.into_iter()))
+    async fn vts<'a>(
+        &self,
+    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+        let o = self.nvts.read().await.clone().into_iter();
+        Ok(Box::new(o))
     }
 
     async fn feed_hash(&self) -> String {

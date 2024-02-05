@@ -6,12 +6,13 @@
 
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
     serde(untagged)
 )]
+#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 /// Allowed type definitions
 pub enum Primitive {
     /// String value
@@ -23,7 +24,7 @@ pub enum Primitive {
     /// Array value
     Array(Vec<Primitive>),
     /// Array value
-    Dict(HashMap<String, Primitive>),
+    Dict(Vec<(String, Primitive)>),
     /// Boolean value
     Boolean(bool),
     /// Null value
@@ -75,7 +76,7 @@ impl From<usize> for Primitive {
 
 impl From<HashMap<String, Primitive>> for Primitive {
     fn from(x: HashMap<String, Primitive>) -> Self {
-        Primitive::Dict(x)
+        Primitive::Dict(x.into_iter().collect())
     }
 }
 

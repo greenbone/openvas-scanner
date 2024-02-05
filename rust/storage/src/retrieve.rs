@@ -5,7 +5,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    item::{NVTField, NVTKey, Nvt},
+    item::{NVTField, NVTKey},
     Field, StorageError,
 };
 
@@ -19,7 +19,7 @@ pub enum Retrieve {
     /// Knowledge Base item
     KB(String),
     /// Metadata of the Notus advisory
-    NOTUS(Option<String>),
+    NotusAdvisory(Option<String>),
 }
 
 impl Retrieve {
@@ -28,7 +28,7 @@ impl Retrieve {
         match self {
             Retrieve::NVT(_) => "nvt",
             Retrieve::KB(_) => "kb",
-            Retrieve::NOTUS(_) => "notus",
+            Retrieve::NotusAdvisory(_) => "notus",
         }
     }
 
@@ -67,6 +67,8 @@ impl Retrieve {
                 NVTKey::Category => matches!(field, Field::NVT(NVTField::Category(_))),
                 NVTKey::Family => matches!(field, Field::NVT(NVTField::Family(_))),
                 NVTKey::NoOp => matches!(field, Field::NVT(NVTField::NoOp)),
+                // TODO: in memory and file should map in this case
+                NVTKey::Nvt => matches!(field, Field::NVT(NVTField::Nvt(_))),
             },
 
             Retrieve::KB(s) => {
@@ -77,38 +79,26 @@ impl Retrieve {
                 }
             }
 
-            Retrieve::NOTUS(None) => matches!(field, Field::NOTUS(_)),
-            Retrieve::NOTUS(Some(_)) => matches!(field, Field::NOTUS(_)),
+            Retrieve::NotusAdvisory(_) => matches!(field, Field::NotusAdvisory(_)),
         }
     }
 }
 
-/// Retrieves list of keys based on a key pattern.
-pub trait ListRetriever {
-    /// Gets Fields find by key and scope.
-    fn retrieve_keys(&self, _pattern: &str) -> Result<Vec<String>, StorageError>;
-}
-
 /// Retrieves fields based on a key and scope.
 pub trait Retriever<K> {
-    /// Returns VT's metainformation to be sent to a client.
-    fn retrieve_nvt(&self, _oid: &str) -> Result<Option<Nvt>, StorageError> {
-        Ok(Some(Nvt::default()))
-    }
-    /// Returns Advisories metainformation to be sent to a client.
-    fn retrieve_advisory(&self, _oid: &str) -> Result<Option<Nvt>, StorageError> {
-        Ok(Some(Nvt::default()))
-    }
-
-    /// Gets Fields find by key and scope.
-    fn retrieve(&self, key: &K, scope: &Retrieve) -> Result<Vec<Field>, StorageError>;
+    /// Gets Fields find by key and scope. This is to get all instances.
+    fn retrieve(
+        &self,
+        key: &K,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
     /// Gets Fields find by field and scope.
     fn retrieve_by_field(
         &self,
-        field: &Field,
-        scope: &Retrieve,
-    ) -> Result<Vec<(K, Vec<Field>)>, StorageError>;
+        field: Field,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError>;
 }
 
 /// A NoOpRetriever is for cases that don't require a retriever but it is needed due to contract.
@@ -121,16 +111,20 @@ pub struct NoOpRetriever<K> {
     phantom: PhantomData<K>,
 }
 
-impl<K> Retriever<K> for NoOpRetriever<K> {
-    fn retrieve(&self, _: &K, _: &Retrieve) -> Result<Vec<Field>, StorageError> {
-        Ok(vec![])
+impl<K: 'static> Retriever<K> for NoOpRetriever<K> {
+    fn retrieve(
+        &self,
+        _: &K,
+        _: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        Ok(Box::new(vec![].into_iter()))
     }
 
     fn retrieve_by_field(
         &self,
-        _: &Field,
-        _: &Retrieve,
-    ) -> Result<Vec<(K, Vec<Field>)>, StorageError> {
-        Ok(vec![])
+        _: Field,
+        _: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
+        Ok(Box::new(vec![].into_iter()))
     }
 }

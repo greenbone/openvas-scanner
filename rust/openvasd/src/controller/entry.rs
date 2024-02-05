@@ -6,13 +6,11 @@
 //!
 //! All known paths must be handled in the entrypoint function.
 
-use std::{fmt::Display, sync::Arc, marker::PhantomData};
+use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use super::{context::Context, ClientIdentifier};
 
 use hyper::{Method, Request};
-
-use crate::ospcmd::getvts::GetVts;
 
 use crate::{
     controller::ClientHash,
@@ -37,20 +35,18 @@ enum KnownPaths {
     /// /scans/{id}/status
     ScanStatus(String),
     /// /vts
-    Vts,
+    Vts(Option<String>),
     /// /health
     Health(HealthOpts),
     /// /notus/{os}
     Notus(Option<String>),
-    /// /get_vts/
-    GetVts(Option<String>),
     /// Not supported
     Unknown,
 }
 
 impl KnownPaths {
     pub fn requires_id(&self) -> bool {
-        !matches!(self, Self::Health(_) | Self::Vts | Self::Notus(_))
+        !matches!(self, Self::Health(_) | Self::Vts(_) | Self::Notus(_))
     }
 
     #[tracing::instrument]
@@ -69,7 +65,10 @@ impl KnownPaths {
                 },
                 None => KnownPaths::Scans(None),
             },
-            Some("vts") => KnownPaths::Vts,
+            Some("vts") => match parts.next() {
+                Some(oid) => KnownPaths::Vts(Some(oid.to_string())),
+                None => KnownPaths::Vts(None),
+            },
             Some("notus") => match parts.next() {
                 Some(os) => KnownPaths::Notus(Some(os.to_string())),
                 None => KnownPaths::Notus(None),
@@ -79,10 +78,6 @@ impl KnownPaths {
                 Some("alive") => KnownPaths::Health(HealthOpts::Alive),
                 Some("started") => KnownPaths::Health(HealthOpts::Started),
                 _ => KnownPaths::Unknown,
-            },
-            Some("get_vts") => match parts.next() {
-                Some(vt_selection) => KnownPaths::GetVts(Some(vt_selection.to_string())),
-                _ => KnownPaths::GetVts(None),
             },
             _ => {
                 tracing::trace!("Unknown path: {path}");
@@ -110,14 +105,13 @@ impl Display for KnownPaths {
             KnownPaths::ScanResults(id, None) => write!(f, "/scans/{}/results", id),
             KnownPaths::ScanStatus(id) => write!(f, "/scans/{}/status", id),
             KnownPaths::Unknown => write!(f, "Unknown"),
-            KnownPaths::Vts => write!(f, "/vts"),
+            KnownPaths::Vts(None) => write!(f, "/vts"),
+            KnownPaths::Vts(Some(oid)) => write!(f, "/vts/{oid}"),
             KnownPaths::Notus(Some(os)) => write!(f, "/notus/{}", os),
             KnownPaths::Notus(None) => write!(f, "/notus"),
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
-            KnownPaths::GetVts(None) => write!(f, "/get_vts"),
-            KnownPaths::GetVts(Some(vt_selection)) => write!(f, "/get_vts/{}", vt_selection),
         }
     }
 }
@@ -126,7 +120,6 @@ pub struct EntryPoint<S, DB, R> {
     pub ctx: Arc<Context<S, DB>>,
     pub cid: Arc<ClientIdentifier>,
     _phantom: PhantomData<R>,
-    
 }
 
 impl<S, DB, R> EntryPoint<S, DB, R> {
@@ -136,11 +129,8 @@ impl<S, DB, R> EntryPoint<S, DB, R> {
             cid,
             _phantom: PhantomData,
         }
-
     }
-
 }
-
 
 impl<S, DB, R> hyper::service::Service<Request<R>> for EntryPoint<S, DB, R>
 where
@@ -264,7 +254,8 @@ where
                     }
                 }
                 (&Method::POST, Scans(None)) => {
-                    match crate::request::json_request::<models::Scan, _>(&ctx.response, req).await {
+                    match crate::request::json_request::<models::Scan, _>(&ctx.response, req).await
+                    {
                         Ok(mut scan) => {
                             if scan.scan_id.is_some() {
                                 return Ok(ctx
@@ -335,7 +326,19 @@ where
                     }
                 }
                 (&Method::GET, Scans(Some(id))) => match ctx.db.get_scan(&id).await {
-                    Ok((scan, _)) => Ok(ctx.response.ok(&scan)),
+                    Ok((mut scan, _)) => {
+                        let credentials = scan
+                            .target
+                            .credentials
+                            .into_iter()
+                            .map(move |c| {
+                                let c = c.map_password::<_, Error>(|_| Ok("***".to_string()));
+                                c.unwrap()
+                            })
+                            .collect::<Vec<_>>();
+                        scan.target.credentials = credentials;
+                        Ok(ctx.response.ok(&scan))
+                    }
                     Err(crate::storage::Error::NotFound) => {
                         Ok(ctx.response.not_found("scans", &id))
                     }
@@ -389,9 +392,7 @@ where
                     };
 
                     match ctx.db.get_results(&id, begin, end).await {
-                        Ok(results) => {
-                            Ok(ctx.response.ok_byte_stream(results).await)
-                        },
+                        Ok(results) => Ok(ctx.response.ok_byte_stream(results).await),
                         Err(crate::storage::Error::NotFound) => {
                             Ok(ctx.response.not_found("scans/results", &id))
                         }
@@ -399,27 +400,21 @@ where
                     }
                 }
 
-                (&Method::GET, Vts) => {
-                    let oids = ctx.db.oids().await?;
+                (&Method::GET, Vts(oid)) => {
+                    let query = req.uri().query();
 
-                    Ok(ctx.response.ok_json_stream(oids).await)
-                }
-                (&Method::GET, GetVts(None)) => match &ctx.redis_cache {
-                    Some(cache) => match cache.get_vts(None).await {
-                        Ok(nvts) => Ok(ctx.response.ok(&nvts)),
-                        Err(err) => Ok(ctx.response.internal_server_error(&err)),
-                    },
-                    None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
-                },
-                (&Method::GET, GetVts(Some(vt_selection))) => {
-                    let selection: Vec<String> = vt_selection.split(',').map(|x| x.to_string()).collect();
-
-                    match &ctx.redis_cache {
-                        Some(cache) => match cache.get_vts(Some(selection)).await {
-                            Ok(nvts) => Ok(ctx.response.ok(&nvts)),
-                            Err(err) => Ok(ctx.response.internal_server_error(&err)),
+                    let meta = match query {
+                        Some("information=true") => true,
+                        Some("information=1") => true,
+                        Some(_) | None => false,
+                    };
+                    match oid {
+                        Some(oid) => match ctx.db.vt_by_oid(&oid).await? {
+                            Some(nvt) => Ok(ctx.response.ok(&nvt)),
+                            None => Ok(ctx.response.not_found("nvt", &oid)),
                         },
-                        None => Ok(ctx.response.empty(hyper::StatusCode::OK)),
+                        None if meta => Ok(ctx.response.ok_json_stream(ctx.db.vts().await?).await),
+                        None => Ok(ctx.response.ok_json_stream(ctx.db.oids().await?).await),
                     }
                 }
                 _ => Ok(ctx.response.not_found("path", req.uri().path())),
@@ -427,4 +422,3 @@ where
         })
     }
 }
-

@@ -5,23 +5,16 @@
 use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use nasl_interpreter::FSPluginLoader;
 use notus::NotusWrapper;
-use redis_storage::{
-    CacheDispatcher, RedisCtx, VtHelper, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
-};
-
-
 pub mod config;
 pub mod controller;
 pub mod crypt;
 pub mod feed;
 pub mod notus;
-pub mod ospcmd;
 pub mod request;
 pub mod response;
 pub mod scan;
 pub mod storage;
 pub mod tls;
-
 
 fn create_context<DB>(
     db: DB,
@@ -45,27 +38,6 @@ fn create_context<DB>(
         Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),
     }
 
-    if let Some(redis) = config.redis_socket.redis_socket.to_str() {
-        let notus_cache: CacheDispatcher<RedisCtx, String>;
-        match CacheDispatcher::init(redis, NOTUSUPDATE_SELECTOR) {
-            Ok(c) => {notus_cache = c;},
-            Err(e) =>{
-                notus_cache = CacheDispatcher::default();
-                tracing::warn!("No notus cache found: {e}");
-            },
-        };
-        let vts_cache: CacheDispatcher<RedisCtx, String>;
-        match CacheDispatcher::init(redis, FEEDUPDATE_SELECTOR) {
-            Ok(c) => {vts_cache = c;},
-            Err(e) =>{
-                vts_cache = CacheDispatcher::default();
-                tracing::warn!("No vts cache found: {e}");
-            },
-        };
-        let cache = VtHelper::new(notus_cache, vts_cache);
-        ctx_builder = ctx_builder.redis_cache(ospcmd::GetVtsWrapper::new(cache));
-    }
-
     ctx_builder
         .result_config(rc)
         .feed_config(fc)
@@ -75,7 +47,6 @@ fn create_context<DB>(
         .storage(db)
         .build()
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -89,10 +60,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.ospd.socket.display());
     }
     match config.storage.storage_type {
+        config::StorageType::Redis => {
+            tracing::info!("using in redis {}", config.storage.redis.url);
+
+            let ic = storage::inmemory::Storage::new(
+                crate::crypt::ChaCha20Crypt::default(),
+                &config.feed.path,
+                &config.notus.advisories_path,
+            );
+            let ctx = create_context(
+                storage::redis::Storage::new(
+                    ic,
+                    config.storage.redis.url.clone(),
+                    &config.feed.path,
+                    &config.notus.advisories_path,
+                ),
+                &config,
+            );
+            controller::run(ctx, &config).await
+        }
         config::StorageType::InMemory => {
             tracing::info!("using in memory store. No sensitive data will be stored on disk.");
 
-            let ctx = create_context(storage::inmemory::Storage::default(), &config);
+            // Self::new(crate::crypt::ChaCha20Crypt::default(), "/var/lib/openvas/feed".to_string())
+            let ctx = create_context(
+                storage::inmemory::Storage::new(
+                    crate::crypt::ChaCha20Crypt::default(),
+                    &config.feed.path,
+                    &config.notus.advisories_path,
+                ),
+                &config,
+            );
             controller::run(ctx, &config).await
         }
         config::StorageType::FileSystem => {
@@ -102,7 +100,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 );
 
                 let ctx = create_context(
-                    storage::file::encrypted(&config.storage.fs.path, key)?,
+                    storage::file::encrypted(
+                        &config.storage.fs.path,
+                        key,
+                        &config.feed.path,
+                        &config.notus.advisories_path,
+                    )?,
                     &config,
                 );
                 controller::run(ctx, &config).await
@@ -111,7 +114,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     "using in file storage. Sensitive data will be stored on disk without any encryption."
                 );
                 let ctx = create_context(
-                    storage::file::unencrypted(&config.storage.fs.path)?,
+                    storage::file::unencrypted(
+                        &config.storage.fs.path,
+                        &config.feed.path,
+                        &config.notus.advisories_path,
+                    )?,
                     &config,
                 );
                 controller::run(ctx, &config).await

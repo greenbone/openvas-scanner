@@ -102,7 +102,6 @@ mod tests {
         let expected = ["a = 23;", "b = 1;"];
         for (i, s) in super::parse(code).enumerate() {
             let stmt = s.unwrap();
-            dbg!(stmt.kind());
             //assert!(matches!(stmt.kind(), Assign(..)));
             assert_eq!(&code[stmt.range()], expected[i]);
         }

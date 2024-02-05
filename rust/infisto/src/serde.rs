@@ -18,9 +18,8 @@ where
 {
     /// Serializes given data to Vec<u8>
     pub fn serialize(t: T) -> Result<Self, base::Error> {
-        let config = bincode::config::standard();
 
-        match bincode::serde::encode_to_vec(&t, config) {
+        match rmp_serde::to_vec(&t) {
             Ok(v) => Ok(Serialization::Serialized(v)),
             Err(_) => Err(base::Error::Serialize),
         }
@@ -42,9 +41,8 @@ where
     type Error = base::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let config = bincode::config::standard();
-        match bincode::serde::decode_from_slice(&value, config) {
-            Ok((t, _)) => Ok(Serialization::Deserialized(t)),
+        match rmp_serde::from_slice(&value) {
+            Ok(t) => Ok(Serialization::Deserialized(t)),
             Err(_) => Err(base::Error::Serialize),
         }
     }
