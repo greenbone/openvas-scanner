@@ -1,8 +1,5 @@
-use std::{
-    collections::HashMap,
-    process::Child,
-    sync::{Arc, Mutex},
-};
+
+use std::{collections::HashMap, sync::{Arc, Mutex}, process::Child};
 
 use crate::{
     cmd::{self, check_sudo},
@@ -110,4 +107,22 @@ impl OpenvasController {
         // TODO: Control loop (check for status and results)?
         todo!();
     }
+}
+/// The ScanController is the core for the scheduler to manage scans.
+pub trait ScanController {
+    /// Prepares and starts a requested scan.
+    fn start_scan(&self, scan: models::Scan) -> Result<(), OpenvasError>;
+    /// Stops a scan that is either initializing or running. If the Scan is either unknown or
+    /// already finished, an error is returned.
+    fn stop_scan(&self, id: &str) -> Result<(), OpenvasError>;
+    /// Return the number of currently initializing + active running scans.
+    fn num_running(&self) -> usize;
+    /// Return the number of currently initializing scans
+    fn num_init(&self) -> usize;
+    /// Marks a given scan ID as running. This is used for safely transfer scan status between the
+    /// scheduler and Controller.
+    fn set_init(&self, id: &str);
+    /// Returns if a given scan ID is known by the controller by either being initializing,
+    /// running or finished.
+    fn exists(&self, id: &str) -> bool;
 }
