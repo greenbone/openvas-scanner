@@ -207,7 +207,8 @@ make_str_lookup_enum! {
        file => File,
        password => Password,
        radio => Radio,
-       sshlogin => SshLogin
+       sshlogin => SshLogin,
+       integer => Integer
     }
 }
 
@@ -385,6 +386,24 @@ impl From<(&str, &str, &str, &str)> for NvtPreference {
             name: name.to_owned(),
             default: default.to_owned(),
         }
+    }
+}
+impl From<&NvtPreference> for (String,String,String,String) {
+    fn from(pref: &NvtPreference) -> Self {
+
+        let id = pref.id().unwrap().to_string();
+        let class = match pref.class {
+            PreferenceType::CheckBox => "checkbox",
+            PreferenceType::Entry => "entry",
+            PreferenceType::File => "file",
+            PreferenceType::Password => "password",
+            PreferenceType::Radio => "radio",
+            PreferenceType::SshLogin => "sshlogin",
+            PreferenceType::Integer => "integer",
+        };
+        let name = pref.name().to_string();
+        let def = pref.default().to_string();
+        (id, class.to_string(), name, def)
     }
 }
 

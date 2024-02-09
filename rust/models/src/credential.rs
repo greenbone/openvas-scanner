@@ -17,6 +17,7 @@ pub struct Credential {
     #[cfg_attr(feature = "serde_support", serde(flatten))]
     /// Type of the credential to get access. Different services support different types.
     pub credential_type: CredentialType,
+
 }
 
 impl Credential {
@@ -75,12 +76,16 @@ pub enum Service {
     #[cfg_attr(feature = "serde_support", serde(rename = "snmp"))]
     /// SNMP, supports [SNMP](CredentialType::SNMP)
     SNMP,
+    #[cfg_attr(feature = "serde_support", serde(rename = "privilege_ssh"))]
+    /// Privilege SSH, supports [SSH](CredentialType::UP)
+    PSSH,
 }
 
 impl AsRef<str> for Service {
     fn as_ref(&self) -> &str {
         match self {
             Service::SSH => "ssh",
+            Service::PSSH => "privilege_ssh",
             Service::SMB => "smb",
             Service::ESXi => "esxi",
             Service::SNMP => "snmp",

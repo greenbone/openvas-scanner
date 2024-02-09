@@ -6,4 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+configparser = "3.0.4"
 models = { path = "../models" }
+redis = "0.22.0"
+redis-storage = { version = "0.1.0", path = "../redis-storage" }
+storage = { version = "0.1.0", path = "../storage" }
+tracing = "0.1.40"

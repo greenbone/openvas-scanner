@@ -42,6 +42,9 @@ mod tests {
         "hosts": [
         "127.0.0.1"
         ],
+        "excluded_hosts": [
+        "192.168.0.14"
+        ],
         "ports": [
         {
             "range": [{"start": 22}]
@@ -71,6 +74,9 @@ mod tests {
       "2001:db8:0000:0000:0000:0000:0000:0001-00ff",
       "2002::1234:abcd:ffff:c0a8:101/64",
       "examplehost"
+    ],
+    "excluded_hosts": [
+      "192.168.0.14"
     ],
     "ports": [
       {

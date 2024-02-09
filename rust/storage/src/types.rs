@@ -44,6 +44,12 @@ impl From<bool> for Primitive {
     }
 }
 
+impl From<Vec<String>> for Primitive {
+    fn from(s: Vec<String>) -> Self {
+        Self::Array(s.into_iter().map(|x| x.into()).collect())
+    }
+}
+
 impl From<&str> for Primitive {
     fn from(s: &str) -> Self {
         Self::String(s.to_owned())

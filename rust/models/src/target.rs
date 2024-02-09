@@ -14,6 +14,8 @@ use super::{credential::Credential, port::Port};
 pub struct Target {
     /// List of hosts to scan
     pub hosts: Vec<String>,
+    /// List of excluded hosts to scan
+    pub excluded_hosts: Vec<String>,
     /// List of ports used for scanning
     pub ports: Vec<Port>,
     #[cfg_attr(feature = "serde_support", serde(default))]
@@ -43,9 +45,9 @@ pub struct Target {
 #[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
 pub enum AliveTestMethods {
-    Icmp,
-    TcpSyn,
-    TcpAck,
-    Arp,
-    ConsiderAlive,
+    Icmp = 0x01,
+    TcpSyn = 0x02,
+    TcpAck = 0x04,
+    Arp = 0x08,
+    ConsiderAlive = 0x16,
 }
