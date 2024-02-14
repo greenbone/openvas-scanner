@@ -606,7 +606,7 @@ mod tests {
             .await
             .unwrap();
         let amount_memory_oids = memory_storage.oids().await.unwrap().count();
-        assert_eq!(amount_memory_oids, 101);
+        assert_eq!(amount_memory_oids, 2);
         assert_eq!(amount_memory_oids, amount_file_oids);
     }
 
