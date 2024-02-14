@@ -79,92 +79,97 @@ impl TryFrom<&str> for Protocol {
 }
 
 pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
-
-    fn add_range_to_list (list: &mut String, start: usize, end: Option<usize>) {
+    fn add_range_to_list(list: &mut String, start: usize, end: Option<usize>) {
         // Add range
         if let Some(end) = end {
             list.push_str(start.to_string().as_str());
             list.push('-');
             list.push_str(end.to_string().as_str());
             list.push(',');
-        // Add single port    
+        // Add single port
         } else {
             list.push_str(start.to_string().as_str());
             list.push(',');
         }
-
     }
     if ports.is_empty() {
         return None;
     }
-    
+
     let mut udp = String::from("udp:");
     let mut tcp = String::from("tcp:");
 
-    ports.iter().for_each(
-        |p| match p.protocol {
-            Some(Protocol::TCP) => {p.range.iter().for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));},
-            Some(Protocol::UDP) => {p.range.iter().for_each(|r| add_range_to_list(&mut udp, r.start, r.end));},
-            None => {
-                p.range.iter().for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
-                p.range.iter().for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
-            }
+    ports.iter().for_each(|p| match p.protocol {
+        Some(Protocol::TCP) => {
+            p.range
+                .iter()
+                .for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
         }
-    );
+        Some(Protocol::UDP) => {
+            p.range
+                .iter()
+                .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
+        }
+        None => {
+            p.range
+                .iter()
+                .for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
+            p.range
+                .iter()
+                .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
+        }
+    });
     if udp != *"udp:" {
         tcp.push_str(&udp);
     }
     Some(tcp)
-    
 }
 
 #[cfg(test)]
 mod tests {
 
-    use crate::{Protocol, Port,PortRange, ports_to_openvas_port_list};
+    use crate::{ports_to_openvas_port_list, Port, PortRange, Protocol};
 
     #[test]
     fn test_port_conversion_to_string() {
-
         let ports = vec![
-            Port{
+            Port {
                 protocol: Some(Protocol::TCP),
                 range: vec![
-                    PortRange{
+                    PortRange {
                         start: 22,
-                        end: Some(25),                            
+                        end: Some(25),
                     },
-                    PortRange{
+                    PortRange {
                         start: 80,
-                        end: None,                            
+                        end: None,
                     },
-                ]
+                ],
             },
-            Port{
+            Port {
                 protocol: Some(Protocol::UDP),
                 range: vec![
-                    PortRange{
+                    PortRange {
                         start: 30,
-                        end: Some(40),                            
+                        end: Some(40),
                     },
-                    PortRange{
+                    PortRange {
                         start: 5060,
-                        end: None,                            
+                        end: None,
                     },
-                ]
+                ],
             },
-            Port{
+            Port {
                 protocol: None,
-                range: vec![
-                    PortRange{
-                        start: 1000,
-                        end: None,                            
-                    },
-                ]
+                range: vec![PortRange {
+                    start: 1000,
+                    end: None,
+                }],
             },
         ];
-        assert_eq!(ports_to_openvas_port_list(ports), Some("tcp:22-25,80,1000,udp:30-40,5060,1000,".to_string()));
-        
+        assert_eq!(
+            ports_to_openvas_port_list(ports),
+            Some("tcp:22-25,80,1000,udp:30-40,5060,1000,".to_string())
+        );
     }
 }
-

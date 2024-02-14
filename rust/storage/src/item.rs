@@ -388,9 +388,8 @@ impl From<(&str, &str, &str, &str)> for NvtPreference {
         }
     }
 }
-impl From<&NvtPreference> for (String,String,String,String) {
+impl From<&NvtPreference> for (String, String, String, String) {
     fn from(pref: &NvtPreference) -> Self {
-
         let id = pref.id().unwrap().to_string();
         let class = match pref.class {
             PreferenceType::CheckBox => "checkbox",

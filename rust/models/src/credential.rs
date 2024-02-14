@@ -17,7 +17,6 @@ pub struct Credential {
     #[cfg_attr(feature = "serde_support", serde(flatten))]
     /// Type of the credential to get access. Different services support different types.
     pub credential_type: CredentialType,
-
 }
 
 impl Credential {
