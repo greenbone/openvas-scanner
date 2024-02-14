@@ -572,7 +572,8 @@ pub trait ItemDispatcher<K> {
         Ok(())
     }
     /// Stores an advisory
-    fn dispatch_advisory(&self, _: &str, _: Box<Option<NotusAdvisory>>) -> Result<(), StorageError>;
+    fn dispatch_advisory(&self, _: &str, _: Box<Option<NotusAdvisory>>)
+        -> Result<(), StorageError>;
 }
 
 /// Collects the information while being in a description run and calls the dispatch method

@@ -489,12 +489,8 @@ impl IndexedByteStorage for CachedIndexFileStorer {
                                 .append_all_index(key, &initial_index, &data[1..])?;
                         (self.cache.len() - 1, end_index)
                     }
-                    std::io::ErrorKind::NotFound if data.is_empty() => {
-                        (0, vec![])
-                    }
-                    _ => {
-                        return Err(Error::FileOpen(ioe))
-                    },
+                    std::io::ErrorKind::NotFound if data.is_empty() => (0, vec![]),
+                    _ => return Err(Error::FileOpen(ioe)),
                 },
                 Err(e) => return Err(e),
             }

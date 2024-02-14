@@ -662,8 +662,6 @@ where
             .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
         cache.delete_namespace()
     }
-
-
 }
 
 impl<S, K> storage::item::ItemDispatcher<K> for CacheDispatcher<S, K>
@@ -686,7 +684,11 @@ where
         kbs.push(kb);
         Ok(())
     }
-    fn dispatch_advisory(&self, key: &str, adv: Box<Option<NotusAdvisory>>) -> Result<(), StorageError> {
+    fn dispatch_advisory(
+        &self,
+        key: &str,
+        adv: Box<Option<NotusAdvisory>>,
+    ) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock()?;
         cache.redis_add_advisory(key, *adv).map_err(|e| e.into())
     }
@@ -763,11 +765,7 @@ mod tests {
                 .unwrap();
             Ok(())
         }
-        fn lindex(
-            &mut self,
-            _: &str,
-            _: isize,
-        ) -> crate::dberror::RedisStorageResult<String> {
+        fn lindex(&mut self, _: &str, _: isize) -> crate::dberror::RedisStorageResult<String> {
             Ok(String::new())
         }
 

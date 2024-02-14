@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 /// Represents an advisory json file for notus product.
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug, Clone,PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProductsAdivisories {
     /// Version of the advisory file
     pub version: String,
@@ -173,7 +173,6 @@ impl From<VulnerabilityData> for Vulnerability {
                 None => "".to_string(),
             },
         };
-        
 
         let refs = HashMap::new();
         Self {

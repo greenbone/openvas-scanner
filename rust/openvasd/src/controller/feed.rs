@@ -26,28 +26,29 @@ where
             let last_hash = ctx.db.feed_hash().await;
             if signature_check {
                 if let Err(err) = feed::verify::check_signature(&path) {
-                    tracing::warn!("Signature of {} is not corredct, skipping: {}", path.display(), err);
-
+                    tracing::warn!(
+                        "Signature of {} is not corredct, skipping: {}",
+                        path.display(),
+                        err
+                    );
                 }
             }
 
-            let hash = tokio::task::spawn_blocking(move || {
-                match FeedIdentifier::sumfile_hash(path) {
+            let hash =
+                tokio::task::spawn_blocking(move || match FeedIdentifier::sumfile_hash(path) {
                     Ok(h) => h,
                     Err(e) => {
                         tracing::warn!("Failed to compute sumfile hash: {e:?}");
                         "".to_string()
                     }
-                }
-            })
-            .await
-            .unwrap();
+                })
+                .await
+                .unwrap();
             if last_hash.is_empty() || last_hash != hash {
-                match ctx.db.synchronize_feeds(hash).await{
-                    Ok(_) => {},
+                match ctx.db.synchronize_feeds(hash).await {
+                    Ok(_) => {}
                     Err(e) => tracing::warn!("Unable to sync feed: {e}"),
                 }
-
             }
             tokio::time::sleep(interval).await;
         }

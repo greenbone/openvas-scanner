@@ -18,7 +18,6 @@ where
 {
     /// Serializes given data to Vec<u8>
     pub fn serialize(t: T) -> Result<Self, base::Error> {
-
         match rmp_serde::to_vec(&t) {
             Ok(v) => Ok(Serialization::Serialized(v)),
             Err(_) => Err(base::Error::Serialize),

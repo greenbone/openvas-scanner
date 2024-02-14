@@ -109,11 +109,10 @@ pub trait NVTStorer {
     /// directories and update the meta information.
     async fn synchronize_feeds(&self, hash: String) -> Result<(), Error>;
 
-    
     /// Retrieves just all oids.
     async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
         let vts = self.vts().await?;
-        Ok(Box::new(vts.map(|x|x.oid)))
+        Ok(Box::new(vts.map(|x| x.oid)))
     }
 
     /// Retrieves NVTs.
@@ -123,11 +122,8 @@ pub trait NVTStorer {
 
     /// Retrieves a NVT.
     ///
-    async fn vt_by_oid(
-        &self,
-        oid: &str,
-    ) -> Result<Option<storage::item::Nvt>, Error> {
-        Ok(self.vts().await?.find(|x|x.oid == oid))
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+        Ok(self.vts().await?.find(|x| x.oid == oid))
     }
 
     /// Returns the currently stored feed hash.
