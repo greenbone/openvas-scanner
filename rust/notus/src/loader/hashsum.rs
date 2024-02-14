@@ -104,7 +104,7 @@ where
     /// Perform a signature check of the sha256sums file
     fn verify_signature(&self) -> Result<(), feed::VerifyError> {
         let path = self.loader.root_path().unwrap();
-        <HashsumProductLoader<R, L> as self::SignatureChecker>::signature_check(&path)
+        feed::verify::check_signature(&path)
     }
     fn get_root_dir(&self) -> Result<String, Error> {
         let p = self.loader.root_path().unwrap();
@@ -188,7 +188,7 @@ where
     /// Perform a signature check of the sha256sums file
     fn verify_signature(&self) -> Result<(), feed::VerifyError> {
         let path = self.loader.root_path().unwrap();
-        <HashsumProductLoader<R, L> as self::SignatureChecker>::signature_check(&path)
+        feed::verify::check_signature(&path)
     }
     fn get_root_dir(&self) -> Result<String, Error> {
         let p = self.loader.root_path().unwrap();

@@ -6,10 +6,11 @@
 /// Module with structures and methods to access redis.
 mod connector;
 pub use connector::{
-    CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper, VtHelper,
+    CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper,
 };
 /// Module to handle custom errors
 pub mod dberror;
+pub use connector::NameSpaceSelector;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
-pub use connector::{NOTUSUPDATE_SELECTOR, NOTUS_KEY};
+pub use connector::NOTUSUPDATE_SELECTOR;

@@ -34,6 +34,30 @@ pub struct Error {
     pub kind: ErrorKind,
 }
 
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::InterpretError(e) => write!(f, "Interpret Error: {}", e),
+            ErrorKind::SyntaxError(e) => write!(f, "Syntax Error: {}", e),
+            ErrorKind::StorageError(e) => write!(f, "Storage Error: {}", e),
+            ErrorKind::LoadError(e) => write!(f, "Load Error: {}", e),
+            ErrorKind::MissingExit(message) => write!(f, "Missing Exit: {}", message),
+            ErrorKind::VerifyError(e) => write!(f, "Verify Error: {}", e),
+        }
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error with key '{}': {}", self.key, self.kind)
+    }
+}
+
+impl std::error::Error for Error {}
+
+
+
 impl From<verify::Error> for Error {
     fn from(value: verify::Error) -> Self {
         let fin = match &value {

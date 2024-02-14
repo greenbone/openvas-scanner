@@ -1,5 +1,6 @@
 pub mod file;
 pub mod inmemory;
+pub mod redis;
 use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
@@ -98,18 +99,38 @@ pub trait ProgressGetter {
 }
 
 #[async_trait]
-/// A trait for storing and retrieving oids.
+/// Handles NVT specifics.
 ///
-/// OIDs are usually retrieved by scanning the feed, although the initial impulse would be to just
-/// delete all oids and append new OIDs when finding them. However in a standard scenario the OID
-/// list is used to gather capabilities of that particular scanner. To enforce overriding only when
-/// all OIDs are gathered it just allows push of all OIDs at once.
-pub trait OIDStorer {
-    /// Overrides oids
-    async fn push_oids(&self, hash: String, oids: Vec<String>) -> Result<(), Error>;
+/// Usually it parses nasl feed and notus feed to generate and store nvts.
+pub trait NVTStorer {
+    /// Synchronizes feed based on the given hash.
+    ///
+    /// This method is called when the sha256sums is changed. It will then go through the feed
+    /// directories and update the meta information.
+    async fn synchronize_feeds(&self, hash: String) -> Result<(), Error>;
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error>;
+    
+    /// Retrieves just all oids.
+    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+        let vts = self.vts().await?;
+        Ok(Box::new(vts.map(|x|x.oid)))
+    }
 
+    /// Retrieves NVTs.
+    async fn vts<'a>(
+        &self,
+    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error>;
+
+    /// Retrieves a NVT.
+    ///
+    async fn vt_by_oid(
+        &self,
+        oid: &str,
+    ) -> Result<Option<storage::item::Nvt>, Error> {
+        Ok(self.vts().await?.find(|x|x.oid == oid))
+    }
+
+    /// Returns the currently stored feed hash.
     async fn feed_hash(&self) -> String;
 }
 
@@ -139,12 +160,12 @@ pub trait AppendFetchResult {
 #[async_trait]
 /// Combines the traits `ProgressGetter`, `ScanStorer` and `AppendFetchResult`.
 pub trait Storage:
-    ProgressGetter + ScanStorer + AppendFetchResult + OIDStorer + ScanIDClientMapper
+    ProgressGetter + ScanStorer + AppendFetchResult + NVTStorer + ScanIDClientMapper
 {
 }
 
 #[async_trait]
 impl<T> Storage for T where
-    T: ProgressGetter + ScanStorer + AppendFetchResult + OIDStorer + ScanIDClientMapper
+    T: ProgressGetter + ScanStorer + AppendFetchResult + NVTStorer + ScanIDClientMapper
 {
 }

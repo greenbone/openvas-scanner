@@ -23,9 +23,8 @@ use storage::item::PerItemDispatcher;
 use storage::item::TagKey;
 use storage::item::TagValue;
 use storage::Kb;
-use storage::ListRetriever;
-use storage::Notus;
-use storage::Retriever;
+use storage::NotusAdvisory;
+
 use storage::StorageError;
 
 enum KbNvtPos {
@@ -128,7 +127,7 @@ pub enum NameSpaceSelector {
 }
 
 const CACHE_KEY: &str = "nvticache";
-pub const NOTUS_KEY: &str = "notuscache";
+const NOTUS_KEY: &str = "notuscache";
 const DB_INDEX: &str = "GVM.__GlobalDBIndex";
 
 impl NameSpaceSelector {
@@ -263,9 +262,21 @@ pub trait RedisAddAdvisory: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_add_advisory(&mut self, key: &str, adv: Notus) -> RedisStorageResult<()> {
-        let value = adv.value.to_string();
-        self.rpush(key, &value)?;
+    fn redis_add_advisory(
+        &mut self,
+        _: &str,
+        adv: Option<NotusAdvisory>,
+    ) -> RedisStorageResult<()> {
+        match adv {
+            Some(data) => {
+                let key = format!("internal/notus/advisories/{}", &data.adv.oid);
+                let value = models::Vulnerability::from(data);
+                let value = serde_json::to_string(&value)
+                    .map_err(|e| DbError::Unknown(format!("Serialization error: {e}")))?;
+                self.rpush(&key, value)?;
+            }
+            None => self.rpush(NOTUS_KEY, "1".to_string())?,
+        };
         Ok(())
     }
 }
@@ -298,7 +309,10 @@ pub trait RedisGetNvt: RedisWrapper {
         let mut prefs_list = self.lrange(&keyname, 0, -1)?;
         let mut prefs: Vec<NvtPreference> = Vec::new();
         for p in prefs_list.iter_mut() {
-            if let Some(sp) = p.splitn(4, "|||").collect_tuple::<(&str, &str, &str, &str)>(){
+            if let Some(sp) = p
+                .splitn(4, "|||")
+                .collect_tuple::<(&str, &str, &str, &str)>()
+            {
                 prefs.push(NvtPreference::from(sp));
             }
         }
@@ -309,9 +323,11 @@ pub trait RedisGetNvt: RedisWrapper {
     fn get_tags(tags: &str) -> BTreeMap<TagKey, TagValue> {
         let mut tag_map = BTreeMap::new();
 
-        let tag_list = tags
-            .split('|')
-            .map(|x| x.splitn(2, '=').collect_tuple::<(&str, &str)>().unwrap_or_default());
+        let tag_list = tags.split('|').map(|x| {
+            x.splitn(2, '=')
+                .collect_tuple::<(&str, &str)>()
+                .unwrap_or_default()
+        });
 
         for (k, v) in tag_list.into_iter() {
             if let Ok(tk) = TagKey::from_str(k) {
@@ -586,53 +602,6 @@ impl RedisCtx {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct VtHelper<R, K>
-where
-    R: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Sync + Send,
-    K: AsRef<str>,
-{
-    pub notus: CacheDispatcher<R, K>,
-    pub vts: CacheDispatcher<R, K>,
-}
-
-impl<R, K> VtHelper<R, K>
-where
-    R: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Sync + Send,
-    K: AsRef<str>,
-{
-    pub fn new(notus: CacheDispatcher<R, K>, vts: CacheDispatcher<R, K>) -> Self {
-        Self { notus, vts }
-    }
-
-    pub fn get_oids(&self) -> Result<Vec<String>, StorageError> {
-        let mut oids: Vec<String> = Vec::new();
-        if let Ok(vts) = self.vts.retrieve_keys("nvt:*") {
-            oids.append(&mut vts.iter().map(|x| x[4..].to_string()).collect());
-        }
-        if let Ok(notus) = self.notus.retrieve_keys("internal*") {
-            oids.append(
-                &mut notus
-                    .iter()
-                    .map(|x| x.split('/').last().unwrap_or_default().to_string())
-                    .collect(),
-            );
-        }
-
-        Ok(oids)
-    }
-
-    pub fn retrieve_single_nvt(&self, oid: &str) -> Result<Option<Nvt>, StorageError> {
-        let nvt = self.notus.retrieve_advisory(oid)?;
-        if nvt.is_some() {
-            Ok(nvt)
-        } else {
-            self.vts.retrieve_nvt(oid)
-        }
-    }
-
-}
-
 /// Cache implementation.
 ///
 /// This implementation is thread-safe as it stored the underlying RedisCtx within a lockable arc reference.
@@ -693,6 +662,8 @@ where
             .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
         cache.delete_namespace()
     }
+
+
 }
 
 impl<S, K> storage::item::ItemDispatcher<K> for CacheDispatcher<S, K>
@@ -715,24 +686,9 @@ where
         kbs.push(kb);
         Ok(())
     }
-    fn dispatch_advisory(&self, key: &str, adv: storage::Notus) -> Result<(), StorageError> {
+    fn dispatch_advisory(&self, key: &str, adv: Box<Option<NotusAdvisory>>) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.redis_add_advisory(key, adv).map_err(|e| e.into())
-    }
-}
-
-impl<S, K> storage::ListRetriever for CacheDispatcher<S, K>
-where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
-{
-    fn retrieve_keys(&self, pattern: &str) -> Result<Vec<String>, StorageError> {
-        let mut cache = self.cache.lock().map_err(StorageError::from)?;
-        Ok(cache
-            .keys(pattern.as_ref())?
-            .iter()
-            .map(|x| x.to_string())
-            .collect())
+        cache.redis_add_advisory(key, *adv).map_err(|e| e.into())
     }
 }
 
@@ -741,41 +697,31 @@ where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
     K: AsRef<str>,
 {
-    fn retrieve_nvt(&self, oid: &str) -> Result<Option<Nvt>, StorageError> {
-        let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.redis_get_vt(oid.as_ref()).map_err(|e| e.into())
-    }
-    fn retrieve_advisory(&self, oid: &str) -> Result<Option<Nvt>, StorageError> {
-        let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.redis_get_advisory(oid.as_ref()).map_err(|e| e.into())
-    }
-
     fn retrieve(
         &self,
         _: &K,
-        scope: &storage::Retrieve,
-    ) -> Result<Vec<storage::Field>, StorageError> {
+        scope: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
-            // currently not supported
-            storage::Retrieve::NVT(_) => Vec::new(),
-            storage::Retrieve::NOTUS(_) => Vec::new(),
-            storage::Retrieve::KB(s) => {
-                let kbs = self.kbs.lock().map_err(StorageError::from)?;
-                kbs.iter()
-                    .filter(|x| &x.key == s)
-                    .map(|x| storage::Field::KB(x.clone()))
-                    .collect()
+            storage::Retrieve::NotusAdvisory(_) | storage::Retrieve::NVT(_) => {
+                Box::new(Vec::new().into_iter())
             }
+            storage::Retrieve::KB(s) => Box::new({
+                let kbs = self.kbs.lock().map_err(StorageError::from)?;
+                let kbs = kbs.clone();
+                kbs.into_iter()
+                    .filter(move |x| x.key == s)
+                    .map(move |x| storage::Field::KB(x.clone()))
+            }),
         })
     }
 
     fn retrieve_by_field(
         &self,
-        _: &storage::Field,
-        _: &storage::Retrieve,
-    ) -> Result<Vec<(K, Vec<storage::Field>)>, StorageError> {
-        // currently not supported
-        Ok(vec![])
+        _field: storage::Field,
+        _scope: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (K, storage::Field)>>, StorageError> {
+        todo!()
     }
 }
 
@@ -785,7 +731,6 @@ mod tests {
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
-    use redis::ToRedisArgs;
     use storage::item::PerItemDispatcher;
     use storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use storage::Dispatcher;
@@ -820,21 +765,21 @@ mod tests {
         }
         fn lindex(
             &mut self,
-            key: &str,
-            index: isize,
+            _: &str,
+            _: isize,
         ) -> crate::dberror::RedisStorageResult<String> {
             Ok(String::new())
         }
 
-        fn keys(&mut self, pattern: &str) -> crate::dberror::RedisStorageResult<Vec<String>> {
+        fn keys(&mut self, _: &str) -> crate::dberror::RedisStorageResult<Vec<String>> {
             Ok(Vec::new())
         }
 
         fn lrange(
             &mut self,
-            key: &str,
-            start: isize,
-            end: isize,
+            _: &str,
+            _: isize,
+            _: isize,
         ) -> crate::dberror::RedisStorageResult<Vec<String>> {
             Ok(Vec::new())
         }

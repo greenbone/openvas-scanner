@@ -7,7 +7,7 @@
 mod oid;
 pub mod transpile;
 mod update;
-mod verify;
+pub mod verify;
 
 pub use oid::Oid;
 pub use update::feed_version as version;

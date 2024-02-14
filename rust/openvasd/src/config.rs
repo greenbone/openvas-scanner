@@ -22,11 +22,12 @@ pub struct Feed {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Notus {
     pub products_path: PathBuf,
+    pub advisories_path: PathBuf,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct RedisSocket {
-    pub redis_socket: PathBuf,
+pub struct Redis {
+    pub url: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -60,14 +61,15 @@ impl Default for Notus {
     fn default() -> Self {
         Notus {
             products_path: PathBuf::from("/var/lib/notus/products"),
+            advisories_path: PathBuf::from("/var/lib/notus/advisories"),
         }
     }
 }
 
-impl Default for RedisSocket {
+impl Default for Redis {
     fn default() -> Self {
-        RedisSocket {
-            redis_socket: PathBuf::from("unix:///run/redis-openvas/redis.sock"),
+        Redis {
+            url: "unix:///run/redis-openvas/redis.sock".to_string(),
         }
     }
 }
@@ -120,6 +122,8 @@ pub enum StorageType {
     InMemory,
     #[serde(rename = "fs")]
     FileSystem,
+    #[serde(rename = "redis")]
+    Redis,
 }
 
 impl TypedValueParser for StorageType {
@@ -167,6 +171,8 @@ pub struct Storage {
     pub storage_type: StorageType,
     #[serde(default)]
     pub fs: FileStorage,
+    #[serde(default)]
+    pub redis: Redis,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -187,8 +193,6 @@ pub struct Config {
     pub log: Logging,
     #[serde(default)]
     pub storage: Storage,
-    #[serde(default)]
-    pub redis_socket: RedisSocket,
 }
 
 impl Display for Config {
@@ -257,18 +261,25 @@ impl Config {
                     .help("interval to check for feed updates in seconds"),
             )
             .arg(
+                clap::Arg::new("notus-advisories")
+                    .env("NOTUS_SCANNER_PRODUCTS_DIRECTORY")
+                    .long("advisories")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .action(ArgAction::Set)
+                    .help("Path containing the Notus advisories directory"))
+            .arg(
                 clap::Arg::new("notus-products")
                     .env("NOTUS_SCANNER_PRODUCTS_DIRECTORY")
-                    .long("products-directory")
+                    .long("products")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
                     .help("Path containing the Notus products directory"))
             .arg(
-                clap::Arg::new("redis-socket  ")
-                    .long("redis-socket")
-                    .value_parser(clap::builder::PathBufValueParser::new())
+                clap::Arg::new("redis-url")
+                    .long("redis-url")
+                    //.value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
-                    .help("Path to the redis socket"))
+                    .help("Redis url. Either unix:// or redis://"))
             .arg(
                 clap::Arg::new("tls-certs")
                     .env("TLS_CERTS")
@@ -399,8 +410,11 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
             config.notus.products_path = path.clone();
         }
-        if let Some(path) = cmds.get_one::<PathBuf>("redis-socket") {
-            config.redis_socket.redis_socket = path.clone();
+        if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
+            config.notus.advisories_path = path.clone();
+        }
+        if let Some(path) = cmds.get_one::<String>("redis-socket") {
+            config.storage.redis.url = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());

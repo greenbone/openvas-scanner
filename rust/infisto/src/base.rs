@@ -246,7 +246,6 @@ impl IndexedFileStorer {
         let fn_name = format!("{}.dat", key);
         let path = Path::new(&self.base).join(fn_name);
         let mut file = std::fs::OpenOptions::new()
-            .write(true)
             .append(true)
             .open(path)
             .map_err(|e| e.kind())
@@ -311,7 +310,8 @@ impl IndexedByteStorage for IndexedFileStorer {
         if data.is_empty() {
             return Ok(());
         }
-        match self.load_index(key) {
+        let result = self.load_index(key);
+        match result {
             Ok(i) => self.append_all_index(key, &i, data).map(|_| ()),
             Err(Error::FileOpen(ioe)) => match ioe {
                 std::io::ErrorKind::NotFound => {
@@ -474,7 +474,8 @@ impl IndexedByteStorage for CachedIndexFileStorer {
         let (ci, result) = if let Some((ci, fi)) = self.find_index(key) {
             (ci, self.base.append_all_index(key, fi, data)?)
         } else {
-            match self.base.load_index(key) {
+            let result = self.base.load_index(key);
+            match result {
                 Ok(i) => (
                     self.cache.len() - 1,
                     self.base.append_all_index(key, &i, data)?,
@@ -488,7 +489,12 @@ impl IndexedByteStorage for CachedIndexFileStorer {
                                 .append_all_index(key, &initial_index, &data[1..])?;
                         (self.cache.len() - 1, end_index)
                     }
-                    _ => return Err(Error::FileOpen(ioe)),
+                    std::io::ErrorKind::NotFound if data.is_empty() => {
+                        (0, vec![])
+                    }
+                    _ => {
+                        return Err(Error::FileOpen(ioe))
+                    },
                 },
                 Err(e) => return Err(e),
             }

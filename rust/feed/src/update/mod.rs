@@ -40,7 +40,7 @@ impl From<verify::Error> for ErrorKind {
     }
 }
 /// Loads the plugin_feed_info and returns the feed version
-pub fn feed_version<K: Default + AsRef<str>>(
+pub fn feed_version<K: Default + AsRef<str> + 'static>(
     loader: &dyn Loader,
     dispatcher: &dyn Dispatcher<K>,
 ) -> Result<String, ErrorKind> {
@@ -82,7 +82,7 @@ where
 impl<'a, S, L, V, K, R> Update<S, L, V, K>
 where
     S: Sync + Send + Dispatcher<K>,
-    K: AsRef<str> + Display + Default + From<String>,
+    K: AsRef<str> + Display + Default + From<String> + 'static, 
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
     R: Read + 'a,
@@ -175,7 +175,7 @@ where
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
         //self::SignatureChecker::signature_check(&path)
         let path = self.loader.root_path().unwrap();
-        <Update<S, L, V, K> as self::SignatureChecker>::signature_check(&path)
+        crate::verify::check_signature(&path)
     }
 }
 
@@ -185,7 +185,7 @@ where
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
     R: Read + 'a,
-    K: AsRef<str> + Display + Default + From<String>,
+    K: AsRef<str> + Display + Default + From<String> + 'static,
 {
     type Item = Result<String, Error>;
 

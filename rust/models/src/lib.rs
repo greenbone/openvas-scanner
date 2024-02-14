@@ -30,17 +30,8 @@ pub use status::*;
 pub use target::*;
 pub use vt::*;
 
-use serde::Serializer;
-
-fn censor<S, T>(_: &T, serializer: S) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str("***")
-}
 
 #[cfg(test)]
-//#[cfg(feature = "serde_support")]
 mod tests {
 
     use super::scan::Scan;

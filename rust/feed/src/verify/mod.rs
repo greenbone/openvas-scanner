@@ -14,6 +14,7 @@ use std::{
     fmt::Display,
     fs::File,
     io::{self, BufRead, BufReader, Read},
+    path::Path,
 };
 
 use hex::encode;
@@ -165,53 +166,62 @@ impl VerificationHelper for VHelper {
         Ok(())
     }
 }
+
+/// For signature check the GNUPGHOME environment variable
+/// must be set with the path to the keyring.
+/// If this is satisfied, the signature check is performed
+pub fn check_signature<P>(path: &P) -> Result<(), Error>
+where
+    P: AsRef<Path> + ?Sized,
+{
+    let mut gnupghome = match std::env::var("GNUPGHOME") {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(Error::MissingKeyring);
+        }
+    };
+    gnupghome.push_str("/pubring.kbx");
+
+    let helper = VHelper::new(gnupghome);
+
+    let sign_path = path.as_ref().to_path_buf().join("sha256sums.asc");
+    let mut sig_file = File::open(sign_path).unwrap();
+    let mut signature = Vec::new();
+    let _ = sig_file.read_to_end(&mut signature);
+
+    let data_path = path.as_ref().to_path_buf().join("sha256sums");
+    let mut data_file = File::open(data_path).unwrap();
+    let mut data = Vec::new();
+    let _ = data_file.read_to_end(&mut data);
+
+    let v = match DetachedVerifierBuilder::from_bytes(&signature[..]) {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(Error::BadSignature(
+                "Signature verification failed".to_string(),
+            ));
+        }
+    };
+
+    let p = &StandardPolicy::new();
+    if let Ok(mut verifier) = v.with_policy(p, None, helper) {
+        match verifier.verify_bytes(data) {
+            Ok(_) => return Ok(()),
+            Err(e) => return Err(Error::BadSignature(e.to_string())),
+        }
+    };
+    Err(Error::BadSignature(
+        "Signature verification failed".to_string(),
+    ))
+}
+
 /// Trait for signature check
 pub trait SignatureChecker {
     /// For signature check the GNUPGHOME environment variable
     /// must be set with the path to the keyring.
     /// If this is satisfied, the signature check is performed
     fn signature_check(feed_path: &str) -> Result<(), Error> {
-        let mut gnupghome = match std::env::var("GNUPGHOME") {
-            Ok(v) => v,
-            Err(_) => {
-                return Err(Error::MissingKeyring);
-            }
-        };
-        gnupghome.push_str("/pubring.kbx");
-
-        let helper = VHelper::new(gnupghome);
-
-        let mut sign_path = feed_path.to_owned();
-        sign_path.push_str("/sha256sums.asc");
-        let mut sig_file = File::open(sign_path).unwrap();
-        let mut signature = Vec::new();
-        let _ = sig_file.read_to_end(&mut signature);
-
-        let mut data_path = feed_path.to_owned();
-        data_path.push_str("/sha256sums");
-        let mut data_file = File::open(data_path).unwrap();
-        let mut data = Vec::new();
-        let _ = data_file.read_to_end(&mut data);
-
-        let v = match DetachedVerifierBuilder::from_bytes(&signature[..]) {
-            Ok(v) => v,
-            Err(_) => {
-                return Err(Error::BadSignature(
-                    "Signature verification failed".to_string(),
-                ));
-            }
-        };
-
-        let p = &StandardPolicy::new();
-        if let Ok(mut verifier) = v.with_policy(p, None, helper) {
-            match verifier.verify_bytes(data) {
-                Ok(_) => return Ok(()),
-                Err(e) => return Err(Error::BadSignature(e.to_string())),
-            }
-        };
-        Err(Error::BadSignature(
-            "Signature verification failed".to_string(),
-        ))
+        check_signature(feed_path)
     }
 }
 
@@ -335,6 +345,7 @@ where
     }
 }
 
+/// Contains all information  necessary to do a hash sum check
 pub struct HashSumFileItem<'a, R> {
     file_name: String,
     hashsum: String,
@@ -343,6 +354,7 @@ pub struct HashSumFileItem<'a, R> {
 }
 
 impl<'a, R: Read> HashSumFileItem<'a, R> {
+    /// Verifies Hashsum
     pub fn verify(&self) -> Result<(), Error> {
         let hashsum = self.hasher.hash(
             &mut self.reader.as_bufreader(&self.file_name)?,
@@ -358,10 +370,12 @@ impl<'a, R: Read> HashSumFileItem<'a, R> {
         Ok(())
     }
 
+    /// returns file name
     pub fn get_filename(&self) -> String {
         self.file_name.clone()
     }
 
+    /// returns hash sum
     pub fn get_hashsum(&self) -> String {
         self.hashsum.clone()
     }

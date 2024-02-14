@@ -14,6 +14,7 @@ rand = "0"
 chacha20 = "0"
 pbkdf2 = { version = "0", features = ["password-hash"] }
 sha2 = "0"
+rmp-serde = "1.1.2"
 
 [dev-dependencies]
 criterion = "0"

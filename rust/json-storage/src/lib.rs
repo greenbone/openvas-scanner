@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use storage::{self, item::PerItemDispatcher, Kb, StorageError};
+use storage::{self, item::PerItemDispatcher, Kb, StorageError, NotusAdvisory};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -124,38 +124,46 @@ where
         kbs.push(kb);
         Ok(())
     }
+
+    fn dispatch_advisory(
+        &self,
+        _: &str,
+
+        _: Box<Option<NotusAdvisory>>,
+    ) -> Result<(), StorageError> {
+         Ok(())
+    }
 }
 
 impl<S, K> storage::Retriever<K> for ItemDispatcher<S>
 where
     S: Write,
+    K: 'static
 {
     fn retrieve(
         &self,
         _: &K,
-        scope: &storage::Retrieve,
-    ) -> Result<Vec<storage::Field>, StorageError> {
+        scope: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
             // currently not supported
-            storage::Retrieve::NVT(_) => Vec::new(),
-            storage::Retrieve::NOTUS(_) => Vec::new(),
-            storage::Retrieve::KB(s) => {
+            storage::Retrieve::NVT(_) | storage::Retrieve::NotusAdvisory(_) => Box::new([].into_iter()),
+            storage::Retrieve::KB(s) => Box::new({
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
-                kbs.iter()
-                    .filter(|x| &x.key == s)
+                let kbs = kbs.clone();
+                kbs.into_iter()
+                    .filter(move |x| x.key == s)
                     .map(|x| storage::Field::KB(x.clone()))
-                    .collect()
-            }
+            }),
         })
     }
 
     fn retrieve_by_field(
         &self,
-        _: &storage::Field,
-        _: &storage::Retrieve,
-    ) -> Result<Vec<(K, Vec<storage::Field>)>, StorageError> {
-        // currently not supported
-        Ok(vec![])
+        _: storage::Field,
+        _: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (K, storage::Field)>>, StorageError> {
+        Ok(Box::new([].into_iter()))
     }
 }
 

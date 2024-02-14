@@ -50,11 +50,19 @@ address = "127.0.0.1:3000"
 level = "INFO"
 
 [storage]
-# can be either fs (file system) or inmemory (in memory).
+# can be either fs (file system), redis or inmemory (in memory).
 # If it is set to fs is highly recommended to set `STORAGE_KEY` in the env variable.
 # WARNING: if the type is set to fs and no encryption key is set then the data is stored unencrypted.
+# As long as legacy openvas is required redis is recommended
 #type = "fs"
+#type = "redis"
 type = "inmemory"
+
+[storage.redis]
+# set the redis url. When socket is used it has to start with `unix://`
+# if a username and password is required it also needs to set in the url:
+# redis://user:pass@localhost:6379
+url = "redis://localhost:6379"
 
 [storage.fs]
 # Sets the storage root directory if the storage.type is set to `fs`.
@@ -66,3 +74,5 @@ path = "/var/lib/openvasd/storage"
 [notus]
 # path to the notus feed. This is required for the /notus endpoint.
 products_path = "/var/lib/notus/products/"
+# path to the notus advisories feed. This is required for the /vts endpoint.
+advisories_path = "/var/lib/notus/advisories/"

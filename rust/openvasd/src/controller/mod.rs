@@ -431,7 +431,9 @@ mod tests {
         };
         let ns = std::time::Duration::from_nanos(10);
         let root = "/tmp/openvasd/fetch_results";
-        let storage = file::unencrypted(root).unwrap();
+        let nfp = "../../examples/feed/nasl";
+        let nofp = "../../examples/feed/notus/advisories";
+        let storage = file::unencrypted(root, nfp, nofp).unwrap();
         let ctx = ContextBuilder::new()
             .result_config(ns)
             .storage(storage)
@@ -457,10 +459,8 @@ mod tests {
             }
         }
 
-        dbg!("befote fetching results");
         let mut resp = get_results(&id, Arc::clone(&controller), None, None).await;
 
-        dbg!("after resp?");
         resp.sort_by(|a, b| a.id.cmp(&b.id));
         assert_eq!(resp.len(), 4950);
         resp.iter().enumerate().for_each(|(i, r)| {

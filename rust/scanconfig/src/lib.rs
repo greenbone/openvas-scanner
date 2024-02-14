@@ -222,27 +222,25 @@ where
                 use storage::Field;
                 use storage::Retrieve;
                 match retriever.retrieve_by_field(
-                    &Field::NVT(NVTField::Family(s.family_or_nvt.clone())),
-                    &Retrieve::NVT(Some(NVTKey::Oid)),
+                    Field::NVT(NVTField::Family(s.family_or_nvt.clone())),
+                    Retrieve::NVT(Some(NVTKey::Oid)),
                 ) {
                     Ok(nvt) => {
+                        let result: Vec<_> = nvt
+                            .flat_map(|(_, f)| match &f {
+                                Field::NVT(NVTField::Oid(oid)) if is_not_already_present(oid) => {
+                                    Some(oid_to_vt(oid))
+                                }
+                                _ => None,
+                            })
+                            .collect();
+
                         tracing::debug!(
                             "found {} nvt entries for family {}",
-                            nvt.len(),
+                            result.len(),
                             s.family_or_nvt
                         );
-                        nvt.iter()
-                            .flat_map(|(_, f)| {
-                                f.iter().filter_map(|f| match f {
-                                    Field::NVT(NVTField::Oid(oid))
-                                        if is_not_already_present(oid) =>
-                                    {
-                                        Some(oid_to_vt(oid))
-                                    }
-                                    _ => None,
-                                })
-                            })
-                            .collect()
+                        result
                     }
                     Err(e) => vec![Err(e.into())],
                 }

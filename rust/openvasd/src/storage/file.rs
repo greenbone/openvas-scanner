@@ -1,24 +1,38 @@
-use std::{ops::Deref, path::Path};
+use std::{
+    ops::Deref,
+    path::{Path, PathBuf},
+};
+
+use nasl_interpreter::FSPluginLoader;
+use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
+use storage::item::{ItemDispatcher, Nvt, PerItemDispatcher};
 
 use super::*;
 
 pub struct Storage<S> {
-    storage: Arc<std::sync::RwLock<S>>,
-    // although that will be lost on restart I will be read into immediately on start by parsing
-    // the feed.
     hash: tokio::sync::RwLock<String>,
+    nasl_feed_path: Arc<PathBuf>,
+    notus_feed_path: Arc<PathBuf>,
+    storage: Arc<std::sync::RwLock<S>>,
+    feed_version: Arc<std::sync::RwLock<String>>,
 }
-pub fn unencrypted<P>(path: P) -> Result<Storage<infisto::base::IndexedFileStorer>, Error>
+pub fn unencrypted<P>(
+    path: P,
+    nasl_feed_path: P,
+    notus_feed_path: P,
+) -> Result<Storage<infisto::base::IndexedFileStorer>, Error>
 where
     P: AsRef<Path>,
 {
     let ifs = infisto::base::IndexedFileStorer::init(path)?;
-    Ok(ifs.into())
+    Ok(Storage::new(ifs, nasl_feed_path, notus_feed_path))
 }
 
 pub fn encrypted<P, K>(
     path: P,
     key: K,
+    nasl_feed_path: P,
+    notus_feed_path: P,
 ) -> Result<
     Storage<infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>>,
     Error,
@@ -28,7 +42,8 @@ where
     K: Into<infisto::crypto::Key>,
 {
     let ifs = infisto::base::IndexedFileStorer::init(path)?;
-    Ok(infisto::crypto::ChaCha20IndexFileStorer::new(ifs, key).into())
+    let ifs = infisto::crypto::ChaCha20IndexFileStorer::new(ifs, key);
+    Ok(Storage::new(ifs, nasl_feed_path, notus_feed_path))
 }
 
 impl From<infisto::base::Error> for Error {
@@ -37,20 +52,18 @@ impl From<infisto::base::Error> for Error {
     }
 }
 
-impl<S> From<S> for Storage<S>
-where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + 'static,
-{
-    fn from(value: S) -> Self {
-        Storage::new(value)
-    }
-}
-
 impl<S> Storage<S> {
-    pub fn new(s: S) -> Self {
+    pub fn new<P>(s: S, nasl_feed_path: P, notus_feed_path: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
         Storage {
             storage: Arc::new(s.into()),
             hash: tokio::sync::RwLock::new(String::new()),
+            nasl_feed_path: Arc::new(nasl_feed_path.as_ref().to_path_buf()),
+            notus_feed_path: Arc::new(notus_feed_path.as_ref().to_path_buf()),
+
+            feed_version: Arc::new(std::sync::RwLock::new(String::new())),
         }
     }
 }
@@ -95,7 +108,7 @@ where
         let storage = Arc::clone(&self.storage);
 
         use infisto::base::Range;
-        use infisto::bincode::Serialization;
+        use infisto::serde::Serialization;
         tokio::task::spawn_blocking(move || {
             let storage = storage.read().unwrap();
             let scans: Vec<Serialization<models::Scan>> = storage.by_range(&key, Range::All)?;
@@ -118,7 +131,7 @@ where
     async fn get_scan_ids(&self) -> Result<Vec<String>, Error> {
         let storage = Arc::clone(&self.storage);
         use infisto::base::Range;
-        use infisto::bincode::Serialization;
+        use infisto::serde::Serialization;
         tokio::task::spawn_blocking(move || {
             let storage = &storage.read().unwrap();
             let scans: Vec<Serialization<String>> = match storage.by_range("scans", Range::All) {
@@ -145,7 +158,7 @@ where
         let storage = Arc::clone(&self.storage);
 
         use infisto::base::Range;
-        use infisto::bincode::Serialization;
+        use infisto::serde::Serialization;
         tokio::task::spawn_blocking(move || {
             let storage = &storage.read().unwrap();
             let status: Vec<Serialization<models::Status>> = storage.by_range(&key, Range::All)?;
@@ -204,13 +217,13 @@ where
         let status_key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
         tokio::task::spawn_blocking(move || {
-            let scan = infisto::bincode::Serialization::serialize(scan)?;
-            let status = infisto::bincode::Serialization::serialize(models::Status::default())?;
+            let scan = infisto::serde::Serialization::serialize(scan)?;
+            let status = infisto::serde::Serialization::serialize(models::Status::default())?;
             let mut storage = storage.write().unwrap();
             storage.put(&key, scan)?;
             storage.put(&status_key, status)?;
 
-            let stored_key = infisto::bincode::Serialization::serialize(&id)?;
+            let stored_key = infisto::serde::Serialization::serialize(&id)?;
             storage.append("scans", stored_key)?;
             Ok(())
         })
@@ -226,7 +239,7 @@ where
         let ids: Vec<_> = ids
             .into_iter()
             .filter(|x| x != id)
-            .filter_map(|x| infisto::bincode::Serialization::serialize(x).ok())
+            .filter_map(|x| infisto::serde::Serialization::serialize(x).ok())
             .collect();
 
         tokio::task::spawn_blocking(move || {
@@ -247,7 +260,7 @@ where
         let storage = Arc::clone(&self.storage);
 
         tokio::task::spawn_blocking(move || {
-            let status = infisto::bincode::Serialization::serialize(status)?;
+            let status = infisto::serde::Serialization::serialize(status)?;
             let mut storage = storage.write().unwrap();
             storage.put(&key, status)?;
             Ok(())
@@ -298,7 +311,7 @@ where
                 .map(|x| x.deserialize())
                 .filter_map(|x| x.ok())
                 .filter(|(_, x)| x != sid)
-                .map(infisto::serde::Serialization::serialize)
+                .map(Serialization::serialize)
                 .filter_map(|x| x.ok())
                 .collect();
 
@@ -337,47 +350,156 @@ where
         .unwrap()
     }
 }
+
+struct Dispa {
+    storage: Arc<std::sync::RwLock<HashMap<String, Nvt>>>,
+    feed_version: Arc<std::sync::RwLock<String>>,
+}
+
+impl ItemDispatcher<String> for Dispa {
+    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
+        let mut storage = self.storage.write().unwrap();
+        let oid = nvt.oid.clone();
+        storage.insert(oid, nvt);
+        Ok(())
+    }
+
+    fn dispatch_feed_version(&self, version: String) -> Result<(), storage::StorageError> {
+        let mut feed_version = self.feed_version.write().unwrap();
+        *feed_version = version;
+        Ok(())
+    }
+
+    fn dispatch_advisory(
+        &self,
+        _: &str,
+        _: Box<Option<storage::NotusAdvisory>>,
+    ) -> Result<(), storage::StorageError> {
+        Ok(())
+    }
+}
+
+pub const FEED_KEY: &str = "nvts";
+
 #[async_trait]
-impl<S> OIDStorer for Storage<S>
+impl<S> NVTStorer for Storage<S>
 where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
 {
-    async fn push_oids(&self, hash: String, oids: Vec<String>) -> Result<(), Error> {
-        let key = "oids".to_string();
-        let storage = Arc::clone(&self.storage);
+    async fn synchronize_feeds(&self, hash: String) -> Result<(), Error> {
         let mut h = self.hash.write().await;
         *h = hash;
+        drop(h);
 
+        tracing::debug!("starting feed update in file {}", &FEED_KEY);
+        let storage = Arc::clone(&self.storage);
+        // we cache them upfront to avoid deletion and faster storage
+        let nvts = Arc::new(std::sync::RwLock::new(HashMap::with_capacity(100000)));
+        let notus_feed_path = self.notus_feed_path.clone();
+        let feed_version = self.feed_version.clone();
+        let nasl_feed_path = self.nasl_feed_path.clone();
+
+        let tnvts = nvts.clone();
+        let notus_feed = tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting notus feed update");
+            let loader = FSPluginLoader::new(notus_feed_path.as_ref());
+            let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
+
+            for filename in advisories_files.get_advisories()?.iter() {
+                let advisories = advisories_files.load_advisory(filename)?;
+
+                for adv in advisories.advisories {
+                    let data = models::VulnerabilityData {
+                        adv,
+                        famile: advisories.family.clone(),
+                        filename: filename.to_owned(),
+                    };
+                    let nvt: Nvt = data.into();
+                    let mut storage = tnvts.write().unwrap();
+                    storage.insert(nvt.oid.clone(), nvt);
+
+                    drop(storage);
+                }
+            }
+            tracing::debug!("finished notus feed update");
+            Ok::<_, Error>(())
+        });
+        let tnvts = nvts.clone();
+
+        let active_feed = tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting nasl feed update");
+            let oversion = "0.1";
+            let loader = FSPluginLoader::new(nasl_feed_path.as_ref());
+            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+
+            let store = PerItemDispatcher::new(Dispa {
+                storage: tnvts,
+                feed_version,
+            });
+            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            if let Some(x) = fu.find_map(|x| x.err()) {
+                tracing::debug!("{}", x);
+                Err(Error::from(x))
+            } else {
+                tracing::debug!("finished nasl feed update");
+                Ok(())
+            }
+        });
+
+        let nasl_result = active_feed.await.unwrap();
+        let notus_result: Result<(), Error> = notus_feed.await.unwrap();
+        let tnvts = nvts.clone();
         tokio::task::spawn_blocking(move || {
-            let oids = oids
-                .into_iter()
-                .filter_map(|x| infisto::bincode::Serialization::serialize(x.to_string()).ok())
+            let mut storage = storage.write().expect("storage seems to be poisoned");
+            let _ = storage.remove(FEED_KEY);
+            let tnvts = tnvts.read().unwrap();
+            let srs = tnvts
+                .values()
+                .filter_map(|x| infisto::serde::Serialization::serialize(x).ok())
                 .collect::<Vec<_>>();
 
-            let mut storage = storage.write().unwrap();
-            match storage.remove(&key) {
-                Ok(_) => {}
-                Err(infisto::base::Error::Remove(std::io::ErrorKind::NotFound)) => {}
-                Err(e) => return Err(e.into()),
-            };
-            storage.append_all(&key, &oids)?;
-            Ok(())
+            tracing::debug!("writing stuff {}", srs.len());
+            storage.append_all(FEED_KEY, &srs)?;
+            tracing::debug!("ahah");
+            Ok::<_, Error>(())
         })
         .await
-        .unwrap()
+        .unwrap()?;
+        tracing::debug!("finished feed update");
+
+        match (nasl_result, notus_result) {
+            (Ok(_), Ok(_)) => Ok(()),
+            (Ok(_), Err(err)) => Err(err),
+            (Err(err), Ok(_)) => Err(err),
+            (Err(err), Err(_)) => Err(err),
+        }
     }
 
     async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
-        let key = "oids".to_string();
         let storage = &self.storage.read().unwrap();
         let storage: S = storage.deref().clone();
         let iter = infisto::base::IndexedByteStorageIterator::<
             _,
-            infisto::bincode::Serialization<String>,
-        >::new(&key, storage)?;
+            infisto::serde::Serialization<Nvt>,
+        >::new(FEED_KEY, storage)?;
         let parsed = iter
             .filter_map(|x| x.ok())
-            .filter_map(|x| x.deserialize().ok());
+            .filter_map(|x| x.deserialize().ok())
+            .map(|x| x.oid);
+
+        Ok(Box::new(parsed))
+    }
+
+    async fn vts<'a>(
+        &self,
+    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+        let storage = &self.storage.read().unwrap();
+        let storage: S = storage.deref().clone();
+        let iter = infisto::base::IndexedByteStorageIterator::<
+            _,
+            infisto::serde::Serialization<Nvt>,
+        >::new(FEED_KEY, storage)?;
+        let parsed = iter.map(|x| x.unwrap()).map(|x| x.deserialize().unwrap());
         Ok(Box::new(parsed))
     }
 
@@ -443,7 +565,9 @@ mod tests {
         scan.scan_id = Some("aha".to_string());
         let storage =
             infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/credential").unwrap();
-        let storage = crate::storage::file::Storage::new(storage);
+        let nfp = "../../examples/feed/nasl";
+        let nofp = "../../examples/feed/notus/advisories";
+        let storage = crate::storage::file::Storage::new(storage, nfp, nofp);
         storage.insert_scan(scan.clone()).await.unwrap();
         let (scan2, _) = storage.get_scan("aha").await.unwrap();
         assert_eq!(scan, scan2);
@@ -451,23 +575,39 @@ mod tests {
 
     #[tokio::test]
     async fn oids() {
-        let mut oids = Vec::with_capacity(100000);
-        for i in 0..(oids.capacity()) {
-            oids.push(i.to_string());
-        }
         let storage = infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/oids").unwrap();
-        let storage = crate::storage::file::Storage::new(storage);
-        storage
-            .push_oids(String::new(), oids.clone())
+
+        let base = std::env::current_dir().unwrap_or_default();
+
+        let mut tbase = base.parent().unwrap().join("examples");
+        if std::fs::metadata(&tbase).is_err() {
+            tbase = base.join("examples");
+        }
+        let base_dir = tbase.join("feed");
+
+        let nfp = base_dir.join("nasl");
+        let nofp = base_dir.join("notus").join("advisories");
+        let file_storage = crate::storage::file::Storage::new(storage, &nfp, &nofp);
+        file_storage
+            .synchronize_feeds("123".to_string())
             .await
             .unwrap();
-        let noids = storage.oids().await.unwrap();
-        let mut len = 0;
-        for (i, s) in noids.enumerate() {
-            assert_eq!(s, oids[i]);
-            len += 1;
-        }
-        assert_eq!(len, oids.len());
+        let amount_file_oids = file_storage.oids().await.unwrap().count();
+
+        let mut storage = infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/oids").unwrap();
+        storage.remove(crate::storage::file::FEED_KEY).unwrap();
+        let memory_storage = crate::storage::inmemory::Storage::new(
+            crate::crypt::ChaCha20Crypt::default(),
+            nfp,
+            nofp,
+        );
+        memory_storage
+            .synchronize_feeds("123".to_string())
+            .await
+            .unwrap();
+        let amount_memory_oids = memory_storage.oids().await.unwrap().count();
+        assert_eq!(amount_memory_oids, 2);
+        assert_eq!(amount_memory_oids, amount_file_oids);
     }
 
     #[tokio::test]
@@ -483,7 +623,9 @@ mod tests {
 
         let storage =
             infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/file_storage_test").unwrap();
-        let storage = crate::storage::file::Storage::new(storage);
+        let nfp = "../../examples/feed/nasl";
+        let nofp = "../../examples/feed/notus/advisories";
+        let storage = crate::storage::file::Storage::new(storage, nfp, nofp);
         for s in scans.clone().into_iter() {
             storage.insert_scan(s).await.unwrap()
         }
@@ -536,7 +678,9 @@ mod tests {
             infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/file_storage_id_mapper_test")
                 .unwrap();
 
-        let storage = crate::storage::file::Storage::new(storage);
+        let nfp = "../../examples/feed/nasl";
+        let nofp = "../../examples/feed/notus/advisories";
+        let storage = crate::storage::file::Storage::new(storage, nfp, nofp);
         storage
             .add_scan_client_id("s1".to_owned(), "0".into())
             .await

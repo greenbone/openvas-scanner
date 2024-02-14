@@ -128,7 +128,7 @@ where
     /// Perform a signature check of the sha256sums file
     fn verify_signature(&self) -> Result<(), feed::VerifyError> {
         let p = self.root.as_ref().to_str().unwrap_or_default();
-        <FSProductLoader<P> as self::SignatureChecker>::signature_check(p)
+        feed::verify::check_signature(p)
     }
     /// Get the notus products root directory
     fn get_root_dir(&self) -> Result<String, Error> {

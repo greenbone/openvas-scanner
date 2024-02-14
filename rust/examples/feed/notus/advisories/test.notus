@@ -1,0 +1,26 @@
+{
+    "version": "1.2",
+    "spdx-license-identifier": "GPL-2.0-only",
+    "copyright": "Copyright (C) 2008-2024 Greenbone Networks GmbH",
+    "family": "Test Local Security Checks",
+    "advisories": [
+        {
+            "oid": "1.3.6.1.4.1.25623.1.1.1.2.2024.3731",
+            "title": "Test: Security Advisory (DLA-3731-1)",
+            "creation_date": 1706847576,
+            "last_modification": 1706847576,
+            "advisory_id": "TEST-3731-1",
+            "advisory_xref": "https://www.greenbone.net",
+            "cves": [],
+            "summary": "The remote host is missing an update for the Test 'man-db' package(s) announced via the DLA-3731-1 advisory.",
+            "affected": "'man-db' package(s) on Test 10.",
+            "xrefs": [],
+            "qod_type": "package",
+            "severity": {
+                "origin": "Greenbone",
+                "date": 1706847576,
+                "cvss_v2": "AV:N/AC:L/Au:N/C:P/I:N/A:N"
+            }
+        }
+    ]
+}
