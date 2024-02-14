@@ -82,7 +82,7 @@ where
 impl<'a, S, L, V, K, R> Update<S, L, V, K>
 where
     S: Sync + Send + Dispatcher<K>,
-    K: AsRef<str> + Display + Default + From<String> + 'static, 
+    K: AsRef<str> + Display + Default + From<String> + 'static,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
     R: Read + 'a,

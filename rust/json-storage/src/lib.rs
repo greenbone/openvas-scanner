@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use storage::{self, item::PerItemDispatcher, Kb, StorageError, NotusAdvisory};
+use storage::{self, item::PerItemDispatcher, Kb, NotusAdvisory, StorageError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -131,14 +131,14 @@ where
 
         _: Box<Option<NotusAdvisory>>,
     ) -> Result<(), StorageError> {
-         Ok(())
+        Ok(())
     }
 }
 
 impl<S, K> storage::Retriever<K> for ItemDispatcher<S>
 where
     S: Write,
-    K: 'static
+    K: 'static,
 {
     fn retrieve(
         &self,
@@ -147,7 +147,9 @@ where
     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
             // currently not supported
-            storage::Retrieve::NVT(_) | storage::Retrieve::NotusAdvisory(_) => Box::new([].into_iter()),
+            storage::Retrieve::NVT(_) | storage::Retrieve::NotusAdvisory(_) => {
+                Box::new([].into_iter())
+            }
             storage::Retrieve::KB(s) => Box::new({
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
                 let kbs = kbs.clone();

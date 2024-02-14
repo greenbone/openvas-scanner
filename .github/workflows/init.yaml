@@ -57,7 +57,7 @@ jobs:
         if: ( env.IS_VERSION_TAG == 'true' )
         run: |
           # find the latest version that is not ourself
-          export LATEST_VERSION=$(git tag -l | grep -v '${{ github.ref_name }}' | sort -r --version-sort)
+          export LATEST_VERSION=$(git tag -l | grep -v '${{ github.ref_name }}' | sort -r --version-sort | head -n 1)
           # get major minor patch versions
           IFS='.' read -r latest_major latest_minor latest_patch << EOF
           $LATEST_VERSION

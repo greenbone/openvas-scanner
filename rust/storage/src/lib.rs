@@ -52,10 +52,7 @@ pub enum Field {
     KB(Kb),
     /// Notus advisories, when None then the impl can assume finish
     NotusAdvisory(Box<Option<NotusAdvisory>>),
-    
 }
-
-
 
 impl From<NVTField> for Field {
     fn from(value: NVTField) -> Self {

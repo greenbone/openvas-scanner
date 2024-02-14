@@ -93,7 +93,8 @@ if(description)
         assert_eq!(
             storage
                 .retrieve(&key, storage::Retrieve::NVT(None))
-                .unwrap().collect::<Vec<_>>(),
+                .unwrap()
+                .collect::<Vec<_>>(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
                 NVT(FileName(key)),

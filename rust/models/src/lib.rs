@@ -30,7 +30,6 @@ pub use status::*;
 pub use target::*;
 pub use vt::*;
 
-
 #[cfg(test)]
 mod tests {
 
