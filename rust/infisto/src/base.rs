@@ -246,7 +246,6 @@ impl IndexedFileStorer {
         let fn_name = format!("{}.dat", key);
         let path = Path::new(&self.base).join(fn_name);
         let mut file = std::fs::OpenOptions::new()
-            .write(true)
             .append(true)
             .open(path)
             .map_err(|e| e.kind())
