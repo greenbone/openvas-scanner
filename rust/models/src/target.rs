@@ -14,10 +14,11 @@ use super::{credential::Credential, port::Port};
 pub struct Target {
     /// List of hosts to scan
     pub hosts: Vec<String>,
-    /// List of excluded hosts to scan
-    pub excluded_hosts: Vec<String>,
     /// List of ports used for scanning
     pub ports: Vec<Port>,
+    #[cfg_attr(feature = "serde_support", serde(default))]
+    /// List of excluded hosts to scan
+    pub excluded_hosts: Vec<String>,
     #[cfg_attr(feature = "serde_support", serde(default))]
     /// List of credentials used to get access to a system
     pub credentials: Vec<Credential>,

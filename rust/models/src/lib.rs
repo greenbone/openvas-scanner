@@ -42,9 +42,6 @@ mod tests {
         "hosts": [
         "127.0.0.1"
         ],
-        "excluded_hosts": [
-        "192.168.0.14"
-        ],
         "ports": [
         {
             "range": [{"start": 22}]

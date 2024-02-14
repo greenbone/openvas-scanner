@@ -564,6 +564,7 @@ mod tests {
                 password: "pass".to_string(),
             },
         }];
+        scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
         scan.target.ports = vec![Port {
             protocol: Some(models::Protocol::TCP),
             range: vec![
@@ -599,6 +600,11 @@ mod tests {
         assert!(prefh
             .redis_connector
             .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||3"));
+
+        assert!(prefh.prepare_host_options_for_openvas().is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "excluded_hosts|||127.0.0.1"));
 
         assert!(prefh.prepare_credentials_for_openvas().is_ok());
         assert!(prefh.redis_connector.item_exists(

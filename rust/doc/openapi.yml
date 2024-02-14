@@ -469,6 +469,12 @@ components:
           items:
             description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
             type: "string"
+        excluded_hosts:
+          description: "A list of excluded hosts."
+          type: "array"
+          items:
+            description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
+            type: "string"
         ports:
           description: "A list of ports."
           type: "array"
@@ -877,6 +883,10 @@ components:
                   "2001:db8:0000:0000:0000:0000:0000:0001-00ff",
                   "2002::1234:abcd:ffff:c0a8:101/64",
                   "examplehost",
+                ],
+              "excluded_hosts":
+                [
+                  "192.168.0.14"
                 ],
               "ports":
                 [
