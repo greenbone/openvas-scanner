@@ -703,14 +703,6 @@ where
         scope: storage::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
-            // retrieve all nvts
-            // storage::Retrieve::NVT(None) => {
-            //     let mut cache = Arc::as_ref(&self.cache).lock()?;
-            //     let stored = cache.redis_get_vt(oid.as_ref()).map_err(|e| e.into())?;
-            //     let result = stored.as_slice().into_iter().map(|x|storage::Field::NVT(x));
-            //     Ok(result)
-            //
-            // }
             storage::Retrieve::NotusAdvisory(_) | storage::Retrieve::NVT(_) => {
                 Box::new(Vec::new().into_iter())
             }

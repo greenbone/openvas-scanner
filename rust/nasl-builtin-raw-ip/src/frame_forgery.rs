@@ -262,7 +262,7 @@ fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -
     frame.into()
 }
 
-fn convert_vec_into_mac_address(v: &Vec<u8>) -> Result<MacAddr, FunctionErrorKind> {
+fn convert_vec_into_mac_address(v: &[u8]) -> Result<MacAddr, FunctionErrorKind> {
     if v.len() != 6 {
         Err(("Invalid mac address").into())
     } else {
