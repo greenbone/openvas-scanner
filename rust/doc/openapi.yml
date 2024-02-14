@@ -255,7 +255,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ScanID"
       responses:
-        "200":
+        "204":
           description: "Scan deleted"
         "404":
           description: "Scan not found"
