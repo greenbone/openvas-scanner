@@ -21,7 +21,6 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 serde_json = "1.0.96"
 serde = { version = "1.0.163", features = ["derive"] }
-bincode = "1"
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 rustls = {version = "0.22"}
 tokio-rustls = "0.25"

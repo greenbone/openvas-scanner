@@ -171,9 +171,6 @@ mod tests {
 }
 "#;
         // tests that it doesn't panic when parsing the json
-        let s: Scan = serde_json::from_str(json_str).unwrap();
-
-        let _b = bincode::encode_to_vec(s, bincode::config::standard()).unwrap();
-        //let _: Target = bincode::deserialize(&b).unwrap();
+        let _: Scan = serde_json::from_str(json_str).unwrap();
     }
 }

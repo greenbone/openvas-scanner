@@ -48,7 +48,6 @@ use crate::{
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub enum ACT {
     /// Defines a initializer
     Init,
@@ -106,7 +105,6 @@ macro_rules! make_str_lookup_enum {
                    derive(serde::Serialize, serde::Deserialize),
                    serde(rename_all = "snake_case")
         )]
-        #[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
         pub enum $enum_name {
             $(
              #[doc = concat!(stringify!($matcher))]
@@ -297,7 +295,6 @@ Category will be used to identify the type of the NASL plugin."### =>
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct NvtPreference {
     /// Preference ID
     pub id: Option<i32>,
@@ -316,7 +313,6 @@ pub struct NvtPreference {
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
     pub class: String,
@@ -443,7 +439,6 @@ impl TagValue {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
