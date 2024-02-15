@@ -20,13 +20,6 @@ const BOREAS_ALIVE_TEST: &str = "ALIVE_TEST";
 const BOREAS_ALIVE_TEST_PORTS: &str = "ALIVE_TEST_PORTS";
 const ALIVE_TEST_SCAN_CONFIG_DEFAULT: u8 = 0x00;
 
-fn int_to_bool(value: u8) -> bool {
-    if value == 0 {
-        return false;
-    }
-    true
-}
-
 fn bool_to_str(value: &str) -> String {
     if value == "0" {
         return "no".to_string();
@@ -52,7 +45,26 @@ where
         }
     }
 
-    pub fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
+    pub fn prepare_preferences_for_openvas(&mut self) -> RedisStorageResult<()> {
+        self.prepare_scan_id_for_openvas()?;
+        self.prepare_target_for_openvas()?;
+        self.prepare_ports_for_openvas()?;
+        self.prepare_credentials_for_openvas()?;
+        self.prepare_plugins_for_openvas()?;
+        self.prepare_main_kbindex_for_openvas()?;
+        self.prepare_host_options_for_openvas()?;
+        self.prepare_scan_params_for_openvas()?;
+        self.prepare_reverse_lookup_opt_for_openvas()?;
+        self.prepare_alive_test_option_for_openvas()?;
+
+        // VT preferences are stored after all preferences have been processed,
+        // since alive tests preferences have to be able to overwrite default
+        // preferences of ping_host.nasl for the classic method.
+        self.prepare_nvt_preferences()?;
+        self.prepare_boreas_alive_test()
+    }
+
+    fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!(
                 "internal/{}/scanprefs",
@@ -64,7 +76,7 @@ where
         Ok(())
     }
 
-    pub fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!(
                 "internal/{}",
@@ -118,7 +130,7 @@ where
         (vts_list, pref_list)
     }
 
-    pub fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
         let nvts = &self.scan_config.vts;
 
         if nvts.is_empty() {
@@ -140,7 +152,7 @@ where
         )
     }
 
-    pub fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
+    fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
         let mut items: Vec<String> = vec![];
 
         let _ = self
@@ -158,7 +170,7 @@ where
         )
     }
 
-    pub fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut prefs: HashMap<String, String> = HashMap::new();
         let mut alive_test = ALIVE_TEST_SCAN_CONFIG_DEFAULT;
         let mut value: &str = "no";
@@ -169,8 +181,8 @@ where
         }
 
         //Preference 1
-        if int_to_bool(alive_test & AliveTestMethods::TcpAck as u8)
-            || int_to_bool(alive_test & AliveTestMethods::TcpSyn as u8)
+        if (alive_test & AliveTestMethods::TcpAck as u8) != 0
+            || (alive_test & AliveTestMethods::TcpSyn as u8) != 0
         {
             value = "yes"
         }
@@ -181,8 +193,8 @@ where
 
         //Preference 2
         value = "no";
-        if int_to_bool(alive_test & AliveTestMethods::TcpAck as u8)
-            && int_to_bool(alive_test & AliveTestMethods::TcpSyn as u8)
+        if (alive_test & AliveTestMethods::TcpAck as u8) != 0
+            && (alive_test & AliveTestMethods::TcpSyn as u8) != 0
         {
             value = "yes"
         }
@@ -193,8 +205,8 @@ where
 
         //Preference 7
         value = "no";
-        if int_to_bool(alive_test & AliveTestMethods::TcpSyn as u8)
-            && !int_to_bool(alive_test & AliveTestMethods::TcpAck as u8)
+        if (alive_test & AliveTestMethods::TcpSyn as u8) != 0
+            && !(alive_test & AliveTestMethods::TcpAck as u8) != 0
         {
             value = "yes"
         }
@@ -205,7 +217,7 @@ where
 
         //Preference 3
         value = "no";
-        if int_to_bool(alive_test & AliveTestMethods::Icmp as u8) {
+        if (alive_test & AliveTestMethods::Icmp as u8) != 0 {
             value = "yes"
         }
         prefs.insert(
@@ -215,7 +227,7 @@ where
 
         //Preference 4
         value = "no";
-        if int_to_bool(alive_test & AliveTestMethods::Arp as u8) {
+        if (alive_test & AliveTestMethods::Arp as u8) != 0 {
             value = "yes"
         }
         prefs.insert(
@@ -225,7 +237,7 @@ where
 
         //Preference 5. This preference is confusing. Since the method name and the preference name have different logics
         value = "yes"; // consider hosts as dead
-        if int_to_bool(alive_test & AliveTestMethods::ConsiderAlive as u8) {
+        if (alive_test & AliveTestMethods::ConsiderAlive as u8) != 0 {
             value = "no" // NO, means that hosts are not considered as dead.
         }
 
@@ -239,7 +251,7 @@ where
         Ok(())
     }
 
-    pub fn prepare_boreas_alive_test(&mut self) -> RedisStorageResult<()> {
+    fn prepare_boreas_alive_test(&mut self) -> RedisStorageResult<()> {
         // Check "test_alive_hosts_only" configuration from openvas.conf
         // If set no, boreas is disabled and alive_host.nasl is used instead.
         if let Ok(config) = cmd::read_openvas_config() {
@@ -294,7 +306,7 @@ where
         Ok(())
     }
 
-    pub fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut lookup_opts: Vec<String> = vec![];
 
         if let Some(reverse_lookup_only) = self.scan_config.target.reverse_lookup_only {
@@ -323,7 +335,7 @@ where
         )
     }
 
-    pub fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
         let target = self.scan_config.target.hosts.join(",");
         self.redis_connector.push_kb_item(
             format!(
@@ -335,7 +347,7 @@ where
         )
     }
 
-    pub fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
         let ports = self.scan_config.target.ports.clone();
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
@@ -351,7 +363,7 @@ where
         Ok(())
     }
 
-    pub fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
         let excluded_hosts = self.scan_config.target.excluded_hosts.join(",");
         if excluded_hosts.is_empty() {
             return Ok(());
@@ -367,7 +379,7 @@ where
         )
     }
 
-    pub fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
         let options = self
             .scan_config
             .scanner_preferences
@@ -389,7 +401,7 @@ where
             options,
         )
     }
-    pub fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
 
         let mut credential_preferences: Vec<String> = vec![];
@@ -402,8 +414,11 @@ where
                         credential_preferences.push("auth_port_ssh|||22".to_string());
                     };
 
-                    if let CredentialType::UP { username, password } =
-                        credential.credential_type.clone()
+                    if let CredentialType::UP {
+                        username,
+                        password,
+                        privilege_credential,
+                    } = credential.credential_type.clone()
                     {
                         credential_preferences.push(format!(
                             "{OID_SSH_AUTH}:3:password:SSH password (unsafe!):|||{}",
@@ -413,6 +428,21 @@ where
                             "{OID_SSH_AUTH}:1:entry:SSH login name:|||{}",
                             username
                         ));
+                        if let Some(pcred) = privilege_credential {
+                            if let CredentialType::UP {
+                                username, password, ..
+                            } = pcred.as_ref()
+                            {
+                                credential_preferences.push(format!(
+                                    "{OID_SSH_AUTH}:7:entry:SSH privilege login name:|||{}",
+                                    username
+                                ));
+                                credential_preferences.push(format!(
+                                    "{OID_SSH_AUTH}:8:password:SSH privilege password:|||{}",
+                                    password
+                                ));
+                            }
+                        }
                     };
                     if let CredentialType::USK {
                         username,
@@ -434,22 +464,11 @@ where
                         ));
                     };
                 }
-                Service::PSSH => {
-                    if let CredentialType::UP { username, password } = credential.credential_type {
-                        credential_preferences.push(format!(
-                            "{OID_SSH_AUTH}:7:entry:SSH privilege login name:|||{}",
-                            username
-                        ));
-                        credential_preferences.push(format!(
-                            "{OID_SSH_AUTH}:8:password:SSH privilege password:|||{}",
-                            password
-                        ));
-                    };
-                }
 
                 Service::SMB => {
-                    if let CredentialType::UP { username, password } =
-                        credential.credential_type.clone()
+                    if let CredentialType::UP {
+                        username, password, ..
+                    } = credential.credential_type.clone()
                     {
                         credential_preferences
                             .push(format!("{OID_SMB_AUTH}:1:entry:SMB login:|||{}", username));
@@ -461,8 +480,9 @@ where
                 }
 
                 Service::ESXi => {
-                    if let CredentialType::UP { username, password } =
-                        credential.credential_type.clone()
+                    if let CredentialType::UP {
+                        username, password, ..
+                    } = credential.credential_type.clone()
                     {
                         credential_preferences.push(format!(
                             "{OID_ESXI_AUTH}:1:entry:ESXi login name:|||{}",
@@ -562,6 +582,7 @@ mod tests {
             credential_type: models::CredentialType::UP {
                 username: "user".to_string(),
                 password: "pass".to_string(),
+                privilege_credential: None,
             },
         }];
         scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
