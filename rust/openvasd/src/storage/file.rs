@@ -515,15 +515,6 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn serialize() {
-        let scan = models::Status::default();
-
-        let serialized = bincode::serialize(&scan).unwrap();
-        let deserialized = bincode::deserialize(&serialized).unwrap();
-        assert_eq!(scan, deserialized);
-    }
-
     #[tokio::test]
     async fn credentials() {
         let jraw = r#"

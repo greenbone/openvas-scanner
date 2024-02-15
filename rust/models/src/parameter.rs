@@ -7,7 +7,6 @@
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 /// Represents a parameter for a VTS configuration.
 pub struct Parameter {
     /// The ID of the parameter.
