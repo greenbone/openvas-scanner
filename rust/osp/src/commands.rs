@@ -287,13 +287,22 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
 
             writer.within_parameter_element("credential", parameter, &mut |writer| {
                 match &c.credential_type {
-                    CredentialType::UP { username, password } => {
-                        // TODO need to add privilege escalation for root when service is ssh
-                        // see
-                        // https://docs.greenbone.net/API/OSP/osp-22.04.html#element_credential
-                        // 5.1.3
+                    CredentialType::UP {
+                        username,
+                        password,
+                        privilege_credential,
+                    } => {
                         write_str_element(writer, "username", username)?;
                         write_str_element(writer, "password", password)?;
+                        if let Some(pcred) = privilege_credential {
+                            if let CredentialType::UP {
+                                username, password, ..
+                            } = pcred.as_ref()
+                            {
+                                write_str_element(writer, "priv_username", username)?;
+                                write_str_element(writer, "priv_password", password)?;
+                            }
+                        }
                     }
                     CredentialType::USK {
                         username,
