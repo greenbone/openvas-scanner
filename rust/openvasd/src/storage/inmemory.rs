@@ -184,7 +184,7 @@ where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
     async fn insert_scan(&self, sp: models::Scan) -> Result<(), Error> {
-        let id = sp.scan_id.clone().unwrap_or_default();
+        let id = sp.scan_id.clone();
         let mut scans = self.scans.write().await;
         if let Some(prgs) = scans.get_mut(&id) {
             prgs.scan = sp;
@@ -243,9 +243,7 @@ where
         let scans = self.scans.read().await;
         let mut result = Vec::with_capacity(scans.len());
         for (_, progress) in scans.iter() {
-            if let Some(id) = progress.scan.scan_id.as_ref() {
-                result.push(id.clone());
-            }
+            result.push(progress.scan.scan_id.clone());
         }
         Ok(result)
     }
@@ -441,10 +439,10 @@ mod tests {
     async fn store_delete_scan() {
         let storage = Storage::default();
         let scan = Scan::default();
-        let id = scan.scan_id.clone().unwrap_or_default();
+        let id = scan.scan_id.clone();
         storage.insert_scan(scan).await.unwrap();
         let (retrieved, _) = storage.get_scan(&id).await.unwrap();
-        assert_eq!(retrieved.scan_id.unwrap_or_default(), id);
+        assert_eq!(retrieved.scan_id, id);
         storage.remove_scan(&id).await.unwrap();
     }
 
@@ -463,21 +461,21 @@ mod tests {
 
         scan.target.credentials = vec![pw];
 
-        let id = scan.scan_id.clone().unwrap_or_default();
+        let id = scan.scan_id.clone();
         storage.insert_scan(scan).await.unwrap();
         let (retrieved, _) = storage.get_scan(&id).await.unwrap();
-        assert_eq!(retrieved.scan_id.unwrap_or_default(), id);
+        assert_eq!(retrieved.scan_id, id);
         assert_ne!(retrieved.target.credentials[0].password(), "test");
 
         let (retrieved, _) = storage.get_decrypted_scan(&id).await.unwrap();
-        assert_eq!(retrieved.scan_id.unwrap_or_default(), id);
+        assert_eq!(retrieved.scan_id, id);
         assert_eq!(retrieved.target.credentials[0].password(), "test");
     }
 
     async fn store_scan(storage: &Storage<crypt::ChaCha20Crypt>) -> String {
         let mut scan = Scan::default();
         let id = uuid::Uuid::new_v4().to_string();
-        scan.scan_id = Some(id.clone());
+        scan.scan_id = id.clone();
         storage.insert_scan(scan).await.unwrap();
         id
     }
@@ -496,7 +494,7 @@ mod tests {
     async fn append_results() {
         let storage = Storage::default();
         let scan = Scan::default();
-        let id = scan.scan_id.clone().unwrap_or_default();
+        let id = scan.scan_id.clone();
         storage.insert_scan(scan).await.unwrap();
         let fetch_result = (models::Status::default(), vec![models::Result::default()]);
         storage

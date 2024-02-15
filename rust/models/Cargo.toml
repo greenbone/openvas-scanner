@@ -7,7 +7,7 @@ license = "GPL-2.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = {version = "1", features = ["derive"], optional = true}
+serde = { version = "1", features = ["derive"], optional = true }
 
 [features]
 default = ["serde_support"]

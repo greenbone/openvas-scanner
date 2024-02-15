@@ -14,7 +14,7 @@ use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
 pub struct Scan {
     #[cfg_attr(feature = "serde_support", serde(default))]
     /// Unique ID of a scan
-    pub scan_id: Option<String>,
+    pub scan_id: String,
     /// Information about the target to scan
     pub target: Target,
     #[cfg_attr(feature = "serde_support", serde(default))]

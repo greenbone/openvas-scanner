@@ -91,11 +91,7 @@ impl OpenvasController {
 
     /// Prepare scan and start it
     pub fn start_scan(&mut self, scan: models::Scan) -> Result<(), OpenvasError> {
-        let scan_id = match scan.scan_id {
-            Some(id) => id,
-            None => return Err(OpenvasError::MissingID),
-        };
-        self.add_init(scan_id.clone());
+        self.add_init(scan.scan_id.clone());
 
         // TODO: Create new DB for Scan
         // TODO: Add Scan ID to DB
@@ -107,7 +103,7 @@ impl OpenvasController {
         // TODO: Prepare reverse lookup option (maybe part of target)
         // TODO: Prepare alive test option (maybe part of target)
 
-        if !self.add_running(scan_id)? {
+        if !self.add_running(scan.scan_id)? {
             return Ok(());
         }
 
