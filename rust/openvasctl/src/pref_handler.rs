@@ -620,7 +620,5 @@ mod tests {
         assert!(prefh
             .redis_connector
             .item_exists("internal/123-456/scanprefs", "PORTS|||tcp:22-25,80,"));
-
-        println!("{:?}", prefh.redis_connector.data);
     }
 }
