@@ -12,7 +12,7 @@ use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
     serde(deny_unknown_fields)
 )]
 pub struct Scan {
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[cfg_attr(feature = "serde_support", serde(skip_deserializing, default = "uuid"))]
     /// Unique ID of a scan
     pub scan_id: String,
     /// Information about the target to scan
@@ -22,4 +22,8 @@ pub struct Scan {
     pub scanner_preferences: Vec<ScannerPreference>,
     /// List of VTs to execute for the target
     pub vts: Vec<VT>,
+}
+
+fn uuid() -> String {
+    uuid::Uuid::new_v4().to_string()
 }
