@@ -4,7 +4,7 @@
 
 use redis_storage::{
     dberror::{DbError, RedisStorageResult},
-    NameSpaceSelector, RedisCtx, RedisGetNvt, RedisWrapper,
+    RedisCtx, RedisGetNvt, RedisWrapper,
 };
 use std::{
     collections::HashMap,
@@ -28,16 +28,12 @@ where
     /// Initialize a RedisHelper struct with the connection to access the NVT cache
     /// and a empty task knowledge base to store the scan configuration to be sent to openvas.
     pub fn init(
-        redis_url: &str,
-        selector: &[NameSpaceSelector],
+        nvti_cache: Arc<Mutex<RedisCtx>>,
+        kb_cache: Arc<Mutex<RedisCtx>>,
     ) -> RedisStorageResult<RedisHelper<RedisCtx>> {
-        let mut rctx = RedisCtx::open(redis_url, selector)?;
-        rctx.delete_namespace()?;
-        let cache = RedisCtx::open(redis_url, selector)?;
-
         Ok(RedisHelper::<RedisCtx> {
-            cache: Arc::new(Mutex::new(cache)),
-            task_kb: Arc::new(Mutex::new(rctx)),
+            cache: nvti_cache,
+            task_kb: kb_cache,
         })
     }
 }
