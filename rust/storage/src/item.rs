@@ -196,7 +196,8 @@ make_str_lookup_enum! {
         remote_banner_unreliable => RemoteBannerUnreliable,
         remote_probe => RemoteProbe,
         remote_vul => RemoteVul,
-        package_unreliable => PackageUnreliable
+        package_unreliable => PackageUnreliable,
+        default => Default
     }
 }
 
@@ -403,6 +404,28 @@ impl From<&NvtPreference> for (String, String, String, String) {
         let name = pref.name().to_string();
         let def = pref.default().to_string();
         (id, class.to_string(), name, def)
+    }
+}
+
+impl From<QodType> for i64 {
+    fn from(v: QodType) -> Self {
+        match v {
+            QodType::Exploit => 100,
+            QodType::RemoteVul => 99,
+            QodType::RemoteApp => 98,
+            QodType::Package => 97,
+            QodType::Registry => 97,
+            QodType::RemoteActive => 95,
+            QodType::RemoteBanner => 80,
+            QodType::ExecutableVersion => 80,
+            QodType::RemoteAnalysis => 70,
+            QodType::RemoteProbe => 50,
+            QodType::PackageUnreliable => 30,
+            QodType::RemoteBannerUnreliable => 30,
+            QodType::ExecutableVersionUnreliable => 30,
+            QodType::GeneralNote => 1,
+            QodType::Default => 70,
+        }
     }
 }
 

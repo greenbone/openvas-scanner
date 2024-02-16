@@ -45,6 +45,9 @@ pub trait KbAccess {
         value: T,
     ) -> RedisStorageResult<()>;
     fn kb_id(&self) -> RedisStorageResult<u32>;
+    fn results(&mut self) -> RedisStorageResult<Vec<String>> {
+        Ok(Vec::new())
+    }
 }
 
 impl KbAccess for RedisHelper<RedisCtx> {
@@ -66,6 +69,13 @@ impl KbAccess for RedisHelper<RedisCtx> {
             .lock()
             .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
         Ok(cache.db)
+    }
+
+    fn results(&mut self) -> RedisStorageResult<Vec<String>> {
+        let mut cache = Arc::as_ref(&self.cache)
+            .lock()
+            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
+        cache.lrange("internal/results", 0, -1)
     }
 }
 
