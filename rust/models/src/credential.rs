@@ -50,6 +50,7 @@ impl Default for Credential {
             credential_type: CredentialType::UP {
                 username: "root".to_string(),
                 password: "".to_string(),
+                privilege_credential: None,
             },
         }
     }
@@ -103,6 +104,8 @@ pub enum CredentialType {
         username: String,
         /// The password for authentication.
         password: String,
+        /// privilege credential
+        privilege_credential: Option<Box<CredentialType>>,
     },
     #[cfg_attr(feature = "serde_support", serde(rename = "usk"))]
     /// User/ssh-key credentials.
@@ -140,9 +143,14 @@ impl CredentialType {
         F: FnOnce(String) -> Result<String, E>,
     {
         Ok(match self {
-            CredentialType::UP { username, password } => CredentialType::UP {
+            CredentialType::UP {
+                username,
+                password,
+                privilege_credential,
+            } => CredentialType::UP {
                 username,
                 password: f(password)?,
+                privilege_credential,
             },
             CredentialType::USK {
                 username,

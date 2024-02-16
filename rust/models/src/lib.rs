@@ -72,6 +72,9 @@ mod tests {
       "2002::1234:abcd:ffff:c0a8:101/64",
       "examplehost"
     ],
+    "excluded_hosts": [
+      "192.168.0.14"
+    ],
     "ports": [
       {
         "protocol": "udp",

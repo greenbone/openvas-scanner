@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+use configparser::ini::Ini;
 use std::{
     io::Result,
     process::{Child, Command},
@@ -11,6 +16,17 @@ pub fn check() -> bool {
 /// Check if it is possible to start openvas with the sudo command
 pub fn check_sudo() -> bool {
     Command::new("sudo").args(["-n", "openvas"]).spawn().is_ok()
+}
+
+pub fn read_openvas_config() -> Result<Ini> {
+    let oconfig = Command::new("openvas").arg("-s").output()?;
+
+    let mut config = Ini::new();
+    let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
+    config
+        .read(oconfig)
+        .expect("Error reading openvas configuration");
+    Ok(config)
 }
 
 /// Start a new scan with the openvas executable with the given string. Before a scan can be
