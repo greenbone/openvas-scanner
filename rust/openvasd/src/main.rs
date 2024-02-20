@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = config::Config::load();
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .parse_lossy(format!("{},rustls=info", &config.log.level));
+        .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
     tracing::debug!("config: {:?}", config);
     tracing_subscriber::fmt().with_env_filter(filter).init();
     if !config.ospd.socket.exists() {
