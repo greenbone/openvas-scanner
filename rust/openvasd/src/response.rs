@@ -176,20 +176,38 @@ impl Response {
     where
         T: Iterator<Item = Vec<u8>> + Send + 'static,
     {
-        let (tx, rx) = std::sync::mpsc::sync_channel::<SendState>(0);
+        // buffer one extra for fast clients
+        let (tx, rx) = std::sync::mpsc::sync_channel::<SendState>(2);
         // unfortunately we cannot use tokio::spawn as we don't know
         // if we are running in something that uses TokioExecutor (e.g. http2)
         // or not (e.g. tests or http1) this deep down.
         // Therefore we enforce a thread via the OS.
         thread::spawn(move || {
-            tx.send(SendState::Start).unwrap();
+            let send = |s| match tx.send(s) {
+                Ok(_) => false,
+                Err(e) => {
+                    tracing::trace!(%e, "retrieve is not available anymore, ignoring.");
+                    true
+                }
+            };
+            let span = tracing::debug_span!("ok_byte_stream");
+
+            let _enter = span.enter();
+            tracing::debug!("starting to send values");
+            if send(SendState::Start) {
+                return;
+            }
             if let Some(v) = value.next() {
-                tx.send(SendState::Bytes(true, v)).unwrap();
+                if send(SendState::Bytes(true, v)) {
+                    return;
+                };
             }
-            for v in value {
-                tx.send(SendState::Bytes(false, v)).unwrap();
+            if value.map(|v| send(SendState::Bytes(false, v))).any(|x| x) {
+                return;
             }
-            tx.send(SendState::End).unwrap();
+
+            send(SendState::End);
+            tracing::debug!("end send values");
             drop(tx);
         });
         self.ok_json_response(BodyKind::BinaryStream(rx))
