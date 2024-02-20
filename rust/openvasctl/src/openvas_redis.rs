@@ -27,14 +27,14 @@ where
 {
     /// Initialize a RedisHelper struct with the connection to access the NVT cache
     /// and a empty task knowledge base to store the scan configuration to be sent to openvas.
-    pub fn init(
+    pub fn new(
         nvti_cache: Arc<Mutex<RedisCtx>>,
         kb_cache: Arc<Mutex<RedisCtx>>,
-    ) -> RedisStorageResult<RedisHelper<RedisCtx>> {
-        Ok(RedisHelper::<RedisCtx> {
+    ) -> RedisHelper<RedisCtx> {
+        RedisHelper::<RedisCtx> {
             cache: nvti_cache,
             task_kb: kb_cache,
-        })
+        }
     }
 }
 

@@ -103,7 +103,7 @@ where
                 vts_list.push(vt.oid.clone());
 
                 // prepare vt preferences
-                for pref in vt.parameters.clone() {
+                for pref in &vt.parameters {
                     let (prefid, class, name, value): (String, String, String, String) = nvt
                         .preferences
                         .iter()
