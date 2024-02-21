@@ -1942,6 +1942,7 @@ dependencies = [
  "redis",
  "redis-storage",
  "storage",
+ "tokio",
  "tracing",
 ]
 

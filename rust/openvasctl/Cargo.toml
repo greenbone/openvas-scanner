@@ -11,4 +11,5 @@ models = { path = "../models" }
 redis = "0.22.0"
 redis-storage = { version = "0.1.0", path = "../redis-storage" }
 storage = { version = "0.1.0", path = "../storage" }
+tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"

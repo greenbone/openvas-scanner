@@ -45,26 +45,26 @@ where
         }
     }
 
-    pub fn prepare_preferences_for_openvas(&mut self) -> RedisStorageResult<()> {
-        self.prepare_scan_id_for_openvas()?;
-        self.prepare_target_for_openvas()?;
-        self.prepare_ports_for_openvas()?;
-        self.prepare_credentials_for_openvas()?;
-        self.prepare_plugins_for_openvas()?;
-        self.prepare_main_kbindex_for_openvas()?;
-        self.prepare_host_options_for_openvas()?;
-        self.prepare_scan_params_for_openvas()?;
-        self.prepare_reverse_lookup_opt_for_openvas()?;
-        self.prepare_alive_test_option_for_openvas()?;
+    pub async fn prepare_preferences_for_openvas(&mut self) -> RedisStorageResult<()> {
+        self.prepare_scan_id_for_openvas().await?;
+        self.prepare_target_for_openvas().await?;
+        self.prepare_ports_for_openvas().await?;
+        self.prepare_credentials_for_openvas().await?;
+        self.prepare_plugins_for_openvas().await?;
+        self.prepare_main_kbindex_for_openvas().await?;
+        self.prepare_host_options_for_openvas().await?;
+        self.prepare_scan_params_for_openvas().await?;
+        self.prepare_reverse_lookup_opt_for_openvas().await?;
+        self.prepare_alive_test_option_for_openvas().await?;
 
         // VT preferences are stored after all preferences have been processed,
         // since alive tests preferences have to be able to overwrite default
         // preferences of ping_host.nasl for the classic method.
-        self.prepare_nvt_preferences()?;
-        self.prepare_boreas_alive_test()
+        self.prepare_nvt_preferences().await?;
+        self.prepare_boreas_alive_test().await
     }
 
-    fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!(
                 "internal/{}/scanprefs",
@@ -76,7 +76,7 @@ where
         Ok(())
     }
 
-    fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!(
                 "internal/{}",
@@ -93,7 +93,7 @@ where
         Ok(())
     }
 
-    fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, String>) {
+    async fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, String>) {
         let mut vts_list: Vec<String> = vec![];
         let mut pref_list: HashMap<String, String> = HashMap::new();
 
@@ -103,11 +103,12 @@ where
                 vts_list.push(vt.oid.clone());
 
                 // prepare vt preferences
-                for pref in vt.parameters.iter() {
+                for pref in &vt.parameters {
                     let (prefid, class, name, value): (String, String, String, String) = nvt
                         .preferences
-                        .get(pref.id as usize)
-                        .expect("Valid pref id")
+                        .iter()
+                        .find(|p| p.id.unwrap() as u16 == pref.id)
+                        .unwrap()
                         .into();
 
                     let value_aux: String = if class == *"checkbox" {
@@ -126,18 +127,17 @@ where
                 continue;
             }
         }
-
         (vts_list, pref_list)
     }
 
-    fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
         let nvts = &self.scan_config.vts;
 
         if nvts.is_empty() {
             return Ok(());
         }
 
-        let (nvts, prefs) = self.process_vts(nvts);
+        let (nvts, prefs) = self.process_vts(nvts).await;
         // update list of preferences
         self.nvt_params.extend(prefs);
 
@@ -152,14 +152,16 @@ where
         )
     }
 
-    fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
         let mut items: Vec<String> = vec![];
+        for (k, v) in self.nvt_params.iter() {
+            items.push(format!("{}|||{}", k, v))
+        }
 
-        let _ = self
-            .nvt_params
-            .clone()
-            .into_iter()
-            .map(|(k, v)| items.push(format!("{}|||{}", k, v)));
+        if items.is_empty() {
+            return Ok(());
+        }
+
         self.redis_connector.push_kb_item(
             format!(
                 "internal/{}/scanprefs",
@@ -170,7 +172,7 @@ where
         )
     }
 
-    fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut prefs: HashMap<String, String> = HashMap::new();
         let mut alive_test = ALIVE_TEST_SCAN_CONFIG_DEFAULT;
         let mut value: &str = "no";
@@ -251,7 +253,7 @@ where
         Ok(())
     }
 
-    fn prepare_boreas_alive_test(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_boreas_alive_test(&mut self) -> RedisStorageResult<()> {
         // Check "test_alive_hosts_only" configuration from openvas.conf
         // If set no, boreas is disabled and alive_host.nasl is used instead.
         if let Ok(config) = cmd::read_openvas_config() {
@@ -306,7 +308,7 @@ where
         Ok(())
     }
 
-    fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut lookup_opts: Vec<String> = vec![];
 
         if let Some(reverse_lookup_only) = self.scan_config.target.reverse_lookup_only {
@@ -335,7 +337,7 @@ where
         )
     }
 
-    fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
         let target = self.scan_config.target.hosts.join(",");
         self.redis_connector.push_kb_item(
             format!(
@@ -347,7 +349,7 @@ where
         )
     }
 
-    fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
         let ports = self.scan_config.target.ports.clone();
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
@@ -363,7 +365,7 @@ where
         Ok(())
     }
 
-    fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
         let excluded_hosts = self.scan_config.target.excluded_hosts.join(",");
         if excluded_hosts.is_empty() {
             return Ok(());
@@ -379,7 +381,7 @@ where
         )
     }
 
-    fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
         let options = self
             .scan_config
             .scanner_preferences
@@ -401,7 +403,7 @@ where
             options,
         )
     }
-    fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
+    async fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
 
         let mut credential_preferences: Vec<String> = vec![];
@@ -571,8 +573,8 @@ mod tests {
     use super::PreferenceHandler;
     use crate::openvas_redis::{FakeRedis, KbAccess};
 
-    #[test]
-    fn test_prefs() {
+    #[tokio::test]
+    async fn test_prefs() {
         let mut scan = Scan::default();
         scan.scan_id = Some("123-456".to_string());
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
@@ -606,28 +608,28 @@ mod tests {
 
         let mut prefh = PreferenceHandler::new(scan, rc);
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
-        assert!(prefh.prepare_scan_id_for_openvas().is_ok());
+        assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
             .item_exists("internal/scanid", "123-456"));
         assert!(prefh.redis_connector.item_exists("internal/123-456", "new"));
 
-        assert!(prefh.prepare_main_kbindex_for_openvas().is_ok());
+        assert!(prefh.prepare_main_kbindex_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
             .item_exists("internal/123-456/scanprefs", "ov_maindbid|||3"));
 
-        assert!(prefh.prepare_boreas_alive_test().is_ok());
+        assert!(prefh.prepare_boreas_alive_test().await.is_ok());
         assert!(prefh
             .redis_connector
             .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||3"));
 
-        assert!(prefh.prepare_host_options_for_openvas().is_ok());
+        assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
             .item_exists("internal/123-456/scanprefs", "excluded_hosts|||127.0.0.1"));
 
-        assert!(prefh.prepare_credentials_for_openvas().is_ok());
+        assert!(prefh.prepare_credentials_for_openvas().await.is_ok());
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.103591:3:password:SSH password (unsafe!):|||pass"
@@ -637,7 +639,7 @@ mod tests {
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||user"
         ));
 
-        assert!(prefh.prepare_ports_for_openvas().is_ok());
+        assert!(prefh.prepare_ports_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
             .item_exists("internal/123-456/scanprefs", "PORTS|||tcp:22-25,80,"));
