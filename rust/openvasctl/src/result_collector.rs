@@ -5,6 +5,7 @@
 /// This file contains structs and methods for retrieve scan information from redis
 /// and store it into the given storage to be collected later for the clients.
 use std::{
+    collections::HashMap,
     str::FromStr,
     sync::{Arc, Mutex},
 };
@@ -27,8 +28,9 @@ pub struct Results {
 }
 
 pub struct ResultHelper<H> {
-    redis_connector: H,
-    results: Arc<Mutex<Results>>,
+    pub redis_connector: H,
+    pub results: Arc<Mutex<Results>>,
+    pub status: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl<H> ResultHelper<H>
@@ -39,6 +41,7 @@ where
         Self {
             redis_connector,
             results: Arc::new(Mutex::new(Results::default())),
+            status: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -135,7 +138,6 @@ where
                     name: rname,
                 });
             } else if result_type == "DEADHOST" {
-                println!("AAAAAAAAAAAAAAAAAAAAAAA");
                 new_dead += i64::from_str(&value).expect("Valid number of dead hosts");
             } else if host_count {
                 count_total = i64::from_str(&value).expect("Valid number of dead hosts");
@@ -161,6 +163,49 @@ where
         }
         Ok(())
     }
+
+    fn process_status(&self, status: Vec<String>) -> RedisStorageResult<HashMap<String, String>> {
+        enum ScanProgress {
+            DeadHost = -1,
+        }
+
+        let mut all_hosts: HashMap<String, i64> = HashMap::new();
+
+        for res in status {
+            let mut fields = res.splitn(3, '/');
+            let current_host = fields.next().expect("Valid status value");
+            let launched = fields.next().expect("Valid status value");
+            let total = fields.next().expect("Valid status value");
+
+            let host_progress: i64 = match i64::from_str(total) {
+                // No plugins
+                Ok(0) => {
+                    continue;
+                }
+                // Host Dead
+                Ok(-1) => ScanProgress::DeadHost as i64,
+                Ok(n) => (i64::from_str(launched).expect("Integer") / n) * 100,
+                _ => {
+                    continue;
+                }
+            };
+
+            all_hosts.insert(current_host.to_string(), host_progress);
+            tracing::debug!("Host {} has progress: {}", current_host, host_progress);
+        }
+
+        Ok(HashMap::new())
+    }
+    pub async fn status(&mut self) -> RedisStorageResult<()> {
+        if let Ok(status) = self.redis_connector.status() {
+            if let Ok(mut stat) = Arc::as_ref(&self.status).lock() {
+                if let Ok(res_updates) = self.process_status(status) {
+                    stat.extend(res_updates);
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -180,7 +225,6 @@ mod tests {
             "DEADHOST||| ||| ||| ||| |||3".to_string(),
             "HOST_COUNT||| ||| ||| ||| |||12".to_string(),
             "DEADHOST||| ||| ||| ||| |||1".to_string(),
-
         ];
 
         let rc = FakeRedis {
