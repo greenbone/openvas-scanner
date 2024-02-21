@@ -10,7 +10,6 @@ use super::parameter::Parameter;
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct VT {
     /// The ID of the VT to execute
     pub oid: String,

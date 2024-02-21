@@ -361,7 +361,7 @@ mod tests {
     #[tokio::test]
     async fn add_scan_with_id_fails() {
         let scan: models::Scan = models::Scan {
-            scan_id: Some(String::new()),
+            scan_id: "test".to_string(),
             ..Default::default()
         };
         let ctx = Arc::new(Context::default());

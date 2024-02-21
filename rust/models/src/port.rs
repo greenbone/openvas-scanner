@@ -9,7 +9,6 @@ use std::fmt::Display;
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Port {
     #[cfg_attr(
         feature = "serde_support",
@@ -27,7 +26,6 @@ pub struct Port {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct PortRange {
     /// The required start port.
     ///
@@ -59,7 +57,6 @@ impl Display for PortRange {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "lowercase"))]
 pub enum Protocol {
     UDP,

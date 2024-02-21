@@ -8,7 +8,6 @@
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Credential {
     /// Service to use for accessing a host
     pub service: Service,
@@ -62,7 +61,6 @@ impl Default for Credential {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub enum Service {
     #[cfg_attr(feature = "serde_support", serde(rename = "ssh"))]
     /// SSH, supports [UP](CredentialType::UP) and [USK](CredentialType::USK) as credential types
@@ -94,7 +92,6 @@ impl AsRef<str> for Service {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 /// Enum representing the type of credentials.
 pub enum CredentialType {
     #[cfg_attr(feature = "serde_support", serde(rename = "up"))]

@@ -12,7 +12,6 @@ use std::collections::HashMap;
     derive(serde::Serialize, serde::Deserialize),
     serde(untagged)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 /// Allowed type definitions
 pub enum Primitive {
     /// String value

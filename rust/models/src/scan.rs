@@ -11,11 +11,10 @@ use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
     derive(serde::Serialize, serde::Deserialize),
     serde(deny_unknown_fields)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct Scan {
     #[cfg_attr(feature = "serde_support", serde(default))]
     /// Unique ID of a scan
-    pub scan_id: Option<String>,
+    pub scan_id: String,
     /// Information about the target to scan
     pub target: Target,
     #[cfg_attr(feature = "serde_support", serde(default))]

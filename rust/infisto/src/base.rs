@@ -165,9 +165,7 @@ impl IndexedFileStorer {
 
     fn store_index(&self, index: &[Index], id: &str) -> Result<(), Error> {
         let fn_name = format!("{}.idx", id);
-        let config = bincode::config::standard();
-        let to_store =
-            bincode::serde::encode_to_vec(index, config).map_err(|_| Error::Serialize)?;
+        let to_store = rmp_serde::to_vec(index).map_err(|_e| Error::Serialize)?;
 
         let path = Path::new(&self.base).join(fn_name);
         let mut file = std::fs::OpenOptions::new()
@@ -219,9 +217,7 @@ impl IndexedFileStorer {
             .map_err(|e| e.kind())
             .map_err(Error::Read)?;
 
-        let config = bincode::config::standard();
-        let (index, _) =
-            bincode::serde::decode_from_slice(&buffer, config).map_err(|_| Error::Serialize)?;
+        let index = rmp_serde::from_slice(&buffer).map_err(|_e| Error::Serialize)?;
         Ok(index)
     }
 

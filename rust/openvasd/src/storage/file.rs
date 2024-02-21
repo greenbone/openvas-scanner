@@ -212,7 +212,7 @@ where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
 {
     async fn insert_scan(&self, scan: models::Scan) -> Result<(), Error> {
-        let id = scan.scan_id.clone().unwrap_or_default();
+        let id = scan.scan_id.clone();
         let key = format!("scan_{id}");
         let status_key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
@@ -515,15 +515,6 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn serialize() {
-        let scan = models::Status::default();
-
-        let serialized = bincode::serialize(&scan).unwrap();
-        let deserialized = bincode::deserialize(&serialized).unwrap();
-        assert_eq!(scan, deserialized);
-    }
-
     #[tokio::test]
     async fn credentials() {
         let jraw = r#"
@@ -562,7 +553,7 @@ mod tests {
 }
         "#;
         let mut scan: Scan = serde_json::from_str(jraw).unwrap();
-        scan.scan_id = Some("aha".to_string());
+        scan.scan_id = "aha".to_string();
         let storage =
             infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/credential").unwrap();
         let nfp = "../../examples/feed/nasl";
@@ -615,7 +606,7 @@ mod tests {
         let mut scans = Vec::with_capacity(100);
         for i in 0..100 {
             let scan = Scan {
-                scan_id: Some(i.to_string()),
+                scan_id: i.to_string(),
                 ..Default::default()
             };
             scans.push(scan);
@@ -631,7 +622,7 @@ mod tests {
         }
 
         for s in scans.clone().into_iter() {
-            storage.get_scan(&s.scan_id.unwrap()).await.unwrap();
+            storage.get_scan(&s.scan_id).await.unwrap();
         }
         storage.remove_scan("5").await.unwrap();
         storage.insert_scan(scans[5].clone()).await.unwrap();
@@ -665,7 +656,7 @@ mod tests {
             .collect();
         assert_eq!(2, range.len());
         for s in scans {
-            let _ = storage.remove_scan(&s.scan_id.unwrap_or_default()).await;
+            let _ = storage.remove_scan(&s.scan_id).await;
         }
 
         let ids = storage.get_scan_ids().await.unwrap();

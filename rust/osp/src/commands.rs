@@ -28,17 +28,13 @@ type Writer = quick_xml::Writer<Cursor<Vec<u8>>>;
 
 impl<'a> ScanCommand<'a> {
     fn as_byte_response(
-        scan_id: Option<&str>,
+        scan_id: &str,
         element_name: &str,
         additional: &[(&str, &str)],
         f: &mut dyn FnMut(&mut Writer) -> Result<()>,
     ) -> Result<Vec<u8>> {
         let mut writer = Writer::new(Cursor::new(Vec::new()));
-        if let Some(scan_id) = &scan_id {
-            writer.within_id_element(IDAttribute::ScanID(scan_id), additional, element_name, f)?;
-        } else {
-            writer.within_element(element_name, f)?;
-        }
+        writer.within_id_element(IDAttribute::ScanID(scan_id), additional, element_name, f)?;
         let result = writer.into_inner().into_inner();
         Ok(result)
     }
@@ -46,32 +42,29 @@ impl<'a> ScanCommand<'a> {
     /// Returns the XML representation of the command.
     pub fn try_to_xml(&self) -> Result<Vec<u8>> {
         match self {
-            ScanCommand::Start(scan) => ScanCommand::as_byte_response(
-                scan.scan_id.as_deref(),
-                "start_scan",
-                &[],
-                &mut |writer| {
+            ScanCommand::Start(scan) => {
+                ScanCommand::as_byte_response(&scan.scan_id, "start_scan", &[], &mut |writer| {
                     write_vts(scan, writer)?;
                     write_target(scan, writer)?;
                     write_scanner_prefs(scan, writer)?;
                     Ok(())
-                },
-            ),
+                })
+            }
             ScanCommand::Delete(scan_id) => {
-                ScanCommand::as_byte_response(Some(scan_id), "delete_scan", &[], &mut |_| Ok(()))
+                ScanCommand::as_byte_response(scan_id, "delete_scan", &[], &mut |_| Ok(()))
             }
             ScanCommand::Stop(scan_id) => {
-                ScanCommand::as_byte_response(Some(scan_id), "stop_scan", &[], &mut |_| Ok(()))
+                ScanCommand::as_byte_response(scan_id, "stop_scan", &[], &mut |_| Ok(()))
             }
             ScanCommand::GetDelete(scan_id) => ScanCommand::as_byte_response(
-                Some(scan_id),
+                scan_id,
                 "get_scans",
                 // removes results from ospd-openvas
                 &[("pop_results", "1"), ("progress", "1")],
                 &mut |_| Ok(()),
             ),
             ScanCommand::Get(scan_id) => {
-                ScanCommand::as_byte_response(Some(scan_id), "get_scans", &[], &mut |_| Ok(()))
+                ScanCommand::as_byte_response(scan_id, "get_scans", &[], &mut |_| Ok(()))
             }
         }
     }
@@ -410,7 +403,7 @@ mod tests {
         // of the same protocol.
         // ports that have no assigned protocol are in the front
         let expected = r#"
-        <start_scan>
+        <start_scan scan_id="">
             <vt_selection>
                 <vt_single id="1.3.6.1.4.1.25623.1.0.10330"></vt_single>
             </vt_selection>

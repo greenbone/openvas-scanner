@@ -8,7 +8,6 @@
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[cfg_attr(feature = "bincode_support", derive(bincode::Encode, bincode::Decode))]
 pub struct ScannerPreference {
     /// The ID of the scanner preference.
     pub id: String,

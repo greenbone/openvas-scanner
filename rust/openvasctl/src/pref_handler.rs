@@ -66,11 +66,7 @@ where
 
     async fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             format!("ov_maindbid|||{}", self.redis_connector.kb_id()?),
         )?;
         Ok(())
@@ -78,17 +74,11 @@ where
 
     async fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}",
-                &self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}", &self.scan_config.scan_id.clone()).as_str(),
             "new",
         )?;
-        self.redis_connector.push_kb_item(
-            "internal/scanid",
-            self.scan_config.scan_id.clone().expect("Missing scan ID"),
-        )?;
+        self.redis_connector
+            .push_kb_item("internal/scanid", self.scan_config.scan_id.clone())?;
 
         Ok(())
     }
@@ -143,11 +133,7 @@ where
 
         // prepare vts
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             format!("plugin_set|||{}", nvts.join(";")),
         )
     }
@@ -163,11 +149,7 @@ where
         }
 
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             items,
         )
     }
@@ -273,22 +255,14 @@ where
 
         if (1..=31).contains(&alive_test) {
             self.redis_connector.push_kb_item(
-                format!(
-                    "internal/{}/scanprefs",
-                    self.scan_config.scan_id.clone().expect("Missing scan ID")
-                )
-                .as_str(),
+                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
                 format!("{BOREAS_ALIVE_TEST}|||{}", alive_test),
             )?;
         };
 
         if alive_test == ALIVE_TEST_SCAN_CONFIG_DEFAULT {
             self.redis_connector.push_kb_item(
-                format!(
-                    "internal/{}/scanprefs",
-                    self.scan_config.scan_id.clone().expect("Missing scan ID")
-                )
-                .as_str(),
+                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
                 format!("{BOREAS_ALIVE_TEST}|||{}", AliveTestMethods::Icmp as u8),
             )?;
         }
@@ -296,11 +270,7 @@ where
         let alive_test_ports = self.scan_config.target.alive_test_ports.clone();
         if let Some(ports) = ports_to_openvas_port_list(alive_test_ports) {
             self.redis_connector.push_kb_item(
-                format!(
-                    "internal/{}/scanprefs",
-                    self.scan_config.scan_id.clone().expect("Missing scan ID")
-                )
-                .as_str(),
+                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
                 format!("{BOREAS_ALIVE_TEST_PORTS}|||{}", ports),
             )?;
         };
@@ -328,11 +298,7 @@ where
         }
 
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             lookup_opts,
         )
     }
@@ -340,11 +306,7 @@ where
     async fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
         let target = self.scan_config.target.hosts.join(",");
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             format!("TARGET|||{}", target),
         )
     }
@@ -353,11 +315,7 @@ where
         let ports = self.scan_config.target.ports.clone();
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
-                format!(
-                    "internal/{}/scanprefs",
-                    self.scan_config.scan_id.clone().expect("Missing scan ID")
-                )
-                .as_str(),
+                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
                 format!("PORTS|||{}", ports),
             )?;
         };
@@ -372,11 +330,7 @@ where
         }
 
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             format!("excluded_hosts|||{}", excluded_hosts),
         )
     }
@@ -395,11 +349,7 @@ where
         }
 
         self.redis_connector.push_kb_item(
-            format!(
-                "internal/{}/scanprefs",
-                self.scan_config.scan_id.clone().expect("Missing scan ID")
-            )
-            .as_str(),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             options,
         )
     }
@@ -552,11 +502,7 @@ where
 
         if !credential_preferences.is_empty() {
             self.redis_connector.push_kb_item(
-                format!(
-                    "internal/{}/scanprefs",
-                    self.scan_config.scan_id.clone().expect("Missing scan ID")
-                )
-                .as_str(),
+                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
                 credential_preferences,
             )?;
         }
@@ -576,7 +522,7 @@ mod tests {
     #[tokio::test]
     async fn test_prefs() {
         let mut scan = Scan::default();
-        scan.scan_id = Some("123-456".to_string());
+        scan.scan_id = "123-456".to_string();
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
         scan.target.credentials = vec![Credential {
             service: models::Service::SSH,
