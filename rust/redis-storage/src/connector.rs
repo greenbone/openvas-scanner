@@ -253,12 +253,18 @@ impl RedisWrapper for RedisCtx {
             .keys(pattern)?;
         Ok(ret)
     }
-    
+
     fn pop(&mut self, key: &str) -> RedisStorageResult<Vec<String>> {
         let ret: (Vec<String>,) = redis::pipe()
-            .cmd("LRANGE").arg(key).arg("0").arg("-1")
-            .cmd("DEL").arg("internal/results").ignore()
-            .query(&mut self.kb.as_mut().unwrap()).unwrap();
+            .cmd("LRANGE")
+            .arg(key)
+            .arg("0")
+            .arg("-1")
+            .cmd("DEL")
+            .arg("internal/results")
+            .ignore()
+            .query(&mut self.kb.as_mut().unwrap())
+            .unwrap();
         Ok(ret.0)
     }
 }
