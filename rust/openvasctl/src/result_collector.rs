@@ -30,7 +30,7 @@ pub struct Results {
 pub struct ResultHelper<H> {
     pub redis_connector: H,
     pub results: Arc<Mutex<Results>>,
-    pub status: Arc<Mutex<HashMap<String, String>>>,
+    pub status: Arc<Mutex<HashMap<String, i32>>>,
 }
 
 impl<H> ResultHelper<H>
@@ -164,27 +164,26 @@ where
         Ok(())
     }
 
-    fn process_status(&self, status: Vec<String>) -> RedisStorageResult<HashMap<String, String>> {
+    fn process_status(&self, status: Vec<String>) -> RedisStorageResult<HashMap<String, i32>> {
         enum ScanProgress {
             DeadHost = -1,
         }
 
-        let mut all_hosts: HashMap<String, i64> = HashMap::new();
-
+        let mut all_hosts: HashMap<String, i32> = HashMap::new();
         for res in status {
             let mut fields = res.splitn(3, '/');
             let current_host = fields.next().expect("Valid status value");
             let launched = fields.next().expect("Valid status value");
             let total = fields.next().expect("Valid status value");
 
-            let host_progress: i64 = match i64::from_str(total) {
+            let host_progress: i32 = match i32::from_str(total) {
                 // No plugins
                 Ok(0) => {
                     continue;
                 }
                 // Host Dead
-                Ok(-1) => ScanProgress::DeadHost as i64,
-                Ok(n) => (i64::from_str(launched).expect("Integer") / n) * 100,
+                Ok(-1) => ScanProgress::DeadHost as i32,
+                Ok(n) => ((f32::from_str(launched).expect("Integer") / n as f32) * 100.0) as i32,
                 _ => {
                     continue;
                 }
@@ -194,7 +193,7 @@ where
             tracing::debug!("Host {} has progress: {}", current_host, host_progress);
         }
 
-        Ok(HashMap::new())
+        Ok(all_hosts)
     }
     pub async fn status(&mut self) -> RedisStorageResult<()> {
         if let Ok(status) = self.redis_connector.status() {
@@ -282,5 +281,30 @@ mod tests {
 
         assert_eq!(res_updates.new_dead, 4);
         assert_eq!(res_updates.count_total, 12);
+    }
+
+    #[test]
+    fn test_status() {
+        let status = vec![
+            "127.0.0.2/0/-1".to_string(),
+            "127.0.0.1/188/1000".to_string(),
+            "127.0.0.3/750/1000".to_string(),
+            "127.0.0.2/15/1000".to_string(),
+            "127.0.0.1/0/1000".to_string(),
+        ];
+
+        let rc = FakeRedis {
+            data: HashMap::new(),
+        };
+
+        let resh = ResultHelper::init(rc);
+
+        let mut r = HashMap::new();
+        r.insert("127.0.0.1".to_string(), 0);
+        r.insert("127.0.0.2".to_string(), 1);
+        r.insert("127.0.0.3".to_string(), 75);
+
+        let res_updates = resh.process_status(status).unwrap();
+        assert_eq!(res_updates, r)
     }
 }
