@@ -261,11 +261,15 @@ impl RedisWrapper for RedisCtx {
             .arg("0")
             .arg("-1")
             .cmd("DEL")
-            .arg("internal/results")
+            .arg(key)
             .ignore()
             .query(&mut self.kb.as_mut().unwrap())
             .unwrap();
-        Ok(ret.0)
+        // Since items are lpushed, the returned vector must be reversed to keep the order.
+        let mut status = ret.0;
+        status.reverse();
+
+        Ok(status)
     }
 }
 
