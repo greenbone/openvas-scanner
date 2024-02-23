@@ -413,7 +413,7 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
             config.notus.advisories_path = path.clone();
         }
-        if let Some(path) = cmds.get_one::<String>("redis-socket") {
+        if let Some(path) = cmds.get_one::<String>("redis-url") {
             config.storage.redis.url = path.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
