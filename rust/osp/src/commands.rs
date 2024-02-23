@@ -283,28 +283,28 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
                     CredentialType::UP {
                         username,
                         password,
-                        privilege_credential,
+                        privilege,
                     } => {
                         write_str_element(writer, "username", username)?;
                         write_str_element(writer, "password", password)?;
-                        if let Some(pcred) = privilege_credential {
-                            if let CredentialType::UP {
-                                username, password, ..
-                            } = pcred.as_ref()
-                            {
-                                write_str_element(writer, "priv_username", username)?;
-                                write_str_element(writer, "priv_password", password)?;
-                            }
+                        if let Some(p) = privilege {
+                            write_str_element(writer, "priv_username", &p.username)?;
+                            write_str_element(writer, "priv_password", &p.password)?;
                         }
                     }
                     CredentialType::USK {
                         username,
                         password,
                         private_key,
+                        privilege,
                     } => {
                         write_str_element(writer, "username", username)?;
                         write_str_element(writer, "password", password)?;
                         write_str_element(writer, "private", private_key)?;
+                        if let Some(p) = privilege {
+                            write_str_element(writer, "priv_username", &p.username)?;
+                            write_str_element(writer, "priv_password", &p.password)?;
+                        }
                     }
                     CredentialType::SNMP {
                         username,

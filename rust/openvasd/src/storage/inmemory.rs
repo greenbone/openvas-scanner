@@ -454,7 +454,7 @@ mod tests {
             credential_type: models::CredentialType::UP {
                 username: "test".to_string(),
                 password: "test".to_string(),
-                privilege_credential: None,
+                privilege: None,
             },
             ..Default::default()
         };
