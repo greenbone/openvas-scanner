@@ -83,14 +83,18 @@ spec:
         env:
           - name: MOUNT_PATH 
             value: "/mnt/notus"
-      - name: mqtt-broker-openvas-fix
+      - name: disable-mqtt-in-favor-of-openvasd
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
         volumeMounts:
           - name: openvas-config
             mountPath: /mnt/ovc
         command: ['sh', '-c']
-        args: ["sed 's/mqtt-broker/localhost/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]
+        # disables mqtt in favor of openvasd
+        # TODO switch between https and http depending on configuration
+        args: [
+          "cp /etc/openvas/openvas.conf /mnt/ovc; echo 'openvasd_server = https://localhost/' >> /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/",
+        ]
       - name: ospd-disable-notus-hashsum-verification #since can mount local volumes which may be altered we have to disable hashsum verification for notus  
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
@@ -108,9 +112,6 @@ spec:
         command: ['sh', '-c']
         args: ["touch /mnt/ovc/openvas.log && chown ospd-openvas:ospd-openvas /mnt/ovc/openvas.log"]
       containers:
-      - name: broker
-        image: "{{ .Values.mqtt.repository }}:{{ .Values.mqtt.tag }}"
-        imagePullPolicy: Always
       - name: redis
         image: "{{ .Values.redis.repository }}:{{ .Values.redis.tag }}"
         imagePullPolicy: Always
@@ -230,14 +231,6 @@ spec:
             add:
               - NET_ADMIN
               - NET_RAW
-      - name: notus
-        image: "{{ .Values.notus.repository }}:{{ .Values.notus.tag }}"
-        imagePullPolicy: Always
-        volumeMounts:
-        - name: notus-data
-          mountPath: /var/lib/notus
-        command: ["notus-scanner", "-f", "--disable-hashsum-verification=True"]
-      # what does it mean?
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

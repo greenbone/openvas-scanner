@@ -6,6 +6,9 @@ install-http:
 install-mtls:
 	helm install --namespace openvasd --create-namespace openvasd openvasd/ --values openvasd/values.yaml --values openvasd/mtls-wo-ingress.yaml
 
+install-default:
+	helm install --namespace openvasd --create-namespace openvasd openvasd/ --values openvasd/values.yaml
+
 uninstall:
 	helm uninstall -n openvasd openvasd
 
