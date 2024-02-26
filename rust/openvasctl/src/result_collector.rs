@@ -25,6 +25,8 @@ pub struct Results {
     /// Total amount of alive hosts found. This is sent once for scan, as it is the
     /// the alive host found by Boreas at the start of the scan.
     count_total: i64,
+    /// Total amount of excluded hosts.
+    count_excluded: i64,
 }
 
 pub struct ResultHelper<H> {
@@ -48,6 +50,8 @@ where
     fn process_results(&self, results: Vec<String>) -> RedisStorageResult<Results> {
         let mut new_dead = 0;
         let mut count_total = 0;
+        let mut count_excluded = 0;
+
         let mut scan_results: Vec<ScanResult> = Vec::new();
         for result in results.iter() {
             //result_type|||host ip|||hostname|||port|||OID|||value[|||uri]
@@ -76,11 +80,11 @@ where
             };
 
             let host_is_dead = value.contains("Host dead") || result_type == "DEADHOST";
-
             let host_deny = value.contains("Host access denied");
             let start_end_msg = result_type == "HOST_START" || result_type == "HOST_END";
             let host_count = result_type == "HOST_COUNT";
             let error_msg = result_type == "ERRMSG";
+            let excluded_hosts = result_type == "HOSTS_EXCLUDED";
 
             // TODO: do we need the URI?
             let _uri = if let Some(uri) = uri {
@@ -90,7 +94,7 @@ where
             };
 
             let mut rname = String::new();
-            if !host_is_dead && !host_deny && !start_end_msg && !host_count {
+            if !host_is_dead && !host_deny && !start_end_msg && !host_count && !excluded_hosts {
                 if roid.is_empty() && !error_msg {
                     tracing::warn!("Missing VT oid for a result");
                 };
@@ -138,9 +142,11 @@ where
                     name: rname,
                 });
             } else if result_type == "DEADHOST" {
-                new_dead += i64::from_str(&value).expect("Valid number of dead hosts");
+                new_dead += i64::from_str(&value).expect("Valid amount of dead hosts");
             } else if host_count {
-                count_total = i64::from_str(&value).expect("Valid number of dead hosts");
+                count_total = i64::from_str(&value).expect("Valid amount of dead hosts");
+            } else if excluded_hosts {
+                count_excluded = i64::from_str(&value).expect("Valid amount of excluded hosts");
             }
         }
 
@@ -148,6 +154,7 @@ where
             results: scan_results,
             new_dead,
             count_total,
+            count_excluded,
         })
     }
 
@@ -157,6 +164,7 @@ where
                 if let Ok(res_updates) = self.process_results(results) {
                     res.count_total = res_updates.count_total;
                     res.new_dead = res_updates.new_dead;
+                    res.count_excluded = res_updates.count_excluded;
                     res.results.extend(res_updates.results);
                 }
             }
