@@ -1,35 +1,45 @@
+use async_trait::async_trait;
+use models::{
+    scanner::{
+        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
+    },
+    Scan,
+};
 use std::{collections::HashMap, process::Child, sync::Mutex};
 
-use crate::{cmd, ctl::ScanController, error::OpenvasError};
+use crate::{cmd, error::OpenvasError};
 
-pub struct OpenvasControl {
-    init: Mutex<HashMap<String, ()>>,
+#[derive(Debug)]
+pub struct Scanner {
     running: Mutex<HashMap<String, Child>>,
     sudo: bool,
 }
 
-impl OpenvasControl {
-    pub fn new() -> Self {
+impl From<OpenvasError> for ScanError {
+    fn from(value: OpenvasError) -> Self {
+        ScanError::Unexpected(value.to_string())
+    }
+}
+
+impl Scanner {
+    pub fn with_sudo_enabled() -> Self {
         Self {
-            init: Default::default(),
             running: Default::default(),
-            sudo: cmd::check_sudo(),
+            sudo: true,
         }
     }
 
+    pub fn with_sudo_disabled() -> Self {
+        Self {
+            running: Default::default(),
+            sudo: false,
+        }
+    }
     /// Removes a scan from init and add it to the list of running scans
     fn add_running(&self, id: String) -> Result<bool, OpenvasError> {
-        if self.init.lock().unwrap().remove(&id).is_none() {
-            return Ok(false);
-        }
         let openvas = cmd::start(&id, self.sudo, None).map_err(OpenvasError::CmdError)?;
         self.running.lock().unwrap().insert(id, openvas);
         Ok(true)
-    }
-
-    /// Remove a scan from the init phase
-    fn remove_init(&self, id: &str) -> bool {
-        self.init.lock().unwrap().remove(id).is_some()
     }
 
     /// Remove a scan from the list of running scans and returns the process to able to tidy up
@@ -38,42 +48,17 @@ impl OpenvasControl {
     }
 }
 
-impl Default for OpenvasControl {
+impl Default for Scanner {
     fn default() -> Self {
-        Self::new()
+        Self {
+            running: Default::default(),
+            sudo: cmd::check_sudo(),
+        }
     }
 }
-
-impl ScanController for OpenvasControl {
-    /// Stops a scan with given ID. This will set a key in redis and indirectly
-    /// sends SIGUSR1 to the running scan process by running openvas with the
-    /// --stop-scan option.
-    fn stop_scan(&self, id: &str) -> Result<(), OpenvasError> {
-        let scan_id = id.to_string();
-
-        // TODO: Set stop scan flag in redis?
-
-        if self.remove_init(&scan_id) {
-            return Ok(());
-        }
-
-        let mut scan = match self.remove_running(&scan_id) {
-            Some(scan) => scan,
-            None => return Err(OpenvasError::ScanNotFound(id.to_string())),
-        };
-
-        cmd::stop(&scan_id, self.sudo)
-            .map_err(OpenvasError::CmdError)?
-            .wait()
-            .map_err(OpenvasError::CmdError)?;
-
-        scan.wait().map_err(OpenvasError::CmdError)?;
-        Ok(())
-
-        // TODO: Clean redis DB
-    }
-
-    fn start_scan(&self, scan: models::Scan) -> Result<(), OpenvasError> {
+#[async_trait]
+impl ScanStarter for Scanner {
+    async fn start_scan(&self, scan: Scan) -> Result<(), ScanError> {
         // TODO: Create new DB for Scan
         // TODO: Add Scan ID to DB
         // TODO: Prepare Target (hosts, ports, credentials)
@@ -83,28 +68,59 @@ impl ScanController for OpenvasControl {
         // TODO: Prepare scan params
         // TODO: Prepare reverse lookup option (maybe part of target)
         // TODO: Prepare alive test option (maybe part of target)
+        self.add_running(scan.scan_id)?;
 
-        if !self.add_running(scan.scan_id)? {
-            return Ok(());
-        }
-
-        // TODO: Control loop (check for status and results)?
-        todo!();
+        return Ok(());
     }
+}
 
-    fn num_running(&self) -> usize {
-        self.init.lock().unwrap().len() + self.running.lock().unwrap().len()
+/// Stops a scan
+#[async_trait]
+impl ScanStopper for Scanner {
+    /// Stops a scan
+    async fn stop_scan<I>(&self, id: I) -> Result<(), ScanError>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        let scan_id = id.as_ref();
+
+        // TODO: Set stop scan flag in redis?
+
+        let mut scan = match self.remove_running(scan_id) {
+            Some(scan) => scan,
+            None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+        };
+
+        cmd::stop(scan_id, self.sudo)
+            .map_err(OpenvasError::CmdError)?
+            .wait()
+            .map_err(OpenvasError::CmdError)?;
+
+        scan.wait().map_err(OpenvasError::CmdError)?;
+        // TODO: Clean redis DB
+        Ok(())
     }
+}
 
-    fn num_init(&self) -> usize {
-        self.init.lock().unwrap().len()
+/// Deletes a scan
+#[async_trait]
+impl ScanDeleter for Scanner {
+    async fn delete_scan<I>(&self, _id: I) -> Result<(), ScanError>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        // already deleted on stop?
+        Ok(())
     }
+}
 
-    fn set_init(&self, id: &str) {
-        self.init.lock().unwrap().insert(id.to_string(), ());
-    }
-
-    fn exists(&self, id: &str) -> bool {
-        self.init.lock().unwrap().contains_key(id) || self.running.lock().unwrap().contains_key(id)
+#[async_trait]
+impl ScanResultFetcher for Scanner {
+    /// Fetches the results of a scan and combines the results with response
+    async fn fetch_results<I>(&self, _id: I) -> Result<ScanResults, ScanError>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        todo!()
     }
 }

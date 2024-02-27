@@ -1946,6 +1946,7 @@ dependencies = [
 name = "openvasctl"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "configparser",
  "models",
  "osp",
@@ -1989,6 +1990,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "storage",
+ "sysinfo",
  "tokio",
  "tokio-rustls 0.25.0",
  "toml 0.7.8",

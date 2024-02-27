@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use models::scanner::{ScanStarter, ScanStopper, ScanDeleter, ScanResultFetcher};
 use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
+use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use nasl_interpreter::FSPluginLoader;
 use notus::NotusWrapper;
 pub mod config;
@@ -13,6 +13,7 @@ pub mod feed;
 pub mod notus;
 pub mod request;
 pub mod response;
+mod scheduling;
 pub mod storage;
 pub mod tls;
 
@@ -32,12 +33,6 @@ where
         + 'static,
 {
     // TODO: move result check  interval into overall `wrapper` rename wrapper to something useful
-    let rc = config.wrapper.ospd.result_check_interval;
-    let fc = (
-        config.feed.path.clone(),
-        config.feed.check_interval,
-        config.feed.signature_check,
-    );
     let mut ctx_builder = controller::ContextBuilder::new();
 
     let loader = FSPluginLoader::new(config.notus.products_path.to_string_lossy().to_string());
@@ -50,8 +45,8 @@ where
     }
 
     ctx_builder
-        .result_config(rc)
-        .feed_config(fc)
+        .scheduler_config(config.scheduler.clone())
+        .feed_config(config.feed.clone())
         .scanner(sh)
         .api_key(config.endpoints.key.clone())
         .enable_get_scans(config.endpoints.enable_get_scans)
@@ -155,10 +150,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !config.wrapper.ospd.socket.exists() {
         tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.wrapper.ospd.socket.display());
     }
-    // TODO verify which one and create
-
     match config.wrapper.wrapper_type {
-        config::WrapperType::OSPD => {
+        config::ScannerType::OSPD => {
             run(
                 osp::Scanner::new(
                     config.wrapper.ospd.socket.clone(),
@@ -168,14 +161,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             )
             .await
         }
-        config::WrapperType::Openvasctl => {
-            todo!("need a openvas impl for scanner traits")
-            // run(
-            //     scan::OpenvasctlWrapper::new(config.wrapper.openvasctl.clone()),
-            //     &config,
-            // )
-            // .await
+        config::ScannerType::Openvasctl => {
+            run(openvasctl::openvas::Scanner::default(), &config).await
         }
     }
-    // extract to method
 }

@@ -19,13 +19,6 @@ use crate::{
 pub use context::{Context, ContextBuilder, NoOpScanner};
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use tokio::net::TcpListener;
-//pub use entry::entrypoint;
-
-/// Quits application on an poisoned lock.
-pub(crate) fn quit_on_poison<T>() -> T {
-    tracing::error!("exit because of poisoned lock");
-    std::process::exit(1);
-}
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ClientHash([u8; 32]);
@@ -437,13 +430,14 @@ mod tests {
         let scanner = FakeScanner {
             count: Arc::new(RwLock::new(0)),
         };
-        let ns = std::time::Duration::from_nanos(10);
+        let mut ns = crate::config::Scheduler::default();
+        ns.check_interval = std::time::Duration::from_nanos(10);
         let root = "/tmp/openvasd/fetch_results";
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
         let storage = file::unencrypted(root, nfp, nofp).unwrap();
         let ctx = ContextBuilder::new()
-            .result_config(ns)
+            .scheduler_config(ns)
             .storage(storage)
             .scanner(scanner)
             .build();

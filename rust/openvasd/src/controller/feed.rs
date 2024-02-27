@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use models::scanner::Scanner;
 
-use crate::feed::FeedIdentifier;
+use crate::{feed::FeedIdentifier, storage::NVTStorer as _};
 
 use super::context::Context;
 
@@ -17,7 +17,7 @@ where
 {
     tracing::debug!("Starting VTS synchronization loop");
     if let Some(cfg) = &ctx.feed_config {
-        let interval = cfg.verify_interval;
+        let interval = cfg.check_interval;
         let signature_check = cfg.signature_check;
         loop {
             let path = cfg.path.clone();
@@ -25,7 +25,7 @@ where
                 tracing::trace!("aborting");
                 break;
             };
-            let last_hash = ctx.db.feed_hash().await;
+            let last_hash = ctx.scheduler.feed_hash().await;
             if signature_check {
                 if let Err(err) = feed::verify::check_signature(&path) {
                     tracing::warn!(
@@ -47,7 +47,7 @@ where
                 .await
                 .unwrap();
             if last_hash.is_empty() || last_hash != hash {
-                match ctx.db.synchronize_feeds(hash).await {
+                match ctx.scheduler.synchronize_feeds(hash).await {
                     Ok(_) => {}
                     Err(e) => tracing::warn!("Unable to sync feed: {e}"),
                 }
