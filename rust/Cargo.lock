@@ -1990,10 +1990,12 @@ dependencies = [
 name = "osp"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "models",
  "quick-xml",
  "serde",
  "serde_json",
+ "tokio",
  "urlencoding",
 ]
 

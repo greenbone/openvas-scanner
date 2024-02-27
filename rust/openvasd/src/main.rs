@@ -12,15 +12,11 @@ pub mod feed;
 pub mod notus;
 pub mod request;
 pub mod response;
-pub mod scan;
 pub mod storage;
 pub mod tls;
 
-fn create_context<DB>(
-    db: DB,
-    config: &config::Config,
-) -> controller::Context<scan::OSPDWrapper, DB> {
-    let scanner = scan::OSPDWrapper::new(config.ospd.socket.clone(), config.ospd.read_timeout);
+fn create_context<DB>(db: DB, config: &config::Config) -> controller::Context<osp::Scanner, DB> {
+    let scanner = osp::Scanner::new(config.ospd.socket.clone(), config.ospd.read_timeout);
     let rc = config.ospd.result_check_interval;
     let fc = (
         config.feed.path.clone(),
