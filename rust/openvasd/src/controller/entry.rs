@@ -13,7 +13,12 @@ use super::{context::Context, ClientIdentifier};
 use hyper::{Method, Request};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 
-use crate::{controller::ClientHash, notus::NotusScanner};
+use crate::{
+    controller::ClientHash,
+    notus::NotusScanner,
+    scheduling,
+    storage::{NVTStorer as _, ProgressGetter as _, ScanIDClientMapper as _, ScanStorer as _},
+};
 use models::scanner::*;
 
 enum HealthOpts {
@@ -189,7 +194,7 @@ where
             let cid = cid.unwrap_or_default();
             if let Some(scan_id) = kp.scan_id() {
                 if !ctx
-                    .db
+                    .scheduler
                     .is_client_allowed(scan_id.to_owned(), &cid)
                     .await
                     .unwrap()
@@ -205,10 +210,10 @@ where
             }
 
             tracing::debug!(
-                "{} {}:{:?}",
-                req.method(),
-                req.uri().path(),
-                req.uri().query(),
+                method=%req.method(),
+                path=req.uri().path(),
+                query=req.uri().query(),
+                "process call",
             );
             match (req.method(), kp) {
                 (&Method::GET, Health(HealthOpts::Alive))
@@ -216,7 +221,7 @@ where
                     Ok(ctx.response.empty(hyper::StatusCode::OK))
                 }
                 (&Method::GET, Health(HealthOpts::Ready)) => {
-                    let oids = ctx.db.oids().await?;
+                    let oids = ctx.scheduler.oids().await?;
                     if oids.count() == 0 {
                         Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE))
                     } else {
@@ -263,9 +268,9 @@ where
                             let id = uuid::Uuid::new_v4().to_string();
                             let resp = ctx.response.created(&id);
                             scan.scan_id = id.clone();
-                            ctx.db.insert_scan(scan).await?;
-                            ctx.db.add_scan_client_id(id.clone(), cid).await?;
-                            tracing::debug!("Scan with ID {} created", &id);
+                            ctx.scheduler.insert_scan(scan).await?;
+                            ctx.scheduler.add_scan_client_id(id.clone(), cid).await?;
+                            tracing::debug!(%id, "Scan created");
                             Ok(resp)
                         }
                         Err(resp) => Ok(resp),
@@ -277,36 +282,24 @@ where
                         .map(|a| a.action)
                     {
                         Ok(models::Action::Start) => {
-                            let (scan, mut status) = ctx.db.get_decrypted_scan(&id).await?;
-                            if status.is_running() {
-                                use models::Phase::*;
-                                let expected = &[Stored, Stopped, Failed, Succeeded];
-                                Ok(ctx.response.not_accepted(&status.status, expected))
-                            } else {
-                                match ctx.scanner.start_scan(scan).await {
-                                    Ok(_) => {
-                                        status.status = models::Phase::Requested;
-                                        match ctx.db.update_status(&id, status).await {
-                                            Ok(_) => Ok(ctx.response.no_content()),
-                                            Err(e) => {
-                                                let _ = ctx.scanner.stop_scan(id.clone()).await;
-                                                let _ = ctx.scanner.delete_scan(id).await;
-                                                Ok(ctx.response.internal_server_error(&e))
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        tracing::warn!(
-                                            "Scan with ID {} failed to start: {}",
-                                            id,
-                                            e
-                                        );
-                                        Ok(ctx.response.internal_server_error(&e))
-                                    }
+                            match ctx.scheduler.start_scan_by_id(&id).await {
+                                Ok(_) => Ok(ctx.response.no_content()),
+                                Err(scheduling::Error::ScanRunning)
+                                | Err(scheduling::Error::ScanAlreadyQueued) => {
+                                    use models::Phase::*;
+                                    let expected = &[Stored, Stopped, Failed, Succeeded];
+                                    Ok(ctx.response.not_accepted(&Requested, expected))
                                 }
+                                Err(scheduling::Error::NotFound) => {
+                                    Ok(ctx.response.not_found("scan", &id))
+                                }
+                                Err(scheduling::Error::QueueFull) => Ok(ctx
+                                    .response
+                                    .service_unavailable("Queue is already full. Try again later.")),
+                                Err(e) => Ok(ctx.response.internal_server_error(&e)),
                             }
                         }
-                        Ok(models::Action::Stop) => match ctx.scanner.stop_scan(id).await {
+                        Ok(models::Action::Stop) => match ctx.scheduler.stop_scan(id).await {
                             Ok(_) => Ok(ctx.response.no_content()),
                             Err(e) => Ok(ctx.response.internal_server_error(&e)),
                         },
@@ -315,7 +308,7 @@ where
                 }
                 (&Method::GET, Scans(None)) => {
                     if ctx.enable_get_scans {
-                        match ctx.db.get_scans_of_client_id(&cid).await {
+                        match ctx.scheduler.get_scans_of_client_id(&cid).await {
                             Ok(scans) => Ok(ctx.response.ok(&scans)),
                             Err(e) => Ok(ctx.response.internal_server_error(&e)),
                         }
@@ -323,7 +316,7 @@ where
                         Ok(ctx.response.not_found("scans", "all"))
                     }
                 }
-                (&Method::GET, Scans(Some(id))) => match ctx.db.get_scan(&id).await {
+                (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
                     Ok((mut scan, _)) => {
                         let credentials = scan
                             .target
@@ -342,28 +335,22 @@ where
                     }
                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                 },
-                (&Method::GET, ScanStatus(id)) => match ctx.db.get_scan(&id).await {
+                (&Method::GET, ScanStatus(id)) => match ctx.scheduler.get_scan(&id).await {
                     Ok((_, status)) => Ok(ctx.response.ok(&status)),
                     Err(crate::storage::Error::NotFound) => {
                         Ok(ctx.response.not_found("scans/status", &id))
                     }
                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                 },
-                (&Method::DELETE, Scans(Some(id))) => match ctx.db.get_status(&id).await {
-                    Ok(status) => {
-                        if status.is_running() {
-                            ctx.scanner.stop_scan(id.clone()).await?;
+                (&Method::DELETE, Scans(Some(id))) => {
+                    match ctx.scheduler.delete_scan_by_id(&id).await {
+                        Ok(_) => Ok(ctx.response.no_content()),
+                        Err(crate::scheduling::Error::NotFound) => {
+                            Ok(ctx.response.not_found("scans", &id))
                         }
-                        ctx.db.remove_scan(&id).await?;
-                        ctx.scanner.delete_scan(id.clone()).await?;
-                        ctx.db.remove_scan_id(id).await?;
-                        Ok(ctx.response.no_content())
+                        Err(e) => Err(e.into()),
                     }
-                    Err(crate::storage::Error::NotFound) => {
-                        Ok(ctx.response.not_found("scans", &id))
-                    }
-                    Err(e) => Err(e.into()),
-                },
+                }
                 (&Method::GET, ScanResults(id, rid)) => {
                     let (begin, end) = {
                         if let Some(id) = rid {
@@ -389,7 +376,7 @@ where
                         }
                     };
 
-                    match ctx.db.get_results(&id, begin, end).await {
+                    match ctx.scheduler.get_results(&id, begin, end).await {
                         Ok(results) => Ok(ctx.response.ok_byte_stream(results).await),
                         Err(crate::storage::Error::NotFound) => {
                             Ok(ctx.response.not_found("scans/results", &id))
@@ -407,12 +394,18 @@ where
                         Some(_) | None => false,
                     };
                     match oid {
-                        Some(oid) => match ctx.db.vt_by_oid(&oid).await? {
+                        Some(oid) => match ctx.scheduler.vt_by_oid(&oid).await? {
                             Some(nvt) => Ok(ctx.response.ok(&nvt)),
                             None => Ok(ctx.response.not_found("nvt", &oid)),
                         },
-                        None if meta => Ok(ctx.response.ok_json_stream(ctx.db.vts().await?).await),
-                        None => Ok(ctx.response.ok_json_stream(ctx.db.oids().await?).await),
+                        None if meta => Ok(ctx
+                            .response
+                            .ok_json_stream(ctx.scheduler.vts().await?)
+                            .await),
+                        None => Ok(ctx
+                            .response
+                            .ok_json_stream(ctx.scheduler.oids().await?)
+                            .await),
                     }
                 }
                 _ => Ok(ctx.response.not_found("path", req.uri().path())),

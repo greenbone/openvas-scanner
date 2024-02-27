@@ -307,6 +307,12 @@ impl Response {
         self.create(hyper::StatusCode::BAD_REQUEST, &value)
     }
 
+    pub fn service_unavailable<T>(&self, value: &T) -> Result
+    where
+        T: ?Sized + Serialize + std::fmt::Debug,
+    {
+        self.create(hyper::StatusCode::SERVICE_UNAVAILABLE, &value)
+    }
     pub fn not_accepted<T>(&self, got: &T, expected: &[T]) -> Result
     where
         T: Serialize + std::fmt::Debug,

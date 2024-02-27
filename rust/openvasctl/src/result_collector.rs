@@ -306,7 +306,7 @@ mod tests {
             ip_address: Some("127.0.0.1".to_string()),
             hostname: Some("example.com".to_string()),
             oid: Some("12.11.10.9.8.7".to_string()),
-            port: Some(i16::from(22i16)),
+            port: Some(22i16),
             protocol: Some(models::Protocol::TCP),
             message: Some("Something wrong".to_string()),
             detail: None,
@@ -345,7 +345,7 @@ mod tests {
             data: HashMap::new(),
         };
 
-        let mut resh = ResultHelper::init(rc);
+        let resh = ResultHelper::init(rc);
         let _ = resh.process_status(status).unwrap();
 
         let mut r = HashMap::new();

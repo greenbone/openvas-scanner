@@ -30,32 +30,52 @@ pub struct Redis {
     pub url: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub struct Wrapper {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Scheduler {
     #[serde(default)]
-    pub wrapper_type: WrapperType,
+    pub max_queued_scans: Option<usize>,
+    #[serde(default)]
+    pub max_running_scans: Option<usize>,
+    #[serde(default)]
+    pub min_free_mem: Option<u64>,
+    pub check_interval: Duration,
+}
+
+impl Default for Scheduler {
+    fn default() -> Self {
+        Self {
+            check_interval: Duration::from_millis(500),
+            max_queued_scans: None,
+            max_running_scans: None,
+            min_free_mem: None,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct Scanner {
+    #[serde(default)]
+    pub wrapper_type: ScannerType,
     #[serde(default)]
     pub ospd: OspdWrapper,
-    #[serde(default)]
-    pub openvasctl: openvasctl::config::Config,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub enum WrapperType {
+pub enum ScannerType {
     #[serde(rename = "ospd")]
     OSPD,
     #[serde(rename = "openvasctl")]
     Openvasctl,
 }
 
-impl Default for WrapperType {
+impl Default for ScannerType {
     fn default() -> Self {
         Self::OSPD
     }
 }
 
-impl TypedValueParser for WrapperType {
-    type Value = WrapperType;
+impl TypedValueParser for ScannerType {
+    type Value = ScannerType;
 
     fn parse_ref(
         &self,
@@ -64,8 +84,8 @@ impl TypedValueParser for WrapperType {
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
         Ok(match value.to_str().unwrap_or_default() {
-            "ospd" => WrapperType::OSPD,
-            "openvasctl" => WrapperType::Openvasctl,
+            "ospd" => ScannerType::OSPD,
+            "openvasctl" => ScannerType::Openvasctl,
             _ => {
                 let mut cmd = cmd.clone();
                 let err = cmd.error(
@@ -80,7 +100,6 @@ impl TypedValueParser for WrapperType {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OspdWrapper {
-    pub result_check_interval: Duration,
     pub socket: PathBuf,
     pub read_timeout: Option<Duration>,
 }
@@ -88,7 +107,6 @@ pub struct OspdWrapper {
 impl Default for OspdWrapper {
     fn default() -> Self {
         OspdWrapper {
-            result_check_interval: Duration::from_secs(1),
             socket: PathBuf::from("/var/run/ospd/ospd.sock"),
             read_timeout: None,
         }
@@ -234,13 +252,15 @@ pub struct Config {
     #[serde(default)]
     pub tls: Tls,
     #[serde(default)]
-    pub wrapper: Wrapper,
+    pub wrapper: Scanner,
     #[serde(default)]
     pub listener: Listener,
     #[serde(default)]
     pub log: Logging,
     #[serde(default)]
     pub storage: Storage,
+    #[serde(default)]
+    pub scheduler: Scheduler,
 }
 
 impl Display for Config {
@@ -371,7 +391,7 @@ impl Config {
                     .env("WRAPPER_TYPE")
                     .long("wrapper-type")
                     .value_name("ospd,openvasctl")
-                    .value_parser(WrapperType::OSPD)
+                    .value_parser(ScannerType::OSPD)
                     .help("Type of wrapper used to manage scans")
             )
             .arg(
@@ -479,23 +499,20 @@ impl Config {
         if let Some(interval) = cmds.get_one::<u64>("feed-check-interval") {
             config.feed.check_interval = Duration::from_secs(*interval);
         }
-        if let Some(wrapper_type) = cmds.get_one::<WrapperType>("wrapper-type") {
+        if let Some(wrapper_type) = cmds.get_one::<ScannerType>("wrapper-type") {
             config.wrapper.wrapper_type = wrapper_type.clone()
         }
         if let Some(max_queued_scans) = cmds.get_one::<usize>("max-queued-scans") {
-            config.wrapper.openvasctl.max_queued_scans = Some(*max_queued_scans)
+            config.scheduler.max_queued_scans = Some(*max_queued_scans)
         }
         if let Some(max_running_scans) = cmds.get_one::<usize>("max_running_scans") {
-            config.wrapper.openvasctl.max_running_scans = Some(*max_running_scans)
+            config.scheduler.max_running_scans = Some(*max_running_scans)
         }
         if let Some(min_free_mem) = cmds.get_one::<u64>("min-free-mem") {
-            config.wrapper.openvasctl.min_free_mem = Some(*min_free_mem)
+            config.scheduler.min_free_mem = Some(*min_free_mem)
         }
         if let Some(check_interval) = cmds.get_one::<u64>("check-interval") {
-            config.wrapper.openvasctl.check_interval = Duration::from_secs(*check_interval)
-        }
-        if let Some(interval) = cmds.get_one::<u64>("result-check-interval") {
-            config.wrapper.ospd.result_check_interval = Duration::from_secs(*interval);
+            config.scheduler.check_interval = Duration::from_millis(*check_interval)
         }
         if let Some(path) = cmds.get_one::<PathBuf>("ospd-socket") {
             config.wrapper.ospd.socket = path.clone();
@@ -575,10 +592,7 @@ mod tests {
         assert!(config.tls.key.is_none());
         assert!(config.tls.client_certs.is_none());
 
-        assert_eq!(
-            config.wrapper.ospd.result_check_interval,
-            Duration::from_secs(1)
-        );
+        assert_eq!(config.scheduler.check_interval, Duration::from_millis(500));
         assert_eq!(
             config.wrapper.ospd.socket,
             PathBuf::from("/var/run/ospd/ospd.sock")
