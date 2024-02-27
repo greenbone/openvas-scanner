@@ -197,6 +197,7 @@ pub trait RedisWrapper {
     fn lindex(&mut self, key: &str, index: isize) -> RedisStorageResult<String>;
     fn lrange(&mut self, key: &str, start: isize, end: isize) -> RedisStorageResult<Vec<String>>;
     fn keys(&mut self, pattern: &str) -> RedisStorageResult<Vec<String>>;
+    fn pop(&mut self, pattern: &str) -> RedisStorageResult<Vec<String>>;
 }
 
 impl RedisWrapper for RedisCtx {
@@ -251,6 +252,24 @@ impl RedisWrapper for RedisCtx {
             .expect("Valid redis connection")
             .keys(pattern)?;
         Ok(ret)
+    }
+
+    fn pop(&mut self, key: &str) -> RedisStorageResult<Vec<String>> {
+        let ret: (Vec<String>,) = redis::pipe()
+            .cmd("LRANGE")
+            .arg(key)
+            .arg("0")
+            .arg("-1")
+            .cmd("DEL")
+            .arg(key)
+            .ignore()
+            .query(&mut self.kb.as_mut().unwrap())
+            .unwrap();
+        // Since items are lpushed, the returned vector must be reversed to keep the order.
+        let mut status = ret.0;
+        status.reverse();
+
+        Ok(status)
     }
 }
 
@@ -770,6 +789,9 @@ mod tests {
         }
 
         fn keys(&mut self, _: &str) -> crate::dberror::RedisStorageResult<Vec<String>> {
+            Ok(Vec::new())
+        }
+        fn pop(&mut self, _: &str) -> crate::dberror::RedisStorageResult<Vec<String>> {
             Ok(Vec::new())
         }
 
