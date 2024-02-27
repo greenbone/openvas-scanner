@@ -270,7 +270,7 @@ impl ScanDeleter for NoOpScanner {
 
 #[async_trait]
 impl ScanResultFetcher for NoOpScanner {
-    async fn fetch_results<I>(&self, _: I) -> Result<crate::scan::FetchResult, Error>
+    async fn fetch_results<I>(&self, _: I) -> Result<crate::scan::ScanResults, Error>
     where
         I: AsRef<str> + Send,
     {

@@ -12,7 +12,7 @@ use redis_storage::{
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::sync::RwLock;
 
-use crate::{controller::ClientHash, scan::FetchResult};
+use crate::{controller::ClientHash, scan::ScanResults};
 
 use super::{AppendFetchResult, Error, NVTStorer, ProgressGetter, ScanIDClientMapper, ScanStorer};
 
@@ -282,7 +282,7 @@ impl<T> AppendFetchResult for Storage<T>
 where
     T: super::Storage + std::marker::Sync,
 {
-    async fn append_fetched_result(&self, id: &str, results: FetchResult) -> Result<(), Error> {
-        self.underlying.append_fetched_result(id, results).await
+    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+        self.underlying.append_fetched_result(results).await
     }
 }

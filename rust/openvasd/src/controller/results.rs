@@ -27,6 +27,9 @@ where
                 tracing::trace!("aborting");
                 break;
             }
+            // TODO change this use a scan scheduler later on
+            // so that we don't have to iterate through all scans but just the ones that are
+            // actually running
             let scans = ctx.db.get_scan_ids().await;
             if let Err(e) = scans {
                 tracing::warn!("Failed to get scans: {e}");
@@ -43,6 +46,9 @@ where
                         tracing::trace!("{id} skipping status = {}", status.status);
                     }
                     Ok(_) => {
+                        // TODO change fetch results to deliver all results of a given
+                        // subset of ids so that it can decide itself if it gets results in
+                        // bulk or per element.
                         let results = ctx.scanner.fetch_results(id.clone()).await;
                         match results {
                             Ok(fr) => {
@@ -51,7 +57,7 @@ where
                                 // store them in the database.
                                 // When this happens we effectively lost the results
                                 // and need to escalate this.
-                                ctx.db.append_fetched_result(id, fr).await.unwrap();
+                                ctx.db.append_fetched_result(vec![fr]).await.unwrap();
                             }
                             Err(crate::scan::Error::Poisoned) => {
                                 quit_on_poison::<()>();

@@ -6,8 +6,17 @@ use std::{path::PathBuf, sync::PoisonError, time::Duration};
 
 use async_trait::async_trait;
 
-/// The result of a fetch operation
-pub type FetchResult = (models::Status, Vec<models::Result>);
+/// Contains results of a scan as well as identification factors and statuses.
+///
+/// It is usually returned on fetch_results which gets all results of all running scans for further
+/// processing.
+#[derive(Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ScanResults {
+    /// Identification of
+    pub id: String,
+    pub status: models::Status,
+    pub results: Vec<models::Result>,
+}
 
 impl From<osp::Error> for Error {
     fn from(value: osp::Error) -> Self {
@@ -107,7 +116,7 @@ pub trait ScanDeleter {
 #[async_trait]
 pub trait ScanResultFetcher {
     /// Fetches the results of a scan and combines the results with response
-    async fn fetch_results<I>(&self, id: I) -> Result<FetchResult, Error>
+    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static;
 }
@@ -159,14 +168,18 @@ impl ScanDeleter for OSPDWrapper {
 
 #[async_trait]
 impl ScanResultFetcher for OSPDWrapper {
-    async fn fetch_results<I>(&self, id: I) -> Result<FetchResult, Error>
+    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
             osp::get_delete_scan_results(socket, rtimeout, id)
-                .map(|r| (r.clone().into(), r.into()))
+                .map(|r| ScanResults {
+                    id: r.clone().id,
+                    status: r.clone().into(),
+                    results: r.into(),
+                })
                 .map_err(Error::from)
         })
         .await

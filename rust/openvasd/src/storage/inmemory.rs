@@ -215,21 +215,22 @@ impl<E> AppendFetchResult for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn append_fetched_result(
-        &self,
-        id: &str,
-        (status, results): FetchResult,
-    ) -> Result<(), Error> {
+    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
         let mut scans = self.scans.write().await;
-        let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
-        progress.status = status;
-        let mut len = progress.results.len();
-        for mut result in results {
-            result.id = len;
-            len += 1;
-            let bytes = serde_json::to_vec(&result)?;
-            progress.results.push(self.crypter.encrypt(bytes).await);
+        for r in results {
+            let id = &r.id;
+            let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
+            progress.status = r.status;
+            let mut len = progress.results.len();
+            let results = r.results;
+            for mut result in results {
+                result.id = len;
+                len += 1;
+                let bytes = serde_json::to_vec(&result)?;
+                progress.results.push(self.crypter.encrypt(bytes).await);
+            }
         }
+
         Ok(())
     }
 }
@@ -496,9 +497,13 @@ mod tests {
         let scan = Scan::default();
         let id = scan.scan_id.clone();
         storage.insert_scan(scan).await.unwrap();
-        let fetch_result = (models::Status::default(), vec![models::Result::default()]);
+        let fetch_result = ScanResults {
+            id: id.clone(),
+            status: models::Status::default(),
+            results: vec![models::Result::default()],
+        };
         storage
-            .append_fetched_result(&id, fetch_result)
+            .append_fetched_result(vec![fetch_result])
             .await
             .unwrap();
         let results: Vec<_> = storage

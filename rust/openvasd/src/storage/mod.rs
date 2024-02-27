@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 
-use crate::{controller::ClientHash, crypt, scan::FetchResult};
+use crate::{controller::ClientHash, crypt, scan::ScanResults};
 
 #[derive(Debug)]
 pub enum Error {
@@ -150,7 +150,7 @@ pub trait ScanStorer {
 ///
 /// This is used when a scan is started and the results are fetched from ospd.
 pub trait AppendFetchResult {
-    async fn append_fetched_result(&self, id: &str, results: FetchResult) -> Result<(), Error>;
+    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error>;
 }
 
 #[async_trait]

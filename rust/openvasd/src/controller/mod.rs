@@ -159,7 +159,7 @@ mod tests {
     use super::context::Context;
     use crate::{
         controller::{ClientIdentifier, ContextBuilder, NoOpScanner},
-        scan::{ScanDeleter, ScanStarter, ScanStopper},
+        scan::{ScanDeleter, ScanResults, ScanStarter, ScanStopper},
         storage::file,
     };
     use async_trait::async_trait;
@@ -203,8 +203,8 @@ mod tests {
     impl crate::scan::ScanResultFetcher for FakeScanner {
         async fn fetch_results<I>(
             &self,
-            _id: I,
-        ) -> Result<crate::scan::FetchResult, crate::scan::Error>
+            id: I,
+        ) -> Result<crate::scan::ScanResults, crate::scan::Error>
         where
             I: AsRef<str> + Send,
         {
@@ -216,7 +216,11 @@ mod tests {
                         ..Default::default()
                     };
                     *count += 1;
-                    Ok((status, vec![]))
+                    Ok(ScanResults {
+                        id: id.as_ref().to_string(),
+                        status,
+                        results: vec![],
+                    })
                 }
                 1..=99 => {
                     let status = models::Status {
@@ -232,7 +236,11 @@ mod tests {
                         });
                     }
                     *count += 1;
-                    Ok((status, results))
+                    Ok(ScanResults {
+                        id: id.as_ref().to_string(),
+                        status,
+                        results,
+                    })
                 }
                 _ => {
                     *count += 1;
@@ -240,7 +248,11 @@ mod tests {
                         status: models::Phase::Succeeded,
                         ..Default::default()
                     };
-                    Ok((status, vec![]))
+                    Ok(ScanResults {
+                        id: id.as_ref().to_string(),
+                        status,
+                        results: vec![],
+                    })
                 }
             }
         }

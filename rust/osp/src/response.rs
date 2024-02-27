@@ -563,7 +563,7 @@ impl Default for Scan {
         }
     }
 }
-
+// TODO when traits moved to models create From for ScanResults
 impl From<Scan> for models::Status {
     fn from(value: Scan) -> Self {
         let phase: models::Phase = match value.status {
