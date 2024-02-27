@@ -342,6 +342,11 @@ pub enum Error {
     /// Invalid response from OSPD
     InvalidResponse(Status),
 }
+impl From<Error> for models::scanner::Error {
+    fn from(value: Error) -> Self {
+        Self::Unexpected(format!("{value:?}"))
+    }
+}
 
 impl From<quick_xml::de::DeError> for Error {
     fn from(value: quick_xml::de::DeError) -> Self {

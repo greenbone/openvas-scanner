@@ -12,7 +12,8 @@ use redis_storage::{
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::sync::RwLock;
 
-use crate::{controller::ClientHash, scan::ScanResults};
+use crate::controller::ClientHash;
+use models::scanner::ScanResults;
 
 use super::{AppendFetchResult, Error, NVTStorer, ProgressGetter, ScanIDClientMapper, ScanStorer};
 

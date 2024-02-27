@@ -4,13 +4,15 @@
 
 use std::sync::Arc;
 
+use models::scanner::Scanner;
+
 use crate::feed::FeedIdentifier;
 
 use super::context::Context;
 
 pub async fn fetch<S, DB>(ctx: Arc<Context<S, DB>>)
 where
-    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+    S: Scanner + 'static + std::marker::Send + std::marker::Sync,
     DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
 {
     tracing::debug!("Starting VTS synchronization loop");

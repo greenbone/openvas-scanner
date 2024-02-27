@@ -7,10 +7,10 @@ use std::{path::PathBuf, sync::RwLock};
 use async_trait::async_trait;
 use storage::DefaultDispatcher;
 
-use crate::{
-    notus::NotusWrapper,
-    response,
-    scan::{Error, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper},
+use crate::{notus::NotusWrapper, response};
+
+use models::scanner::{
+    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
 };
 
 #[derive(Debug, Clone)]
@@ -166,7 +166,11 @@ where
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where
-        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync + std::fmt::Debug,
+        S: models::scanner::Scanner
+            + 'static
+            + std::marker::Send
+            + std::marker::Sync
+            + std::fmt::Debug,
     {
         let Self {
             result_config,
@@ -270,7 +274,7 @@ impl ScanDeleter for NoOpScanner {
 
 #[async_trait]
 impl ScanResultFetcher for NoOpScanner {
-    async fn fetch_results<I>(&self, _: I) -> Result<crate::scan::ScanResults, Error>
+    async fn fetch_results<I>(&self, _: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send,
     {
