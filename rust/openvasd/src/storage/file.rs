@@ -178,32 +178,34 @@ impl<S> AppendFetchResult for Storage<S>
 where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
 {
-    async fn append_fetched_result(
-        &self,
-        id: &str,
-        (status, results): FetchResult,
-    ) -> Result<(), Error> {
-        let key = format!("results_{}", id);
-        self.update_status(id, status).await?;
+    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+        for r in results {
+            let id = &r.id;
+            let status = r.status;
+            let key = format!("results_{}", id);
+            self.update_status(id, status).await?;
 
-        let storage = Arc::clone(&self.storage);
-        tokio::task::spawn_blocking(move || {
-            let storage = &mut storage.write().unwrap();
-            let mut serialized_results = Vec::with_capacity(results.len());
-            let ilen = match storage.indices(&key) {
-                Ok(x) => x.len(),
-                Err(_) => 0,
-            };
-            for (i, mut result) in results.into_iter().enumerate() {
-                result.id = ilen + i;
-                let bytes = serde_json::to_vec(&result)?;
-                serialized_results.push(bytes);
-            }
-            storage.append_all(&key, &serialized_results)?;
-            Ok(())
-        })
-        .await
-        .unwrap()
+            let storage = Arc::clone(&self.storage);
+            tokio::task::spawn_blocking(move || {
+                let storage = &mut storage.write().unwrap();
+                let results = r.results;
+                let mut serialized_results = Vec::with_capacity(results.len());
+                let ilen = match storage.indices(&key) {
+                    Ok(x) => x.len(),
+                    Err(_) => 0,
+                };
+                for (i, mut result) in results.into_iter().enumerate() {
+                    result.id = ilen + i;
+                    let bytes = serde_json::to_vec(&result)?;
+                    serialized_results.push(bytes);
+                }
+                storage.append_all(&key, &serialized_results)?;
+                Ok::<_, Error>(())
+            })
+            .await
+            .unwrap()?
+        }
+        Ok(())
     }
 }
 #[async_trait]
@@ -630,10 +632,12 @@ mod tests {
         assert_eq!(scans.len(), ids.len());
         let status = models::Status::default();
         let results = vec![models::Result::default()];
-        storage
-            .append_fetched_result("42", (status, results))
-            .await
-            .unwrap();
+        let results = vec![ScanResults {
+            id: "42".to_string(),
+            status,
+            results,
+        }];
+        storage.append_fetched_result(results).await.unwrap();
 
         let status = models::Status {
             status: models::Phase::Running,
@@ -641,10 +645,12 @@ mod tests {
         };
 
         let results = vec![models::Result::default()];
-        storage
-            .append_fetched_result("42", (status.clone(), results))
-            .await
-            .unwrap();
+        let results = vec![ScanResults {
+            id: "42".to_string(),
+            status: status.clone(),
+            results,
+        }];
+        storage.append_fetched_result(results).await.unwrap();
         let stored_status = storage.get_status("42").await.unwrap();
         assert_eq!(status, stored_status);
         let range: Vec<String> = storage
