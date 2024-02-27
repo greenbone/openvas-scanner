@@ -14,7 +14,6 @@ use std::{
 
 use crate::{
     config,
-    scan::{self, ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper},
     tls::{self},
 };
 pub use context::{Context, ContextBuilder, NoOpScanner};
@@ -27,9 +26,6 @@ pub(crate) fn quit_on_poison<T>() -> T {
     tracing::error!("exit because of poisoned lock");
     std::process::exit(1);
 }
-
-/// Combines all traits needed for a scanner.
-pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ClientHash([u8; 32]);
@@ -60,8 +56,6 @@ pub enum ClientIdentifier {
     Known(ClientHash),
 }
 
-impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
-
 fn retrieve_and_reset(id: Arc<RwLock<ClientIdentifier>>) -> ClientIdentifier {
     // get client information
     let mut ci = id.write().unwrap();
@@ -75,10 +69,10 @@ pub async fn run<'a, S, DB>(
     config: &config::Config,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
-    S: scan::ScanStarter
-        + scan::ScanStopper
-        + scan::ScanDeleter
-        + scan::ScanResultFetcher
+    S: models::scanner::ScanStarter
+        + models::scanner::ScanStopper
+        + models::scanner::ScanDeleter
+        + models::scanner::ScanResultFetcher
         + std::marker::Send
         + std::marker::Sync
         + 'static,
@@ -159,12 +153,14 @@ mod tests {
     use super::context::Context;
     use crate::{
         controller::{ClientIdentifier, ContextBuilder, NoOpScanner},
-        scan::{ScanDeleter, ScanResults, ScanStarter, ScanStopper},
         storage::file,
     };
     use async_trait::async_trait;
     use hyper::{body::Bytes, service::HttpService, Method, Request, Version};
     use infisto::base::IndexedFileStorer;
+    use models::scanner::{
+        ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, Scanner,
+    };
     use std::sync::{Arc, RwLock};
 
     #[derive(Debug, Clone)]
@@ -173,15 +169,15 @@ mod tests {
     }
 
     #[async_trait]
-    impl crate::scan::ScanStarter for FakeScanner {
-        async fn start_scan(&self, _scan: models::Scan) -> Result<(), crate::scan::Error> {
+    impl models::scanner::ScanStarter for FakeScanner {
+        async fn start_scan(&self, _scan: models::Scan) -> Result<(), models::scanner::Error> {
             Ok(())
         }
     }
 
     #[async_trait]
-    impl crate::scan::ScanStopper for FakeScanner {
-        async fn stop_scan<I>(&self, _id: I) -> Result<(), crate::scan::Error>
+    impl models::scanner::ScanStopper for FakeScanner {
+        async fn stop_scan<I>(&self, _id: I) -> Result<(), models::scanner::Error>
         where
             I: AsRef<str> + Send,
         {
@@ -190,8 +186,8 @@ mod tests {
     }
 
     #[async_trait]
-    impl crate::scan::ScanDeleter for FakeScanner {
-        async fn delete_scan<I>(&self, _id: I) -> Result<(), crate::scan::Error>
+    impl models::scanner::ScanDeleter for FakeScanner {
+        async fn delete_scan<I>(&self, _id: I) -> Result<(), models::scanner::Error>
         where
             I: AsRef<str> + Send,
         {
@@ -200,11 +196,11 @@ mod tests {
     }
 
     #[async_trait]
-    impl crate::scan::ScanResultFetcher for FakeScanner {
+    impl models::scanner::ScanResultFetcher for FakeScanner {
         async fn fetch_results<I>(
             &self,
             id: I,
-        ) -> Result<crate::scan::ScanResults, crate::scan::Error>
+        ) -> Result<models::scanner::ScanResults, models::scanner::Error>
         where
             I: AsRef<str> + Send,
         {
@@ -262,12 +258,12 @@ mod tests {
         req: Request<R>,
         ctx: Arc<Context<S, DB>>,
         cid: Arc<ClientIdentifier>,
-    ) -> Result<crate::response::Result, crate::scan::Error>
+    ) -> Result<crate::response::Result, models::scanner::Error>
     where
         S: ScanStarter
             + ScanStopper
             + ScanDeleter
-            + crate::scan::ScanResultFetcher
+            + ScanResultFetcher
             + std::marker::Send
             + std::marker::Sync
             + 'static,
@@ -297,7 +293,7 @@ mod tests {
 
     async fn get_scan_status<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> crate::response::Result
     where
-        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: Scanner + 'static + std::marker::Send + std::marker::Sync,
         DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let req = Request::builder()
@@ -312,7 +308,7 @@ mod tests {
 
     async fn get_scan<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> crate::response::Result
     where
-        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: Scanner + 'static + std::marker::Send + std::marker::Sync,
         DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let req = Request::builder()
@@ -329,7 +325,7 @@ mod tests {
         ctx: Arc<Context<S, DB>>,
     ) -> crate::response::Result
     where
-        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: Scanner + 'static + std::marker::Send + std::marker::Sync,
         DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let req: Request<Full<Bytes>> = Request::builder()
@@ -343,7 +339,7 @@ mod tests {
 
     async fn start_scan<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> crate::response::Result
     where
-        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: Scanner + 'static + std::marker::Send + std::marker::Sync,
         DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let action = &models::ScanAction {
@@ -360,7 +356,7 @@ mod tests {
 
     async fn post_scan_id<S, DB>(scan: &models::Scan, ctx: Arc<Context<S, DB>>) -> String
     where
-        S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: Scanner + 'static + std::marker::Send + std::marker::Sync,
         DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
         let resp = post_scan(scan, Arc::clone(&ctx)).await;
@@ -411,7 +407,7 @@ mod tests {
             range: Option<(usize, usize)>,
         ) -> Vec<models::Result>
         where
-            S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+            S: Scanner + 'static + std::marker::Send + std::marker::Sync,
             DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
         {
             let uri = match idx {

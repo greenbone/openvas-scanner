@@ -6,6 +6,8 @@
 //!
 //! This loop should be run as background task to fetch results from the scanner.
 
+use models::scanner::Scanner;
+
 use crate::controller::quit_on_poison;
 use std::sync::Arc;
 
@@ -16,7 +18,7 @@ use super::context::Context;
 /// This loop should be run as background task to fetch results from the scanner.
 pub async fn fetch<S, DB>(ctx: Arc<Context<S, DB>>)
 where
-    S: super::Scanner + 'static + std::marker::Send + std::marker::Sync,
+    S: Scanner + 'static + std::marker::Send + std::marker::Sync,
     DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
 {
     if let Some(cfg) = &ctx.result_config {
@@ -59,7 +61,7 @@ where
                                 // and need to escalate this.
                                 ctx.db.append_fetched_result(vec![fr]).await.unwrap();
                             }
-                            Err(crate::scan::Error::Poisoned) => {
+                            Err(models::scanner::Error::Poisoned) => {
                                 quit_on_poison::<()>();
                             }
                             Err(e) => {

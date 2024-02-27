@@ -11,12 +11,10 @@ use std::{fmt::Display, marker::PhantomData, sync::Arc};
 use super::{context::Context, ClientIdentifier};
 
 use hyper::{Method, Request};
+use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 
-use crate::{
-    controller::ClientHash,
-    notus::NotusScanner,
-    scan::{self, Error, ScanDeleter, ScanStarter, ScanStopper},
-};
+use crate::{controller::ClientHash, notus::NotusScanner};
+use models::scanner::*;
 
 enum HealthOpts {
     /// Ready
@@ -137,7 +135,7 @@ where
     S: ScanStarter
         + ScanStopper
         + ScanDeleter
-        + scan::ScanResultFetcher
+        + ScanResultFetcher
         + std::marker::Send
         + std::marker::Sync
         + 'static,

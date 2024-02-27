@@ -4,8 +4,9 @@ pub mod redis;
 use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
+use models::scanner::ScanResults;
 
-use crate::{controller::ClientHash, crypt, scan::ScanResults};
+use crate::{controller::ClientHash, crypt};
 
 #[derive(Debug)]
 pub enum Error {

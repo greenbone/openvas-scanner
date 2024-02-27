@@ -11,6 +11,7 @@ mod product;
 mod result;
 mod scan;
 mod scan_action;
+pub mod scanner;
 mod scanner_preference;
 mod status;
 mod target;
