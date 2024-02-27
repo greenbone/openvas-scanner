@@ -369,7 +369,7 @@ where
                     if let CredentialType::UP {
                         username,
                         password,
-                        privilege_credential,
+                        privilege,
                     } = credential.credential_type.clone()
                     {
                         credential_preferences.push(format!(
@@ -380,26 +380,22 @@ where
                             "{OID_SSH_AUTH}:1:entry:SSH login name:|||{}",
                             username
                         ));
-                        if let Some(pcred) = privilege_credential {
-                            if let CredentialType::UP {
-                                username, password, ..
-                            } = pcred.as_ref()
-                            {
-                                credential_preferences.push(format!(
-                                    "{OID_SSH_AUTH}:7:entry:SSH privilege login name:|||{}",
-                                    username
-                                ));
-                                credential_preferences.push(format!(
-                                    "{OID_SSH_AUTH}:8:password:SSH privilege password:|||{}",
-                                    password
-                                ));
-                            }
+                        if let Some(p) = privilege {
+                            credential_preferences.push(format!(
+                                "{OID_SSH_AUTH}:7:entry:SSH privilege login name:|||{}",
+                                p.username
+                            ));
+                            credential_preferences.push(format!(
+                                "{OID_SSH_AUTH}:8:password:SSH privilege password:|||{}",
+                                p.password
+                            ));
                         }
                     };
                     if let CredentialType::USK {
                         username,
                         password,
                         private_key,
+                        privilege,
                     } = credential.credential_type
                     {
                         credential_preferences.push(format!(
@@ -414,6 +410,16 @@ where
                             "{OID_SSH_AUTH}:4:file:SSH private key:|||{}",
                             private_key
                         ));
+                        if let Some(p) = privilege {
+                            credential_preferences.push(format!(
+                                "{OID_SSH_AUTH}:7:entry:SSH privilege login name:|||{}",
+                                p.username
+                            ));
+                            credential_preferences.push(format!(
+                                "{OID_SSH_AUTH}:8:password:SSH privilege password:|||{}",
+                                p.password
+                            ));
+                        }
                     };
                 }
 
@@ -530,7 +536,7 @@ mod tests {
             credential_type: models::CredentialType::UP {
                 username: "user".to_string(),
                 password: "pass".to_string(),
-                privilege_credential: None,
+                privilege: None,
             },
         }];
         scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];

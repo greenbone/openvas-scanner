@@ -22,7 +22,7 @@ impl Credential {
     /// Maps the password of the credential using the given closure.
     pub fn map_password<F, E>(self, f: F) -> Result<Self, E>
     where
-        F: FnOnce(String) -> Result<String, E>,
+        F: Fn(String) -> Result<String, E>,
     {
         Ok(Credential {
             service: self.service,
@@ -49,10 +49,22 @@ impl Default for Credential {
             credential_type: CredentialType::UP {
                 username: "root".to_string(),
                 password: "".to_string(),
-                privilege_credential: None,
+                privilege: None,
             },
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct PrivilegeInformation {
+    #[cfg_attr(feature = "serde_support", serde(rename = "privilege_username"))]
+    pub username: String,
+    #[cfg_attr(feature = "serde_support", serde(rename = "privilege_password"))]
+    pub password: String,
 }
 
 /// Enum of available services
@@ -101,8 +113,12 @@ pub enum CredentialType {
         username: String,
         /// The password for authentication.
         password: String,
-        /// privilege credential
-        privilege_credential: Option<Box<CredentialType>>,
+        /// privilege credential only use for SSH service
+        #[cfg_attr(
+            feature = "serde_support",
+            serde(default, flatten, skip_serializing_if = "Option::is_none")
+        )]
+        privilege: Option<PrivilegeInformation>,
     },
     #[cfg_attr(feature = "serde_support", serde(rename = "usk"))]
     /// User/ssh-key credentials.
@@ -114,6 +130,12 @@ pub enum CredentialType {
         #[cfg_attr(feature = "serde_support", serde(rename = "private"))]
         /// The private key for authentication.
         private_key: String,
+        /// privilege credential only use for SSH service
+        #[cfg_attr(
+            feature = "serde_support",
+            serde(default, flatten, skip_serializing_if = "Option::is_none")
+        )]
+        privilege: Option<PrivilegeInformation>,
     },
     #[cfg_attr(feature = "serde_support", serde(rename = "snmp"))]
     /// SNMP credentials.
@@ -137,26 +159,40 @@ impl CredentialType {
     /// Uses given closure to transform the password of the credential.
     pub fn map_password<F, E>(self, f: F) -> Result<Self, E>
     where
-        F: FnOnce(String) -> Result<String, E>,
+        F: Fn(String) -> Result<String, E>,
     {
         Ok(match self {
             CredentialType::UP {
                 username,
                 password,
-                privilege_credential,
+                privilege,
             } => CredentialType::UP {
                 username,
                 password: f(password)?,
-                privilege_credential,
+                privilege: match privilege {
+                    Some(p) => Some(PrivilegeInformation {
+                        username: p.username,
+                        password: f(p.password)?,
+                    }),
+                    None => None,
+                },
             },
             CredentialType::USK {
                 username,
                 password,
                 private_key,
+                privilege,
             } => CredentialType::USK {
                 username,
                 password: f(password)?,
-                private_key,
+                private_key: f(private_key)?,
+                privilege: match privilege {
+                    Some(p) => Some(PrivilegeInformation {
+                        username: p.username,
+                        password: f(p.password)?,
+                    }),
+                    None => None,
+                },
             },
             CredentialType::SNMP {
                 username,
@@ -170,7 +206,7 @@ impl CredentialType {
                 password: f(password)?,
                 community,
                 auth_algorithm,
-                privacy_password,
+                privacy_password: f(privacy_password)?,
                 privacy_algorithm,
             },
         })

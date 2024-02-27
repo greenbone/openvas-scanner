@@ -572,15 +572,13 @@ components:
           type: "string"
         password:
           description: "Password for authentication."
-        privilege_credential:
-          description: "Privilege username and password for SSH service"
-          type: "object"
-          properties:
-            username:
-              description: "Privilege username for authentication."
-              type: "string"
-            password:
-              description: "Privilege password for authentication."
+          type: "string"
+        privilege_username:
+          description: "Privilege username for authentication."
+          type: "string"
+        privilege_password:
+          description: "Privilege password for authentication."
+          type: "string"
       required:
         - username
 
@@ -596,6 +594,12 @@ components:
           type: "string"
         private:
           description: "SSH private key."
+          type: "string"
+        privilege_username:
+          description: "Privilege username for authentication."
+          type: "string"
+        privilege_password:
+          description: "Privilege password for authentication."
           type: "string"
       required:
         - username
