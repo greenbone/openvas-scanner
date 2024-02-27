@@ -45,6 +45,11 @@ impl From<std::string::FromUtf8Error> for Error {
     }
 }
 
+impl From<crate::storage::Error> for models::scanner::Error {
+    fn from(value: crate::storage::Error) -> Self {
+        Self::Unexpected(format!("{value:?}"))
+    }
+}
 #[async_trait]
 pub trait ScanIDClientMapper {
     async fn add_scan_client_id(&self, scan_id: String, client_id: ClientHash)

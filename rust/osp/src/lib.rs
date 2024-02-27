@@ -6,10 +6,12 @@
 mod commands;
 mod connection;
 mod response;
+mod scanner;
 pub use commands::Error;
 pub use commands::ScanCommand;
 pub use connection::*;
 pub use response::*;
+pub use scanner::Scanner;
 
 /// The id of a scan
 pub type ScanID = String;
