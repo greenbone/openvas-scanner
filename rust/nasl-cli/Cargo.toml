@@ -16,7 +16,6 @@ walkdir = "2"
 
 feed = {path = "../feed"}
 nasl-syntax = { path = "../nasl-syntax" }
-scanconfig = { path = "../scanconfig" }
 models = { path = "../models" }
 nasl-interpreter = { path = "../nasl-interpreter", default-features = false }
 storage = { path = "../storage" }
@@ -28,6 +27,7 @@ serde_json = "1.0.96"
 toml = "0.8.6"
 serde = "1.0.190"
 notus = { version = "0.1.0", path = "../notus" }
+quick-xml = { version = "0.28.1", features = ["serialize"] }
 
 
 [features]

@@ -26,7 +26,6 @@ members = [
   "osp",
   "openvasctl",
   "openvasd",
-  "scanconfig",
   "infisto",
   "smoketest",
   "notus",
