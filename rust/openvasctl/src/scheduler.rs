@@ -1,16 +1,11 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use sysinfo::System;
-use tokio::task;
+use tokio::{sync::Mutex, task};
 
 use crate::{config::Config, ctl::ScanController, error::OpenvasError};
 
-/// Estimated memory a scan will use
-const SCAN_MEM: u64 = 1024 * 1024 * 512;
-
+#[derive(Debug, Clone)]
 pub struct Scheduler<S> {
     queue: Arc<Mutex<VecDeque<models::Scan>>>,
     config: Config,
@@ -25,10 +20,10 @@ where
     S: ScanController + std::marker::Send + std::marker::Sync + 'static,
 {
     /// Create a new OpenvasController
-    pub fn new(config: Option<Config>, controller: S) -> Self {
+    pub fn new(config: Config, controller: S) -> Self {
         Self {
             queue: Default::default(),
-            config: config.unwrap_or_default(),
+            config,
             controller: Arc::new(controller),
         }
     }
@@ -36,21 +31,21 @@ where
     /// Add a new scan to the queue. An error is returned, if the queue is either full or the scan
     /// ID is already registered.
     pub async fn add(&mut self, scan: models::Scan) -> Result<(), OpenvasError> {
-        let queue = self.queue.lock().unwrap();
+        let queue = self.queue.lock().await;
         if let Some(max_queued_scans) = self.config.max_queued_scans {
             if queue.len() == max_queued_scans {
                 return Err(OpenvasError::MaxQueuedScans);
             }
         }
         if queue.iter().any(|x| x.scan_id == scan.scan_id) {
-            return Err(OpenvasError::DuplicateScanID);
+            return Err(OpenvasError::DuplicateScanID(scan.scan_id));
         }
-        self.queue.lock().unwrap().push_back(scan);
+        self.queue.lock().await.push_back(scan);
         Ok(())
     }
 
-    fn remove_queue(&mut self, id: &str) -> bool {
-        let mut queue = self.queue.lock().unwrap();
+    async fn remove_queue(&mut self, id: &str) -> bool {
+        let mut queue = self.queue.lock().await;
         if let Some(index) = queue.iter().position(|x| x.scan_id == id) {
             queue.remove(index);
             return true;
@@ -63,7 +58,7 @@ where
     /// as a scan should not actually start, when it is removed. An error is returned, if
     /// the scan in not registered in the scheduler.
     pub async fn stop(&mut self, id: &str) -> Result<(), OpenvasError> {
-        if self.remove_queue(id) {
+        if self.remove_queue(id).await {
             return Ok(());
         }
 
@@ -85,7 +80,7 @@ where
             // TODO: Remove forgotten finished scans
 
             // Are scans in the queue?
-            if self.queue.lock().unwrap().is_empty() {
+            if self.queue.lock().await.is_empty() {
                 continue;
             }
 
@@ -99,7 +94,7 @@ where
             // Check available resources
             sys.refresh_memory();
             if let Some(min_free_mem) = self.config.min_free_mem {
-                if sys.available_memory() - self.controller.num_init() as u64 * SCAN_MEM
+                if sys.available_memory() - self.controller.num_init() as u64 * min_free_mem
                     < min_free_mem
                 {
                     continue;
@@ -107,7 +102,7 @@ where
             }
 
             // Start next scan in queue
-            let mut queue = self.queue.lock().unwrap();
+            let mut queue = self.queue.lock().await;
             if let Some(scan) = queue.pop_front() {
                 let controller = self.controller.clone();
                 controller.set_init(&scan.scan_id);

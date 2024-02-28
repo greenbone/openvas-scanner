@@ -71,7 +71,7 @@ impl OpenvasController {
 
         let mut scan = match self.remove_running(&scan_id) {
             Some(scan) => scan,
-            None => return Err(OpenvasError::ScanNotFound),
+            None => return Err(OpenvasError::ScanNotFound(scan_id)),
         };
 
         cmd::stop(&scan_id, self.sudo)
