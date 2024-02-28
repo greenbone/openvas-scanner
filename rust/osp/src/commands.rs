@@ -408,7 +408,7 @@ mod tests {
         // of the same protocol.
         // ports that have no assigned protocol are in the front
         let expected = r#"
-        <start_scan scan_id="">
+        <start_scan scan_id="replace_me">
             <vt_selection>
                 <vt_single id="1.3.6.1.4.1.25623.1.0.10330"></vt_single>
             </vt_selection>
@@ -425,6 +425,7 @@ mod tests {
             </scanner_params>
         </start_scan>
         "#;
+        let expected = expected.replace("replace_me", &scan.scan_id);
         let expected = expected
             .trim()
             .lines()

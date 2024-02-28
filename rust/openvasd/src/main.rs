@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use models::scanner::{ScanStarter, ScanStopper, ScanDeleter, ScanResultFetcher};
 use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use nasl_interpreter::FSPluginLoader;
 use notus::NotusWrapper;
@@ -15,9 +16,23 @@ pub mod response;
 pub mod storage;
 pub mod tls;
 
-fn create_context<DB>(db: DB, config: &config::Config) -> controller::Context<osp::Scanner, DB> {
-    let scanner = osp::Scanner::new(config.ospd.socket.clone(), config.ospd.read_timeout);
-    let rc = config.ospd.result_check_interval;
+fn create_context<DB, ScanHandler>(
+    db: DB,
+    sh: ScanHandler,
+    config: &config::Config,
+) -> controller::Context<ScanHandler, DB>
+where
+    ScanHandler: ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + std::fmt::Debug
+        + std::marker::Sync
+        + std::marker::Send
+        + 'static,
+{
+    // TODO: move result check  interval into overall `wrapper` rename wrapper to something useful
+    let rc = config.wrapper.ospd.result_check_interval;
     let fc = (
         config.feed.path.clone(),
         config.feed.check_interval,
@@ -37,24 +52,27 @@ fn create_context<DB>(db: DB, config: &config::Config) -> controller::Context<os
     ctx_builder
         .result_config(rc)
         .feed_config(fc)
-        .scanner(scanner)
+        .scanner(sh)
         .api_key(config.endpoints.key.clone())
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
         .build()
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let config = config::Config::load();
-    let filter = tracing_subscriber::EnvFilter::builder()
-        .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
-    tracing::debug!("config: {:?}", config);
-    tracing_subscriber::fmt().with_env_filter(filter).init();
-    if !config.ospd.socket.exists() {
-        tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.ospd.socket.display());
-    }
+async fn run<S>(
+    scanner: S,
+    config: &config::Config,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+where
+    S: ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + std::fmt::Debug
+        + std::marker::Sync
+        + std::marker::Send
+        + 'static,
+{
     match config.storage.storage_type {
         config::StorageType::Redis => {
             tracing::info!("using in redis {}", config.storage.redis.url);
@@ -71,13 +89,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     &config.feed.path,
                     &config.notus.advisories_path,
                 ),
+                scanner,
                 &config,
             );
             controller::run(ctx, &config).await
         }
         config::StorageType::InMemory => {
             tracing::info!("using in memory store. No sensitive data will be stored on disk.");
-
             // Self::new(crate::crypt::ChaCha20Crypt::default(), "/var/lib/openvas/feed".to_string())
             let ctx = create_context(
                 storage::inmemory::Storage::new(
@@ -85,6 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     &config.feed.path,
                     &config.notus.advisories_path,
                 ),
+                scanner,
                 &config,
             );
             controller::run(ctx, &config).await
@@ -102,6 +121,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         &config.feed.path,
                         &config.notus.advisories_path,
                     )?,
+                    scanner,
                     &config,
                 );
                 controller::run(ctx, &config).await
@@ -115,10 +135,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         &config.feed.path,
                         &config.notus.advisories_path,
                     )?,
+                    scanner,
                     &config,
                 );
                 controller::run(ctx, &config).await
             }
         }
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let config = config::Config::load();
+    let filter = tracing_subscriber::EnvFilter::builder()
+        .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
+        .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
+    tracing::debug!("config: {:?}", config);
+    tracing_subscriber::fmt().with_env_filter(filter).init();
+    if !config.wrapper.ospd.socket.exists() {
+        tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.wrapper.ospd.socket.display());
+    }
+    // TODO verify which one and create
+
+    match config.wrapper.wrapper_type {
+        config::WrapperType::OSPD => {
+            run(
+                osp::Scanner::new(
+                    config.wrapper.ospd.socket.clone(),
+                    config.wrapper.ospd.read_timeout,
+                ),
+                &config,
+            )
+            .await
+        }
+        config::WrapperType::Openvasctl => {
+            todo!("need a openvas impl for scanner traits")
+            // run(
+            //     scan::OpenvasctlWrapper::new(config.wrapper.openvasctl.clone()),
+            //     &config,
+            // )
+            // .await
+        }
+    }
+    // extract to method
 }

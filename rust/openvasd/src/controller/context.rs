@@ -159,10 +159,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
     }
 }
 
-impl<S, DB> ContextBuilder<S, DB, NoScanner>
-where
-    S: Clone,
-{
+impl<S, DB> ContextBuilder<S, DB, NoScanner> {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where

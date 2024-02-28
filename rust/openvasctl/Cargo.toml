@@ -1,5 +1,5 @@
 [package]
-name = "openvas"
+name = "openvasctl"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,3 +15,8 @@ storage = { version = "0.1.0", path = "../storage" }
 sysinfo = "0.30.5"
 tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+default = ["serde_support"]
+serde_support = ["serde"]

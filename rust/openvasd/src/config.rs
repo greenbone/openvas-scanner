@@ -30,6 +30,54 @@ pub struct Redis {
     pub url: String,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct Wrapper {
+    #[serde(default)]
+    pub wrapper_type: WrapperType,
+    #[serde(default)]
+    pub ospd: OspdWrapper,
+    #[serde(default)]
+    pub openvasctl: openvasctl::config::Config,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum WrapperType {
+    #[serde(rename = "ospd")]
+    OSPD,
+    #[serde(rename = "openvasctl")]
+    Openvasctl,
+}
+
+impl Default for WrapperType {
+    fn default() -> Self {
+        Self::OSPD
+    }
+}
+
+impl TypedValueParser for WrapperType {
+    type Value = WrapperType;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        _: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        Ok(match value.to_str().unwrap_or_default() {
+            "ospd" => WrapperType::OSPD,
+            "openvasctl" => WrapperType::Openvasctl,
+            _ => {
+                let mut cmd = cmd.clone();
+                let err = cmd.error(
+                    clap::error::ErrorKind::InvalidValue,
+                    "`{}` is not a wrapper type.",
+                );
+                return Err(err);
+            }
+        })
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OspdWrapper {
     pub result_check_interval: Duration,
@@ -142,7 +190,7 @@ impl TypedValueParser for StorageType {
                 let mut cmd = cmd.clone();
                 let err = cmd.error(
                     clap::error::ErrorKind::InvalidValue,
-                    "`{}` is not an storage type.",
+                    "`{}` is not a storage type.",
                 );
                 return Err(err);
             }
@@ -186,7 +234,7 @@ pub struct Config {
     #[serde(default)]
     pub tls: Tls,
     #[serde(default)]
-    pub ospd: OspdWrapper,
+    pub wrapper: Wrapper,
     #[serde(default)]
     pub listener: Listener,
     #[serde(default)]
@@ -319,6 +367,43 @@ impl Config {
                     .help("API key that must be set as X-API-KEY header to gain access"),
             )
             .arg(
+                clap::Arg::new("wrapper-type")
+                    .env("WRAPPER_TYPE")
+                    .long("wrapper-type")
+                    .value_name("ospd,openvasctl")
+                    .value_parser(WrapperType::OSPD)
+                    .help("Type of wrapper used to manage scans")
+            )
+            .arg(
+                clap::Arg::new("max-queued-scans")
+                    .env("MAX_QUEUED_SCANS")
+                    .long("max-queued-scans")
+                    .action(ArgAction::Set)
+                    .help("Maximum number of queued scans")
+            )
+            .arg(
+                clap::Arg::new("max-running-scans")
+                    .env("MAX_RUNNING_SCANS")
+                    .long("max-running-scans")
+                    .action(ArgAction::Set)
+                    .help("Maximum number of active running scans, omit for no limits")
+            )
+            .arg(
+                clap::Arg::new("min-free-mem")
+                    .env("MIN_FREE_MEMORY")
+                    .long("min-free-mem")
+                    .action(ArgAction::Set)
+                    .help("Minimum memory available to start a new scan")
+            )
+            .arg(
+                clap::Arg::new("check-interval")
+                    .env("SCHEDULER_CHECK_INTERVAL")
+                    .long("check_interval")
+                    .value_parser(clap::value_parser!(u64))
+                    .value_name("SECONDS")
+                    .help("Check interval of the Scheduler if a new scan can be started")
+            )
+            .arg(
                 clap::Arg::new("ospd-socket")
                     .env("OSPD_SOCKET")
                     .long("ospd-socket")
@@ -394,14 +479,29 @@ impl Config {
         if let Some(interval) = cmds.get_one::<u64>("feed-check-interval") {
             config.feed.check_interval = Duration::from_secs(*interval);
         }
+        if let Some(wrapper_type) = cmds.get_one::<WrapperType>("wrapper-type") {
+            config.wrapper.wrapper_type = wrapper_type.clone()
+        }
+        if let Some(max_queued_scans) = cmds.get_one::<usize>("max-queued-scans") {
+            config.wrapper.openvasctl.max_queued_scans = Some(*max_queued_scans)
+        }
+        if let Some(max_running_scans) = cmds.get_one::<usize>("max_running_scans") {
+            config.wrapper.openvasctl.max_running_scans = Some(*max_running_scans)
+        }
+        if let Some(min_free_mem) = cmds.get_one::<u64>("min-free-mem") {
+            config.wrapper.openvasctl.min_free_mem = Some(*min_free_mem)
+        }
+        if let Some(check_interval) = cmds.get_one::<u64>("check-interval") {
+            config.wrapper.openvasctl.check_interval = Duration::from_secs(*check_interval)
+        }
         if let Some(interval) = cmds.get_one::<u64>("result-check-interval") {
-            config.ospd.result_check_interval = Duration::from_secs(*interval);
+            config.wrapper.ospd.result_check_interval = Duration::from_secs(*interval);
         }
         if let Some(path) = cmds.get_one::<PathBuf>("ospd-socket") {
-            config.ospd.socket = path.clone();
+            config.wrapper.ospd.socket = path.clone();
         }
         if let Some(interval) = cmds.get_one::<u64>("read-timeout") {
-            config.ospd.read_timeout = Some(Duration::from_secs(*interval));
+            config.wrapper.ospd.read_timeout = Some(Duration::from_secs(*interval));
         }
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
@@ -475,9 +575,15 @@ mod tests {
         assert!(config.tls.key.is_none());
         assert!(config.tls.client_certs.is_none());
 
-        assert_eq!(config.ospd.result_check_interval, Duration::from_secs(1));
-        assert_eq!(config.ospd.socket, PathBuf::from("/var/run/ospd/ospd.sock"));
-        assert!(config.ospd.read_timeout.is_none());
+        assert_eq!(
+            config.wrapper.ospd.result_check_interval,
+            Duration::from_secs(1)
+        );
+        assert_eq!(
+            config.wrapper.ospd.socket,
+            PathBuf::from("/var/run/ospd/ospd.sock")
+        );
+        assert!(config.wrapper.ospd.read_timeout.is_none());
 
         assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
 

@@ -12,7 +12,7 @@ use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
     serde(deny_unknown_fields)
 )]
 pub struct Scan {
-    #[cfg_attr(feature = "serde_support", serde(skip_deserializing, default = "uuid"))]
+    #[cfg_attr(feature = "serde_support", serde(default = "uuid"))]
     /// Unique ID of a scan
     pub scan_id: String,
     /// Information about the target to scan
