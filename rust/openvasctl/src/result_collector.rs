@@ -339,7 +339,6 @@ mod tests {
             "127.0.0.1/128/1000".to_string(),
             "127.0.0.4/1000/1000".to_string(),
             "127.0.0.5/0/-1".to_string(),
-            
         ];
 
         let rc = FakeRedis {
@@ -356,6 +355,5 @@ mod tests {
         assert_eq!(resh.results.as_ref().lock().unwrap().host_status, r);
         assert_eq!(resh.results.as_ref().lock().unwrap().count_alive, 1);
         assert_eq!(resh.results.as_ref().lock().unwrap().count_dead, 2);
-        
     }
 }
