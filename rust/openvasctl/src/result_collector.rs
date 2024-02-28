@@ -19,20 +19,23 @@ use redis_storage::dberror::RedisStorageResult;
 pub struct Results {
     /// The list of results retrieve
     results: Vec<ScanResult>,
-    /// The number of new dead hosts found during this retrieve. New dead hosts can be found
-    /// during the scan    
-    new_dead: i64,
     /// Total amount of alive hosts found. This is sent once for scan, as it is the
     /// the alive host found by Boreas at the start of the scan.
     count_total: i64,
     /// Total amount of excluded hosts.
     count_excluded: i64,
+    /// The number of new alive hosts that already finished.
+    count_alive: i64,
+    /// The number of new dead hosts found during this retrieve. New dead hosts can be found
+    /// during the scan    
+    count_dead: i64,
+    /// Current hosts status
+    host_status: HashMap<String, i32>,
 }
 
 pub struct ResultHelper<H> {
     pub redis_connector: H,
     pub results: Arc<Mutex<Results>>,
-    pub status: Arc<Mutex<HashMap<String, i32>>>,
 }
 
 impl<H> ResultHelper<H>
@@ -43,17 +46,16 @@ where
         Self {
             redis_connector,
             results: Arc::new(Mutex::new(Results::default())),
-            status: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    fn process_results(&self, results: Vec<String>) -> RedisStorageResult<Results> {
+    fn process_results(&mut self, ov_results: Vec<String>) -> RedisStorageResult<()> {
         let mut new_dead = 0;
         let mut count_total = 0;
         let mut count_excluded = 0;
 
         let mut scan_results: Vec<ScanResult> = Vec::new();
-        for result in results.iter() {
+        for result in ov_results.iter() {
             //result_type|||host ip|||hostname|||port|||OID|||value[|||uri]
             let res_fields: Vec<&str> = result.split("|||").collect();
 
@@ -149,36 +151,31 @@ where
                 count_excluded = i64::from_str(&value).expect("Valid amount of excluded hosts");
             }
         }
+        if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
+            results.results = scan_results;
+            results.count_dead += new_dead;
+            results.count_excluded = count_excluded;
+            results.count_total = count_total;
+        }
 
-        Ok(Results {
-            results: scan_results,
-            new_dead,
-            count_total,
-            count_excluded,
-        })
+        Ok(())
     }
 
-    pub async fn results(&mut self) -> RedisStorageResult<()> {
-        if let Ok(results) = self.redis_connector.results() {
-            if let Ok(mut res) = Arc::as_ref(&self.results).lock() {
-                if let Ok(res_updates) = self.process_results(results) {
-                    res.count_total = res_updates.count_total;
-                    res.new_dead = res_updates.new_dead;
-                    res.count_excluded = res_updates.count_excluded;
-                    res.results.extend(res_updates.results);
-                }
-            }
+    pub async fn get_results(&mut self) -> RedisStorageResult<()> {
+        if let Ok(redis_results) = self.redis_connector.results() {
+            self.process_results(redis_results)?;
         }
         Ok(())
     }
 
-    fn process_status(&self, status: Vec<String>) -> RedisStorageResult<HashMap<String, i32>> {
+    fn process_status(&self, redis_status: Vec<String>) -> RedisStorageResult<()> {
         enum ScanProgress {
             DeadHost = -1,
         }
-
+        let mut new_dead = 0;
+        let mut new_alive = 0;
         let mut all_hosts: HashMap<String, i32> = HashMap::new();
-        for res in status {
+        for res in redis_status {
             let mut fields = res.splitn(3, '/');
             let current_host = fields.next().expect("Valid status value");
             let launched = fields.next().expect("Valid status value");
@@ -197,19 +194,30 @@ where
                 }
             };
 
-            all_hosts.insert(current_host.to_string(), host_progress);
+            if host_progress == -1 {
+                new_dead += 1;
+                all_hosts.remove(current_host);
+            } else if host_progress < 100 {
+                all_hosts.insert(current_host.to_string(), host_progress);
+            } else if host_progress == 100 {
+                new_alive += 1;
+                all_hosts.remove(current_host);
+            }
+
             tracing::debug!("Host {} has progress: {}", current_host, host_progress);
         }
+        if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
+            results.host_status.extend(all_hosts);
+            results.count_alive += new_alive;
+            results.count_dead += new_dead;
+        }
 
-        Ok(all_hosts)
+        Ok(())
     }
-    pub async fn status(&mut self) -> RedisStorageResult<()> {
-        if let Ok(status) = self.redis_connector.status() {
-            if let Ok(mut stat) = Arc::as_ref(&self.status).lock() {
-                if let Ok(res_updates) = self.process_status(status) {
-                    stat.extend(res_updates);
-                }
-            }
+
+    pub async fn get_status(&mut self) -> RedisStorageResult<()> {
+        if let Ok(redis_status) = self.redis_connector.status() {
+            self.process_status(redis_status)?;
         }
         Ok(())
     }
@@ -232,15 +240,17 @@ mod tests {
             "DEADHOST||| ||| ||| ||| |||3".to_string(),
             "HOST_COUNT||| ||| ||| ||| |||12".to_string(),
             "DEADHOST||| ||| ||| ||| |||1".to_string(),
+            "HOSTS_EXCLUDED||| ||| ||| ||| |||4".to_string(),
+
         ];
 
         let rc = FakeRedis {
             data: HashMap::new(),
         };
 
-        let resh = ResultHelper::init(rc);
+        let mut resh = ResultHelper::init(rc);
 
-        let res_updates = resh.process_results(results).unwrap();
+        let _ = resh.process_results(results).unwrap();
 
         let single_r = Result {
             id: 0,
@@ -253,9 +263,18 @@ mod tests {
             message: Some("HOST_START".to_string()),
             detail: None,
         };
-
-        let b = res_updates.results.get(0).unwrap();
-        assert_eq!(models::Result::from(b), single_r);
+        assert_eq!(
+            models::Result::from(
+                resh.results
+                    .as_ref()
+                    .lock()
+                    .unwrap()
+                    .results
+                    .get(0)
+                    .unwrap()
+            ),
+            single_r
+        );
 
         let single_r = Result {
             id: 0,
@@ -268,9 +287,18 @@ mod tests {
             message: Some("NVT timeout".to_string()),
             detail: None,
         };
-
-        let b = res_updates.results.get(1).unwrap();
-        assert_eq!(models::Result::from(b), single_r);
+        assert_eq!(
+            models::Result::from(
+                resh.results
+                    .as_ref()
+                    .lock()
+                    .unwrap()
+                    .results
+                    .get(1)
+                    .unwrap()
+            ),
+            single_r
+        );
 
         let single_r = Result {
             id: 0,
@@ -283,36 +311,51 @@ mod tests {
             message: Some("Something wrong".to_string()),
             detail: None,
         };
+        assert_eq!(
+            models::Result::from(
+                resh.results
+                    .as_ref()
+                    .lock()
+                    .unwrap()
+                    .results
+                    .get(2)
+                    .unwrap()
+            ),
+            single_r
+        );
 
-        let b = res_updates.results.get(2).unwrap();
-        assert_eq!(models::Result::from(b), single_r);
-
-        assert_eq!(res_updates.new_dead, 4);
-        assert_eq!(res_updates.count_total, 12);
+        assert_eq!(resh.results.as_ref().lock().unwrap().count_dead, 4);
+        assert_eq!(resh.results.as_ref().lock().unwrap().count_total, 12);
     }
 
     #[test]
     fn test_status() {
         let status = vec![
-            "127.0.0.2/0/-1".to_string(),
-            "127.0.0.1/188/1000".to_string(),
-            "127.0.0.3/750/1000".to_string(),
-            "127.0.0.2/15/1000".to_string(),
             "127.0.0.1/0/1000".to_string(),
+            "127.0.0.2/15/1000".to_string(),
+            "127.0.0.3/750/1000".to_string(),
+            "127.0.0.2/0/-1".to_string(),
+            "127.0.0.4/500/1000".to_string(),
+            "127.0.0.1/128/1000".to_string(),
+            "127.0.0.4/1000/1000".to_string(),
+            "127.0.0.5/0/-1".to_string(),
+            
         ];
 
         let rc = FakeRedis {
             data: HashMap::new(),
         };
 
-        let resh = ResultHelper::init(rc);
+        let mut resh = ResultHelper::init(rc);
+        let _ = resh.process_status(status).unwrap();
 
         let mut r = HashMap::new();
-        r.insert("127.0.0.1".to_string(), 0);
-        r.insert("127.0.0.2".to_string(), 1);
+        r.insert("127.0.0.1".to_string(), 12);
         r.insert("127.0.0.3".to_string(), 75);
 
-        let res_updates = resh.process_status(status).unwrap();
-        assert_eq!(res_updates, r)
+        assert_eq!(resh.results.as_ref().lock().unwrap().host_status, r);
+        assert_eq!(resh.results.as_ref().lock().unwrap().count_alive, 1);
+        assert_eq!(resh.results.as_ref().lock().unwrap().count_dead, 2);
+        
     }
 }
