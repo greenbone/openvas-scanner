@@ -25,9 +25,9 @@ pub enum Error {
     /// Queue overseeds the configured maximal queue amount
     QueueFull,
     /// An error occured while using the Scanner
-    ScanError(ScanError),
+    Scan(ScanError),
     /// An error occured while using the DB
-    StorageError(StorageError),
+    Storage(StorageError),
 }
 
 impl Display for Error {
@@ -37,8 +37,8 @@ impl Display for Error {
             Error::ScanAlreadyQueued => write!(f, "scan is already queued"),
             Error::NotFound => write!(f, "scan was not found"),
             Error::QueueFull => write!(f, "unable to queue scan: queue is already full."),
-            Error::ScanError(e) => write!(f, "scan error occured: {}", e),
-            Error::StorageError(e) => write!(f, "storage error occured: {}", e),
+            Error::Scan(e) => write!(f, "scan error occured: {}", e),
+            Error::Storage(e) => write!(f, "storage error occured: {}", e),
         }
     }
 }
@@ -47,7 +47,7 @@ impl std::error::Error for Error {}
 
 impl From<ScanError> for Error {
     fn from(value: ScanError) -> Self {
-        Self::ScanError(value)
+        Self::Scan(value)
     }
 }
 
@@ -55,15 +55,15 @@ impl From<StorageError> for Error {
     fn from(value: StorageError) -> Self {
         match value {
             StorageError::NotFound => Self::NotFound,
-            value => Self::StorageError(value),
+            value => Self::Storage(value),
         }
     }
 }
 
 // yo, dawg I heard you like transforming
-impl Into<ScanError> for Error {
-    fn into(self) -> ScanError {
-        ScanError::Unexpected(format!("{}", self))
+impl From<Error> for ScanError {
+    fn from(val: Error) -> Self {
+        ScanError::Unexpected(format!("{}", val))
     }
 }
 /// Scheduler is a core component of managing scans.
@@ -237,12 +237,8 @@ where
         let results = self.handle_results();
         let cr = coordination.await;
         let rr = results.await;
-        if let Err(e) = cr {
-            return Err(e);
-        }
-        if let Err(e) = rr {
-            return Err(e);
-        }
+        cr?;
+        rr?;
         Ok(())
     }
 

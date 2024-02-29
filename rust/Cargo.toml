@@ -24,7 +24,7 @@ members = [
   "feed-verifier",
   "models",
   "osp",
-  "openvasctl",
+  "openvas",
   "openvasd",
   "infisto",
   "smoketest",

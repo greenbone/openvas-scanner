@@ -1943,7 +1943,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "openvasctl"
+name = "openvas"
 version = "0.1.0"
 dependencies = [
  "async-trait",
@@ -1979,7 +1979,7 @@ dependencies = [
  "models",
  "nasl-interpreter",
  "notus",
- "openvasctl",
+ "openvas",
  "osp",
  "pbkdf2",
  "rand",

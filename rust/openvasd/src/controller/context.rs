@@ -54,7 +54,7 @@ impl<S>
 impl<S, DB, T> ContextBuilder<S, DB, T> {
     /// Sets the feed config.
     pub fn feed_config(mut self, config: config::Feed) -> Self {
-        self.feed_config = Some(config.into());
+        self.feed_config = Some(config);
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
             let dispatcher: DefaultDispatcher<String> = DefaultDispatcher::default();

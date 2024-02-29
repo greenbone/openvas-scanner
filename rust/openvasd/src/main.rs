@@ -85,9 +85,9 @@ where
                     &config.notus.advisories_path,
                 ),
                 scanner,
-                &config,
+                config,
             );
-            controller::run(ctx, &config).await
+            controller::run(ctx, config).await
         }
         config::StorageType::InMemory => {
             tracing::info!("using in memory store. No sensitive data will be stored on disk.");
@@ -99,9 +99,9 @@ where
                     &config.notus.advisories_path,
                 ),
                 scanner,
-                &config,
+                config,
             );
-            controller::run(ctx, &config).await
+            controller::run(ctx, config).await
         }
         config::StorageType::FileSystem => {
             if let Some(key) = &config.storage.fs.key {
@@ -117,9 +117,9 @@ where
                         &config.notus.advisories_path,
                     )?,
                     scanner,
-                    &config,
+                    config,
                 );
-                controller::run(ctx, &config).await
+                controller::run(ctx, config).await
             } else {
                 tracing::warn!(
                     "using in file storage. Sensitive data will be stored on disk without any encryption."
@@ -131,9 +131,9 @@ where
                         &config.notus.advisories_path,
                     )?,
                     scanner,
-                    &config,
+                    config,
                 );
-                controller::run(ctx, &config).await
+                controller::run(ctx, config).await
             }
         }
     }
@@ -161,8 +161,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             )
             .await
         }
-        config::ScannerType::Openvasctl => {
-            run(openvasctl::openvas::Scanner::default(), &config).await
+        config::ScannerType::Openvas => {
+            run(openvas::Scanner::default(), &config).await
         }
     }
 }

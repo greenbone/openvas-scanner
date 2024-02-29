@@ -64,8 +64,8 @@ pub struct Scanner {
 pub enum ScannerType {
     #[serde(rename = "ospd")]
     OSPD,
-    #[serde(rename = "openvasctl")]
-    Openvasctl,
+    #[serde(rename = "openvas")]
+    Openvas,
 }
 
 impl Default for ScannerType {
@@ -85,7 +85,7 @@ impl TypedValueParser for ScannerType {
     ) -> Result<Self::Value, clap::Error> {
         Ok(match value.to_str().unwrap_or_default() {
             "ospd" => ScannerType::OSPD,
-            "openvasctl" => ScannerType::Openvasctl,
+            "openvas" => ScannerType::Openvas,
             _ => {
                 let mut cmd = cmd.clone();
                 let err = cmd.error(
@@ -390,7 +390,7 @@ impl Config {
                 clap::Arg::new("wrapper-type")
                     .env("WRAPPER_TYPE")
                     .long("wrapper-type")
-                    .value_name("ospd,openvasctl")
+                    .value_name("ospd,openvas")
                     .value_parser(ScannerType::OSPD)
                     .help("Type of wrapper used to manage scans")
             )
