@@ -625,7 +625,6 @@ mod tests {
 
         for s in scans.clone().into_iter() {
             let r = storage.get_scan(&s.scan_id).await;
-            dbg!(&r);
             r.unwrap();
         }
         storage.remove_scan("5").await.unwrap();

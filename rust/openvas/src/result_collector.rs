@@ -250,7 +250,7 @@ mod tests {
 
         let mut resh = ResultHelper::init(rc);
 
-        let _ = resh.process_results(results).unwrap();
+        resh.process_results(results).unwrap();
 
         let single_r = Result {
             id: 0,
@@ -269,8 +269,7 @@ mod tests {
                     .as_ref()
                     .lock()
                     .unwrap()
-                    .results
-                    .get(0)
+                    .results.first()
                     .unwrap()
             ),
             single_r
@@ -346,7 +345,7 @@ mod tests {
         };
 
         let resh = ResultHelper::init(rc);
-        let _ = resh.process_status(status).unwrap();
+        resh.process_status(status).unwrap();
 
         let mut r = HashMap::new();
         r.insert("127.0.0.1".to_string(), 12);

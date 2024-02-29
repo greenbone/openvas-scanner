@@ -9,3 +9,4 @@ pub mod openvas_redis;
 pub mod pref_handler;
 pub mod result_collector;
 pub mod openvas;
+pub use openvas::Scanner;
