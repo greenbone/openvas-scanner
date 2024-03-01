@@ -147,15 +147,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
     tracing::debug!("config: {:?}", config);
     tracing_subscriber::fmt().with_env_filter(filter).init();
-    if !config.wrapper.ospd.socket.exists() {
-        tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.wrapper.ospd.socket.display());
+    if !config.scanner.ospd.socket.exists() {
+        tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.scanner.ospd.socket.display());
     }
-    match config.wrapper.wrapper_type {
+    match config.scanner.scanner_type {
         config::ScannerType::OSPD => {
             run(
                 osp::Scanner::new(
-                    config.wrapper.ospd.socket.clone(),
-                    config.wrapper.ospd.read_timeout,
+                    config.scanner.ospd.socket.clone(),
+                    config.scanner.ospd.read_timeout,
                 ),
                 &config,
             )
