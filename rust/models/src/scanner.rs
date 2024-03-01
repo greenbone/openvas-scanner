@@ -49,13 +49,135 @@ pub trait ScanResultFetcher {
         I: AsRef<str> + Send + 'static;
 }
 
+/// Is a scanner implementation primarily for testing purposes.
+///
+/// It is holding call back functions so that it is easier to implement a scanner for testing
+/// without having to copy and paste the async traits.
+#[allow(clippy::complexity)]
+pub struct Lambda {
+    start: Box<dyn Fn(Scan) -> Result<(), Error> + Sync + Send + 'static>,
+    stop: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
+    delete: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
+    fetch: Box<dyn Fn(&str) -> Result<ScanResults, Error> + Sync + Send + 'static>,
+}
+
+impl Default for Lambda {
+    fn default() -> Self {
+        Self {
+            start: Box::new(|_| Ok(())),
+            stop: Box::new(|_| Ok(())),
+            delete: Box::new(|_| Ok(())),
+            fetch: Box::new(|_| Ok(ScanResults::default())),
+        }
+    }
+}
+
+/// Builds a Lambda scanenr implementation.
+///
+/// Usage:
+/// ```
+/// use models::scanner::Error as ScanError;
+/// use models::scanner::LambdaBuilder;
+///
+/// let builder = LambdaBuilder::default().with_start(|_|
+/// Err(ScanError::Unexpected("meh".to_string())));
+/// let scanner = builder.build();
+/// ```
+pub struct LambdaBuilder {
+    lambda: Lambda,
+}
+
+impl Default for LambdaBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LambdaBuilder {
+    pub fn new() -> Self {
+        Self {
+            lambda: Lambda::default(),
+        }
+    }
+    pub fn with_start<F>(mut self, f: F) -> Self
+    where
+        F: Fn(Scan) -> Result<(), Error> + Sync + Send + 'static,
+    {
+        self.lambda.start = Box::new(f);
+        self
+    }
+    pub fn with_stop<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&str) -> Result<(), Error> + Sync + Send + 'static,
+    {
+        self.lambda.stop = Box::new(f);
+        self
+    }
+    pub fn with_delete<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&str) -> Result<(), Error> + Sync + Send + 'static,
+    {
+        self.lambda.delete = Box::new(f);
+        self
+    }
+
+    pub fn with_fetch<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&str) -> Result<ScanResults, Error> + Sync + Send + 'static,
+    {
+        self.lambda.fetch = Box::new(f);
+        self
+    }
+
+    pub fn build(self) -> Lambda {
+        self.lambda
+    }
+}
+
+#[async_trait]
+impl ScanStarter for Lambda {
+    async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
+        (self.start)(scan)
+    }
+}
+
+#[async_trait]
+impl ScanStopper for Lambda {
+    async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        (self.stop)(id.as_ref())
+    }
+}
+
+#[async_trait]
+impl ScanDeleter for Lambda {
+    async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        (self.delete)(id.as_ref())
+    }
+}
+
+#[async_trait]
+impl ScanResultFetcher for Lambda {
+    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        (self.fetch)(id.as_ref())
+    }
+}
+
 /// Combines all traits needed for a scanner.
 #[async_trait]
 pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
 impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     Unexpected(String),
     Connection(String),
