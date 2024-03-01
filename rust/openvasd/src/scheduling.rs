@@ -24,9 +24,9 @@ pub enum Error {
     NotFound,
     /// Queue overseeds the configured maximal queue amount
     QueueFull,
-    /// An error occured while using the Scanner
+    /// An error occurred while using the Scanner
     Scan(ScanError),
-    /// An error occured while using the DB
+    /// An error occurred while using the DB
     Storage(StorageError),
 }
 
@@ -37,8 +37,8 @@ impl Display for Error {
             Error::ScanAlreadyQueued => write!(f, "scan is already queued"),
             Error::NotFound => write!(f, "scan was not found"),
             Error::QueueFull => write!(f, "unable to queue scan: queue is already full."),
-            Error::Scan(e) => write!(f, "scan error occured: {}", e),
-            Error::Storage(e) => write!(f, "storage error occured: {}", e),
+            Error::Scan(e) => write!(f, "scan error occurred: {}", e),
+            Error::Storage(e) => write!(f, "storage error occurred: {}", e),
         }
     }
 }
@@ -68,7 +68,7 @@ impl From<Error> for ScanError {
 }
 /// Scheduler is a core component of managing scans.
 ///
-/// It follows the scanner traits of models so that a entry point does not have to differntiate
+/// It follows the scanner traits of models so that a entry point does not have to differentiate
 /// between a scanner or scheduler. It additionally provides methods to get running and queued
 /// scans. This is necessary to prevent a feed update while a scan is running.
 ///
@@ -181,7 +181,7 @@ where
                 if let Some(min_free_memory) = self.config.min_free_mem {
                     let available_memory = sys.available_memory();
                     if available_memory < min_free_memory {
-                        tracing::debug!(%min_free_memory, %available_memory, %scan_id, "insuffient memory to start scan.");
+                        tracing::debug!(%min_free_memory, %available_memory, %scan_id, "insufficient memory to start scan.");
                     }
                 }
                 let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
