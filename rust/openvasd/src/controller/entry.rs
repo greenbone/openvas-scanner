@@ -293,9 +293,11 @@ where
                                 Err(scheduling::Error::NotFound) => {
                                     Ok(ctx.response.not_found("scan", &id))
                                 }
-                                Err(scheduling::Error::QueueFull) => Ok(ctx
-                                    .response
-                                    .service_unavailable("Queue is already full. Try again later.")),
+                                Err(scheduling::Error::QueueFull) => {
+                                    Ok(ctx.response.service_unavailable(
+                                        "Queue is already full. Try again later.",
+                                    ))
+                                }
                                 Err(e) => Ok(ctx.response.internal_server_error(&e)),
                             }
                         }

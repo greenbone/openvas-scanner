@@ -156,7 +156,11 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
 
 impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
     pub fn build(self) -> Context<S, DB> {
-        let scheduler = scheduling::Scheduler::new(self.scheduler_config.unwrap_or_default(), self.scanner.0, self.storage);
+        let scheduler = scheduling::Scheduler::new(
+            self.scheduler_config.unwrap_or_default(),
+            self.scanner.0,
+            self.storage,
+        );
         Context {
             response: self.response,
             scheduler,

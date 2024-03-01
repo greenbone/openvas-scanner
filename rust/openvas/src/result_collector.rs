@@ -269,7 +269,8 @@ mod tests {
                     .as_ref()
                     .lock()
                     .unwrap()
-                    .results.first()
+                    .results
+                    .first()
                     .unwrap()
             ),
             single_r
