@@ -23,4 +23,3 @@ pub struct Scan {
     /// List of VTs to execute for the target
     pub vts: Vec<VT>,
 }
-

@@ -499,7 +499,7 @@ mod tests {
         let controller = Arc::new(ctx);
         let resp = post_scan(&scan, Arc::clone(&controller)).await;
 
-       assert_eq!(resp.status(), 201);
+        assert_eq!(resp.status(), 201);
 
         let req: Request<Full<Bytes>> = Request::builder()
             .uri("/scans")
