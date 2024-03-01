@@ -54,8 +54,8 @@ impl Default for Scheduler {
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Scanner {
-    #[serde(default)]
-    pub wrapper_type: ScannerType,
+    #[serde(default, rename = "type")]
+    pub scanner_type: ScannerType,
     #[serde(default)]
     pub ospd: OspdWrapper,
 }
@@ -252,7 +252,7 @@ pub struct Config {
     #[serde(default)]
     pub tls: Tls,
     #[serde(default)]
-    pub wrapper: Scanner,
+    pub scanner: Scanner,
     #[serde(default)]
     pub listener: Listener,
     #[serde(default)]
@@ -500,7 +500,7 @@ impl Config {
             config.feed.check_interval = Duration::from_secs(*interval);
         }
         if let Some(wrapper_type) = cmds.get_one::<ScannerType>("wrapper-type") {
-            config.wrapper.wrapper_type = wrapper_type.clone()
+            config.scanner.scanner_type = wrapper_type.clone()
         }
         if let Some(max_queued_scans) = cmds.get_one::<usize>("max-queued-scans") {
             config.scheduler.max_queued_scans = Some(*max_queued_scans)
@@ -515,10 +515,10 @@ impl Config {
             config.scheduler.check_interval = Duration::from_millis(*check_interval)
         }
         if let Some(path) = cmds.get_one::<PathBuf>("ospd-socket") {
-            config.wrapper.ospd.socket = path.clone();
+            config.scanner.ospd.socket = path.clone();
         }
         if let Some(interval) = cmds.get_one::<u64>("read-timeout") {
-            config.wrapper.ospd.read_timeout = Some(Duration::from_secs(*interval));
+            config.scanner.ospd.read_timeout = Some(Duration::from_secs(*interval));
         }
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
@@ -594,15 +594,17 @@ mod tests {
 
         assert_eq!(config.scheduler.check_interval, Duration::from_millis(500));
         assert_eq!(
-            config.wrapper.ospd.socket,
+            config.scanner.ospd.socket,
             PathBuf::from("/var/run/ospd/ospd.sock")
         );
-        assert!(config.wrapper.ospd.read_timeout.is_none());
+        assert!(config.scanner.ospd.read_timeout.is_none());
 
         assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
 
         assert_eq!(config.log.level, "INFO".to_string());
-        if true {
+        // this is used to verify the default config manually.
+        // se to true to write the default configuration to `tmp`
+        if false {
             let mut cf = std::fs::File::create("/tmp/openvas.default.example.toml").unwrap();
             use std::io::Write;
             cf.write_all(toml::to_string_pretty(&config).unwrap().as_bytes())

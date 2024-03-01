@@ -211,8 +211,6 @@ where
         // we clone to drop the lock
         let running = self.running.read().await.clone();
         for scan_id in running {
-            // TODO: the interfaces should change to return a list of all given ids instead of per
-            // element. This would enable the underlying scanner to do bulk operations.
             match self.fetch_results(scan_id.clone()).await {
                 // using self.append_fetch_result instead of db to keep track of the status
                 // and may remove them from running.
@@ -457,5 +455,82 @@ where
         }
         drop(running);
         self.db.append_fetched_result(results).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use models::Scan;
+
+    use crate::{
+        config,
+        scheduling::{self, Scheduler},
+        storage::{inmemory, ScanStorer as _},
+    };
+
+    mod start {
+        use super::*;
+
+        #[tokio::test]
+        async fn adds_scan_to_queue() {
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            scheduler.start_scan_by_id(&scan.scan_id).await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 1);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+        #[tokio::test]
+        async fn error_starting_twice() {
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            scheduler.start_scan_by_id(&scan.scan_id).await.unwrap();
+            assert!(
+                match scheduler.start_scan_by_id(&scan.scan_id).await {
+                    Err(scheduling::Error::ScanAlreadyQueued) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a ScanAlreadyQueued"
+            );
+        }
+        #[tokio::test]
+        async fn error_not_found() {
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            assert!(
+                match scheduler.start_scan_by_id("1").await {
+                    Err(scheduling::Error::NotFound) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a not found"
+            );
+        }
+        #[tokio::test]
+        async fn error_queue_is_full() {
+            let mut config = config::Scheduler::default();
+            config.max_queued_scans = Some(0);
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            assert!(
+                match scheduler.start_scan_by_id(&scan.scan_id).await {
+                    Err(scheduling::Error::QueueFull) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a QueueFull"
+            );
+        }
     }
 }
