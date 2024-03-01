@@ -602,6 +602,12 @@ mod tests {
         assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
 
         assert_eq!(config.log.level, "INFO".to_string());
+        if true {
+            let mut cf = std::fs::File::create("/tmp/openvas.default.example.toml").unwrap();
+            use std::io::Write;
+            cf.write_all(toml::to_string_pretty(&config).unwrap().as_bytes())
+                .unwrap();
+        }
     }
 
     #[test]
