@@ -18,20 +18,18 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 }
 
 pub fn extend_args(cmd: Command) -> Command {
-    add_verbose(
-        cmd.subcommand(
-            Command::new("syntax")
-                .about("Verifies syntax of NASL files in given dir or file.")
-                .arg(
-                    Arg::new("path")
-                        .required(true)
-                        .value_parser(value_parser!(PathBuf)),
-                )
-                .arg(
-                    arg!(-q --quiet "Prints only error output and no progress.")
-                        .required(false)
-                        .action(ArgAction::SetTrue),
-                ),
-        ),
-    )
+    cmd.subcommand(add_verbose(
+        Command::new("syntax")
+            .about("Verifies syntax of NASL files in given dir or file.")
+            .arg(
+                Arg::new("path")
+                    .required(true)
+                    .value_parser(value_parser!(PathBuf)),
+            )
+            .arg(
+                arg!(-q --quiet "Prints only error output and no progress.")
+                    .required(false)
+                    .action(ArgAction::SetTrue),
+            ),
+    ))
 }

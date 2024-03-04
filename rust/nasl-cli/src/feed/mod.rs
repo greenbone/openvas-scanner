@@ -11,8 +11,8 @@ use storage::StorageError;
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
 
 pub fn extend_args(cmd: Command) -> Command {
-    crate::add_verbose(
     cmd.subcommand(
+    crate::add_verbose(
             Command::new("feed")
                 .about("Handles feed related tasks")
                 .subcommand_required(true)
