@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use nasl_interpreter::FSPluginLoader;
@@ -10,33 +7,82 @@ use redis_storage::{
     CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
 };
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
-use tokio::sync::RwLock;
+use tokio::{sync::RwLock, task::JoinSet};
 
-use crate::controller::ClientHash;
+use crate::{controller::ClientHash, storage::FeedType};
 use models::scanner::ScanResults;
 
-use super::{AppendFetchResult, Error, NVTStorer, ProgressGetter, ScanIDClientMapper, ScanStorer};
+use super::{
+    AppendFetchResult, Error, FeedHash, NVTStorer, ProgressGetter, ScanIDClientMapper, ScanStorer,
+};
 
 pub struct Storage<T> {
-    hash: RwLock<String>,
-    nasl_feed_path: Arc<PathBuf>,
-    notus_feed_path: Arc<PathBuf>,
-    url: String,
+    hash: RwLock<Vec<FeedHash>>,
+
+    url: Arc<String>,
     underlying: T,
 }
 
 impl<T> Storage<T> {
-    pub fn new<P>(underlying: T, url: String, nasl_feed_path: P, notus_feed_path: P) -> Storage<T>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn new(underlying: T, url: String, feed: Vec<FeedHash>) -> Storage<T> {
         Storage {
-            hash: RwLock::new(String::new()),
-            nasl_feed_path: Arc::new(nasl_feed_path.as_ref().to_path_buf()),
-            notus_feed_path: Arc::new(notus_feed_path.as_ref().to_path_buf()),
-            url,
+            hash: RwLock::new(feed),
+            url: Arc::new(url),
             underlying,
         }
+    }
+
+    async fn update_advisories(url: Arc<String>, p: PathBuf) -> Result<(), Error> {
+        let notus_feed_path = p;
+        tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting notus feed update");
+            let loader = FSPluginLoader::new(notus_feed_path);
+            let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
+
+            let redis_cache: CacheDispatcher<RedisCtx, String> =
+                redis_storage::CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
+            let store = PerItemDispatcher::new(redis_cache);
+            for filename in advisories_files.get_advisories()?.iter() {
+                let advisories = advisories_files.load_advisory(filename)?;
+
+                for adv in advisories.advisories {
+                    let data = models::VulnerabilityData {
+                        adv,
+                        famile: advisories.family.clone(),
+                        filename: filename.to_owned(),
+                    };
+                    store.dispatch(&"".to_string(), Field::NotusAdvisory(Box::new(Some(data))))?;
+                }
+            }
+            store.dispatch(&"".to_string(), Field::NotusAdvisory(Box::new(None)))?;
+            tracing::debug!("finished notus feed update");
+            Ok(())
+        })
+        .await
+        .unwrap()
+    }
+
+    async fn update_nasl(url: Arc<String>, p: PathBuf) -> Result<(), Error> {
+        let nasl_feed_path = p;
+        tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting nasl feed update");
+            let oversion = "0.1";
+            let loader = FSPluginLoader::new(nasl_feed_path);
+            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+
+            let redis_cache: CacheDispatcher<RedisCtx, String> =
+                redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
+            let store = PerItemDispatcher::new(redis_cache);
+            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            if let Some(x) = fu.find_map(|x| x.err()) {
+                Err(Error::from(x))
+            } else {
+                tracing::debug!("finished nasl feed update");
+                Ok(())
+            }
+        })
+        .await
+        .unwrap()
     }
 }
 
@@ -110,68 +156,39 @@ impl From<storage::StorageError> for super::Error {
 #[async_trait]
 impl<T> NVTStorer for Storage<T>
 where
-    T: super::Storage + std::marker::Sync,
+    T: super::Storage + std::marker::Sync + 'static,
 {
-    async fn synchronize_feeds(&self, hash: String) -> Result<(), Error> {
-        let mut h = self.hash.write().await;
-        *h = hash;
-        let url = Arc::new(self.url.to_string());
-        let notus_feed_path = self.notus_feed_path.clone();
-        let notus_feed = tokio::task::spawn_blocking(move || {
-            tracing::debug!("starting notus feed update");
-            let loader = FSPluginLoader::new(notus_feed_path.as_ref());
-            let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
+    async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error> {
+        tracing::debug!("starting feed update");
 
-            let redis_cache: CacheDispatcher<RedisCtx, String> =
-                redis_storage::CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
-            let store = PerItemDispatcher::new(redis_cache);
-            for filename in advisories_files.get_advisories()?.iter() {
-                let advisories = advisories_files.load_advisory(filename)?;
-
-                for adv in advisories.advisories {
-                    let data = models::VulnerabilityData {
-                        adv,
-                        famile: advisories.family.clone(),
-                        filename: filename.to_owned(),
-                    };
-                    store.dispatch(&"".to_string(), Field::NotusAdvisory(Box::new(Some(data))))?;
+        let mut updates = JoinSet::new();
+        {
+            let mut h = self.hash.write().await;
+            for ha in h.iter_mut() {
+                if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
+                    ha.hash = nh.hash.clone()
                 }
             }
-            store.dispatch(&"".to_string(), Field::NotusAdvisory(Box::new(None)))?;
-            tracing::debug!("finished notus feed update");
-            Ok(())
-        });
-
-        let nasl_feed_path = self.nasl_feed_path.clone();
-        let url = Arc::new(self.url.to_string());
-        let active_feed = tokio::task::spawn_blocking(move || {
-            tracing::debug!("starting nasl feed update");
-            let oversion = "0.1";
-            let loader = FSPluginLoader::new(nasl_feed_path.as_ref());
-            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-
-            let redis_cache: CacheDispatcher<RedisCtx, String> =
-                redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
-            let store = PerItemDispatcher::new(redis_cache);
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
-            if let Some(x) = fu.find_map(|x| x.err()) {
-                Err(Error::from(x))
-            } else {
-                tracing::debug!("finished nasl feed update");
-                Ok(())
-            }
-        });
-
-        let nasl_result = active_feed.await.unwrap();
-        let notus_result: Result<(), Error> = notus_feed.await.unwrap();
-        tracing::debug!("finished feed update");
-
-        match (nasl_result, notus_result) {
-            (Ok(_), Ok(_)) => Ok(()),
-            (Ok(_), Err(err)) => Err(err),
-            (Err(err), Ok(_)) => Err(err),
-            (Err(err), Err(_)) => Err(err),
         }
+
+        for h in &hash {
+            match h.typus {
+                FeedType::NASL => {
+                    _ = updates.spawn(Self::update_nasl(self.url.clone(), h.path.clone()))
+                }
+                FeedType::Advisories => {
+                    _ = updates.spawn(Self::update_advisories(self.url.clone(), h.path.clone()))
+                }
+                FeedType::Products => {}
+            };
+        }
+        while let Some(f) = updates.join_next().await {
+            f.unwrap()?
+        }
+
+        tracing::debug!("finished feed update.");
+
+        Ok(())
     }
 
     async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
@@ -257,8 +274,8 @@ where
         Ok(Box::new(results))
     }
 
-    async fn feed_hash(&self) -> String {
-        self.hash.read().await.to_string()
+    async fn feed_hash(&self) -> Vec<FeedHash> {
+        self.hash.read().await.to_vec()
     }
 }
 

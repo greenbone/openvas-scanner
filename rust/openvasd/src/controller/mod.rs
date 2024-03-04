@@ -87,7 +87,10 @@ where
     let incoming = TcpListener::bind(&addr).await?;
 
     let controller = std::sync::Arc::new(ctx);
-    tokio::spawn(crate::controller::results::fetch(Arc::clone(&controller)));
+    tracing::info!(?config.mode, "running in");
+    if config.mode == config::Mode::Service {
+        tokio::spawn(crate::controller::results::fetch(Arc::clone(&controller)));
+    }
     tokio::spawn(crate::controller::feed::fetch(Arc::clone(&controller)));
 
     if let Some((ci, conf)) = tlsc {
@@ -146,7 +149,7 @@ mod tests {
     use super::context::Context;
     use crate::{
         controller::{ClientIdentifier, ContextBuilder, NoOpScanner},
-        storage::file,
+        storage::{file, FeedHash},
     };
     use async_trait::async_trait;
     use hyper::{body::Bytes, service::HttpService, Method, Request, Version};
@@ -435,7 +438,8 @@ mod tests {
         let root = "/tmp/openvasd/fetch_results";
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
-        let storage = file::unencrypted(root, nfp, nofp).unwrap();
+        let storage =
+            file::unencrypted(root, vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)]).unwrap();
         let ctx = ContextBuilder::new()
             .scheduler_config(ns)
             .storage(storage)

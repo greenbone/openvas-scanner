@@ -153,6 +153,45 @@ impl Default for Listener {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, Default, PartialEq, Eq)]
+/// Describes different modes openvasd can be run as.
+///
+/// `Service` prefix means that openvasd is a http service used by others.
+/// `Client` prefix means that openvasd is run as a client and  calls other services.
+pub enum Mode {
+    #[default]
+    #[serde(rename = "service")]
+    /// Enables all endpoints and moniors feed and active scans.
+    Service,
+    /// Disables everything but the notus endpoints
+    #[serde(rename = "service_notus")]
+    ServiceNotus,
+}
+
+impl TypedValueParser for Mode {
+    type Value = Self;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        _arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        Ok(match value.to_str().unwrap_or_default() {
+            "service" => Self::Service,
+            "service_notus" => Self::ServiceNotus,
+            _ => {
+                let mut cmd = cmd.clone();
+                let err = cmd.error(
+                    clap::error::ErrorKind::InvalidValue,
+                    "`{}` is not a wrapper type.",
+                );
+                return Err(err);
+            }
+        })
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Endpoints {
     pub enable_get_scans: bool,
@@ -244,6 +283,8 @@ pub struct Storage {
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     #[serde(default)]
+    pub mode: Mode,
+    #[serde(default)]
     pub feed: Feed,
     #[serde(default)]
     pub notus: Notus,
@@ -330,14 +371,14 @@ impl Config {
             )
             .arg(
                 clap::Arg::new("notus-advisories")
-                    .env("NOTUS_SCANNER_PRODUCTS_DIRECTORY")
+                    .env("NOTUS_ADVISORIES")
                     .long("advisories")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
                     .help("Path containing the Notus advisories directory"))
             .arg(
                 clap::Arg::new("notus-products")
-                    .env("NOTUS_SCANNER_PRODUCTS_DIRECTORY")
+                    .env("NOTUS_PRODUCTS")
                     .long("products")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
@@ -407,6 +448,7 @@ impl Config {
                     .long("max-running-scans")
                     .action(ArgAction::Set)
                     .help("Maximum number of active running scans, omit for no limits")
+
             )
             .arg(
                 clap::Arg::new("min-free-mem")
@@ -485,6 +527,14 @@ impl Config {
                     .short('L')
                     .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
+            .arg(
+                clap::Arg::new("mode")
+                    .env("OPENVASD_MODE")
+                    .long("mode")
+                    .value_name("service,service_notus")
+                    .value_parser(Mode::Service)
+                    .help("Sets the openvasd mode"),
+            )
             .get_matches();
         let mut config = match cmds.get_one::<String>("config") {
             Some(path) => Self::from_file(path),
@@ -559,6 +609,9 @@ impl Config {
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
             config.storage.fs.path = path.clone();
+        }
+        if let Some(mode) = cmds.get_one::<Mode>("mode") {
+            config.mode = mode.clone();
         }
         if let Some(key) = cmds.get_one::<String>("storage_key") {
             if !key.is_empty() {

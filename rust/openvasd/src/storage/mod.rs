@@ -1,7 +1,11 @@
 pub mod file;
 pub mod inmemory;
 pub mod redis;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use models::scanner::ScanResults;
@@ -104,6 +108,50 @@ pub trait ProgressGetter {
     ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error>;
 }
 
+pub type Hash = String;
+/// Describes the type of the feed
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FeedType {
+    /// Notus products
+    Products,
+    /// Notus advisories
+    Advisories,
+    /// NASL scripts
+    NASL,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Contains the hash values of the sha256sums for specific feeds
+pub struct FeedHash {
+    pub hash: Hash,
+    pub path: PathBuf,
+    pub typus: FeedType,
+}
+
+impl FeedHash {
+    pub fn advisories<S>(p: S) -> Self
+    where
+        S: AsRef<Path>,
+    {
+        FeedHash {
+            hash: String::new(),
+            path: p.as_ref().to_path_buf(),
+            typus: FeedType::Advisories,
+        }
+    }
+
+    pub fn nasl<S>(p: S) -> Self
+    where
+        S: AsRef<Path>,
+    {
+        FeedHash {
+            hash: String::new(),
+            path: p.as_ref().to_path_buf(),
+            typus: FeedType::NASL,
+        }
+    }
+}
+
 #[async_trait]
 /// Handles NVT specifics.
 ///
@@ -113,7 +161,7 @@ pub trait NVTStorer {
     ///
     /// This method is called when the sha256sums is changed. It will then go through the feed
     /// directories and update the meta information.
-    async fn synchronize_feeds(&self, hash: String) -> Result<(), Error>;
+    async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error>;
 
     /// Retrieves just all oids.
     async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
@@ -133,7 +181,7 @@ pub trait NVTStorer {
     }
 
     /// Returns the currently stored feed hash.
-    async fn feed_hash(&self) -> String;
+    async fn feed_hash(&self) -> Vec<FeedHash>;
 }
 
 #[async_trait]

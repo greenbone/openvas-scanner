@@ -30,6 +30,7 @@ pub struct ContextBuilder<S, DB, T> {
     response: response::Response,
     notus: Option<NotusWrapper>,
     scheduler_config: Option<config::Scheduler>,
+    mode: config::Mode,
 }
 
 impl<S>
@@ -47,11 +48,17 @@ impl<S>
             response: response::Response::default(),
             notus: None,
             scheduler_config: None,
+            mode: config::Mode::default(),
         }
     }
 }
 
 impl<S, DB, T> ContextBuilder<S, DB, T> {
+    /// Sets the mode.
+    pub fn mode(mut self, mode: config::Mode) -> Self {
+        self.mode = mode;
+        self
+    }
     /// Sets the feed config.
     pub fn feed_config(mut self, config: config::Feed) -> Self {
         self.feed_config = Some(config);
@@ -104,6 +111,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             response,
             notus,
             scheduler_config,
+            mode,
         } = self;
         ContextBuilder {
             scanner,
@@ -115,6 +123,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             response,
             notus,
             scheduler_config,
+            mode,
         }
     }
 }
@@ -139,6 +148,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             storage,
             notus,
             scheduler_config,
+            mode,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
@@ -150,6 +160,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             response,
             notus,
             scheduler_config,
+            mode,
         }
     }
 }
@@ -169,6 +180,7 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             api_key: self.api_key,
             enable_get_scans: self.enable_get_scans,
             notus: self.notus,
+            mode: self.mode,
         }
     }
 }
@@ -186,6 +198,7 @@ pub struct Context<S, DB> {
     pub api_key: Option<String>,
     /// Whether to enable the GET /scans endpoint
     pub enable_get_scans: bool,
+    pub mode: config::Mode,
     /// Aborts the background loops
     pub abort: RwLock<bool>,
     /// Notus Scanner

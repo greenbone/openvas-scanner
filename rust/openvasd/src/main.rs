@@ -6,6 +6,8 @@ use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use nasl_interpreter::FSPluginLoader;
 use notus::NotusWrapper;
+
+use crate::storage::FeedHash;
 pub mod config;
 pub mod controller;
 pub mod crypt;
@@ -32,7 +34,6 @@ where
         + std::marker::Send
         + 'static,
 {
-    // TODO: move result check  interval into overall `wrapper` rename wrapper to something useful
     let mut ctx_builder = controller::ContextBuilder::new();
 
     let loader = FSPluginLoader::new(config.notus.products_path.to_string_lossy().to_string());
@@ -45,6 +46,7 @@ where
     }
 
     ctx_builder
+        .mode(config.mode.clone())
         .scheduler_config(config.scheduler.clone())
         .feed_config(config.feed.clone())
         .scanner(sh)
@@ -68,22 +70,25 @@ where
         + std::marker::Send
         + 'static,
 {
+    tracing::info!(mode = ?config.mode, storage_type=?config.storage.storage_type, "configuring storage devices");
+    let feeds = match config.mode {
+        config::Mode::Service => vec![
+            FeedHash::nasl(&config.feed.path),
+            FeedHash::advisories(&config.notus.advisories_path),
+        ],
+
+        config::Mode::ServiceNotus => vec![FeedHash::advisories(&config.notus.advisories_path)],
+    };
     match config.storage.storage_type {
         config::StorageType::Redis => {
-            tracing::info!("using in redis {}", config.storage.redis.url);
+            tracing::info!(url = config.storage.redis.url, "using redis");
 
             let ic = storage::inmemory::Storage::new(
                 crate::crypt::ChaCha20Crypt::default(),
-                &config.feed.path,
-                &config.notus.advisories_path,
+                feeds.clone(),
             );
             let ctx = create_context(
-                storage::redis::Storage::new(
-                    ic,
-                    config.storage.redis.url.clone(),
-                    &config.feed.path,
-                    &config.notus.advisories_path,
-                ),
+                storage::redis::Storage::new(ic, config.storage.redis.url.clone(), feeds),
                 scanner,
                 config,
             );
@@ -93,11 +98,7 @@ where
             tracing::info!("using in memory store. No sensitive data will be stored on disk.");
             // Self::new(crate::crypt::ChaCha20Crypt::default(), "/var/lib/openvas/feed".to_string())
             let ctx = create_context(
-                storage::inmemory::Storage::new(
-                    crate::crypt::ChaCha20Crypt::default(),
-                    &config.feed.path,
-                    &config.notus.advisories_path,
-                ),
+                storage::inmemory::Storage::new(crate::crypt::ChaCha20Crypt::default(), feeds),
                 scanner,
                 config,
             );
@@ -110,12 +111,7 @@ where
                 );
 
                 let ctx = create_context(
-                    storage::file::encrypted(
-                        &config.storage.fs.path,
-                        key,
-                        &config.feed.path,
-                        &config.notus.advisories_path,
-                    )?,
+                    storage::file::encrypted(&config.storage.fs.path, key, feeds)?,
                     scanner,
                     config,
                 );
@@ -125,11 +121,7 @@ where
                     "using in file storage. Sensitive data will be stored on disk without any encryption."
                 );
                 let ctx = create_context(
-                    storage::file::unencrypted(
-                        &config.storage.fs.path,
-                        &config.feed.path,
-                        &config.notus.advisories_path,
-                    )?,
+                    storage::file::unencrypted(&config.storage.fs.path, feeds)?,
                     scanner,
                     config,
                 );
