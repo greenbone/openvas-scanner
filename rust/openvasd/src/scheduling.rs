@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::storage::Error as StorageError;
+use crate::storage::{Error as StorageError, FeedHash};
 use async_trait::async_trait;
 use models::scanner::Error as ScanError;
 use models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
@@ -175,7 +175,7 @@ where
         };
         let mut sys = System::new();
 
-        tracing::debug!(%amount_to_start, "handling scans");
+        tracing::trace!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
             sys.refresh_memory();
             if let Some(min_free_memory) = self.config.min_free_mem {
@@ -382,7 +382,10 @@ where
     /// It is marking that a feed synchronization occurs, as long as there are running scans it
     /// will wait until there all scans are finished. In the meantime it will not be possible to
     /// start new scans. This is done to prevent data corruption in a scan process.
-    async fn synchronize_feeds(&self, hash: String) -> Result<(), StorageError> {
+    async fn synchronize_feeds(
+        &self,
+        hash: Vec<crate::storage::FeedHash>,
+    ) -> Result<(), StorageError> {
         let mut sync_feed = self.is_synchronizing_feed.write().await;
         *sync_feed = true;
         let mut interval = tokio::time::interval(self.config().check_interval);
@@ -417,8 +420,8 @@ where
         self.db.vt_by_oid(oid).await
     }
 
-    async fn feed_hash(&self) -> String {
-        self.db.feed_hash().await
+    async fn feed_hash(&self) -> Vec<FeedHash> {
+        self.db.feed_hash().await.to_vec()
     }
 }
 

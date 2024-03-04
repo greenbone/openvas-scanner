@@ -1,38 +1,36 @@
 use std::{
     ops::Deref,
     path::{Path, PathBuf},
+    sync::RwLock,
 };
 
 use nasl_interpreter::FSPluginLoader;
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
 use storage::item::{ItemDispatcher, Nvt, PerItemDispatcher};
+use tokio::task::JoinSet;
 
 use super::*;
 
 pub struct Storage<S> {
-    hash: tokio::sync::RwLock<String>,
-    nasl_feed_path: Arc<PathBuf>,
-    notus_feed_path: Arc<PathBuf>,
+    hash: tokio::sync::RwLock<Vec<FeedHash>>,
     storage: Arc<std::sync::RwLock<S>>,
     feed_version: Arc<std::sync::RwLock<String>>,
 }
 pub fn unencrypted<P>(
     path: P,
-    nasl_feed_path: P,
-    notus_feed_path: P,
+    feeds: Vec<FeedHash>,
 ) -> Result<Storage<infisto::base::IndexedFileStorer>, Error>
 where
     P: AsRef<Path>,
 {
     let ifs = infisto::base::IndexedFileStorer::init(path)?;
-    Ok(Storage::new(ifs, nasl_feed_path, notus_feed_path))
+    Ok(Storage::new(ifs, feeds))
 }
 
 pub fn encrypted<P, K>(
     path: P,
     key: K,
-    nasl_feed_path: P,
-    notus_feed_path: P,
+    feeds: Vec<FeedHash>,
 ) -> Result<
     Storage<infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>>,
     Error,
@@ -43,7 +41,7 @@ where
 {
     let ifs = infisto::base::IndexedFileStorer::init(path)?;
     let ifs = infisto::crypto::ChaCha20IndexFileStorer::new(ifs, key);
-    Ok(Storage::new(ifs, nasl_feed_path, notus_feed_path))
+    Ok(Storage::new(ifs, feeds))
 }
 
 impl From<infisto::base::Error> for Error {
@@ -53,18 +51,74 @@ impl From<infisto::base::Error> for Error {
 }
 
 impl<S> Storage<S> {
-    pub fn new<P>(s: S, nasl_feed_path: P, notus_feed_path: P) -> Self
-    where
-        P: AsRef<Path>,
-    {
+    pub fn new(s: S, feeds: Vec<FeedHash>) -> Self {
         Storage {
             storage: Arc::new(s.into()),
-            hash: tokio::sync::RwLock::new(String::new()),
-            nasl_feed_path: Arc::new(nasl_feed_path.as_ref().to_path_buf()),
-            notus_feed_path: Arc::new(notus_feed_path.as_ref().to_path_buf()),
+            hash: tokio::sync::RwLock::new(feeds),
 
             feed_version: Arc::new(std::sync::RwLock::new(String::new())),
         }
+    }
+
+    async fn update_nasl(
+        path: PathBuf,
+        cache: Arc<RwLock<HashMap<String, Nvt>>>,
+        feed_version: Arc<RwLock<String>>,
+    ) -> Result<(), Error> {
+        tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting nasl feed update");
+            let oversion = "0.1";
+            let loader = FSPluginLoader::new(path);
+            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+
+            let store = PerItemDispatcher::new(Dispa {
+                storage: cache,
+                feed_version,
+            });
+            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            if let Some(x) = fu.find_map(|x| x.err()) {
+                tracing::debug!("{}", x);
+                Err(Error::from(x))
+            } else {
+                tracing::debug!("finished nasl feed update");
+                Ok(())
+            }
+        })
+        .await
+        .unwrap()
+    }
+
+    async fn update_advisories(
+        path: PathBuf,
+        cache: Arc<RwLock<HashMap<String, Nvt>>>,
+    ) -> Result<(), Error> {
+        let notus_feed_path = path;
+        tokio::task::spawn_blocking(move || {
+            tracing::debug!("starting notus feed update");
+            let loader = FSPluginLoader::new(notus_feed_path);
+            let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
+
+            for filename in advisories_files.get_advisories()?.iter() {
+                let advisories = advisories_files.load_advisory(filename)?;
+
+                for adv in advisories.advisories {
+                    let data = models::VulnerabilityData {
+                        adv,
+                        famile: advisories.family.clone(),
+                        filename: filename.to_owned(),
+                    };
+                    let nvt: Nvt = data.into();
+                    let mut storage = cache.write().unwrap();
+                    storage.insert(nvt.oid.clone(), nvt);
+
+                    drop(storage);
+                }
+            }
+            tracing::debug!("finished notus feed update");
+            Ok::<_, Error>(())
+        })
+        .await
+        .unwrap()
     }
 }
 
@@ -388,68 +442,47 @@ impl<S> NVTStorer for Storage<S>
 where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
 {
-    async fn synchronize_feeds(&self, hash: String) -> Result<(), Error> {
-        let mut h = self.hash.write().await;
-        *h = hash;
-        drop(h);
-
-        tracing::debug!("starting feed update in file {}", &FEED_KEY);
-        let storage = Arc::clone(&self.storage);
-        // we cache them upfront to avoid deletion and faster storage
-        let nvts = Arc::new(std::sync::RwLock::new(HashMap::with_capacity(100000)));
-        let notus_feed_path = self.notus_feed_path.clone();
-        let feed_version = self.feed_version.clone();
-        let nasl_feed_path = self.nasl_feed_path.clone();
-
-        let tnvts = nvts.clone();
-        let notus_feed = tokio::task::spawn_blocking(move || {
-            tracing::debug!("starting notus feed update");
-            let loader = FSPluginLoader::new(notus_feed_path.as_ref());
-            let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
-
-            for filename in advisories_files.get_advisories()?.iter() {
-                let advisories = advisories_files.load_advisory(filename)?;
-
-                for adv in advisories.advisories {
-                    let data = models::VulnerabilityData {
-                        adv,
-                        famile: advisories.family.clone(),
-                        filename: filename.to_owned(),
-                    };
-                    let nvt: Nvt = data.into();
-                    let mut storage = tnvts.write().unwrap();
-                    storage.insert(nvt.oid.clone(), nvt);
-
-                    drop(storage);
+    async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error> {
+        {
+            let mut h = self.hash.write().await;
+            for ha in h.iter_mut() {
+                if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
+                    ha.hash = nh.hash.clone()
                 }
             }
-            tracing::debug!("finished notus feed update");
-            Ok::<_, Error>(())
-        });
-        let tnvts = nvts.clone();
+        }
+        tracing::debug!(file=%FEED_KEY, "starting feed update");
+        let storage = Arc::clone(&self.storage);
+        // we cache them upfront to avoid deletion and faster storage
+        let nvts = Arc::new(RwLock::new(HashMap::with_capacity(100000)));
 
-        let active_feed = tokio::task::spawn_blocking(move || {
-            tracing::debug!("starting nasl feed update");
-            let oversion = "0.1";
-            let loader = FSPluginLoader::new(nasl_feed_path.as_ref());
-            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-
-            let store = PerItemDispatcher::new(Dispa {
-                storage: tnvts,
-                feed_version,
-            });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
-            if let Some(x) = fu.find_map(|x| x.err()) {
-                tracing::debug!("{}", x);
-                Err(Error::from(x))
-            } else {
-                tracing::debug!("finished nasl feed update");
-                Ok(())
+        let mut updates = JoinSet::new();
+        {
+            let hash = self.hash.read().await;
+            // since we override the file once instead of changing its content we update all
+            // configured feeds, regardless if the changd or not.
+            for h in hash.iter() {
+                match h.typus {
+                    FeedType::NASL => {
+                        _ = updates.spawn(Self::update_nasl(
+                            h.path.clone(),
+                            nvts.clone(),
+                            self.feed_version.clone(),
+                        ))
+                    }
+                    FeedType::Advisories => {
+                        _ = updates.spawn(Self::update_advisories(h.path.clone(), nvts.clone()))
+                    }
+                    FeedType::Products => {}
+                };
             }
-        });
+        }
+        while let Some(f) = updates.join_next().await {
+            f.unwrap()?
+        }
 
-        let nasl_result = active_feed.await.unwrap();
-        let notus_result: Result<(), Error> = notus_feed.await.unwrap();
+        tracing::debug!("finished feed synchronization into cache.");
+
         let tnvts = nvts.clone();
         tokio::task::spawn_blocking(move || {
             let mut storage = storage.write().expect("storage seems to be poisoned");
@@ -460,21 +493,14 @@ where
                 .filter_map(|x| infisto::serde::Serialization::serialize(x).ok())
                 .collect::<Vec<_>>();
 
-            tracing::debug!("writing stuff {}", srs.len());
+            tracing::debug!(entries = srs.len(), "writing to file.",);
             storage.append_all(FEED_KEY, &srs)?;
-            tracing::debug!("ahah");
             Ok::<_, Error>(())
         })
         .await
         .unwrap()?;
         tracing::debug!("finished feed update");
-
-        match (nasl_result, notus_result) {
-            (Ok(_), Ok(_)) => Ok(()),
-            (Ok(_), Err(err)) => Err(err),
-            (Err(err), Ok(_)) => Err(err),
-            (Err(err), Err(_)) => Err(err),
-        }
+        Ok(())
     }
 
     async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
@@ -505,8 +531,8 @@ where
         Ok(Box::new(parsed))
     }
 
-    async fn feed_hash(&self) -> String {
-        self.hash.read().await.clone()
+    async fn feed_hash(&self) -> Vec<FeedHash> {
+        self.hash.read().await.to_vec()
     }
 }
 
@@ -560,7 +586,10 @@ mod tests {
             infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/credential").unwrap();
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
-        let storage = crate::storage::file::Storage::new(storage, nfp, nofp);
+        let storage = crate::storage::file::Storage::new(
+            storage,
+            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
+        );
         storage.insert_scan(scan.clone()).await.unwrap();
         let (scan2, _) = storage.get_scan("aha").await.unwrap();
         assert_eq!(scan, scan2);
@@ -580,24 +609,22 @@ mod tests {
 
         let nfp = base_dir.join("nasl");
         let nofp = base_dir.join("notus").join("advisories");
-        let file_storage = crate::storage::file::Storage::new(storage, &nfp, &nofp);
-        file_storage
-            .synchronize_feeds("123".to_string())
-            .await
-            .unwrap();
+        let file_storage = crate::storage::file::Storage::new(
+            storage,
+            vec![FeedHash::nasl(&nfp), FeedHash::advisories(&nofp)],
+        );
+        file_storage.synchronize_feeds(vec![]).await.unwrap();
         let amount_file_oids = file_storage.oids().await.unwrap().count();
 
         let mut storage = infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/oids").unwrap();
         storage.remove(crate::storage::file::FEED_KEY).unwrap();
+
+        let feeds = vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)];
         let memory_storage = crate::storage::inmemory::Storage::new(
             crate::crypt::ChaCha20Crypt::default(),
-            nfp,
-            nofp,
+            feeds.clone(),
         );
-        memory_storage
-            .synchronize_feeds("123".to_string())
-            .await
-            .unwrap();
+        memory_storage.synchronize_feeds(feeds).await.unwrap();
         let amount_memory_oids = memory_storage.oids().await.unwrap().count();
         assert_eq!(amount_memory_oids, 2);
         assert_eq!(amount_memory_oids, amount_file_oids);
@@ -618,7 +645,10 @@ mod tests {
             infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/file_storage_test").unwrap();
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
-        let storage = crate::storage::file::Storage::new(storage, nfp, nofp);
+        let storage = crate::storage::file::Storage::new(
+            storage,
+            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
+        );
         for s in scans.clone().into_iter() {
             storage.insert_scan(s).await.unwrap()
         }
@@ -678,7 +708,10 @@ mod tests {
 
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
-        let storage = crate::storage::file::Storage::new(storage, nfp, nofp);
+        let storage = crate::storage::file::Storage::new(
+            storage,
+            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
+        );
         storage
             .add_scan_client_id("s1".to_owned(), "0".into())
             .await

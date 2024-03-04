@@ -1,3 +1,9 @@
+# openvasd contains several modes to control the behaviour of it.
+# Service enables nasl and notus feed observations all endpoints.
+# mode = "service"
+# Notus disables /scan endpoints and just observes the notus feed.
+# mode = "service_notus"
+
 [feed]
 # path to the openvas feed. This is required for the /vts endpoint.
 path = "/var/lib/openvas/plugins"

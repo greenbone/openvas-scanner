@@ -14,6 +14,7 @@ use hyper::{Method, Request};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 
 use crate::{
+    config,
     controller::ClientHash,
     notus::NotusScanner,
     scheduling,
@@ -49,24 +50,37 @@ enum KnownPaths {
 
 impl KnownPaths {
     pub fn requires_id(&self) -> bool {
-        !matches!(self, Self::Health(_) | Self::Vts(_) | Self::Notus(_))
+        !matches!(
+            self,
+            Self::Unknown | Self::Health(_) | Self::Vts(_) | Self::Notus(_)
+        )
     }
 
     #[tracing::instrument]
     /// Parses a path and returns the corresponding `KnownPaths` variant.
-    fn from_path(path: &str) -> Self {
+    fn from_path(path: &str, mode: &config::Mode) -> Self {
         let mut parts = path.split('/').filter(|s| !s.is_empty());
         match parts.next() {
-            Some("scans") => match parts.next() {
-                Some(id) => match parts.next() {
-                    Some("results") => {
-                        KnownPaths::ScanResults(id.to_string(), parts.next().map(|s| s.to_string()))
+            Some("scans") => match mode {
+                config::Mode::Service => {
+                    tracing::debug!(?mode, ?path, "Scan endpoint enabled");
+                    match parts.next() {
+                        Some(id) => match parts.next() {
+                            Some("results") => KnownPaths::ScanResults(
+                                id.to_string(),
+                                parts.next().map(|s| s.to_string()),
+                            ),
+                            Some("status") => KnownPaths::ScanStatus(id.to_string()),
+                            Some(_) => KnownPaths::Unknown,
+                            None => KnownPaths::Scans(Some(id.to_string())),
+                        },
+                        None => KnownPaths::Scans(None),
                     }
-                    Some("status") => KnownPaths::ScanStatus(id.to_string()),
-                    Some(_) => KnownPaths::Unknown,
-                    None => KnownPaths::Scans(Some(id.to_string())),
-                },
-                None => KnownPaths::Scans(None),
+                }
+                config::Mode::ServiceNotus => {
+                    tracing::debug!(?mode, ?path, "Scan endpoint disabled");
+                    KnownPaths::Unknown
+                }
             },
             Some("vts") => match parts.next() {
                 Some(oid) => KnownPaths::Vts(Some(oid.to_string())),
@@ -83,7 +97,7 @@ impl KnownPaths {
                 _ => KnownPaths::Unknown,
             },
             _ => {
-                tracing::trace!("Unknown path: {path}");
+                tracing::trace!(?path, "Unknown");
                 KnownPaths::Unknown
             }
         }
@@ -166,7 +180,7 @@ where
             if req.method() == Method::HEAD {
                 return Ok(ctx.response.empty(hyper::StatusCode::OK));
             }
-            let kp = KnownPaths::from_path(req.uri().path());
+            let kp = KnownPaths::from_path(req.uri().path(), &ctx.mode);
             let cid: Option<ClientHash> = {
                 match &*cid {
                     ClientIdentifier::Unknown => {

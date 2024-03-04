@@ -128,6 +128,11 @@ where
     pub fn new(root: P) -> Self {
         Self { root }
     }
+
+    /// Returns the used path
+    pub fn root(&self) -> &Path {
+        self.root.as_ref()
+    }
 }
 
 impl<P> AsBufReader<File> for FSPluginLoader<P>
