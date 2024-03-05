@@ -20,10 +20,11 @@ where
     S: Scanner + 'static + std::marker::Send + std::marker::Sync,
     DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
 {
-    let interval = ctx.scheduler.config().check_interval;
+    let mut interval = tokio::time::interval(ctx.scheduler.config().check_interval);
     tracing::debug!("Starting synchronization loop");
     let mut warn = true;
     loop {
+        interval.tick().await;
         if *ctx.abort.read().unwrap() {
             tracing::trace!("aborting");
             break;
@@ -42,7 +43,5 @@ where
                 }
             }
         }
-
-        std::thread::sleep(interval);
     }
 }
