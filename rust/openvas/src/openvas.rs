@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 use models::{
     scanner::{
-        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter,
-        ScanStopper,
+        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
     },
     HostInfo, Phase, Scan, Status,
 };
@@ -18,7 +17,7 @@ use crate::{
     cmd,
     error::OpenvasError,
     openvas_redis::{KbAccess, RedisHelper},
-    pref_handler::{PreferenceHandler},
+    pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
 
@@ -153,12 +152,36 @@ impl ScanDeleter for Scanner {
     {
         let scan_id = id.as_ref();
 
-        match self.remove_running(scan_id) {
-            Some(_) => {
-                tracing::debug!("Scan {scan_id} delete successfully");
-                Ok(())
-            }
+        let dbid = match self.running.lock().unwrap().get(scan_id) {
+            Some(scan) => scan.1,
             None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+        };
+
+        let mut redis_help = self.create_redis_connector(Some(dbid));
+        let mut ov_results = ResultHelper::init(&mut redis_help);
+        let _ = ov_results.collect_scan_status(scan_id.to_string()).await;
+
+        let mut scan_status = Phase::Running;
+        if let Ok(res) = Arc::as_ref(&ov_results.results).lock() {
+            scan_status = Phase::from_str(&res.scan_status)
+                .unwrap_or_else(|_| panic!("Invalid scan status {}", res.scan_status));
+        }
+
+        match scan_status {
+            Phase::Running => {
+                return Err(ScanError::Unexpected(format!(
+                    "Not allowed to delete a running scan {}",
+                    scan_id
+                )))
+            }
+            _ => match self.remove_running(scan_id) {
+                Some(_) => {
+                    let _ = redis_help.release();
+                    tracing::debug!("Scan {scan_id} delete successfully");
+                    Ok(())
+                }
+                None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+            },
         }
     }
 }
@@ -200,8 +223,9 @@ impl ScanResultFetcher for Scanner {
                 let st = Status {
                     start_time: None,
                     end_time: None,
-                    status: Phase::from_str(&all_results.scan_status)
-                        .unwrap_or_else(|_| panic!("Invalid scan status {}", all_results.scan_status)),
+                    status: Phase::from_str(&all_results.scan_status).unwrap_or_else(|_| {
+                        panic!("Invalid scan status {}", all_results.scan_status)
+                    }),
                     host_info: Some(hosts_info),
                 };
 
