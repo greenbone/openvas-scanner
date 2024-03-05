@@ -48,5 +48,5 @@ pub enum AliveTestMethods {
     Icmp = 0x02,
     Arp = 0x04,
     ConsiderAlive = 0x08,
-    TcpSyn = 0x16,
+    TcpSyn = 0x10,
 }

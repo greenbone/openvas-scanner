@@ -575,7 +575,7 @@ mod tests {
         assert!(prefh.prepare_boreas_alive_test().await.is_ok());
         assert!(prefh
             .redis_connector
-            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||3"));
+            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||18"));
 
         assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
         assert!(prefh
@@ -593,8 +593,9 @@ mod tests {
         ));
 
         assert!(prefh.prepare_ports_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "PORTS|||tcp:22-25,80,"));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "port_range|||T:22,23,24,25,80,"
+        ));
     }
 }
