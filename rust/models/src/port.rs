@@ -79,10 +79,11 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
     fn add_range_to_list(list: &mut String, start: usize, end: Option<usize>) {
         // Add range
         if let Some(end) = end {
-            list.push_str(start.to_string().as_str());
-            list.push('-');
-            list.push_str(end.to_string().as_str());
-            list.push(',');
+            for p in start..=end {
+                list.push_str(p.to_string().as_str());
+                list.push(',');
+            }
+
         // Add single port
         } else {
             list.push_str(start.to_string().as_str());
@@ -93,8 +94,8 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
         return None;
     }
 
-    let mut udp = String::from("udp:");
-    let mut tcp = String::from("tcp:");
+    let mut udp = String::from("U:");
+    let mut tcp = String::from("T:");
 
     ports.iter().for_each(|p| match p.protocol {
         Some(Protocol::TCP) => {
@@ -116,10 +117,20 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
                 .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
         }
     });
-    if udp != *"udp:" {
-        tcp.push_str(&udp);
+    let mut port_list = String::new();
+    // both TCP and UDP
+    if tcp != *"T:" && udp != *"U:" {
+        port_list.push_str(&tcp);
+        port_list.push_str(&udp);
     }
-    Some(tcp)
+    // only UDP
+    else if tcp == *"T:" && udp != *"U:" {
+        port_list.push_str(&udp);
+    } else if tcp != *"T:" && udp == *"U:" {
+        port_list.push_str(&tcp);
+    }
+
+    Some(port_list)
 }
 
 #[cfg(test)]
@@ -166,7 +177,7 @@ mod tests {
         ];
         assert_eq!(
             ports_to_openvas_port_list(ports),
-            Some("tcp:22-25,80,1000,udp:30-40,5060,1000,".to_string())
+            Some("T:22,23,24,25,80,1000,U:30,31,32,33,34,35,36,37,38,39,40,5060,1000,".to_string())
         );
     }
 }
