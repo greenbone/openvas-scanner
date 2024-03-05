@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //! # Responses of OSPD commands
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 use serde::{de::Visitor, Deserialize};
 
@@ -577,10 +577,10 @@ impl From<Scan> for models::Status {
             ScanStatus::Interrupted => models::Phase::Failed,
         };
 
-        let mut scanning: Vec<String> = vec![];
+        let mut scanning: HashMap<String, i32> = HashMap::new();
         if let Some(i) = &value.host_info {
             for host in &i.host {
-                scanning.push(host.name.clone());
+                scanning.insert(host.name.clone(), 0);
             }
         }
 

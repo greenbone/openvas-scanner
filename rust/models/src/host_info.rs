@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::collections::HashMap;
+
 /// Information about hosts of a running scan
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(
@@ -26,5 +28,5 @@ pub struct HostInfo {
         serde(skip_serializing_if = "Option::is_none")
     )]
     /// IPs of hosts, that are currently scanned.
-    pub scanning: Option<Vec<String>>,
+    pub scanning: Option<HashMap<String, i32>>,
 }
