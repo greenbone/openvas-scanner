@@ -22,6 +22,7 @@ pub fn check_sudo() -> bool {
     Command::new("sudo").args(["-n", "openvas"]).spawn().is_ok()
 }
 
+/// Read the openvas configuration.
 pub fn read_openvas_config() -> Result<Ini> {
     let oconfig = Command::new("openvas").arg("-s").output()?;
 
@@ -31,6 +32,17 @@ pub fn read_openvas_config() -> Result<Ini> {
         .read(oconfig)
         .expect("Error reading openvas configuration");
     Ok(config)
+}
+
+/// Get the path to the redis unix socket from openvas configuration
+pub fn get_redis_socket() -> String {
+    if let Ok(config) = read_openvas_config() {
+        return match config.get("default", "db_address") {
+            Some(setting) => format!("unix://{}", setting),
+            None => String::new(),
+        };
+    }
+    String::new()
 }
 
 /// Start a new scan with the openvas executable with the given string. Before a scan can be
