@@ -57,19 +57,19 @@ pub fn start(id: &str, sudo: bool, nice: Option<i8>) -> Result<Child> {
                     "sudo",
                     "-n",
                     "openvas",
-                    "--start-scan",
+                    "--scan-start",
                     id,
                 ])
                 .spawn(),
             false => Command::new("nice")
-                .args(["-n", &niceness.to_string(), "openvas", "--start-scan", id])
+                .args(["-n", &niceness.to_string(), "openvas", "--scan-start", id])
                 .spawn(),
         },
         None => match sudo {
             true => Command::new("sudo")
-                .args(["-n", "openvas", "--start-scan", id])
+                .args(["-n", "openvas", "--scan-start", id])
                 .spawn(),
-            false => Command::new("openvas").args(["--start-scan", id]).spawn(),
+            false => Command::new("openvas").args(["--scan-start", id]).spawn(),
         },
     }
 }
@@ -79,8 +79,8 @@ pub fn start(id: &str, sudo: bool, nice: Option<i8>) -> Result<Child> {
 pub fn stop(id: &str, sudo: bool) -> Result<Child> {
     match sudo {
         true => Command::new("sudo")
-            .args(["-n", "openvas", "--stop-scan", id])
+            .args(["-n", "openvas", "--scan-stop", id])
             .spawn(),
-        false => Command::new("openvas").args(["--stop-scan", id]).spawn(),
+        false => Command::new("openvas").args(["--scan-stop", id]).spawn(),
     }
 }
