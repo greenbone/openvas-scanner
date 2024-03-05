@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use models::{
     scanner::{
-        self, Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter,
+        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter,
         ScanStopper,
     },
     HostInfo, Phase, Scan, Status,
 };
-use redis_storage::{NameSpaceSelector, RedisCtx, RedisWrapper};
+use redis_storage::{NameSpaceSelector, RedisCtx};
 use std::{
     collections::HashMap,
     process::Child,
@@ -17,8 +17,8 @@ use std::{
 use crate::{
     cmd,
     error::OpenvasError,
-    openvas_redis::{self, KbAccess, RedisHelper},
-    pref_handler::{self, PreferenceHandler},
+    openvas_redis::{KbAccess, RedisHelper},
+    pref_handler::{PreferenceHandler},
     result_collector::ResultHelper,
 };
 
@@ -155,7 +155,7 @@ impl ScanDeleter for Scanner {
 
         match self.remove_running(scan_id) {
             Some(_) => {
-                tracing::debug!("Scan {scan_id} delete succesfully");
+                tracing::debug!("Scan {scan_id} delete successfully");
                 Ok(())
             }
             None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
@@ -201,7 +201,7 @@ impl ScanResultFetcher for Scanner {
                     start_time: None,
                     end_time: None,
                     status: Phase::from_str(&all_results.scan_status)
-                        .expect(&format!("Invalid scan status {}", all_results.scan_status)),
+                        .unwrap_or_else(|_| panic!("Invalid scan status {}", all_results.scan_status)),
                     host_info: Some(hosts_info),
                 };
 
