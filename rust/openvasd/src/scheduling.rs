@@ -182,7 +182,7 @@ where
                 let available_memory = sys.available_memory();
                 if available_memory < min_free_memory {
                     tracing::debug!(%min_free_memory, %available_memory, "insufficient memory to start a scan.");
-                    continue;
+                    break;
                 }
             }
             if let Some(scan_id) = queued.pop() {
