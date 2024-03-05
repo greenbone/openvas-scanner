@@ -20,21 +20,19 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     ))
 }
 pub fn extend_args(cmd: Command) -> Command {
-    crate::add_verbose(
-        cmd.subcommand(
-            Command::new("execute")
-                .about(
-                    "Executes a nasl-script.
+    cmd.subcommand(crate::add_verbose(
+        Command::new("execute")
+            .about(
+                "Executes a nasl-script.
 A script can either be a file to be executed or an ID.
 When ID is used than a valid feed path must be given within the path parameter.",
-                )
-                .arg(
-                    arg!(-p --path <FILE> "Path to the feed.")
-                        .required(false)
-                        .value_parser(value_parser!(PathBuf)),
-                )
-                .arg(Arg::new("script").required(true))
-                .arg(arg!(-t --target <HOST> "Target to scan").required(false)),
-        ),
-    )
+            )
+            .arg(
+                arg!(-p --path <FILE> "Path to the feed.")
+                    .required(false)
+                    .value_parser(value_parser!(PathBuf)),
+            )
+            .arg(Arg::new("script").required(true))
+            .arg(arg!(-t --target <HOST> "Target to scan").required(false)),
+    ))
 }

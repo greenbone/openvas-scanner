@@ -9,8 +9,7 @@ use std::collections::HashMap;
 use std::io::BufRead;
 
 pub fn extend_args(cmd: Command) -> Command {
-    crate::add_verbose(
-        cmd.subcommand(
+    cmd.subcommand( crate::add_verbose(
             Command::new("scan-config")
                 .about("Transforms a scan-config xml to a scan json for openvasd.
 When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.")
