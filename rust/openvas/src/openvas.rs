@@ -8,6 +8,7 @@ use models::{
 use redis_storage::{NameSpaceSelector, RedisCtx};
 use std::{
     collections::HashMap,
+    fmt::Display,
     process::Child,
     str::FromStr,
     sync::{Arc, Mutex},
@@ -31,6 +32,54 @@ pub struct Scanner {
 impl From<OpenvasError> for ScanError {
     fn from(value: OpenvasError) -> Self {
         ScanError::Unexpected(value.to_string())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum OpenvasPhase {
+    /// The information in the kb is just stored for openvas
+    New,
+    /// Openvas is ready and running
+    Ready,
+    /// Openvas scan has finished
+    Finished,
+    /// Openvas task has been stopped
+    Stopped,
+}
+
+impl Display for OpenvasPhase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::New => write!(f, "requested"),
+            Self::Ready => write!(f, "running"),
+            Self::Stopped => write!(f, "stopped"),
+            Self::Finished => write!(f, "failed"),
+        }
+    }
+}
+
+impl FromStr for OpenvasPhase {
+    type Err = ();
+
+    fn from_str(status: &str) -> Result<OpenvasPhase, ()> {
+        match status {
+            "new" => Ok(OpenvasPhase::New),
+            "ready" => Ok(OpenvasPhase::Ready),
+            "stopped" => Ok(OpenvasPhase::Stopped),
+            "finished" => Ok(OpenvasPhase::Finished),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<OpenvasPhase> for Phase {
+    fn from(p: OpenvasPhase) -> Phase {
+        match p {
+            OpenvasPhase::New => Phase::Requested,
+            OpenvasPhase::Ready => Phase::Running,
+            OpenvasPhase::Finished => Phase::Succeeded,
+            OpenvasPhase::Stopped => Phase::Stopped,
+        }
     }
 }
 
@@ -173,8 +222,9 @@ impl ScanDeleter for Scanner {
 
         let mut scan_status = Phase::Running;
         if let Ok(res) = Arc::as_ref(&ov_results.results).lock() {
-            scan_status = Phase::from_str(&res.scan_status)
-                .map_err(|_| ScanError::Unexpected("Invalid Phase status".to_string()))?;
+            scan_status = OpenvasPhase::from_str(&res.scan_status)
+                .map_err(|_| ScanError::Unexpected(format!("Invalid Phase status {}", res.scan_status)))?
+                .into();
         }
 
         match scan_status {
@@ -249,8 +299,9 @@ impl ScanResultFetcher for Scanner {
                 let st = Status {
                     start_time: None,
                     end_time: None,
-                    status: Phase::from_str(&all_results.scan_status)
-                        .map_err(|_| ScanError::Unexpected("Invalid Phase status".to_string()))?,
+                    status: OpenvasPhase::from_str(&all_results.scan_status)
+                        .map_err(|_| ScanError::Unexpected(format!("Invalid Phase status {}", all_results.scan_status)))?
+                        .into(),
                     host_info: Some(hosts_info),
                 };
 

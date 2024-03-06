@@ -68,13 +68,10 @@ impl FromStr for Phase {
     fn from_str(status: &str) -> Result<Phase, ()> {
         match status {
             "requested" => Ok(Phase::Requested),
-            "new" => Ok(Phase::Requested),
             "running" => Ok(Phase::Running),
-            "ready" => Ok(Phase::Running),
             "stopped" => Ok(Phase::Stopped),
             "failed" => Ok(Phase::Failed),
             "succeeded" => Ok(Phase::Succeeded),
-            "finished" => Ok(Phase::Succeeded),
             "stored" => Ok(Phase::Stored),
             _ => Err(()),
         }
