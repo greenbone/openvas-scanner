@@ -199,7 +199,18 @@ where
                         queued.push(scan_id);
                     }
                     Err(e) => {
-                        tracing::warn!(%scan_id, %e, "unable to start, removing from queue. Verify that scan using the API");
+                        tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
+                        self.db
+                            .update_status(
+                                &scan_id,
+                                models::Status {
+                                    start_time: None,
+                                    end_time: None,
+                                    status: Phase::Failed,
+                                    host_info: None,
+                                },
+                            )
+                            .await?;
                     }
                 };
             } else {
