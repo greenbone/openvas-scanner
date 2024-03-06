@@ -223,7 +223,9 @@ impl ScanDeleter for Scanner {
         let mut scan_status = Phase::Running;
         if let Ok(res) = Arc::as_ref(&ov_results.results).lock() {
             scan_status = OpenvasPhase::from_str(&res.scan_status)
-                .map_err(|_| ScanError::Unexpected(format!("Invalid Phase status {}", res.scan_status)))?
+                .map_err(|_| {
+                    ScanError::Unexpected(format!("Invalid Phase status {}", res.scan_status))
+                })?
                 .into();
         }
 
@@ -296,12 +298,18 @@ impl ScanResultFetcher for Scanner {
                     scanning: Some(all_results.host_status.clone()),
                 };
 
+                let status: Phase = OpenvasPhase::from_str(&all_results.scan_status)
+                    .map_err(|_| {
+                        ScanError::Unexpected(format!(
+                            "Invalid Phase status {}",
+                            all_results.scan_status
+                        ))
+                    })?
+                    .into();
                 let st = Status {
                     start_time: None,
                     end_time: None,
-                    status: OpenvasPhase::from_str(&all_results.scan_status)
-                        .map_err(|_| ScanError::Unexpected(format!("Invalid Phase status {}", all_results.scan_status)))?
-                        .into(),
+                    status: status.clone(),
                     host_info: Some(hosts_info),
                 };
 
@@ -314,6 +322,21 @@ impl ScanResultFetcher for Scanner {
                         .map(|r| models::Result::from(r).clone())
                         .collect(),
                 };
+
+                // If the scan finished, release
+                if status == Phase::Succeeded {
+                    let mut scan = match self.remove_running(scan_id) {
+                        Some(scan) => scan.0,
+                        None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+                    };
+
+                    scan.wait().map_err(OpenvasError::CmdError)?;
+
+                    redis_help
+                        .release()
+                        .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+                    self.running.lock().unwrap().remove(scan_id);
+                }
 
                 return Ok(scan_res);
             }
