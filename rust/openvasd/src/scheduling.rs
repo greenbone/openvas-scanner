@@ -81,6 +81,7 @@ impl From<Error> for ScanError {
 pub struct Scheduler<DB, Scanner> {
     /// Contains the currently queued scan ids.
     queued: RwLock<Vec<String>>,
+
     /// Contains the currently running scan ids.
     running: RwLock<Vec<String>>,
     /// Is used to retrieve scans and update status.
@@ -176,14 +177,15 @@ where
 
         tracing::debug!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
-            if let Some(scan_id) = queued.pop() {
-                sys.refresh_memory();
-                if let Some(min_free_memory) = self.config.min_free_mem {
-                    let available_memory = sys.available_memory();
-                    if available_memory < min_free_memory {
-                        tracing::debug!(%min_free_memory, %available_memory, %scan_id, "insufficient memory to start scan.");
-                    }
+            sys.refresh_memory();
+            if let Some(min_free_memory) = self.config.min_free_mem {
+                let available_memory = sys.available_memory();
+                if available_memory < min_free_memory {
+                    tracing::debug!(%min_free_memory, %available_memory, "insufficient memory to start a scan.");
+                    break;
                 }
+            }
+            if let Some(scan_id) = queued.pop() {
                 let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
                 tracing::debug!(?status, %scan_id, "starting scan");
 
@@ -211,8 +213,6 @@ where
         // we clone to drop the lock
         let running = self.running.read().await.clone();
         for scan_id in running {
-            // TODO: the interfaces should change to return a list of all given ids instead of per
-            // element. This would enable the underlying scanner to do bulk operations.
             match self.fetch_results(scan_id.clone()).await {
                 // using self.append_fetch_result instead of db to keep track of the status
                 // and may remove them from running.
@@ -457,5 +457,316 @@ where
         }
         drop(running);
         self.db.append_fetched_result(results).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tracing_test::traced_test;
+
+    use models::Scan;
+
+    use crate::{
+        config,
+        scheduling::{self, Scheduler},
+        storage::{inmemory, ScanStorer as _},
+    };
+
+    mod synchronize {
+        use models::scanner::ScanStopper as _;
+
+        use super::*;
+
+        #[traced_test]
+        #[tokio::test]
+        async fn set_running() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 10);
+        }
+
+        #[traced_test]
+        #[tokio::test]
+        async fn not_move_from_queue_on_max_running() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let mut config = config::Scheduler::default();
+            config.max_running_scans = Some(5);
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 5);
+            assert_eq!(scheduler.running.read().await.len(), 5);
+            // no change
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 5);
+            assert_eq!(scheduler.running.read().await.len(), 5);
+            scheduler.running.write().await.clear();
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 5);
+        }
+        #[traced_test]
+        #[tokio::test]
+        async fn not_move_from_queue_on_insufficient_memory() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let mut config = config::Scheduler::default();
+
+            let mut sys = sysinfo::System::new();
+            sys.refresh_memory();
+            config.min_free_mem = Some(sys.available_memory() + 1000);
+
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 10);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+
+        #[traced_test]
+        #[tokio::test]
+        async fn not_move_from_queue_on_connection_error() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let config = config::Scheduler::default();
+
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::LambdaBuilder::new()
+                .with_start(|_| Err(models::scanner::Error::Connection("m".to_string())))
+                .build();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 10);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+
+        #[traced_test]
+        #[tokio::test]
+        async fn remove_from_queue_on_any_other_scan_error() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let config = config::Scheduler::default();
+
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::LambdaBuilder::new()
+                .with_start(|_| Err(models::scanner::Error::Unexpected("m".to_string())))
+                .build();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+
+        #[traced_test]
+        #[tokio::test]
+        async fn remove_from_running_when_stop() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans.iter() {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            scheduler.sync_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 10);
+            for s in scans {
+                scheduler.stop_scan(s.scan_id).await.unwrap();
+            }
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+        #[traced_test]
+        #[tokio::test]
+        async fn remove_from_running_when_finished() {
+            let scans = std::iter::repeat(Scan::default())
+                .take(10)
+                .map(|x| {
+                    let mut y = x.clone();
+                    y.scan_id = uuid::Uuid::new_v4().to_string();
+                    y
+                })
+                .collect::<Vec<_>>();
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            for s in scans.clone().into_iter() {
+                db.insert_scan(s).await.unwrap();
+            }
+            let scanner = models::scanner::LambdaBuilder::default()
+                .with_fetch(|s| {
+                    Ok(models::scanner::ScanResults {
+                        id: s.to_string(),
+                        status: models::Status {
+                            start_time: None,
+                            end_time: None,
+                            status: models::Phase::Succeeded,
+                            host_info: None,
+                        },
+                        results: vec![],
+                    })
+                })
+                .build();
+            let scheduler = Scheduler::new(config, scanner, db);
+            for s in scans.iter() {
+                scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
+            }
+            // we cannot use overall sync as it does result fetching
+            //scheduler.sync_scans().await.unwrap();
+            scheduler.coordinate_scans().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 10);
+            scheduler.handle_results().await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 0);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+    }
+
+    mod start {
+        use super::*;
+
+        #[traced_test]
+        #[tokio::test]
+        async fn adds_scan_to_queue() {
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            scheduler.start_scan_by_id(&scan.scan_id).await.unwrap();
+            assert_eq!(scheduler.queued.read().await.len(), 1);
+            assert_eq!(scheduler.running.read().await.len(), 0);
+        }
+        #[traced_test]
+        #[tokio::test]
+        async fn error_starting_twice() {
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            scheduler.start_scan_by_id(&scan.scan_id).await.unwrap();
+            assert!(
+                match scheduler.start_scan_by_id(&scan.scan_id).await {
+                    Err(scheduling::Error::ScanAlreadyQueued) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a ScanAlreadyQueued"
+            );
+        }
+        #[traced_test]
+        #[tokio::test]
+        async fn error_not_found() {
+            let config = config::Scheduler::default();
+            let db = inmemory::Storage::default();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            assert!(
+                match scheduler.start_scan_by_id("1").await {
+                    Err(scheduling::Error::NotFound) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a not found"
+            );
+        }
+        #[traced_test]
+        #[tokio::test]
+        async fn error_queue_is_full() {
+            let mut config = config::Scheduler::default();
+            config.max_queued_scans = Some(0);
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            assert!(
+                match scheduler.start_scan_by_id(&scan.scan_id).await {
+                    Err(scheduling::Error::QueueFull) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a QueueFull"
+            );
+        }
     }
 }
