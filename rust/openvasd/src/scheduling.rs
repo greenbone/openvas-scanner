@@ -285,6 +285,9 @@ where
                 if let Some(idx) = running.iter().position(|x| x == &cid) {
                     running.swap_remove(idx);
                 }
+                let mut current_status = self.db.get_status(&cid).await?;
+                current_status.status = Phase::Stopped;
+                self.db.update_status(&cid, current_status).await?;
                 Ok(())
             }
             Err(e) => Err(e),
