@@ -8,33 +8,33 @@ FROM greenbone/openvas-smb:oldstable-edge AS openvas-smb
 FROM greenbone/gvm-libs:${GVM_LIBS_VERSION} AS build
 COPY . /source
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-    bison \
-    build-essential \
-    clang \
-    clang-format \
-    clang-tools \
-    cmake \
-    curl \
-    lcov \
-    libgnutls28-dev \
-    libgpgme-dev \
-    libjson-glib-dev \
-    libksba-dev \
-    libpaho-mqtt-dev \
-    libpcap-dev \
-    libssh-gcrypt-dev \
-    libbsd-dev \
-    libgnutls30 \
-    libgssapi3-heimdal \
-    libkrb5-26-heimdal \
-    libasn1-8-heimdal \
-    libroken18-heimdal \
-    libhdb9-heimdal \
-    libpopt0 \
-    libcurl4-gnutls-dev \
-    libcurl4 \
-    libcgreen1-dev \
-    && rm -rf /var/lib/apt/lists/*
+  bison \
+  build-essential \
+  clang \
+  clang-format \
+  clang-tools \
+  cmake \
+  curl \
+  lcov \
+  libgnutls28-dev \
+  libgpgme-dev \
+  libjson-glib-dev \
+  libksba-dev \
+  libpaho-mqtt-dev \
+  libpcap-dev \
+  libssh-gcrypt-dev \
+  libbsd-dev \
+  libgnutls30 \
+  libgssapi3-heimdal \
+  libkrb5-26-heimdal \
+  libasn1-8-heimdal \
+  libroken18-heimdal \
+  libhdb9-heimdal \
+  libpopt0 \
+  libcurl4-gnutls-dev \
+  libcurl4 \
+  libcgreen1-dev \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
@@ -66,15 +66,15 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libroken18-heimdal \
   libhdb9-heimdal \
   libpopt0 \
-    libcurl4 \
+  libcurl4 \
   zlib1g\
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
-COPY assets/$TARGETPLATFORM/nasl-cli /usr/local/bin/nasl-cli
-RUN chmod +x /usr/local/bin/nasl-cli
+COPY assets/$TARGETPLATFORM/scannerctl /usr/local/bin/scannerctl
+RUN chmod +x /usr/local/bin/scannerctl
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/

@@ -1,5 +1,5 @@
 [package]
-name = "nasl-cli"
+name = "scannerctl"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-2.0-or-later"
@@ -14,13 +14,13 @@ configparser = "3"
 # recursively walk through a dir
 walkdir = "2"
 
-feed = {path = "../feed"}
+feed = { path = "../feed" }
 nasl-syntax = { path = "../nasl-syntax" }
 models = { path = "../models" }
 nasl-interpreter = { path = "../nasl-interpreter", default-features = false }
 storage = { path = "../storage" }
 redis-storage = { path = "../redis-storage" }
-json-storage = {path = "../json-storage"}
+json-storage = { path = "../json-storage" }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17" }
 serde_json = "1.0.96"

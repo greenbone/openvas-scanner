@@ -44,9 +44,9 @@ COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
-COPY assets/$TARGETPLATFORM/nasl-cli /usr/local/bin/nasl-cli
+COPY assets/$TARGETPLATFORM/scannerctl /usr/local/bin/scannerctl
 COPY assets/$TARGETPLATFORM/openvasd /usr/local/bin/openvasd
-RUN chmod +x /usr/local/bin/nasl-cli
+RUN chmod +x /usr/local/bin/scannerctl
 RUN chmod +x /usr/local/bin/openvasd
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/

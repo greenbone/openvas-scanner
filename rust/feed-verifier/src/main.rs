@@ -159,10 +159,10 @@ fn main() {
     let nasl_cli = match env::current_exe() {
         Ok(mut x) => {
             x.pop();
-            x.push("nasl-cli");
+            x.push("scannerctl");
             x
         }
-        Err(x) => panic!("This test program is assuming that nasl-cli is in the same dir: {x}"),
+        Err(x) => panic!("This test program is assuming that scannerctl is in the same dir: {x}"),
     };
     let (ncd, nasl_cli) = run_get(
         &mut kb,
@@ -175,15 +175,15 @@ fn main() {
     let mut errors = 0;
     if ncd > od {
         errors += print_error(&format!(
-            "openvas ({od:?}) was faster than nasl-cli ({ncd:?})"
+            "openvas ({od:?}) was faster than scannerctl ({ncd:?})"
         ));
     }
 
     let (left, right) = {
-        println!("nasl-cli: {} entries", nasl_cli.len());
+        println!("scannerctl: {} entries", nasl_cli.len());
         println!("openvas: {} entries", openvas.len());
         if nasl_cli.len() > openvas.len() {
-            println!("nasl-cli is left");
+            println!("scannerctl is left");
             (nasl_cli, openvas)
         } else {
             println!("openvas is left");

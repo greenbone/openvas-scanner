@@ -40,13 +40,13 @@ jobs:
             docker.io
           FEED_DIR="feed/" sh .github/prepare-feed.sh
           install -m 755 assets/linux/amd64/feed-verifier /usr/local/bin/
-          install -m 755 assets/linux/amd64/nasl-cli /usr/local/bin/
+          install -m 755 assets/linux/amd64/scannerctl /usr/local/bin/
           echo "db_address = tcp://redis:6379" >> /etc/openvas/openvas.conf
           # TODO export as env variable
           mv ./feed/* "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
       - run: openvas -s
       - name: verify feed syntax
-        run: nasl-cli syntax --quiet "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
+        run: scannerctl syntax --quiet "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
       - name: verify feed update
         run: feed-verifier || (cat /var/log/gvm/openvas.log && false)
       - name: verify nasl tests

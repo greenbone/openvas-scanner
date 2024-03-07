@@ -8,7 +8,7 @@ use clap::{arg, value_parser, ArgAction, Command};
 use notus::{loader::fs::FSProductLoader, notus::Notus};
 
 fn main() {
-    let matches = Command::new("nasl-cli")
+    let matches = Command::new("scannerctl")
         .version("1.0")
         .about("Is a CLI tool around Notus.")
         .arg(

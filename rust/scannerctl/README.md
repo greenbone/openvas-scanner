@@ -1,8 +1,8 @@
-# nasl-cli
+# scannerctl
 
 Is CLI frontend to use the rust NASL implementation.
 
-Usage: `nasl-cli [OPTIONS] <COMMAND>`
+Usage: `scannerctl [OPTIONS] <COMMAND>`
 
 Options:
 
@@ -22,11 +22,11 @@ The optional `--target, -t` option allows to set a host target to run the script
 
 When `-v` is set it is printing the statements to be executed as well as the returned NaslValue.
 
-As examples executing: `nasl-cli execute examples/hello.nasl` returns:
+As examples executing: `scannerctl execute examples/hello.nasl` returns:
 ```text
 Hello, world!
 ```
-while executing `nasl-cli -v execute examples/hello.nasl` returns:
+while executing `scannerctl -v execute examples/hello.nasl` returns:
 
 ```text
 > if (description == 1) {{ ... }}
@@ -36,13 +36,13 @@ Hello, world!
 => Null
 ```
 
-Usage: `nasl-cli execute [OPTIONS] [-t HOST] <script>`
+Usage: `scannerctl execute [OPTIONS] [-t HOST] <script>`
 
 ### feed
 
 Handles feed related tasks.
 
-Usage: `nasl-cli feed <COMMAND>`
+Usage: `scannerctl feed <COMMAND>`
 
 #### update
 
@@ -51,10 +51,10 @@ Also, load the Notus advisories up into the redis cache. The path to the notus a
 
 When either path or redis is not set it will get the defaults by calling `openvas -s`.
 
-Usage `nasl-cli feed update [OPTIONS]`
+Usage `scannerctl feed update [OPTIONS]`
 
 Usage example, load both:
-`GPGHOME=/path/to/.gnupg nasl-cli feed update --notus-path <path-to-the-advisories> --signature-check`
+`GPGHOME=/path/to/.gnupg scannerctl feed update --notus-path <path-to-the-advisories> --signature-check`
 
 Options:
 - `-v`, `--vts-only`: Load only nvts into redis cache
@@ -75,7 +75,7 @@ Runs nasl scripts in description mode and returns it as a json array into stdout
 
 When path is not set it will get the defaults by calling `openvas -s`.
 
-Usage `nasl-cli feed transform [OPTIONS]`
+Usage `scannerctl feed transform [OPTIONS]`
 
 Options:
 - `-p`, `--path <FILE>`:   Path to the feed.
@@ -91,20 +91,20 @@ It will produce a json array in stdout in the format described within [json-stor
 Tool for feed manipulation. Transforms each nasl script and inc file based on the given rules.
 Currently it is able to rename, remove, add, push parameter or functions within a feed.
 
-Usage `nasl-cli feed transpile [OPTIONS] --rules <FILE>`
+Usage `scannerctl feed transpile [OPTIONS] --rules <FILE>`
 
 Options:
 - `-p`, `--path <FILE>`: Path to the feed.
 - `-r`, `--rules <FILE>`: Path to transpiler rules.
 - `-h`, `--help`: Print help
 
-An example can be found in [examples](../examples/nasl-cli/transpile.toml) folder. This example demonstrates how to
+An example can be found in [examples](../examples/scannerctl/transpile.toml) folder. This example demonstrates how to
 - rename service `www` to `word-wide-web` in register_product
 - `register_host_detail` to `add_host_detail`
 
 to execute it call:
 
-`nasl-cli -v feed transpile -p /tmp/feed -r examples/nasl-cli/transpile.toml`
+`scannerctl -v feed transpile -p /tmp/feed -r examples/scannerctl/transpile.toml`
 
 ##### NVT
 
@@ -222,7 +222,7 @@ The family a script belongs to. Is a freely choosable string.
 ```text
 Verifies syntax of NASL files in given dir or file.
 
-Usage: nasl-cli syntax [OPTIONS] <path>
+Usage: scannerctl syntax [OPTIONS] <path>
 
 Arguments:
   <path>
@@ -236,7 +236,7 @@ Options:
 
 Transforms a scan-config from gvmds data-objects to scan json of [openvasd](https://greenbone.github.io/scanner-api/#/scan/create_scanl).
 
-To set the target and credentials you can pipe a partial scan json into `nasl-cli scan-config` by providing `-i` flag.
+To set the target and credentials you can pipe a partial scan json into `scannerctl scan-config` by providing `-i` flag.
 
 As an example we assume that the data-objects feed is in `~/src/greenbone/data-objects/content/22.04` while the vulnerability feed is in `~/src/greenbone/vulnerability-tests/nasl/common` and we want to create a scan to verify localhost with a discovery and full and fast policy on the openvas default portlist.
 
@@ -244,7 +244,7 @@ For that we need to execute:
 
 ```text
 echo '{ "target": { "hosts": ["localhost"], "ports": [] }, "vts": [] }'| \
-nasl-cli scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common \
+scannerctl scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common \
   -l ~/src/greenbone/data-objects/content/22.04/port-lists/openvas-default-c7e03b6c-3bbe-11e1-a057-406186ea4fc5.xml \
   ~/src/greenbone/data-objects/content/22.04/scan-configs/discovery-8715c877-47a0-438d-98a3-27c7a6ab2196.xml \
   ~/src/greenbone/data-objects/content/22.04/scan-configs/full-and-fast-daba56c8-73ec-11df-a475-002264764cea.xml
@@ -258,7 +258,7 @@ Be aware that each call does a description run of the defined feed to gather the
 Transforms a scan-config xml to a scan json for openvasd.
 When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.
 
-Usage: nasl-cli scan-config [OPTIONS] <scan-config>
+Usage: scannerctl scan-config [OPTIONS] <scan-config>
 
 Arguments:
   <scan-config>  

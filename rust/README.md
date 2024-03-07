@@ -24,7 +24,7 @@ Additionally for the features defined as experimental you need:
 
 To build and create the executables
 
-- nasl-cli
+- scannerctl
 - openvasd
 
 You have to execute
@@ -63,7 +63,7 @@ Additionally we want to:
 
 - do improvements in the built in function handling as we want to be more modular
 - clean up the storage interface as it is very misleading currently because it enforced implementations of retrieve and dispatch.
-- extend `nasl-cli` with a `openvas-nasl` like functionality so that we can test scripts
+- extend `scannerctl` with a `openvas-nasl` like functionality so that we can test scripts
 - implement multithreading of interpreter
 - implement scheduling for a multi script run
 - create an http frontend based on [OpenAPI definition](./doc/openapi.yml)

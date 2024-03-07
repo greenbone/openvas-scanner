@@ -1,14 +1,14 @@
 ---
-title: OpenVASD / nasl-cli overview 
+title: OpenVASD / scannerctl overview 
 ---
 erDiagram
 %% mmdc -i overview.mmd -o overview.svg -b white  
 openvasd ||--|| feed: uses
 openvasd ||--|| models: uses
 openvasd ||--|| osp: uses
-nasl-cli ||--|| feed : uses
-nasl-cli ||--|| json-storage : uses
-nasl-cli ||--|| redis-storage : uses
+scannerctl ||--|| feed : uses
+scannerctl ||--|| json-storage : uses
+scannerctl ||--|| redis-storage : uses
 feed ||--|| nasl-interpreter: uses
 nasl-interpreter ||--|| nasl-builtin-std: uses
 nasl-interpreter ||--|| nasl-syntax: uses

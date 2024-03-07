@@ -9,9 +9,9 @@ openvas -u
 and 
 
 ```
-nasl-cli feed update
+scannerctl feed update
 ```
 
 do have the same output within redis.
 
-This is required to verify if the rust based nasl-cli is downwards compatible to ospd-openvas.
+This is required to verify if the rust based scannerctl is downwards compatible to ospd-openvas.
