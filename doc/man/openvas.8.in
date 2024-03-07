@@ -240,7 +240,6 @@ to be transferred significantly.
 .BR ospd-openvas(8),
 .BR openvas-nasl(1),
 .BR openvas-nasl-lint(1),
-.BR greenbone-nvt-sync(8)
 
 .SH MORE INFORMATION
 

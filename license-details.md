@@ -43,8 +43,6 @@ src/sighand.h: GPL-2
 src/utils.c: GPL-2
 src/utils.h: GPL-2
 
-tools/greenbone-nvt-sync.in: GPL-2+
-
 nasl/CMakeLists.txt: GPL-2+
 nasl/arc4.c: GPL-2+
 nasl/byteorder.h: GPL-2+

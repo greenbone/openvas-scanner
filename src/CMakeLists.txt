@@ -220,16 +220,6 @@ install (TARGETS openvas
 install (FILES ${CMAKE_BINARY_DIR}/src/openvas_log.conf
          DESTINATION ${OPENVAS_SYSCONF_DIR})
 
-if (INSTALL_OLD_SYNC_SCRIPT)
-  install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
-          DESTINATION ${BINDIR}
-          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
-                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-  install (FILES ${CMAKE_SOURCE_DIR}/doc/man/greenbone-nvt-sync.8
-          DESTINATION ${DATADIR}/man/man8 )
-endif (INSTALL_OLD_SYNC_SCRIPT)
-
 install (FILES ${CMAKE_BINARY_DIR}/doc/man/openvas.8
          DESTINATION ${DATADIR}/man/man8 )
 

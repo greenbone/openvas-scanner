@@ -148,21 +148,9 @@ Setting up an openvas requires the following steps:
    your NVT collection will be empty. It is recommended that you synchronize
    with an NVT feed service before starting openvas for the first time.
 
-   With OpenVAS, the `greenbone-nvt-sync` shell based script is installed per default.
-   However, this script has been deprecated in favor of [greenbone-feed-sync](https://github.com/greenbone/greenbone-feed-sync/)
-   and it is strongly recommended to switch to the new script.
-   The installation of the `greenbone-nvt-sync` script can be disabled with cmake
-   option 
-       `-DINSTALL_OLD_SYNC_SCRIPT=OFF`
-      
-   Simply execute the following command to retrieve the initial NVT collection:
-
-       greenbone-nvt-sync 
-
-   This tool will use the Greenbone Security Feed in case a Greenbone
-   subscription key is present. Else, the Community Feed will be used.
-
-   Please note that you will need the `rsync` tool for a successful synchronization.
+   Use [greenbone-feed-sync](https://github.com/greenbone/greenbone-feed-sync/)
+   to synchronize the feed. It can be used to synchronize with the community feed,
+   as well as with the enterprise feed. Look into it for more information.
 
    NVT feeds are updated on a regular basis. Be sure to update your NVT collection
    regularly to detect the latest threats.
