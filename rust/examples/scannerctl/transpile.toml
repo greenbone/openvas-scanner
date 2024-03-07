@@ -3,7 +3,7 @@
 # `register_host_detail` to `add_host_detail`
 # To test it get a community feed and run:
 # ```
-# nasl-cli -v feed transpile -p /tmp/feed -r example/replace.toml
+# scannerctl -v feed transpile -p /tmp/feed -r example/replace.toml
 # ```
 
 # Transforms
@@ -27,7 +27,7 @@ FunctionByNameAndParameter = [
 ]
 
 [cmds.with.Parameter.Push]
-Named = [ "service_to_be", "\"world-wide-web\"", ]
+Named = ["service_to_be", "\"world-wide-web\""]
 
 # Transforms
 # > register_product(cpe: ..., location: ..., port: ..., service: 'www', service_to_be: 'world-wide-web')
@@ -39,12 +39,12 @@ Named = [ "service_to_be", "\"world-wide-web\"", ]
 FunctionByNameAndParameter = [
     "register_product",
     [
-    { Name = "cpe" },
-    { Name = "location" },
-    { Name = "port" },
-    { Name = "service" },
-    { Name = "service_to_be" },
-],
+        { Name = "cpe" },
+        { Name = "location" },
+        { Name = "port" },
+        { Name = "service" },
+        { Name = "service_to_be" },
+    ],
 ]
 
 [cmds.with.Parameter]

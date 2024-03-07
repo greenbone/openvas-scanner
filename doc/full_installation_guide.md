@@ -372,7 +372,7 @@ Install openvasd:
 
 ```shell
 sudo cp -rv $BUILD_DIR/openvasd/release/openvasd $INSTALL_PREFIX/bin/
-sudo cp -rv $BUILD_DIR/openvasd/release/nasl-cli $INSTALL_PREFIX/bin/
+sudo cp -rv $BUILD_DIR/openvasd/release/scannerctl $INSTALL_PREFIX/bin/
 ```
 
 ### ospd-openvas

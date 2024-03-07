@@ -53,7 +53,7 @@ fn get_path_from_openvas(config: Ini) -> PathBuf {
 
 fn main() {
     let matches = add_verbose(
-        Command::new("nasl-cli")
+        Command::new("scannerctl")
             .version("1.0")
             .about("Is a CLI tool around NASL.")
             .subcommand_required(true),

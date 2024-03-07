@@ -14,7 +14,7 @@ members = [
   "nasl-builtin-std",
   "nasl-syntax",
   "nasl-interpreter",
-  "nasl-cli",
+  "scannerctl",
   "nasl-c-lib",
   "nasl-c-lib/libgcrypt-sys",
   "storage",
