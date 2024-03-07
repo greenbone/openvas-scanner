@@ -590,12 +590,14 @@ impl RedisCtx {
 
     /// Delete an entry from the in-use namespace's list
     fn release_namespace(&mut self) -> RedisStorageResult<()> {
-        // Remove the entry from the hash list
+        // Remove the entry from the in-use list and return to the original namespace
         redis::pipe()
             .cmd("SELECT")
             .arg("0")
             .cmd("HDEL")
             .arg(DB_INDEX)
+            .arg(self.db)
+            .cmd("SELECT")
             .arg(self.db)
             .ignore()
             .query(&mut self.kb.as_mut().expect("Valid redis connection"))?;
