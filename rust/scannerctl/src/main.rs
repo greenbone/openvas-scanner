@@ -61,6 +61,7 @@ fn main() {
     let matches = syntax::extend_args(matches);
     let matches = scanconfig::extend_args(matches);
     let matches = execute::extend_args(matches);
+    let matches = notusupdate::scanner::extend_args(matches);
     let matches = feed::extend_args(matches).get_matches();
     let result = run(&matches);
 
@@ -81,7 +82,13 @@ fn main() {
 }
 
 fn run(matches: &ArgMatches) -> Result<(), CliError> {
-    let functions = [feed::run, syntax::run, execute::run, scanconfig::run];
+    let functions = [
+        feed::run,
+        syntax::run,
+        execute::run,
+        scanconfig::run,
+        notusupdate::scanner::run,
+    ];
     for f in functions.iter() {
         if let Some(result) = f(matches) {
             return result;

@@ -78,6 +78,32 @@ impl Display for CliError {
     }
 }
 
+impl From<std::io::Error> for CliError {
+    fn from(value: std::io::Error) -> Self {
+        CliError {
+            filename: Default::default(),
+            kind: CliErrorKind::Corrupt(value.to_string()),
+        }
+    }
+}
+
+impl From<serde_json::Error> for CliError {
+    fn from(value: serde_json::Error) -> Self {
+        CliError {
+            filename: Default::default(),
+            kind: CliErrorKind::Corrupt(value.to_string()),
+        }
+    }
+}
+
+impl From<notus::error::Error> for CliError {
+    fn from(value: notus::error::Error) -> Self {
+        CliError {
+            filename: Default::default(),
+            kind: CliErrorKind::Corrupt(value.to_string()),
+        }
+    }
+}
 impl From<VerifyError> for CliError {
     fn from(value: VerifyError) -> Self {
         let filename = match &value {
