@@ -135,8 +135,6 @@ where
                     return Err(Error::HashsumLoadError(e));
                 }
             }
-        } else {
-            tracing::warn!("Signature check disabled");
         }
         Ok(())
     }
