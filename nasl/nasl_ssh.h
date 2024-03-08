@@ -63,4 +63,10 @@ nasl_ssh_get_host_key (lex_ctxt *lexic);
 tree_cell *
 nasl_sftp_enabled_check (lex_ctxt *);
 
+/*
+ * NASL NETCONF
+ */
+tree_cell *
+nasl_ssh_execute_netconf_subsystem (lex_ctxt *);
+
 #endif /*NASL_NASL_SSH_H*/
