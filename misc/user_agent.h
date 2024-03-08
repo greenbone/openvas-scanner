@@ -15,8 +15,8 @@
 
 #include <glib.h>
 
-const gchar *
-user_agent_get (struct ipc_context *);
+int
+user_agent_get (struct ipc_context *, char **);
 
 gchar *
 user_agent_set (const gchar *);

@@ -28,17 +28,21 @@
  */
 static gchar *user_agent = NULL;
 
-static void
+static int
 send_user_agent_via_ipc (struct ipc_context *ipc_context)
 {
   struct ipc_data *ua = NULL;
   const char *json = NULL;
-
+  int ret = 0;
   ua = ipc_data_type_from_user_agent (user_agent, strlen (user_agent));
   json = ipc_data_to_json (ua);
   ipc_data_destroy (&ua);
-  if (ipc_send (ipc_context, IPC_MAIN, json, strlen (json)) < 0)
-    g_warning ("Unable to send %s to host process", user_agent);
+  ret = ipc_send (ipc_context, IPC_MAIN, json, strlen (json));
+  if (-1 == ret)
+    {
+      g_warning ("Unable to send %s to host process", user_agent);
+    }
+  return ret;
 }
 
 /**
@@ -50,7 +54,7 @@ send_user_agent_via_ipc (struct ipc_context *ipc_context)
  * and the nasl library version.
  */
 static void
-user_agent_create ()
+user_agent_create (void)
 {
   gchar *ua = NULL;
 
@@ -100,16 +104,22 @@ user_agent_set (const gchar *ua)
 /**
  * @brief Get user-agent.
  *
- * @return Get user-agent.
+ * param[in] ipc_context IPC context for sending data to the parent process
+ * param[out] useragent  the user agent if any set or an empty string.
+ *
+ * @return 0 on success, -1 on error when sending the message, -2 if the context
+ * does not exists
  */
-const gchar *
-user_agent_get (struct ipc_context *ipc_context)
+int
+user_agent_get (struct ipc_context *ipc_context, char **useragent)
 {
+  int ret = 0;
   if (!user_agent || user_agent[0] == '\0')
     {
       user_agent_create ();
-      send_user_agent_via_ipc (ipc_context);
+      ret = send_user_agent_via_ipc (ipc_context);
     }
 
-  return user_agent ? user_agent : "";
+  *useragent = user_agent ? g_strdup (user_agent) : "";
+  return ret;
 }
