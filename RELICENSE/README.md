@@ -15,7 +15,7 @@ $ git config --list
 
 # Commit the template
 $ cd {path_to_openvas-scanner}/openvas-scanner/RELICENSE
-$ cp /template/template.txt JDoe.md
+$ cp ./template/template.txt JDoe.md
 $ git add JDoe.md
 $ git commit
 ```
