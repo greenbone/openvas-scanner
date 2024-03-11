@@ -175,7 +175,7 @@ where
         };
         let mut sys = System::new();
 
-        tracing::debug!(%amount_to_start, "handling scans");
+        tracing::trace!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
             sys.refresh_memory();
             if let Some(min_free_memory) = self.config.min_free_mem {
