@@ -27,17 +27,18 @@ fn bool_to_str(value: &str) -> String {
     "yes".to_string()
 }
 
-pub struct PreferenceHandler<H> {
+#[derive(Debug)]
+pub struct PreferenceHandler<'a, H> {
     scan_config: Scan,
-    redis_connector: H,
+    redis_connector: &'a mut H,
     nvt_params: HashMap<String, String>,
 }
 
-impl<H> PreferenceHandler<H>
+impl<'a, H> PreferenceHandler<'a, H>
 where
     H: VtHelper + KbAccess,
 {
-    pub fn new(scan_config: Scan, redis_connector: H) -> Self {
+    pub fn new(scan_config: Scan, redis_connector: &'a mut H) -> Self {
         Self {
             scan_config,
             redis_connector,
@@ -66,8 +67,8 @@ where
 
     async fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
-            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-            format!("ov_maindbid|||{}", self.redis_connector.kb_id()?),
+            format!("internal/{}/scanprefs", &self.scan_config.scan_id.clone()).as_str(),
+            format!("ov_maindbid|||{}", &self.redis_connector.kb_id()?),
         )?;
         Ok(())
     }
@@ -316,7 +317,7 @@ where
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
                 format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-                format!("PORTS|||{}", ports),
+                format!("port_range|||{}", ports),
             )?;
         };
 
@@ -554,11 +555,11 @@ mod tests {
             ],
         }];
 
-        let rc = FakeRedis {
+        let mut rc = FakeRedis {
             data: HashMap::new(),
         };
 
-        let mut prefh = PreferenceHandler::new(scan, rc);
+        let mut prefh = PreferenceHandler::new(scan, &mut rc);
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
         assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
         assert!(prefh
@@ -574,7 +575,7 @@ mod tests {
         assert!(prefh.prepare_boreas_alive_test().await.is_ok());
         assert!(prefh
             .redis_connector
-            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||3"));
+            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||18"));
 
         assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
         assert!(prefh
@@ -592,8 +593,9 @@ mod tests {
         ));
 
         assert!(prefh.prepare_ports_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "PORTS|||tcp:22-25,80,"));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "port_range|||T:22,23,24,25,80,"
+        ));
     }
 }

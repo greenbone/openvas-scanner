@@ -44,6 +44,9 @@ pub trait KbAccess {
         key: &str,
         value: T,
     ) -> RedisStorageResult<()>;
+    fn scan_status(&mut self, _scan_id: String) -> RedisStorageResult<String> {
+        Ok(String::new())
+    }
     fn kb_id(&self) -> RedisStorageResult<u32>;
     fn results(&mut self) -> RedisStorageResult<Vec<String>> {
         Ok(Vec::new())
@@ -51,9 +54,26 @@ pub trait KbAccess {
     fn status(&mut self) -> RedisStorageResult<Vec<String>> {
         Ok(Vec::new())
     }
+    fn release(&mut self) -> RedisStorageResult<()> {
+        Ok(())
+    }
 }
 
 impl KbAccess for RedisHelper<RedisCtx> {
+    /// Provide access to the cache
+    fn kb_id(&self) -> RedisStorageResult<u32> {
+        let cache = Arc::as_ref(&self.task_kb)
+            .lock()
+            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
+        Ok(cache.db)
+    }
+    /// Release the redis namespace and make it available again for other tasks
+    fn release(&mut self) -> RedisStorageResult<()> {
+        let mut kb = Arc::as_ref(&self.task_kb)
+            .lock()
+            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
+        kb.delete_namespace()
+    }
     fn push_kb_item<T: redis::ToRedisArgs>(
         &mut self,
         key: &str,
@@ -66,12 +86,12 @@ impl KbAccess for RedisHelper<RedisCtx> {
         kb.lpush(key, value)?;
         Ok(())
     }
-    /// Provide access to the cache
-    fn kb_id(&self) -> RedisStorageResult<u32> {
-        let cache = Arc::as_ref(&self.cache)
+
+    fn scan_status(&mut self, scan_id: String) -> RedisStorageResult<String> {
+        let mut kb = Arc::as_ref(&self.task_kb)
             .lock()
             .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        Ok(cache.db)
+        kb.lindex(&format!("internal/{}", scan_id), 0)
     }
 
     fn results(&mut self) -> RedisStorageResult<Vec<String>> {

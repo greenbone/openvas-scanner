@@ -15,34 +15,36 @@ use osp::{ScanResult, StringF32};
 use redis_storage::dberror::RedisStorageResult;
 
 /// Structure to hold the results retrieve from redis main kb
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Results {
     /// The list of results retrieve
-    results: Vec<ScanResult>,
+    pub results: Vec<ScanResult>,
     /// Total amount of alive hosts found. This is sent once for scan, as it is the
     /// the alive host found by Boreas at the start of the scan.
-    count_total: i64,
+    pub count_total: i64,
     /// Total amount of excluded hosts.
-    count_excluded: i64,
+    pub count_excluded: i64,
     /// The number of new alive hosts that already finished.
-    count_alive: i64,
+    pub count_alive: i64,
     /// The number of new dead hosts found during this retrieve. New dead hosts can be found
     /// during the scan    
-    count_dead: i64,
+    pub count_dead: i64,
     /// Current hosts status
-    host_status: HashMap<String, i32>,
+    pub host_status: HashMap<String, i32>,
+    /// The scan status
+    pub scan_status: String,
 }
 
-pub struct ResultHelper<H> {
-    pub redis_connector: H,
+pub struct ResultHelper<'a, H> {
+    pub redis_connector: &'a mut H,
     pub results: Arc<Mutex<Results>>,
 }
 
-impl<H> ResultHelper<H>
+impl<'a, H> ResultHelper<'a, H>
 where
     H: KbAccess + VtHelper,
 {
-    pub fn init(redis_connector: H) -> Self {
+    pub fn init(redis_connector: &'a mut H) -> Self {
         Self {
             redis_connector,
             results: Arc::new(Mutex::new(Results::default())),
@@ -161,7 +163,7 @@ where
         Ok(())
     }
 
-    pub async fn get_results(&mut self) -> RedisStorageResult<()> {
+    pub async fn collect_results(&mut self) -> RedisStorageResult<()> {
         if let Ok(redis_results) = self.redis_connector.results() {
             self.process_results(redis_results)?;
         }
@@ -215,9 +217,18 @@ where
         Ok(())
     }
 
-    pub async fn get_status(&mut self) -> RedisStorageResult<()> {
+    pub async fn collect_host_status(&mut self) -> RedisStorageResult<()> {
         if let Ok(redis_status) = self.redis_connector.status() {
             self.process_status(redis_status)?;
+        }
+        Ok(())
+    }
+
+    pub async fn collect_scan_status(&mut self, scan_id: String) -> RedisStorageResult<()> {
+        if let Ok(scan_status) = self.redis_connector.scan_status(scan_id) {
+            if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
+                results.scan_status = scan_status.to_string();
+            }
         }
         Ok(())
     }
@@ -244,11 +255,11 @@ mod tests {
 
         ];
 
-        let rc = FakeRedis {
+        let mut rc = FakeRedis {
             data: HashMap::new(),
         };
 
-        let mut resh = ResultHelper::init(rc);
+        let mut resh = ResultHelper::init(&mut rc);
 
         resh.process_results(results).unwrap();
 
@@ -341,11 +352,11 @@ mod tests {
             "127.0.0.5/0/-1".to_string(),
         ];
 
-        let rc = FakeRedis {
+        let mut rc = FakeRedis {
             data: HashMap::new(),
         };
 
-        let resh = ResultHelper::init(rc);
+        let resh = ResultHelper::init(&mut rc);
         resh.process_status(status).unwrap();
 
         let mut r = HashMap::new();

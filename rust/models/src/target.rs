@@ -44,9 +44,9 @@ pub struct Target {
 )]
 #[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
 pub enum AliveTestMethods {
-    Icmp = 0x01,
-    TcpSyn = 0x02,
-    TcpAck = 0x04,
-    Arp = 0x08,
-    ConsiderAlive = 0x16,
+    TcpAck = 0x01,
+    Icmp = 0x02,
+    Arp = 0x04,
+    ConsiderAlive = 0x08,
+    TcpSyn = 0x10,
 }

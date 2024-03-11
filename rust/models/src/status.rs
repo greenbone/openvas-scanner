@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use super::host_info::HostInfo;
 
@@ -59,6 +59,22 @@ pub enum Phase {
 impl Phase {
     pub fn is_running(&self) -> bool {
         matches!(self, Self::Running | Self::Requested)
+    }
+}
+
+impl FromStr for Phase {
+    type Err = ();
+
+    fn from_str(status: &str) -> Result<Phase, ()> {
+        match status {
+            "requested" => Ok(Phase::Requested),
+            "running" => Ok(Phase::Running),
+            "stopped" => Ok(Phase::Stopped),
+            "failed" => Ok(Phase::Failed),
+            "succeeded" => Ok(Phase::Succeeded),
+            "stored" => Ok(Phase::Stored),
+            _ => Err(()),
+        }
     }
 }
 

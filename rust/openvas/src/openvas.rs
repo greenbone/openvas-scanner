@@ -3,16 +3,30 @@ use models::{
     scanner::{
         Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
     },
-    Scan,
+    HostInfo, Phase, Scan, Status,
 };
-use std::{collections::HashMap, process::Child, sync::Mutex};
+use redis_storage::{NameSpaceSelector, RedisCtx};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    process::Child,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
-use crate::{cmd, error::OpenvasError};
+use crate::{
+    cmd,
+    error::OpenvasError,
+    openvas_redis::{KbAccess, RedisHelper},
+    pref_handler::PreferenceHandler,
+    result_collector::ResultHelper,
+};
 
 #[derive(Debug)]
 pub struct Scanner {
-    running: Mutex<HashMap<String, Child>>,
+    running: Mutex<HashMap<String, (Child, u32)>>,
     sudo: bool,
+    redis_socket: String,
 }
 
 impl From<OpenvasError> for ScanError {
@@ -21,11 +35,60 @@ impl From<OpenvasError> for ScanError {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum OpenvasPhase {
+    /// The information in the kb is just stored for openvas
+    New,
+    /// Openvas is ready and running
+    Ready,
+    /// Openvas scan has finished
+    Finished,
+    /// Openvas task has been stopped
+    Stopped,
+}
+
+impl Display for OpenvasPhase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::New => write!(f, "requested"),
+            Self::Ready => write!(f, "running"),
+            Self::Stopped => write!(f, "stopped"),
+            Self::Finished => write!(f, "failed"),
+        }
+    }
+}
+
+impl FromStr for OpenvasPhase {
+    type Err = ();
+
+    fn from_str(status: &str) -> Result<OpenvasPhase, ()> {
+        match status {
+            "new" => Ok(OpenvasPhase::New),
+            "ready" => Ok(OpenvasPhase::Ready),
+            "stopped" => Ok(OpenvasPhase::Stopped),
+            "finished" => Ok(OpenvasPhase::Finished),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<OpenvasPhase> for Phase {
+    fn from(p: OpenvasPhase) -> Phase {
+        match p {
+            OpenvasPhase::New => Phase::Requested,
+            OpenvasPhase::Ready => Phase::Running,
+            OpenvasPhase::Finished => Phase::Succeeded,
+            OpenvasPhase::Stopped => Phase::Stopped,
+        }
+    }
+}
+
 impl Scanner {
     pub fn with_sudo_enabled() -> Self {
         Self {
             running: Default::default(),
             sudo: true,
+            redis_socket: String::new(),
         }
     }
 
@@ -33,18 +96,36 @@ impl Scanner {
         Self {
             running: Default::default(),
             sudo: false,
+            redis_socket: String::new(),
         }
     }
     /// Removes a scan from init and add it to the list of running scans
-    fn add_running(&self, id: String) -> Result<bool, OpenvasError> {
+    fn add_running(&self, id: String, dbid: u32) -> Result<bool, OpenvasError> {
         let openvas = cmd::start(&id, self.sudo, None).map_err(OpenvasError::CmdError)?;
-        self.running.lock().unwrap().insert(id, openvas);
+        self.running.lock().unwrap().insert(id, (openvas, dbid));
         Ok(true)
     }
 
     /// Remove a scan from the list of running scans and returns the process to able to tidy up
-    fn remove_running(&self, id: &str) -> Option<Child> {
+    fn remove_running(&self, id: &str) -> Option<(Child, u32)> {
         self.running.lock().unwrap().remove(id)
+    }
+
+    fn create_redis_connector(&self, dbid: Option<u32>) -> RedisHelper<RedisCtx> {
+        let namespace = match dbid {
+            Some(id) => [NameSpaceSelector::Fix(id)],
+            None => [NameSpaceSelector::Free],
+        };
+
+        let kbctx = Arc::new(Mutex::new(
+            RedisCtx::open(&self.redis_socket, &namespace)
+                .expect("Not possible to connect to Redis"),
+        ));
+        let nvtcache = Arc::new(Mutex::new(
+            RedisCtx::open(&self.redis_socket, &[NameSpaceSelector::Key("nvticache")])
+                .expect("Not possible to connect to Redis"),
+        ));
+        RedisHelper::<RedisCtx>::new(nvtcache, kbctx)
     }
 }
 
@@ -53,22 +134,29 @@ impl Default for Scanner {
         Self {
             running: Default::default(),
             sudo: cmd::check_sudo(),
+            redis_socket: cmd::get_redis_socket(),
         }
     }
 }
 #[async_trait]
 impl ScanStarter for Scanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), ScanError> {
-        // TODO: Create new DB for Scan
-        // TODO: Add Scan ID to DB
-        // TODO: Prepare Target (hosts, ports, credentials)
-        // TODO: Prepare Plugins
-        // TODO: Prepare main kbindex
-        // TODO: Prepare host options
-        // TODO: Prepare scan params
-        // TODO: Prepare reverse lookup option (maybe part of target)
-        // TODO: Prepare alive test option (maybe part of target)
-        self.add_running(scan.scan_id)?;
+        // Prepare the connections to redis for communication with openvas.
+        let mut redis_help = self.create_redis_connector(None);
+
+        // Prepare preferences and store them in redis
+        let mut pref_handler = PreferenceHandler::new(scan.clone(), &mut redis_help);
+        match pref_handler.prepare_preferences_for_openvas().await {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(ScanError::Unexpected(e.to_string()));
+            }
+        }
+
+        self.add_running(
+            scan.scan_id,
+            redis_help.kb_id().expect("Valid Redis context"),
+        )?;
 
         return Ok(());
     }
@@ -84,10 +172,8 @@ impl ScanStopper for Scanner {
     {
         let scan_id = id.as_ref();
 
-        // TODO: Set stop scan flag in redis?
-
-        let mut scan = match self.remove_running(scan_id) {
-            Some(scan) => scan,
+        let (mut scan, dbid) = match self.remove_running(scan_id) {
+            Some(scan) => (scan.0, scan.1),
             None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
         };
 
@@ -97,7 +183,13 @@ impl ScanStopper for Scanner {
             .map_err(OpenvasError::CmdError)?;
 
         scan.wait().map_err(OpenvasError::CmdError)?;
-        // TODO: Clean redis DB
+
+        // Release the task kb
+        let mut redis_help = self.create_redis_connector(Some(dbid));
+        redis_help
+            .release()
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+
         Ok(())
     }
 }
@@ -105,22 +197,150 @@ impl ScanStopper for Scanner {
 /// Deletes a scan
 #[async_trait]
 impl ScanDeleter for Scanner {
-    async fn delete_scan<I>(&self, _id: I) -> Result<(), ScanError>
+    async fn delete_scan<I>(&self, id: I) -> Result<(), ScanError>
     where
         I: AsRef<str> + Send + 'static,
     {
-        // already deleted on stop?
-        Ok(())
+        let scan_id = id.as_ref();
+
+        let dbid = match self
+            .running
+            .lock()
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?
+            .get(scan_id)
+        {
+            Some(scan) => scan.1,
+            None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+        };
+
+        let mut redis_help = self.create_redis_connector(Some(dbid));
+        let mut ov_results = ResultHelper::init(&mut redis_help);
+        ov_results
+            .collect_scan_status(scan_id.to_string())
+            .await
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+
+        let mut scan_status = Phase::Running;
+        if let Ok(res) = Arc::as_ref(&ov_results.results).lock() {
+            scan_status = OpenvasPhase::from_str(&res.scan_status)
+                .map_err(|_| {
+                    ScanError::Unexpected(format!("Invalid Phase status {}", res.scan_status))
+                })?
+                .into();
+        }
+
+        match scan_status {
+            Phase::Running => {
+                return Err(ScanError::Unexpected(format!(
+                    "Not allowed to delete a running scan {}",
+                    scan_id
+                )))
+            }
+            _ => match self.remove_running(scan_id) {
+                Some(_) => {
+                    redis_help
+                        .release()
+                        .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+                    tracing::debug!("Scan {scan_id} delete successfully");
+                    Ok(())
+                }
+                None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+            },
+        }
     }
 }
 
 #[async_trait]
 impl ScanResultFetcher for Scanner {
     /// Fetches the results of a scan and combines the results with response
-    async fn fetch_results<I>(&self, _id: I) -> Result<ScanResults, ScanError>
+    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, ScanError>
     where
         I: AsRef<str> + Send + 'static,
     {
-        todo!()
+        let scan_id = id.as_ref();
+
+        let dbid = match self
+            .running
+            .lock()
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?
+            .get(scan_id)
+        {
+            Some(scan) => scan.1,
+            None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+        };
+
+        let mut redis_help = self.create_redis_connector(Some(dbid));
+        let mut ov_results = ResultHelper::init(&mut redis_help);
+
+        ov_results
+            .collect_results()
+            .await
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+        ov_results
+            .collect_host_status()
+            .await
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+        ov_results
+            .collect_scan_status(scan_id.to_string())
+            .await
+            .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+
+        match Arc::as_ref(&ov_results.results).lock() {
+            Ok(all_results) => {
+                //let all_results = all_r.clone();
+                let hosts_info = HostInfo {
+                    all: all_results.count_total as u32,
+                    excluded: all_results.count_excluded as u32,
+                    dead: all_results.count_dead as u32,
+                    alive: all_results.count_alive as u32,
+                    queued: 0,
+                    finished: all_results.count_alive as u32,
+                    scanning: Some(all_results.host_status.clone()),
+                };
+
+                let status: Phase = OpenvasPhase::from_str(&all_results.scan_status)
+                    .map_err(|_| {
+                        ScanError::Unexpected(format!(
+                            "Invalid Phase status {}",
+                            all_results.scan_status
+                        ))
+                    })?
+                    .into();
+                let st = Status {
+                    start_time: None,
+                    end_time: None,
+                    status: status.clone(),
+                    host_info: Some(hosts_info),
+                };
+
+                let scan_res = ScanResults {
+                    id: scan_id.to_string(),
+                    status: st,
+                    results: all_results
+                        .results
+                        .iter()
+                        .map(|r| models::Result::from(r).clone())
+                        .collect(),
+                };
+
+                // If the scan finished, release
+                if status == Phase::Succeeded {
+                    let mut scan = match self.remove_running(scan_id) {
+                        Some(scan) => scan.0,
+                        None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+                    };
+
+                    scan.wait().map_err(OpenvasError::CmdError)?;
+
+                    redis_help
+                        .release()
+                        .map_err(|e| ScanError::Unexpected(e.to_string()))?;
+                    self.running.lock().unwrap().remove(scan_id);
+                }
+
+                return Ok(scan_res);
+            }
+            Err(_) => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
+        };
     }
 }

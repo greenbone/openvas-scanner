@@ -505,7 +505,7 @@ impl Config {
         if let Some(max_queued_scans) = cmds.get_one::<usize>("max-queued-scans") {
             config.scheduler.max_queued_scans = Some(*max_queued_scans)
         }
-        if let Some(max_running_scans) = cmds.get_one::<usize>("max_running_scans") {
+        if let Some(max_running_scans) = cmds.get_one::<usize>("max-running-scans") {
             config.scheduler.max_running_scans = Some(*max_running_scans)
         }
         if let Some(min_free_mem) = cmds.get_one::<u64>("min-free-mem") {
