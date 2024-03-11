@@ -1,6 +1,6 @@
 # openvasd contains several modes to control the behaviour of it.
 # Service enables nasl and notus feed observations all endpoints.
-# mode = "service"
+mode = "service"
 # Notus disables /scan endpoints and just observes the notus feed.
 # mode = "service_notus"
 
@@ -14,6 +14,12 @@ signature_check = true
 # how often the feed should be checked for updates
 secs = 3600
 nanos = 0
+
+[notus]
+# path to the notus feed. This is required for the /notus endpoint.
+products_path = "/var/lib/notus/products/"
+# path to the notus advisories feed. This is required for the /vts endpoint.
+advisories_path = "/var/lib/notus/advisories/"
 
 [endpoints]
 # enables GET /scans endpoint
@@ -80,9 +86,16 @@ path = "/var/lib/openvasd/storage"
 # Sets the key used to ecrypt the storage data. It is recommended to set it via the `STORAGE_KEY` environment variable.
 #key = "changeme"
 
+[scheduler]
+# Sets the maximum number scans that can be queued at once. If not set, there is no limit.
+# max_queued_scans = 10
+# Sets the maximum number of scans that can run in parallel. If the maximum number is reached,
+# queued scans remain in the queue.  If not set, there is no limit.
+# max_running_scans = 10
+# Minimum memory that must be available in order to start a scan.  If not set, there is no limit.
+# min_free_mem = 2147483648 # 2GiB
 
-[notus]
-# path to the notus feed. This is required for the /notus endpoint.
-products_path = "/var/lib/notus/products/"
-# path to the notus advisories feed. This is required for the /vts endpoint.
-advisories_path = "/var/lib/notus/advisories/"
+[scheduler.check_interval]
+# Iteration interval for the scheduler
+secs = 0
+nanos = 500000000
