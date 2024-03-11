@@ -912,22 +912,23 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
     }
 }
 
-static void
+static int
 apply_hosts_excluded (gvm_hosts_t *hosts)
 {
   const char *exclude_hosts = prefs_get ("exclude_hosts");
-
+  int ret = 0;
   /* Exclude hosts ? */
   if (exclude_hosts)
     {
       /* Exclude hosts, resolving hostnames. */
-      int ret = gvm_hosts_exclude (hosts, exclude_hosts);
+      ret = gvm_hosts_exclude (hosts, exclude_hosts);
 
       if (ret > 0)
         g_message ("exclude_hosts: Skipped %d host(s).", ret);
       if (ret < 0)
         g_message ("exclude_hosts: Error.");
     }
+  return ret;
 }
 
 #ifdef FEATURE_HOSTS_ALLOWED_ONLY
@@ -1279,15 +1280,22 @@ attack_network (struct scan_globals *globals)
   apply_hosts_allow_deny (hosts);
 #endif
 
+  // Remove the excluded hosts
+  int exc = apply_hosts_excluded (hosts);
+
+  /* Send the excluded hosts count to the client, after removing duplicated and
+   * unresolved hosts.*/
+  sprintf (buf, "%d", exc + already_excluded);
+  connect_main_kb (&main_kb);
+  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_EXCLUDED");
+  kb_lnk_reset (main_kb);
+
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  sprintf (buf, "%d", gvm_hosts_count (hosts) + already_excluded);
+  sprintf (buf, "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
-
-  // Remove the excluded hosts
-  apply_hosts_excluded (hosts);
 
   host = gvm_hosts_next (hosts);
   if (host == NULL)
