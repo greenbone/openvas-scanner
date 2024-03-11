@@ -431,7 +431,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
     }
   nvticache_reset ();
 
-  /* Init MQTT communication */
+  /* Init Notus communication */
   openvasd_server_uri = prefs_get ("openvasd_server");
   if (openvasd_server_uri)
     {
@@ -460,6 +460,12 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
               g_message ("%s: INIT MQTT: SUCCESS", __func__);
               prefs_set ("mqtt_enabled", "yes");
             }
+        }
+      else
+        {
+          g_message ("%s: Neither openvasd_server nor mqtt_server_uri given, "
+                     "LSC disabled",
+                     __func__);
         }
     }
 
