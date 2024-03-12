@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 use std::num::ParseIntError;
 pub(crate) fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
     (0..s.len())
