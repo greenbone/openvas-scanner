@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Replaces the function calls within a feed.
 
 use std::error::Error;

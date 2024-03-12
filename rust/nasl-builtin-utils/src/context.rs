@@ -1,4 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
 // SPDX-License-Identifier: GPL-2.0-or-later
+
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use nasl_syntax::{logger::NaslLogger, Loader, NaslValue, Statement};
