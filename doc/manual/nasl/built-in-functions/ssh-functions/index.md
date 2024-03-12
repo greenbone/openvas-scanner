@@ -24,3 +24,4 @@ Used for SSH connections and interactions
 - **[ssh_shell_read](ssh_shell_read.md)** - read the output of a SSH shell
 - **[ssh_shell_write](ssh_shell_write.md)** - write to a SSH shell
 - **[ssh_userauth](ssh_userauth.md)** - authenticate a user on a SSH connection
+- **[ssh_execute_netconf_subsytem](ssh_execute_netconf_subsytem.md)** - execute the netconf subsystem on the ssh channel
