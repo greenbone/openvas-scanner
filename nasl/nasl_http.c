@@ -99,7 +99,12 @@ _http_req (lex_ctxt *lexic, char *keyword)
       if (hostname == NULL)
         return NULL;
 
-      ua = g_strdup (user_agent_get (lexic->script_infos->ipc_context));
+      if ((user_agent_get (lexic->script_infos->ipc_context, &ua) == -2)
+          && !script_infos->standalone)
+        {
+          g_message ("Not possible to send the User Agent to the host process. "
+                     "Invalid IPC context");
+        }
       /* Servers should not have a problem with port 80 or 443 appended.
        * RFC2616 allows to omit the port in which case the default port for
        * that service is assumed.
