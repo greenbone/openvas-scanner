@@ -599,15 +599,14 @@ impl<'a> Tokenizer<'a> {
         if self.cursor.is_eof() {
             Category::Unclosed(UnclosedCategory::Data)
         } else {
-            let raw = self.code[Range {
+            let mut raw_str = self.code[Range {
                 start,
                 end: self.cursor.len_consumed(),
             }]
-            .as_bytes()
-            .to_vec();
-
+            .to_owned();
+            raw_str = raw_str.replace(r#"\""#, "\"");
             self.cursor.advance();
-            Category::Data(raw)
+            Category::Data(raw_str.as_bytes().to_vec())
         }
     }
     fn may_parse_ipv4(&mut self, base: Base, start: usize) -> Option<Category> {
@@ -956,6 +955,14 @@ mod tests {
             [
                 r"[119, 101, 98, 97, 112, 112, 115, 92, 92, 97, 112, 112, 108, 105, 97, 110, 99, 101, 92, 92]",
             ]
+        );
+    }
+
+    #[test]
+    fn data_escape_quoting() {
+        verify_tokens!(
+            r#"'version=\"1.0\"'"#,
+            [r"[118, 101, 114, 115, 105, 111, 110, 61, 34, 49, 46, 48, 34]",]
         );
     }
 
