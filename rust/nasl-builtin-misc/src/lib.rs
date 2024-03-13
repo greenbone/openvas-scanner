@@ -13,8 +13,7 @@ use std::{
 };
 
 use chrono::{
-    self, DateTime, Datelike, FixedOffset, Local, LocalResult, NaiveDateTime, Offset, TimeZone,
-    Timelike, Utc,
+    self, DateTime, Datelike, FixedOffset, Local, LocalResult, Offset, TimeZone, Timelike, Utc,
 };
 use nasl_syntax::NaslValue;
 
@@ -215,7 +214,7 @@ fn mktime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
     let r_dt = Utc.with_ymd_and_hms(year, mon, mday, hour, min, sec);
     match r_dt {
         LocalResult::Single(x) => Ok(NaslValue::Number(
-            x.naive_local().timestamp() - offset as i64,
+            x.naive_local().and_utc().timestamp() - offset as i64,
         )),
         _ => Ok(NaslValue::Null),
     }
@@ -262,10 +261,10 @@ fn localtime<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functi
         },
         (false, 0) => create_localtime_map(Local::now()),
 
-        (false, secs) => match NaiveDateTime::from_timestamp_opt(secs, 0) {
+        (false, secs) => match DateTime::from_timestamp(secs, 0) {
             Some(dt) => {
                 let offset = chrono::Local::now().offset().fix();
-                let dt: DateTime<FixedOffset> = DateTime::from_naive_utc_and_offset(dt, offset);
+                let dt: DateTime<FixedOffset> = (dt + offset).into();
                 create_localtime_map(dt)
             }
             _ => create_localtime_map(Local::now()),
