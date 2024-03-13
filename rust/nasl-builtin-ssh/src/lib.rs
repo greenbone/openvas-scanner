@@ -1404,10 +1404,7 @@ impl Ssh {
                 }
 
                 match channel.stdin().write(cmd.as_bytes()) {
-                    Ok(_) => {
-                        //let _ = channel.stdin().flush();
-                        Ok(NaslValue::Number(0))
-                    }
+                    Ok(_) => Ok(NaslValue::Number(0)),
                     Err(_) => Ok(NaslValue::Number(-1)),
                 }
             }
