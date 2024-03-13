@@ -128,8 +128,8 @@ jobs:
 
       - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
       - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
-      - run: mv assets/linux/arm64/nasl-cli assets/nasl-cli-aarch64-unknown-linux-gnu
-      - run: mv assets/linux/amd64/nasl-cli assets/nasl-cli-x86_64-unknown-linux-gnu
+      - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
       - run: rm -rf assets/linux
       - run: ls -las assets/
       - name: "sign ${{ env.PROJECT }}"
