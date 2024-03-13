@@ -114,7 +114,6 @@ jobs:
             --current-version ${{ env.LATEST_VERSION }} \
             --next-version ${{ env.NEW_VERSION }} \
             --config changelog.toml \
-            --project $PROJECT \
             --repository $REPOSITORY \
             --versioning-scheme semver \
             -o /tmp/changelog.md   || true
@@ -125,10 +124,15 @@ jobs:
           echo "${{ secrets.token }}" | gh auth login --with-token
           export nrn="v${{ env.NEW_VERSION }}"
           gh release create "$nrn" -F /tmp/changelog.md
+
+      - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
+      - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
+      - run: rm -rf assets/linux
+      - run: ls -las assets/
       - name: "sign ${{ env.PROJECT }}"
         run: |
-          mkdir -p assets
-          ls -las assets/
           export nrn="v${{ env.NEW_VERSION }}"
           export filename="$PROJECT-$nrn"
           curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.zip https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.zip
