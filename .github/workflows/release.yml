@@ -17,6 +17,9 @@ on:
       project:
         required: true
         type: string
+      repository:
+        required: true
+        type: string
     secrets:
       token:
         required: true
@@ -53,6 +56,7 @@ jobs:
       LATEST_VERSION: ${{inputs.latest_version}}
       NEW_VERSION: ${{inputs.new_version}}
       PROJECT: ${{inputs.project}}
+      REPOSITORY: ${{inputs.repository}}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,13 +111,14 @@ jobs:
             --next-version ${{ env.NEW_VERSION }} \
             --config changelog.toml \
             --project $PROJECT \
+            --repository $REPOSITORY \
             --versioning-scheme semver \
             -o /tmp/changelog.md   || true
           # we would rather have empty release notes than no release
           if [ ! -f "/tmp/changelog.md" ]; then
             touch /tmp/changelog.md
           fi
-          echo "${{ secrets.GREENBONE_BOT_TOKEN }}" | gh auth login --with-token
+          echo "${{ secrets.token }}" | gh auth login --with-token
           export nrn="v${{ env.NEW_VERSION }}"
           gh release create "$nrn" -F /tmp/changelog.md
       - name: "sign ${{ env.PROJECT }}"
