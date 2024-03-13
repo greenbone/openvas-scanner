@@ -103,3 +103,5 @@ jobs:
       token: ${{ secrets.GREENBONE_BOT_TOKEN }}
       name: ${{ secrets.GREENBONE_BOT }}
       email: ${{ secrets.GREENBONE_BOT_MAIL }}
+      gpg_key: ${{ secrets.GPG_KEY }}
+      gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
