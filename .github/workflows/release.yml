@@ -27,6 +27,10 @@ on:
         required: true
       email:
         required: true
+      gpg_key:
+        required: true
+      gpg_pass:
+        required: true
 
 
 # This job first determines the target branch of the closed pull request. If the target branch is "main",
@@ -129,8 +133,8 @@ jobs:
           export filename="$PROJECT-$nrn"
           curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.zip https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.zip
           curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.tar.gz https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.tar.gz
-          echo -e "${{ secrets.GPG_KEY }}" > private.pgp
-          echo ${{ secrets.GPG_PASSPHRASE }} | bash .github/sign-assets.sh private.pgp
+          echo -e "${{ secrets.gpg_key }}" > private.pgp
+          echo ${{ secrets.gpg_pass }} | bash .github/sign-assets.sh private.pgp
           rm assets/$filename.zip
           rm assets/$filename.tar.gz
           gh release upload $nrn assets/*
