@@ -1372,8 +1372,13 @@ impl Ssh {
             }
         };
 
+        let binding;
         let cmd = match register.named("cmd") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
+            Some(ContextType::Value(NaslValue::Data(x))) => {
+                binding = x.iter().map(|x| *x as char).collect::<String>();
+                &binding
+            }
             _ => return Err(FunctionErrorKind::from("cmd")),
         };
 
@@ -2005,6 +2010,87 @@ impl Ssh {
         }
     }
 
+    /// NASL NETCONF
+    ///
+
+    /// Execute the NETCONF subsystem on the the ssh channel
+    ///
+    /// nasluparam
+    /// - An SSH session id.
+    /// naslret An int on success or NULL on error.
+    ///
+    /// param[in] lexic Lexical context of NASL interpreter.
+    /// return Session ID on success, NULL on failure.
+    fn nasl_ssh_execute_netconf_subsystem<K>(
+        &self,
+        register: &Register,
+        _ctx: &Context<K>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let positional = register.positional();
+        if positional.is_empty() {
+            return Err(FunctionErrorKind::MissingPositionalArguments {
+                expected: 0,
+                got: 1,
+            });
+        }
+
+        let session_id = match &positional[0] {
+            NaslValue::Number(x) => *x as i32,
+            _ => {
+                return Err(FunctionErrorKind::WrongArgument(
+                    ("Invalid session ID").to_string(),
+                ))
+            }
+        };
+
+        let mut sessions = lock_sessions(&self.sessions)?;
+        match sessions
+            .iter_mut()
+            .enumerate()
+            .find(|(_i, s)| s.session_id == session_id)
+        {
+            Some((_i, session)) => {
+                // new channel
+                let channel = match session.session.new_channel() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        return Err(FunctionErrorKind::Dirty(format!(
+                            "Failed to open a new channel for session ID {}: {}",
+                            session.session_id, e
+                        )));
+                    }
+                };
+
+                match channel.open_session() {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(FunctionErrorKind::Dirty(format!(
+                            "Channel failed to open session for session ID {}: {}",
+                            session.session_id, e
+                        )));
+                    }
+                };
+
+                match channel.request_subsystem("netconf") {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(FunctionErrorKind::Dirty(format!(
+                            "Channel failed to execyte NETCONF subsystem for session ID {}: {}",
+                            session.session_id, e
+                        )));
+                    }
+                };
+
+                session.channel = Some(channel);
+                Ok(NaslValue::Number(session_id as i64))
+            }
+            _ => Err(FunctionErrorKind::Dirty(format!(
+                "Session ID {} not found",
+                session_id
+            ))),
+        }
+    }
+
     fn lookup<K>(key: &str) -> Option<NaslSSHFunction<K>> {
         match key {
             "ssh_connect" => Some(Ssh::nasl_ssh_connect),
@@ -2025,6 +2111,7 @@ impl Ssh {
             "ssh_get_auth_methods" => Some(Ssh::nasl_ssh_get_auth_methods),
             "ssh_get_host_key" => Some(Ssh::nasl_ssh_get_host_key),
             "sftp_enabled_check" => Some(Ssh::nasl_sftp_enabled_check),
+            "ssh_execute_netconf_subsystem" => Some(Ssh::nasl_ssh_execute_netconf_subsystem),
             _ => None,
         }
     }
