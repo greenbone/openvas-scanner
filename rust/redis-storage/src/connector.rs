@@ -612,6 +612,15 @@ impl RedisCtx {
         self.release_namespace()?;
         Ok(())
     }
+
+    /// Clean up the namespace.
+    pub fn flush_namespace(&mut self) -> RedisStorageResult<()> {
+        Cmd::new()
+            .arg("FLUSHDB")
+            .query(&mut self.kb.as_mut().expect("Valid redis connection"))?;
+        Ok(())
+    }
+
     //Wrapper function to avoid accessing kb member directly.
     pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
         self.kb
@@ -676,7 +685,7 @@ where
         selector: &[NameSpaceSelector],
     ) -> RedisStorageResult<PerItemDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
         let cache = Self::init(redis_url, selector)?;
-        cache.reset()?;
+        cache.flushdb()?;
         Ok(PerItemDispatcher::new(cache))
     }
 
@@ -686,6 +695,14 @@ where
             .lock()
             .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
         cache.delete_namespace()
+    }
+
+    /// Reset the NVT Cache. Do not release the namespace. Only ensure it is clean
+    pub fn flushdb(&self) -> RedisStorageResult<()> {
+        let mut cache = Arc::as_ref(&self.cache)
+            .lock()
+            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
+        cache.flush_namespace()
     }
 }
 

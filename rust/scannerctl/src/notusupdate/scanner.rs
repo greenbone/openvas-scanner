@@ -27,7 +27,7 @@ pub fn extend_args(cmd: Command) -> Command {
                     .action(ArgAction::SetTrue),
             )
             .arg(
-                arg!(-l --pkg-list <STRING> "Comma separated list of packages.")
+                arg!(-l --"pkg-list" <STRING> "Comma separated list of packages.")
                     .required_unless_present("input"),
             )
             .arg(Arg::new("os").required(true).action(ArgAction::Append)),
