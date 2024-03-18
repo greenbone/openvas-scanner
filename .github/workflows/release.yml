@@ -66,6 +66,7 @@ jobs:
         with:
           token: ${{ secrets.token }}
           fetch-depth: '0'
+
       - name: set git credentials
         run: |
              git config --global user.email "${{ secrets.email }}"
@@ -77,15 +78,13 @@ jobs:
           git checkout "v${{ env.LATEST_VERSION }}"
           # get just the major version of latest version 
           export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
-          git checkout -b "$BRANCH_NAME"
-          git push origin "$BRANCH_NAME"
+          git checkout -b "$BRANCH_NAME" && git push origin "$BRANCH_NAME" || true
       # create branch of version
+      - uses: greenbone/actions/setup-pontos@v3
       - name: prepare project version ${{ env.RELEASE_REF }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           # jump back for the case that we switched to a tag
           git checkout "${{ env.RELEASE_REF }}"
-          # change version
-          python3 -m pip install pontos
           # ignore failure on setting version
           pontos-version update ${{ env.NEW_VERSION }} || true
           # set app version on chart
@@ -107,7 +106,6 @@ jobs:
         with:
           name: rs-binaries
           path: assets
-      - uses: greenbone/actions/setup-pontos@v3
       - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           pontos-changelog \

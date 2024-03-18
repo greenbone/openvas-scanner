@@ -1,0 +1,20 @@
+name: Labeler
+
+on:
+  pull_request:
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  conventional-commits:
+    name: Add release labels
+    runs-on: ubuntu-latest
+    steps:
+        - name: Report Conventional Commits
+          uses: nichtsfrei/actions/pr-conventional-commit-labeler@main
+          with:
+            token: ${{ github.token }}
+            configuration_toml: release_tag.toml
+
