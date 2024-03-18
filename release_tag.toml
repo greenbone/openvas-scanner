@@ -1,0 +1,21 @@
+# The priority is used when only_highest_priority is set to true
+labels = [
+  { name = "patch_release", priority = 1 },
+  { name = "minor_release", priority = 2 },
+  { name = "major_release", priority = 3 },
+]
+
+# group within groups must be defined in `changelog.toml`
+# label within groups must be defined in `labels`
+groups = [
+  { group = "Added", label = "minor_release" },
+  { group = "Changed", label = "major_release" }, # maybe minor?
+  { group = "Removed", label = "major_release" }, # maybe minor?
+  { group = "Bug Fixes", label = "patch_release" },
+]
+
+# when set to false all unique labels will be set
+# otherwise only one label with the highest priority
+# will be set
+only_highest_priority = true
+
