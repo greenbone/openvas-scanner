@@ -86,7 +86,7 @@ where
             let host_is_dead = value.contains("Host dead") || result_type == "DEADHOST";
             let host_deny = value.contains("Host access denied");
             let start_end_msg = result_type == "HOST_START" || result_type == "HOST_END";
-            let host_count = result_type == "HOST_COUNT";
+            let host_count = result_type == "HOSTS_COUNT";
             let error_msg = result_type == "ERRMSG";
             let excluded_hosts = result_type == "HOSTS_EXCLUDED";
 

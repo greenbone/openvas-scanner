@@ -332,7 +332,7 @@ where
 
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-            format!("excluded_hosts|||{}", excluded_hosts),
+            format!("exclude_hosts|||{}", excluded_hosts),
         )
     }
 
