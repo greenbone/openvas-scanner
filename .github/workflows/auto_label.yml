@@ -8,13 +8,10 @@ permissions:
   contents: read
 
 jobs:
-  conventional-commits:
-    name: Add release labels
+  label:
     runs-on: ubuntu-latest
     steps:
-        - name: Report Conventional Commits
-          uses: nichtsfrei/actions/pr-conventional-commit-labeler@main
+        - uses: nichtsfrei/actions/pr-conventional-commit-labeler@main
           with:
-            token: ${{ github.token }}
             configuration_toml: release_tag.toml
 

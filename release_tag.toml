@@ -1,3 +1,6 @@
+# disables labeling when this label is on a PR
+disable_on = "no_release"
+
 # The priority is used when only_highest_priority is set to true
 labels = [
   { name = "patch_release", priority = 1 },
