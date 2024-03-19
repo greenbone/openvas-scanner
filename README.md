@@ -36,6 +36,12 @@ that you use the Greenbone Enterprise TRIAL, a prepared virtual
 machine with a readily available setup. Information regarding the virtual machine
 is available at <https://www.greenbone.net/en/testnow>.
 
+## Rust Implementation
+
+This repository also consists of a [rust project](rust/README.md) aiming to replace the current scanner stack
+(openvas-scanner, ospd-openvas, notus-scanner). It simplifies the use of the scanner and centralizes
+everything needed for scanning. Currently it uses the openvas-scanner as scan engine.
+
 ## Docker, [Greenbone Community Containers](https://greenbone.github.io/docs/latest/22.4/container/)
 
 If you want to use the docker files provided in this repository you can pull them 

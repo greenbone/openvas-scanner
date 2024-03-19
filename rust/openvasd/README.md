@@ -17,57 +17,8 @@ Create a configuration file under either:
 
 or provide the `-c` flag when starting openvasd.
 
-Configure it like:
+An example can be found [here](../examples/openvasd/config.example.toml)
 
-
-```
-[feed]
-# path to the openvas feed. This is required for the /vts endpoint.
-path = "/var/lib/openvas/plugins"
-signature_check = false
-
-[feed.check_interval]
-# how often the feed should be checked for updates
-secs = 3600
-nanos = 0
-
-[endpoints]
-# enables GET /scans endpoint
-enable_get_scans = true
-# if set it requires `x-api-key` header to use the endpoint
-key = "mtls_is_preferred"
-
-[tls]
-# the server certificate
-certs = "/etc/openvasd/tls/server.pem"
-# server key
-key = "/var/lib/openvasd/tls/server.rsa"
-# dir that contains client certificates. if there are none than every client is
-# allowed to connect otherwise just the clients that have the configured
-# client certificates
-client_certs = "/etc/openvasd/tls/client"
-
-[ospd]
-# path to the unix socket of ospd-openvas
-socket = "/var/run/ospd/ospd.sock"
-
-[ospd.result_check_interval]
-# interval of checking for results for started scans
-secs = 1
-nanos = 0
-
-[listener]
-# ip address and port to listen to
-address = "127.0.0.1:3000"
-
-[log]
-# level of the log messages: TRACE > DEBUG > INFO > WARN > ERROR
-level = "INFO"
-
-[notus]
-# path to the notus feed. This is required for the /notus endpoint.
-product_path = "/var/lib/notus/products/"
-```
 ## Authentication
 
 The API supports two kinds of authentication methods:
@@ -163,6 +114,10 @@ On the client side, you use the client key and the client certificate. An exampl
 
 As can be seen, no CA certificate is used, since instead the client certificate is used on the server side.
 
+## Mode
+
+Openvasd currently supports two operation modes. The `service` mode supports all available endpoints, where the `service_notus` mode only supports the notus related endpoints.
+
 
 # Usage
 
@@ -178,8 +133,12 @@ Options:
           Enable feed signature check
       --feed-check-interval <SECONDS>
           interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=]
-      --products-directory <notus-products>
-          Path containing the Notus products directory [env: NOTUS_SCANNER_PRODUCTS_DIRECTORY=]
+      --advisories <notus-advisories>
+          Path containing the Notus advisories directory [env: NOTUS_ADVISORIES=]
+      --products <notus-products>
+          Path containing the Notus products directory [env: NOTUS_PRODUCTS=]
+      --redis-url <redis-url>
+          Redis url. Either unix:// or redis://
       --tls-certs <tls-certs>
           path to server tls certs [env: TLS_CERTS=]
       --tls-key <tls-key>
@@ -190,6 +149,16 @@ Options:
           enable get scans endpoint [env: ENABLE_GET_SCANS=]
       --api-key <api-key>
           API key that must be set as X-API-KEY header to gain access [env: API_KEY=]
+      --wrapper-type <ospd,openvas>
+          Type of wrapper used to manage scans [env: WRAPPER_TYPE=]
+      --max-queued-scans <max-queued-scans>
+          Maximum number of queued scans [env: MAX_QUEUED_SCANS=]
+      --max-running-scans <max-running-scans>
+          Maximum number of active running scans, omit for no limits [env: MAX_RUNNING_SCANS=]
+      --min-free-mem <min-free-mem>
+          Minimum memory available to start a new scan [env: MIN_FREE_MEMORY=]
+      --check_interval <SECONDS>
+          Check interval of the Scheduler if a new scan can be started [env: SCHEDULER_CHECK_INTERVAL=]
       --ospd-socket <ospd-socket>
           socket to ospd [env: OSPD_SOCKET=]
       --read-timeout <SECONDS>
@@ -206,6 +175,8 @@ Options:
           the password to use for encryption when type is set to fs. If not set the files are not encrypted. [env: STORAGE_KEY=]
   -L, --log-level <log-level>
           Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR [env: OPENVASD_LOG=]
+      --mode <service,service_notus>
+          Sets the openvasd mode [env: OPENVASD_MODE=]
   -h, --help
           Print help
 ```
@@ -216,21 +187,31 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 
 # Options
 
-| Option                   | Long Command            | Short Command | Config Section             | Config Name      | Environment Variable             | Description                                                                                                                                                               | Default Value            |
-| ------------------------ | ----------------------- | ------------- | -------------------------- | ---------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Config Path              | --config                | -c            |                            |                  | OPENVASD_CONFIG                  | Path to toml config file                                                                                                                                                  |                          |
-| Feed Path                | --feed-path             |               | feed                       | path             | FEEED_PATH                       | Path to openvas feed                                                                                                                                                      | /var/lib/openvas/plugins |
-| Feed Signature Check     | --signature-check       | -x            | feed                       | signature_check  |                                  | Enable feed signature check.                                                                                                                                              | false                    |
-| Feed Check Interval      | --feed-check-interval   |               | feed.check_interval        | secs</br>nanos   | FEED_CHECK_INTERVAL              | Interval to check for feed updates in seconds. Using the config file, it can be set in seconds and nanoseconds                                                            | 3600 (seconds)           |
-| TLS Certificates         | --tls-certs             |               | tls                        | certs            | TLS_CERTS                        | Path to server TLS certs file. If none is given, TLS is disabled                                                                                                          |                          |
-| TLS Key                  | --tls-key               |               | tls                        | key              | TLS_KEY                          | Path to server TLS key                                                                                                                                                    |                          |
-| TLS Client Certificates  | --tls-client-certs      |               | tls                        | client_certs     | TLS_CLIENT_CERTS                 | Path to client TLS certs enables mTLS                                                                                                                                     |                          |
-| Enable get scans         | --enable-get-scans      |               | endpoints                  | enable_get_scans | ENABLE_GET_SCANS                 | Enables GET /scans endpoint                                                                                                                                               | false                    |
-| API key                  | --api-key               |               | endpoints                  | key              | API_KEY                          | API key that must be set as X-API-KEY header to gain access. If none is given, api-key authorization is disabled                                                          |                          |
-| OSPD Socket              | --opsd-socket           |               | ospd                       | socket           | OSPD_SOCKET                      | Path to the unix socket of ospd-openvas                                                                                                                                   | /var/run/ospd/ospd.sock  |
-| Socket read timeout      | --read-timeout          |               | ospd.read_timeout          | secs</br>nanos   | READ_TIMEOUT                     | Max time openvasd waits for an ospd-openvas response before returning a 500 code (Internal server error). Using the config file, it can be set in seconds and nanoseconds | Waits forever            |
-| Result Check Interval    | --result-check-interval |               | ospd.result_check_interval | secs</br>nanos   | RESULT_CHECK_INTERVAL            | Interval to check for new results in seconds. Using the config file, it can be set in seconds and nanoseconds                                                             | 1 (second)               |
-| Listening                | --listening             | -l            | listener                   | address          | LISTENING                        | IP address and port to listen to                                                                                                                                          | 127.0.0.1:3000           |
-| Log Level                | --log-level             | -L            | log                        | level            | OPENVASD_LOG                     | Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR                                                                                                    | INFO                     |
-| Notus Products Directory | --products-directory    |               | notus                      | products_path    | NOTUS_SCANNER_PRODUCTS_DIRECTORY | Path to the Notus products directory. This directory contains a .notus file for each supported operating system.                                                          | /var/lib/notus/products  |
-| Help                     | --help                  | -h            |                            |                  |                                  | Print help                                                                                                                                                                |                          |
+| Option                   | Long Command            | Short Command | Config Section                     | Config Name       | Environment Variable     | Description                                                                                                                                                               | Default Value                 |
+| ------------------------ | ----------------------- | ------------- | ---------------------------------- | ----------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Config Path              | --config                | -c            |                                    |                   | OPENVASD_CONFIG          | Path to toml config file                                                                                                                                                  |                               |
+| Feed Path                | --feed-path             |               | feed                               | path              | FEEED_PATH               | Path to openvas feed                                                                                                                                                      | /var/lib/openvas/plugins      |
+| Feed Signature Check     | --feed-signature-check  | -x            | feed                               | signature_check   |                          | Enable feed signature check.                                                                                                                                              | false                         |
+| Feed Check Interval      | --feed-check-interval   |               | feed.check_interval                | secs</br>nanos    | FEED_CHECK_INTERVAL      | Interval to check for feed updates in seconds. Using the config file, it can be set in seconds and nanoseconds                                                            | 3600 (seconds)                |
+| Notus advisories path    | --advisories            |               | notus                              | advisories_path   | NOTUS_ADVISORIES         | Path containing the Notus advisories directory                                                                                                                            | /var/lib/notus/advisories/    |
+| Notus products path      | --products              |               | notus                              | products_path     | NOTUS_PRODUCTS           | Path containing the Notus products                                                                                                                                        | /var/lib/notus/products/      |
+| Redis URL                | --redis-url             |               | storage.redis                      | url               |                          | Redis url. Either unix:// or redis://                                                                                                                                     | redis://localhost:6379        |
+| TLS Certificates         | --tls-certs             |               | tls                                | certs             | TLS_CERTS                | Path to server TLS certs file. If none is given, TLS is disabled                                                                                                          |                               |
+| TLS Key                  | --tls-key               |               | tls                                | key               | TLS_KEY                  | Path to server TLS key                                                                                                                                                    |                               |
+| TLS Client Certificates  | --tls-client-certs      |               | tls                                | client_certs      | TLS_CLIENT_CERTS         | Path to client TLS certs enables mTLS                                                                                                                                     |                               |
+| Enable get scans         | --enable-get-scans      |               | endpoints                          | enable_get_scans  | ENABLE_GET_SCANS         | Enables GET /scans endpoint                                                                                                                                               | false                         |
+| API key                  | --api-key               |               | endpoints                          | key               | API_KEY                  | API key that must be set as X-API-KEY header to gain access. If none is given, api-key authorization is disabled                                                          |                               |
+| Wrapper Type             | --wrapper-type          |               | scanner                            | type              | WRAPPER_TYPE             | Type of wrapper used to manage scans, currently only `OSPD` is available                                                                                                  | OSPD                          |
+| Max queued scans         | --max-queued-scans      |               | scheduler                          | max_queued_scans  | MAX_QUEUED_SCANS         | Maximum number of queued scans, omit for no limits                                                                                                                        |                               |
+| Max running scans        | --max-running-scans     |               | scheduler                          | max_running_scans | MAX_RUNNING_SCANS        | Maximum number of active running scans, omit for no limits                                                                                                                |                               |
+| Min free memory          | --min-free-mem          |               | scheduler                          | min_free_mem      | MIN_FREE_MEMORY          | Minimum memory that must be available in order to start a scan. If not set, there is no limit.                                                                            |                               |
+| Scheduler check interval | --check-interval        |               | scheduler.check_interval           | secs</br>nanos    | SCHEDULER_CHECK_INTERVAL | Iteration interval for the scheduler                                                                                                                                      | secs = 0<br>nanos = 500000000 |
+| OSPD Socket              | --opsd-socket           |               | scanner.ospd                       | socket            | OSPD_SOCKET              | Path to the unix socket of ospd-openvas                                                                                                                                   | /var/run/ospd/ospd.sock       |
+| Socket read timeout      | --read-timeout          |               | scanner.ospd.read_timeout          | secs</br>nanos    | READ_TIMEOUT             | Max time openvasd waits for an ospd-openvas response before returning a 500 code (Internal server error). Using the config file, it can be set in seconds and nanoseconds | Waits forever                 |
+| Result Check Interval    | --result-check-interval |               | scanner.ospd.result_check_interval | secs</br>nanos    | RESULT_CHECK_INTERVAL    | Interval to check for new results in seconds. Using the config file, it can be set in seconds and nanoseconds                                                             | 1 (second)                    |
+| Listening                | --listening             | -l            | listener                           | address           | LISTENING                | IP address and port to listen to                                                                                                                                          | 127.0.0.1:3000                |
+| Storage type             | --storage-type          |               | storage                            | type              | STORAGE_TYPE             | Information can either be stored in memory or on the filesystem                                                                                                           | inmemory                      |
+| Storage path             | --storage-path          |               | storage.fs                         | path              | STORAGE_PATH             | the path that contains the files when type is set to fs                                                                                                                   | /var/lib/openvasd/storage     |
+| Log Level                | --log-level             | -L            | log                                | level             | OPENVASD_LOG             | Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR                                                                                                    | INFO                          |
+| Service mode             | --mode                  |               |                                    | mode              | OPENVASD_MODE            | Sets the openvasd mode, can be either `service` or `service_notus`                                                                                                        | service                       |
+| Help                     | --help                  | -h            |                                    |                   |                          | Print help                                                                                                                                                                |                               |

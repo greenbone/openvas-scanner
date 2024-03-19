@@ -92,7 +92,7 @@ path = "/var/lib/openvasd/storage"
 # Sets the maximum number of scans that can run in parallel. If the maximum number is reached,
 # queued scans remain in the queue.  If not set, there is no limit.
 # max_running_scans = 10
-# Minimum memory that must be available in order to start a scan.  If not set, there is no limit.
+# Minimum memory that must be available in order to start a scan. If not set, there is no limit.
 # min_free_mem = 2147483648 # 2GiB
 
 [scheduler.check_interval]

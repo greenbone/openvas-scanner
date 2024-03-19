@@ -1,6 +1,6 @@
 # scannerctl
 
-Is CLI frontend to use the rust NASL implementation.
+Is CLI frontend to use rust scanner utilities.
 
 Usage: `scannerctl [OPTIONS] <COMMAND>`
 
@@ -70,6 +70,7 @@ Optionally, it is possible to perform a signature verification of the sha256sums
 Notus advisories and VTs can be uploaded independtently using the options `--vts-only` and `--notus-only` respectively. They can not be used together. 
 
 #### transform
+
 Runs nasl scripts in description mode and returns it as a json array into stdout.
 
 
@@ -269,6 +270,29 @@ Options:
   -l, --portlist <FILE>  Path to the port list xml
   -h, --help             Print help
 ```
+
+### notus
+
+Does use notus products to compare packages against known vulnerabilities. It can be used to do a single notus scan by providing a list of packages and an operating system. A notus scan will then lookup the provided packages and compares it version to known vulnerabilities. The results will be printed on the command line.
+
+#### Usage
+
+```text
+does use notus products to compare packages against known vulnerabilities.
+
+Usage: scannerctl notus [OPTIONS] --path <FILE> <os>...
+
+Arguments:
+  <os>...  
+
+Options:
+  -p, --path <FILE>   Path to the product feed.
+  -i, --input         comma separated pkg list from stdin.
+  -l, --pkg <STRING>  Comma separated list of packages.
+  -v, --verbose...    Prints more details while running
+  -h, --help          Print help
+```
+
 ## Build
 
 Run `cargo test` to test and `cargo build --release` to build it.
