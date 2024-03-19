@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use std::fmt::Display;
+use std::time::SystemTime;
 
 use crate::storage::{Error as StorageError, FeedHash};
 use async_trait::async_trait;
@@ -196,7 +197,15 @@ where
                 match self.scanner.start_scan(scan).await {
                     Ok(_) => {
                         tracing::debug!(%scan_id, "started");
-                        running.push(scan_id);
+                        running.push(scan_id.clone());
+                        let mut current_status = self.db.get_status(&scan_id).await?;
+                        current_status.start_time = Some(
+                            SystemTime::now()
+                                .duration_since(SystemTime::UNIX_EPOCH)
+                                .expect("Valid timestamp for start scan")
+                                .as_secs() as u32,
+                        );
+                        self.db.update_status(&scan_id, current_status).await?;
                     }
                     Err(ScanError::Connection(e)) => {
                         tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
@@ -231,14 +240,61 @@ where
             match self.fetch_results(scan_id.clone()).await {
                 // using self.append_fetch_result instead of db to keep track of the status
                 // and may remove them from running.
-                Ok(results) => match self.append_fetched_result(vec![results]).await {
-                    Ok(()) => {
-                        tracing::trace!(%scan_id, "fetched and append results");
+                Ok(mut results) => {
+                    if self.scanner.do_addtion() {
+                        let scan_status = self.db.get_status(&scan_id).await?;
+                        let current_hosts_status = scan_status.host_info.unwrap_or_default();
+                        let mut new_status = results.status.host_info.unwrap_or_default();
+                        // total hosts value is sent once and only once must be updated
+                        if new_status.all == 0 {
+                            new_status.all = current_hosts_status.all;
+                        }
+                        // excluded hosts value is sent once and only once must be updated
+                        if new_status.excluded == 0 {
+                            new_status.excluded = current_hosts_status.excluded;
+                        }
+                        // new dead/alive/finished hosts are found during the scan.
+                        // the new count must be added to the previous one
+                        new_status.dead += current_hosts_status.dead;
+                        new_status.alive += current_hosts_status.alive;
+                        new_status.finished += current_hosts_status.finished;
+
+                        //Update each single host status. Remove it if finished.
+                        let mut hs = current_hosts_status.scanning.unwrap_or_default().clone();
+                        for (host, progress) in
+                            new_status.scanning.clone().unwrap_or_default().iter()
+                        {
+                            if *progress == 100 || *progress == -1 {
+                                hs.remove(host);
+                            } else {
+                                hs.insert(host.to_string(), *progress);
+                            }
+                        }
+                        new_status.scanning = Some(hs);
+
+                        // update the hosts stauts into the result before storing
+                        results.status.host_info = Some(new_status);
+                        results.status.end_time = scan_status.end_time;
+                        results.status.start_time = scan_status.start_time;
+                        match self.append_fetched_result(vec![results]).await {
+                            Ok(()) => {
+                                tracing::trace!(%scan_id, "fetched and append results");
+                            }
+                            Err(e) => {
+                                tracing::warn!(%scan_id, %e, "unable to append results");
+                            }
+                        };
+                    } else {
+                        match self.append_fetched_result(vec![results]).await {
+                            Ok(()) => {
+                                tracing::trace!(%scan_id, "fetched and append results");
+                            }
+                            Err(e) => {
+                                tracing::warn!(%scan_id, %e, "unable to append results");
+                            }
+                        }
                     }
-                    Err(e) => {
-                        tracing::warn!(%scan_id, %e, "unable to append results");
-                    }
-                },
+                }
                 Err(e) => {
                     tracing::warn!(%scan_id, %e, "unable to fetch results");
                 }
@@ -302,6 +358,13 @@ where
                 }
                 let mut current_status = self.db.get_status(&cid).await?;
                 current_status.status = Phase::Stopped;
+                current_status.end_time = Some(
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .expect("Valid timestamp for start scan")
+                        .as_secs() as u32,
+                );
+
                 self.db.update_status(&cid, current_status).await?;
                 Ok(())
             }

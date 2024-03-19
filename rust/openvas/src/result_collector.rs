@@ -198,12 +198,11 @@ where
 
             if host_progress == -1 {
                 new_dead += 1;
-                all_hosts.remove(current_host);
-            } else if host_progress < 100 {
-                all_hosts.insert(current_host.to_string(), host_progress);
             } else if host_progress == 100 {
                 new_alive += 1;
-                all_hosts.remove(current_host);
+                all_hosts.insert(current_host.to_string(), host_progress);
+            } else if host_progress < 100 {
+                all_hosts.insert(current_host.to_string(), host_progress);
             }
 
             tracing::debug!("Host {} has progress: {}", current_host, host_progress);

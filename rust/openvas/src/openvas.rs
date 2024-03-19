@@ -347,4 +347,8 @@ impl ScanResultFetcher for Scanner {
             Err(_) => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
         };
     }
+
+    fn do_addtion(&self) -> bool {
+        true
+    }
 }

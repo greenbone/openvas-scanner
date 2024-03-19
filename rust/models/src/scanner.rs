@@ -51,6 +51,10 @@ pub trait ScanResultFetcher {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static;
+
+    fn do_addtion(&self) -> bool {
+        false
+    }
 }
 
 /// Is a scanner implementation primarily for testing purposes.
