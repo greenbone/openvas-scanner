@@ -198,14 +198,6 @@ where
                     Ok(_) => {
                         tracing::debug!(%scan_id, "started");
                         running.push(scan_id.clone());
-                        let mut current_status = self.db.get_status(&scan_id).await?;
-                        current_status.start_time = Some(
-                            SystemTime::now()
-                                .duration_since(SystemTime::UNIX_EPOCH)
-                                .expect("Valid timestamp for start scan")
-                                .as_secs() as u32,
-                        );
-                        self.db.update_status(&scan_id, current_status).await?;
                     }
                     Err(ScanError::Connection(e)) => {
                         tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
@@ -246,7 +238,7 @@ where
                         let current_hosts_status = scan_status.host_info.unwrap_or_default();
                         let mut new_status = results.status.host_info.unwrap_or_default();
                         // total hosts value is sent once and only once must be updated
-                        if new_status.all == 0 {
+                        if current_hosts_status.all != 0 {
                             new_status.all = current_hosts_status.all;
                         }
                         // excluded hosts value is sent once and only once must be updated
@@ -274,8 +266,16 @@ where
 
                         // update the hosts stauts into the result before storing
                         results.status.host_info = Some(new_status);
-                        results.status.end_time = scan_status.end_time;
-                        results.status.start_time = scan_status.start_time;
+
+                        // Update start and end time if set from openvas
+                        if scan_status.start_time.is_some() {
+                            results.status.start_time = scan_status.start_time;
+                        }
+
+                        if scan_status.end_time.is_some() {
+                            results.status.end_time = scan_status.end_time;
+                        }
+
                         match self.append_fetched_result(vec![results]).await {
                             Ok(()) => {
                                 tracing::trace!(%scan_id, "fetched and append results");
