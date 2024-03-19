@@ -368,7 +368,7 @@ impl ScanResultFetcher for Scanner {
         };
     }
 
-    fn do_addtion(&self) -> bool {
+    fn do_addition(&self) -> bool {
         true
     }
 }

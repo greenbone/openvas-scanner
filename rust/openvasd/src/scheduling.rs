@@ -233,7 +233,7 @@ where
                 // using self.append_fetch_result instead of db to keep track of the status
                 // and may remove them from running.
                 Ok(mut results) => {
-                    if self.scanner.do_addtion() {
+                    if self.scanner.do_addition() {
                         let scan_status = self.db.get_status(&scan_id).await?;
                         let current_hosts_status = scan_status.host_info.unwrap_or_default();
                         let mut new_status = results.status.host_info.unwrap_or_default();
@@ -361,7 +361,7 @@ where
                 current_status.end_time = Some(
                     SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
-                        .expect("Valid timestamp for start scan")
+                        .expect("Valid timestamp for end scan")
                         .as_secs() as u32,
                 );
 

@@ -52,7 +52,7 @@ pub trait ScanResultFetcher {
     where
         I: AsRef<str> + Send + 'static;
 
-    fn do_addtion(&self) -> bool {
+    fn do_addition(&self) -> bool {
         false
     }
 }

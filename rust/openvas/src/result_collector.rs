@@ -200,10 +200,8 @@ where
                 new_dead += 1;
             } else if host_progress == 100 {
                 new_alive += 1;
-                all_hosts.insert(current_host.to_string(), host_progress);
-            } else if host_progress < 100 {
-                all_hosts.insert(current_host.to_string(), host_progress);
             }
+            all_hosts.insert(current_host.to_string(), host_progress);
 
             tracing::debug!("Host {} has progress: {}", current_host, host_progress);
         }
@@ -248,7 +246,7 @@ mod tests {
             "ERRMSG|||127.0.0.1||| localhost ||||||1.2.3.4.5.6||| NVT timeout".to_string(),
             "ALARM|||127.0.0.1||| example.com |||22/tcp|||12.11.10.9.8.7||| Something wrong|||/var/lib/lib1.jar".to_string(),
             "DEADHOST||| ||| ||| ||| |||3".to_string(),
-            "HOST_COUNT||| ||| ||| ||| |||12".to_string(),
+            "HOSTS_COUNT||| ||| ||| ||| |||12".to_string(),
             "DEADHOST||| ||| ||| ||| |||1".to_string(),
             "HOSTS_EXCLUDED||| ||| ||| ||| |||4".to_string(),
 
@@ -361,6 +359,9 @@ mod tests {
         let mut r = HashMap::new();
         r.insert("127.0.0.1".to_string(), 12);
         r.insert("127.0.0.3".to_string(), 75);
+        r.insert("127.0.0.4".to_string(), 100);
+        r.insert("127.0.0.2".to_string(), -1);
+        r.insert("127.0.0.5".to_string(), -1);
 
         assert_eq!(resh.results.as_ref().lock().unwrap().host_status, r);
         assert_eq!(resh.results.as_ref().lock().unwrap().count_alive, 1);
