@@ -22,7 +22,7 @@ pub fn extend_args(cmd: Command) -> Command {
                     .value_parser(value_parser!(PathBuf)),
             )
             .arg(
-                arg!(-i --input "comma separeated pkg list from stdin.")
+                arg!(-i --input "comma separated pkg list from stdin.")
                     .required(false)
                     .action(ArgAction::SetTrue),
             )
