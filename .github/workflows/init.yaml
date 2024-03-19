@@ -5,6 +5,18 @@ on:
     inputs:
       release:
         type: string
+      ref_type:
+        type: string
+        required: false
+        default: ${{ github.ref_type }}
+      ref_name:
+        type: string
+        required: false
+        default: ${{ github.ref_name }}
+      base_ref:
+        type: string
+        required: false
+        default: ${{ github.base_ref }}
     outputs:
       docker_build_is_latest:
         description: "Is used to set the tags latest and stable"
@@ -50,20 +62,20 @@ jobs:
           fetch-depth: 0
       - name: "set IS_VERSION_TAG"
         run: |
-          echo "IS_VERSION_TAG=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}" >> $GITHUB_ENV
+          echo "IS_VERSION_TAG=${{ inputs.ref_type == 'tag' && startsWith(inputs.ref_name, 'v') }}" >> $GITHUB_ENV
           # set defaults
           echo "IS_LATEST_TAG=false" >> $GITHUB_ENV
       - name: "set IS_LATEST_TAG"
         if: ( env.IS_VERSION_TAG == 'true' )
         run: |
           # find the latest version that is not ourself
-          export LATEST_VERSION=$(git tag -l | grep -v '${{ github.ref_name }}' | sort -r --version-sort | head -n 1)
+          export LATEST_VERSION=$(git tag -l | grep -v '${{ inputs.ref_name }}' | sort -r --version-sort | head -n 1)
           # get major minor patch versions
           IFS='.' read -r latest_major latest_minor latest_patch << EOF
           $LATEST_VERSION
           EOF
           IFS='.' read -r tag_major tag_minor tag_patch << EOF
-          ${{ github.ref_name }}
+          ${{ inputs.ref_name }}
           EOF
           # remove leading v
           latest_major=$(echo $latest_major | cut -c2-)
@@ -83,29 +95,16 @@ jobs:
         run: |
           echo "DOCKER_TAG=$VERSION" >> $GITHUB_ENV
           
-      - name: "set KIND = no_release" 
-        run: echo "KIND=no_release" >> $GITHUB_ENV
-      - name: "override KIND = ${{ inputs.release }}"
-        if: github.event_name == 'workflow_dispatch'
+      - name: "set KIND = ${{ inputs.release }}"
         run: echo "KIND=${{ inputs.release }}" >> $GITHUB_ENV
-      - name: "override KIND = major" 
-        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'major_release')
-        run: echo "KIND=major" >> $GITHUB_ENV
-      - name: "override KIND = minor" 
-        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'minor_release')
-        run: echo "KIND=minor" >> $GITHUB_ENV
-      - name: "override KIND = patch" 
-        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'patch_release')
-        run: echo "KIND=patch" >> $GITHUB_ENV
-      - name: "set RELEASE_REF = ${{ github.ref_name }}"
-        if: github.base_ref == '' 
-        run: echo "RELEASE_REF=${{ github.ref_name }}" >> $GITHUB_ENV
-      - name: "set RELEASE_REF = ${{ github.base_ref }}"
-        if: github.base_ref != '' 
-        run: echo "RELEASE_REF=${{ github.base_ref }}" >> $GITHUB_ENV
+      - name: "set RELEASE_REF = ${{ inputs.ref_name }}"
+        if: inputs.base_ref == '' 
+        run: echo "RELEASE_REF=${{ inputs.ref_name }}" >> $GITHUB_ENV
+      - name: "set RELEASE_REF = ${{ inputs.base_ref }}"
+        if: inputs.base_ref != '' 
+        run: echo "RELEASE_REF=${{ inputs.base_ref }}" >> $GITHUB_ENV
       - name: RELEASE_REF != NULL
         run: ([ -n "${{ env.RELEASE_REF }}" ])
-
       - name: "LATEST_VERSION"
         if: inputs.release != 'no_release'
         run: |

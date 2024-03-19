@@ -11,7 +11,7 @@ jobs:
   label:
     runs-on: ubuntu-latest
     steps:
-        - uses: nichtsfrei/actions/pr-conventional-commit-labeler@main
+        - uses: greenbone/actions/pr-conventional-commit-labeler@add-pr-conventional-commit-labeler
           with:
             configuration_toml: release_tag.toml
 
