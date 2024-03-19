@@ -89,7 +89,7 @@ jobs:
       registry: ${{ vars.IMAGE_REGISTRY }}
   release:
     needs: [smoketests, init]
-    if: ( needs.init.outputs.release_kind == 'major' || needs.init.output.release_kind == 'minor' || needs.init.output.release_kind == 'patch' )
+    if: ( needs.init.outputs.release_kind == 'major' || needs.init.outputs.release_kind == 'minor' || needs.init.outputs.release_kind == 'patch' )
 
     uses: ./.github/workflows/release.yml
     with:
