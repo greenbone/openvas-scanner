@@ -26,10 +26,33 @@ jobs:
   # sets the release kind when it wasn't triggered by an workflow dispatch
   # this prevents us from having to pass down all labels, event_name, etc 
   # to init.yml
+  adapt_release:
+    runs-on: ubuntu-latest
+    outputs:
+      kind: ${{ steps.kind.outputs.kind}}
+    steps:
+      - name: "set KIND = no_release" 
+        run: echo "KIND=no_release" >> $GITHUB_ENV
+      - name: "override KIND = ${{ inputs.release }}"
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "KIND=${{ inputs.release }}" >> $GITHUB_ENV
+      - name: "override KIND = major" 
+        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'major_release')
+        run: echo "KIND=major" >> $GITHUB_ENV
+      - name: "override KIND = minor" 
+        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'minor_release')
+        run: echo "KIND=minor" >> $GITHUB_ENV
+      - name: "override KIND = patch" 
+        if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'patch_release')
+        run: echo "KIND=patch" >> $GITHUB_ENV
+      - id: kind
+        run: |
+          echo "kind=${{ env.KIND }}">> "$GITHUB_OUTPUT"
   init:
+    needs: [adapt_release]
     uses: ./.github/workflows/init.yaml
     with:
-      release: ${{ inputs.release }}
+      release: ${{ needs.adapt_release.outputs.kind }}
   unittests:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
