@@ -17,6 +17,11 @@ on:
     branches: [ main]
     tags: ["v*"]
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
   repository_dispatch:
   schedule:
     # rebuild image every sunday
