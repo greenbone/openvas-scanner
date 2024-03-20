@@ -103,25 +103,13 @@ jobs:
     with:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version}}
-  smoketests:
-    # on a PR we don't push container, therefore this can be skipped
-    if: github.event_name != 'pull_request'
-    needs: [container, init]
-    uses: ./.github/workflows/smoketest.yaml
-    with:
-      docker_repo: ${{ github.repository }}
-      docker_tag: ${{needs.init.outputs.docker_test_tag}}
-  helm:
-    needs: [smoketests]
-    if: vars.IMAGE_REGISTRY != ''
-    uses: ./.github/workflows/push-helm-chart.yml
-    secrets:
-      user: ${{ secrets.GREENBONE_BOT }}
-      token: ${{ secrets.GREENBONE_BOT_PACKAGES_WRITE_TOKEN }}
-    with:
-      registry: ${{ vars.IMAGE_REGISTRY }}
   release:
-    needs: [smoketests, init]
+    # we release after container build so that we can release on a closed pr as we don't push the release container yet
+    # instead it is pushed after the tag is created. Maybe we should either change smoketests to not be dependent on a container push
+    # or push the newest container on release rather than on tag creation.
+    #
+    # For now we just don't use it as a dependency for releases which may is counter intuitive
+    needs: [container, init]
     if: ( needs.init.outputs.release_kind == 'major' || needs.init.outputs.release_kind == 'minor' || needs.init.outputs.release_kind == 'patch' )
 
     uses: ./.github/workflows/release.yml
@@ -138,3 +126,19 @@ jobs:
       email: ${{ secrets.GREENBONE_BOT_MAIL }}
       gpg_key: ${{ secrets.GPG_KEY }}
       gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
+  smoketests:
+    if: github.event_name != 'pull_request' 
+    needs: [container, init]
+    uses: ./.github/workflows/smoketest.yaml
+    with:
+      docker_repo: ${{ github.repository }}
+      docker_tag: ${{needs.init.outputs.docker_test_tag}}
+  helm:
+    needs: [smoketests]
+    if: vars.IMAGE_REGISTRY != ''
+    uses: ./.github/workflows/push-helm-chart.yml
+    secrets:
+      user: ${{ secrets.GREENBONE_BOT }}
+      token: ${{ secrets.GREENBONE_BOT_PACKAGES_WRITE_TOKEN }}
+    with:
+      registry: ${{ vars.IMAGE_REGISTRY }}
