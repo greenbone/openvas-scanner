@@ -31,6 +31,11 @@ jobs:
     outputs:
       kind: ${{ steps.kind.outputs.kind}}
     steps:
+      - name: "Debug"
+        run: | 
+          echo "${{ github.event_name }}"
+          echo "${{ github.pull_request.merged }}"
+          echo "${{ github.pull_request.labels }}"
       - name: "set KIND = no_release" 
         run: echo "KIND=no_release" >> $GITHUB_ENV
       - name: "override KIND = ${{ inputs.release }}"
