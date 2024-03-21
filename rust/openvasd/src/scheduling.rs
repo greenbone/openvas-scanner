@@ -737,6 +737,8 @@ mod tests {
     }
 
     mod start {
+        use crate::storage::ProgressGetter;
+
         use super::*;
 
         #[traced_test]
@@ -798,6 +800,27 @@ mod tests {
             assert!(
                 match scheduler.start_scan_by_id(&scan.scan_id).await {
                     Err(scheduling::Error::QueueFull) => true,
+                    Ok(_) | Err(_) => false,
+                },
+                "should return a QueueFull"
+            );
+        }
+        #[traced_test]
+        #[tokio::test]
+        async fn error_resume_unsupported() {
+            let mut config = config::Scheduler::default();
+            config.max_queued_scans = Some(0);
+            let db = inmemory::Storage::default();
+            let scan = Scan::default();
+            db.insert_scan(scan.clone()).await.unwrap();
+            let mut status = db.get_status("").await.unwrap();
+            status.status = models::Phase::Failed;
+            db.update_status("", status).await.unwrap();
+            let scanner = models::scanner::Lambda::default();
+            let scheduler = Scheduler::new(config, scanner, db);
+            assert!(
+                match scheduler.start_scan_by_id(&scan.scan_id).await {
+                    Err(scheduling::Error::UnsupportedResume) => true,
                     Ok(_) | Err(_) => false,
                 },
                 "should return a QueueFull"
