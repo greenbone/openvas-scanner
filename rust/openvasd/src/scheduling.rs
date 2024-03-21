@@ -32,6 +32,10 @@ pub enum Error {
     Scan(ScanError),
     /// An error occurred while using the DB
     Storage(StorageError),
+    /// Unsupported resume
+    UnsupportedResume,
+    /// A scan ins already finished
+    AlreadyFinished,
 }
 
 impl Display for Error {
@@ -40,9 +44,13 @@ impl Display for Error {
             Error::ScanRunning => write!(f, "scan is already running"),
             Error::ScanAlreadyQueued => write!(f, "scan is already queued"),
             Error::NotFound => write!(f, "scan was not found"),
-            Error::QueueFull => write!(f, "unable to queue scan: queue is already full."),
+            Error::QueueFull => write!(f, "unable to queue scan: queue is already full"),
             Error::Scan(e) => write!(f, "scan error occurred: {}", e),
             Error::Storage(e) => write!(f, "storage error occurred: {}", e),
+            Error::UnsupportedResume => {
+                write!(f, "unable to resume scan: operation not supported")
+            }
+            Error::AlreadyFinished => write!(f, "unable to resume scan: scan already finished"),
         }
     }
 }
@@ -129,8 +137,13 @@ where
         drop(running);
 
         let mut status = self.get_status(id).await?;
-        status.status = Phase::Requested;
-        self.update_status(id, status).await?;
+        match status.status {
+            Phase::Stored => status.status = Phase::Requested,
+            Phase::Requested => return Err(Error::ScanAlreadyQueued),
+            Phase::Running => return Err(Error::ScanRunning),
+            Phase::Stopped | Phase::Failed => return Err(Error::UnsupportedResume),
+            Phase::Succeeded => return Err(Error::AlreadyFinished),
+        }
 
         let mut queued = self.queued.write().await;
         if let Some(max_queuing) = self.config().max_queued_scans {
@@ -141,6 +154,7 @@ where
         if queued.iter().any(|x| x == id) {
             return Err(Error::ScanAlreadyQueued);
         }
+        self.update_status(id, status).await?;
         queued.push(id.to_string());
         Ok(())
     }
