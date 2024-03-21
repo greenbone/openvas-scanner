@@ -21,6 +21,7 @@
 #include "nasl_global_ctxt.h"
 #include "nasl_host.h"
 #include "nasl_http.h"
+#include "nasl_http2.h"
 #include "nasl_isotime.h"
 #include "nasl_lex_ctxt.h"
 #include "nasl_misc_funcs.h"
@@ -120,6 +121,15 @@ static init_func libfuncs[] = {
   {"http_delete", http_delete},
   {"http_put", http_put},
   {"http_close_socket", http_close_socket},
+  {"http2_handle", nasl_http2_handle},
+  {"http2_get_response_code", nasl_http2_get_response_code},
+  {"http2_close_handle", nasl_http2_close_handle},
+  {"http2_set_custom_header", nasl_http2_set_custom_header},
+  {"http2_get", nasl_http2_get},
+  {"http2_head", nasl_http2_head},
+  {"http2_post", nasl_http2_post},
+  {"http2_delete", nasl_http2_delete},
+  {"http2_put", nasl_http2_put},
   {"add_host_name", add_hostname},
   {"get_host_name", get_hostname},
   {"get_host_names", get_hostnames},
