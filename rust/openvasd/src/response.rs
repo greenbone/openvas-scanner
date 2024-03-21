@@ -307,6 +307,13 @@ impl Response {
         self.create(hyper::StatusCode::BAD_REQUEST, &value)
     }
 
+    pub fn not_implemented<T>(&self, value: &T) -> Result
+    where
+        T: ?Sized + Serialize + std::fmt::Debug,
+    {
+        self.create(hyper::StatusCode::NOT_IMPLEMENTED, &value)
+    }
+
     pub fn service_unavailable<T>(&self, value: &T) -> Result
     where
         T: ?Sized + Serialize + std::fmt::Debug,

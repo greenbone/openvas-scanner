@@ -312,6 +312,9 @@ where
                                         "Queue is already full. Try again later.",
                                     ))
                                 }
+                                Err(scheduling::Error::UnsupportedResume) => {
+                                    Ok(ctx.response.not_implemented("Resuming task is currently not possible, please create a new scan excluding the finished hosts."))
+                                }
                                 Err(e) => Ok(ctx.response.internal_server_error(&e)),
                             }
                         }
