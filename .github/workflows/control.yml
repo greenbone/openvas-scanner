@@ -27,6 +27,8 @@ on:
     # rebuild image every sunday
     - cron: "0 0 * * 0"
 
+
+
 jobs:
   # sets the release kind when it wasn't triggered by an workflow dispatch
   # this prevents us from having to pass down all labels, event_name, etc 
@@ -104,6 +106,8 @@ jobs:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version}}
   release:
+    permissions:
+      contents: write
     # we release after container build so that we can release on a closed pr as we don't push the release container yet
     # instead it is pushed after the tag is created. Maybe we should either change smoketests to not be dependent on a container push
     # or push the newest container on release rather than on tag creation.
@@ -121,7 +125,7 @@ jobs:
       project: ${{ needs.init.outputs.release_project }}
       repository: ${{ github.repository }}
     secrets:
-      token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+      token: ${{ secrets.GITHUB_TOKEN }}
       name: ${{ secrets.GREENBONE_BOT }}
       email: ${{ secrets.GREENBONE_BOT_MAIL }}
       gpg_key: ${{ secrets.GPG_KEY }}
@@ -134,11 +138,13 @@ jobs:
       docker_repo: ${{ github.repository }}
       docker_tag: ${{needs.init.outputs.docker_test_tag}}
   helm:
+    permissions:
+      packages: write
     needs: [smoketests]
     if: vars.IMAGE_REGISTRY != ''
     uses: ./.github/workflows/push-helm-chart.yml
     secrets:
       user: ${{ secrets.GREENBONE_BOT }}
-      token: ${{ secrets.GREENBONE_BOT_PACKAGES_WRITE_TOKEN }}
+      token: ${{ secrets.GITHUB_TOKEN }}
     with:
       registry: ${{ vars.IMAGE_REGISTRY }}
