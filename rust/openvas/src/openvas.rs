@@ -16,6 +16,7 @@ use std::{
     process::Child,
     str::FromStr,
     sync::{Arc, Mutex},
+    time::SystemTime,
 };
 
 use crate::{
@@ -310,9 +311,28 @@ impl ScanResultFetcher for Scanner {
                         ))
                     })?
                     .into();
+                let start_time = match status {
+                    Phase::Running => Some(
+                        SystemTime::now()
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .expect("Valid timestamp for start scan")
+                            .as_secs() as u32,
+                    ),
+                    _ => None,
+                };
+                let end_time = match status {
+                    Phase::Failed | Phase::Stopped | Phase::Succeeded => Some(
+                        SystemTime::now()
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .expect("Valid timestamp for start scan")
+                            .as_secs() as u32,
+                    ),
+                    _ => None,
+                };
+
                 let st = Status {
-                    start_time: None,
-                    end_time: None,
+                    start_time,
+                    end_time,
                     status: status.clone(),
                     host_info: Some(hosts_info),
                 };
@@ -346,5 +366,9 @@ impl ScanResultFetcher for Scanner {
             }
             Err(_) => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
         };
+    }
+
+    fn do_addition(&self) -> bool {
+        true
     }
 }

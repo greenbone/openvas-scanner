@@ -332,7 +332,7 @@ where
 
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-            format!("excluded_hosts|||{}", excluded_hosts),
+            format!("exclude_hosts|||{}", excluded_hosts),
         )
     }
 
@@ -580,7 +580,7 @@ mod tests {
         assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
-            .item_exists("internal/123-456/scanprefs", "excluded_hosts|||127.0.0.1"));
+            .item_exists("internal/123-456/scanprefs", "exclude_hosts|||127.0.0.1"));
 
         assert!(prefh.prepare_credentials_for_openvas().await.is_ok());
         assert!(prefh.redis_connector.item_exists(
