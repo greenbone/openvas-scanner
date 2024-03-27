@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use super::{scanner_preference::ScannerPreference, target::Target, vt::VT};
+use super::{scan_preference::ScanPreference, target::Target, vt::VT};
 
 /// Struct for creating and getting a scan
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
@@ -17,9 +17,12 @@ pub struct Scan {
     pub scan_id: String,
     /// Information about the target to scan
     pub target: Target,
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[cfg_attr(
+        feature = "serde_support",
+        serde(default, alias = "scanner_preferences")
+    )]
     /// Configuration options for the scanner
-    pub scanner_preferences: Vec<ScannerPreference>,
+    pub scan_preferences: Vec<ScanPreference>,
     /// List of VTs to execute for the target
     pub vts: Vec<VT>,
 }
