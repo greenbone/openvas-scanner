@@ -78,7 +78,7 @@ pub enum ACT {
 impl FromStr for ACT {
     type Err = StorageError;
 
-    // Iis defined as a numeric value instead of string representations due to downwards compatible reasons.
+    // Is defined as a numeric value instead of string representations due to downwards compatible reasons.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "0" => ACT::Init,
