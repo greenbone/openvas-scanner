@@ -86,11 +86,11 @@ impl TypedValueParser for ScannerType {
         Ok(match value.to_str().unwrap_or_default() {
             "ospd" => ScannerType::OSPD,
             "openvas" => ScannerType::Openvas,
-            _ => {
+            x => {
                 let mut cmd = cmd.clone();
                 let err = cmd.error(
                     clap::error::ErrorKind::InvalidValue,
-                    "`{}` is not a scanner type.",
+                    format!("`{x}` is not a scanner type."),
                 );
                 return Err(err);
             }
@@ -387,6 +387,7 @@ impl Config {
             .arg(
                 clap::Arg::new("redis-url")
                     .long("redis-url")
+                    .env("REDIS_URL")
                     //.value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
                     .help("Redis url. Either unix:// or redis://"))
