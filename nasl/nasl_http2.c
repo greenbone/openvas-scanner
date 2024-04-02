@@ -319,7 +319,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
    */
   if (port != 80 && port != 443)
     {
-      char buf[8];
+      char buf[12];
       snprintf (buf, sizeof (buf), ":%d", port);
       g_string_append (url, buf);
     }
