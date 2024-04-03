@@ -34,6 +34,8 @@ enum HealthOpts {
 enum KnownPaths {
     /// /scans/{id}
     Scans(Option<String>),
+    /// /scans/preferences
+    ScanPreferences,
     /// /scans/{id}/results/{result_id}
     ScanResults(String, Option<String>),
     /// /scans/{id}/status
@@ -72,7 +74,13 @@ impl KnownPaths {
                             ),
                             Some("status") => KnownPaths::ScanStatus(id.to_string()),
                             Some(_) => KnownPaths::Unknown,
-                            None => KnownPaths::Scans(Some(id.to_string())),
+                            None => {
+                                if id == "preferences" {
+                                    KnownPaths::ScanPreferences
+                                } else {
+                                    KnownPaths::Scans(Some(id.to_string()))
+                                }
+                            }
                         },
                         None => KnownPaths::Scans(None),
                     }
@@ -129,6 +137,7 @@ impl Display for KnownPaths {
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
+            KnownPaths::ScanPreferences => write!(f, "/scans/preferences"),
         }
     }
 }
@@ -335,6 +344,9 @@ where
                         Ok(ctx.response.not_found("scans", "all"))
                     }
                 }
+                (&Method::GET, ScanPreferences) => Ok(ctx
+                    .response
+                    .ok_static(crate::preference::PREFERENCES_JSON.as_bytes())),
                 (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
                     Ok((mut scan, _)) => {
                         let credentials = scan

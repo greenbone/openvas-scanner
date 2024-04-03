@@ -1958,6 +1958,7 @@ dependencies = [
  "hyper-rustls 0.26.0",
  "hyper-util",
  "infisto",
+ "lazy_static",
  "models",
  "nasl-interpreter",
  "notus",

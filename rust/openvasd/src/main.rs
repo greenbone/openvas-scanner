@@ -13,6 +13,7 @@ pub mod controller;
 pub mod crypt;
 pub mod feed;
 pub mod notus;
+pub mod preference;
 pub mod request;
 pub mod response;
 mod scheduling;

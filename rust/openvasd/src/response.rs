@@ -263,6 +263,10 @@ impl Response {
         self.create(hyper::StatusCode::OK, value)
     }
 
+    pub fn ok_static(&self, value: &[u8]) -> Result {
+        self.ok_json_response(BodyKind::Binary(value.to_vec().into()))
+    }
+
     pub fn created<T>(&self, value: &T) -> Result
     where
         T: ?Sized + Serialize + std::fmt::Debug,

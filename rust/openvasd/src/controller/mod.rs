@@ -287,6 +287,24 @@ mod tests {
         assert_eq!(resp.headers().get("authentication").unwrap(), "");
     }
 
+    #[tokio::test]
+    async fn get_scan_preferences() {
+        let controller = Arc::new(Context::default());
+        let req = Request::builder()
+            .uri("/scans/preferences")
+            .method(Method::GET)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let cid = Arc::new(ClientIdentifier::Known("42".into()));
+        entrypoint(req, Arc::clone(&controller), cid)
+            .await
+            .unwrap()
+            .into_body()
+            .collect()
+            .await
+            .unwrap();
+    }
+
     async fn get_scan_status<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> crate::response::Result
     where
         S: Scanner + 'static + std::marker::Send + std::marker::Sync,
