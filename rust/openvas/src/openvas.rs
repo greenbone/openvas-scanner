@@ -89,19 +89,19 @@ impl From<OpenvasPhase> for Phase {
 }
 
 impl Scanner {
-    pub fn with_sudo_enabled() -> Self {
+    pub fn with_sudo_enabled(url: String) -> Self {
         Self {
             running: Default::default(),
             sudo: true,
-            redis_socket: String::new(),
+            redis_socket: url,
         }
     }
 
-    pub fn with_sudo_disabled() -> Self {
+    pub fn with_sudo_disabled(url: String) -> Self {
         Self {
             running: Default::default(),
             sudo: false,
-            redis_socket: String::new(),
+            redis_socket: url,
         }
     }
     /// Removes a scan from init and add it to the list of running scans
@@ -122,6 +122,7 @@ impl Scanner {
             None => [NameSpaceSelector::Free],
         };
 
+        tracing::trace!(url = &self.redis_socket, "connecting to redis");
         let kbctx = Arc::new(Mutex::new(
             RedisCtx::open(&self.redis_socket, &namespace)
                 .expect("Not possible to connect to Redis"),
