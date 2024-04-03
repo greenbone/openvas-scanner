@@ -116,7 +116,10 @@ impl Scanner {
         self.running.lock().unwrap().remove(id)
     }
 
-    fn create_redis_connector(&self, dbid: Option<u32>) -> RedisHelper<RedisCtx> {
+    fn create_redis_connector(
+        &self,
+        dbid: Option<u32>,
+    ) -> Result<RedisHelper<RedisCtx>, ScanError> {
         let namespace = match dbid {
             Some(id) => [NameSpaceSelector::Fix(id)],
             None => [NameSpaceSelector::Free],
@@ -124,14 +127,18 @@ impl Scanner {
 
         tracing::trace!(url = &self.redis_socket, "connecting to redis");
         let kbctx = Arc::new(Mutex::new(
-            RedisCtx::open(&self.redis_socket, &namespace)
-                .expect("Not possible to connect to Redis"),
+            match RedisCtx::open(&self.redis_socket, &namespace) {
+                Ok(x) => x,
+                Err(e) => return Err(ScanError::Connection(format!("{e}"))),
+            },
         ));
         let nvtcache = Arc::new(Mutex::new(
-            RedisCtx::open(&self.redis_socket, &[NameSpaceSelector::Key("nvticache")])
-                .expect("Not possible to connect to Redis"),
+            match RedisCtx::open(&self.redis_socket, &[NameSpaceSelector::Key("nvticache")]) {
+                Ok(x) => x,
+                Err(e) => return Err(ScanError::Connection(format!("{e}"))),
+            },
         ));
-        RedisHelper::<RedisCtx>::new(nvtcache, kbctx)
+        Ok(RedisHelper::<RedisCtx>::new(nvtcache, kbctx))
     }
 }
 
@@ -148,7 +155,7 @@ impl Default for Scanner {
 impl ScanStarter for Scanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), ScanError> {
         // Prepare the connections to redis for communication with openvas.
-        let mut redis_help = self.create_redis_connector(None);
+        let mut redis_help = self.create_redis_connector(None)?;
 
         // Prepare preferences and store them in redis
         let mut pref_handler = PreferenceHandler::new(scan.clone(), &mut redis_help);
@@ -191,7 +198,7 @@ impl ScanStopper for Scanner {
         scan.wait().map_err(OpenvasError::CmdError)?;
 
         // Release the task kb
-        let mut redis_help = self.create_redis_connector(Some(dbid));
+        let mut redis_help = self.create_redis_connector(Some(dbid))?;
         redis_help
             .release()
             .map_err(|e| ScanError::Unexpected(e.to_string()))?;
@@ -219,7 +226,7 @@ impl ScanDeleter for Scanner {
             None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
         };
 
-        let mut redis_help = self.create_redis_connector(Some(dbid));
+        let mut redis_help = self.create_redis_connector(Some(dbid))?;
         let mut ov_results = ResultHelper::init(&mut redis_help);
         ov_results
             .collect_scan_status(scan_id.to_string())
@@ -275,7 +282,7 @@ impl ScanResultFetcher for Scanner {
             None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
         };
 
-        let mut redis_help = self.create_redis_connector(Some(dbid));
+        let mut redis_help = self.create_redis_connector(Some(dbid))?;
         let mut ov_results = ResultHelper::init(&mut redis_help);
 
         ov_results
