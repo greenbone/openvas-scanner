@@ -2,5 +2,9 @@
 OpenVAS = "OpenVAS"
 des_ede_cbc_encrypt = "des_ede_cbc_encrypt"
 
+[default.extend-words]
+hd = "hd"
+guid = "guid"
+
 [files]
 extend-exclude = ["osp/tests/response_*.xml", "smoketest/configs/client_sample.cert", "*.notus"]

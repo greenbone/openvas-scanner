@@ -1403,7 +1403,7 @@ impl Ssh {
                     )));
                 }
 
-                match channel.stdin().write(cmd.as_bytes()) {
+                match channel.stdin().write_all(cmd.as_bytes()) {
                     Ok(_) => Ok(NaslValue::Number(0)),
                     Err(_) => Ok(NaslValue::Number(-1)),
                 }
