@@ -130,6 +130,9 @@ jobs:
         if: env.KIND != 'no_release'
         run: |
           echo "NEW_VERSION=$(sh .github/enhance_version.sh ${{ env.LATEST_VERSION }} ${{ env.KIND }})" >> $GITHUB_ENV
+        # if version is set set docker-tag to latest
+        # if not and branch is main then set to edge
+        # if not and branch is not main then set to unknown
       - name: NEW_VERSION != NULL
         if: env.KIND != 'no_release'
         run: ([ -n "${{ env.NEW_VERSION }}" ])
