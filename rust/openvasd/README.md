@@ -215,3 +215,7 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 | Log Level                | --log-level             | -L            | log                                | level             | OPENVASD_LOG             | Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR                                                                                                    | INFO                          |
 | Service mode             | --mode                  |               |                                    | mode              | OPENVASD_MODE            | Sets the openvasd mode, can be either `service` or `service_notus`                                                                                                        | service                       |
 | Help                     | --help                  | -h            |                                    |                   |                          | Print help                                                                                                                                                                |                               |
+
+# Migration from previous OSP commands
+
+In this [page](doc/osp-cmd-equivalence.md) you can find a guide for API usage of previous OSP commands
