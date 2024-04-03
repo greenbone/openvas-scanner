@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use super::{scan_preference::ScanPreference, target::Target, vt::VT};
+use std::collections::HashMap;
+
+use super::{scan_preference::PreferenceValue, target::Target, vt::VT};
 
 /// Struct for creating and getting a scan
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
@@ -22,7 +24,7 @@ pub struct Scan {
         serde(default, alias = "scanner_preferences")
     )]
     /// Configuration options for the scanner
-    pub scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: HashMap<String, PreferenceValue>,
     /// List of VTs to execute for the target
     pub vts: Vec<VT>,
 }

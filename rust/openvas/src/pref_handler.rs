@@ -342,7 +342,7 @@ where
             .scan_preferences
             .clone()
             .iter()
-            .map(|x| format!("{}|||{}", x.id, x.value))
+            .map(|x| format!("{}|||{}", x.0, x.1))
             .collect::<Vec<String>>();
 
         if options.is_empty() {

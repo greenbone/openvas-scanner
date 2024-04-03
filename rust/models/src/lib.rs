@@ -137,20 +137,11 @@ mod tests {
     "reverse_lookup_unify": true,
     "reverse_lookup_only": false
   },
-  "scan_preferences": [
-    {
-      "id": "target_port",
-      "value": "443"
-    },
-    {
-      "id": "use_https",
-      "value": "1"
-    },
-    {
-      "id": "profile",
-      "value": "fast_scan"
-    }
-  ],
+  "scan_preferences": {
+    "target_port": 443,
+    "use_https": true,
+    "cgi_path": "/cgi-bin:/scripts"
+  },
   "vts": [
     {
       "oid": "1.3.6.1.4.1.25623.1.0.10662",

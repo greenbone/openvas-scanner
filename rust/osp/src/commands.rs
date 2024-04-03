@@ -181,14 +181,14 @@ fn write_vts(scan: &Scan, writer: &mut Writer) -> Result<()> {
     })
 }
 
-// In the openvasd API it is called scanner preferences while in the OSP side
+// In the openvasd API it is called scan preferences while in the OSP side
 // it is called scanner parameters.
 fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
     for p in &scan.scan_preferences {
-        writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
-        writer.write_event(Event::Text(BytesText::new(&p.value)))?;
-        writer.write_event(Event::End(BytesEnd::new(&p.id)))?;
+        writer.write_event(Event::Start(BytesStart::new(p.0)))?;
+        writer.write_event(Event::Text(BytesText::new(p.1.to_string().as_str())))?;
+        writer.write_event(Event::End(BytesEnd::new(p.0)))?;
     }
 
     writer.write_event(Event::End(BytesEnd::new("scanner_params")))?;
