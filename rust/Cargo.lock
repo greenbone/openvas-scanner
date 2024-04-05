@@ -1566,6 +1566,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "md4"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7da5ac363534dce5fabf69949225e174fbf111a498bf0ff794c8ea1fba9f3dda"
+dependencies = [
+ "digest",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1628,6 +1637,7 @@ dependencies = [
  "hmac",
  "md-5",
  "md2",
+ "md4",
  "nasl-builtin-utils",
  "nasl-c-lib",
  "nasl-interpreter",
