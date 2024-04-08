@@ -11,7 +11,8 @@ mod tests {
     #[test]
     fn hash_md5() {
         let code = r#"
-        MD5("hola mundo");
+        a = MD5("hola mundo");
+        hexstr(a);
         "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
@@ -23,6 +24,12 @@ mod tests {
             parser.next(),
             Some(Ok(NaslValue::Data(
                 [10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121].to_vec()
+            )))
+        );
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String(
+                "0ad066a5d29f3f2a2a1c7c17dd082a79".to_string()
             )))
         );
     }

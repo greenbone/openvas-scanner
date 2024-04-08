@@ -21,8 +21,8 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
-        assert_eq!(parser.next(), Some(Ok("666F6F".into())));
-        assert_eq!(parser.next(), Some(Ok("666F6F".into())));
+        assert_eq!(parser.next(), Some(Ok("666f6f".into())));
+        assert_eq!(parser.next(), Some(Ok("666f6f".into())));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
     }

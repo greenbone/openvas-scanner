@@ -35,8 +35,7 @@ where
 
     let mut hash = D::new();
     hash.update(data.as_bytes());
-    let fin = NaslValue::Data(hash.finalize().as_slice().to_vec());
-    Ok(fin)
+    Ok(NaslValue::Data(hash.finalize().as_slice().to_vec()))
 }
 
 /// NASL function to get MD2 hash
