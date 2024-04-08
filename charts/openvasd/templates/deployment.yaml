@@ -124,7 +124,12 @@ spec:
           - name: openvas-config
             mountPath: /mnt/ovc
         command: ['sh', '-c']
+        {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
         args: ["sed 's/mqtt_server_uri = .*/openvasd_server = https:\\/\\/localhost:443/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]          
+        {{ else }}
+        args: ["sed 's/mqtt_server_uri = .*/openvasd_server = http:\\/\\/localhost:80/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]          
+        {{ end }}
+
       {{ end }} 
       containers:
       - name: redis
