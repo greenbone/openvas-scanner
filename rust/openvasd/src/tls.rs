@@ -139,7 +139,17 @@ pub fn config_to_tls_paths(
         Some(x) => x,
         None => return Ok(Some((key_path.to_path_buf(), certs.to_path_buf(), vec![]))),
     };
-    let client_certs = std::fs::read_dir(client_certs)?;
+    let client_certs = match std::fs::read_dir(client_certs) {
+        Ok(x) => x,
+        Err(e) => {
+            tracing::warn!(
+                client_certs = ?client_certs,
+                error = ?e,
+                "unable to load client certificates, continuing without them"
+            );
+            return Ok(Some((key_path.to_path_buf(), certs.to_path_buf(), vec![])));
+        }
+    };
     let client_certs = client_certs
         .filter_map(|x| {
             let entry = x.ok()?;
