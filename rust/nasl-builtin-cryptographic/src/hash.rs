@@ -22,19 +22,17 @@ where
 {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::MissingPositionalArguments {
-            expected: 0,
-            got: 1,
-        });
+        return Ok(NaslValue::Null)
     };
     let data = match &positional[0] {
-        NaslValue::String(x) => x,
+        NaslValue::String(x) => x.as_bytes(),
+        NaslValue::Data(x) => x,
         NaslValue::Null => return Ok(NaslValue::Null),
         x => return Err(("data", "string", x).into()),
     };
 
     let mut hash = D::new();
-    hash.update(data.as_bytes());
+    hash.update(data);
     Ok(NaslValue::Data(hash.finalize().as_slice().to_vec()))
 }
 
