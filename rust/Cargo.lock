@@ -1815,6 +1815,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "nasl-builtin-http2"
+version = "0.1.0"
+dependencies = [
+ "h2 0.4.4",
+ "http 1.1.0",
+ "nasl-builtin-utils",
+ "nasl-interpreter",
+ "nasl-syntax",
+ "rustls 0.23.5",
+ "rustls-pemfile 2.1.2",
+ "storage",
+ "tokio",
+ "tokio-rustls 0.26.0",
+]
+
+[[package]]
 name = "nasl-builtin-knowledge-base"
 version = "0.1.0"
 dependencies = [
@@ -1873,6 +1889,7 @@ dependencies = [
  "nasl-builtin-cryptographic",
  "nasl-builtin-description",
  "nasl-builtin-host",
+ "nasl-builtin-http2",
  "nasl-builtin-knowledge-base",
  "nasl-builtin-misc",
  "nasl-builtin-raw-ip",
