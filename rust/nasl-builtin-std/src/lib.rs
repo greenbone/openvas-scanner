@@ -75,6 +75,7 @@ pub fn nasl_std_functions<K: AsRef<str>>() -> nasl_builtin_utils::NaslFunctionRe
         .push_register(nasl_builtin_misc::Misc)
         .push_register(nasl_builtin_string::NaslString)
         .push_register(nasl_builtin_host::Host)
+        .push_register(nasl_builtin_http2::NaslHttp2::default())
         .push_register(nasl_builtin_cryptographic::Cryptographic)
         .push_register(nasl_builtin_description::Description);
     builder = add_ssh(builder);
