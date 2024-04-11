@@ -497,7 +497,7 @@ where
     async fn vts<'a>(
         &self,
     ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, StorageError> {
-        self.vts().await
+        self.db.vts().await
     }
 
     async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, StorageError> {
