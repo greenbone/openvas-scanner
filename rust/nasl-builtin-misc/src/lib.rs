@@ -9,7 +9,7 @@ use std::{
     fs::File,
     io::{Read, Write},
     thread,
-    time::{Duration, UNIX_EPOCH},
+    time::{self, Duration, UNIX_EPOCH},
 };
 
 use chrono::{
@@ -294,6 +294,27 @@ where
     })
 }
 
+/// Returns the seconds and microseconds counted from 1st January 1970. It formats a string
+/// containing the seconds separated by a `.` followed by the microseconds.
+///
+/// For example: “1067352015.030757” means 1067352015 seconds and 30757 microseconds.
+fn gettimeofday<K>(_: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind>
+where
+    K: AsRef<str>,
+{
+    match time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH) {
+        Ok(time) => {
+            let time = time.as_micros();
+            Ok(NaslValue::String(format!(
+                "{}.{:06}",
+                time / 1000000,
+                time % 1000000
+            )))
+        }
+        Err(e) => Err(FunctionErrorKind::Dirty(format!("{e}"))),
+    }
+}
+
 /// Returns found function for key or None when not found
 fn lookup<K>(key: &str) -> Option<NaslFunction<K>>
 where
@@ -313,6 +334,7 @@ where
         "gzip" => Some(gzip),
         "gunzip" => Some(gunzip),
         "defined_func" => Some(defined_func),
+        "gettimeofday" => Some(gettimeofday),
         _ => None,
     }
 }
