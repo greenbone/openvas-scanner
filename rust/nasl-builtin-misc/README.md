@@ -17,7 +17,6 @@
 
 ## Missing
 - dump_ctxt
-- index
 - keys
 - make_array
 - make_list
