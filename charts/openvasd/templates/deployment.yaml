@@ -98,7 +98,7 @@ spec:
         volumeMounts:
           - name: openvas-logs
             mountPath: /mnt/ovc
-        command: ['sh', '-c']https://conceptboard.com/blog/dns-outage-management-statement/
+        command: ['sh', '-c']
         args: ["touch /mnt/ovc/openvas.log && chown ospd-openvas:ospd-openvas /mnt/ovc/openvas.log"]
       - name: mqtt-broker-openvas-fix
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
@@ -176,7 +176,7 @@ spec:
               - NET_ADMIN
               - NET_RAW
       {{ else }}
-     # openvas log repliacte
+     # openvas log replicate
       - name: openvas
         image: "{{ .Values.openvas.repository }}:{{ .Values.openvas.tag }}"
         imagePullPolicy: Always

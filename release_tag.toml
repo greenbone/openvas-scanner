@@ -12,8 +12,8 @@ labels = [
 # label within groups must be defined in `labels`
 groups = [
   { group = "Added", label = "minor_release" },
-  { group = "Changed", label = "major_release" }, # maybe minor?
-  { group = "Removed", label = "major_release" }, # maybe minor?
+  { group = "Changed", label = "major_release" },
+  { group = "Removed", label = "major_release" },
   { group = "Bug Fixes", label = "patch_release" },
 ]
 

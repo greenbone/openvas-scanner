@@ -109,8 +109,7 @@ jobs:
     permissions:
       contents: write
     # we release after container build so that we can release on a closed pr as we don't push the release container yet
-    # instead it is pushed after the tag is created. Maybe we should either change smoketests to not be dependent on a container push
-    # or push the newest container on release rather than on tag creation.
+    # instead it is pushed after the tag is created.
     #
     # For now we just don't use it as a dependency for releases which may is counter intuitive
     needs: [container, init]
