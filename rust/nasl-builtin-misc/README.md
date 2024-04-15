@@ -17,11 +17,6 @@
 
 ## Missing
 - dump_ctxt
-- keys
-- make_array
-- make_list
-- max_index
 - open_sock_kdc
 - safe_checks
-- sort
 - unixtime
