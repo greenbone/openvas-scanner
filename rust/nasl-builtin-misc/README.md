@@ -13,10 +13,10 @@
 - gzip
 - gunzip
 - defined_func
+- gettimeofday
 
 ## Missing
 - dump_ctxt
-- gettimeofday
 - index
 - keys
 - make_array
