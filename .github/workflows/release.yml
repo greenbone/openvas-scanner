@@ -103,7 +103,7 @@ jobs:
             git commit -m "Automated commit: change version from ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}"
             git push origin ${{ env.RELEASE_REF }}
           fi
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: rs-binaries
           path: assets
