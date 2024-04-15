@@ -10,7 +10,7 @@ ospd:
 
 # Contains openvasd
 openvas:
-  repository: nichtsfrei/openvas-scanner
+  repository: greenbone/openvas-scanner
   pullPolicy: Always
   tag: "edge"
 
