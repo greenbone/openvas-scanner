@@ -16,7 +16,6 @@
 
 ## Missing
 - dump_ctxt
-- exit
 - gettimeofday
 - index
 - keys
