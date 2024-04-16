@@ -315,6 +315,16 @@ where
     }
 }
 
+/// Is a debug function to print the keys available within the called context. It does not take any
+/// nor returns any arguments.
+fn dump_ctxt<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind>
+where
+    K: AsRef<str>,
+{
+    register.dump(register.index() - 1);
+    Ok(NaslValue::Null)
+}
+
 /// Returns found function for key or None when not found
 fn lookup<K>(key: &str) -> Option<NaslFunction<K>>
 where
@@ -335,6 +345,7 @@ where
         "gunzip" => Some(gunzip),
         "defined_func" => Some(defined_func),
         "gettimeofday" => Some(gettimeofday),
+        "dump_ctxt" => Some(dump_ctxt),
         _ => None,
     }
 }

@@ -187,13 +187,13 @@ impl Register {
         global.add_named(name, value);
     }
 
-    /// Adds a named parameter to the root context
+    /// Adds a named parameter to a specified context
     pub fn add_to_index(&mut self, idx: usize, name: &str, value: ContextType) {
         if idx >= self.blocks.len() {
             panic!("The given index should be retrieved by named_value. Therefore this should not happen.");
         } else {
-            let global = &mut self.blocks[idx];
-            global.add_named(name, value);
+            let ctx = &mut self.blocks[idx];
+            ctx.add_named(name, value);
         }
     }
     /// Adds a named parameter to the last context
@@ -217,6 +217,61 @@ impl Register {
     /// E.g. after a block statement is proceed or a function call is finished.
     pub fn drop_last(&mut self) {
         self.blocks.pop();
+    }
+
+    /// This function extracts number of positional arguments, available functions and varaibles
+    /// and prints them. This function is used as a debugging tool.
+    pub fn dump(&self, index: usize) {
+        match self.blocks.get(index) {
+            Some(mut current) => {
+                let mut vars = vec![];
+                let mut funs = vec![];
+
+                // Get number of positional arguments
+                let num_pos = match current.named(self, FC_ANON_ARGS).map(|(_, val)| val) {
+                    Some(ContextType::Value(NaslValue::Array(arr))) => arr.len(),
+                    _ => 0,
+                };
+
+                // collect all available functions and variables available in current and parrent
+                // context recursively
+                loop {
+                    for (name, ctype) in current.defined.clone() {
+                        if vars.contains(&name) || funs.contains(&name) || name == FC_ANON_ARGS {
+                            continue;
+                        }
+
+                        match ctype {
+                            ContextType::Function(_, _) => funs.push(name),
+                            ContextType::Value(_) => vars.push(name),
+                        };
+                    }
+                    if let Some(parrent) = current.parent {
+                        current = &self.blocks[parrent];
+                    } else {
+                        break;
+                    }
+                }
+
+                // Print all available information
+                println!("--------<CTXT>--------");
+                println!("number of positional arguments: {}", num_pos);
+                println!();
+                println!("available functions:");
+                for function in funs {
+                    print!("{function}\t");
+                }
+                println!();
+                println!();
+                println!("available variables:");
+                for var in vars {
+                    print!("{var}\t");
+                }
+                println!();
+                println!("----------------------");
+            }
+            None => println!("No context available"),
+        };
     }
 }
 
