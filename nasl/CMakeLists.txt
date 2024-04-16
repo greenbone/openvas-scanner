@@ -188,7 +188,7 @@ set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
 set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 # line below is needed so it also works with no-undefined which is e.g. used by Mandriva
-target_link_libraries (openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS}
+target_link_libraries (openvas_nasl_shared openvas_misc_shared pcap ${GLIB_LDFLAGS}
                          ${LIBOPENVAS_MISC_LDFLAGS}
                          ${GLIB_JSON_LDFLAGS} 
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
