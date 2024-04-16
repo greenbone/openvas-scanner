@@ -24,6 +24,7 @@ md-5 = "0.10.5"
 ripemd = "0.1.3"
 sha1 = "0.10.5"
 sha2 = "0.10.6"
+des = "0.8.1"
 
 # depend on c libraries and are considered unstable for now
 nasl-c-lib = {path = "../nasl-c-lib", optional = true}
