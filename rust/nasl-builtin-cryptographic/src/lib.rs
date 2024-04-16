@@ -14,6 +14,7 @@ pub mod aes_cmac;
 pub mod aes_ctr;
 pub mod aes_gcm;
 pub mod aes_gmac;
+pub mod hash;
 pub mod hmac;
 
 enum Crypt {
@@ -35,6 +36,7 @@ where
         .or_else(|| aes_gcm::lookup(function_name))
         .or_else(|| aes_cmac::lookup(function_name))
         .or_else(|| aes_gmac::lookup(function_name))
+        .or_else(|| hash::lookup(function_name))
 }
 
 pub struct Cryptographic;
