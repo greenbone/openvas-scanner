@@ -14,9 +14,8 @@
 - gunzip
 - defined_func
 - gettimeofday
+- dump_ctxt
 
 ## Missing
-- dump_ctxt
 - open_sock_kdc
 - safe_checks
-- unixtime
