@@ -13,6 +13,7 @@ mod tests {
         hexstr('foo', "I will be ignored");
         hexstr(6);
         hexstr();
+        hexstr(raw_string(10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121));
         "#;
         let mut register = Register::default();
         let binding = ContextBuilder::default();
@@ -21,10 +22,17 @@ mod tests {
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
-        assert_eq!(parser.next(), Some(Ok("666F6F".into())));
-        assert_eq!(parser.next(), Some(Ok("666F6F".into())));
+        assert_eq!(parser.next(), Some(Ok("666f6f".into())));
+        assert_eq!(parser.next(), Some(Ok("666f6f".into())));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String(
+                "0ad066a5d29f3f2a2a1c7c17dd082a79".to_string()
+            )))
+        );
+
     }
     #[test]
     fn raw_string() {

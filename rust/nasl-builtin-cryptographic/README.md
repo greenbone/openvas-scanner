@@ -56,19 +56,19 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - HMAC_SHA256
 - HMAC_SHA384
 - HMAC_SHA512
-
-## Not yet implemented
-
-- DES
 - MD2
 - MD4
 - MD5
-- NTLMv1_HASH
-- NTLMv2_HASH
 - RIPEMD160
 - SHA1
 - SHA256
 - SHA512
+
+## Not yet implemented
+
+- DES
+- NTLMv1_HASH
+- NTLMv2_HASH
 - bf_cbc_decrypt
 - bf_cbc_encrypt
 - bn_cmp

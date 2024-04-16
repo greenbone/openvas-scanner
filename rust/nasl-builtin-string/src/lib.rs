@@ -20,7 +20,7 @@ pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
         .collect()
 }
 
-/// Encodes giveen bytes to a hex string
+/// Encodes given bytes to a hex string
 pub fn encode_hex(bytes: &[u8]) -> Result<String, FunctionErrorKind> {
     let mut s = String::with_capacity(bytes.len() * 2);
     for &b in bytes {
@@ -220,13 +220,13 @@ fn hexstr<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionE
     let hexler = |x: &str| -> Result<NaslValue, FunctionErrorKind> {
         let mut s = String::with_capacity(2 * x.len());
         for byte in x.as_bytes() {
-            write!(s, "{byte:02X}")?
+            write!(s, "{byte:02x}")?
         }
         Ok(s.into())
     };
     match positional.first() {
         Some(NaslValue::String(x)) => hexler(x),
-        Some(NaslValue::Data(x)) => hexler(&x.iter().map(|x| *x as char).collect::<String>()),
+        Some(NaslValue::Data(x)) => Ok(NaslValue::String(encode_hex(x)?.to_string())),
         _ => Ok(NaslValue::Null),
     }
 }
