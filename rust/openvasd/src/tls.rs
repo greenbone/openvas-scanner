@@ -137,16 +137,13 @@ pub fn config_to_tls_paths(
     //   .expect("When a tls.key is set, a certificate must be set as well");
     let client_certs = match &config.tls.client_certs {
         Some(x) => x,
-        None => return Ok(Some((key_path.to_path_buf(), certs.to_path_buf(), vec![]))),
+        None => {
+            return Ok(Some((key_path.to_path_buf(), certs.to_path_buf(), vec![])));
+        }
     };
     let client_certs = match std::fs::read_dir(client_certs) {
         Ok(x) => x,
-        Err(e) => {
-            tracing::warn!(
-                client_certs = ?client_certs,
-                error = ?e,
-                "unable to load client certificates, continuing without them"
-            );
+        Err(_) => {
             return Ok(Some((key_path.to_path_buf(), certs.to_path_buf(), vec![])));
         }
     };
@@ -175,6 +172,7 @@ pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Err
         Some(x) => x,
         None => return Ok(None),
     };
+
     let mut roots = RootCertStore::empty();
     for root in clients.iter().flat_map(load_certs).flatten() {
         roots.add(root)?;
@@ -182,17 +180,52 @@ pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Err
     let key = load_private_key(&key)?;
     let certs = load_certs(&certs)?;
 
-    let inner = WebPkiClientVerifier::builder(roots.into()).build()?;
-    let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));
-    let verifier = ClientSnitch::new(inner, client_identifier.clone()).boxed();
+    if !roots.is_empty() {
+        let inner = WebPkiClientVerifier::builder(roots.into()).build()?;
+        let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));
+        let verifier = ClientSnitch::new(inner, client_identifier.clone()).boxed();
 
-    let mut config: ServerConfig = ServerConfig::builder()
-        .with_client_cert_verifier(verifier)
-        .with_single_cert(certs, key)?;
+        let mut config: ServerConfig = ServerConfig::builder()
+            .with_client_cert_verifier(verifier)
+            .with_single_cert(certs, key)?;
 
-    config.alpn_protocols = vec![b"h2".to_vec()];
+        config.alpn_protocols = vec![b"h2".to_vec()];
 
-    Ok(Some((client_identifier, config, !clients.is_empty())))
+        Ok(Some((client_identifier, config, !clients.is_empty())))
+    } else {
+        match &config.tls.client_certs {
+            Some(clicerts) => {
+                match std::fs::read_dir(clicerts) {
+                    Ok(_) => {
+                        tracing::warn!(
+                            client_certs = ?clicerts,
+                            "No valid client certificates found"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            client_certs = ?clicerts,
+                            error = ?e,
+                            "Unable to load client certificates, continuing without them"
+                        );
+                    }
+                };
+            }
+            None => {
+                tracing::info!(
+                    "Client verification disabled"
+                );
+            }
+        };
+        let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));
+        let mut config: ServerConfig = ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(certs, key)?;
+
+        config.alpn_protocols = vec![b"h2".to_vec()];
+
+        Ok(Some((client_identifier, config, !clients.is_empty())))
+    }
 }
 
 fn error(err: String) -> io::Error {
