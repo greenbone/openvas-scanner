@@ -404,6 +404,22 @@ impl<'a> Context<'a> {
     pub fn loader(&self) -> &dyn Loader {
         self.loader
     }
+    /// Get a KB item
+    pub fn get_kb_item(&self, name: &str) -> super::NaslResult {
+        self.retriever()
+            .retrieve(self.key, storage::Retrieve::KB(name.to_string()))
+            .map(|r| {
+                r.into_iter().find_map(|x| match x {
+                    Field::NVT(_) | Field::NotusAdvisory(_) => None,
+                    Field::KB(kb) => kb.value.into(),
+                })
+            })
+            .map(|x| match x {
+                Some(x) => x.into(),
+                None => NaslValue::Null,
+            })
+            .map_err(|e| e.into())
+    }
 }
 
 impl From<&ContextType> for NaslValue {
