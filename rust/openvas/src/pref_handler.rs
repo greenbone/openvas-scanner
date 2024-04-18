@@ -339,10 +339,10 @@ where
     async fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
         let options = self
             .scan_config
-            .scanner_preferences
+            .scan_preferences
             .clone()
             .iter()
-            .map(|x| format!("{}|||{}", x.id, x.value))
+            .map(|x| format!("{}|||{}", x.0, x.1))
             .collect::<Vec<String>>();
 
         if options.is_empty() {

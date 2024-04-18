@@ -11,8 +11,8 @@ mod product;
 mod result;
 mod scan;
 mod scan_action;
+mod scan_preference;
 pub mod scanner;
-mod scanner_preference;
 mod status;
 mod target;
 mod vt;
@@ -26,7 +26,7 @@ pub use product::*;
 pub use result::*;
 pub use scan::*;
 pub use scan_action::*;
-pub use scanner_preference::*;
+pub use scan_preference::*;
 pub use status::*;
 pub use target::*;
 pub use vt::*;
@@ -137,20 +137,11 @@ mod tests {
     "reverse_lookup_unify": true,
     "reverse_lookup_only": false
   },
-  "scanner_preferences": [
-    {
-      "id": "target_port",
-      "value": "443"
-    },
-    {
-      "id": "use_https",
-      "value": "1"
-    },
-    {
-      "id": "profile",
-      "value": "fast_scan"
-    }
-  ],
+  "scan_preferences": {
+    "target_port": 443,
+    "use_https": true,
+    "cgi_path": "/cgi-bin:/scripts"
+  },
   "vts": [
     {
       "oid": "1.3.6.1.4.1.25623.1.0.10662",

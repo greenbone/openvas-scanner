@@ -152,22 +152,22 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ScanID"
       requestBody:
-          description: "The new status"
-          content:
-            application/json:
+        description: "The new status"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Status"
+            examples:
               schema:
-                $ref: "#/components/schemas/Status"
-              examples:
-                schema:
-                  description: "Schema of a status response."
-                status of a stored scan:
-                  $ref: "#/components/examples/scan_status_stored"
-                status of a running scan:
-                  $ref: "#/components/examples/scan_status_running"
-                status of a succeeded scan:
-                  $ref: "#/components/examples/scan_status_success"
-                status of a failed scan:
-                  $ref: "#/components/examples/scan_status_fail"
+                description: "Schema of a status response."
+              status of a stored scan:
+                $ref: "#/components/examples/scan_status_stored"
+              status of a running scan:
+                $ref: "#/components/examples/scan_status_running"
+              status of a succeeded scan:
+                $ref: "#/components/examples/scan_status_success"
+              status of a failed scan:
+                $ref: "#/components/examples/scan_status_fail"
       responses:
         "204":
           description: "Status received"
@@ -228,11 +228,9 @@ components:
           $ref: "#/components/schemas/ScanID"
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
-          description: "Overwrite the default settings of the Scanner."
-          type: "array"
-          items:
-            $ref: "#/components/schemas/ScannerPreference"
+        scan_preferences:
+          description: "Overwrite the default settings for a scan. Setting are id-value pairs."
+          type: "object"
         vts:
           type: "array"
           description: "A collection of VTs, which are run for the given target."
@@ -396,7 +394,7 @@ components:
             - aes
             - des
 
-    ScannerPreference:
+    ScanPreference:
       description: "Consists of a preference ID and its value."
       type: "object"
       properties:
@@ -573,14 +571,10 @@ components:
       items:
         $ref: "#/components/schemas/ScanAction"
 
-
   examples:
     sensor_simple:
       description: "A simple example for sensor."
-      value:
-        {
-          "sensor_id": "6c591f83-8f7b-452a-8c78-ba35779e682f"
-        }
+      value: { "sensor_id": "6c591f83-8f7b-452a-8c78-ba35779e682f" }
     scan_simple:
       description: "A simple example for creating a scan."
       value:
@@ -656,12 +650,12 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
-            [
-              { "id": "target_port", "value": "443" },
-              { "id": "use_https", "value": "1" },
-              { "id": "profile", "value": "fast_scan" },
-            ],
+          "scan_preferences":
+            {
+              "target_port": 443,
+              "use_https": true,
+              "cgi_path": "/cgi-bin:/scripts",
+            },
           "vts":
             [
               {
@@ -677,19 +671,20 @@ components:
       value: "6c591f83-8f7b-452a-8c78-ba35779e682f"
     scan_actions:
       description: "Actions to perform"
-      value: [
+      value:
+        [
           {
             "scan_id": "6c591f83-8f7b-452a-8c78-ba35779e682f",
-            "action": "start"
+            "action": "start",
           },
           {
             "scan_id": "24591f83-8f7b-452a-8c78-ba35779e6816",
-            "action": "stop"
+            "action": "stop",
           },
           {
             "scan_id": "13591f83-8f74-45da-8c7d-ba35779e682a",
-            "action": "delete"
-          }
+            "action": "delete",
+          },
         ]
 
     scan_results:

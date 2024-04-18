@@ -414,11 +414,9 @@ components:
       properties:
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
-          description: "Overwrite the default settings of the Scanner."
-          type: "array"
-          items:
-            $ref: "#/components/schemas/ScannerPreference"
+        scan_preferences:
+          description: "Overwrite the default settings for a scan. Setting are id-value pairs."
+          type: "object"
         vts:
           type: "array"
           description: "A collection of VTs, which are run for the given target."
@@ -445,11 +443,11 @@ components:
           $ref: "#/components/schemas/ScanID"
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
+        scan_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
-            $ref: "#/components/schemas/ScannerPreference"
+            $ref: "#/components/schemas/ScanPreference"
         vts:
           type: "array"
           description: "A collection of VTs, which are run for the given target."
@@ -634,7 +632,7 @@ components:
             - aes
             - des
 
-    ScannerPreference:
+    ScanPreference:
       description: "Consists of a preference ID and its value."
       type: "object"
       properties:
@@ -897,10 +895,7 @@ components:
                   "2002::1234:abcd:ffff:c0a8:101/64",
                   "examplehost",
                 ],
-              "excluded_hosts":
-                [
-                  "192.168.0.14"
-                ],
+              "excluded_hosts": ["192.168.0.14"],
               "ports":
                 [
                   {
@@ -949,12 +944,12 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
-            [
-              { "id": "target_port", "value": "443" },
-              { "id": "use_https", "value": "1" },
-              { "id": "profile", "value": "fast_scan" },
-            ],
+          "scan_preferences":
+            {
+              "target_port": 443,
+              "use_https": true,
+              "cgi_path": "/cgi-bin:/scripts",
+            },
           "vts":
             [
               {
@@ -1030,7 +1025,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
+          "scan_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
