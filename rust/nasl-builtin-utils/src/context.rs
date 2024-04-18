@@ -5,7 +5,7 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use nasl_syntax::{logger::NaslLogger, Loader, NaslValue, Statement};
-use storage::{Dispatcher, Retriever};
+use storage::{Dispatcher, Field, Retriever};
 
 use crate::lookup_keys::FC_ANON_ARGS;
 
@@ -406,6 +406,22 @@ impl<'a, K> Context<'a, K> {
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
+    }
+    /// Get a KB item
+    pub fn get_kb_item(&self, name: &str) -> super::NaslResult {
+        self.retriever()
+            .retrieve(self.key, storage::Retrieve::KB(name.to_string()))
+            .map(|r| {
+                r.into_iter().find_map(|x| match x {
+                    Field::NVT(_) | Field::NotusAdvisory(_) => None,
+                    Field::KB(kb) => kb.value.into(),
+                })
+            })
+            .map(|x| match x {
+                Some(x) => x.into(),
+                None => NaslValue::Null,
+            })
+            .map_err(|e| e.into())
     }
 }
 
