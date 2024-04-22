@@ -137,7 +137,7 @@ mod tests {
     "reverse_lookup_unify": true,
     "reverse_lookup_only": false
   },
-  "scanner_preferences": [
+  "scan_preferences": [
     {
       "id": "target_port",
       "value": "443"

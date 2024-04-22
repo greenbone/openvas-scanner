@@ -431,7 +431,7 @@ components:
       properties:
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
+        scan_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
@@ -462,7 +462,7 @@ components:
           $ref: "#/components/schemas/ScanID"
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
+        scan_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
@@ -990,7 +990,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
+          "scan_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
@@ -1071,7 +1071,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
+          "scan_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
