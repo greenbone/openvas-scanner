@@ -8,10 +8,10 @@
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-pub struct ScannerPreference {
-    /// The ID of the scanner preference.
+pub struct ScanPreference {
+    /// The ID of a scan preference.
     pub id: String,
-    /// The value of the scanner preference.
+    /// The value of the scan preference.
     pub value: String,
 }
 
