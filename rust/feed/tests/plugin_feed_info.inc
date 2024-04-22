@@ -2,7 +2,7 @@
 # Some text descriptions might be excerpted from (a) referenced
 # source(s), and are Copyright (C) by the respective right holder(s).
 #
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 PLUGIN_SET = "202302011009";
 PLUGIN_FEED = "Ziggi Di Mik Mik";
