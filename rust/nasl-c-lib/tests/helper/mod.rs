@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::num::ParseIntError;
 pub(crate) fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
