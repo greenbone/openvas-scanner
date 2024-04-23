@@ -439,9 +439,9 @@ impl NaslHttp2 {
                 Ok(NaslValue::Number(0))
             }
             _ => Err(FunctionErrorKind::Diagnostic(
-                    format!("Handle ID {} not found", handle_id),
-                    Some(NaslValue::Number(-1)),
-                )),
+                format!("Handle ID {} not found", handle_id),
+                Some(NaslValue::Number(-1)),
+            )),
         }
     }
 
@@ -516,9 +516,9 @@ impl NaslHttp2 {
                 Ok(NaslValue::Number(0))
             }
             _ => Err(FunctionErrorKind::Diagnostic(
-                    format!("Handle ID {} not found", handle_id),
-                    Some(NaslValue::Null),
-                )),
+                format!("Handle ID {} not found", handle_id),
+                Some(NaslValue::Null),
+            )),
         }
     }
 
