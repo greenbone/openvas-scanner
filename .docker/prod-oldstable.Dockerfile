@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libcurl4-gnutls-dev \
   libcurl4 \
   libcgreen1-dev \
+  libhiredis-dev \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
@@ -67,6 +68,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libhdb9-heimdal \
   libpopt0 \
   libcurl4 \
+  libhiredis0.14 \
   zlib1g\
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/

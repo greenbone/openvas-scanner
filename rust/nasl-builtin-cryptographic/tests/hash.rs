@@ -33,10 +33,7 @@ mod tests {
                 [10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121].to_vec()
             )))
         );
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Null))
-        );
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
     }
 
     #[test]

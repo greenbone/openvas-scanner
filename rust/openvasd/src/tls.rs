@@ -212,9 +212,7 @@ pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Err
                 };
             }
             None => {
-                tracing::info!(
-                    "Client verification disabled"
-                );
+                tracing::info!("Client verification disabled");
             }
         };
         let client_identifier = Arc::new(RwLock::new(ClientIdentifier::default()));

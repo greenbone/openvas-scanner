@@ -22,7 +22,7 @@ where
 {
     let positional = register.positional();
     if positional.is_empty() {
-        return Ok(NaslValue::Null)
+        return Ok(NaslValue::Null);
     };
     let data = match &positional[0] {
         NaslValue::String(x) => x.as_bytes(),

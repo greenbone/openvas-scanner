@@ -32,7 +32,6 @@ mod tests {
                 "0ad066a5d29f3f2a2a1c7c17dd082a79".to_string()
             )))
         );
-
     }
     #[test]
     fn raw_string() {
