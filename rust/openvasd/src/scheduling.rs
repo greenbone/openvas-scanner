@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::fmt::Display;
 use std::time::SystemTime;
@@ -497,7 +497,7 @@ where
     async fn vts<'a>(
         &self,
     ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, StorageError> {
-        self.vts().await
+        self.db.vts().await
     }
 
     async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, StorageError> {

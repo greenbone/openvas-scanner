@@ -27,6 +27,7 @@ sha2 = "0.10.6"
 
 # depend on c libraries and are considered unstable for now
 nasl-c-lib = {path = "../nasl-c-lib", optional = true}
+md4 = "0.10.2"
 
 [dev-dependencies]
 nasl-interpreter = {path = "../nasl-interpreter"}

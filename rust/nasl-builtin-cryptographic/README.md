@@ -40,26 +40,6 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - aes192_cbc_decrypt
 - aes256_cbc_encrypt
 - aes256_cbc_decrypt
-- HMAC_MD2
-- HMAC_MD5
-- HMAC_RIPEMD160
-- HMAC_SHA1
-- HMAC_SHA256
-- HMAC_SHA384
-- HMAC_SHA512
-
-## Not yet implemented
-
-- DES
-- MD2
-- MD4
-- MD5
-- NTLMv1_HASH
-- NTLMv2_HASH
-- RIPEMD160
-- SHA1
-- SHA256
-- SHA512
 - aes128_ccm_decrypt
 - aes128_ccm_decrypt_auth
 - aes128_ccm_encrypt
@@ -69,6 +49,26 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - aes256_ccm_encrypt
 - aes256_ccm_encrypt_auth
 - aes_mac_gcm
+- HMAC_MD2
+- HMAC_MD5
+- HMAC_RIPEMD160
+- HMAC_SHA1
+- HMAC_SHA256
+- HMAC_SHA384
+- HMAC_SHA512
+- MD2
+- MD4
+- MD5
+- RIPEMD160
+- SHA1
+- SHA256
+- SHA512
+
+## Not yet implemented
+
+- DES
+- NTLMv1_HASH
+- NTLMv2_HASH
 - bf_cbc_decrypt
 - bf_cbc_encrypt
 - bn_cmp
