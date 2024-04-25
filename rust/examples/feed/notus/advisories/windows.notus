@@ -1,0 +1,54 @@
+{
+    "version": "1.2",
+    "spdx-license-identifier": "GPL-2.0-only",
+    "copyright": "Copyright (C) 2008-2024 Greenbone Networks GmbH",
+    "family": "Windows Local Security Checks",
+    "advisories": [
+        {
+            "oid": "1.3.6.1.4.1.25623.1.1.1.1.2024.1000",
+            "title": "Windows: Security Advisory (DSA-137)",
+            "creation_date": 1200605086,
+            "last_modification": 1706776332,
+            "advisory_id": "DSA-137",
+            "advisory_xref": "https://www.debian.org/security/2002/DSA-137",
+            "cves": [
+                "CVE-2002-0658"
+            ],
+            "summary": "The remote host is missing an update for the Debian 'mm' package(s) announced via the DSA-137 advisory.",
+            "insight": "Marcus Meissner and Sebastian Krahmer discovered and fixed a temporary file vulnerability in the mm shared memory library. This problem can be exploited to gain root access to a machine running Apache which is linked against this library, if shell access to the user 'www-data' is already available (which could easily be triggered through PHP).\n\nThis problem has been fixed in the upstream version 1.2.0 of mm, which will be uploaded to the unstable Debian distribution while this advisory is released. Fixed packages for potato (Debian 2.2) and woody (Debian 3.0) are linked below.\n\nWe recommend that you upgrade your libmm packages immediately and restart your Apache server.",
+            "affected": "'mm' package(s) on Debian 3.0.",
+            "xrefs": [
+                "https://security-tracker.debian.org/tracker/DSA-137"
+            ],
+            "qod_type": "package",
+            "severity": {
+                "origin": "NVD",
+                "date": 1072933200,
+                "cvss_v2": "AV:L/AC:H/Au:N/C:C/I:C/A:C"
+            }
+        },
+        {
+            "oid": "1.3.6.1.4.1.25623.1.1.1.1.2024.1001",
+            "title": "Windows: Security Advisory (DSA-139)",
+            "creation_date": 1200605086,
+            "last_modification": 1706776332,
+            "advisory_id": "DSA-139",
+            "advisory_xref": "https://www.debian.org/security/2002/DSA-139",
+            "cves": [
+                "CVE-2002-0817"
+            ],
+            "summary": "The remote host is missing an update for the Debian 'super' package(s) announced via the DSA-139 advisory.",
+            "insight": "GOBBLES found an insecure use of format strings in the super package. The included program super is intended to provide access to certain system users for particular users and programs, similar to the program sudo. Exploiting this format string vulnerability a local user can gain unauthorized root access.\n\nThis problem has been fixed in version 3.12.2-2.1 for the old stable distribution (potato), in version 3.16.1-1.1 for the current stable distribution (woody) and in version 3.18.0-3 for the unstable distribution (sid).\n\nWe recommend that you upgrade your super package immediately.",
+            "affected": "'super' package(s) on Debian 3.0.",
+            "xrefs": [
+                "https://security-tracker.debian.org/tracker/DSA-139"
+            ],
+            "qod_type": "package",
+            "severity": {
+                "origin": "NVD",
+                "date": 1072933200,
+                "cvss_v2": "AV:L/AC:L/Au:N/C:C/I:C/A:C"
+            }
+        }
+    ]
+}
