@@ -2011,6 +2011,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "nasl-builtin-network"
+version = "0.1.0"
+dependencies = [
+ "nasl-builtin-utils",
+ "nasl-interpreter",
+ "nasl-syntax",
+ "storage",
+]
+
+[[package]]
 name = "nasl-builtin-raw-ip"
 version = "0.1.0"
 dependencies = [
