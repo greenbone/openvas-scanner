@@ -281,7 +281,11 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    net::{TcpStream, UdpSocket},
+    sync::{Arc, Mutex, RwLock},
+};
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -321,6 +325,12 @@ impl NaslContext {
     }
 }
 
+pub enum Connection {
+    Closed,
+    TCP(TcpStream),
+    UDP(UdpSocket),
+}
+
 /// Configurations
 ///
 /// This struct includes all objects that a nasl function requires.
@@ -341,6 +351,8 @@ pub struct Context<'a, K> {
     logger: &'a dyn NaslLogger,
     /// Default logger.
     executor: &'a dyn super::NaslFunctionExecuter<K>,
+    /// Connection handler
+    connections: Arc<RwLock<Vec<Connection>>>,
 }
 
 impl<'a, K> Context<'a, K> {
@@ -362,6 +374,7 @@ impl<'a, K> Context<'a, K> {
             loader,
             logger,
             executor,
+            connections: vec![],
         }
     }
 
@@ -422,6 +435,18 @@ impl<'a, K> Context<'a, K> {
                 None => NaslValue::Null,
             })
             .map_err(|e| e.into())
+    }
+
+    /// Get a Connection
+    pub fn get_connection(&self, id: usize) -> Option<&Connection> {
+        self.connections.clone().read().unwrap().get(id);
+    }
+
+    /// Save a new connection in the context
+    pub fn new_connection(&self, con: Connection) -> usize {
+        let ret = self.connections.len();
+        self.connections.push(con);
+        ret
     }
 }
 
