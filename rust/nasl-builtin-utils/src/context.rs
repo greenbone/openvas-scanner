@@ -436,12 +436,12 @@ impl<'a, K> Context<'a, K> {
             .dispatch(
                 self.key(),
                 Field::KB(Kb {
-                    key: key,
+                    key,
                     value,
                     expire: expires_in.map(|seconds| {
                         let start = SystemTime::now();
                         match start.duration_since(UNIX_EPOCH) {
-                            Ok(x) => x.as_secs() + seconds as u64,
+                            Ok(x) => x.as_secs() + seconds,
                             Err(_) => 0,
                         }
                     }),
