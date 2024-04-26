@@ -1815,7 +1815,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nasl-builtin-http2"
+name = "nasl-builtin-http"
 version = "0.1.0"
 dependencies = [
  "h2 0.4.4",
@@ -1889,7 +1889,7 @@ dependencies = [
  "nasl-builtin-cryptographic",
  "nasl-builtin-description",
  "nasl-builtin-host",
- "nasl-builtin-http2",
+ "nasl-builtin-http",
  "nasl-builtin-knowledge-base",
  "nasl-builtin-misc",
  "nasl-builtin-raw-ip",
