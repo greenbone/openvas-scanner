@@ -27,6 +27,8 @@ pub enum PackageType {
     RPM,
     #[cfg_attr(feature = "serde_support", serde(rename = "slack"))]
     SLACK,
+    #[cfg_attr(feature = "serde_support", serde(rename = "msp"))]
+    MSP,
 }
 
 /// Representing a single Vulnerability Test entry

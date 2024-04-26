@@ -6,6 +6,7 @@ pub mod deb;
 pub mod ebuild;
 pub mod rpm;
 pub mod slack;
+pub mod windows;
 
 use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::{max, Ordering};
