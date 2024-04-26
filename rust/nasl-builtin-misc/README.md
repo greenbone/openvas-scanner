@@ -15,7 +15,3 @@
 - defined_func
 - gettimeofday
 - dump_ctxt
-
-## Missing
-
-- open_sock_kdc
