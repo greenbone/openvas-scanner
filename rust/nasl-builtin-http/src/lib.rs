@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Defines NASL functions to perform http2 request
+//! Defines NASL functions to perform HTTP/2 request.
+// TODO: implement http functions once socket handling is available
 
 use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
@@ -19,7 +20,7 @@ use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 
 type NaslHttp2Function<K> =
-    fn(&NaslHttp2, &Register, &Context<K>) -> Result<NaslValue, FunctionErrorKind>;
+    fn(&NaslHttp, &Register, &Context<K>) -> Result<NaslValue, FunctionErrorKind>;
 
 pub struct Handle {
     pub handle_id: i32,
@@ -28,7 +29,7 @@ pub struct Handle {
 }
 
 #[derive(Default)]
-pub struct NaslHttp2 {
+pub struct NaslHttp {
     handles: Arc<Mutex<Vec<Handle>>>,
 }
 
@@ -121,7 +122,7 @@ impl ServerCertVerifier for NoVerifier {
     }
 }
 
-impl NaslHttp2 {
+impl NaslHttp {
     async fn request(
         &self,
         ip_str: &String,
@@ -137,6 +138,8 @@ impl NaslHttp2 {
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(NoVerifier))
             .with_no_client_auth();
+        
+        // For HTTP/2. For older HTTP versions should not be set,
         config.alpn_protocols = vec![b"h2".to_vec()];
 
         let server_name = ip_str.clone().to_owned().try_into().unwrap();
@@ -525,21 +528,21 @@ impl NaslHttp2 {
     /// Returns found function for key or None when not found
     fn lookup<K>(key: &str) -> Option<NaslHttp2Function<K>> {
         match key {
-            "http2_handle" => Some(NaslHttp2::handle),
-            "http2_close_handle" => Some(NaslHttp2::close_handle),
-            "http2_get_response_code" => Some(NaslHttp2::get_response_code),
-            "http2_set_custom_header" => Some(NaslHttp2::set_custom_header),
-            "http2_get" => Some(NaslHttp2::get),
-            "http2_head" => Some(NaslHttp2::head),
-            "http2_post" => Some(NaslHttp2::post),
-            "http2_delete" => Some(NaslHttp2::delete),
-            "http2_put" => Some(NaslHttp2::put),
+            "http2_handle" => Some(NaslHttp::handle),
+            "http2_close_handle" => Some(NaslHttp::close_handle),
+            "http2_get_response_code" => Some(NaslHttp::get_response_code),
+            "http2_set_custom_header" => Some(NaslHttp::set_custom_header),
+            "http2_get" => Some(NaslHttp::get),
+            "http2_head" => Some(NaslHttp::head),
+            "http2_post" => Some(NaslHttp::post),
+            "http2_delete" => Some(NaslHttp::delete),
+            "http2_put" => Some(NaslHttp::put),
             _ => None,
         }
     }
 }
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for NaslHttp2 {
+impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for NaslHttp {
     fn nasl_fn_cache_clear(&self) -> Option<usize> {
         let mut data = Arc::as_ref(&self.handles).lock().unwrap();
         if data.is_empty() {
@@ -557,10 +560,10 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for NaslHttp2 {
         register: &Register,
         context: &Context<K>,
     ) -> Option<nasl_builtin_utils::NaslResult> {
-        NaslHttp2::lookup(name).map(|x| x(self, register, context))
+        NaslHttp::lookup(name).map(|x| x(self, register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        NaslHttp2::lookup::<K>(name).is_some()
+        NaslHttp::lookup::<K>(name).is_some()
     }
 }
