@@ -8,6 +8,7 @@ mod host_info;
 mod parameter;
 mod port;
 mod product;
+pub mod resources;
 mod result;
 mod scan;
 mod scan_action;

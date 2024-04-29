@@ -1766,6 +1766,7 @@ dependencies = [
  "async-trait",
  "serde",
  "serde_json",
+ "sysinfo",
  "uuid",
 ]
 
@@ -2120,7 +2121,6 @@ dependencies = [
  "redis-storage",
  "serde",
  "storage",
- "sysinfo",
  "tokio",
  "tracing",
 ]
@@ -2157,7 +2157,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "storage",
- "sysinfo",
  "tokio",
  "tokio-rustls 0.25.0",
  "toml 0.7.8",
