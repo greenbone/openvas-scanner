@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use models::scanner::Error as ScanError;
 use models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
 use models::Phase;
-use sysinfo::System;
 use tokio::sync::RwLock;
 
 use crate::{
@@ -192,46 +191,41 @@ where
         } else {
             queued.len()
         };
-        let mut sys = System::new();
 
         tracing::trace!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
-            sys.refresh_memory();
-            if let Some(min_free_memory) = self.config.min_free_mem {
-                let available_memory = sys.available_memory();
-                if available_memory < min_free_memory {
-                    tracing::debug!(%min_free_memory, %available_memory, "insufficient memory to start a scan.");
-                    break;
-                }
-            }
             if let Some(scan_id) = queued.pop() {
                 let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
-                tracing::debug!(?status, %scan_id, "starting scan");
-
-                match self.scanner.start_scan(scan).await {
-                    Ok(_) => {
-                        tracing::debug!(%scan_id, "started");
-                        running.push(scan_id.clone());
-                    }
-                    Err(ScanError::Connection(e)) => {
-                        tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
-                        queued.push(scan_id);
-                    }
-                    Err(e) => {
-                        tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
-                        self.db
-                            .update_status(
-                                &scan_id,
-                                models::Status {
-                                    start_time: None,
-                                    end_time: None,
-                                    status: Phase::Failed,
-                                    host_info: None,
-                                },
-                            )
-                            .await?;
-                    }
-                };
+                if !self.scanner.can_start_scan(&scan).await {
+                    tracing::debug!(?status, %scan_id, "unable to start scan");
+                    queued.push(scan_id);
+                } else {
+                    tracing::debug!(?status, %scan_id, "starting scan");
+                    match self.scanner.start_scan(scan).await {
+                        Ok(_) => {
+                            tracing::debug!(%scan_id, "started");
+                            running.push(scan_id.clone());
+                        }
+                        Err(ScanError::Connection(e)) => {
+                            tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
+                            queued.push(scan_id);
+                        }
+                        Err(e) => {
+                            tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
+                            self.db
+                                .update_status(
+                                    &scan_id,
+                                    models::Status {
+                                        start_time: None,
+                                        end_time: None,
+                                        status: Phase::Failed,
+                                        host_info: None,
+                                    },
+                                )
+                                .await?;
+                        }
+                    };
+                }
             } else {
                 break;
             }
@@ -648,17 +642,15 @@ mod tests {
                     y
                 })
                 .collect::<Vec<_>>();
-            let mut config = config::Scheduler::default();
-
-            let mut sys = sysinfo::System::new();
-            sys.refresh_memory();
-            config.min_free_mem = Some(sys.available_memory() + 1000);
+            let config = config::Scheduler::default();
 
             let db = inmemory::Storage::default();
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::Lambda::default();
+            let scanner = models::scanner::LambdaBuilder::new()
+                .with_can_start(|_| false)
+                .build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();

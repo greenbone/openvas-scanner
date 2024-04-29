@@ -169,6 +169,10 @@ mod tests {
         async fn start_scan(&self, _scan: models::Scan) -> Result<(), models::scanner::Error> {
             Ok(())
         }
+
+        async fn can_start_scan(&self, _: &models::Scan) -> bool {
+            true
+        }
     }
 
     #[async_trait]

@@ -26,6 +26,11 @@ pub struct ScanResults {
 pub trait ScanStarter {
     /// Starts a scan
     async fn start_scan(&self, scan: Scan) -> Result<(), Error>;
+
+    /// Returns true when the Scanner can start a scan.
+    async fn can_start_scan(&self, _: &Scan) -> bool {
+        true
+    }
 }
 
 /// Stops a scan
@@ -67,6 +72,7 @@ pub struct Lambda {
     stop: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
     delete: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
     fetch: Box<dyn Fn(&str) -> Result<ScanResults, Error> + Sync + Send + 'static>,
+    can_start: Box<dyn Fn(&Scan) -> bool + Sync + Send + 'static>,
 }
 
 impl Default for Lambda {
@@ -76,6 +82,7 @@ impl Default for Lambda {
             stop: Box::new(|_| Ok(())),
             delete: Box::new(|_| Ok(())),
             fetch: Box::new(|_| Ok(ScanResults::default())),
+            can_start: Box::new(|_| true),
         }
     }
 }
@@ -137,6 +144,14 @@ impl LambdaBuilder {
         self
     }
 
+    pub fn with_can_start<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&Scan) -> bool + Sync + Send + 'static,
+    {
+        self.lambda.can_start = Box::new(f);
+        self
+    }
+
     pub fn build(self) -> Lambda {
         self.lambda
     }
@@ -146,6 +161,10 @@ impl LambdaBuilder {
 impl ScanStarter for Lambda {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         (self.start)(scan)
+    }
+
+    async fn can_start_scan(&self, scan: &Scan) -> bool {
+        (self.can_start)(scan)
     }
 }
 
