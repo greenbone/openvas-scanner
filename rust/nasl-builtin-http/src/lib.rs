@@ -138,7 +138,7 @@ impl NaslHttp {
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(NoVerifier))
             .with_no_client_auth();
-        
+
         // For HTTP/2. For older HTTP versions should not be set,
         config.alpn_protocols = vec![b"h2".to_vec()];
 
