@@ -186,9 +186,27 @@ pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {
 impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum ObservableResources {
+    CPU,
+    Memory,
+    IO,
+}
+
+impl std::fmt::Display for ObservableResources {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CPU => write!(f, "CPU"),
+            Self::Memory => write!(f, "Memory"),
+            Self::IO => write!(f, "IO"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     Unexpected(String),
     Connection(String),
+    InsufficientResources(Vec<ObservableResources>),
     Poisoned,
 }
 
@@ -199,6 +217,14 @@ impl std::fmt::Display for Error {
         match self {
             Self::Unexpected(x) => write!(f, "Unexpecdted issue: {x}"),
             Self::Connection(x) => write!(f, "Connection issue: {x}"),
+            Self::InsufficientResources(x) => write!(
+                f,
+                "Not enough resources of {}",
+                x.iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
             _ => write!(f, "{:?}", self),
         }
     }
