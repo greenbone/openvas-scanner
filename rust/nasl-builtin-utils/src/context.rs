@@ -219,7 +219,7 @@ impl Register {
         self.blocks.pop();
     }
 
-    /// This function extracts number of positional arguments, available functions and varaibles
+    /// This function extracts number of positional arguments, available functions and variables
     /// and prints them. This function is used as a debugging tool.
     pub fn dump(&self, index: usize) {
         match self.blocks.get(index) {
@@ -233,7 +233,7 @@ impl Register {
                     _ => 0,
                 };
 
-                // collect all available functions and variables available in current and parrent
+                // collect all available functions and variables available in current and parent
                 // context recursively
                 loop {
                     for (name, ctype) in current.defined.clone() {
@@ -246,8 +246,8 @@ impl Register {
                             ContextType::Value(_) => vars.push(name),
                         };
                     }
-                    if let Some(parrent) = current.parent {
-                        current = &self.blocks[parrent];
+                    if let Some(parent) = current.parent {
+                        current = &self.blocks[parent];
                     } else {
                         break;
                     }
