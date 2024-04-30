@@ -26,6 +26,14 @@ where
 {
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
+        if let Some(channel) = &self.call {
+            if let Err(_e) =
+                channel.send((self.ctxconfigs.key().as_ref().to_string(), name.to_string()))
+            {
+                // TODO: Log that channel is disabled
+                self.call = None;
+            }
+        }
         // get the context
         let mut named = HashMap::new();
         let mut position = vec![];
@@ -79,6 +87,14 @@ where
             }
         };
         self.registrat.drop_last();
+        if let Some(channel) = &self.call {
+            if let Err(_e) =
+                channel.send((self.ctxconfigs.key().as_ref().to_string(), "".to_string()))
+            {
+                // TODO: Log that channel is disabled
+                self.call = None;
+            }
+        }
         result
     }
 }

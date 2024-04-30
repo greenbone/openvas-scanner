@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, io, sync::mpsc::Sender};
 
 use nasl_syntax::{
     IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, Token, TokenCategory,
@@ -24,6 +24,7 @@ use nasl_builtin_utils::{Context, ContextType, Register};
 pub struct Interpreter<'a, K> {
     pub(crate) registrat: &'a mut Register,
     pub(crate) ctxconfigs: &'a Context<'a, K>,
+    pub(crate) call: Option<Sender<(String, String)>>,
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -35,11 +36,29 @@ impl<'a, K> Interpreter<'a, K>
 where
     K: AsRef<str>,
 {
-    /// Creates a new Interpreter.
+    /// Creates a new Interpreter without call channel to react to function calls.
     pub fn new(register: &'a mut Register, ctxconfigs: &'a Context<K>) -> Self {
+        Self::create(register, ctxconfigs, None)
+    }
+
+    /// Creates a new Interpreter with call channel to react to function calls.
+    pub fn new_with_channel(
+        register: &'a mut Register,
+        ctxconfigs: &'a Context<K>,
+        call_channel: Sender<(String, String)>,
+    ) -> Self {
+        Self::create(register, ctxconfigs, Some(call_channel))
+    }
+
+    fn create(
+        register: &'a mut Register,
+        ctxconfigs: &'a Context<K>,
+        call_channel: Option<Sender<(String, String)>>,
+    ) -> Self {
         Interpreter {
             registrat: register,
             ctxconfigs,
+            call: call_channel,
         }
     }
 
