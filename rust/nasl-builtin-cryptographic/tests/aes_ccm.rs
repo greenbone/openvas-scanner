@@ -18,12 +18,12 @@ mod tests {
         crypt = aes128_ccm_encrypt(key: key, data: data, iv: iv);
         aes128_ccm_decrypt(key: key, data: crypt, iv: iv);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         parser.next();
@@ -51,12 +51,12 @@ mod tests {
         crypt = aes128_ccm_encrypt_auth(key: key, data: data, iv: iv, aad: aad);
         aes128_ccm_decrypt_auth(key: key, data: crypt, iv: iv, aad: aad);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         parser.next();
@@ -84,12 +84,12 @@ mod tests {
         crypt = aes192_ccm_encrypt(key: key, data: data, iv: iv);
         aes192_ccm_decrypt(key: key, data: crypt, iv: iv);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         parser.next();
@@ -117,12 +117,12 @@ mod tests {
         crypt = aes192_ccm_encrypt_auth(key: key, data: data, iv: iv, aad: aad);
         aes192_ccm_decrypt_auth(key: key, data: crypt, iv: iv, aad: aad);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         parser.next();
@@ -150,12 +150,12 @@ mod tests {
         crypt = aes256_ccm_encrypt(key: key, data: data, iv: iv);
         aes256_ccm_decrypt(key: key, data: crypt, iv: iv);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         parser.next();
@@ -183,12 +183,12 @@ mod tests {
         crypt = aes256_ccm_encrypt_auth(key: key, data: data, iv: iv, aad: aad);
         aes256_ccm_decrypt_auth(key: key, data: crypt, iv: iv, aad: aad);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         parser.next();

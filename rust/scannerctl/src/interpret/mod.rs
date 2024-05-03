@@ -78,14 +78,14 @@ impl Run<String> {
     fn run(&self, script: &str) -> Result<(), CliErrorKind> {
         let logger = DefaultLogger::default();
         let context = self.context_builder.build();
-        let mut register = RegisterBuilder::build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = RegisterBuilder::build();
+        let mut interpreter = Interpreter::new(register, &context);
         let code = self.load(script)?;
         for stmt in nasl_syntax::parse(&code) {
             match stmt {
                 Ok(stmt) => {
                     tracing::debug!("> {stmt}");
-                    let r = match interpreter.retry_resolve(&stmt, 5) {
+                    let r = match interpreter.retry_resolve_next(&stmt, 5) {
                         Ok(x) => x,
                         Err(e) => match &e.kind {
                             nasl_interpreter::InterpretErrorKind::FunctionCallError(
@@ -106,6 +106,30 @@ impl Run<String> {
                             tracing::debug!("=> {r:?}", r = r);
                         }
                     }
+                    while let Some(i) = interpreter.next_interpreter() {
+                        let r = match i.retry_resolve(&stmt, 5) {
+                            Ok(x) => x,
+                            Err(e) => match &e.kind {
+                                nasl_interpreter::InterpretErrorKind::FunctionCallError(
+                                    nasl_interpreter::FunctionError {
+                                        function: _,
+                                        kind: nasl_interpreter::FunctionErrorKind::Diagnostic(_, x),
+                                    },
+                                ) => {
+                                    logger.warning(&e.to_string());
+                                    x.clone().unwrap_or_default()
+                                }
+                                _ => return Err(e.into()),
+                            },
+                        };
+                        match r {
+                            NaslValue::Exit(rc) => std::process::exit(rc as i32),
+                            _ => {
+                                tracing::debug!("=> {r:?}", r = r);
+                            }
+                        }
+                    }
+                    tracing::warn!("END OF WHILE")
                 }
 
                 Err(e) => {

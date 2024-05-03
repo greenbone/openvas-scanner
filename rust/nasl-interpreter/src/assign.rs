@@ -62,7 +62,7 @@ where
 
     fn named_value(&self, key: &str) -> Result<(usize, NaslValue), InterpretError> {
         match self
-            .registrat()
+            .register()
             .index_named(key)
             .unwrap_or((0, &ContextType::Value(NaslValue::Null)))
         {
@@ -276,10 +276,10 @@ mod tests {
         a--;
         --a;
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -311,10 +311,10 @@ mod tests {
         a[0]++;
         ++a[0];
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -335,10 +335,10 @@ mod tests {
         a[2] = 12;
         a;
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -360,10 +360,10 @@ mod tests {
         a[2] = 12;
         a;
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -386,10 +386,10 @@ mod tests {
         a;
         a['hi'];
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -408,10 +408,10 @@ mod tests {
         let code = r###"
         a = [1, 2, 3];
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         assert_eq!(

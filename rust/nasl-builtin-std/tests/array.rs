@@ -34,12 +34,12 @@ mod tests {
         make_array(1);
         make_array();
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
         assert_eq!(parser.next(), Some(Ok(make_dict!())));
@@ -57,12 +57,12 @@ mod tests {
         make_list(1, 0, b);
         make_list(1, 0, a);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Array(vec![
@@ -112,12 +112,12 @@ mod tests {
         l = make_list("abbb", 1, "aaaa", 0, a);
         s = sort(l);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         let a = parser.next();
@@ -139,12 +139,12 @@ mod tests {
         l = make_list("foo", "bar");
         keys(a,l);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         let a = parser.next();
@@ -166,12 +166,12 @@ mod tests {
         max_index(make_list(1, 0));
         max_index(make_list());
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(5))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(3))));

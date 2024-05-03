@@ -15,12 +15,12 @@ mod tests {
         data = hexstr_to_data("d2e8a3e86ae0b9edc7cc3116d929a16f13ee3643");
         crypt = aes_mac_cbc(key: key, data: data);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         assert_eq!(

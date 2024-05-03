@@ -228,10 +228,10 @@ mod tests {
         $(
             #[test]
             fn $name() {
-                let mut register = Register::default();
+                let register = Register::default();
                 let binding = ContextBuilder::default();
                 let context = binding.build();
-                let mut interpreter = Interpreter::new(&mut register, &context);
+                let mut interpreter = Interpreter::new(register, &context);
                 let parser = parse($code).map(|x|
                     interpreter.resolve(&x.expect("unexpected parse error"))
                 );

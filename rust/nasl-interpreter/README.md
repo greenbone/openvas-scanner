@@ -25,9 +25,9 @@ let mut register = Register::default();
 let context_builder = ContextBuilder::default();
 let context = context_builder.build();
 let code = "display('hi');";
-let mut interpreter = Interpreter::new(&mut register, &context);
+let mut interpreter = Interpreter::new(register, &context);
 let mut parser =
-    nasl_syntax::parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+    nasl_syntax::parse(code).map(|x| interpreter.retry_resolve(&x.expect("no parse error expected"), 1));
 ```
 
 

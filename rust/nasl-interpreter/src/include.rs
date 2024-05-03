@@ -41,13 +41,13 @@ mod tests {
         a;
         test();
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let context = ContextBuilder {
             loader: Box::new(loader),
             ..Default::default()
         };
         let ctx = context.build();
-        let mut interpreter = Interpreter::new(&mut register, &ctx);
+        let mut interpreter = Interpreter::new(register, &ctx);
         let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));

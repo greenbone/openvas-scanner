@@ -20,12 +20,12 @@ if (a) {
 a;
         "###;
         let dc = ContextBuilder::default();
-        let mut register = Register::default();
+        let register = Register::default();
         let ctx = dc.build();
-        let mut interpreter = Interpreter::new(&mut register, &ctx);
+        let mut interpreter = Interpreter::new(register, &ctx);
         let results = parse(code)
             .map(|stmt| match stmt {
-                Ok(stmt) => interpreter.resolve(&stmt),
+                Ok(stmt) => interpreter.retry_resolve_next(&stmt, 1),
                 Err(r) => Err(InterpretError::from(r)),
             })
             .last()

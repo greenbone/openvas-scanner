@@ -20,13 +20,13 @@ mod tests {
         get_local_mac_address_from_ip("127.0.0.1");
         get_local_mac_address_from_ip("::1");
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
@@ -50,14 +50,14 @@ mod tests {
         ether_proto: 0x0806, payload: "abcd" );
         dump_frame(frame:a);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         assert_eq!(
@@ -85,10 +85,10 @@ mod tests {
         let mut binding = ContextBuilder::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
         let context = binding.build();
-        let mut register = Register::default();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = Register::default();
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         parser.next();
         assert_eq!(
