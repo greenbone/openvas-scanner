@@ -1,6 +1,6 @@
 name: Container
 
-on: 
+on:
   workflow_call:
     inputs:
       is_latest_tag:
@@ -14,6 +14,17 @@ on:
         required: true
       dockerhub_token:
         required: true
+      cosign_key_opensight:
+        required: true
+      cosign_password_opensight:
+        required: true
+
+# Grants rights to push to the Github container registry.
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  pull-requests: write
 
 jobs:
   debian_stable:
@@ -68,3 +79,46 @@ jobs:
           platforms: linux/amd64,linux/aarch64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  ghcr_debian_stable:
+    name: ghcr:debian:stable
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: rs-binaries
+          path: assets
+      - name: Container build and push 3rd gen
+        id: build-and-push
+        uses: greenbone/actions/container-build-push-generic@v3
+        with:
+          build-docker-file: .docker/prod.Dockerfile
+          build-args: |
+            REPOSITORY=${{ github.repository }}
+          cosign-key: ${{ secrets.cosign_key_opensight }}
+          cosign-key-password: ${{ secrets.cosign_password_opensight }}
+          # The tlog function does not currently support an ed25519 key.
+          cosign-tlog-upload: "false"
+          image-labels: |
+            org.opencontainers.image.vendor=Greenbone
+            org.opencontainers.image.base.name=greenbone/gvm-libs
+          image-tags: |
+            # when IS_LATEST_TAG is set create a stable and a latest tag
+            type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
+            type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
+            # if tag version is set than create a version tags
+            type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
+            type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
+            # if on main or a branch TODO calculate upfront
+            type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
+            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
+            # use pr-$PR_ID for pull requests (will not be uploaded)
+            type=ref,event=pr
+          registry: ${{ vars.IMAGE_REGISTRY }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          scout-user: ${{ secrets.dockerhub_user }}
+          scout-password: ${{ secrets.dockerhub_token }}
