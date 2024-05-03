@@ -4,6 +4,7 @@
 
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
+
 use crate::{IdentifierType, Token, TokenCategory, ACT};
 
 /// Represents a valid Value of NASL
@@ -28,6 +29,22 @@ pub enum NaslValue {
     Null,
     /// Returns value of the context
     Return(Box<NaslValue>),
+    /// Creates n runs for each entry
+    ///
+    /// If the value is more than one element the interpreter creates n - 1 shadow clones from
+    /// itself and will execute each following statement based on each stored instance. This needs
+    /// to be done for downwards compatible reasons. Within `openvas` `get_kb_item` does create for
+    /// each item within found key when it is a list a fork to allow scripts like:
+    /// ```text
+    /// set_kb_item(name: "test", value: 1);
+    /// set_kb_item(name: "test", value: 2);
+    /// set_kb_item(name: "test", value: 3);
+    /// set_kb_item(name: "test", value: 4);
+    /// set_kb_item(name: "test", value: 5);
+    /// display(get_kb_item("test"));
+    /// ```
+    /// to print each kb_item within test.
+    Fork(Vec<NaslValue>),
     /// Signals continuing a loop
     Continue,
     /// Signals a break of a control structure
@@ -99,6 +116,15 @@ impl Display for NaslValue {
             NaslValue::Return(rc) => write!(f, "return({:?})", *rc),
             NaslValue::Continue => write!(f, "continue"),
             NaslValue::Break => write!(f, "break"),
+            NaslValue::Fork(x) => write!(
+                f,
+                "Creates {} runs, for {}",
+                x.len(),
+                x.iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
         }
     }
 }
@@ -194,6 +220,7 @@ impl From<NaslValue> for bool {
             NaslValue::Return(_) => true,
             NaslValue::Continue => false,
             NaslValue::Break => false,
+            NaslValue::Fork(v) => v.is_empty(),
         }
     }
 }
@@ -213,6 +240,7 @@ impl From<&NaslValue> for i64 {
             &NaslValue::Return(_) => -1,
             &NaslValue::Continue => 0,
             &NaslValue::Break => 0,
+            NaslValue::Fork(_) => 1,
         }
     }
 }

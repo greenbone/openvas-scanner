@@ -15,12 +15,12 @@ mod tests {
         hexstr();
         hexstr(raw_string(10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121));
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         parser.next();
         assert_eq!(parser.next(), Some(Ok("666f6f".into())));
         assert_eq!(parser.next(), Some(Ok("666f6f".into())));
@@ -40,12 +40,12 @@ mod tests {
         raw_string(0x7B, 1);
         raw_string(0x7B, 1, "Hallo");
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok(vec![123].into())));
         assert_eq!(parser.next(), Some(Ok(vec![123, 1].into())));
         assert_eq!(
@@ -59,12 +59,12 @@ mod tests {
         tolower(0x7B);
         tolower('HALLO');
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok("hallo".into())));
     }
@@ -74,12 +74,12 @@ mod tests {
         toupper(0x7B);
         toupper('hallo');
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok("HALLO".into())));
     }
@@ -89,12 +89,12 @@ mod tests {
         strlen(0x7B);
         strlen('hallo');
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok(0i64.into())));
         assert_eq!(parser.next(), Some(Ok(5i64.into())));
     }
@@ -106,12 +106,12 @@ mod tests {
         string(0x7B, 1, "Hallo");
         string(0x7B, 1, NULL, "Hallo");
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok("123".into())));
         assert_eq!(parser.next(), Some(Ok("1231".into())));
         assert_eq!(parser.next(), Some(Ok("1231Hallo".into())));
@@ -125,12 +125,12 @@ mod tests {
         substr("hello", 0, 4);
         substr("hello", 6);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok("ello".into())));
         assert_eq!(parser.next(), Some(Ok("hell".into())));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
@@ -143,12 +143,12 @@ mod tests {
         crap(length: 5);
         crap(data: "ab", length: 5);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
         assert_eq!(parser.next(), Some(Ok("XXXXX".into())));
         assert_eq!(parser.next(), Some(Ok("ababababab".into())));
@@ -162,12 +162,12 @@ mod tests {
         chomp("abc  ");
         chomp("abc\n\t\r ");
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
@@ -184,12 +184,12 @@ mod tests {
         stridx("blahabc", "abc", 3);
         stridx("blahbc", "abc", 2);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok((-1_i64).into())));
         assert_eq!(parser.next(), Some(Ok(1_i64.into())));
         assert_eq!(parser.next(), Some(Ok(0_i64.into())));
@@ -203,12 +203,12 @@ mod tests {
         let code = r#"
         display("abc");
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
     }
 
@@ -218,12 +218,12 @@ mod tests {
         a = hexstr_to_data("4bb3c4a4f893ad8c9bdc833c325d62b3");
         data_to_hexstr(a);
         "#;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Data(vec![

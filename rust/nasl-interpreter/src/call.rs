@@ -48,8 +48,32 @@ where
             ContextType::Value(NaslValue::Array(position)),
         );
         self.registrat.create_root_child(named);
-        let result = match self.ctxconfigs.nasl_fn_execute(name, self.registrat) {
-            Some(r) => r.map_err(|x| FunctionError::new(name, x).into()),
+        let result = match self.ctxconfigs.nasl_fn_execute(name, &self.registrat) {
+            Some(r) => {
+                if let Ok(NaslValue::Fork(mut x)) = r {
+                    Ok(if let Some(r) = x.pop() {
+                        // this is a proposal for the case that the caller is immediately executing
+                        // if not the position needs to be reset
+                        let position = self.position.current_init_statement();
+                        for i in x {
+                            tracing::trace!(return_value=?i, return_position=?self.position, interpreter_position=?position, "creating interpreter instance" );
+                            self.forked_interpreter.push(Self {
+                                registrat: self.registrat.clone(),
+                                ctxconfigs: self.ctxconfigs,
+                                position: position.clone(),
+                                skip_until_return: Some((self.position.clone(), i)),
+                                forked_interpreter: vec![],
+                                forked_interpreter_index: 0,
+                            });
+                        }
+                        r
+                    } else {
+                        NaslValue::Null
+                    })
+                } else {
+                    r.map_err(|x| FunctionError::new(name, x).into())
+                }
+            }
             None => {
                 let found = self
                     .registrat
@@ -97,10 +121,10 @@ mod tests {
         test(a: 1);
         test();
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         let mut parser =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));

@@ -11,6 +11,7 @@ nasl-builtin-utils = {path = "../nasl-builtin-utils"}
 nasl-builtin-std = {path = "../nasl-builtin-std", default-features = false}
 # used for !~ =~ string regex operations
 regex = "1"
+tracing = "0.1.40"
 
 [features]
 nasl-builtin-raw-ip = ["nasl-builtin-std/nasl-builtin-raw-ip"]

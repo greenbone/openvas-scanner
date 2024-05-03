@@ -46,7 +46,7 @@ pub fn feed_version<K: Default + AsRef<str> + 'static>(
 ) -> Result<String, ErrorKind> {
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
-    let mut register = Register::default();
+    let register = Register::default();
     let logger = DefaultLogger::default();
     let k: K = Default::default();
     let fr = NoOpRetriever::default();
@@ -54,15 +54,15 @@ pub fn feed_version<K: Default + AsRef<str> + 'static>(
     // TODO add parameter to struct
     let functions = nasl_interpreter::nasl_std_functions();
     let context = Context::new(&k, &target, dispatcher, &fr, loader, &logger, &functions);
-    let mut interpreter = Interpreter::new(&mut register, &context);
+    let mut interpreter = Interpreter::new(register, &context);
     for stmt in nasl_syntax::parse(&code) {
         match stmt {
-            Ok(stmt) => interpreter.retry_resolve(&stmt, 3)?,
+            Ok(stmt) => interpreter.retry_resolve_next(&stmt, 3)?,
             Err(e) => return Err(e.into()),
         };
     }
 
-    let feed_version = register
+    let feed_version = interpreter.register()
         .named("PLUGIN_SET")
         .map(|x| x.to_string())
         .unwrap_or_else(|| "0".to_owned());
@@ -142,7 +142,7 @@ where
     fn single(&self, key: &K) -> Result<i64, ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
 
-        let mut register = Register::root_initial(&self.initial);
+        let register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::default();
         let fr = NoOpRetriever::default();
         let target = String::default();
@@ -158,9 +158,9 @@ where
             &logger,
             &functions,
         );
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut interpreter = Interpreter::new(register, &context);
         for stmt in nasl_syntax::parse(&code) {
-            match interpreter.retry_resolve(&stmt?, self.max_retry) {
+            match interpreter.retry_resolve_next(&stmt?, self.max_retry) {
                 Ok(NaslValue::Exit(i)) => {
                     self.dispatcher.on_exit()?;
                     return Ok(i);

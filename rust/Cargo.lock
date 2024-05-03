@@ -1938,6 +1938,7 @@ dependencies = [
  "nasl-syntax",
  "regex",
  "storage",
+ "tracing",
 ]
 
 [[package]]

@@ -114,6 +114,7 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// When creating a new context call a corresponding create method.
 /// Warning since those will be stored within a vector each context must be manually
 /// deleted by calling drop_last when the context runs out of scope.
+#[derive(Clone)]
 pub struct Register {
     blocks: Vec<NaslContext>,
 }
@@ -290,7 +291,7 @@ type Named = HashMap<String, ContextType>;
 ///
 /// A context should never be created directly but via a Register.
 /// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct NaslContext {
     /// Parent id within the register
     parent: Option<usize>,
@@ -408,47 +409,6 @@ impl<'a, K> Context<'a, K> {
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
-    }
-    /// Get a KB item
-    pub fn get_kb_item(&self, name: &str) -> super::NaslResult {
-        self.retriever()
-            .retrieve(self.key, storage::Retrieve::KB(name.to_string()))
-            .map(|r| {
-                r.into_iter().find_map(|x| match x {
-                    Field::NVT(_) | Field::NotusAdvisory(_) => None,
-                    Field::KB(kb) => kb.value.into(),
-                })
-            })
-            .map(|x| match x {
-                Some(x) => x.into(),
-                None => NaslValue::Null,
-            })
-            .map_err(|e| e.into())
-    }
-    /// Set a KB item
-    pub fn set_kb_item(
-        &self,
-        key: String,
-        value: Primitive,
-        expires_in: Option<u64>,
-    ) -> super::NaslResult {
-        self.dispatcher()
-            .dispatch(
-                self.key(),
-                Field::KB(Kb {
-                    key,
-                    value,
-                    expire: expires_in.map(|seconds| {
-                        let start = SystemTime::now();
-                        match start.duration_since(UNIX_EPOCH) {
-                            Ok(x) => x.as_secs() + seconds,
-                            Err(_) => 0,
-                        }
-                    }),
-                }),
-            )
-            .map(|_| NaslValue::Null)
-            .map_err(|e| e.into())
     }
 }
 

@@ -20,10 +20,42 @@ use crate::{
 
 use nasl_builtin_utils::{Context, ContextType, Register};
 
+/// Is used to identify the depth of the current statement
+///
+/// Initial call of retry_resolce sets the first element all others are only
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Position {
+    index: Vec<usize>,
+}
+
+impl Position {
+    pub fn new(index: usize) -> Self {
+        Self { index: vec![index] }
+    }
+
+    pub fn up(&mut self) {
+        self.index.push(0);
+    }
+
+    pub fn down(&mut self) -> Option<usize> {
+        self.index.pop()
+    }
+
+    pub fn current_init_statement(&self) -> Self {
+        Self {
+            index: vec![*self.index.first().unwrap_or(&0)],
+        }
+    }
+}
+
 /// Used to interpret a Statement
 pub struct Interpreter<'a, K> {
-    pub(crate) registrat: &'a mut Register,
+    pub(crate) registrat: Register,
     pub(crate) ctxconfigs: &'a Context<'a, K>,
+    pub(crate) position: Position,
+    pub(crate) skip_until_return: Option<(Position, NaslValue)>,
+    pub(crate) forked_interpreter: Vec<Interpreter<'a, K>>,
+    pub(crate) forked_interpreter_index: usize,
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -35,11 +67,17 @@ impl<'a, K> Interpreter<'a, K>
 where
     K: AsRef<str>,
 {
-    /// Creates a new Interpreter.
-    pub fn new(register: &'a mut Register, ctxconfigs: &'a Context<K>) -> Self {
+    // TODO rename to new
+    // TODO: write an easier to use function for code: &str
+    /// Creates a new Interpreter
+    pub fn new(register: Register, ctxconfigs: &'a Context<K>) -> Self {
         Interpreter {
-            registrat: register,
+            registrat: register.clone(),
             ctxconfigs,
+            position: Position::new(0),
+            skip_until_return: None,
+            forked_interpreter: Vec::with_capacity(10),
+            forked_interpreter_index: 0,
         }
     }
 
@@ -50,11 +88,37 @@ where
         }
     }
 
+    /// May return the next interpreter to run against that statement
+    ///
+    /// When the interpreter are done a None will be returned. Afterwards it will begin at at 0
+    /// again. This is done to inform the caller that all intepreter interpret this statement and
+    /// the next Statement can be executed.
+    pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a, K>> {
+        let result = self
+            .forked_interpreter
+            .get_mut(self.forked_interpreter_index);
+        if result.is_none() && self.forked_interpreter_index > 0 {
+            self.forked_interpreter_index = 0;
+        } else {
+            self.forked_interpreter_index += 1;
+        }
+        result
+    }
+
+    /// Includes a script into to the current runtime by executing it and share the register as
+    /// well as DB of the current runtime.
+    ///
+    // NOTE: This is currently optimized for interpreting runs, but it is very inefficient if we want to
+    // switch to a jitc approach or do parallelization of statements within a script. For that it
+    // would be necessary to include the statements within a statement list of a script prior of
+    // execution. In the current usage (2024-04-02) it would be overkill, but I'm writing a note as
+    // I think this can be easily overlooked.
     fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name)? {
             NaslValue::String(key) => {
                 let code = self.ctxconfigs.loader().load(&key)?;
-                let mut inter = Interpreter::new(self.registrat, self.ctxconfigs);
+
+                let mut inter = Interpreter::new(self.registrat.clone(), self.ctxconfigs);
                 let result = nasl_syntax::parse(&code)
                     .map(|parsed| match parsed {
                         Ok(stmt) => inter.resolve(&stmt),
@@ -63,11 +127,34 @@ where
                     .find(|e| e.is_err());
                 match result {
                     Some(e) => e,
-                    None => Ok(NaslValue::Null),
+                    None => {
+                        self.registrat = inter.registrat.clone();
+
+                        Ok(NaslValue::Null)
+                    }
                 }
             }
             _ => Err(InterpretError::unsupported(name, "string")),
         }
+    }
+
+    /// Changes the internal position and tries to interpret a statement while retrying n times on specific error
+    ///
+    /// When encountering a retrievable error:
+    /// - LoadError(Retry(_))
+    /// - StorageError(Retry(_))
+    /// - IOError(Interrupted(_))
+    ///
+    /// then it retries the statement for a given max_attempts times.
+    ///
+    /// When max_attempts is set to 0 it will it execute it once.
+    pub fn retry_resolve_next(&mut self, stmt: &Statement, max_attempts: usize) -> InterpretResult {
+        //self.position = Position::new(*self.position.index.last().unwrap_or(&0));
+        //
+        if let Some(last) = self.position.index.last_mut() {
+            *last += 1;
+        }
+        self.retry_resolve(stmt, max_attempts)
     }
 
     /// Tries to interpret a statement and retries n times on a retry error
@@ -89,7 +176,7 @@ where
                         InterpretErrorKind::LoadError(LoadError::Retry(_))
                         | InterpretErrorKind::IOError(io::ErrorKind::Interrupted)
                         | InterpretErrorKind::StorageError(StorageError::Retry(_)) => {
-                            self.retry_resolve(stmt, max_attempts - 1)
+                            self.retry_resolve_next(stmt, max_attempts - 1)
                         }
                         _ => Err(e),
                     }
@@ -101,8 +188,27 @@ where
     }
 
     /// Interprets a Statement
-    pub fn resolve(&mut self, statement: &Statement) -> InterpretResult {
-        match statement.kind(){
+    pub(crate) fn resolve(&mut self, statement: &Statement) -> InterpretResult {
+        self.position.up();
+        tracing::trace!(position=?self.position, statement=statement.to_string(), "executing");
+        // TODO: should actually skip until it is reached, return value when it is reached and not
+        // to NONE.
+        if let Some((cp, rv)) = &self.skip_until_return {
+            tracing::trace!(position=?self.position, check_position=?cp, "verify position");
+            tracing::trace!(return=?rv, "skip execution");
+            self.position.down();
+            if cp == &self.position {
+                tracing::trace!(return=?rv, "returning");
+                let rv = rv.clone();
+                self.skip_until_return = None;
+                return Ok(rv);
+            } else {
+                return Ok(NaslValue::Null);
+            }
+        }
+
+        let results = {
+            match statement.kind(){
             Array(position) => {
                 let name = Self::identifier(statement.start())?;
                 let val = self
@@ -231,9 +337,13 @@ where
                 e
             }
         })
+        };
+        self.position.down();
+        results
     }
 
-    pub(crate) fn registrat(&self) -> &Register {
-        self.registrat
+    /// Returns used register
+    pub fn register(&self) -> &Register {
+        &self.registrat
     }
 }

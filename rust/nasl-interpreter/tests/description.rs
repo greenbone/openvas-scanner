@@ -72,7 +72,7 @@ if(description)
             "description".to_owned(),
             ContextType::Value(NaslValue::Number(1)),
         )];
-        let mut register = Register::root_initial(&initial);
+        let register = Register::root_initial(&initial);
         let logger = DefaultLogger::default();
         let key = "test.nasl".to_owned();
         let target = String::new();
@@ -80,10 +80,10 @@ if(description)
         let ctxconfigs = Context::new(
             &key, &target, &storage, &storage, &loader, &logger, &functions,
         );
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let mut interpreter = Interpreter::new(register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {
-                Ok(stmt) => interpreter.resolve(&stmt),
+                Ok(stmt) => interpreter.retry_resolve_next(&stmt, 1),
                 Err(r) => Err(InterpretError::from(r)),
             })
             .last()
