@@ -14,11 +14,14 @@ mod include;
 mod interpreter;
 mod loop_extension;
 mod operator;
+mod fork_interpreter;
 
 pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
+pub use fork_interpreter::*;
+
 // we expose the other libraries to allow users to use them without having to import them
 pub use nasl_builtin_std::{nasl_std_functions, ContextBuilder, KeyDispatcherSet, RegisterBuilder};
 pub use nasl_builtin_utils::{
