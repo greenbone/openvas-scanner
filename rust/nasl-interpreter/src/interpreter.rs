@@ -195,15 +195,13 @@ where
         // to NONE.
         if let Some((cp, rv)) = &self.skip_until_return {
             tracing::trace!(position=?self.position, check_position=?cp, "verify position");
-            tracing::trace!(return=?rv, "skip execution");
-            self.position.down();
             if cp == &self.position {
+                tracing::trace!(return=?rv, "skip execution");
                 tracing::trace!(return=?rv, "returning");
                 let rv = rv.clone();
                 self.skip_until_return = None;
+                self.position.down();
                 return Ok(rv);
-            } else {
-                return Ok(NaslValue::Null);
             }
         }
 
