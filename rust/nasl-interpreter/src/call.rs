@@ -66,6 +66,7 @@ where
                                 forked_interpreter_index: 0,
                             });
                         }
+                        tracing::trace!(return_value=?r, "returning interpreter instance" );
                         r
                     } else {
                         NaslValue::Null

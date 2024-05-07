@@ -94,10 +94,17 @@ where
     /// again. This is done to inform the caller that all intepreter interpret this statement and
     /// the next Statement can be executed.
     pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a, K>> {
+        if self.forked_interpreter.is_empty() {
+            return None;
+        }
+        tracing::trace!(
+            amount = self.forked_interpreter.len(),
+            index = self.forked_interpreter_index,
+        );
         let result = self
             .forked_interpreter
             .get_mut(self.forked_interpreter_index);
-        if result.is_none() && self.forked_interpreter_index > 0 {
+        if result.is_none() {
             self.forked_interpreter_index = 0;
         } else {
             self.forked_interpreter_index += 1;
