@@ -112,7 +112,7 @@ where
         // Iterate through the iterable Statement
         for val in Vec::<NaslValue>::from(self.resolve(iterable)?) {
             // Change the value of the iteration variable after each iteration
-            self.registrat.add_local(iter_name, ContextType::Value(val));
+            self.register_mut().add_local(iter_name, ContextType::Value(val));
 
             // Execute loop body
             let ret = self.resolve(body)?;

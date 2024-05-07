@@ -56,7 +56,7 @@ where
     K: AsRef<str>,
 {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
-        self.registrat
+        self.register_mut()
             .add_to_index(idx, key, ContextType::Value(value));
     }
 

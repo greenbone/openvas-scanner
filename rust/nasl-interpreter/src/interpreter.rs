@@ -52,14 +52,22 @@ impl Position {
     }
 }
 
-/// Used to interpret a Statement
-pub struct Interpreter<'a, K> {
-    pub(crate) registrat: Register,
-    pub(crate) ctxconfigs: &'a Context<'a, K>,
+/// Contains data that is specific for a single run
+///
+/// Some methods start multiple runs (e.g. get_kb_item) and need to have their own specific data to
+/// manipulate. To make it more convencient the data that is bound to run is summarized within this
+/// struc.
+pub(crate) struct RunSpecific {
+    pub(crate) register: Register,
     pub(crate) position: Position,
     pub(crate) skip_until_return: Option<(Position, NaslValue)>,
-    pub(crate) forked_interpreter: Vec<Interpreter<'a, K>>,
-    pub(crate) forked_interpreter_index: usize,
+}
+
+/// Used to interpret a Statement
+pub struct Interpreter<'a, K> {
+    pub(crate) run_specific: Vec<RunSpecific>,
+    pub(crate) ctxconfigs: &'a Context<'a, K>,
+    pub(crate) index: usize,
 }
 
 /// Interpreter always returns a NaslValue or an InterpretError
@@ -73,13 +81,15 @@ where
 {
     /// Creates a new Interpreter
     pub fn new(register: Register, ctxconfigs: &'a Context<K>) -> Self {
-        Interpreter {
-            registrat: register.clone(),
-            ctxconfigs,
+        let root_run = RunSpecific {
+            register,
             position: Position::new(0),
             skip_until_return: None,
-            forked_interpreter: Vec::with_capacity(10),
-            forked_interpreter_index: 0,
+        };
+        Interpreter {
+            run_specific: vec![root_run],
+            ctxconfigs,
+            index: 0,
         }
     }
 
@@ -95,23 +105,19 @@ where
     /// When the interpreter are done a None will be returned. Afterwards it will begin at at 0
     /// again. This is done to inform the caller that all intepreter interpret this statement and
     /// the next Statement can be executed.
+    // TODO remove in favor of iterrator of run_specific
     pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a, K>> {
-        if self.forked_interpreter.is_empty() {
+        if self.run_specific.len() == 1 || self.index + 1 == self.run_specific.len() {
             return None;
         }
-        tracing::trace!(
-            amount = self.forked_interpreter.len(),
-            index = self.forked_interpreter_index,
-        );
-        let result = self
-            .forked_interpreter
-            .get_mut(self.forked_interpreter_index);
-        if result.is_none() {
-            self.forked_interpreter_index = 0;
-        } else {
-            self.forked_interpreter_index += 1;
-        }
-        result
+
+        // if self.forked_interpreter.is_empty() {
+        //     return None;
+        // }
+        tracing::trace!(amount = self.run_specific.len(), index = self.index,);
+
+        self.index += 1;
+        Some(self)
     }
 
     /// Includes a script into to the current runtime by executing it and share the register as
@@ -127,7 +133,7 @@ where
             NaslValue::String(key) => {
                 let code = self.ctxconfigs.loader().load(&key)?;
 
-                let mut inter = Interpreter::new(self.registrat.clone(), self.ctxconfigs);
+                let mut inter = Interpreter::new(self.register().clone(), self.ctxconfigs);
                 let result = nasl_syntax::parse(&code)
                     .map(|parsed| match parsed {
                         Ok(stmt) => inter.resolve(&stmt),
@@ -137,7 +143,7 @@ where
                 match result {
                     Some(e) => e,
                     None => {
-                        self.registrat = inter.registrat.clone();
+                        self.set_register(inter.register().clone());
 
                         Ok(NaslValue::Null)
                     }
@@ -158,11 +164,12 @@ where
     ///
     /// When max_attempts is set to 0 it will it execute it once.
     pub fn retry_resolve_next(&mut self, stmt: &Statement, max_attempts: usize) -> InterpretResult {
-        //self.position = Position::new(*self.position.index.last().unwrap_or(&0));
+        //self.posion = Position::new(*self.position.index.last().unwrap_or(&0));
         //
-        if let Some(last) = self.position.index.last_mut() {
+        if let Some(last) = self.position_mut().index.last_mut() {
             *last += 1;
         }
+        self.index = 0;
         self.retry_resolve(stmt, max_attempts)
     }
 
@@ -198,23 +205,23 @@ where
 
     /// Interprets a Statement
     pub(crate) fn resolve(&mut self, statement: &Statement) -> InterpretResult {
-        self.position.up();
-        tracing::trace!(position=?self.position, statement=statement.to_string(), "executing");
+        self.position_mut().up();
+        tracing::trace!(position=?self.position(), statement=statement.to_string(), "executing");
         // On a fork statement run we skip until the root index is reached. Between the root index
         // of the return value and the position of the return value the interpretation is
         // continued. This is done because the client just executes higher statements.
-        if let Some((cp, rv)) = &self.skip_until_return {
+        if let Some((cp, rv)) = &self.skip_until_return() {
             tracing::trace!(check_position=?cp);
-            if self.position.root_index() < cp.root_index() {
+            if self.position().root_index() < cp.root_index() {
                 tracing::trace!("skip execution");
-                self.position.down();
+                self.position_mut().down();
                 return Ok(NaslValue::Null);
             }
-            if cp == &self.position {
+            if cp == self.position() {
                 tracing::trace!(return=?rv, "skip execution and returning");
                 let rv = rv.clone();
-                self.skip_until_return = None;
-                self.position.down();
+                self.set_skip_until_return(None);
+                self.position_mut().down();
                 return Ok(rv);
             }
         }
@@ -224,7 +231,7 @@ where
             Array(position) => {
                 let name = Self::identifier(statement.start())?;
                 let val = self
-                    .registrat
+                    .register()
                     .named(&name)
                     .unwrap_or(&ContextType::Value(NaslValue::Null));
                 let val = val.clone();
@@ -275,7 +282,7 @@ where
             Primitive => TryFrom::try_from(statement.as_token()).map_err(|e: TokenCategory| e.into()),
             Variable => {
                 let name: NaslValue = TryFrom::try_from(statement.as_token())?;
-                match self.registrat.named(&name.to_string()) {
+                match self.register().named(&name.to_string()) {
                     Some(ContextType::Value(result)) => Ok(result.clone()),
                     None => Ok(NaslValue::Null),
                     Some(ContextType::Function(_, _)) => {
@@ -308,7 +315,7 @@ where
                 Err(err) => Err(err),
             },
             Block(blocks) => {
-                self.registrat.create_child(HashMap::default());
+                self.register_mut().create_child(HashMap::default());
                 for stmt in blocks {
                     match self.resolve(stmt) {
                         Ok(x) => {
@@ -319,14 +326,14 @@ where
                                     | NaslValue::Break
                                     | NaslValue::Continue
                             ) {
-                                self.registrat.drop_last();
+                                self.register_mut().drop_last();
                                 return Ok(x);
                             }
                         }
                         Err(e) => return Err(e),
                     }
                 }
-                self.registrat.drop_last();
+                self.register_mut().drop_last();
                 // currently blocks don't return something
                 Ok(NaslValue::Null)
             }
@@ -350,12 +357,39 @@ where
             }
         })
         };
-        self.position.down();
+        self.position_mut().down();
         results
     }
 
     /// Returns used register
     pub fn register(&self) -> &Register {
-        &self.registrat
+        &self.run_specific[self.index].register
+    }
+
+    /// Returns used register
+    pub(crate) fn register_mut(&mut self) -> &mut Register {
+        &mut self.run_specific[self.index].register
+    }
+
+    pub(crate) fn position_mut(&mut self) -> &mut Position {
+        &mut self.run_specific[self.index].position
+    }
+
+    pub(crate) fn position(&self) -> &Position {
+        &self.run_specific[self.index].position
+    }
+
+    fn set_register(&mut self, val: Register) {
+        let rs = &mut self.run_specific[self.index];
+        rs.register = val;
+    }
+
+    pub(crate) fn set_skip_until_return(&mut self, val: Option<(Position, NaslValue)>) {
+        let rs = &mut self.run_specific[self.index];
+        rs.skip_until_return = val;
+    }
+
+    pub(crate) fn skip_until_return(&self) -> Option<&(Position, NaslValue)> {
+        self.run_specific[self.index].skip_until_return.as_ref()
     }
 }

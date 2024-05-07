@@ -7,7 +7,7 @@ use nasl_syntax::{Statement, StatementKind::*, Token};
 
 use crate::{
     error::{FunctionError, InterpretError},
-    interpreter::InterpretResult,
+    interpreter::{InterpretResult, RunSpecific},
     Interpreter,
 };
 
@@ -47,23 +47,20 @@ where
             FC_ANON_ARGS.to_owned(),
             ContextType::Value(NaslValue::Array(position)),
         );
-        self.registrat.create_root_child(named);
-        let result = match self.ctxconfigs.nasl_fn_execute(name, &self.registrat) {
+        self.register_mut().create_root_child(named);
+        let result = match self.ctxconfigs.nasl_fn_execute(name, self.register()) {
             Some(r) => {
                 if let Ok(NaslValue::Fork(mut x)) = r {
                     Ok(if let Some(r) = x.pop() {
                         // this is a proposal for the case that the caller is immediately executing
                         // if not the position needs to be reset
-                        let position = self.position.current_init_statement();
+                        let position = self.position().current_init_statement();
                         for i in x {
-                            tracing::trace!(return_value=?i, return_position=?self.position, interpreter_position=?position, "creating interpreter instance" );
-                            self.forked_interpreter.push(Self {
-                                registrat: self.registrat.clone(),
-                                ctxconfigs: self.ctxconfigs,
+                            tracing::trace!(return_value=?i, return_position=?self.position(), interpreter_position=?position, "creating interpreter instance" );
+                            self.run_specific.push(RunSpecific {
+                                register: self.register().clone(),
                                 position: position.clone(),
-                                skip_until_return: Some((self.position.clone(), i)),
-                                forked_interpreter: vec![],
-                                forked_interpreter_index: 0,
+                                skip_until_return: Some((self.position().clone(), i)),
                             });
                         }
                         tracing::trace!(return_value=?r, "returning interpreter instance" );
@@ -77,7 +74,7 @@ where
             }
             None => {
                 let found = self
-                    .registrat
+                    .register()
                     .named(name)
                     .ok_or_else(|| InterpretError::not_found(name))?
                     .clone();
@@ -85,10 +82,10 @@ where
                     ContextType::Function(params, stmt) => {
                         // prepare default values
                         for p in params {
-                            match self.registrat.named(&p) {
+                            match self.register().named(&p) {
                                 None => {
                                     // add default NaslValue::Null for each defined params
-                                    self.registrat
+                                    self.register_mut()
                                         .add_local(&p, ContextType::Value(NaslValue::Null));
                                 }
                                 Some(_) => {}
@@ -103,7 +100,7 @@ where
                 }
             }
         };
-        self.registrat.drop_last();
+        self.register_mut().drop_last();
         result
     }
 }
