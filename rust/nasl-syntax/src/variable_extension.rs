@@ -2,12 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-
 #[cfg(test)]
 mod test {
-    use crate::{
-        parse, AssignOrder, Statement, StatementKind, TokenCategory
-    };
+    use crate::{parse, AssignOrder, Statement, StatementKind, TokenCategory};
 
     use StatementKind::*;
 
