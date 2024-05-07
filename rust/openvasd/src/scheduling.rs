@@ -612,8 +612,10 @@ mod tests {
                     y
                 })
                 .collect::<Vec<_>>();
-            let mut config = config::Scheduler::default();
-            config.max_running_scans = Some(5);
+            let config = config::Scheduler {
+                max_running_scans: Some(5),
+                ..Default::default()
+            };
             let db = inmemory::Storage::default();
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
@@ -853,8 +855,10 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn error_queue_is_full() {
-            let mut config = config::Scheduler::default();
-            config.max_queued_scans = Some(0);
+            let config = config::Scheduler {
+                max_queued_scans: Some(0),
+                ..Default::default()
+            };
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();
@@ -871,8 +875,10 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn error_resume_unsupported() {
-            let mut config = config::Scheduler::default();
-            config.max_queued_scans = Some(0);
+            let config = config::Scheduler {
+                max_queued_scans: Some(0),
+                ..Default::default()
+            };
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();

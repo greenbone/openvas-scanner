@@ -451,7 +451,7 @@ where
             let mut h = self.hash.write().await;
             for ha in h.iter_mut() {
                 if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
-                    ha.hash = nh.hash.clone()
+                    ha.hash.clone_from(&nh.hash)
                 }
             }
         }

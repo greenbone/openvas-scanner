@@ -290,7 +290,7 @@ where
                             }
                             let id = uuid::Uuid::new_v4().to_string();
                             let resp = ctx.response.created(&id);
-                            scan.scan_id = id.clone();
+                            scan.scan_id.clone_from(&id);
                             ctx.scheduler.insert_scan(scan).await?;
                             ctx.scheduler.add_scan_client_id(id.clone(), cid).await?;
                             tracing::debug!(%id, "Scan created");

@@ -20,11 +20,11 @@ pub enum ContextType {
     Value(NaslValue),
 }
 
-impl ToString for ContextType {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for ContextType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContextType::Function(_, _) => "".to_owned(),
-            ContextType::Value(v) => v.to_string(),
+            ContextType::Function(_, _) => write!(f, ""),
+            ContextType::Value(v) => write!(f, "{v}"),
         }
     }
 }
