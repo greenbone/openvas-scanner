@@ -46,6 +46,10 @@ impl Position {
             index: vec![*self.index.first().unwrap_or(&0)],
         }
     }
+
+    fn root_index(&self) -> usize {
+        *self.index.first().unwrap_or(&0)
+    }
 }
 
 /// Used to interpret a Statement
@@ -67,8 +71,6 @@ impl<'a, K> Interpreter<'a, K>
 where
     K: AsRef<str>,
 {
-    // TODO rename to new
-    // TODO: write an easier to use function for code: &str
     /// Creates a new Interpreter
     pub fn new(register: Register, ctxconfigs: &'a Context<K>) -> Self {
         Interpreter {
@@ -198,13 +200,18 @@ where
     pub(crate) fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         self.position.up();
         tracing::trace!(position=?self.position, statement=statement.to_string(), "executing");
-        // TODO: should actually skip until it is reached, return value when it is reached and not
-        // to NONE.
+        // On a fork statement run we skip until the root index is reached. Between the root index
+        // of the return value and the position of the return value the interpretation is
+        // continued. This is done because the client just executes higher statements.
         if let Some((cp, rv)) = &self.skip_until_return {
-            tracing::trace!(position=?self.position, check_position=?cp, "verify position");
+            tracing::trace!(check_position=?cp);
+            if self.position.root_index() < cp.root_index() {
+                tracing::trace!("skip execution");
+                self.position.down();
+                return Ok(NaslValue::Null);
+            }
             if cp == &self.position {
-                tracing::trace!(return=?rv, "skip execution");
-                tracing::trace!(return=?rv, "returning");
+                tracing::trace!(return=?rv, "skip execution and returning");
                 let rv = rv.clone();
                 self.skip_until_return = None;
                 self.position.down();
