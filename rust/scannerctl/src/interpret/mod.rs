@@ -10,7 +10,7 @@ use nasl_interpreter::{
     Interpreter, KeyDispatcherSet, LoadError, Loader, NaslValue, NoOpLoader, RegisterBuilder,
 };
 use redis_storage::FEEDUPDATE_SELECTOR;
-use storage::{DefaultDispatcher, Dispatcher, Retriever};
+use storage::DefaultDispatcher;
 
 use crate::{CliError, CliErrorKind, Db};
 
@@ -116,23 +116,6 @@ impl Run<String> {
         }
         context.executor().nasl_fn_cache_clear();
         Ok(())
-    }
-}
-
-trait Storage<K>: Dispatcher<K> + Retriever<K> {
-    fn as_retriever(&self) -> &dyn Retriever<K>;
-    fn as_dispatcher(&self) -> &dyn Dispatcher<K>;
-}
-impl<T, K> Storage<K> for T
-where
-    T: Dispatcher<K> + Retriever<K> + Sized,
-{
-    fn as_retriever(&self) -> &dyn Retriever<K> {
-        self
-    }
-
-    fn as_dispatcher(&self) -> &dyn Dispatcher<K> {
-        self
     }
 }
 

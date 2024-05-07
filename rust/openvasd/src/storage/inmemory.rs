@@ -384,7 +384,7 @@ where
             let mut h = self.hash.write().await;
             for ha in h.iter_mut() {
                 if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
-                    ha.hash = nh.hash.clone()
+                    ha.hash.clone_from(&nh.hash)
                 }
             }
         }
@@ -507,7 +507,7 @@ mod tests {
     async fn store_scan(storage: &Storage<crypt::ChaCha20Crypt>) -> String {
         let mut scan = Scan::default();
         let id = uuid::Uuid::new_v4().to_string();
-        scan.scan_id = id.clone();
+        scan.scan_id.clone_from(&id);
         storage.insert_scan(scan).await.unwrap();
         id
     }
