@@ -256,7 +256,10 @@ mod tests {
     #[test]
     fn par_thousand_graph() {
         let mut nodes: Vec<Node<_>> = (0..1000).map(|i| Node::new(format!("{}", i))).collect();
-        nodes.iter_mut().skip(1).for_each(|n|n.add_dep("0".to_string()));
+        nodes
+            .iter_mut()
+            .skip(1)
+            .for_each(|n| n.add_dep("0".to_string()));
 
         let r = DepGraph::new(&nodes);
         let result = r.into_par_iter().map(|_| true).collect::<Vec<bool>>();

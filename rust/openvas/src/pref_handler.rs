@@ -528,7 +528,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_prefs() {
-        let mut scan = Scan{ scan_id: "123-456".to_string(), ..Default::default()};
+        let mut scan = Scan {
+            scan_id: "123-456".to_string(),
+            ..Default::default()
+        };
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
         scan.target.credentials = vec![Credential {
             service: models::Service::SSH,
