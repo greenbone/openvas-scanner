@@ -124,9 +124,7 @@ mod tests {
         let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));
         assert_eq!(parser.next(), Some(Ok(1.into())));

@@ -14,9 +14,7 @@ mod tests {
         let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::String(_)))));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Array(_)))));
     }

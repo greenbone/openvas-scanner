@@ -9,8 +9,7 @@ pub use error::Error;
 use std::{fmt::Display, fs::File, io::Read, marker::PhantomData};
 
 use nasl_interpreter::{
-    logger::DefaultLogger, AsBufReader, Context, ContextType, Interpreter, Loader, NaslValue,
-    Register,
+    logger::DefaultLogger, AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register
 };
 use storage::{item::NVTField, Dispatcher, NoOpRetriever};
 
@@ -158,9 +157,9 @@ where
             &logger,
             &functions,
         );
-        let mut interpreter = Interpreter::new(register, &context);
-        for stmt in nasl_syntax::parse(&code) {
-            match interpreter.retry_resolve_next(&stmt?, self.max_retry) {
+        let interpreter = CodeInterpreter::new(&code, register, &context);
+        for stmt in interpreter {
+            match stmt {
                 Ok(NaslValue::Exit(i)) => {
                     self.dispatcher.on_exit()?;
                     return Ok(i);

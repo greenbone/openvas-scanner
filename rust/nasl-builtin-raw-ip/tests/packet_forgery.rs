@@ -8,8 +8,8 @@ mod tests {
 
     use nasl_builtin_std::ContextBuilder;
     use nasl_builtin_utils::{error::FunctionErrorKind, Register};
-    use nasl_interpreter::Interpreter;
-    use nasl_syntax::{parse, NaslValue};
+    use nasl_interpreter::{CodeInterpreter};
+    use nasl_syntax::{NaslValue};
 
     /// Copy from a slice in safe way, performing the necessary test to avoid panicking
     fn safe_copy_from_slice(
@@ -68,9 +68,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Data(vec![
@@ -110,9 +108,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(255))));
         parser.next();
@@ -141,9 +137,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(8))));
@@ -183,9 +177,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
         parser.next();
@@ -218,9 +210,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Data(vec![
@@ -262,9 +252,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(
             parser.next(),
@@ -300,9 +288,7 @@ mod tests {
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
         let context = binding.build();
-        let mut interpreter = Interpreter::new(register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.retry_resolve_next(&x.expect("no parse error expected"), 1));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(
             parser.next(),

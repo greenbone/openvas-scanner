@@ -47,8 +47,7 @@ mod tests {
             ..Default::default()
         };
         let ctx = context.build();
-        let mut interpreter = Interpreter::new(register, &ctx);
-        let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
+        let mut interpreter = CodeInterpreter::new(code, register, &ctx);
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));
         assert_eq!(
