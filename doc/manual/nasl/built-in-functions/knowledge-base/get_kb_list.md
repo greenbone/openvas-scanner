@@ -33,7 +33,7 @@ first positional argument is not given
 set_kb_item(name: "hosts", value: "foo", expire: 600);
 set_kb_item(name: "hosts", value: "bar", expire: 600);
 
-display(get_kb_list("abc"));
+display(get_kb_list("hosts"));
 # should print [ hosts: 'foo', boo: 'baz' ]
 ```
 
