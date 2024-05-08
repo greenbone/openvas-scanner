@@ -63,6 +63,35 @@ pub(crate) struct RunSpecific {
     pub(crate) skip_until_return: Option<(Position, NaslValue)>,
 }
 
+/// Workaround for Context 'a Captures and impl Iterator
+///
+/// This is used for function that returns StatementIter as a impl Iterator (e.g. resolve_all).
+pub trait ContextLifeTimeCapture<'a> {}
+impl<'a, T: ?Sized> ContextLifeTimeCapture<'a > for T {}
+
+struct StatementIter<'a, 'b, K> {
+    interpreter: &'b mut Interpreter<'a, K>,
+    statement: Statement,
+}
+
+impl<'a, 'b, K> Iterator for StatementIter<'a, 'b, K> where K: AsRef<str> {
+    type Item = InterpretResult;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.interpreter.index == self.interpreter.run_specific.len() {
+            self.interpreter.index = 0;
+            return None;
+        }
+        let results = if self.interpreter.index == 0 {
+            Some(self.interpreter.retry_resolve_next(&self.statement, 5))
+        }  else {
+            Some(self.interpreter.retry_resolve(&self.statement, 5))
+        };
+        self.interpreter.index += 1;
+        results
+    }
+} 
+
 /// Used to interpret a Statement
 pub struct Interpreter<'a, K> {
     pub(crate) run_specific: Vec<RunSpecific>,
@@ -98,6 +127,12 @@ where
             TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
             cat => Err(InterpretError::wrong_category(cat)),
         }
+    }
+
+    /// Returns an iterator over all possibile interpretations of a Statement
+    pub fn resolve_all<'b>(&'b mut self, statement: Statement) -> impl Iterator<Item = InterpretResult> + ContextLifeTimeCapture<'a> + 'b {
+        StatementIter{ interpreter: self, statement }
+
     }
 
     /// May return the next interpreter to run against that statement

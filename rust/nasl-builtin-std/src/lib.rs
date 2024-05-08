@@ -234,6 +234,7 @@ impl<K: AsRef<str>, S> ContextBuilder<K, S> {
 
 impl<K: AsRef<str>> ContextBuilder<K, KeyDispatcherSet<K>> {
     /// Creates a new context builder with the given key and storage.
+    // TODO remove key and move it to build as they change per script call
     pub fn new(key: K, storage: Box<dyn Storage<K>>) -> Self {
         Self {
             key: KeyDispatcherSet { key, storage },

@@ -20,6 +20,7 @@ pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
+pub use interpreter::ContextLifeTimeCapture;
 pub use fork_interpreter::*;
 
 // we expose the other libraries to allow users to use them without having to import them
