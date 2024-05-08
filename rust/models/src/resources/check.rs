@@ -21,7 +21,7 @@ impl Checker {
     /// must be available.
     pub fn new_relative_memory(memory: f32, cpu: Option<f32>) -> Self {
         let memory = {
-            let system = sysinfo::System::new();
+            let system = sysinfo::System::new_all();
             Some((system.total_memory() as f32 * memory) as u64)
         };
         Self { memory, cpu }
