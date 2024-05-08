@@ -451,8 +451,10 @@ mod tests {
         let scanner = FakeScanner {
             count: Arc::new(RwLock::new(0)),
         };
-        let mut ns = crate::config::Scheduler::default();
-        ns.check_interval = std::time::Duration::from_nanos(10);
+        let ns = crate::config::Scheduler {
+            check_interval: std::time::Duration::from_nanos(10),
+            ..Default::default()
+        };
         let root = "/tmp/openvasd/fetch_results";
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
