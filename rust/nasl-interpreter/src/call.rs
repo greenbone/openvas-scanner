@@ -54,14 +54,21 @@ where
                     Ok(if let Some(r) = x.pop() {
                         // this is a proposal for the case that the caller is immediately executing
                         // if not the position needs to be reset
-                        let position = self.position().current_init_statement();
-                        for i in x {
-                            tracing::trace!(return_value=?i, return_position=?self.position(), interpreter_position=?position, "creating interpreter instance" );
-                            self.run_specific.push(RunSpecific {
-                                register: self.register().clone(),
-                                position: position.clone(),
-                                skip_until_return: Some((self.position().clone(), i)),
-                            });
+                        if self.index == 0 {
+                            let position = self.position().current_init_statement();
+                            for i in x {
+                                tracing::trace!(return_value=?i, return_position=?self.position(), interpreter_position=?position, "creating interpreter instance" );
+                                self.run_specific.push(RunSpecific {
+                                    register: self.register().clone(),
+                                    position: position.clone(),
+                                    skip_until_return: Some((self.position().clone(), i)),
+                                });
+                            }
+                        } else {
+                            tracing::trace!(
+                                index = self.index,
+                                "we only allow expanding of executions (fork) on root instance"
+                            );
                         }
                         tracing::trace!(return_value=?r, "returning interpreter instance" );
                         r
