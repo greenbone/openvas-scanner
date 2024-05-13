@@ -100,6 +100,8 @@ jobs:
             git add CMakeLists.txt
             git add charts/openvasd/Chart.yaml
             git commit -m "Automated commit: change version from ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}"
+            git fetch --all
+            git rebase origin/${{ env.RELEASE_REF}}
             git push origin ${{ env.RELEASE_REF }}
           fi
       - uses: actions/download-artifact@v4
