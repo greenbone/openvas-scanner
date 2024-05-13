@@ -158,7 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let redis_url = openvas::cmd::get_redis_socket();
             if redis_url != config.storage.redis.url {
                 tracing::warn!(openvas_redis=&redis_url, openvasd_redis=&config.storage.redis.url, "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url");
-                config.storage.redis.url = redis_url.clone();
+                config.storage.redis.url.clone_from(&redis_url);
             }
             run(
                 openvas::Scanner::new(
