@@ -103,6 +103,12 @@ impl Display for NaslValue {
     }
 }
 
+impl From<&[u8]> for NaslValue {
+    fn from(value: &[u8]) -> Self {
+        value.to_vec().into()
+    }
+}
+
 impl From<Vec<u8>> for NaslValue {
     fn from(s: Vec<u8>) -> Self {
         Self::Data(s)
