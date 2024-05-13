@@ -28,6 +28,10 @@ where
         // because it is handled as a SyntaxError. Therefore we don't double check and
         // and let it run into a index out of bound panic to immediately escalate.
         let (left, right) = {
+            for (i, e) in stmts.iter().enumerate() {
+                println!("{i} {e}");
+            }
+
             let first = self.resolve(&stmts[0])?;
             if stmts.len() == 1 {
                 (first, None)
@@ -81,6 +85,22 @@ fn not_match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult 
     Ok(NaslValue::Boolean(!bool::from(result)))
 }
 
+macro_rules! add_left_right_string {
+    ($left: ident, $right:ident) => {{
+        let right = $right.map(|x| x.to_string()).unwrap_or_default();
+        let x = $left;
+        Ok(NaslValue::String(format!("{x}{right}")))
+    }};
+}
+
+macro_rules! minus_left_right_string {
+    ($left: ident, $right:ident) => {{
+        let right = $right.map(|x| x.to_string()).unwrap_or_default();
+        let x = $left.to_string();
+        Ok(NaslValue::String(x.replacen(&right, "", 1)))
+    }};
+}
+
 impl<'a, K> OperatorExtension for Interpreter<'a, K>
 where
     K: AsRef<str>,
@@ -90,36 +110,44 @@ where
             // number and string
             TokenCategory::Plus => self.execute(stmts, |a, b| match a {
                 NaslValue::String(x) => {
-                    let right = b.map(|x| x.to_string()).unwrap_or_default();
-                    Ok(NaslValue::String(format!("{x}{right}")))
+                    add_left_right_string!(x, b)
                 }
                 NaslValue::Data(x) => {
                     let right: String = b.map(|x| x.to_string()).unwrap_or_default();
                     let x: String = x.into_iter().map(|b| b as char).collect();
+                    // TODO: wrong return value, should be data
                     Ok(NaslValue::String(format!("{x}{right}")))
                 }
-                left => {
-                    let right = b.map(|x| i64::from(&x)).unwrap_or_default();
-                    Ok(NaslValue::Number(i64::from(&left) + right))
-                }
+                // on plus only we need to cast to string when right is a string
+                left => match b {
+                    Some(NaslValue::String(_)) => add_left_right_string!(left, b),
+                    _ => {
+                        let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                        Ok(NaslValue::Number(i64::from(&left) + right))
+                    }
+                },
             }),
             TokenCategory::Minus => self.execute(stmts, |a, b| match a {
                 NaslValue::String(x) => {
-                    let right: String = b.map(|x| x.to_string()).unwrap_or_default();
-                    Ok(NaslValue::String(x.replacen(&right, "", 1)))
+                    minus_left_right_string!(x, b)
                 }
                 NaslValue::Data(x) => {
                     let right: String = b.map(|x| x.to_string()).unwrap_or_default();
                     let x: String = x.into_iter().map(|b| b as char).collect();
                     Ok(NaslValue::String(x.replacen(&right, "", 1)))
                 }
-                left => {
-                    let result = match b {
-                        Some(right) => i64::from(&left) - i64::from(&right),
-                        None => -i64::from(&left),
-                    };
-                    Ok(NaslValue::Number(result))
-                }
+                left => match b {
+                    Some(NaslValue::String(_)) => {
+                        minus_left_right_string!(left, b)
+                    }
+                    _ => {
+                        let result = match b {
+                            Some(right) => i64::from(&left) - i64::from(&right),
+                            None => -i64::from(&left),
+                        };
+                        Ok(NaslValue::Number(result))
+                    }
+                },
             }),
             // number
             TokenCategory::Star => self.execute(stmts, |a, b| num_expr!(* a b)),
@@ -242,6 +270,10 @@ mod tests {
     }
     create_test! {
         numeric_plus: "1+2;" => 3.into(),
+        cast_to_string_middle_plus: "1+\"\"+2;" => "12".into(),
+        cast_to_string_end_plus: "1+2+\"\";" => "3".into(),
+        cast_to_string_end_plus_4: "1+2+\"\" + 4;" => "34".into(),
+        cast_to_string_minus: "11-\"1\";" => "1".into(),
         string_plus: "\"hello \" + \"world!\";" => "hello world!".into(),
         string_minus : "\"hello \" - 'o ';" => "hell".into(),
         data_plus: "'hello ' + 'world!';" => "hello world!".into(),
