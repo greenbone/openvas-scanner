@@ -115,8 +115,7 @@ where
                 NaslValue::Data(x) => {
                     let right: String = b.map(|x| x.to_string()).unwrap_or_default();
                     let x: String = x.into_iter().map(|b| b as char).collect();
-                    // TODO: wrong return value, should be data
-                    Ok(NaslValue::String(format!("{x}{right}")))
+                    Ok(NaslValue::Data(format!("{x}{right}").into()))
                 }
                 // on plus only we need to cast to string when right is a string
                 left => match b {
@@ -134,7 +133,7 @@ where
                 NaslValue::Data(x) => {
                     let right: String = b.map(|x| x.to_string()).unwrap_or_default();
                     let x: String = x.into_iter().map(|b| b as char).collect();
-                    Ok(NaslValue::String(x.replacen(&right, "", 1)))
+                    Ok(NaslValue::Data(x.replacen(&right, "", 1).into()))
                 }
                 left => match b {
                     Some(NaslValue::String(_)) => {
@@ -276,8 +275,8 @@ mod tests {
         cast_to_string_minus: "11-\"1\";" => "1".into(),
         string_plus: "\"hello \" + \"world!\";" => "hello world!".into(),
         string_minus : "\"hello \" - 'o ';" => "hell".into(),
-        data_plus: "'hello ' + 'world!';" => "hello world!".into(),
-        data_minus: "'hello ' - 'o ';" => "hell".into(),
+        data_plus: "'hello ' + 'world!';" => "hello world!".as_bytes().into(),
+        data_minus: "'hello ' - 'o ';" => "hell".as_bytes().into(),
         numeric_minus : "1 - 2;" => NaslValue::Number(-1),
         multiplication: "1*2;" => 2.into(),
         division: "512/2;" => 256.into(),
