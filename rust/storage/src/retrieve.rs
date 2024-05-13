@@ -85,6 +85,8 @@ impl Retrieve {
 }
 
 /// Retrieves fields based on a key and scope.
+// TODO: remove K infavor of a enum, as a user of that interface it is very hard to differentiate
+// when to use an OID and when not. A better solution would be to use enums.
 pub trait Retriever<K> {
     /// Gets Fields find by key and scope. This is to get all instances.
     fn retrieve(
@@ -94,6 +96,8 @@ pub trait Retriever<K> {
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
     /// Gets Fields find by field and scope.
+    ///
+    /// This is used to filter results.
     fn retrieve_by_field(
         &self,
         field: Field,

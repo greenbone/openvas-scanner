@@ -5,13 +5,15 @@ use nasl_syntax::Statement;
 
 use crate::interpreter::InterpretResult;
 
+/// To allow closures we use a heap stored statement consumer
+pub type StatementConsumer = Box<dyn Fn(&Statement)>;
 /// Uses given code to return results based on that.
 pub struct CodeInterpreter<'a, 'b, K> {
     lexer: nasl_syntax::Lexer<'b>,
     interpreter: crate::interpreter::Interpreter<'a, K>,
     statement: Option<Statement>,
     /// call back function for Statements before they get interpret
-    pub statemet_cb: Option<Box<dyn Fn(&Statement)>>,
+    pub statemet_cb: Option<StatementConsumer>,
 }
 
 impl<'a, 'b, K> CodeInterpreter<'a, 'b, K>

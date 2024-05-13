@@ -5,7 +5,7 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use nasl_syntax::{logger::NaslLogger, Loader, NaslValue, Statement};
-use storage::{types::Primitive, Dispatcher, Field, Kb, Retriever};
+use storage::{Dispatcher, Retriever};
 
 use crate::lookup_keys::FC_ANON_ARGS;
 
@@ -283,7 +283,6 @@ impl Default for Register {
 }
 use std::{
     collections::HashMap,
-    time::{SystemTime, UNIX_EPOCH},
 };
 type Named = HashMap<String, ContextType>;
 
