@@ -157,6 +157,28 @@ impl From<HashMap<String, NaslValue>> for NaslValue {
     }
 }
 
+impl From<NaslValue> for Vec<u8> {
+    fn from(value: NaslValue) -> Self {
+        match value {
+            NaslValue::String(x) => x.into(),
+            NaslValue::Data(x) => x,
+            NaslValue::Array(x) => x
+                .iter()
+                .flat_map(<&NaslValue as Into<Vec<u8>>>::into)
+                .collect(),
+            NaslValue::Boolean(_) | NaslValue::Number(_) | NaslValue::Dict(_) => {
+                value.to_string().as_bytes().into()
+            }
+            NaslValue::AttackCategory(_)
+            | NaslValue::Null
+            | NaslValue::Return(_)
+            | NaslValue::Continue
+            | NaslValue::Break
+            | NaslValue::Exit(_) => vec![],
+        }
+    }
+}
+
 impl From<NaslValue> for bool {
     fn from(value: NaslValue) -> Self {
         match value {
