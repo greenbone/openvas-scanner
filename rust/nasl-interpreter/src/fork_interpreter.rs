@@ -13,7 +13,7 @@ pub struct CodeInterpreter<'a, 'b, K> {
     interpreter: crate::interpreter::Interpreter<'a, K>,
     statement: Option<Statement>,
     /// call back function for Statements before they get interpret
-    pub statemet_cb: Option<StatementConsumer>,
+    pub statement_cb: Option<StatementConsumer>,
 }
 
 impl<'a, 'b, K> CodeInterpreter<'a, 'b, K>
@@ -50,7 +50,7 @@ where
             lexer,
             interpreter,
             statement: None,
-            statemet_cb: None,
+            statement_cb: None,
         }
     }
 
@@ -81,7 +81,7 @@ where
         cb: &'static dyn Fn(&Statement),
     ) -> CodeInterpreter<'a, 'b, K> {
         let mut result = Self::new(code, register, context);
-        result.statemet_cb = Some(Box::new(cb));
+        result.statement_cb = Some(Box::new(cb));
         result
     }
 
@@ -89,7 +89,7 @@ where
         self.statement = None;
         match self.lexer.next() {
             Some(Ok(nstmt)) => {
-                if let Some(cb) = &self.statemet_cb {
+                if let Some(cb) = &self.statement_cb {
                     cb(&nstmt);
                 }
                 let results = Some(self.interpreter.retry_resolve_next(&nstmt, 5));

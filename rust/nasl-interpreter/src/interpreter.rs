@@ -56,7 +56,7 @@ impl Position {
 ///
 /// Some methods start multiple runs (e.g. get_kb_item) and need to have their own specific data to
 /// manipulate. To make it more convencient the data that is bound to run is summarized within this
-/// struc.
+/// struct.
 pub(crate) struct RunSpecific {
     pub(crate) register: Register,
     pub(crate) position: Position,
@@ -129,7 +129,7 @@ where
         }
     }
 
-    /// Returns an iterator over all possibile interpretations of a Statement
+    /// Returns an iterator over all possible interpretations of a Statement
     pub fn resolve_all<'b>(&'b mut self, statement: Statement) -> impl Iterator<Item = InterpretResult> + ContextLifeTimeCapture<'a> + 'b {
         StatementIter{ interpreter: self, statement }
 
@@ -138,7 +138,7 @@ where
     /// May return the next interpreter to run against that statement
     ///
     /// When the interpreter are done a None will be returned. Afterwards it will begin at at 0
-    /// again. This is done to inform the caller that all intepreter interpret this statement and
+    /// again. This is done to inform the caller that all interpreter interpret this statement and
     /// the next Statement can be executed.
     // TODO remove in favor of iterrator of run_specific
     pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a, K>> {
@@ -199,8 +199,6 @@ where
     ///
     /// When max_attempts is set to 0 it will it execute it once.
     pub fn retry_resolve_next(&mut self, stmt: &Statement, max_attempts: usize) -> InterpretResult {
-        //self.posion = Position::new(*self.position.index.last().unwrap_or(&0));
-        //
         if let Some(last) = self.position_mut().index.last_mut() {
             *last += 1;
         }
