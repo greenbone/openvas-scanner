@@ -43,13 +43,6 @@ impl End {
             End::Continue => false,
         }
     }
-
-    // pub fn category(&self) -> &Option<Category> {
-    //     match self {
-    //         End::Done(t) => &Some(t.category),
-    //         End::Continue => &None,
-    //     }
-    // }
 }
 
 impl Not for End {

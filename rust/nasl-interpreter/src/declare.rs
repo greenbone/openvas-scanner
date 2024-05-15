@@ -39,7 +39,7 @@ where
                 _ => return Err(InterpretError::unsupported(a, "variable")),
             }
         }
-        self.registrat
+        self.register_mut()
             .add_global(name, ContextType::Function(names, execution.clone()));
         Ok(NaslValue::Null)
     }
@@ -49,16 +49,19 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> DeclareVariableExtension for Interpreter<'a, K> {
+impl<'a, K> DeclareVariableExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
             match scope.category() {
                 TokenCategory::Identifier(nasl_syntax::IdentifierType::GlobalVar) => {
-                    self.registrat.add_global(key, value)
+                    self.register_mut().add_global(key, value)
                 }
                 TokenCategory::Identifier(nasl_syntax::IdentifierType::LocalVar) => {
-                    self.registrat.add_local(key, value)
+                    self.register_mut().add_local(key, value)
                 }
                 _ => unreachable!(
                     "{} should not be identified as an declare statement",
@@ -93,12 +96,10 @@ mod tests {
         test(a: 1, b: 2);
         c;
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Null)))); // not found
@@ -112,12 +113,10 @@ mod tests {
         }
         test(a: 1, b: 2);
         "###;
-        let mut register = Register::default();
+        let register = Register::default();
         let binding = ContextBuilder::default();
         let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));
     }
