@@ -1956,12 +1956,15 @@ dependencies = [
 name = "nasl-interpreter"
 version = "0.1.0"
 dependencies = [
+ "models",
  "nasl-builtin-std",
  "nasl-builtin-utils",
  "nasl-syntax",
  "regex",
  "storage",
+ "thiserror",
  "tracing",
+ "tracing-test 0.2.4",
 ]
 
 [[package]]
@@ -2186,7 +2189,7 @@ dependencies = [
  "toml 0.7.8",
  "tracing",
  "tracing-subscriber 0.3.18",
- "tracing-test",
+ "tracing-test 0.1.0",
  "uuid",
 ]
 
@@ -3704,7 +3707,19 @@ dependencies = [
  "lazy_static",
  "tracing-core",
  "tracing-subscriber 0.2.25",
- "tracing-test-macro",
+ "tracing-test-macro 0.1.0",
+]
+
+[[package]]
+name = "tracing-test"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a2c0ff408fe918a94c428a3f2ad04e4afd5c95bbc08fcf868eff750c15728a4"
+dependencies = [
+ "lazy_static",
+ "tracing-core",
+ "tracing-subscriber 0.3.18",
+ "tracing-test-macro 0.2.4",
 ]
 
 [[package]]
@@ -3712,6 +3727,17 @@ name = "tracing-test-macro"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c49adbab879d2e0dd7f75edace5f0ac2156939ecb7e6a1e8fa14e53728328c48"
+dependencies = [
+ "lazy_static",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "tracing-test-macro"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "258bc1c4f8e2e73a977812ab339d503e6feeb92700f6d07a6de4d321522d5c08"
 dependencies = [
  "lazy_static",
  "quote",

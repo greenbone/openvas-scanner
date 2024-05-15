@@ -499,6 +499,33 @@ pub struct Nvt {
     pub family: String,
 }
 
+impl Nvt {
+    /// Verifies if a nvt is matching a field
+    pub fn matches_field(&self, field: &Field) -> bool {
+        match field {
+            Field::NVT(nvt_field) => match nvt_field {
+                NVTField::Oid(x) => &self.oid == x,
+                NVTField::FileName(x) => &self.filename == x,
+                NVTField::Name(x) => &self.name == x,
+                NVTField::Tag(a, _) => self.tag.contains_key(a),
+                NVTField::Dependencies(x) => &self.dependencies == x,
+                NVTField::RequiredKeys(x) => &self.required_keys == x,
+                NVTField::MandatoryKeys(x) => &self.mandatory_keys == x,
+                NVTField::ExcludedKeys(x) => &self.excluded_keys == x,
+                NVTField::RequiredPorts(x) => &self.required_ports == x,
+                NVTField::RequiredUdpPorts(x) => &self.required_udp_ports == x,
+                NVTField::Preference(x) => self.preferences.contains(x),
+                NVTField::Reference(x) => &self.references == x,
+                NVTField::Category(x) => &self.category == x,
+                NVTField::Family(x) => &self.family == x,
+                NVTField::Nvt(x) => self == x,
+                NVTField::NoOp | NVTField::Version(_) => false,
+            },
+            Field::KB(_) | Field::NotusAdvisory(_) => false,
+        }
+    }
+}
+
 impl From<VulnerabilityData> for Nvt {
     fn from(value: VulnerabilityData) -> Self {
         let oid = value.adv.oid.clone();
@@ -584,6 +611,76 @@ impl From<(&str, Vulnerability)> for Nvt {
             preferences: Vec::new(),
             category: ACT::GatherInfo,
             family: adv.family,
+        }
+    }
+}
+
+impl From<crate::NVTField> for Nvt {
+    fn from(value: crate::NVTField) -> Self {
+        match value {
+            NVTField::Oid(oid) => Self {
+                oid,
+                ..Default::default()
+            },
+            NVTField::FileName(filename) => Self {
+                filename,
+                ..Default::default()
+            },
+            NVTField::Version(_) => Default::default(),
+            NVTField::Name(name) => Self {
+                name,
+                ..Default::default()
+            },
+            NVTField::Tag(key, value) => Self {
+                tag: {
+                    let mut result = BTreeMap::new();
+                    result.insert(key, value);
+                    result
+                },
+                ..Default::default()
+            },
+            NVTField::Dependencies(dependencies) => Self {
+                dependencies,
+                ..Default::default()
+            },
+            NVTField::RequiredKeys(required_keys) => Self {
+                required_keys,
+                ..Default::default()
+            },
+            NVTField::MandatoryKeys(mandatory_keys) => Self {
+                mandatory_keys,
+                ..Default::default()
+            },
+            NVTField::ExcludedKeys(excluded_keys) => Self {
+                excluded_keys,
+                ..Default::default()
+            },
+            NVTField::RequiredPorts(required_ports) => Self {
+                required_ports,
+                ..Default::default()
+            },
+            NVTField::RequiredUdpPorts(required_udp_ports) => Self {
+                required_udp_ports,
+                ..Default::default()
+            },
+            NVTField::Preference(preferences) => Self {
+                preferences: vec![preferences],
+                ..Default::default()
+            },
+            NVTField::Reference(references) => Self {
+                references,
+                ..Default::default()
+            },
+            NVTField::Category(category) => Self {
+                category,
+                ..Default::default()
+            },
+            NVTField::Family(family) => Self {
+                family,
+                ..Default::default()
+            },
+            NVTField::Nvt(nvt) => nvt,
+            NVTField::NoOp => Nvt::default(),
         }
     }
 }
@@ -710,6 +807,14 @@ where
         scope: crate::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         self.dispatcher.retrieve_by_field(field, scope)
+    }
+
+    fn retrieve_by_fields(
+        &self,
+        field: Vec<Field>,
+        scope: crate::Retrieve,
+    ) -> crate::FieldKeyResult {
+        self.dispatcher.retrieve_by_fields(field, scope)
     }
 }
 

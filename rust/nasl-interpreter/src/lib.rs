@@ -15,6 +15,7 @@ mod include;
 mod interpreter;
 mod loop_extension;
 mod operator;
+pub mod scheduling;
 
 pub use error::FunctionError;
 pub use error::InterpretError;

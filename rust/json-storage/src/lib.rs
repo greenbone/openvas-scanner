@@ -163,6 +163,14 @@ where
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
         Ok(Box::new([].into_iter()))
     }
+
+    fn retrieve_by_fields(
+        &self,
+        _: Vec<storage::Field>,
+        _: storage::Retrieve,
+    ) -> storage::FieldKeyResult {
+        Ok(Box::new([].into_iter()))
+    }
 }
 
 #[cfg(test)]

@@ -759,6 +759,10 @@ where
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
         todo!()
     }
+
+    fn retrieve_by_fields(&self, _: Vec<storage::Field>, _: storage::Retrieve) -> storage::FieldKeyResult {
+        todo!()
+    }
 }
 
 #[cfg(test)]
