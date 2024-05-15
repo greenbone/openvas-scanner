@@ -82,6 +82,11 @@ impl Retrieve {
     }
 }
 
+/// Result of a heap stored iterator or StorageError
+pub type FieldResult = Result<Box<dyn Iterator<Item = Field>>, StorageError>;
+
+/// Result of a heap stored iterator or StorageError
+pub type FieldKeyResult = Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError>;
 /// Retrieves fields based on a key and scope.
 pub trait Retriever {
     /// Gets Fields find by key and scope. This is to get all instances.
@@ -91,14 +96,23 @@ pub trait Retriever {
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
+
+    /// Returns all vts as an iterator
+    fn vts(&self) -> Result<Box<dyn Iterator<Item = crate::item::Nvt>>, StorageError> {
+        Ok(Box::new(
+            self.retrieve(&ContextKey::default(), Retrieve::NVT(None))?
+                .filter_map(|x| match x {
+                    Field::NVT(NVTField::Nvt(nvt)) => Some(nvt),
+                    _ => None,
+                }),
+        ))
+    }
+
     /// Gets Fields find by field and scope.
-    ///
-    /// This is used to filter results.
-    fn retrieve_by_field(
-        &self,
-        field: Field,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError>;
+    fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult;
+
+    /// Gets Fields find by field and scope.
+    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult;
 }
 
 /// A NoOpRetriever is for cases that don't require a retriever but it is needed due to contract.
@@ -110,19 +124,18 @@ pub trait Retriever {
 pub struct NoOpRetriever {}
 
 impl Retriever for NoOpRetriever {
-    fn retrieve(
-        &self,
-        _: &ContextKey,
-        _: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+
+    fn retrieve(&self, _: &ContextKey, _: Retrieve) -> FieldResult {
         Ok(Box::new(vec![].into_iter()))
     }
 
-    fn retrieve_by_field(
-        &self,
-        _: Field,
-        _: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
+    fn retrieve_by_field(&self, _: Field, _: Retrieve) -> FieldKeyResult {
+        Ok(Box::new(vec![].into_iter()))
+    }
+
+    fn retrieve_by_fields(&self, _: Vec<Field>, _: Retrieve) -> FieldKeyResult {
         Ok(Box::new(vec![].into_iter()))
     }
 }
+
+

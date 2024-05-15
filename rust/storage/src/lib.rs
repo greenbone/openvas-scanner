@@ -99,6 +99,12 @@ impl From<Kb> for Field {
         Self::KB(value)
     }
 }
+
+impl From<item::Nvt> for Field {
+    fn from(value: item::Nvt) -> Self {
+        Field::NVT(NVTField::Nvt(value))
+    }
+}
 impl From<models::VulnerabilityData> for Field {
     fn from(value: models::VulnerabilityData) -> Self {
         Self::NotusAdvisory(Box::new(Some(value)))
@@ -127,6 +133,20 @@ pub enum StorageError {
 impl<S> From<PoisonError<S>> for StorageError {
     fn from(value: PoisonError<S>) -> Self {
         Self::Dirty(format!("{value:?}"))
+    }
+}
+
+impl TryFrom<Field> for item::Nvt {
+    type Error = StorageError;
+
+    fn try_from(value: Field) -> Result<Self, Self::Error> {
+        match value {
+            Field::NVT(value) => Ok(value.into()),
+            _ => Err(StorageError::UnexpectedData(format!(
+                "{:?} is not a NVT",
+                value
+            ))),
+        }
     }
 }
 
@@ -333,29 +353,55 @@ impl Retriever for DefaultDispatcher {
         field: Field,
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
+        self.retrieve_by_fields(vec![field], scope)
+    }
+
+    fn retrieve_by_fields(
+        &self,
+        field: Vec<Field>,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         let data = Arc::as_ref(&self.data).read()?;
         let data = InMemoryDataWrapper::new(data.clone());
+
+        let scope_ridiculous = scope.clone();
         let result = data
             .into_iter()
-            .filter(move |(_, v)| v.contains(&field))
-            .flat_map(move |(k, v)| {
+            .filter_map(move |(k, v)| {
                 let scope = scope.clone();
-                let scope2 = scope.clone();
-                v.into_iter()
-                    .filter(move |v| scope.for_field(v))
-                    .map(move |v| {
-                        (
-                            match &scope2 {
-                                Retrieve::NVT(_) => ContextKey::FileName(k.clone()),
-                                Retrieve::KB(_) => ContextKey::Scan(k.clone()),
-                                Retrieve::NotusAdvisory(_) => ContextKey::FileName(k.clone()),
-                            },
-                            v,
-                        )
+                let filtered = v
+                    .into_iter()
+                    .filter(|v| scope.for_field(v))
+                    .filter(|v| {
+                        field.iter().any(|k| match v {
+                            Field::NVT(item::NVTField::Nvt(nvt)) => nvt.matches_field(k),
+                            _ => v == k,
+                        })
                     })
+                    .collect::<Vec<_>>();
+
+                if filtered.is_empty() {
+                    None
+                } else {
+                    Some((k, filtered))
+                }
+            })
+            .flat_map(move |(k, v)| {
+                let scope2 = scope_ridiculous.clone();
+                v.into_iter().map(move |v| {
+                    (
+                        match scope2 {
+                            Retrieve::NVT(_) => ContextKey::FileName(k.clone().into()),
+                            Retrieve::KB(_) => ContextKey::Scan(k.clone().into()),
+                            Retrieve::NotusAdvisory(_) => ContextKey::FileName(k.clone().into()),
+                        },
+                        v,
+                    )
+                })
             });
         Ok(Box::new(result))
     }
+
 }
 
 #[cfg(test)]
