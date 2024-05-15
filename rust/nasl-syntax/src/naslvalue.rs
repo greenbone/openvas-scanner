@@ -196,6 +196,7 @@ impl From<NaslValue> for Vec<u8> {
                 value.to_string().as_bytes().into()
             }
             NaslValue::AttackCategory(_)
+            | NaslValue::Fork(_)
             | NaslValue::Null
             | NaslValue::Return(_)
             | NaslValue::Continue
