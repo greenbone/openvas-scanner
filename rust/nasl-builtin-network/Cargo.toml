@@ -10,5 +10,9 @@ nasl-builtin-utils = { path = "../nasl-builtin-utils" }
 nasl-syntax = { path = "../nasl-syntax" }
 storage = { path = "../storage" }
 
+libc = "0.2"
+pcap = "1.0.0"
+
+
 [dev-dependencies]
 nasl-interpreter = { path = "../nasl-interpreter" }
