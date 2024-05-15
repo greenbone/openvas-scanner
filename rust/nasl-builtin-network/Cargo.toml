@@ -10,5 +10,11 @@ nasl-builtin-utils = { path = "../nasl-builtin-utils" }
 nasl-syntax = { path = "../nasl-syntax" }
 storage = { path = "../storage" }
 
+libc = "0.2"
+pcap = "1.0.0"
+rustls = "0.23.5"
+rustls-pemfile = "2.1"
+pkcs8 = { version = "0.10", features = ["encryption", "pem", "std"] }
+
 [dev-dependencies]
 nasl-interpreter = { path = "../nasl-interpreter" }
