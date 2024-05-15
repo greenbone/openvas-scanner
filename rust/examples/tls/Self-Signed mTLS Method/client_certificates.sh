@@ -33,6 +33,7 @@ openssl req -nodes \
 
 openssl rsa \
           -in end.key \
+          -passin pass:lol \
           -out client.rsa
 
 openssl x509 -req \
