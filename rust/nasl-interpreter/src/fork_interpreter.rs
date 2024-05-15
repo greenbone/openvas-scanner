@@ -54,8 +54,6 @@ where
         }
     }
 
-
-
     /// Creates a new code interpreter with a callback before a statement gets executed
     ///
     /// Example:
@@ -139,7 +137,10 @@ mod rests {
             set_kb_item(name: "test", value: 2);
             display(get_kb_item("test"));
         "#;
-        let interpreter = CodeInterpreter::with_statement_callback(code, register, &context, &|x|println!("{x}"));
+        let interpreter =
+            CodeInterpreter::with_statement_callback(code, register, &context, &|x| {
+                println!("{x}")
+            });
         let results = interpreter.filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert_eq!(results, vec![NaslValue::Null; 4]);
     }

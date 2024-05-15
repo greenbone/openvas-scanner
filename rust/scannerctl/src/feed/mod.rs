@@ -48,14 +48,11 @@ pub fn extend_args(cmd: Command) -> Command {
 
 pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     fn get_vts_path(key: &str, args: &clap::ArgMatches) -> PathBuf {
-        args.get_one::<PathBuf>(key)
-            .cloned()
-            .unwrap_or_else(|| {
-                
-                let config = read_openvas_config()
-                    .expect("openvas -s must be executable when path is not set");
-                get_path_from_openvas(config)
-            })
+        args.get_one::<PathBuf>(key).cloned().unwrap_or_else(|| {
+            let config =
+                read_openvas_config().expect("openvas -s must be executable when path is not set");
+            get_path_from_openvas(config)
+        })
     }
 
     let (args, verbose) = crate::get_args_set_logging(root, "feed")?;

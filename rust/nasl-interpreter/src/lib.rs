@@ -10,18 +10,18 @@ mod error;
 mod assign;
 mod call;
 mod declare;
+mod fork_interpreter;
 mod include;
 mod interpreter;
 mod loop_extension;
 mod operator;
-mod fork_interpreter;
 
 pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
-pub use interpreter::Interpreter;
-pub use interpreter::ContextLifeTimeCapture;
 pub use fork_interpreter::*;
+pub use interpreter::ContextLifeTimeCapture;
+pub use interpreter::Interpreter;
 
 // we expose the other libraries to allow users to use them without having to import them
 pub use nasl_builtin_std::{nasl_std_functions, ContextBuilder, KeyDispatcherSet, RegisterBuilder};

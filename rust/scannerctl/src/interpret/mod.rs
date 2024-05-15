@@ -6,9 +6,8 @@ use std::path::PathBuf;
 
 use feed::HashSumNameLoader;
 use nasl_interpreter::{
-    load_non_utf8_path,
-    CodeInterpreter, ContextBuilder, FSPluginLoader, KeyDispatcherSet, LoadError,
-    Loader, NaslValue, NoOpLoader, RegisterBuilder,
+    load_non_utf8_path, CodeInterpreter, ContextBuilder, FSPluginLoader, KeyDispatcherSet,
+    LoadError, Loader, NaslValue, NoOpLoader, RegisterBuilder,
 };
 use redis_storage::FEEDUPDATE_SELECTOR;
 use storage::DefaultDispatcher;
@@ -108,7 +107,6 @@ impl Run<String> {
             }
         }
 
-        
         context.executor().nasl_fn_cache_clear();
         Ok(())
     }

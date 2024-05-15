@@ -4,7 +4,6 @@
 
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
-
 use crate::{IdentifierType, Token, TokenCategory, ACT};
 
 /// Represents a valid Value of NASL

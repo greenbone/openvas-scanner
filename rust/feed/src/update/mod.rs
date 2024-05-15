@@ -9,7 +9,8 @@ pub use error::Error;
 use std::{fmt::Display, fs::File, io::Read, marker::PhantomData};
 
 use nasl_interpreter::{
-    logger::DefaultLogger, AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register
+    logger::DefaultLogger, AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader,
+    NaslValue, Register,
 };
 use storage::{item::NVTField, Dispatcher, NoOpRetriever};
 
@@ -61,7 +62,8 @@ pub fn feed_version<K: Default + AsRef<str> + 'static>(
         };
     }
 
-    let feed_version = interpreter.register()
+    let feed_version = interpreter
+        .register()
         .named("PLUGIN_SET")
         .map(|x| x.to_string())
         .unwrap_or_else(|| "0".to_owned());

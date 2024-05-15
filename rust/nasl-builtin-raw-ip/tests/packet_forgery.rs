@@ -8,8 +8,8 @@ mod tests {
 
     use nasl_builtin_std::ContextBuilder;
     use nasl_builtin_utils::{error::FunctionErrorKind, Register};
-    use nasl_interpreter::{CodeInterpreter};
-    use nasl_syntax::{NaslValue};
+    use nasl_interpreter::CodeInterpreter;
+    use nasl_syntax::NaslValue;
 
     /// Copy from a slice in safe way, performing the necessary test to avoid panicking
     fn safe_copy_from_slice(

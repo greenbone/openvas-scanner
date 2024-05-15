@@ -52,10 +52,12 @@ fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
             .retriever()
             .retrieve(c.key(), Retrieve::KB(x.to_string()))
             .map(|r| {
-                r.into_iter().filter_map(|x| match x {
-                    Field::NVT(_) | Field::NotusAdvisory(_) => None,
-                    Field::KB(kb) => Some(kb.value.into()),
-                }).collect::<Vec<_>>()
+                r.into_iter()
+                    .filter_map(|x| match x {
+                        Field::NVT(_) | Field::NotusAdvisory(_) => None,
+                        Field::KB(kb) => Some(kb.value.into()),
+                    })
+                    .collect::<Vec<_>>()
             })
             .map(NaslValue::Fork)
             .map_err(|e| e.into()),

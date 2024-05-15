@@ -8,7 +8,7 @@ mod tests {
 
     use nasl_builtin_utils::Register;
     use nasl_interpreter::{CodeInterpreter, ContextBuilder};
-    use nasl_syntax::{NaslValue};
+    use nasl_syntax::NaslValue;
     use std::time::Instant;
 
     #[test]

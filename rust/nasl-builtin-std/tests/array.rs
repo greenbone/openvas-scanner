@@ -8,8 +8,8 @@ mod tests {
 
     use nasl_builtin_std::ContextBuilder;
     use nasl_builtin_utils::Register;
-    use nasl_interpreter::{CodeInterpreter};
-    use nasl_syntax::{NaslValue};
+    use nasl_interpreter::CodeInterpreter;
+    use nasl_syntax::NaslValue;
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {
             {

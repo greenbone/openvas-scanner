@@ -49,7 +49,10 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> DeclareVariableExtension for Interpreter<'a, K> where K: AsRef<str> {
+impl<'a, K> DeclareVariableExtension for Interpreter<'a, K>
+where
+    K: AsRef<str>,
+{
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);

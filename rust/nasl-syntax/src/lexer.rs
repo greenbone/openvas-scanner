@@ -43,7 +43,6 @@ impl End {
             End::Continue => false,
         }
     }
-
 }
 
 impl Not for End {

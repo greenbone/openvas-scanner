@@ -281,9 +281,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::{
-    collections::HashMap,
-};
+use std::collections::HashMap;
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions

@@ -10,8 +10,8 @@ mod tests {
 
     use nasl_builtin_std::ContextBuilder;
     use nasl_builtin_utils::Register;
-    use nasl_interpreter::{CodeInterpreter};
-    use nasl_syntax::{NaslValue};
+    use nasl_interpreter::CodeInterpreter;
+    use nasl_syntax::NaslValue;
 
     #[test]
     fn get_local_mac_address_from_ip() {
