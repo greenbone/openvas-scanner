@@ -13,18 +13,19 @@
 ## DESCRIPTION
 
 Takes:
+
 - `sec` - seconds 0-60
-- `min` - mintues 0-60
+- `min` - minutes 0-60
 - `hour` - hour 0-23
 - `mday` - day of the month 0-31
 - `mon` - month 1-12
-- `year` - year four digits 
+- `year` - year four digits
 - `isdst` A flag that indicates whether daylight saving time is in effect at the time described.
 
 Transforms those into the Unix time.
 
-
 ## RETURN VALUE
+
 Returns a Unix time (the number of seconds since 1970-01-01).
 
 ## Error
