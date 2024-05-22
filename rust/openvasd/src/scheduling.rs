@@ -166,7 +166,7 @@ where
         } else {
             let mut running = self.running.write().await;
             if let Some(idx) = running.iter().position(|x| x == id) {
-                self.stop_scan(id.to_string()).await?;
+                self.scanner.stop_scan(id.to_string()).await?;
                 running.swap_remove(idx);
             }
         }
@@ -352,32 +352,28 @@ where
         I: AsRef<str> + Send + 'static,
     {
         let cid = id.as_ref().to_string();
-        match self.scanner.stop_scan(id).await {
-            Ok(_) => {
-                let mut queued = self.queued.write().await;
-                if let Some(idx) = queued.iter().position(|x| x == &cid) {
-                    queued.swap_remove(idx);
-                    return Ok(());
-                };
-                drop(queued);
-                let mut running = self.running.write().await;
-                if let Some(idx) = running.iter().position(|x| x == &cid) {
-                    running.swap_remove(idx);
-                }
-                let mut current_status = self.db.get_status(&cid).await?;
-                current_status.status = Phase::Stopped;
-                current_status.end_time = Some(
-                    SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .expect("Valid timestamp for end scan")
-                        .as_secs() as u32,
-                );
-
-                self.db.update_status(&cid, current_status).await?;
-                Ok(())
-            }
-            Err(e) => Err(e),
+        self.scanner.stop_scan(id).await?;
+        let mut queued = self.queued.write().await;
+        if let Some(idx) = queued.iter().position(|x| x == &cid) {
+            queued.swap_remove(idx);
+            return Ok(());
+        };
+        drop(queued);
+        let mut running = self.running.write().await;
+        if let Some(idx) = running.iter().position(|x| x == &cid) {
+            running.swap_remove(idx);
         }
+        let mut current_status = self.db.get_status(&cid).await?;
+        current_status.status = Phase::Stopped;
+        current_status.end_time = Some(
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .expect("Valid timestamp for end scan")
+                .as_secs() as u32,
+        );
+
+        self.db.update_status(&cid, current_status).await?;
+        Ok(())
     }
 }
 
