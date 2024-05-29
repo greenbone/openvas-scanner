@@ -21,6 +21,8 @@ impl Loader for NoOpLoader {
 #[cfg(test)]
 mod tests {
 
+    use std::collections::BTreeMap;
+
     use nasl_builtin_utils::Context;
     use nasl_builtin_utils::ContextType;
     use nasl_builtin_utils::Register;
@@ -30,12 +32,13 @@ mod tests {
     use nasl_syntax::logger::DefaultLogger;
     use nasl_syntax::parse;
     use nasl_syntax::NaslValue;
-    use storage::item::TagKey::*;
-    use storage::item::ACT::*;
-    use storage::item::{NVTField::*, NvtPreference, PreferenceType};
-    use storage::item::{NvtRef, TagValue};
+
+    use storage::item;
+    use storage::item::NvtPreference;
+    use storage::item::NvtRef;
+    use storage::item::PreferenceType::*;
+    use storage::item::ACT::Denial;
     use storage::DefaultDispatcher;
-    use storage::Field::NVT;
     use storage::Retriever;
 
     use crate::NoOpLoader;
@@ -96,59 +99,53 @@ if(description)
             // for the case of NaslValue that returns nothing
             .unwrap_or(Ok(NaslValue::Exit(0)));
         assert_eq!(results, Ok(NaslValue::Exit(23)));
+
+        let mut tag = BTreeMap::new();
+        tag.insert(storage::item::TagKey::CreationDate, 1366091481.into());
         assert_eq!(
             storage
                 .retrieve(&key, storage::Retrieve::NVT(None))
                 .unwrap()
                 .collect::<Vec<_>>(),
-            vec![
-                NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
-                NVT(FileName(key.value())),
-                NVT(NoOp),
-                NVT(Tag(CreationDate, TagValue::Number(1366091481))),
-                NVT(Name("that is a very long and descriptive name".to_owned())),
-                NVT(Category(Denial)),
-                NVT(NoOp),
-                NVT(Family("Denial of Service".to_owned())),
-                NVT(Dependencies(vec![
-                    "ssh_detect.nasl".to_owned(),
-                    "ssh2.nasl".to_owned()
-                ])),
-                NVT(RequiredPorts(vec![
-                    "Services/ssh".to_owned(),
-                    "22".to_owned()
-                ])),
-                NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()])),
-                NVT(Reference(vec![NvtRef {
-                    class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
-                    id: "URL".to_owned(),
-                }])),
-                NVT(ExcludedKeys(vec![
-                    "Settings/disable_cgi_scanning".to_owned(),
-                    "bla/bla".to_owned()
-                ])),
-                NVT(RequiredUdpPorts(vec![
-                    "Services/udp/unknown".to_owned(),
-                    "17".to_owned()
-                ])),
-                NVT(Reference(vec![NvtRef {
-                    class: "cve".to_owned(),
-                    id: "CVE-1999-0524".to_owned(),
-                }])),
-                NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
-                NVT(Preference(NvtPreference {
-                    id: Some(2),
-                    class: PreferenceType::Password,
-                    name: "Enable Password".to_owned(),
-                    default: "".to_owned()
-                })),
-                NVT(Preference(NvtPreference {
-                    id: None,
-                    class: PreferenceType::Password,
-                    name: "Without ID".to_owned(),
-                    default: "".to_owned()
-                })),
-            ]
+            vec![item::Nvt {
+                oid: "0.0.0.0.0.0.0.0.0.1".into(),
+                name: "that is a very long and descriptive name".into(),
+                filename: "test.nasl".into(),
+                tag,
+                dependencies: vec!["ssh_detect.nasl".into(), "ssh2.nasl".into()],
+                required_keys: vec!["WMI/Apache/RootPath".into()],
+                mandatory_keys: vec!["ssh/blubb/detected".into()],
+                excluded_keys: vec!["Settings/disable_cgi_scanning".into(), "bla/bla".into()],
+                required_ports: vec!["Services/ssh".into(), "22".into()],
+                required_udp_ports: vec!["Services/udp/unknown".into(), "17".into()],
+                references: vec![
+                    NvtRef {
+                        class: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
+                        id: "URL".into()
+                    },
+                    NvtRef {
+                        class: "cve".into(),
+                        id: "CVE-1999-0524".into()
+                    }
+                ],
+                preferences: vec![
+                    NvtPreference {
+                        id: Some(2),
+                        class: Password,
+                        name: "Enable Password".into(),
+                        default: "".into()
+                    },
+                    NvtPreference {
+                        id: None,
+                        class: Password,
+                        name: "Without ID".into(),
+                        default: "".into()
+                    }
+                ],
+                category: Denial,
+                family: "Denial of Service".into()
+            }
+            .into(),]
         );
     }
 }

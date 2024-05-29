@@ -23,7 +23,7 @@ pub struct ProductsAdivisories {
 }
 
 /// Represents an advisory json file for notus product.
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -109,7 +109,7 @@ pub struct Vulnerability {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Severity {
     /// Origin of the severity
     pub origin: String,
@@ -157,7 +157,7 @@ impl ProductsAdivisories {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VulnerabilityData {
     pub adv: Advisories,
     pub famile: String,

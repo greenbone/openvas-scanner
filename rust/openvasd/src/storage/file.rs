@@ -433,7 +433,7 @@ impl ItemDispatcher for Dispa {
     fn dispatch_advisory(
         &self,
         _: &str,
-        _: Box<Option<storage::NotusAdvisory>>,
+        _: Option<storage::NotusAdvisory>,
     ) -> Result<(), storage::StorageError> {
         Ok(())
     }
