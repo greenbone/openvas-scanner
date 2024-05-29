@@ -719,13 +719,9 @@ where
         kbs.push(kb);
         Ok(())
     }
-    fn dispatch_advisory(
-        &self,
-        key: &str,
-        adv: Box<Option<NotusAdvisory>>,
-    ) -> Result<(), StorageError> {
+    fn dispatch_advisory(&self, key: &str, adv: Option<NotusAdvisory>) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.redis_add_advisory(key, *adv).map_err(|e| e.into())
+        cache.redis_add_advisory(key, adv).map_err(|e| e.into())
     }
 }
 

@@ -325,6 +325,7 @@ where
                 use storage::item::NVTKey;
                 use storage::Field;
                 use storage::Retrieve;
+                // TODO: if it's empty we should return all not None
                 match retriever.retrieve_by_field(
                     Field::NVT(NVTField::Family(s.family_or_nvt.clone())),
                     Retrieve::NVT(Some(NVTKey::Oid)),

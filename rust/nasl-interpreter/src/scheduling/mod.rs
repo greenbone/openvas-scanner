@@ -99,6 +99,7 @@ pub trait ExecutionPlaner {
     /// use nasl_interpreter::scheduling::WaveExecutionPlan;
     /// use storage::Dispatcher;
     /// use storage::Retriever;
+    /// use storage::ContextKey;
     ///
     /// let feed = vec![
     ///     storage::item::Nvt {
@@ -122,7 +123,7 @@ pub trait ExecutionPlaner {
     /// let retrieve = storage::DefaultDispatcher::new(true);
     /// feed.clone().into_iter().for_each(|x| {
     ///     retrieve
-    ///         .dispatch(&String::new(), x.into())
+    ///         .dispatch(&ContextKey::FileName(x.filename.clone()), x.into())
     ///         .expect("should store");
     /// });
 
@@ -133,7 +134,7 @@ pub trait ExecutionPlaner {
     ///     }],
     ///     ..Default::default()
     /// };
-    /// let results = (&retrieve as &dyn Retriever<String>)
+    /// let results = (&retrieve as &dyn Retriever)
     ///     .execution_plan::<WaveExecutionPlan>(&scan)
     ///     .expect("no error expected");
     /// assert_eq!(

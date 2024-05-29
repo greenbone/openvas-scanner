@@ -122,12 +122,7 @@ where
         Ok(())
     }
 
-    fn dispatch_advisory(
-        &self,
-        _: &str,
-
-        _: Box<Option<NotusAdvisory>>,
-    ) -> Result<(), StorageError> {
+    fn dispatch_advisory(&self, _: &str, _: Option<NotusAdvisory>) -> Result<(), StorageError> {
         Ok(())
     }
 }
