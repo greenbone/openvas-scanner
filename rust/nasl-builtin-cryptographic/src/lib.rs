@@ -25,7 +25,7 @@ enum Crypt {
 /// Decodes given string as hex and returns the result as a byte array
 // TODO only used in tests, move tests to its own module and define there
 
-pub(crate) fn lookup<K>(function_name: &str) -> Option<NaslFunction<K>>
+pub(crate) fn lookup<K, S>(function_name: &str) -> Option<NaslFunction<K, S>>
 where
     K: AsRef<str>,
 {
@@ -41,18 +41,18 @@ where
 
 pub struct Cryptographic;
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Cryptographic {
+impl<K: AsRef<str>, S> nasl_builtin_utils::NaslFunctionExecuter<K, S> for Cryptographic {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context<K, S>,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         lookup(name).map(|x| x(register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup::<K>(name).is_some()
+        lookup::<K, S>(name).is_some()
     }
 }
 /// Get named argument of Type Data or String from the register with appropriate error handling.

@@ -8,11 +8,10 @@ use crate::{CliError, CliErrorKind};
 
 use nasl_syntax::{FSPluginLoader, LoadError};
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
-use storage::Dispatcher;
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher<String>,
+    S: Sync + Send + storage::Storage,
 {
     let loader = FSPluginLoader::new(path);
     let advisories_files = match HashsumAdvisoryLoader::new(loader.clone()) {
@@ -60,20 +59,16 @@ where
         let advisories = advisories_files.load_advisory(filename).unwrap();
 
         for adv in advisories.advisories {
-            let _ = storage.dispatch(
-                &String::new(),
-                storage::Field::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
+            let nadv = models::VulnerabilityData {
                     adv,
                     famile: advisories.family.clone(),
                     filename: filename.to_owned(),
-                }))),
-            );
+                };
+            // TODO: feels wrong to ignore errors?
+            let _ = storage.store_notus_advisory(nadv);
         }
     }
-    let _ = storage.dispatch(
-        &"notuscache".to_string(),
-        storage::Field::NotusAdvisory(Box::new(None)),
-    );
+    
 
     Ok(())
 }

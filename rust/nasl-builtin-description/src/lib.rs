@@ -54,10 +54,10 @@ macro_rules! make_storage_function {
         )?
         ///
         /// Returns NaslValue::Null on success.
-        pub fn $name<K>(
+        pub fn $name<K,S>(
             registrat: &Register,
-            ctxconfigs: &Context<K>,
-        ) -> Result<NaslValue, FunctionErrorKind> where K: AsRef<str> {
+            ctxconfigs: &Context<K,S>,
+        ) -> Result<NaslValue, FunctionErrorKind> where K: AsRef<str>, S: storage::Storage {
             let mut variables = vec![];
             $(
             let positional = registrat.positional();
@@ -86,13 +86,15 @@ macro_rules! make_storage_function {
             )?
             let db_args = $transform(ctxconfigs.key(), &variables)?;
             for db_arg in db_args {
-              ctxconfigs.dispatcher().dispatch(ctxconfigs.key(), storage::Field::NVT(db_arg))?;
+
+    //fn cache_nvt_field(&self, filename: &str, field: NVTField) -> Result<(), StorageError>;
+              ctxconfigs.storage().cache_nvt_field(ctxconfigs.key().as_ref(), db_arg)?;
             }
             Ok(NaslValue::Null)
         }
         )*
         /// Returns found function for key or None when not found
-        pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> where K: AsRef<str> {
+        pub fn lookup<K,S>(key: &str) -> Option<NaslFunction<K,S>> where K: AsRef<str>, S: storage::Storage, {
             match key {
                 $(
                 stringify!($name) => Some($name),
@@ -264,17 +266,17 @@ make_storage_function! {
 /// The description builtin function
 pub struct Description;
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Description {
+impl<K: AsRef<str>, S> nasl_builtin_utils::NaslFunctionExecuter<K, S> for Description where S: storage::Storage {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context<K, S>,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         lookup(name).map(|x| x(register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup::<K>(name).is_some()
+        lookup::<K, S>(name).is_some()
     }
 }

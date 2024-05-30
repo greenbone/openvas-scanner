@@ -2,16 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use nasl_interpreter::FSPluginLoader;
-use storage::Dispatcher;
 
 use crate::CliError;
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher<String>,
+    S: Sync + Send + storage::Storage,
 {
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path

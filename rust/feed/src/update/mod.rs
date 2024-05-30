@@ -6,13 +6,13 @@ mod error;
 
 pub use error::Error;
 
-use std::{fmt::Display, fs::File, io::Read, marker::PhantomData};
+use std::{fs::File, io::Read};
 
 use nasl_interpreter::{
     logger::DefaultLogger, AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader,
     NaslValue, Register,
 };
-use storage::{item::NVTField, Dispatcher, NoOpRetriever};
+use storage::{item::NVTField, Storage};
 
 use crate::verify::{self, HashSumFileItem, SignatureChecker};
 
@@ -20,7 +20,7 @@ pub use self::error::ErrorKind;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
-pub struct Update<S, L, V, K> {
+pub struct Update<S, L, V> {
     /// Is used to store data
     dispatcher: S,
     /// Is used to load nasl plugins by a relative path
@@ -28,10 +28,9 @@ pub struct Update<S, L, V, K> {
     /// Initial data, usually set in new.
     initial: Vec<(String, ContextType)>,
     /// How often loader or storage should retry before giving up when a retryable error occurs.
-    max_retry: usize,
+    //max_retry: usize,
     verifier: V,
     feed_version_set: bool,
-    phanton: PhantomData<K>,
 }
 
 impl From<verify::Error> for ErrorKind {
@@ -40,20 +39,19 @@ impl From<verify::Error> for ErrorKind {
     }
 }
 /// Loads the plugin_feed_info and returns the feed version
-pub fn feed_version<K: Default + AsRef<str> + 'static>(
+pub fn feed_version<S>(
     loader: &dyn Loader,
-    dispatcher: &dyn Dispatcher<K>,
-) -> Result<String, ErrorKind> {
+    dispatcher: &S,
+) -> Result<String, ErrorKind> where S: Storage {
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
     let logger = DefaultLogger::default();
-    let k: K = Default::default();
-    let fr = NoOpRetriever::default();
+    let k: String = Default::default();
     let target = String::default();
     // TODO add parameter to struct
     let functions = nasl_interpreter::nasl_std_functions();
-    let context = Context::new(&k, &target, dispatcher, &fr, loader, &logger, &functions);
+    let context = Context::new(&k, &target, dispatcher, loader, &logger, &functions);
     let mut interpreter = Interpreter::new(register, &context);
     for stmt in nasl_syntax::parse(&code) {
         match stmt {
@@ -70,20 +68,18 @@ pub fn feed_version<K: Default + AsRef<str> + 'static>(
     Ok(feed_version)
 }
 
-impl<'a, R, S, L, V, K> SignatureChecker for Update<S, L, V, K>
+impl<'a, R, S, L, V> SignatureChecker for Update<S, L, V>
 where
-    S: Sync + Send + Dispatcher<K>,
-    K: AsRef<str> + Display + Default + From<String>,
+    S: Sync + Send + Storage,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
     R: Read + 'a,
 {
 }
 
-impl<'a, S, L, V, K, R> Update<S, L, V, K>
+impl<'a, S, L, V, R> Update<S, L, V>
 where
-    S: Sync + Send + Dispatcher<K>,
-    K: AsRef<str> + Display + Default + From<String> + 'static,
+    S: Sync + Send + Storage,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
     R: Read + 'a,
@@ -97,7 +93,7 @@ where
     /// the version is set.
     pub fn init(
         openvas_version: &str,
-        max_retry: usize,
+        _max_retry: usize,
         loader: L,
         storage: S,
         verifier: V,
@@ -108,12 +104,11 @@ where
         ];
         Self {
             initial,
-            max_retry,
+            //max_retry,
             loader,
             dispatcher: storage,
             verifier,
             feed_version_set: false,
-            phanton: PhantomData,
         }
     }
 
@@ -130,9 +125,9 @@ where
     /// to put into the corresponding dispatcher.
     fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
         let feed_version = self.feed_version()?;
-        self.dispatcher.retry_dispatch(
-            self.max_retry,
-            &Default::default(),
+        // TODO: add retry possibility
+        self.dispatcher.cache_nvt_field(
+            "",
             NVTField::Version(feed_version).into(),
         )?;
         let feed_info_key = "plugin_feed_info.inc";
@@ -140,12 +135,11 @@ where
     }
 
     /// Runs a single plugin in description mode.
-    fn single(&self, key: &K) -> Result<i64, ErrorKind> {
+    fn single(&self, key: &String) -> Result<i64, ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
 
         let register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::default();
-        let fr = NoOpRetriever::default();
         let target = String::default();
         // TODO add parameter to struct
         let functions = nasl_interpreter::nasl_std_functions();
@@ -154,7 +148,6 @@ where
             key,
             &target,
             &self.dispatcher,
-            &fr,
             &self.loader,
             &logger,
             &functions,
@@ -163,14 +156,14 @@ where
         for stmt in interpreter {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
-                    self.dispatcher.on_exit()?;
+                    self.dispatcher.description_script_finished()?;
                     return Ok(i);
                 }
                 Ok(_) => {}
                 Err(e) => return Err(e.into()),
             }
         }
-        Err(ErrorKind::MissingExit(key.as_ref().into()))
+        Err(ErrorKind::MissingExit(key.into()))
     }
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
@@ -180,13 +173,12 @@ where
     }
 }
 
-impl<'a, S, L, V, K, R> Iterator for Update<S, L, V, K>
+impl<'a, S, L, V, R> Iterator for Update<S, L, V>
 where
-    S: Sync + Send + Dispatcher<K>,
+    S: Sync + Send + Storage,
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
     R: Read + 'a,
-    K: AsRef<str> + Display + Default + From<String> + 'static,
 {
     type Item = Result<String, Error>;
 
@@ -202,9 +194,9 @@ where
                 if let Err(e) = k.verify() {
                     return Some(Err(e.into()));
                 }
-                let k: K = k.get_filename().into();
+                let k: String = k.get_filename().into();
                 self.single(&k)
-                    .map(|_| k.as_ref().into())
+                    .map(|_| k.clone())
                     .map_err(|kind| Error {
                         kind,
                         key: k.to_string(),

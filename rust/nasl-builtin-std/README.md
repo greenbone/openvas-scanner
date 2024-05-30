@@ -16,7 +16,7 @@ For production use cases it is recommended to use new method and include a key a
 
 ```
 let key = "test:localhost".to_string();
-let cb = nasl_builtin_std::ContextBuilder::new(key, Box::new(storage::DefaultDispatcher::default()));
+let cb = nasl_builtin_std::ContextBuilder::new(key, storage::DefaultDispatcher::default());
 ```
 
 ## Add functions to std
@@ -80,16 +80,16 @@ Afterwards you need to create two methods. One for when the library is not inclu
 
 ```
 #[cfg(not(feature = "nasl-builtin-ssh"))]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh<K: AsRef<str>, S: storage::Storage>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S> {
     builder
 }
 
 #[cfg(feature = "nasl-builtin-ssh")]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh<K: AsRef<str>, S: storage::Storage>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S> {
     builder.push_register(nasl_builtin_ssh::Ssh::default())
 }
 

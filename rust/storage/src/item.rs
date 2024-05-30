@@ -6,16 +6,12 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Display,
-    marker::PhantomData,
     str::FromStr,
-    sync::{Arc, Mutex},
 };
 
 use models::{Vulnerability, VulnerabilityData};
 
-use crate::{
-    time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, NotusAdvisory, Retriever, StorageError,
-};
+use crate::{time::AsUnixTimeStamp, types, StorageError};
 
 /// Attack Category either set by script_category
 ///
@@ -41,7 +37,6 @@ use crate::{
 /// - End
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 #[cfg_attr(
     feature = "serde_support",
@@ -231,14 +226,6 @@ macro_rules! make_nvt_fields {
              ),*
         }
 
-        /// Key are the keys to get the field defines in NVTField
-        #[derive(Clone, Debug, PartialEq, Eq)]
-        pub enum NVTKey {
-           $(
-             #[doc = $doc]
-             $name
-           ),*
-        }
     };
 }
 
@@ -498,6 +485,65 @@ pub struct Nvt {
     /// Family
     pub family: String,
 }
+impl Nvt {
+    /// Returns Err with the feed_version if it is a version Ok otherwise
+    pub fn set_from_field(&mut self, field: NVTField) -> Result<(), String> {
+        match field {
+            NVTField::Oid(oid) => self.oid = oid,
+            NVTField::FileName(s) => self.filename = s,
+            NVTField::Version(s) => {
+                return Err(s);
+            }
+            NVTField::Name(s) => self.name = s,
+            NVTField::Tag(key, name) => {
+                self.tag.insert(key, name);
+            }
+            NVTField::Dependencies(s) => self.dependencies.extend(s),
+            NVTField::RequiredKeys(s) => self.required_keys.extend(s),
+            NVTField::MandatoryKeys(s) => self.mandatory_keys.extend(s),
+            NVTField::ExcludedKeys(s) => self.excluded_keys.extend(s),
+            NVTField::RequiredPorts(s) => self.required_ports.extend(s),
+            NVTField::RequiredUdpPorts(s) => self.required_udp_ports.extend(s),
+            NVTField::Preference(s) => self.preferences.push(s),
+            NVTField::Reference(s) => self.references.extend(s),
+            NVTField::Category(s) => self.category = s,
+            NVTField::Family(s) => self.family = s,
+            NVTField::NoOp => {}
+            NVTField::Nvt(x) => *self = x,
+        };
+        Ok(())
+    }
+
+    /// If this NVT matches any of the given fields it returns true
+    pub fn matches_any_field(&self, keys: &[NVTField]) -> bool {
+        for k in keys {
+            if match k {
+                NVTField::Oid(x) => &self.oid == x,
+                NVTField::FileName(x) => &self.filename == x,
+                NVTField::Version(_) => false,
+                NVTField::Name(x) => &self.name == x,
+                NVTField::Tag(x, _) => self.tag.contains_key(x),
+                NVTField::Dependencies(x) => self.dependencies.iter().any(|y|x.contains(y)),
+                NVTField::RequiredKeys(x) => self.required_keys.iter().any(|y|x.contains(y)),
+                NVTField::MandatoryKeys(x) => self.mandatory_keys.iter().any(|y|x.contains(y)),
+                NVTField::ExcludedKeys(x) => self.excluded_keys.iter().any(|y|x.contains(y)),
+                NVTField::RequiredPorts(x) => self.required_ports.iter().any(|y|x.contains(y)),
+                NVTField::RequiredUdpPorts(x) => self.required_udp_ports.iter().any(|y|x.contains(y)),
+                NVTField::Preference(x) => self.preferences.iter().any(|y| y == x),
+                NVTField::Reference(x) => self.references.iter().any(|y|x.contains(y)),
+                NVTField::Category(x) => &self.category == x,
+                NVTField::Family(x) => &self.family == x,
+                NVTField::Nvt(x) => self == x,
+                NVTField::NoOp => false,
+            } {
+                return true;
+            }
+
+        }
+        false
+
+    }
+}
 
 impl From<VulnerabilityData> for Nvt {
     fn from(value: VulnerabilityData) -> Self {
@@ -585,135 +631,6 @@ impl From<(&str, Vulnerability)> for Nvt {
             category: ACT::GatherInfo,
             family: adv.family,
         }
-    }
-}
-/// Is a specialized Dispatcher for NVT information within the description block.
-pub trait ItemDispatcher<K> {
-    /// Dispatches the feed version as well as NVT.
-    ///
-    /// The NVT is collected when a description run is finished.
-    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError>;
-    /// Dispatches the feed_version.
-    ///
-    /// Feed version is usually read once.
-    fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError>;
-    /// Dispatches a knowledge base item.
-    ///
-    /// Usually the ItemDispatcher is used on description = 1 runs were no KB item should occur. But
-    /// to have the possibility to have shared run this interface should allow to handle it
-    /// accordingly.
-    /// The default is set to return `Ok(())` without doing something to net enforce every
-    /// ItemDispatcher to implement it.
-    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
-        Ok(())
-    }
-    /// Stores an advisory
-    fn dispatch_advisory(&self, _: &str, _: Box<Option<NotusAdvisory>>)
-        -> Result<(), StorageError>;
-}
-
-/// Collects the information while being in a description run and calls the dispatch method
-/// on exit.
-pub struct PerItemDispatcher<S, K>
-where
-    S: ItemDispatcher<K>,
-{
-    nvt: Arc<Mutex<Option<Nvt>>>,
-    dispatcher: S,
-    phantom: PhantomData<K>,
-}
-
-impl<S, K> PerItemDispatcher<S, K>
-where
-    S: ItemDispatcher<K>,
-    K: AsRef<str>,
-{
-    /// Creates a new ItemDispatcher without a feed_version and nvt.
-    pub fn new(dispatcher: S) -> Self {
-        Self {
-            nvt: Arc::new(Mutex::new(None)),
-            dispatcher,
-            phantom: PhantomData,
-        }
-    }
-
-    fn store_nvt_field(&self, f: NVTField) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.nvt)
-            .lock()
-            .map_err(|x| StorageError::Dirty(format!("{x}")))?;
-        let mut nvt = data.clone().unwrap_or_default();
-
-        match f {
-            NVTField::Oid(oid) => nvt.oid = oid,
-            NVTField::FileName(s) => nvt.filename = s,
-            NVTField::Version(s) => {
-                return self.dispatcher.dispatch_feed_version(s);
-            }
-            NVTField::Name(s) => nvt.name = s,
-            NVTField::Tag(key, name) => {
-                nvt.tag.insert(key, name);
-            }
-            NVTField::Dependencies(s) => nvt.dependencies.extend(s),
-            NVTField::RequiredKeys(s) => nvt.required_keys.extend(s),
-            NVTField::MandatoryKeys(s) => nvt.mandatory_keys.extend(s),
-            NVTField::ExcludedKeys(s) => nvt.excluded_keys.extend(s),
-            NVTField::RequiredPorts(s) => nvt.required_ports.extend(s),
-            NVTField::RequiredUdpPorts(s) => nvt.required_udp_ports.extend(s),
-            NVTField::Preference(s) => nvt.preferences.push(s),
-            NVTField::Reference(s) => nvt.references.extend(s),
-            NVTField::Category(s) => nvt.category = s,
-            NVTField::Family(s) => nvt.family = s,
-            NVTField::NoOp => {}
-            NVTField::Nvt(x) => nvt = x,
-        };
-        *data = Some(nvt);
-        Ok(())
-    }
-}
-
-impl<S, K> Dispatcher<K> for PerItemDispatcher<S, K>
-where
-    K: AsRef<str> + Send + Sync,
-    S: ItemDispatcher<K> + Send + Sync,
-{
-    fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), StorageError> {
-        match scope {
-            Field::NVT(nvt) => self.store_nvt_field(nvt),
-            Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
-            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), adv),
-        }
-    }
-
-    fn on_exit(&self) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.nvt)
-            .lock()
-            .map_err(|x| StorageError::Dirty(format!("{x}")))?;
-        self.dispatcher
-            .dispatch_nvt(data.clone().unwrap_or_default())?;
-        *data = None;
-        Ok(())
-    }
-}
-
-impl<S, K> Retriever<K> for PerItemDispatcher<S, K>
-where
-    K: AsRef<str>,
-    S: ItemDispatcher<K> + Retriever<K>,
-{
-    fn retrieve(
-        &self,
-        key: &K,
-        scope: crate::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
-        self.dispatcher.retrieve(key, scope)
-    }
-
-    fn retrieve_by_field(
-        &self,
-        field: Field,
-        scope: crate::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
-        self.dispatcher.retrieve_by_field(field, scope)
     }
 }
 

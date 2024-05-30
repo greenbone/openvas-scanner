@@ -7,7 +7,7 @@
 
 use nasl_builtin_utils::{Context, NaslFunctionRegister, NaslVarRegister, Register};
 use nasl_syntax::{logger::NaslLogger, Loader};
-use storage::{DefaultDispatcher, Storage};
+use storage::DefaultDispatcher;
 mod array;
 
 /// The description builtin function
@@ -19,18 +19,18 @@ mod array;
 /// script. This is handled within the `nasl_interpreter::Interpreter`.
 pub struct Std;
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Std {
+impl<K: AsRef<str>, S> nasl_builtin_utils::NaslFunctionExecuter<K, S> for Std {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context<K, S>,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         array::lookup(name).map(|x| x(register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        array::lookup::<K>(name).is_some()
+        array::lookup::<K, S>(name).is_some()
     }
 }
 
@@ -50,16 +50,16 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Std {
 ///
 /// ```
 /// #[cfg(not(feature = "nasl-builtin-ssh"))]
-/// fn add_ssh<K: AsRef<str>>(
-///     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-/// ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+/// fn add_ssh<K: AsRef<str>, S>(
+///     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K,S>,
+/// ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K,S> {
 ///     builder
 /// }
 ///
 /// #[cfg(feature = "nasl-builtin-ssh")]
-/// fn add_ssh<K: AsRef<str>>(
-///     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-/// ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+/// fn add_ssh<K: AsRef<str>, S>(
+///     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K,S>,
+/// ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K,S> {
 ///     builder.push_register(nasl_builtin_ssh::Ssh::default())
 /// }
 ///
@@ -68,7 +68,10 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Std {
 /// ```text
 /// builder = add_ssh(builder);
 /// ```
-pub fn nasl_std_functions<K: AsRef<str>>() -> nasl_builtin_utils::NaslFunctionRegister<K> {
+pub fn nasl_std_functions<K: AsRef<str>, S>() -> nasl_builtin_utils::NaslFunctionRegister<K, S>
+where
+    S: storage::Storage,
+{
     let mut builder = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
         .push_register(Std)
         .push_register(nasl_builtin_knowledge_base::KnowledgeBase)
@@ -123,16 +126,16 @@ pub fn nasl_std_variables() -> NaslVarRegister {
 }
 
 #[cfg(not(feature = "nasl-builtin-ssh"))]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh<K: AsRef<str>, S>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S> {
     builder
 }
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
-fn add_raw_ip<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_raw_ip<K: AsRef<str>, S>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S> {
     builder.push_register(nasl_builtin_raw_ip::RawIp)
 }
 
@@ -144,16 +147,16 @@ fn add_raw_ip_vars(
 }
 
 #[cfg(feature = "nasl-builtin-ssh")]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh<K: AsRef<str>, S>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S> {
     builder.push_register(nasl_builtin_ssh::Ssh::default())
 }
 
 #[cfg(not(feature = "nasl-builtin-raw-ip"))]
-fn add_raw_ip<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_raw_ip<K: AsRef<str>, S>(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S>,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K, S> {
     builder
 }
 
@@ -169,9 +172,9 @@ fn add_raw_ip_vars(
 /// This is to ensure that the key and the dispatcher do have the same type.
 /// It makes it also a bit easier to use as the key as well as the dispatcher are usually created
 /// together.
-pub struct KeyDispatcherSet<K: AsRef<str>> {
+pub struct KeyDispatcherSet<K: AsRef<str>, S> {
     key: K,
-    storage: Box<dyn Storage<K>>,
+    storage: S,
 }
 
 /// The context builder.
@@ -180,7 +183,7 @@ pub struct KeyDispatcherSet<K: AsRef<str>> {
 /// [nasl_std_functions] to functions register.
 pub struct ContextBuilder<K: AsRef<str>, S> {
     /// The key and dispatcher set.
-    pub key: S,
+    pub key: KeyDispatcherSet<K, S>,
     /// The target to test.
     pub target: String,
     /// The loader to load the nasl files.
@@ -188,15 +191,15 @@ pub struct ContextBuilder<K: AsRef<str>, S> {
     /// The logger to log.
     pub logger: Box<dyn NaslLogger>,
     /// The functions available to the nasl script.
-    pub functions: NaslFunctionRegister<K>,
+    pub functions: NaslFunctionRegister<K, S>,
 }
 
-impl Default for ContextBuilder<String, KeyDispatcherSet<String>> {
+impl Default for ContextBuilder<String, storage::DefaultDispatcher> {
     fn default() -> Self {
         Self {
             key: KeyDispatcherSet {
                 key: Default::default(),
-                storage: Box::<DefaultDispatcher<String>>::default(),
+                storage: DefaultDispatcher::default(),
             },
             target: Default::default(),
             loader: Default::default(),
@@ -226,16 +229,19 @@ impl<K: AsRef<str>, S> ContextBuilder<K, S> {
     }
 
     /// Sets the functions available to the nasl script.
-    pub fn functions(mut self, functions: NaslFunctionRegister<K>) -> Self {
+    pub fn functions(mut self, functions: NaslFunctionRegister<K, S>) -> Self {
         self.functions = functions;
         self
     }
 }
 
-impl<K: AsRef<str>> ContextBuilder<K, KeyDispatcherSet<K>> {
+impl<K: AsRef<str>, S> ContextBuilder<K, S>
+where
+    S: storage::Storage,
+{
     /// Creates a new context builder with the given key and storage.
     // TODO remove key and move it to build as they change per script call
-    pub fn new(key: K, storage: Box<dyn Storage<K>>) -> Self {
+    pub fn new(key: K, storage: S) -> Self {
         Self {
             key: KeyDispatcherSet { key, storage },
             target: Default::default(),
@@ -248,12 +254,11 @@ impl<K: AsRef<str>> ContextBuilder<K, KeyDispatcherSet<K>> {
     /// Createz the context.
     ///
     /// Be aware that unlike normal builder, because of the lifetime of the dispatcher, the ContextBuilder must exist as long as the context and cannot be dropped immediately.
-    pub fn build(&self) -> Context<K> {
+    pub fn build(&self) -> Context<K, S> {
         Context::new(
             &self.key.key,
             &self.target,
-            self.key.storage.as_dispatcher(),
-            self.key.storage.as_retriever(),
+            &self.key.storage,
             &*self.loader,
             self.logger.as_ref(),
             &self.functions,

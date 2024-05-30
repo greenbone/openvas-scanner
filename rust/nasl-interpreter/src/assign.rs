@@ -51,7 +51,7 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl<'a, K> Interpreter<'a, K>
+impl<'a, K, S> Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {
@@ -186,7 +186,7 @@ where
     }
 }
 
-impl<'a, K> AssignExtension for Interpreter<'a, K>
+impl<'a, K, S> AssignExtension for Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {

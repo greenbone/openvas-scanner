@@ -59,7 +59,7 @@ fn execute(
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
-    let storage = Arc::new(storage::DefaultDispatcher::new(true));
+    let storage = storage::DefaultDispatcher::default();
     let mut scan = {
         if stdin {
             tracing::debug!("reading scan config from stdin");
@@ -82,7 +82,7 @@ fn execute(
     };
 
     tracing::info!("loading feed. This may take a while.");
-    crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false)?;
+    crate::feed::update::run(storage.clone(), feed.to_owned(), false)?;
     tracing::info!("feed loaded.");
     let ports = match port_list {
         Some(ports) => {
@@ -96,7 +96,7 @@ fn execute(
     for a in config.iter().map(|f| {
         as_bufreader(f)
             .map_err(CliError::from)
-            .and_then(|r| parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e)))
+            .and_then(|r| parse_vts(r, &storage, &scan.vts).map_err(|e| map_error(f, e)))
     }) {
         vts.extend(a?);
     }
@@ -269,13 +269,14 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-pub fn parse_vts<R, K>(
+pub fn parse_vts<R, S>(
     sc: R,
-    retriever: &dyn storage::Retriever<K>,
+    retriever: &S,
     vts: &[models::VT],
 ) -> Result<Vec<models::VT>, Error>
 where
     R: BufRead,
+    S: storage::Storage,
 {
     let result = quick_xml::de::from_reader::<R, ScanConfig>(sc)
         .map_err(|e| Error::ParseError(format!("Error parsing vts: {}", e)))?;
@@ -320,34 +321,53 @@ where
                     vec![]
                 }
             } else {
-                // lookup oids via family
-                use storage::item::NVTField;
-                use storage::item::NVTKey;
-                use storage::Field;
-                use storage::Retrieve;
-                match retriever.retrieve_by_field(
-                    Field::NVT(NVTField::Family(s.family_or_nvt.clone())),
-                    Retrieve::NVT(Some(NVTKey::Oid)),
-                ) {
-                    Ok(nvt) => {
-                        let result: Vec<_> = nvt
-                            .flat_map(|(_, f)| match &f {
-                                Field::NVT(NVTField::Oid(oid)) if is_not_already_present(oid) => {
-                                    Some(oid_to_vt(oid))
-                                }
-                                _ => None,
-                            })
-                            .collect();
+                match retriever.vts_by_fields(vec![storage::item::NVTField::Family(s.family_or_nvt.clone()),]) {
+                    Ok(vtiter) => {
+                        vtiter.filter(|v| {
+                            is_not_already_present(&v.oid)
 
-                        tracing::debug!(
-                            "found {} nvt entries for family {}",
-                            result.len(),
-                            s.family_or_nvt
-                        );
-                        result
+                        }).map(|v|{
+        let parameters = preference_lookup.get(&v.oid).unwrap_or(&vec![]).clone();
+                           Ok(models::VT{ oid: v.oid, parameters })
+                            })
+
+                            .collect::<Vec<_>>()
+
+                    },
+                    Err(e) => {
+                        vec![Err(e.into())]
+
                     }
-                    Err(e) => vec![Err(e.into())],
+
                 }
+                // lookup oids via family
+                // use storage::item::NVTField;
+                // use storage::item::NVTKey;
+                // use storage::Field;
+                // use storage::Retrieve;
+                // match retriever.retrieve_by_field(
+                //     
+                //     Retrieve::NVT(Some(NVTKey::Oid)),
+                // ) {
+                //     Ok(nvt) => {
+                //         let result: Vec<_> = nvt
+                //             .flat_map(|(_, f)| match &f {
+                //                 Field::NVT(NVTField::Oid(oid)) if is_not_already_present(oid) => {
+                //                     Some(oid_to_vt(oid))
+                //                 }
+                //                 _ => None,
+                //             })
+                //             .collect();
+                //
+                //         tracing::debug!(
+                //             "found {} nvt entries for family {}",
+                //             result.len(),
+                //             s.family_or_nvt
+                //         );
+                //         result
+                //     }
+                //     Err(e) => vec![Err(e.into())],
+                // }
             }
         })
         .collect()
@@ -459,22 +479,11 @@ mod tests {
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
         assert_eq!(result.preferences.preference.len(), 3);
-        let shop: storage::DefaultDispatcher<String> = storage::DefaultDispatcher::default();
+        let shop: storage::DefaultDispatcher = storage::DefaultDispatcher::default();
         let add_product_detection = |oid: &str| {
-            shop.as_dispatcher()
-                .dispatch(
-                    &oid.to_string(),
-                    storage::Field::NVT(storage::item::NVTField::Oid(oid.to_owned().to_string())),
-                )
-                .unwrap();
-            shop.as_dispatcher()
-                .dispatch(
-                    &oid.to_string(),
-                    storage::Field::NVT(storage::item::NVTField::Family(
-                        "Product detection".to_string(),
-                    )),
-                )
-                .unwrap();
+            shop.cache_nvt_field(oid, storage::item::NVTField::Oid(oid.to_owned().to_string())).unwrap();
+            shop.cache_nvt_field(oid, storage::item::NVTField::Family("Product detection".to_string())).unwrap();
+            shop.description_script_finished().unwrap();
         };
         add_product_detection("1");
         add_product_detection("2");

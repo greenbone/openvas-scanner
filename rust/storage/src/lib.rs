@@ -7,13 +7,12 @@
 
 pub mod item;
 mod retrieve;
-pub use retrieve::*;
 pub mod time;
 pub mod types;
 use std::{
+    collections::{HashMap, HashSet},
     fmt::Display,
     io,
-    marker::PhantomData,
     sync::{Arc, PoisonError, RwLock},
 };
 
@@ -51,7 +50,7 @@ pub enum Field {
     /// Knowledge Base item
     KB(Kb),
     /// Notus advisories, when None then the impl can assume finish
-    NotusAdvisory(Box<Option<NotusAdvisory>>),
+    NotusAdvisory(Option<NotusAdvisory>),
 }
 
 impl From<NVTField> for Field {
@@ -67,7 +66,7 @@ impl From<Kb> for Field {
 }
 impl From<models::VulnerabilityData> for Field {
     fn from(value: models::VulnerabilityData) -> Self {
-        Self::NotusAdvisory(Box::new(Some(value)))
+        Self::NotusAdvisory(Some(value))
     }
 }
 
@@ -92,7 +91,7 @@ pub enum StorageError {
 
 impl<S> From<PoisonError<S>> for StorageError {
     fn from(value: PoisonError<S>) -> Self {
-        Self::Dirty(format!("{value:?}"))
+        panic!("Unable to recover from a PoisonError: {}", value);
     }
 }
 
@@ -134,228 +133,212 @@ impl Display for StorageError {
 
 impl std::error::Error for StorageError {}
 
-/// Defines the Dispatcher interface to distribute fields
-pub trait Dispatcher<K>: Sync + Send {
-    /// Distributes given field under a key
-    ///
-    /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError>;
-
-    /// On exit is called when a script exit
-    ///
-    /// Some database require a cleanup therefore this method is called when a script finishes.
-    fn on_exit(&self) -> Result<(), StorageError>;
-
-    /// Retries a dispatch for the amount of retries when a retrieable error occurs.
-    fn retry_dispatch(&self, retries: usize, key: &K, scope: Field) -> Result<(), StorageError> {
-        match self.dispatch(key, scope.clone()) {
-            Ok(r) => Ok(r),
-            Err(e) => {
-                if retries > 0 && matches!(e, StorageError::Retry(_)) {
-                    self.retry_dispatch(retries - 1, key, scope)
-                } else {
-                    Err(e)
-                }
-            }
-        }
-    }
-}
-
-impl<K, T> Dispatcher<K> for Arc<T>
-where
-    T: Dispatcher<K>,
-{
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
-        self.as_ref().dispatch(key, scope)
-    }
-
-    fn on_exit(&self) -> Result<(), StorageError> {
-        self.as_ref().on_exit()
-    }
-}
+/// A WildcardKey are Keys that can contain a * as wildcard for ignoring parts of it.
+pub type KbKey = String;
 
 /// Convenience trait to use a dispatcher and retriever implementation
-pub trait Storage<K>: Dispatcher<K> + Retriever<K> {
-    /// Returns a reference to the retriever
-    fn as_retriever(&self) -> &dyn Retriever<K>;
-    /// Returns a reference to the dispatcher
-    fn as_dispatcher(&self) -> &dyn Dispatcher<K>;
+pub trait Storage {
+    /// Caches field of a VT until it is finished.
+    ///
+    /// This is required for feed#updates. On a description run within a feed NASL scripts are
+    /// executed within if(descriptiom) block that calls the functions defined in
+    /// nasl-builtin-description. When a script is finished then description_script_run_finished
+    /// must be called so that the storage can create a item::Nvt from those fields and store them.
+    fn cache_nvt_field(&self, filename: &str, field: NVTField) -> Result<(), StorageError>;
+
+    /// Creates item::Nvt out of the the cached NVTFields.
+    ///
+    /// This function must be called after each executed script when updating the feed.
+    fn description_script_finished(&self) -> Result<(), StorageError>;
+
+    /// Stores a VT.
+    ///
+    /// This function stores a given item::NVT. item::Nvt contains so called meta-information about
+    /// a NASL script.
+    fn store_vt(&self, vt: item::Nvt) -> Result<(), StorageError>;
+
+    /// Returns an iterator over fields that match at least one given NVTField
+    fn vts_by_fields(
+        &self,
+        keys: Vec<NVTField>,
+    ) -> Result<impl Iterator<Item = item::Nvt>, StorageError>;
+
+    /// Returns an iterator over all item::Nvt and converted NotusAdvisory
+    fn all_vts(&self) -> Result<impl Iterator<Item = item::Nvt>, StorageError>;
+
+    /// Stores a notus advisory
+    ///
+    /// Notus advisories are parsed from the notus data and should be handled like item::Nvt,
+    /// however there are cases when they are different. As an example a NotusAdvisory will never
+    /// be inserted as a `script_dependeny` while item::Nvt from a NASL script can be.
+    fn store_notus_advisory(&self, advistory: NotusAdvisory) -> Result<(), StorageError>;
+
+    /// Stores kb.
+    ///
+    /// A knowledge base item or kb are shared information between script runs that are valid as
+    /// long as a scan is running.
+    ///
+    /// A typical value for kb are open ports. Keep in mind that multiple KB with the same key can
+    /// exist.
+    fn store_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError>;
+
+    /// Gets a KB within a scan that contains or matches given kb_key.
+    fn get_kb(&self, scan_id: &str, key: &KbKey) -> Result<impl Iterator<Item = Kb>, StorageError>;
+
+    /// Verifies if one or more kbs exists for the given key
+    fn has_kb(&self, scan_id: &str, key: &KbKey) -> Result<bool, StorageError>;
+
+    /// Must be called when a scan is finished so that kb items can be cleaned up
+    fn scan_finished(&self, scan_id: &str) -> Result<(), StorageError>;
 }
-
-impl<K, T> Storage<K> for T
-where
-    T: Dispatcher<K> + Retriever<K>,
-{
-    fn as_retriever(&self) -> &dyn Retriever<K> {
-        self
-    }
-
-    fn as_dispatcher(&self) -> &dyn Dispatcher<K> {
-        self
-    }
-}
-
-/// Contains a Vector of all stored items.
-///
-/// The first String statement is the used key while the Vector of Scope are the values.
-type StoreItem = Vec<(String, Vec<Field>)>;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
-#[derive(Default)]
-pub struct DefaultDispatcher<K> {
-    /// If dirty it will not clean the data on_exit
-    dirty: bool,
-    key: PhantomData<K>,
+#[derive(Clone, Default, Debug)]
+pub struct DefaultDispatcher {
     /// The data storage
     ///
     /// The memory access is managed via an Arc while the Mutex ensures that only one consumer at a time is accessing it.
-    data: Arc<RwLock<StoreItem>>,
+    nvts: Arc<RwLock<HashMap<String, item::Nvt>>>,
+    feed_version: Arc<RwLock<String>>,
+    kb: Arc<RwLock<HashMap<String, HashMap<String, Vec<Kb>>>>>,
+    advisories: Arc<RwLock<HashSet<item::Nvt>>>,
 }
 
-impl<K> DefaultDispatcher<K> {
+impl DefaultDispatcher {
     /// Creates a new DefaultDispatcher
-    pub fn new(dirty: bool) -> Self {
+    pub fn new(_dirty: bool) -> Self {
         Self {
-            dirty,
-            data: Default::default(),
-            key: PhantomData,
+            ..Default::default()
         }
     }
 
     /// Cleanses stored data.
     pub fn cleanse(&self) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.data).write()?;
-        data.clear();
-        data.shrink_to_fit();
         Ok(())
     }
 }
 
-impl<K> Dispatcher<K> for DefaultDispatcher<K>
-where
-    K: AsRef<str> + Display + Default + From<String> + Send + Sync,
-{
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.data).write()?;
-        match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
-            Some((_, v)) => v.push(scope),
-            None => data.push((key.as_ref().to_owned(), vec![scope])),
+impl Storage for DefaultDispatcher {
+    fn cache_nvt_field(&self, filename: &str, field: NVTField) -> Result<(), StorageError> {
+        let mut data = self.nvts.as_ref().write()?;
+        if let Some(vt) = data.get_mut(filename) {
+            if let Err(feed_version) = vt.set_from_field(field) {
+                let mut data = self.feed_version.as_ref().write()?;
+                *data = feed_version;
+            };
+        } else {
+            let mut nvt = item::Nvt::default();
+
+            if let Err(feed_version) = nvt.set_from_field(field) {
+                drop(data);
+                let mut data = self.feed_version.as_ref().write()?;
+                *data = feed_version;
+            } else {
+                nvt.filename = filename.to_string();
+                data.insert(filename.to_string(), nvt);
+            }
         }
-        tracing::trace!("Keys: {}", data.len());
         Ok(())
     }
 
-    fn on_exit(&self) -> Result<(), StorageError> {
-        if !self.dirty {
-            self.cleanse()?;
-        }
-
+    fn description_script_finished(&self) -> Result<(), StorageError> {
+        // we store the version immediately
         Ok(())
     }
-}
 
-/// Holds iterator in memory
-pub struct InMemoryDataWrapper<T> {
-    inner: Box<dyn Iterator<Item = T>>,
-}
-
-impl<T> InMemoryDataWrapper<T>
-where
-    T: 'static,
-{
-    /// Creates a new instance based on a Vector
-    pub fn new(v: Vec<T>) -> InMemoryDataWrapper<T> {
-        Self {
-            inner: Box::new(v.into_iter()),
+    fn store_vt(&self, vt: item::Nvt) -> Result<(), StorageError> {
+        let mut data = self.nvts.as_ref().write()?;
+        if let Some(ovt) = data.get_mut(&vt.filename) {
+            *ovt = vt;
+        } else {
+            data.insert(vt.filename.clone(), vt);
         }
+        Ok(())
     }
-}
-impl<T> Iterator for InMemoryDataWrapper<T> {
-    type Item = T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
-    }
-}
-
-impl<K> Retriever<K> for DefaultDispatcher<K>
-where
-    K: AsRef<str> + Display + Default + From<String> + 'static,
-{
-    fn retrieve(
+    fn vts_by_fields(
         &self,
-        key: &K,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
-        let data = Arc::as_ref(&self.data).read()?;
-        let data = InMemoryDataWrapper::new(data.clone());
-        let skey = key.to_string();
-        Ok(Box::new(
-            data.into_iter()
-                .filter(move |(k, _)| k == &skey)
-                .flat_map(|(_, v)| v.clone())
-                .filter(move |v| scope.for_field(v)),
-        ))
-    }
-
-    fn retrieve_by_field(
-        &self,
-        field: Field,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
-        let data = Arc::as_ref(&self.data).read()?;
-        tracing::debug!("Entries: {:?}", data.len());
-        let data = InMemoryDataWrapper::new(data.clone());
-        let result = data
+        keys: Vec<NVTField>,
+    ) -> Result<impl Iterator<Item = item::Nvt>, StorageError> {
+        let vts = self.nvts.read()?;
+        Ok(vts
+            .clone()
             .into_iter()
-            .filter(move |(_, v)| v.contains(&field))
-            .flat_map(move |(k, v)| {
-                let scope = scope.clone();
-                v.into_iter()
-                    .filter(move |v| scope.for_field(v))
-                    .map(move |v| (K::from(k.clone()), v))
-            });
-        Ok(Box::new(result))
+            .filter(move |(_, x)| x.matches_any_field(&keys))
+            .map(|(_, x)| x))
+    }
+
+    fn all_vts(&self) -> Result<impl Iterator<Item = item::Nvt>, StorageError> {
+        let vts = self.nvts.read()?.clone();
+        let notus = self.advisories.read()?.clone();
+        Ok(vts.into_iter().map(|(_, x)| x).chain(notus.into_iter()))
+    }
+
+    fn store_notus_advisory(&self, advistory: NotusAdvisory) -> Result<(), StorageError> {
+        let mut data = self.advisories.as_ref().write()?;
+        data.insert(advistory.into());
+        Ok(())
+    }
+
+    fn store_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
+        let mut data = self.kb.as_ref().write()?;
+        if let Some(scan_entry) = data.get_mut(scan_id) {
+            if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
+                kb_entry.push(kb);
+            } else {
+                scan_entry.insert(kb.key.clone(), vec![kb]);
+            }
+        } else {
+            let mut scan_entry = HashMap::new();
+            scan_entry.insert(kb.key.clone(), vec![kb]);
+            data.insert(scan_id.to_string(), scan_entry);
+        }
+        Ok(())
+    }
+
+    fn get_kb(&self, scan_id: &str, key: &KbKey) -> Result<impl Iterator<Item = Kb>, StorageError> {
+        let data = self.kb.as_ref().read()?;
+        if let Some(scan_entry) = data.get(scan_id) {
+            if let Some(kb_entry) = scan_entry.get(key) {
+                return Ok(kb_entry.clone().into_iter());
+            }
+        }
+        // TODO: maybe Err(NotFound would be better
+        Ok(vec![].into_iter())
+    }
+
+    fn has_kb(&self, scan_id: &str, key: &KbKey) -> Result<bool, StorageError> {
+        let data = self.kb.as_ref().read()?;
+        if let Some(scan_entry) = data.get(scan_id) {
+            Ok(scan_entry.contains_key(key))
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn scan_finished(&self, scan_id: &str) -> Result<(), StorageError> {
+        let mut data = self.kb.as_ref().write()?;
+        data.remove(scan_id);
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::item::NVTKey;
-
-    use super::Field::*;
-    use super::NVTField::*;
     use super::*;
 
     #[test]
-    pub fn default_storage() -> Result<(), StorageError> {
+    pub fn vts() -> Result<(), StorageError> {
         let storage = DefaultDispatcher::default();
-        let key: String = Default::default();
-        storage.dispatch(&key, NVT(Oid("moep".to_owned())))?;
-        assert_eq!(
-            storage
-                .retrieve(&key, Retrieve::NVT(None))?
-                .collect::<Vec<_>>(),
-            vec![NVT(Oid("moep".to_owned()))]
-        );
-        assert_eq!(
-            storage
-                .retrieve(&key, Retrieve::NVT(Some(NVTKey::Oid)))?
-                .collect::<Vec<_>>(),
-            vec![NVT(Oid("moep".to_owned()))]
-        );
-        assert_eq!(
-            storage
-                .retrieve(&key, Retrieve::NVT(Some(NVTKey::Family)))?
-                .collect::<Vec<_>>(),
-            vec![]
-        );
-        assert_eq!(
-            storage
-                .retrieve_by_field(NVT(Oid("moep".to_owned())), Retrieve::NVT(None))?
-                .collect::<Vec<_>>(),
-            vec![(key.clone(), NVT(Oid("moep".to_owned())))]
-        );
+        storage.cache_nvt_field("test", NVTField::Oid("12".into()))?;
+        storage.store_vt(item::Nvt::default())?;
+        storage.store_notus_advisory(NotusAdvisory {
+            filename: "test2".into(),
+            ..Default::default()
+        })?;
+
+        assert_eq!(3, storage.all_vts()?.count());
+
         Ok(())
     }
 }

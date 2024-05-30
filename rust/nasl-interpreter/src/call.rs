@@ -20,7 +20,7 @@ pub(crate) trait CallExtension {
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> CallExtension for Interpreter<'a, K>
+impl<'a, K, S> CallExtension for Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {

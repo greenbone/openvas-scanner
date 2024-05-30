@@ -61,7 +61,7 @@ pub(crate) trait LoopExtension {
 
 /// Implementation for the Loop extension. Note that for all loops, we do not
 /// change the context, as the current NASL also does not change it too.
-impl<'a, K> LoopExtension for Interpreter<'a, K>
+impl<'a, K, S> LoopExtension for Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {

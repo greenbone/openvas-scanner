@@ -10,7 +10,7 @@ use std::{
 
 use nasl_interpreter::FSPluginLoader;
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
-use storage::item::{ItemDispatcher, Nvt, PerItemDispatcher};
+use storage::item::{Nvt};
 use tokio::task::JoinSet;
 
 use super::*;

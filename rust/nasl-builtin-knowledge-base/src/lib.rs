@@ -5,13 +5,17 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use nasl_builtin_utils::{error::FunctionErrorKind, get_named_parameter, NaslFunction};
-use storage::{Field, Kb, Retrieve};
+use storage::{Kb, Storage};
 
 use nasl_builtin_utils::{Context, Register};
 use nasl_syntax::NaslValue;
 
 /// NASL function to set a knowledge base
-fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn set_kb_item<K, S>(register: &Register, c: &Context<K, S>) -> Result<NaslValue, FunctionErrorKind>
+where
+    K: AsRef<str>,
+    S: storage::Storage,
+{
     let name = get_named_parameter(register, "name", true)?;
     let value = get_named_parameter(register, "value", true)?;
     let expires = match get_named_parameter(register, "expires", false) {
@@ -32,35 +36,30 @@ fn set_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
             Err(_) => 0,
         }
     });
-    c.dispatcher()
-        .dispatch(
-            c.key(),
-            Field::KB(Kb {
-                key: name.to_string(),
-                value: value.clone().as_primitive(),
-                expire: expires,
-            }),
-        )
+    let kb = Kb {
+        key: name.to_string(),
+        value: value.clone().as_primitive(),
+        expire: expires,
+    };
+    c.storage()
+        .store_kb(c.key().as_ref(), kb)
         .map(|_| NaslValue::Null)
         .map_err(|e| e.into())
 }
 
 /// NASL function to get a knowledge base
-fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn get_kb_item<K, S>(register: &Register, c: &Context<K, S>) -> Result<NaslValue, FunctionErrorKind>
+where
+    S: Storage,
+    K: AsRef<str>,
+{
     match register.positional() {
-        [x] => c
-            .retriever()
-            .retrieve(c.key(), Retrieve::KB(x.to_string()))
-            .map(|r| {
-                r.into_iter()
-                    .filter_map(|x| match x {
-                        Field::NVT(_) | Field::NotusAdvisory(_) => None,
-                        Field::KB(kb) => Some(kb.value.into()),
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .map(NaslValue::Fork)
-            .map_err(|e| e.into()),
+        [x] => Ok(NaslValue::Fork(
+            c.storage()
+                .get_kb(c.key().as_ref(), &x.to_string())?
+                .map(|r| r.value.into())
+                .collect(),
+        )),
         x => Err(FunctionErrorKind::Diagnostic(
             format!("expected one positional argument but got: {}", x.len()),
             None,
@@ -69,7 +68,11 @@ fn get_kb_item<K>(register: &Register, c: &Context<K>) -> Result<NaslValue, Func
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup<K, S>(key: &str) -> Option<NaslFunction<K, S>>
+where
+    S: Storage,
+    K: AsRef<str>,
+{
     match key {
         "set_kb_item" => Some(set_kb_item),
         "get_kb_item" => Some(get_kb_item),
@@ -79,17 +82,21 @@ pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
 
 pub struct KnowledgeBase;
 
-impl<K> nasl_builtin_utils::NaslFunctionExecuter<K> for KnowledgeBase {
+impl<K, S> nasl_builtin_utils::NaslFunctionExecuter<K, S> for KnowledgeBase
+where
+    S: storage::Storage,
+    K: AsRef<str>,
+{
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context<K, S>,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         lookup(name).map(|x| x(register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup::<&str>(name).is_some()
+        lookup::<&str, storage::DefaultDispatcher>(name).is_some()
     }
 }

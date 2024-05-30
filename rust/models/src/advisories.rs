@@ -157,7 +157,7 @@ impl ProductsAdivisories {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct VulnerabilityData {
     pub adv: Advisories,
     pub famile: String,

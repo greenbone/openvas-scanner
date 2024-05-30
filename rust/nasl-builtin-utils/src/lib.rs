@@ -20,12 +20,12 @@ pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;
 /// It is mostly used internally when building a NaslFunctionExecuter.
 /// The register as well as the context are given by the interpreter that wants either a result or
 /// an error back.
-pub type NaslFunction<'a, K> =
-    fn(&Register, &Context<K>) -> Result<nasl_syntax::NaslValue, FunctionErrorKind>;
+pub type NaslFunction<'a, K, S> =
+    fn(&Register, &Context<K, S>) -> Result<nasl_syntax::NaslValue, FunctionErrorKind>;
 
 /// Looks up functions and executes them. Returns None when no function is found and a result
 /// otherwise.
-pub trait NaslFunctionExecuter<K> {
+pub trait NaslFunctionExecuter<K, S> {
     /// Executes function found by name if it registered.
     ///
     /// Usually it is called by the context and not directly from the interpreter. This way it is
@@ -35,7 +35,7 @@ pub trait NaslFunctionExecuter<K> {
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context<K, S>,
     ) -> Option<NaslResult>;
 
     /// Returns true when the nasl function is defined otherwise false.
@@ -96,31 +96,31 @@ pub fn get_named_parameter<'a>(
 }
 /// Holds registered NaslFunctionExecuter and executes them in order of registration.
 #[derive(Default)]
-pub struct NaslFunctionRegister<K> {
-    executor: Vec<Box<dyn NaslFunctionExecuter<K>>>,
+pub struct NaslFunctionRegister<K, S> {
+    executor: Vec<Box<dyn NaslFunctionExecuter<K, S>>>,
 }
 
-impl<K> NaslFunctionRegister<K> {
+impl<K, S> NaslFunctionRegister<K, S> {
     /// Creates a new NaslFunctionRegister
-    pub fn new(executor: Vec<Box<dyn NaslFunctionExecuter<K>>>) -> Self {
+    pub fn new(executor: Vec<Box<dyn NaslFunctionExecuter<K, S>>>) -> Self {
         Self { executor }
     }
 
     /// Pushes a NaslFunctionExecuter to the register
     pub fn push_executer<T>(&mut self, executor: T)
     where
-        T: NaslFunctionExecuter<K> + 'static,
+        T: NaslFunctionExecuter<K, S> + 'static,
     {
         self.executor.push(Box::new(executor));
     }
 }
 
-impl<K> NaslFunctionExecuter<K> for NaslFunctionRegister<K> {
+impl<K, S> NaslFunctionExecuter<K, S> for NaslFunctionRegister<K, S> {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &context::Register,
-        context: &context::Context<K>,
+        context: &context::Context<K, S>,
     ) -> Option<NaslResult> {
         for executor in &self.executor {
             if let Some(r) = executor.nasl_fn_execute(name, register, context) {
@@ -142,11 +142,11 @@ impl<K> NaslFunctionExecuter<K> for NaslFunctionRegister<K> {
 
 #[derive(Default)]
 /// A builder for NaslFunctionRegister
-pub struct NaslfunctionRegisterBuilder<K> {
-    executor: Vec<Box<dyn NaslFunctionExecuter<K>>>,
+pub struct NaslfunctionRegisterBuilder<K, S> {
+    executor: Vec<Box<dyn NaslFunctionExecuter<K, S>>>,
 }
 
-impl<K> NaslfunctionRegisterBuilder<K> {
+impl<K, S> NaslfunctionRegisterBuilder<K, S> {
     /// New NaslFunctionRegisterBuilder
     pub fn new() -> Self {
         Self {
@@ -157,14 +157,14 @@ impl<K> NaslfunctionRegisterBuilder<K> {
     /// Pushes a NaslFunctionExecuter to the register
     pub fn push_register<T>(mut self, executor: T) -> Self
     where
-        T: NaslFunctionExecuter<K> + 'static,
+        T: NaslFunctionExecuter<K, S> + 'static,
     {
         self.executor.push(Box::new(executor));
         self
     }
 
     /// Builds the NaslFunctionRegister
-    pub fn build(self) -> NaslFunctionRegister<K> {
+    pub fn build(self) -> NaslFunctionRegister<K, S> {
         NaslFunctionRegister::new(self.executor)
     }
 }
@@ -226,12 +226,12 @@ impl NaslVarRegisterBuilder {
 mod test {
 
     struct Test;
-    impl crate::NaslFunctionExecuter<std::string::String> for Test {
+    impl crate::NaslFunctionExecuter<std::string::String, storage::DefaultDispatcher> for Test {
         fn nasl_fn_execute(
             &self,
             name: &str,
             register: &crate::Register,
-            _context: &crate::Context<String>,
+            _context: &crate::Context<String, storage::DefaultDispatcher>,
         ) -> Option<crate::NaslResult> {
             match name {
                 "test" => {
@@ -259,7 +259,7 @@ mod test {
         let loader = nasl_syntax::NoOpLoader::default();
         let logger = nasl_syntax::logger::DefaultLogger::default();
         let context =
-            crate::Context::new(&key, target, &storage, &storage, &loader, &logger, &Test);
+            crate::Context::new(&key, target, &storage, &loader, &logger, &Test);
         let mut register = crate::Register::default();
         register.add_local("a", 1.into());
         register.add_local("b", 2.into());

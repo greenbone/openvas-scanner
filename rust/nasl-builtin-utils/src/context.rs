@@ -5,7 +5,7 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use nasl_syntax::{logger::NaslLogger, Loader, NaslValue, Statement};
-use storage::{Dispatcher, Retriever};
+use storage::Storage;
 
 use crate::lookup_keys::FC_ANON_ARGS;
 
@@ -325,45 +325,45 @@ impl NaslContext {
 ///
 /// This struct includes all objects that a nasl function requires.
 /// New objects must be added here in
-pub struct Context<'a, K> {
+pub struct Context<'a, K, S> {
     /// key for this context. A name or an OID
     key: &'a K,
     /// target to run a scan against
     target: &'a str,
     /// Default Dispatcher
-    dispatcher: &'a dyn Dispatcher<K>,
-    /// Default Retriever
-    retriever: &'a dyn Retriever<K>,
+    storage: &'a S,
     /// Default Loader
     loader: &'a dyn Loader,
     // TODO remove logger in favor of tracing
     /// Default logger.
     logger: &'a dyn NaslLogger,
     /// Default logger.
-    executor: &'a dyn super::NaslFunctionExecuter<K>,
+    executor: &'a dyn super::NaslFunctionExecuter<K, S>,
 }
 
-impl<'a, K> Context<'a, K> {
+impl<'a, K, S> Context<'a, K, S> where S: Storage {
     /// Creates an empty configuration
     pub fn new(
         key: &'a K,
         target: &'a str,
-        dispatcher: &'a dyn Dispatcher<K>,
-        retriever: &'a dyn Retriever<K>,
+        storage: &'a S,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
-        executor: &'a dyn super::NaslFunctionExecuter<K>,
+        executor: &'a dyn super::NaslFunctionExecuter<K, S>,
     ) -> Self {
         Self {
             key,
             target,
-            dispatcher,
-            retriever,
+            storage,
             loader,
             logger,
             executor,
         }
     }
+}
+
+
+impl<'a, K, S> Context<'a, K, S> {
 
     /// Executes a function by name
     ///
@@ -383,7 +383,7 @@ impl<'a, K> Context<'a, K> {
     }
 
     /// Get the executor
-    pub fn executor(&self) -> &'a dyn super::NaslFunctionExecuter<K> {
+    pub fn executor(&self) -> &'a dyn super::NaslFunctionExecuter<K, S> {
         self.executor
     }
 
@@ -396,12 +396,8 @@ impl<'a, K> Context<'a, K> {
         self.target
     }
     /// Get the storage
-    pub fn dispatcher(&self) -> &dyn Dispatcher<K> {
-        self.dispatcher
-    }
-    /// Get the storage
-    pub fn retriever(&self) -> &dyn Retriever<K> {
-        self.retriever
+    pub fn storage(&self) -> &S {
+        self.storage
     }
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {

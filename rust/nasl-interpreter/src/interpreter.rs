@@ -69,12 +69,12 @@ pub(crate) struct RunSpecific {
 pub trait ContextLifeTimeCapture<'a> {}
 impl<'a, T: ?Sized> ContextLifeTimeCapture<'a> for T {}
 
-struct StatementIter<'a, 'b, K> {
-    interpreter: &'b mut Interpreter<'a, K>,
+struct StatementIter<'a, 'b, K, S> {
+    interpreter: &'b mut Interpreter<'a, K, S>,
     statement: Statement,
 }
 
-impl<'a, 'b, K> Iterator for StatementIter<'a, 'b, K>
+impl<'a, 'b, K, S> Iterator for StatementIter<'a, 'b, K, S>
 where
     K: AsRef<str>,
 {
@@ -96,9 +96,9 @@ where
 }
 
 /// Used to interpret a Statement
-pub struct Interpreter<'a, K> {
+pub struct Interpreter<'a, K, S> {
     pub(crate) run_specific: Vec<RunSpecific>,
-    pub(crate) ctxconfigs: &'a Context<'a, K>,
+    pub(crate) ctxconfigs: &'a Context<'a, K, S>,
     pub(crate) index: usize,
 }
 
@@ -107,12 +107,12 @@ pub struct Interpreter<'a, K> {
 /// When a result does not contain a value than NaslValue::Null must be returned.
 pub type InterpretResult = Result<NaslValue, InterpretError>;
 
-impl<'a, K> Interpreter<'a, K>
+impl<'a, K , S> Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {
     /// Creates a new Interpreter
-    pub fn new(register: Register, ctxconfigs: &'a Context<K>) -> Self {
+    pub fn new(register: Register, ctxconfigs: &'a Context<K, S>) -> Self {
         let root_run = RunSpecific {
             register,
             position: Position::new(0),
@@ -149,7 +149,7 @@ where
     /// again. This is done to inform the caller that all interpreter interpret this statement and
     /// the next Statement can be executed.
     // TODO remove in favor of iterrator of run_specific
-    pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a, K>> {
+    pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a, K, S>> {
         if self.run_specific.len() == 1 || self.index + 1 == self.run_specific.len() {
             return None;
         }

@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use storage::{self, item::PerItemDispatcher, Kb, NotusAdvisory, StorageError};
+use storage::{self, Kb, NotusAdvisory, StorageError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -70,8 +70,8 @@ pub struct ItemDispatcher<W>
 where
     W: Write,
 {
+    nvt: Arc<Mutex<Option<storage::item::Nvt>>>,
     w: Arc<Mutex<W>>,
-    kbs: Arc<Mutex<Vec<Kb>>>,
 }
 impl<S> ItemDispatcher<S>
 where
@@ -81,20 +81,12 @@ where
     ///
     pub fn new(w: S) -> Self {
         Self {
+            nvt: Arc::new(Mutex::new(None)),
             w: Arc::new(Mutex::new(w)),
-            kbs: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
-    /// Returns a new instance as a Dispatcher
-    pub fn as_dispatcher<K>(w: S) -> PerItemDispatcher<Self, K>
-    where
-        K: AsRef<str>,
-    {
-        PerItemDispatcher::new(Self::new(w))
-    }
-
-    fn as_json(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
+    fn as_json(&self, nvt: &storage::item::Nvt) -> Result<(), storage::StorageError> {
         let mut context = self.w.lock().map_err(StorageError::from)?;
         serde_json::to_vec(&nvt)
             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
@@ -102,72 +94,115 @@ where
     }
 }
 
-impl<S, K> storage::item::ItemDispatcher<K> for ItemDispatcher<S>
+impl<S> storage::Storage for ItemDispatcher<S>
 where
     S: Write,
 {
-    fn dispatch_nvt(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
-        self.as_json(nvt)
-    }
-
-    fn dispatch_feed_version(&self, _: String) -> Result<(), storage::StorageError> {
-        // the feed information are currently not within the output json
+    fn cache_nvt_field(
+        &self,
+        filename: &str,
+        field: storage::item::NVTField,
+    ) -> Result<(), StorageError> {
+        let mut vt = self.nvt.as_ref().lock()?;
+        if let Some(nvt) = vt.as_mut() {
+            let _ = nvt.set_from_field(field);
+        } else {
+            let mut nvt = storage::item::Nvt {
+                filename: filename.to_string(),
+                ..Default::default()
+            };
+            // we ignore versions
+            let _ = nvt.set_from_field(field);
+            *vt = Some(nvt);
+        }
         Ok(())
     }
 
-    fn dispatch_kb(&self, _: &K, kb: Kb) -> Result<(), StorageError> {
-        let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
+    fn description_script_finished(&self) -> Result<(), StorageError> {
+        let nvt = self.nvt.lock()?;
+        if let Some(vt) = nvt.as_ref() {
+            self.as_json(vt)?;
+        }
+        Ok(())
+    }
+
+    fn store_vt(&self, vt: storage::item::Nvt) -> Result<(), StorageError> {
+        self.as_json(&vt)
+    }
+
+    fn vts_by_fields(
+        &self,
+        _: Vec<storage::item::NVTField>,
+    ) -> Result<impl Iterator<Item = storage::item::Nvt>, StorageError> {
+        Ok(vec![].into_iter())
+    }
+
+    fn all_vts(&self) -> Result<impl Iterator<Item = storage::item::Nvt>, StorageError> {
+        Ok(vec![].into_iter())
+    }
+
+    fn store_notus_advisory(&self, advistory: NotusAdvisory) -> Result<(), StorageError> {
+        let nvt: storage::item::Nvt = advistory.into();
+        self.store_vt(nvt)
+    }
+
+    fn store_kb(&self, _: &str, kb: Kb) -> Result<(), StorageError> {
         let mut context = self.w.lock().map_err(StorageError::from)?;
         serde_json::to_vec(&kb)
             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
             .and_then(|x| context.write_all(&x).map_err(StorageError::from))?;
-        kbs.push(kb);
         Ok(())
     }
 
-    fn dispatch_advisory(
+    fn get_kb(
         &self,
         _: &str,
+        _: &storage::KbKey,
+    ) -> Result<impl Iterator<Item = Kb>, StorageError> {
+        Ok(vec![].into_iter())
+    }
 
-        _: Box<Option<NotusAdvisory>>,
-    ) -> Result<(), StorageError> {
+    fn has_kb(&self, _: &str, _: &storage::KbKey) -> Result<bool, StorageError> {
+        Ok(false)
+    }
+
+    fn scan_finished(&self, _: &str) -> Result<(), StorageError> {
         Ok(())
     }
 }
 
-impl<S, K> storage::Retriever<K> for ItemDispatcher<S>
-where
-    S: Write,
-    K: 'static,
-{
-    fn retrieve(
-        &self,
-        _: &K,
-        scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
-        Ok(match scope {
-            // currently not supported
-            storage::Retrieve::NVT(_) | storage::Retrieve::NotusAdvisory(_) => {
-                Box::new([].into_iter())
-            }
-            storage::Retrieve::KB(s) => Box::new({
-                let kbs = self.kbs.lock().map_err(StorageError::from)?;
-                let kbs = kbs.clone();
-                kbs.into_iter()
-                    .filter(move |x| x.key == s)
-                    .map(|x| storage::Field::KB(x.clone()))
-            }),
-        })
-    }
-
-    fn retrieve_by_field(
-        &self,
-        _: storage::Field,
-        _: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, storage::Field)>>, StorageError> {
-        Ok(Box::new([].into_iter()))
-    }
-}
+// impl<S, K> storage::item::ItemDispatcher<K> for ItemDispatcher<S>
+// where
+//     S: Write,
+// {
+//     fn dispatch_nvt(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
+//         self.as_json(nvt)
+//     }
+//
+//     fn dispatch_feed_version(&self, _: String) -> Result<(), storage::StorageError> {
+//         // the feed information are currently not within the output json
+//         Ok(())
+//     }
+//
+//     fn dispatch_kb(&self, _: &K, kb: Kb) -> Result<(), StorageError> {
+//         let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
+//         let mut context = self.w.lock().map_err(StorageError::from)?;
+//         serde_json::to_vec(&kb)
+//             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
+//             .and_then(|x| context.write_all(&x).map_err(StorageError::from))?;
+//         kbs.push(kb);
+//         Ok(())
+//     }
+//
+//     fn dispatch_advisory(
+//         &self,
+//         _: &str,
+//
+//         _: Box<Option<NotusAdvisory>>,
+//     ) -> Result<(), StorageError> {
+//         Ok(())
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -285,7 +320,7 @@ mod tests {
         let nvt = generate_nvt("test", ACT::DestructiveAttack);
         let mut buf = Vec::with_capacity(1208);
         let dispatcher = super::ItemDispatcher::new(&mut buf);
-        dispatcher.as_json(nvt.clone()).unwrap();
+        dispatcher.as_json(&nvt).unwrap();
         let single_json = String::from_utf8(buf).unwrap();
         let result: Nvt = serde_json::from_str(&single_json).unwrap();
         assert_eq!(result, nvt);
@@ -313,7 +348,7 @@ mod tests {
         .enumerate()
         .map(|(i, c)| generate_nvt(&i.to_string(), c))
         {
-            dispatcher.as_json(nvt).unwrap();
+            dispatcher.as_json(&nvt).unwrap();
         }
         ja.end().unwrap();
 

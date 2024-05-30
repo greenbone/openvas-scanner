@@ -5,10 +5,10 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::RwLock;
 use std::usize;
 
 use crate::dberror::DbError;
@@ -19,7 +19,6 @@ use redis::*;
 use storage::item::Nvt;
 use storage::item::NvtPreference;
 use storage::item::NvtRef;
-use storage::item::PerItemDispatcher;
 use storage::item::TagKey;
 use storage::item::TagValue;
 use storage::Kb;
@@ -44,30 +43,30 @@ enum KbNvtPos {
     Name,
 }
 
-impl TryFrom<storage::item::NVTKey> for KbNvtPos {
-    type Error = StorageError;
-
-    fn try_from(value: storage::item::NVTKey) -> Result<Self, Self::Error> {
-        Ok(match value {
-            storage::item::NVTKey::FileName => Self::Filename,
-            storage::item::NVTKey::Name => Self::Name,
-            storage::item::NVTKey::Dependencies => Self::Dependencies,
-            storage::item::NVTKey::RequiredKeys => Self::RequiredKeys,
-            storage::item::NVTKey::MandatoryKeys => Self::MandatoryKeys,
-            storage::item::NVTKey::ExcludedKeys => Self::ExcludedKeys,
-            storage::item::NVTKey::RequiredPorts => Self::RequiredPorts,
-            storage::item::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
-            storage::item::NVTKey::Category => Self::Category,
-            storage::item::NVTKey::Family => Self::Family,
-            // tags must also be handled manually due to differentiation
-            _ => {
-                return Err(StorageError::UnexpectedData(format!(
-                    "{value:?} is not a redis position and must be handled differently"
-                )))
-            }
-        })
-    }
-}
+// impl TryFrom<storage::item::NVTKey> for KbNvtPos {
+//     type Error = StorageError;
+//
+//     fn try_from(value: storage::item::NVTKey) -> Result<Self, Self::Error> {
+//         Ok(match value {
+//             storage::item::NVTKey::FileName => Self::Filename,
+//             storage::item::NVTKey::Name => Self::Name,
+//             storage::item::NVTKey::Dependencies => Self::Dependencies,
+//             storage::item::NVTKey::RequiredKeys => Self::RequiredKeys,
+//             storage::item::NVTKey::MandatoryKeys => Self::MandatoryKeys,
+//             storage::item::NVTKey::ExcludedKeys => Self::ExcludedKeys,
+//             storage::item::NVTKey::RequiredPorts => Self::RequiredPorts,
+//             storage::item::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
+//             storage::item::NVTKey::Category => Self::Category,
+//             storage::item::NVTKey::Family => Self::Family,
+//             // tags must also be handled manually due to differentiation
+//             _ => {
+//                 return Err(StorageError::UnexpectedData(format!(
+//                     "{value:?} is not a redis position and must be handled differently"
+//                 )))
+//             }
+//         })
+//     }
+// }
 #[derive(Default)]
 pub struct RedisCtx {
     kb: Option<Connection>, //a redis connection
@@ -645,20 +644,16 @@ impl RedisCtx {
 /// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
 #[derive(Debug, Default)]
-pub struct CacheDispatcher<R, K>
+pub struct CacheDispatcher<R>
 where
     R: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
 {
+    unfinished_vt: Arc<RwLock<Option<Nvt>>>,
     cache: Arc<Mutex<R>>,
-    kbs: Arc<Mutex<Vec<Kb>>>,
-    phanton: PhantomData<K>,
+    underlying_storage: storage::DefaultDispatcher,
 }
 
-impl<K> CacheDispatcher<RedisCtx, K>
-where
-    K: AsRef<str>,
-{
+impl CacheDispatcher<RedisCtx> {
     /// Initialize and return an NVT Cache Object
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
@@ -666,13 +661,13 @@ where
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<CacheDispatcher<RedisCtx, K>> {
+    ) -> RedisStorageResult<CacheDispatcher<RedisCtx>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
         Ok(CacheDispatcher {
+            unfinished_vt: Default::default(),
             cache: Arc::new(Mutex::new(rctx)),
-            kbs: Arc::new(Mutex::new(Vec::new())),
-            phanton: PhantomData,
+            underlying_storage: Default::default(),
         })
     }
 
@@ -683,10 +678,11 @@ where
     pub fn as_dispatcher(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<PerItemDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
+    ) -> Result<impl storage::Storage, StorageError> {
         let cache = Self::init(redis_url, selector)?;
         cache.flushdb()?;
-        Ok(PerItemDispatcher::new(cache))
+        Ok(cache)
+        //Ok(PerItemDispatcher::new(cache))
     }
 
     /// Reset the NVT Cache and release the redis namespace
@@ -706,78 +702,91 @@ where
     }
 }
 
-impl<S, K> storage::item::ItemDispatcher<K> for CacheDispatcher<S, K>
+impl<S> storage::Storage for CacheDispatcher<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
 {
-    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError> {
-        let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.redis_add_nvt(nvt).map_err(|e| e.into())
-    }
-
-    fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError> {
-        let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
-    }
-
-    fn dispatch_kb(&self, _: &K, kb: storage::Kb) -> Result<(), StorageError> {
-        let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
-        kbs.push(kb);
+    fn cache_nvt_field(
+        &self,
+        filename: &str,
+        field: storage::item::NVTField,
+    ) -> Result<(), StorageError> {
+        let mut data = self.unfinished_vt.as_ref().write()?;
+        if let Some(vt) = data.as_mut() {
+            if let Err(version) = vt.set_from_field(field) {
+                let mut cache = Arc::as_ref(&self.cache).lock()?;
+                cache.rpush(CACHE_KEY, &[&version])?;
+            }
+        } else {
+            let mut nvt = storage::item::Nvt {
+                filename: filename.to_string(),
+                ..Default::default()
+            };
+            nvt.set_from_field(field);
+            *data = Some(nvt);
+        }
         Ok(())
     }
-    fn dispatch_advisory(
-        &self,
-        key: &str,
-        adv: Box<Option<NotusAdvisory>>,
-    ) -> Result<(), StorageError> {
+
+    fn description_script_finished(&self) -> Result<(), StorageError> {
+        let mut data = self.unfinished_vt.as_ref().write()?;
+        if let Some(vt) = data.as_ref() {
+            self.store_vt(vt.clone())?;
+            *data = None;
+        }
+        Ok(())
+    }
+
+    fn store_vt(&self, vt: storage::item::Nvt) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock()?;
-        cache.redis_add_advisory(key, *adv).map_err(|e| e.into())
-    }
-}
-
-impl<S, K> storage::Retriever<K> for CacheDispatcher<S, K>
-where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
-{
-    fn retrieve(
-        &self,
-        _: &K,
-        scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
-        Ok(match scope {
-            storage::Retrieve::NotusAdvisory(_) | storage::Retrieve::NVT(_) => {
-                Box::new(Vec::new().into_iter())
-            }
-            storage::Retrieve::KB(s) => Box::new({
-                let kbs = self.kbs.lock().map_err(StorageError::from)?;
-                let kbs = kbs.clone();
-                kbs.into_iter()
-                    .filter(move |x| x.key == s)
-                    .map(move |x| storage::Field::KB(x.clone()))
-            }),
-        })
+        cache.redis_add_nvt(vt).map_err(|e| e.into())
     }
 
-    fn retrieve_by_field(
+    fn vts_by_fields(
         &self,
-        _field: storage::Field,
-        _scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, storage::Field)>>, StorageError> {
-        todo!()
+        _keys: Vec<storage::item::NVTField>,
+    ) -> Result<impl Iterator<Item = storage::item::Nvt>, StorageError> {
+        Ok(vec![].into_iter())
+    }
+
+    fn all_vts(&self) -> Result<impl Iterator<Item = storage::item::Nvt>, StorageError> {
+        Ok(vec![].into_iter())
+    }
+
+    fn store_notus_advisory(&self, advistory: NotusAdvisory) -> Result<(), StorageError> {
+        let mut cache = Arc::as_ref(&self.cache).lock()?;
+        cache
+            .redis_add_advisory("", Some(advistory))
+            .map_err(|e| e.into())
+    }
+
+    fn store_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
+        self.underlying_storage.store_kb(scan_id, kb)
+    }
+
+    fn get_kb(
+        &self,
+        scan_id: &str,
+        key: &storage::KbKey,
+    ) -> Result<impl Iterator<Item = Kb>, StorageError> {
+        self.underlying_storage.get_kb(scan_id, key)
+    }
+
+    fn has_kb(&self, scan_id: &str, key: &storage::KbKey) -> Result<bool, StorageError> {
+        self.underlying_storage.has_kb(scan_id, key)
+    }
+
+    fn scan_finished(&self, scan_id: &str) -> Result<(), StorageError> {
+        self.underlying_storage.scan_finished(scan_id)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
-    use storage::item::PerItemDispatcher;
     use storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
-    use storage::Dispatcher;
 
     use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper};
 
@@ -833,33 +842,23 @@ mod tests {
     impl RedisGetNvt for FakeRedis {}
 
     use storage::item::NVTField::*;
-    use storage::Field::NVT;
     #[test]
     fn transform_nvt() {
         let commands = [
-            NVT(Version("202212101125".to_owned())),
-            NVT(Tag(TagKey::CreationDate, TagValue::Number(23))),
-            NVT(Name("fancy name".to_owned())),
-            NVT(Category(ACT::Denial)),
-            NVT(Family("Denial of Service".to_owned())),
-            NVT(Dependencies(vec![
-                "ssh_detect.nasl".to_owned(),
-                "ssh2.nasl".to_owned(),
-            ])),
-            NVT(RequiredPorts(vec![
-                "Services/ssh".to_owned(),
-                "22".to_owned(),
-            ])),
-            NVT(MandatoryKeys(vec!["ssh/blubb/detected".to_owned()])),
-            NVT(ExcludedKeys(vec![
+            Version("202212101125".to_owned()),
+            Tag(TagKey::CreationDate, TagValue::Number(23)),
+            Name("fancy name".to_owned()),
+            Category(ACT::Denial),
+            Family("Denial of Service".to_owned()),
+            Dependencies(vec!["ssh_detect.nasl".to_owned(), "ssh2.nasl".to_owned()]),
+            RequiredPorts(vec!["Services/ssh".to_owned(), "22".to_owned()]),
+            MandatoryKeys(vec!["ssh/blubb/detected".to_owned()]),
+            ExcludedKeys(vec![
                 "Settings/disable_cgi_scanning".to_owned(),
                 "bla/bla".to_owned(),
-            ])),
-            NVT(RequiredUdpPorts(vec![
-                "Services/udp/unknown".to_owned(),
-                "17".to_owned(),
-            ])),
-            NVT(Reference(vec![
+            ]),
+            RequiredUdpPorts(vec!["Services/udp/unknown".to_owned(), "17".to_owned()]),
+            Reference(vec![
                 NvtRef {
                     class: "cve".to_owned(),
                     id: "CVE-1999-0524".to_owned(),
@@ -868,31 +867,31 @@ mod tests {
                     class: "http://freshmeat.sourceforge.net/projects/eventh/".to_owned(),
                     id: "URL".to_owned(),
                 },
-            ])),
-            NVT(RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()])),
-            NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
-            NVT(FileName("test.nasl".to_owned())),
-            NVT(Preference(NvtPreference {
+            ]),
+            RequiredKeys(vec!["WMI/Apache/RootPath".to_owned()]),
+            Oid("0.0.0.0.0.0.0.0.0.1".to_owned()),
+            FileName("test.nasl".to_owned()),
+            Preference(NvtPreference {
                 id: Some(2),
                 class: PreferenceType::Password,
                 name: "Enable Password".to_owned(),
                 default: "".to_owned(),
-            })),
+            }),
         ];
         let (sender, rx) = mpsc::channel();
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
-        let kbs = Arc::new(Mutex::new(Vec::new()));
         let rcache = CacheDispatcher {
             cache,
-            kbs,
-            phanton: PhantomData,
+            unfinished_vt: Default::default(),
+            underlying_storage: Default::default(),
         };
-        let dispatcher = PerItemDispatcher::new(rcache);
+        let dispatcher = rcache;
+        use storage::Storage;
         for c in commands {
-            dispatcher.dispatch(&"test.nasl", c).unwrap();
+            dispatcher.cache_nvt_field("test.nasl", c);
         }
-        dispatcher.on_exit().unwrap();
+        dispatcher.description_script_finished().unwrap();
         let mut results = 0;
         loop {
             match rx.try_recv() {

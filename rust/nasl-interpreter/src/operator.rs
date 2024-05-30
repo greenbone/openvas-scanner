@@ -15,7 +15,7 @@ pub(crate) trait OperatorExtension {
     fn operator(&mut self, category: &TokenCategory, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> Interpreter<'a, K>
+impl<'a, K, S> Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {
@@ -115,7 +115,7 @@ macro_rules! minus_left_right_data {
     }};
 }
 
-impl<'a, K> OperatorExtension for Interpreter<'a, K>
+impl<'a, K, S> OperatorExtension for Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {

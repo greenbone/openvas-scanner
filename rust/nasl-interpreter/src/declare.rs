@@ -18,7 +18,7 @@ pub(crate) trait DeclareFunctionExtension {
     ) -> InterpretResult;
 }
 
-impl<'a, K> DeclareFunctionExtension for Interpreter<'a, K>
+impl<'a, K, S> DeclareFunctionExtension for Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {
@@ -49,7 +49,7 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> DeclareVariableExtension for Interpreter<'a, K>
+impl<'a, K, S> DeclareVariableExtension for Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {

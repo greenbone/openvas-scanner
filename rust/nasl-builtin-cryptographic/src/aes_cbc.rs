@@ -74,9 +74,9 @@ where
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes128_cbc_encrypt<K>(
+fn aes128_cbc_encrypt<K,S>(
     register: &Register,
-    _: &Context<K>,
+    _: &Context<K,S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Aes128>(register, Crypt::Encrypt)
 }
@@ -89,9 +89,9 @@ fn aes128_cbc_encrypt<K>(
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes128_cbc_decrypt<K>(
+fn aes128_cbc_decrypt<K,S>(
     register: &Register,
-    _: &Context<K>,
+    _: &Context<K,S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Aes128>(register, Crypt::Decrypt)
 }
@@ -103,9 +103,9 @@ fn aes128_cbc_decrypt<K>(
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes192_cbc_encrypt<K>(
+fn aes192_cbc_encrypt<K,S>(
     register: &Register,
-    _: &Context<K>,
+    _: &Context<K,S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Aes192>(register, Crypt::Encrypt)
 }
@@ -118,9 +118,9 @@ fn aes192_cbc_encrypt<K>(
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes192_cbc_decrypt<K>(
+fn aes192_cbc_decrypt<K,S>(
     register: &Register,
-    _: &Context<K>,
+    _: &Context<K,S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Aes192>(register, Crypt::Decrypt)
 }
@@ -132,9 +132,9 @@ fn aes192_cbc_decrypt<K>(
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes256_cbc_encrypt<K>(
+fn aes256_cbc_encrypt<K,S>(
     register: &Register,
-    _: &Context<K>,
+    _: &Context<K,S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Aes256>(register, Crypt::Encrypt)
 }
@@ -147,14 +147,14 @@ fn aes256_cbc_encrypt<K>(
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes256_cbc_decrypt<K>(
+fn aes256_cbc_decrypt<K,S>(
     register: &Register,
-    _: &Context<K>,
+    _: &Context<K,S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Aes256>(register, Crypt::Decrypt)
 }
 
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup<K,S>(key: &str) -> Option<NaslFunction<K,S>> {
     match key {
         "aes128_cbc_encrypt" => Some(aes128_cbc_encrypt),
         "aes128_cbc_decrypt" => Some(aes128_cbc_decrypt),
