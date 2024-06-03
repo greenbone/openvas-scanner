@@ -18,52 +18,10 @@ use super::{ExecutionPlan, RuntimeVT, VTError};
 pub struct WaveExecutionPlan {
     // filename is the key to identify quickly if a dependency is within a known index
     data: VecDeque<HashMap<String, RuntimeVT>>,
-    unprocessed: Option<Vec<RuntimeVT>>,
-    warned: bool,
+    dependencies_added: bool,
 }
 
 impl WaveExecutionPlan {
-    fn recheck(&mut self, unprocessed: Vec<RuntimeVT>) -> (bool, Vec<RuntimeVT>) {
-        let mut recheck = false;
-        let mut new_unprocessed = Vec::new();
-        for (vt, param) in unprocessed.clone() {
-            match self.find_index(&vt) {
-                Some(i) => {
-                    recheck = true;
-                    self.insert_into(i, vt.filename.clone(), (vt, param))
-                }
-                None => new_unprocessed.push((vt, param)),
-            }
-        }
-        (recheck, new_unprocessed)
-    }
-
-    fn check_unprocessed(&mut self) {
-        if self.unprocessed.is_none() {
-            return;
-        }
-        let mut unprocessed = self.unprocessed.clone().unwrap();
-        let amount = unprocessed.len();
-
-        tracing::trace!(amount, "checking unprocessed VTs");
-        loop {
-            let (recheck, new_unprocessed) = self.recheck(unprocessed.clone());
-            if recheck {
-                unprocessed = new_unprocessed;
-            } else {
-                break;
-            }
-        }
-
-        if unprocessed.is_empty() {
-            tracing::trace!(amount, "processed all Vts succesfully.");
-            self.unprocessed = None;
-        } else {
-            tracing::trace!(amount = unprocessed.len(), "VTs have not processed.");
-            self.unprocessed = Some(unprocessed);
-        }
-    }
-
     fn insert_into(&mut self, index: usize, key: String, element: RuntimeVT) {
         tracing::trace!(key, index, "inserting");
         if self.data.len() <= index {
@@ -108,26 +66,56 @@ impl WaveExecutionPlan {
 impl ExecutionPlan for WaveExecutionPlan {
     fn append_vt(
         &mut self,
-        vt: Nvt,
-        parameter: Option<Vec<models::Parameter>>,
+        vt: RuntimeVT,
+        dependencies: &HashMap<String, Nvt>,
     ) -> Result<(), VTError> {
-        self.check_unprocessed();
+        // first we apply dependencies if it;s not already done
+        if !self.dependencies_added {
+            // potential endless loop, introduce depth check;
+            let mut unprocessed_dependencies = dependencies
+                .values()
+                .filter_map(|x| {
+                    if let Some(i) = self.find_index(x) {
+                        self.insert_into(i, x.filename.clone(), (x.clone(), None));
+                        None
+                    } else {
+                        Some(x.clone())
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            while !unprocessed_dependencies.is_empty() {
+                let p = unprocessed_dependencies.clone();
+                unprocessed_dependencies = unprocessed_dependencies
+                    .into_iter()
+                    .filter_map(|x| {
+                        if let Some(i) = self.find_index(&x) {
+                            self.insert_into(i, x.filename.clone(), (x, None));
+                            None
+                        } else {
+                            Some(x)
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                // no change
+                if p == unprocessed_dependencies {
+                    return Err(VTError::Unprocessed(unprocessed_dependencies));
+                }
+            }
+        }
+
+        let (vt, parameter) = vt;
         let index = self.find_index(&vt);
         let key = vt.filename.clone();
         let element = (vt, parameter);
+
         if let Some(i) = index {
             self.insert_into(i, key, element);
+            Ok(())
         } else {
             tracing::trace!(key, "unresolved dependencies");
-            if self.unprocessed.is_none() {
-                self.unprocessed = Some(vec![element]);
-            } else {
-                self.unprocessed
-                    .iter_mut()
-                    .for_each(|x| x.push(element.clone()))
-            }
+            Err(VTError::MissingDependencies(element.0))
         }
-        Ok(())
     }
 }
 
@@ -135,24 +123,6 @@ impl Iterator for WaveExecutionPlan {
     type Item = Result<Vec<RuntimeVT>, VTError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.check_unprocessed();
-        // if cleanup fails return error
-        if let Some(unprocessed) = &self.unprocessed {
-            if unprocessed.len() > 0 {
-                if !self.warned {
-                    let unprocessed = unprocessed
-                        .into_iter()
-                        .map(|(v, _)| v.clone())
-                        .collect::<Vec<_>>();
-                    tracing::warn!(unprocessed_len = unprocessed.len(), "unable process");
-                    self.warned = true;
-                    return Some(Err(VTError::Unprocessed(unprocessed)));
-                } else {
-                    return None;
-                }
-            }
-        }
-
         let results = self.data.pop_front();
         results.map(|x| Ok(x.into_iter().map(|(_, e)| e).collect::<Vec<_>>()))
     }
@@ -305,7 +275,10 @@ mod tests {
         }
     }
 
-    fn create_results<F, F2>(vt_gen: F, pick: F2) -> Vec<ConcurrentVTResult>
+    fn create_results_iter<F, F2>(
+        vt_gen: F,
+        pick: F2,
+    ) -> Result<Vec<ConcurrentVTResult>, super::VTError>
     where
         F: Fn() -> Vec<Nvt>,
         F2: Fn(Vec<Nvt>) -> Vec<Nvt>,
@@ -332,11 +305,18 @@ mod tests {
             vts: scan_vts,
             ..Default::default()
         };
-        let results = (&retrieve as &dyn Retriever)
-            .execution_plan::<WaveExecutionPlan>(&scan)
-            .ok()
-            .unwrap();
-        results.collect()
+        let results =
+            (&retrieve as &dyn Retriever).execution_plan::<WaveExecutionPlan>(&scan);
+
+        results.map(|x| x.collect())
+    }
+
+    fn create_results<F, F2>(vt_gen: F, pick: F2) -> Vec<ConcurrentVTResult>
+    where
+        F: Fn() -> Vec<Nvt>,
+        F2: Fn(Vec<Nvt>) -> Vec<Nvt>,
+    {
+        create_results_iter(vt_gen, pick).expect("expected results")
     }
 
     #[test]
@@ -502,11 +482,7 @@ mod tests {
         vts.reverse();
         let _ = vts.pop();
         vts.reverse();
-        let results = create_results(
-            || vts.clone(),
-            |x| x.last().map(|x| x.clone()).into_iter().collect(),
-        );
-        assert_eq!(results.iter().filter(|x| matches!(x, Ok(_))).count(), 0);
-        assert_eq!(results.iter().filter(|x| matches!(x, Err(_))).count(), 1);
+        let results = create_results_iter(|| vts.clone(), |x| x.last().cloned().into_iter().collect());
+        assert!(matches!(results, Err(_)))
     }
 }
