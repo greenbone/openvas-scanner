@@ -1,6 +1,8 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
+use std::collections::HashMap;
+
 use storage::item::Nvt;
 use thiserror::Error;
 pub use wave::WaveExecutionPlan;
@@ -10,9 +12,12 @@ pub enum VTError {
     /// Underlying DB error.
     #[error("data-base error: {0}")]
     DB(#[from] storage::StorageError),
-    /// Some VTs could not be processed.
+    /// Will be returned when dependencies are missing other dependencies
     #[error("Contains unprocessed VTs. Process all Vts before iterating")]
     Unprocessed(Vec<Nvt>),
+    #[error("VT misses required dependencies.")]
+    /// Will be returned when Scheduler tries to schedule a VT with missing dependencies
+    MissingDependencies(Nvt),
     #[error("Invalid index for Stage: {0}")]
     /// The index to create the stage is out o bounds
     InvalidStageIndex(usize),
@@ -184,10 +189,12 @@ pub type ConcurrentVTResult = Result<ConcurrentVT, VTError>;
 /// ExecutionPlaner appends_vts.
 pub trait ExecutionPlan: Iterator<Item = Result<Vec<RuntimeVT>, VTError>> + Default {
     /// Appends the given VT to an execution plan
+    ///
+    ///
     fn append_vt(
         &mut self,
-        vt: Nvt,
-        parameter: Option<Vec<models::Parameter>>,
+        vts: RuntimeVT,
+        dependency_lookup: &HashMap<String, Nvt>,
     ) -> Result<(), VTError>;
 }
 
@@ -248,7 +255,10 @@ impl ExecutionPlaner for dyn storage::Retriever
             .map(|x| storage::item::NVTField::Oid(x.oid).into())
             .collect::<Vec<_>>();
         let mut results = core::array::from_fn(|_| E::default());
-        let mut dependencies = Vec::new();
+        // TODO: change to resolve all dependencies here to not have to do each time manually
+        let mut vts = Vec::new();
+        let mut unresolved_dependencies = Vec::new();
+        let mut resolved_depndencies = HashMap::new();
         for (i, x) in self
             .retrieve_by_fields(oids, storage::Retrieve::NVT(None))?
             .filter_map(|(_, f)| match f {
@@ -257,23 +267,21 @@ impl ExecutionPlaner for dyn storage::Retriever
             })
             .enumerate()
         {
-            let stage = Stage::from(&x);
-            tracing::trace!(?stage, oid = x.oid, "adding");
             let params: Option<Vec<models::Parameter>> =
                 scan.vts.get(i).map(|x| x.parameters.clone());
-            dependencies.extend(
+            unresolved_dependencies.extend(
                 x.dependencies
                     .iter()
                     .map(|x| storage::Field::NVT(storage::item::NVTField::FileName(x.to_string()))),
             );
-            results[usize::from(stage)].append_vt(x.clone(), params)?;
+            vts.push((x.clone(), params));
         }
 
-        while !dependencies.is_empty() {
-            dependencies = {
+        while !unresolved_dependencies.is_empty() {
+            unresolved_dependencies = {
                 let mut ret = Vec::new();
                 for x in self
-                    .retrieve_by_fields(dependencies, storage::Retrieve::NVT(None))?
+                    .retrieve_by_fields(unresolved_dependencies, storage::Retrieve::NVT(None))?
                     .filter_map(|(_, f)| match f {
                         storage::Field::NVT(storage::item::NVTField::Nvt(x)) => Some(x),
                         _ => None,
@@ -284,10 +292,18 @@ impl ExecutionPlaner for dyn storage::Retriever
                     ret.extend(x.dependencies.iter().map(|x| {
                         storage::Field::NVT(storage::item::NVTField::FileName(x.to_string()))
                     }));
-                    results[usize::from(stage)].append_vt(x.clone(), None)?;
+                    //results[usize::from(stage)].append_vt(x.clone(), None)?;
+                    resolved_depndencies.insert(x.filename.clone(), x.clone());
                 }
                 ret
             }
+        }
+        // TODO: add check for unfound depndencies
+
+        for (x, p) in vts.into_iter() {
+            let stage = Stage::from(&x);
+            tracing::trace!(?stage, oid = x.oid, "adding");
+            results[usize::from(stage)].append_vt((x, p), &resolved_depndencies)?;
         }
 
         Ok(ExeccutionPlanData::new(results))

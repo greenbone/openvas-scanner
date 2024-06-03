@@ -1956,6 +1956,7 @@ dependencies = [
 name = "nasl-interpreter"
 version = "0.1.0"
 dependencies = [
+ "dep-graph",
  "models",
  "nasl-builtin-std",
  "nasl-builtin-utils",
