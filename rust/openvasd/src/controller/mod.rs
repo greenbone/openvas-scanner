@@ -42,6 +42,8 @@ pub enum ClientIdentifier {
     /// When there in no information available
     #[default]
     Unknown,
+    /// Purposely disabled
+    Disabled,
     /// Contains a hashed number of an identifier
     ///
     /// openvasd uses the identifier as a key for results. This key is usually calculated by an
@@ -82,6 +84,9 @@ where
             None
         }
     };
+    if tlsc.is_none() && ctx.api_key.is_none() {
+        tracing::warn!("Neither mTLS nor an API key are set. /scans endpoint is unsecured.");
+    }
     let addr = config.listener.address;
     let addr: SocketAddr = addr;
     let incoming = TcpListener::bind(&addr).await?;
@@ -131,7 +136,7 @@ where
             let (tcp_stream, _remote_addr) = incoming.accept().await?;
             let ctx = controller.clone();
             tokio::spawn(async move {
-                let cci = ClientIdentifier::Unknown;
+                let cci = ClientIdentifier::Disabled;
                 let service = entry::EntryPoint::new(ctx, Arc::new(cci));
                 if let Err(err) = Builder::new()
                     .serve_connection(TokioIo::new(tcp_stream), service)
@@ -534,7 +539,7 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(&scan).unwrap().into())
             .unwrap();
-        let cid = Arc::new(ClientIdentifier::Unknown);
+        let cid = Arc::new(ClientIdentifier::Disabled);
         let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
 
         assert_eq!(resp.status(), 401);
@@ -544,7 +549,7 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(&scan).unwrap().into())
             .unwrap();
-        let cid = Arc::new(ClientIdentifier::Unknown);
+        let cid = Arc::new(ClientIdentifier::Disabled);
         let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
         assert_eq!(resp.status(), 201);
     }
