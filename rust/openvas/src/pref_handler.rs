@@ -95,26 +95,35 @@ where
 
                 // prepare vt preferences
                 for pref in &vt.parameters {
-                    let (prefid, class, name, value): (String, String, String, String) = nvt
-                        .preferences
-                        .iter()
-                        .find(|p| p.id.unwrap() as u16 == pref.id)
-                        .unwrap()
-                        .into();
+                    if let Some((prefid, class, name, value)) =
+                        nvt.preferences.iter().find_map(|p| {
+                            if let Some(i) = p.id {
+                                if i as u16 == pref.id {
+                                    Some(p.into())
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                    {
+                        let value_aux: String = if class == *"checkbox" {
+                            bool_to_str(&pref.value)
+                        } else {
+                            value
+                        };
 
-                    let value_aux: String = if class == *"checkbox" {
-                        bool_to_str(&pref.value)
+                        pref_list.insert(
+                            format!("{}:{}:{}:{}", vt.oid, prefid, class, name),
+                            value_aux,
+                        );
                     } else {
-                        value
-                    };
-
-                    pref_list.insert(
-                        format!("{}:{}:{}:{}", vt.oid, prefid, class, name),
-                        value_aux,
-                    );
+                        tracing::debug!(oid = vt.oid, pref = pref.id, "set preference not found");
+                    }
                 }
             } else {
-                tracing::debug!("{} not found or handled via notus", vt.oid);
+                tracing::debug!(oid = vt.oid, "not found or handled via notus");
                 continue;
             }
         }
