@@ -17,7 +17,7 @@
 
 #include <gvm/util/kb.h>
 
-void
+int
 attack_network (struct scan_globals *);
 
 #endif

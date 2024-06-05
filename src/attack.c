@@ -1162,8 +1162,9 @@ scan_stop_cleanup ()
 
 /**
  * @brief Attack a whole network.
+ * return 0 on successes, -1 if there was a critical error.
  */
-void
+int
 attack_network (struct scan_globals *globals)
 {
   int max_hosts = 0, max_checks;
@@ -1179,6 +1180,7 @@ attack_network (struct scan_globals *globals)
   kb_t arg_host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
+  int error = 0;
 
   check_deprecated_prefs ();
 
@@ -1191,13 +1193,16 @@ attack_network (struct scan_globals *globals)
   gettimeofday (&then, NULL);
 
   if (check_kb_access ())
-    return;
-
+    {
+      error = -1;
+      return error;
+    }
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
-      return;
+      error = -1;
+      return error;
     }
 
   /* Verify the port range is a valid one */
@@ -1213,7 +1218,8 @@ attack_network (struct scan_globals *globals)
                  "Scan terminated.");
       set_scan_status ("finished");
 
-      return;
+      error = -1;
+      return error;
     }
 
   /* Initialize the attack. */
@@ -1224,7 +1230,9 @@ attack_network (struct scan_globals *globals)
   if (!sched)
     {
       g_message ("Couldn't initialize the plugin scheduler");
-      return;
+
+      error = -1;
+      return error;
     }
 
   if (plugins_init_error > 0)
@@ -1256,6 +1264,8 @@ attack_network (struct scan_globals *globals)
                          "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
+
+      error = -1;
       goto stop;
     }
 
@@ -1300,6 +1310,7 @@ attack_network (struct scan_globals *globals)
   host = gvm_hosts_next (hosts);
   if (host == NULL)
     goto stop;
+
   hosts_init (max_hosts);
 
   g_message ("Vulnerability scan %s started: Target has %d hosts: "
@@ -1555,4 +1566,6 @@ stop:
     gvm_hosts_free (alive_hosts_list);
 
   set_scan_status ("finished");
+
+  return error;
 }
