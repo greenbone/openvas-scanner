@@ -386,12 +386,12 @@ main (int argc, char **argv)
 
           if (exec_nasl_script (script_infos, mode) < 0)
             err++;
+
+          if (process_id != getpid ())
+            exit (0);
         }
       g_free (script_infos->globals);
       g_free (script_infos);
-
-      if (process_id != getpid ())
-        exit (0);
 
       kb_delete (kb);
     }
