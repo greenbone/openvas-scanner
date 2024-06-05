@@ -386,7 +386,7 @@ impl ScanResultFetcher for Scanner {
                             scan_res.status.host_info = None;
                         }
                     }
-                        
+
                     redis_help
                         .release()
                         .map_err(|e| ScanError::Unexpected(e.to_string()))?;

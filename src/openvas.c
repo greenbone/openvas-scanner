@@ -646,7 +646,7 @@ openvas (int argc, char *argv[], char *env[])
 
       if (attack_error)
         {
-          g_warning("Scan ending with FAILURE status");
+          g_warning ("Scan ending with FAILURE status");
           return EXIT_FAILURE;
         }
       return EXIT_SUCCESS;
