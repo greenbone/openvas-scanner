@@ -1,5 +1,9 @@
 # Helm Chart for `openvasd` deployment 
 
+This helm chart is only providing the scanner API. It does not include any vulnerability management services.
+
+If you want to utilize the whole stack please use: https://greenbone.github.io/docs/latest/22.4/container/index.html#docker-compose-file.
+
 ## Requirements
 
 This Helm chart is tested with k3s and Traefik. Note that other options may require unsupported changes.
@@ -73,7 +77,7 @@ When `routing.enabled` is enabled, you can access `openvasd` directly via either
 For testing, you can use the following command:
 
 ```bash
-curl --verbose --insecure --key $CLIENT_KEY --cert $CLIENT_CERT --request HEAD https://127.0.0.1
+curl --verbose --insecure --key $CLIENT_KEY --cert $CLIENT_CERT --request HEAD https://127.0.0.1/health
 ```
 
 ## Design decisions
