@@ -1,7 +1,7 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use storage::item::Nvt;
 use thiserror::Error;
@@ -12,14 +12,11 @@ pub enum VTError {
     /// Underlying DB error.
     #[error("data-base error: {0}")]
     DB(#[from] storage::StorageError),
-    /// Will be returned when dependencies are missing other dependencies
-    #[error("Contains unprocessed VTs. Process all Vts before iterating")]
-    Unprocessed(Vec<Nvt>),
-    #[error("VT misses required dependencies.")]
+    #[error("{0} misses required dependencies {1:?}")]
     /// Will be returned when Scheduler tries to schedule a VT with missing dependencies
-    MissingDependencies(Nvt),
-    #[error("Invalid index for Stage: {0}")]
-    /// The index to create the stage is out o bounds
+    MissingDependencies(Nvt, Vec<String>),
+    #[error("invalid index ({0}) for Stage")]
+    /// The index to create the stage is out of bounds
     InvalidStageIndex(usize),
 }
 
@@ -36,6 +33,17 @@ pub enum Stage {
     Exhausting,
     /// End
     End,
+}
+
+impl Display for Stage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Stage::Discovery => write!(f, "discovery"),
+            Stage::NonEvasive => write!(f, "non_evasive"),
+            Stage::Exhausting => write!(f, "exhausting"),
+            Stage::End => write!(f, "end"),
+        }
+    }
 }
 
 impl From<&Nvt> for Stage {
@@ -131,7 +139,6 @@ pub trait ExecutionPlaner {
     ///         .dispatch(&ContextKey::FileName(x.filename.clone()), x.into())
     ///         .expect("should store");
     /// });
-
     /// let scan = models::Scan {
     ///     vts: vec![models::VT {
     ///         oid: "2".to_string(),
@@ -255,7 +262,6 @@ impl ExecutionPlaner for dyn storage::Retriever
             .map(|x| storage::item::NVTField::Oid(x.oid).into())
             .collect::<Vec<_>>();
         let mut results = core::array::from_fn(|_| E::default());
-        // TODO: change to resolve all dependencies here to not have to do each time manually
         let mut vts = Vec::new();
         let mut unresolved_dependencies = Vec::new();
         let mut resolved_depndencies = HashMap::new();
@@ -298,7 +304,6 @@ impl ExecutionPlaner for dyn storage::Retriever
                 ret
             }
         }
-        // TODO: add check for unfound depndencies
 
         for (x, p) in vts.into_iter() {
             let stage = Stage::from(&x);
