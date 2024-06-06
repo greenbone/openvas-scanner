@@ -499,6 +499,12 @@ pub struct Nvt {
     pub family: String,
 }
 
+impl Display for Nvt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "VT {} ({})", self.oid, self.filename)
+    }
+}
+
 impl Nvt {
     /// Returns Err with the feed_version if it is a version Ok otherwise
     pub fn set_from_field(&mut self, field: NVTField) -> Result<(), String> {

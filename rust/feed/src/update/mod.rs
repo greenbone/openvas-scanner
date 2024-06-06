@@ -193,7 +193,14 @@ where
                 if let Err(e) = k.verify() {
                     return Some(Err(e.into()));
                 }
-                let k = ContextKey::FileName(k.get_filename());
+                
+                let mut filename = k.get_filename();
+                if filename.starts_with("./") {
+                    // sha256sums may start with ./ so we have to remove those as dependencies
+                    // within nasl scripts usually don't entail them.
+                    filename = filename[2..].to_string();
+                }
+                let k = ContextKey::FileName(filename.clone());
                 self.single(&k)
                     .map(|_| k.value())
                     .map_err(|kind| Error {

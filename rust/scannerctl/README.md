@@ -14,6 +14,12 @@ Options:
 
 ### execute
 
+Executes either a script or a scan.a
+
+Usage: `scannerctl execute [COMMAND]`
+
+#### script
+
 Executes a nasl script using a in memory data base.
 
 It executes either a script via a path or an OID. When an OID is provided it requires the `-p` option to be valid feed to find the script belonging to that OID, otherwise the `-p` is optional and when set does not need to have a sha256sums.
@@ -36,7 +42,25 @@ Hello, world!
 => Null
 ```
 
-Usage: `scannerctl execute [OPTIONS] [-t HOST] <script>`
+Usage: `scannerctl execute script [OPTIONS] [-t HOST] <script>`
+
+#### scan
+
+Executes a given scan using a in memory data base.
+
+A scan can either be provided by stdin in combination with the `--input` flag or via json file.
+
+Usage: `scannerctl execute scan [OPTIONS] --path <FILE> [json]`
+
+Arguments: [json]: The scan json as described in [scanner-api](https://greenbone.github.io/scanner-api/#/scan)
+
+Options:
+-  `-p`, `--path <FILE>`: Path to the feed.
+-  `--schedule`: Prints just the schedule without executing the scan
+-  `-i`, `--input`: Parses scan json from stdin.
+-  `-h`, `--help`: Print help
+
+Usage: `scannerctl execute scan [OPTIONS] --path <FILE> [json]`
 
 ### feed
 

@@ -69,9 +69,8 @@ impl ExecutionPlan for WaveExecutionPlan {
         vt: RuntimeVT,
         dependencies: &HashMap<String, Nvt>,
     ) -> Result<(), VTError> {
-        // first we apply dependencies if it;s not already done
         if !self.dependencies_added {
-            // potential endless loop, introduce depth check;
+            self.dependencies_added = true;
             let mut unprocessed_dependencies = dependencies
                 .values()
                 .filter_map(|x| {
@@ -99,7 +98,9 @@ impl ExecutionPlan for WaveExecutionPlan {
                     .collect::<Vec<_>>();
                 // no change
                 if p == unprocessed_dependencies {
-                    return Err(VTError::Unprocessed(unprocessed_dependencies));
+                    tracing::warn!(dependencies=?unprocessed_dependencies.into_iter().map(|v|v.filename).collect::<Vec<_>>(), "unable process vts");
+                    // we continue and let it later run into missing dependencies later on
+                    break;
                 }
             }
         }
@@ -114,7 +115,14 @@ impl ExecutionPlan for WaveExecutionPlan {
             Ok(())
         } else {
             tracing::trace!(key, "unresolved dependencies");
-            Err(VTError::MissingDependencies(element.0))
+            let missing = element
+                .0
+                .dependencies
+                .iter()
+                .filter(|x| self.data.iter().find(|y| y.contains_key(&x as &str)).is_none())
+                .map(|x| x.clone())
+                .collect::<Vec<_>>();
+            Err(VTError::MissingDependencies(element.0, missing))
         }
     }
 }
@@ -482,7 +490,8 @@ mod tests {
         vts.reverse();
         let _ = vts.pop();
         vts.reverse();
-        let results = create_results_iter(|| vts.clone(), |x| x.last().cloned().into_iter().collect());
+        let results =
+            create_results_iter(|| vts.clone(), |x| x.last().cloned().into_iter().collect());
         assert!(matches!(results, Err(_)))
     }
 }
