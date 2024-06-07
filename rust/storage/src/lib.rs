@@ -38,7 +38,6 @@ impl AsRef<str> for ContextKey {
         match self {
             ContextKey::Scan(x) => x,
             ContextKey::FileName(x) => x,
-
         }
     }
 }
@@ -287,8 +286,7 @@ pub struct DefaultDispatcher {
     kbs: Arc<RwLock<Kbs>>,
 }
 
-impl DefaultDispatcher
-{
+impl DefaultDispatcher {
     /// Creates a new DefaultDispatcher
     pub fn new(dirty: bool) -> Self {
         Self {
@@ -366,8 +364,7 @@ impl DefaultDispatcher
     }
 }
 
-impl Dispatcher for DefaultDispatcher
-{
+impl Dispatcher for DefaultDispatcher {
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(x) => self.cache_nvt_field(key.as_ref(), x)?,
@@ -468,7 +465,6 @@ impl Retriever for DefaultDispatcher {
                         Ok(Box::new(data.into_iter()))
                     }
                     Some(_) => {
-                        // dunno for what we could filter?
                         let data = InMemoryDataWrapper {
                             inner: Box::new(data.into_iter().map(|x| x.into())),
                         };
@@ -543,7 +539,6 @@ impl Retriever for DefaultDispatcher {
             }
         }
     }
-
 }
 
 #[cfg(test)]

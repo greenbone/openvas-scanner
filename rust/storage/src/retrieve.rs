@@ -96,7 +96,6 @@ pub trait Retriever {
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
-
     /// Returns all vts as an iterator
     fn vts(&self) -> Result<Box<dyn Iterator<Item = crate::item::Nvt>>, StorageError> {
         Ok(Box::new(
@@ -124,7 +123,6 @@ pub trait Retriever {
 pub struct NoOpRetriever {}
 
 impl Retriever for NoOpRetriever {
-
     fn retrieve(&self, _: &ContextKey, _: Retrieve) -> FieldResult {
         Ok(Box::new(vec![].into_iter()))
     }
@@ -137,5 +135,3 @@ impl Retriever for NoOpRetriever {
         Ok(Box::new(vec![].into_iter()))
     }
 }
-
-

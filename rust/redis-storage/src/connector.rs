@@ -8,7 +8,6 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::usize;
 
 use crate::dberror::DbError;
 use crate::dberror::RedisStorageResult;
@@ -756,7 +755,11 @@ where
         todo!()
     }
 
-    fn retrieve_by_fields(&self, _: Vec<storage::Field>, _: storage::Retrieve) -> storage::FieldKeyResult {
+    fn retrieve_by_fields(
+        &self,
+        _: Vec<storage::Field>,
+        _: storage::Retrieve,
+    ) -> storage::FieldKeyResult {
         todo!()
     }
 }
