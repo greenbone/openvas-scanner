@@ -37,7 +37,7 @@ struct Dispa {
     feed_version: Arc<RwLock<String>>,
 }
 
-impl ItemDispatcher<String> for Dispa {
+impl ItemDispatcher for Dispa {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .build()

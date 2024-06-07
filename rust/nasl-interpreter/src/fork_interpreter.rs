@@ -8,18 +8,15 @@ use crate::interpreter::InterpretResult;
 /// To allow closures we use a heap stored statement consumer
 pub type StatementConsumer = Box<dyn Fn(&Statement)>;
 /// Uses given code to return results based on that.
-pub struct CodeInterpreter<'a, 'b, K> {
+pub struct CodeInterpreter<'a, 'b> {
     lexer: nasl_syntax::Lexer<'b>,
-    interpreter: crate::interpreter::Interpreter<'a, K>,
+    interpreter: crate::interpreter::Interpreter<'a>,
     statement: Option<Statement>,
     /// call back function for Statements before they get interpret
     pub statement_cb: Option<StatementConsumer>,
 }
 
-impl<'a, 'b, K> CodeInterpreter<'a, 'b, K>
-where
-    K: AsRef<str>,
-{
+impl<'a, 'b> CodeInterpreter<'a, 'b> {
     /// Creates a new code interpreter
     ///
     /// Example:
@@ -41,8 +38,8 @@ where
     pub fn new(
         code: &'b str,
         register: crate::Register,
-        context: &'a crate::Context<'a, K>,
-    ) -> CodeInterpreter<'a, 'b, K> {
+        context: &'a crate::Context<'a>,
+    ) -> CodeInterpreter<'a, 'b> {
         let token = nasl_syntax::Tokenizer::new(code);
         let lexer = nasl_syntax::Lexer::new(token);
         let interpreter = crate::interpreter::Interpreter::new(register, context);
@@ -75,9 +72,9 @@ where
     pub fn with_statement_callback(
         code: &'b str,
         register: crate::Register,
-        context: &'a crate::Context<'a, K>,
+        context: &'a crate::Context<'a>,
         cb: &'static dyn Fn(&Statement),
-    ) -> CodeInterpreter<'a, 'b, K> {
+    ) -> CodeInterpreter<'a, 'b> {
         let mut result = Self::new(code, register, context);
         result.statement_cb = Some(Box::new(cb));
         result
@@ -105,10 +102,7 @@ where
     }
 }
 
-impl<'a, 'b, K> Iterator for CodeInterpreter<'a, 'b, K>
-where
-    K: AsRef<str>,
-{
+impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
     type Item = InterpretResult;
 
     fn next(&mut self) -> Option<Self::Item> {

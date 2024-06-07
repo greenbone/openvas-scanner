@@ -9,12 +9,12 @@ use nasl_builtin_utils::{Context, NaslVars, Register};
 
 pub struct RawIp;
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for RawIp {
+impl nasl_builtin_utils::NaslFunctionExecuter for RawIp {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         frame_forgery::lookup(name)
             .map(|x| x(register, context))
@@ -22,8 +22,8 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for RawIp {
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        frame_forgery::lookup::<K>(name)
-            .or_else(|| packet_forgery::lookup::<K>(name))
+        frame_forgery::lookup(name)
+            .or_else(|| packet_forgery::lookup(name))
             .is_some()
     }
 }
