@@ -119,8 +119,8 @@ impl ExecutionPlan for WaveExecutionPlan {
                 .0
                 .dependencies
                 .iter()
-                .filter(|x| self.data.iter().find(|y| y.contains_key(&x as &str)).is_none())
-                .map(|x| x.clone())
+                .filter(|x| !self.data.iter().any(|y| y.contains_key(x as &str)))
+                .cloned()
                 .collect::<Vec<_>>();
             Err(VTError::MissingDependencies(element.0, missing))
         }
@@ -132,7 +132,7 @@ impl Iterator for WaveExecutionPlan {
 
     fn next(&mut self) -> Option<Self::Item> {
         let results = self.data.pop_front();
-        results.map(|x| Ok(x.into_iter().map(|(_, e)| e).collect::<Vec<_>>()))
+        results.map(|x| Ok(x.into_values().collect::<Vec<_>>()))
     }
 }
 
@@ -313,8 +313,7 @@ mod tests {
             vts: scan_vts,
             ..Default::default()
         };
-        let results =
-            (&retrieve as &dyn Retriever).execution_plan::<WaveExecutionPlan>(&scan);
+        let results = (&retrieve as &dyn Retriever).execution_plan::<WaveExecutionPlan>(&scan);
 
         results.map(|x| x.collect())
     }
@@ -338,7 +337,7 @@ mod tests {
         };
         let results = create_results(
             || generator.generate_pyramid(),
-            |x| x.last().map(|x| x.clone()).into_iter().collect(),
+            |x| x.last().cloned().into_iter().collect(),
         );
 
         let mut non_evasive_scipt_calls = Vec::with_capacity(4);
@@ -355,17 +354,23 @@ mod tests {
             non_evasive_scipt_calls.len(),
             "expect a list of VTs per dependency depth"
         );
-        for i in 0..generator.nonevasive {
-            assert_eq!(
-                generator.nonevasive - i,
-                non_evasive_scipt_calls[i],
-                "expect {} scripts in depth {} of ConservativeExecutionPlan",
-                generator.nonevasive - i,
-                i
-            );
-        }
+
+        non_evasive_scipt_calls
+            .iter()
+            .enumerate()
+            .take(generator.nonevasive)
+            .for_each(|(i, r)| {
+                assert_eq!(
+                    generator.nonevasive - i,
+                    *r,
+                    "expect {} scripts in depth {} of ConservativeExecutionPlan",
+                    generator.nonevasive - i,
+                    i
+                );
+            });
+
         assert_eq!(
-            (generator.nonevasive * (generator.nonevasive + 1) / 2) as usize,
+            { generator.nonevasive * (generator.nonevasive + 1) / 2 },
             non_evasive_scipt_calls.iter().sum(),
             "expect each known VT to be called"
         );
@@ -492,6 +497,6 @@ mod tests {
         vts.reverse();
         let results =
             create_results_iter(|| vts.clone(), |x| x.last().cloned().into_iter().collect());
-        assert!(matches!(results, Err(_)))
+        assert!(results.is_err())
     }
 }

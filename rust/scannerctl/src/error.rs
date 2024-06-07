@@ -19,10 +19,17 @@ pub enum CliErrorKind {
         err_msg: String,
     },
     InterpretError(InterpretError),
+    ExecuteError(nasl_interpreter::ExecuteError),
     LoadError(LoadError),
     StorageError(StorageError),
     SyntaxError(SyntaxError),
     Corrupt(String),
+}
+
+impl From<nasl_interpreter::ExecuteError> for CliErrorKind {
+    fn from(value: nasl_interpreter::ExecuteError) -> Self {
+        Self::ExecuteError(value)
+    }
 }
 
 impl CliErrorKind {
@@ -59,6 +66,7 @@ impl Display for CliErrorKind {
             CliErrorKind::StorageError(e) => write!(f, "{e}"),
             CliErrorKind::SyntaxError(e) => write!(f, "{e}"),
             CliErrorKind::Corrupt(x) => write!(f, "Corrupt: {x}"),
+            CliErrorKind::ExecuteError(x) => write!(f, "{x}"),
         }
     }
 }

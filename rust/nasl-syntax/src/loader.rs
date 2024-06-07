@@ -140,9 +140,11 @@ where
     P: AsRef<Path>,
 {
     fn as_bufreader(&self, key: &str) -> Result<io::BufReader<File>, LoadError> {
-        let file =
-            File::open(self.root.as_ref().join(key)).map_err(|e| LoadError::from((key, e)))?;
-        Ok(io::BufReader::new(file))
+        let path = self.root.as_ref().join(key);
+        match File::open(path).map_err(|e| LoadError::from((key, e))) {
+            Ok(file) => Ok(io::BufReader::new(file)),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -165,5 +167,18 @@ where
     fn root_path(&self) -> Result<String, LoadError> {
         let path = self.root.as_ref().to_str().unwrap_or_default().to_string();
         Ok(path)
+    }
+}
+
+impl<S> Loader for S
+where
+    S: Fn(&str) -> String,
+{
+    fn load(&self, key: &str) -> Result<String, LoadError> {
+        Ok((self)(key))
+    }
+
+    fn root_path(&self) -> Result<String, LoadError> {
+        Ok(String::default())
     }
 }

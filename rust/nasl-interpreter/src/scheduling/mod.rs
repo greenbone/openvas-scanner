@@ -18,6 +18,9 @@ pub enum VTError {
     #[error("invalid index ({0}) for Stage")]
     /// The index to create the stage is out of bounds
     InvalidStageIndex(usize),
+    #[error("not found: {0}")]
+    /// Not found
+    NotFound(#[from] nasl_syntax::LoadError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -246,7 +249,9 @@ where
     }
 }
 
-impl ExecutionPlaner for dyn storage::Retriever
+impl<T> ExecutionPlaner for T
+where
+    T: storage::Retriever + ?Sized,
 {
     fn execution_plan<'a, E>(
         &self,
@@ -325,7 +330,6 @@ mod tests {
         use crate::scheduling::Stage;
         use crate::scheduling::WaveExecutionPlan;
         use storage::Dispatcher;
-        use storage::Retriever;
 
         let feed = vec![
             storage::item::Nvt {
@@ -360,7 +364,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let results = (&retrieve as &dyn Retriever)
+        let results = retrieve
             .execution_plan::<WaveExecutionPlan>(&scan)
             .expect("no error expected");
         assert_eq!(

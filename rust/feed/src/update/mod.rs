@@ -193,7 +193,7 @@ where
                 if let Err(e) = k.verify() {
                     return Some(Err(e.into()));
                 }
-                
+
                 let mut filename = k.get_filename();
                 if filename.starts_with("./") {
                     // sha256sums may start with ./ so we have to remove those as dependencies

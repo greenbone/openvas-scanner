@@ -630,7 +630,7 @@ mod tests {
         );
         memory_storage.synchronize_feeds(feeds).await.unwrap();
         let amount_memory_oids = memory_storage.oids().await.unwrap().count();
-        assert_eq!(amount_memory_oids, 4);
+        assert_eq!(amount_memory_oids, 5);
         assert_eq!(amount_memory_oids, amount_file_oids);
     }
 

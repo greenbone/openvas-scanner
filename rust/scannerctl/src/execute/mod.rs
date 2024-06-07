@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{fs, io::BufReader, path::PathBuf, sync::Arc};
+use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
-use storage::Retriever;
+use nasl_syntax::FSPluginLoader;
 
 use crate::{interpret, CliError, CliErrorKind, Db};
 
@@ -24,7 +24,7 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 
 fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
-    let scan = if stdin {
+    let scan: models::Scan = if stdin {
         tracing::debug!("reading scan config from stdin");
         serde_json::from_reader(std::io::stdin()).map_err(|e| CliError {
             filename: "".to_string(),
@@ -49,32 +49,68 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let feed = args
         .get_one::<PathBuf>("path")
         .expect("A feed path is required to run a scan");
-    let storage = Arc::new(storage::DefaultDispatcher::new(true));
+    let storage = storage::DefaultDispatcher::new(true);
     tracing::info!("loading feed. This may take a while.");
-    crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false)?;
-    tracing::info!("feed loaded.");
-    use nasl_interpreter::scheduling::ExecutionPlaner;
-    // TODO create wrapper for CliError
-    tracing::info!("creating scheduling plan");
-    let schedule = (storage.as_ref() as &dyn Retriever)
-        .execution_plan::<nasl_interpreter::scheduling::WaveExecutionPlan>(&scan)
-        .expect("expected to be schedulable");
-    if schedule_only {
-        for  (i, r) in schedule.enumerate(){
-            let (stage, vts) = r.expect("should be resolvable");
-            print!("{i} - {stage}:\t");
-            println!("{}", vts.into_iter().map(|(vt, _)|vt.oid).collect::<Vec<_>>().join(", "));
-        }
 
-
-    } else {
-        todo!("Scan execution is not implemanted yet")
-
+    let loader = FSPluginLoader::new(feed);
+    let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
+    for s in updater {
+        let s = s?;
+        tracing::trace!("updated {s}");
     }
 
+    use nasl_interpreter::scheduling::ExecutionPlaner;
+    let schedule = storage
+        .execution_plan::<nasl_interpreter::scheduling::WaveExecutionPlan>(&scan)
+        .expect("expected to be schedulable");
+    tracing::info!("creating scheduling plan");
+    if schedule_only {
+        for (i, r) in schedule.enumerate() {
+            let (stage, vts) = r.expect("should be resolvable");
+            print!("{i} - {stage}:\t");
+            println!(
+                "{}",
+                vts.into_iter()
+                    .map(|(vt, _)| vt.oid)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+    } else {
+        let interpreter = nasl_interpreter::SyncScanInterpreter::with_default_function_executor(
+            &storage, &loader,
+        );
+        match interpreter
+            .run_with_schedule(&scan, schedule) {
+            Err(e) => {
+                return Err(CliError { filename: Default::default(), kind: e.into() })
+            }
+            Ok(x) => {
+                x.filter_map(|x|{
+                    match x {
+                        Ok(x) => Some(x),
+                        Err(e) => {
+                            tracing::warn!(error=?e, "failed to execute script.");
+                            None
+                        }
+                    }
+                }).for_each(|x|{
+                    let _span = tracing::warn_span!("script_result", ilename=x.filename, oid=x.oid, stage=%x.stage).entered();
+                    if x.is_success() {
+                            tracing::info!("success")
+                        } else {
+                            tracing::warn!(kind=?x.kind,"failed")
+
+                        }
+                })
+            },
+        };
+    }
 
     Ok(())
 }
+
 fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = args.get_one::<PathBuf>("path").cloned();
     let script = match args.get_one::<String>("script").cloned() {
@@ -85,7 +121,7 @@ fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     Some(interpret::run(
         &Db::InMemory,
         feed.clone(),
-        script.to_string(),
+        &script.to_string(),
         target.clone(),
     ))
 }
@@ -120,7 +156,7 @@ When ID is used than a valid feed path must be given within the path parameter."
                     )
                     .arg(arg!(--schedule "Prints just the schedule without executing the scan").required(false).action(ArgAction::SetTrue))
                     .arg(arg!(-i --input "Parses scan json from stdin.").required(false).action(ArgAction::SetTrue))
-                    .arg(Arg::new("json").required(false))
+                    .arg(Arg::new("json").required(false).value_parser(value_parser!(PathBuf)))
             )
             // this is here for downwards compatible reasons and should be moved to the script
             // subcommand without allowing it on root as well.

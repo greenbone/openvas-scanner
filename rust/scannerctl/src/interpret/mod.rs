@@ -179,7 +179,7 @@ where
 pub fn run(
     db: &Db,
     feed: Option<PathBuf>,
-    script: String,
+    script: &str,
     target: Option<String>,
 ) -> Result<(), CliError> {
     let builder = RunBuilder::default()
@@ -189,22 +189,22 @@ pub fn run(
         (Db::Redis(url), None) => builder
             .storage(create_redis_storage(url))
             .build()
-            .run(&script),
-        (Db::InMemory, None) => builder.build().run(&script),
+            .run(script),
+        (Db::InMemory, None) => builder.build().run(script),
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
             let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
-            builder.storage(storage).build().run(&script)
+            builder.storage(storage).build().run(script)
         }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new(true);
             let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
-            builder.storage(storage).build().run(&script)
+            builder.storage(storage).build().run(script)
         }
     };
 
     result.map_err(|e| CliError {
-        filename: script,
+        filename: script.to_string(),
         kind: e,
     })
 }
