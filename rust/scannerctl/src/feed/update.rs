@@ -11,7 +11,7 @@ use crate::CliError;
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher<String>,
+    S: Sync + Send + Dispatcher,
 {
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path

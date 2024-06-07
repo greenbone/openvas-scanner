@@ -7,9 +7,9 @@ use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
 use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
 
-fn encrypt_des<K>(
+fn encrypt_des(
     register: &Register,
-    _: &Context<K>,
+    _: &Context,
 ) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.len() != 2 {
@@ -43,7 +43,7 @@ fn encrypt_des<K>(
     des_cipher.encrypt_block(&mut data);
     Ok(data.to_vec().into())
 }
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "DES" => Some(encrypt_des),
         _ => None,

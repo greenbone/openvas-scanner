@@ -51,10 +51,7 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl<'a, K> Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> Interpreter<'a> {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
         self.register_mut()
             .add_to_index(idx, key, ContextType::Value(value));
@@ -186,10 +183,7 @@ where
     }
 }
 
-impl<'a, K> AssignExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> AssignExtension for Interpreter<'a> {
     fn assign(
         &mut self,
         category: &TokenCategory,

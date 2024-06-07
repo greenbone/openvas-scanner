@@ -416,7 +416,7 @@ struct Dispa {
     feed_version: Arc<std::sync::RwLock<String>>,
 }
 
-impl ItemDispatcher<String> for Dispa {
+impl ItemDispatcher for Dispa {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
         let mut storage = self.storage.write().unwrap();
         let oid = nvt.oid.clone();

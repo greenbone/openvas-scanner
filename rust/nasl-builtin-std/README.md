@@ -15,7 +15,8 @@ and set all but the functions. This will use the DefaultDispatcher as well as an
 For production use cases it is recommended to use new method and include a key and a storage:
 
 ```
-let key = "test:localhost".to_string();
+use storage::ContextKey;
+let key = ContextKey::Scan("test:localhost".to_string());
 let cb = nasl_builtin_std::ContextBuilder::new(key, Box::new(storage::DefaultDispatcher::default()));
 ```
 
@@ -80,16 +81,16 @@ Afterwards you need to create two methods. One for when the library is not inclu
 
 ```
 #[cfg(not(feature = "nasl-builtin-ssh"))]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
     builder
 }
 
 #[cfg(feature = "nasl-builtin-ssh")]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
     builder.push_register(nasl_builtin_ssh::Ssh::default())
 }
 

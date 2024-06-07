@@ -10,21 +10,21 @@ use nasl_interpreter::{
     LoadError, Loader, NaslValue, NoOpLoader, RegisterBuilder,
 };
 use redis_storage::FEEDUPDATE_SELECTOR;
-use storage::DefaultDispatcher;
+use storage::{ContextKey, DefaultDispatcher};
 
 use crate::{CliError, CliErrorKind, Db};
 
-struct Run<K: AsRef<str>> {
-    context_builder: nasl_interpreter::ContextBuilder<K, KeyDispatcherSet<K>>,
+struct Run<S> {
+    context_builder: nasl_interpreter::ContextBuilder<S>,
     feed: Option<PathBuf>,
 }
 
-impl Run<String> {
+impl Run<KeyDispatcherSet> {
     fn new(db: &Db, feed: Option<PathBuf>, target: Option<String>) -> Self {
-        let key = String::default();
+        let key = ContextKey::Scan(String::default());
 
         let mut context_builder = match db {
-            Db::InMemory => ContextBuilder::new(key, Box::<DefaultDispatcher<String>>::default()),
+            Db::InMemory => ContextBuilder::new(key, Box::<DefaultDispatcher>::default()),
             Db::Redis(url) => ContextBuilder::new(
                 key,
                 Box::new(
