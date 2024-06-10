@@ -251,8 +251,8 @@ mod tests {
             #[test]
             fn $name() {
                 let register = Register::default();
-                let binding = ContextBuilder::default();
-                let context = binding.build();
+                let binding = ContextFactory ::default();
+                let context = binding.build(Default::default(), Default::default());
                 let mut interpreter = Interpreter::new(register, &context);
                 let parser = parse($code).map(|x|
                     interpreter.resolve(&x.expect("unexpected parse error"))

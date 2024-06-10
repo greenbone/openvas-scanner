@@ -359,7 +359,7 @@ where
             let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
             let store = PerItemDispatcher::new(Dispa { nvts, feed_version });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 Err(Error::from(x))
             } else {

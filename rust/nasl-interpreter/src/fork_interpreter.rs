@@ -22,10 +22,10 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     /// Example:
     /// ```
     /// use nasl_syntax::NaslValue;
-    /// use nasl_interpreter::{Register, ContextBuilder, CodeInterpreter};
+    /// use nasl_interpreter::{Register, ContextFactory , CodeInterpreter};
     /// let register = Register::default();
-    /// let context_builder = ContextBuilder::default();
-    /// let context = context_builder.build();
+    /// let context_builder = ContextFactory ::default();
+    /// let context = context_builder.build(Default::default(), Default::default());
     /// let code = r#"
     /// set_kb_item(name: "test", value: 1);
     /// set_kb_item(name: "test", value: 2);
@@ -56,10 +56,10 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     /// Example:
     /// ```
     /// use nasl_syntax::NaslValue;
-    /// use nasl_interpreter::{Register, ContextBuilder, CodeInterpreter};
+    /// use nasl_interpreter::{Register, ContextFactory , CodeInterpreter};
     /// let register = Register::default();
-    /// let context_builder = ContextBuilder::default();
-    /// let context = context_builder.build();
+    /// let context_builder = ContextFactory ::default();
+    /// let context = context_builder.build(Default::default(), Default::default());
     /// let code = r#"
     /// set_kb_item(name: "test", value: 1);
     /// set_kb_item(name: "test", value: 2);
@@ -121,11 +121,11 @@ impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
 mod rests {
     #[test]
     fn code_interpreter() {
-        use crate::{CodeInterpreter, ContextBuilder, Register};
+        use crate::{CodeInterpreter, ContextFactory, Register};
         use nasl_syntax::NaslValue;
         let register = Register::default();
-        let context_builder = ContextBuilder::default();
-        let context = context_builder.build();
+        let context_builder = ContextFactory::default();
+        let context = context_builder.build(Default::default(), Default::default());
         let code = r#"
             set_kb_item(name: "test", value: 1);
             set_kb_item(name: "test", value: 2);

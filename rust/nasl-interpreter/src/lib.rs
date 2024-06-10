@@ -24,7 +24,7 @@ pub use interpreter::ContextLifeTimeCapture;
 pub use interpreter::Interpreter;
 
 // we expose the other libraries to allow users to use them without having to import them
-pub use nasl_builtin_std::{nasl_std_functions, ContextBuilder, KeyDispatcherSet, RegisterBuilder};
+pub use nasl_builtin_std::{nasl_std_functions, ContextFactory, RegisterBuilder};
 pub use nasl_builtin_utils::{
     Context, ContextType, FunctionErrorKind, NaslFunctionRegister, NaslVarRegister, Register,
 };

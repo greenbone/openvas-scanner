@@ -6,7 +6,7 @@
 mod tests {
     use std::collections::HashMap;
 
-    use nasl_builtin_std::ContextBuilder;
+    use nasl_builtin_std::ContextFactory;
     use nasl_builtin_utils::Register;
     use nasl_interpreter::CodeInterpreter;
     use nasl_syntax::NaslValue;
@@ -35,8 +35,8 @@ mod tests {
         make_array();
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
@@ -56,8 +56,8 @@ mod tests {
         make_list(1, 0, a);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -109,8 +109,8 @@ mod tests {
         s = sort(l);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -134,8 +134,8 @@ mod tests {
         keys(a,l);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -159,8 +159,8 @@ mod tests {
         max_index(make_list());
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(5))));

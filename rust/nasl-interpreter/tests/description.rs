@@ -74,11 +74,17 @@ if(description)
         )];
         let register = Register::root_initial(&initial);
         let logger = DefaultLogger::default();
-        let key = "test.nasl".into();
+        let key: storage::ContextKey = "test.nasl".into();
         let target = String::new();
         let functions = nasl_builtin_std::nasl_std_functions();
         let ctxconfigs = Context::new(
-            &key, &target, &storage, &storage, &loader, &logger, &functions,
+            key.clone(),
+            target,
+            &storage,
+            &storage,
+            &loader,
+            &logger,
+            &functions,
         );
         let mut interpreter = Interpreter::new(register, &ctxconfigs);
         let results = parse(code)

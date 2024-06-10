@@ -327,9 +327,9 @@ impl NaslContext {
 /// New objects must be added here in
 pub struct Context<'a> {
     /// key for this context. A file name or a scan id
-    key: &'a ContextKey,
+    key: ContextKey,
     /// target to run a scan against
-    target: &'a str,
+    target: String,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher,
     /// Default Retriever
@@ -346,8 +346,8 @@ pub struct Context<'a> {
 impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
-        key: &'a ContextKey,
-        target: &'a str,
+        key: ContextKey,
+        target: String,
         dispatcher: &'a dyn Dispatcher,
         retriever: &'a dyn Retriever,
         loader: &'a dyn Loader,
@@ -389,11 +389,11 @@ impl<'a> Context<'a> {
 
     /// Get the Key
     pub fn key(&self) -> &ContextKey {
-        self.key
+        &self.key
     }
     /// Get the target host
     pub fn target(&self) -> &str {
-        self.target
+        &self.target
     }
     /// Get the storage
     pub fn dispatcher(&self) -> &dyn Dispatcher {

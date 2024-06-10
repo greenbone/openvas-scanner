@@ -20,11 +20,11 @@ pub use self::error::ErrorKind;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
-pub struct Update<S, L, V> {
+pub struct Update<'a, S, L, V> {
     /// Is used to store data
-    dispatcher: S,
+    dispatcher: &'a S,
     /// Is used to load nasl plugins by a relative path
-    loader: L,
+    loader: &'a L,
     /// Initial data, usually set in new.
     initial: Vec<(String, ContextType)>,
     /// How often loader or storage should retry before giving up when a retryable error occurs.
@@ -49,7 +49,7 @@ pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<
     let target = String::default();
     // TODO add parameter to struct
     let functions = nasl_interpreter::nasl_std_functions();
-    let context = Context::new(&k, &target, dispatcher, &fr, loader, &logger, &functions);
+    let context = Context::new(k, target, dispatcher, &fr, loader, &logger, &functions);
     let mut interpreter = Interpreter::new(register, &context);
     for stmt in nasl_syntax::parse(&code) {
         match stmt {
@@ -66,7 +66,7 @@ pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<
     Ok(feed_version)
 }
 
-impl<'a, R, S, L, V> SignatureChecker for Update<S, L, V>
+impl<'a, R, S, L, V> SignatureChecker for Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,
@@ -75,7 +75,7 @@ where
 {
 }
 
-impl<'a, S, L, V, R> Update<S, L, V>
+impl<'a, S, L, V, R> Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,
@@ -92,8 +92,8 @@ where
     pub fn init(
         openvas_version: &str,
         max_retry: usize,
-        loader: L,
-        storage: S,
+        loader: &'a L,
+        storage: &'a S,
         verifier: V,
     ) -> Self {
         let initial = vec![
@@ -112,7 +112,7 @@ where
 
     /// Loads the plugin_feed_info and returns the feed version
     pub fn feed_version(&self) -> Result<String, ErrorKind> {
-        feed_version(&self.loader, &self.dispatcher)
+        feed_version(self.loader, self.dispatcher)
     }
 
     /// plugin_feed_info must be handled differently.
@@ -134,22 +134,20 @@ where
 
     /// Runs a single plugin in description mode.
     fn single(&self, key: &ContextKey) -> Result<i64, ErrorKind> {
-        // TODO: create ref version
         let code = self.loader.load(&key.value())?;
 
         let register = Register::root_initial(&self.initial);
         let logger = DefaultLogger::default();
         let fr = NoOpRetriever::default();
         let target = String::default();
-        // TODO add parameter to struct
         let functions = nasl_interpreter::nasl_std_functions();
 
         let context = Context::new(
-            key,
-            &target,
-            &self.dispatcher,
+            key.clone(),
+            target,
+            self.dispatcher,
             &fr,
-            &self.loader,
+            self.loader,
             &logger,
             &functions,
         );
@@ -174,7 +172,7 @@ where
     }
 }
 
-impl<'a, S, L, V, R> Iterator for Update<S, L, V>
+impl<'a, S, L, V, R> Iterator for Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,

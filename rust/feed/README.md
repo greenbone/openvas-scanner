@@ -45,7 +45,7 @@ let loader = FSPluginLoader::new(path);
 let verifier = feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
 let max_retries = 5;
 let openvas_version = "1";
-let updater = feed::Update::init(openvas_version, max_retries, loader.clone(), storage, verifier);
+let updater = feed::Update::init(openvas_version, max_retries, &loader, &storage, verifier);
 
 for s in updater {
     println!("updated {s:?}");

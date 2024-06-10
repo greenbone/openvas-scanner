@@ -87,7 +87,7 @@ impl Default for Lambda {
     }
 }
 
-/// Builds a Lambda scanenr implementation.
+/// Builds a Lambda scanner implementation.
 ///
 /// Usage:
 /// ```

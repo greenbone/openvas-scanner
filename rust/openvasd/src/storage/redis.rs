@@ -80,7 +80,7 @@ impl<T> Storage<T> {
             let redis_cache: CacheDispatcher<RedisCtx> =
                 redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
             let store = PerItemDispatcher::new(redis_cache);
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 Err(Error::from(x))
             } else {

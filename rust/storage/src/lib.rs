@@ -271,11 +271,10 @@ impl DefaultDispatcher {
 impl Dispatcher for DefaultDispatcher {
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.data).write()?;
-        match data.iter_mut().find(|(k, _)| k.as_str() == key.value()) {
+        match data.iter_mut().find(|(k, _)| k == &key.value()) {
             Some((_, v)) => v.push(scope),
             None => data.push((key.value(), vec![scope])),
         }
-        tracing::trace!("Keys: {}", data.len());
         Ok(())
     }
 
@@ -335,7 +334,6 @@ impl Retriever for DefaultDispatcher {
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         let data = Arc::as_ref(&self.data).read()?;
-        tracing::debug!("Entries: {:?}", data.len());
         let data = InMemoryDataWrapper::new(data.clone());
         let result = data
             .into_iter()
@@ -344,7 +342,9 @@ impl Retriever for DefaultDispatcher {
                 let scope = scope.clone();
                 let scope2 = scope.clone();
                 v.into_iter()
-                    .filter(move |v| scope.for_field(v))
+                    .filter(move |v| {
+                        scope.for_field(v)
+                    })
                     .map(move |v| {
                         (
                             match &scope2 {
