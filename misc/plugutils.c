@@ -263,6 +263,12 @@ plug_get_host_fqdn (struct script_infos *args)
         return NULL;
       vhosts = vhosts->next;
     }
+
+  // Allow to return to the main process if parent process is openvas-nasl.
+  // So, the main process can do e.g. a kb clean up
+  if (args->standalone)
+    return NULL;
+
   _exit (0);
 }
 
