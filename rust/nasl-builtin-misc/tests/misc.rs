@@ -7,7 +7,7 @@ mod tests {
     use chrono::Offset;
 
     use nasl_builtin_utils::Register;
-    use nasl_interpreter::{CodeInterpreter, ContextBuilder};
+    use nasl_interpreter::{CodeInterpreter, ContextFactory};
     use nasl_syntax::NaslValue;
     use std::time::Instant;
 
@@ -18,8 +18,8 @@ mod tests {
         rand();
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let first = parser.next();
         let second = parser.next();
@@ -34,8 +34,8 @@ mod tests {
         get_byte_order();
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Boolean(_)))));
     }
@@ -46,8 +46,8 @@ mod tests {
         dec2str(num: 23);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok("23".into())));
     }
@@ -66,8 +66,8 @@ mod tests {
         typeof(23,76);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("string".into()))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("int".into()))));
@@ -87,8 +87,8 @@ mod tests {
         isnull(Null);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(true))));
@@ -100,8 +100,8 @@ mod tests {
         unixtime();
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
     }
@@ -113,8 +113,8 @@ mod tests {
         gzip(data: 'z');
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -144,8 +144,8 @@ mod tests {
         gunzip(data: ngz);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("z".into()))));
@@ -164,8 +164,8 @@ mod tests {
         d = localtime(utc: FALSE);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
 
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
@@ -235,8 +235,8 @@ mod tests {
         mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
         assert_eq!(
@@ -251,8 +251,8 @@ mod tests {
         sleep(1);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let now = Instant::now();
         parser.next();
@@ -265,8 +265,8 @@ mod tests {
         usleep(1000);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let now = Instant::now();
         parser.next();
@@ -284,8 +284,8 @@ mod tests {
         defined_func(a);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null))); // defining function b
         assert_eq!(parser.next(), Some(Ok(true.into()))); // is b defined

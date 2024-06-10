@@ -6,7 +6,7 @@
 #[cfg(test)]
 mod tests {
 
-    use nasl_builtin_std::ContextBuilder;
+    use nasl_builtin_std::ContextFactory;
     use nasl_builtin_utils::{error::FunctionErrorKind, Register};
     use nasl_interpreter::CodeInterpreter;
     use nasl_syntax::NaslValue;
@@ -64,10 +64,10 @@ mod tests {
                               th_urp:   0);
         "###;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -104,10 +104,10 @@ mod tests {
         elem = get_ip_element(ip: ip_packet, element: "ip_ttl");
         "#;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(255))));
@@ -133,10 +133,10 @@ mod tests {
         opt = get_ip_element(ip: ip_packet, element: "ip_hl");
         "#;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -173,10 +173,10 @@ mod tests {
         opt = get_tcp_option(tcp: tcp_packet, option: 3);
         "###;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -206,10 +206,10 @@ mod tests {
                                       data: "1234");
         "#;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -248,10 +248,10 @@ mod tests {
                      data: "1234");
         "#;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(
@@ -284,10 +284,10 @@ mod tests {
                      );
         "###;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(

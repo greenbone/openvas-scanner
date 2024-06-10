@@ -20,10 +20,10 @@ An interpreter requires:
 ## Example
 
 ```
-use nasl_interpreter::{CodeInterpreter, Register, ContextBuilder};
+use nasl_interpreter::{CodeInterpreter, Register, ContextFactory};
 let mut register = Register::default();
-let context_builder = ContextBuilder::default();
-let context = context_builder.build();
+let context_builder = ContextFactory::default();
+let context = context_builder.build(storage::ContextKey::Scan("1".into()), "localhost".into());
 let code = "display('hi');";
 let mut parser = CodeInterpreter::new(code, register, &context);
 ```

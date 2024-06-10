@@ -20,8 +20,8 @@ mod tests {
         aes128_ctr_decrypt(key: key, data: crypt, iv: iv);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -50,8 +50,8 @@ mod tests {
         aes192_ctr_decrypt(key: key, data: crypt, iv: iv);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -80,8 +80,8 @@ mod tests {
         aes256_ctr_decrypt(key: key, data: crypt, iv: iv);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();

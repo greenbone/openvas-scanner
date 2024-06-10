@@ -28,7 +28,7 @@ impl FeedIdentifier {
         // e.g. 2006/something.nasl
         let loader = nasl_interpreter::FSPluginLoader::new(path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-        let updater = feed::Update::init("1", 5, loader.clone(), storage, verifier);
+        let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
 
         if signature_check {
             match updater.verify_signature() {

@@ -79,7 +79,7 @@ impl<S> Storage<S> {
                 storage: cache,
                 feed_version,
             });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 tracing::debug!("{}", x);
                 Err(Error::from(x))

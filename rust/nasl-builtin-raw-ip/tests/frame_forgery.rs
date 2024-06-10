@@ -8,7 +8,7 @@ mod tests {
 
     //use super::convert_vec_into_mac_address;
 
-    use nasl_builtin_std::ContextBuilder;
+    use nasl_builtin_std::ContextFactory;
     use nasl_builtin_utils::Register;
     use nasl_interpreter::CodeInterpreter;
     use nasl_syntax::NaslValue;
@@ -21,9 +21,9 @@ mod tests {
         get_local_mac_address_from_ip("::1");
         "#;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -49,10 +49,10 @@ mod tests {
         dump_frame(frame:a);
         "#;
         let register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -78,9 +78,9 @@ mod tests {
         send_frame(frame: a, pcap_active: TRUE);
         send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
         "#;
-        let mut binding = ContextBuilder::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        let context = binding.build();
+        let context = binding.build(Default::default(), Default::default());
         let register = Register::default();
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
