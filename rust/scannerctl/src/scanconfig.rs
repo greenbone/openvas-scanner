@@ -269,11 +269,7 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-pub fn parse_vts<R, S>(
-    sc: R,
-    retriever: &S,
-    vts: &[models::VT],
-) -> Result<Vec<models::VT>, Error>
+pub fn parse_vts<R, S>(sc: R, retriever: &S, vts: &[models::VT]) -> Result<Vec<models::VT>, Error>
 where
     R: BufRead,
     S: storage::Storage,
@@ -321,24 +317,23 @@ where
                     vec![]
                 }
             } else {
-                match retriever.vts_by_fields(vec![storage::item::NVTField::Family(s.family_or_nvt.clone()),]) {
-                    Ok(vtiter) => {
-                        vtiter.filter(|v| {
-                            is_not_already_present(&v.oid)
-
-                        }).map(|v|{
-        let parameters = preference_lookup.get(&v.oid).unwrap_or(&vec![]).clone();
-                           Ok(models::VT{ oid: v.oid, parameters })
+                match retriever.vts_by_fields(vec![storage::item::NVTField::Family(
+                    s.family_or_nvt.clone(),
+                )]) {
+                    Ok(vtiter) => vtiter
+                        .filter(|v| is_not_already_present(&v.oid))
+                        .map(|v| {
+                            let parameters =
+                                preference_lookup.get(&v.oid).unwrap_or(&vec![]).clone();
+                            Ok(models::VT {
+                                oid: v.oid,
+                                parameters,
                             })
-
-                            .collect::<Vec<_>>()
-
-                    },
+                        })
+                        .collect::<Vec<_>>(),
                     Err(e) => {
                         vec![Err(e.into())]
-
                     }
-
                 }
                 // lookup oids via family
                 // use storage::item::NVTField;
@@ -346,7 +341,7 @@ where
                 // use storage::Field;
                 // use storage::Retrieve;
                 // match retriever.retrieve_by_field(
-                //     
+                //
                 //     Retrieve::NVT(Some(NVTKey::Oid)),
                 // ) {
                 //     Ok(nvt) => {
@@ -481,8 +476,16 @@ mod tests {
         assert_eq!(result.preferences.preference.len(), 3);
         let shop: storage::DefaultDispatcher = storage::DefaultDispatcher::default();
         let add_product_detection = |oid: &str| {
-            shop.cache_nvt_field(oid, storage::item::NVTField::Oid(oid.to_owned().to_string())).unwrap();
-            shop.cache_nvt_field(oid, storage::item::NVTField::Family("Product detection".to_string())).unwrap();
+            shop.cache_nvt_field(
+                oid,
+                storage::item::NVTField::Oid(oid.to_owned().to_string()),
+            )
+            .unwrap();
+            shop.cache_nvt_field(
+                oid,
+                storage::item::NVTField::Family("Product detection".to_string()),
+            )
+            .unwrap();
             shop.description_script_finished().unwrap();
         };
         add_product_detection("1");

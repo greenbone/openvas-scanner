@@ -266,7 +266,10 @@ make_storage_function! {
 /// The description builtin function
 pub struct Description;
 
-impl<K: AsRef<str>, S> nasl_builtin_utils::NaslFunctionExecuter<K, S> for Description where S: storage::Storage {
+impl<K: AsRef<str>, S> nasl_builtin_utils::NaslFunctionExecuter<K, S> for Description
+where
+    S: storage::Storage,
+{
     fn nasl_fn_execute(
         &self,
         name: &str,

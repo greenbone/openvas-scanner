@@ -37,45 +37,63 @@ where
 }
 
 /// NASL function to get MD2 hash
-pub fn hash_md2<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_md2<K, S>(
+    register: &Register,
+    _: &Context<K, S>,
+) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Md2>(register)
 }
 
 /// NASL function to get MD4 hash
-pub fn hash_md4<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_md4<K, S>(
+    register: &Register,
+    _: &Context<K, S>,
+) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Md4>(register)
 }
 
 /// NASL function to get MD5 hash
-pub fn hash_md5<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_md5<K, S>(
+    register: &Register,
+    _: &Context<K, S>,
+) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Md5>(register)
 }
 
 /// NASL function to get SHA1 hash
-pub fn hash_sha1<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_sha1<K, S>(
+    register: &Register,
+    _: &Context<K, S>,
+) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Sha1>(register)
 }
 
 /// NASL function to get SHA256 hash
-pub fn hash_sha256<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_sha256<K, S>(
+    register: &Register,
+    _: &Context<K, S>,
+) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Sha256>(register)
 }
 
 /// NASL function to get SHA512 hash
-pub fn hash_sha512<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_sha512<K, S>(
+    register: &Register,
+    _: &Context<K, S>,
+) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Sha512>(register)
 }
 
 /// NASL function to get RIPemd160 hash
-pub fn hash_ripemd160<K,S>(
+pub fn hash_ripemd160<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Ripemd160>(register)
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup<K,S>(key: &str) -> Option<NaslFunction<K,S>> {
+pub fn lookup<K, S>(key: &str) -> Option<NaslFunction<K, S>> {
     match key {
         "MD2" => Some(hash_md2),
         "MD4" => Some(hash_md4),

@@ -523,14 +523,16 @@ impl Nvt {
                 NVTField::Version(_) => false,
                 NVTField::Name(x) => &self.name == x,
                 NVTField::Tag(x, _) => self.tag.contains_key(x),
-                NVTField::Dependencies(x) => self.dependencies.iter().any(|y|x.contains(y)),
-                NVTField::RequiredKeys(x) => self.required_keys.iter().any(|y|x.contains(y)),
-                NVTField::MandatoryKeys(x) => self.mandatory_keys.iter().any(|y|x.contains(y)),
-                NVTField::ExcludedKeys(x) => self.excluded_keys.iter().any(|y|x.contains(y)),
-                NVTField::RequiredPorts(x) => self.required_ports.iter().any(|y|x.contains(y)),
-                NVTField::RequiredUdpPorts(x) => self.required_udp_ports.iter().any(|y|x.contains(y)),
+                NVTField::Dependencies(x) => self.dependencies.iter().any(|y| x.contains(y)),
+                NVTField::RequiredKeys(x) => self.required_keys.iter().any(|y| x.contains(y)),
+                NVTField::MandatoryKeys(x) => self.mandatory_keys.iter().any(|y| x.contains(y)),
+                NVTField::ExcludedKeys(x) => self.excluded_keys.iter().any(|y| x.contains(y)),
+                NVTField::RequiredPorts(x) => self.required_ports.iter().any(|y| x.contains(y)),
+                NVTField::RequiredUdpPorts(x) => {
+                    self.required_udp_ports.iter().any(|y| x.contains(y))
+                }
                 NVTField::Preference(x) => self.preferences.iter().any(|y| y == x),
-                NVTField::Reference(x) => self.references.iter().any(|y|x.contains(y)),
+                NVTField::Reference(x) => self.references.iter().any(|y| x.contains(y)),
                 NVTField::Category(x) => &self.category == x,
                 NVTField::Family(x) => &self.family == x,
                 NVTField::Nvt(x) => self == x,
@@ -538,10 +540,8 @@ impl Nvt {
             } {
                 return true;
             }
-
         }
         false
-
     }
 }
 

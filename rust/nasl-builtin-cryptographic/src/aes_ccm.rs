@@ -72,9 +72,9 @@ where
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_encrypt<K,S>(
+fn aes128_ccm_encrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes128>(register, Crypt::Encrypt, false)
 }
@@ -86,9 +86,9 @@ fn aes128_ccm_encrypt<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_encrypt_auth<K,S>(
+fn aes128_ccm_encrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes128>(register, Crypt::Encrypt, true)
 }
@@ -100,9 +100,9 @@ fn aes128_ccm_encrypt_auth<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_decrypt<K,S>(
+fn aes128_ccm_decrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes128>(register, Crypt::Decrypt, false)
 }
@@ -114,9 +114,9 @@ fn aes128_ccm_decrypt<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_decrypt_auth<K,S>(
+fn aes128_ccm_decrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes128>(register, Crypt::Decrypt, true)
 }
@@ -128,9 +128,9 @@ fn aes128_ccm_decrypt_auth<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_encrypt<K,S>(
+fn aes192_ccm_encrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes192>(register, Crypt::Encrypt, false)
 }
@@ -142,9 +142,9 @@ fn aes192_ccm_encrypt<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_encrypt_auth<K,S>(
+fn aes192_ccm_encrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes192>(register, Crypt::Encrypt, true)
 }
@@ -156,9 +156,9 @@ fn aes192_ccm_encrypt_auth<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_decrypt<K,S>(
+fn aes192_ccm_decrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes192>(register, Crypt::Decrypt, false)
 }
@@ -170,9 +170,9 @@ fn aes192_ccm_decrypt<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_decrypt_auth<K,S>(
+fn aes192_ccm_decrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes192>(register, Crypt::Decrypt, true)
 }
@@ -184,9 +184,9 @@ fn aes192_ccm_decrypt_auth<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_encrypt<K,S>(
+fn aes256_ccm_encrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes256>(register, Crypt::Encrypt, false)
 }
@@ -198,9 +198,9 @@ fn aes256_ccm_encrypt<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_encrypt_auth<K,S>(
+fn aes256_ccm_encrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes256>(register, Crypt::Encrypt, true)
 }
@@ -212,9 +212,9 @@ fn aes256_ccm_encrypt_auth<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_decrypt<K,S>(
+fn aes256_ccm_decrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes256>(register, Crypt::Decrypt, false)
 }
@@ -226,14 +226,14 @@ fn aes256_ccm_decrypt<K,S>(
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_decrypt_auth<K,S>(
+fn aes256_ccm_decrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     ccm::<Aes256>(register, Crypt::Decrypt, true)
 }
 
-pub fn lookup<K,S>(key: &str) -> Option<NaslFunction<K,S>> {
+pub fn lookup<K, S>(key: &str) -> Option<NaslFunction<K, S>> {
     match key {
         "aes128_ccm_encrypt" => Some(aes128_ccm_encrypt),
         "aes128_ccm_encrypt_auth" => Some(aes128_ccm_encrypt_auth),

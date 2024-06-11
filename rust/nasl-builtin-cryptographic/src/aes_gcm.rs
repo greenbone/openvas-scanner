@@ -81,9 +81,9 @@ where
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes128_gcm_encrypt<K,S>(
+fn aes128_gcm_encrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Encrypt, false)
 }
@@ -97,9 +97,9 @@ fn aes128_gcm_encrypt<K,S>(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes128_gcm_encrypt_auth<K,S>(
+fn aes128_gcm_encrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Encrypt, true)
 }
@@ -113,9 +113,9 @@ fn aes128_gcm_encrypt_auth<K,S>(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes128_gcm_decrypt<K,S>(
+fn aes128_gcm_decrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Decrypt, false)
 }
@@ -129,9 +129,9 @@ fn aes128_gcm_decrypt<K,S>(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes128_gcm_decrypt_auth<K,S>(
+fn aes128_gcm_decrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Decrypt, true)
 }
@@ -145,9 +145,9 @@ fn aes128_gcm_decrypt_auth<K,S>(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes192_gcm_encrypt<K,S>(
+fn aes192_gcm_encrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Encrypt, false)
 }
@@ -161,9 +161,9 @@ fn aes192_gcm_encrypt<K,S>(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes192_gcm_encrypt_auth<K,S>(
+fn aes192_gcm_encrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Encrypt, true)
 }
@@ -177,9 +177,9 @@ fn aes192_gcm_encrypt_auth<K,S>(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes192_gcm_decrypt<K,S>(
+fn aes192_gcm_decrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Decrypt, false)
 }
@@ -193,9 +193,9 @@ fn aes192_gcm_decrypt<K,S>(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes192_gcm_decrypt_auth<K,S>(
+fn aes192_gcm_decrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Decrypt, true)
 }
@@ -209,9 +209,9 @@ fn aes192_gcm_decrypt_auth<K,S>(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes256_gcm_encrypt<K,S>(
+fn aes256_gcm_encrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Encrypt, false)
 }
@@ -225,9 +225,9 @@ fn aes256_gcm_encrypt<K,S>(
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes256_gcm_encrypt_auth<K,S>(
+fn aes256_gcm_encrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Encrypt, true)
 }
@@ -241,9 +241,9 @@ fn aes256_gcm_encrypt_auth<K,S>(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes256_gcm_decrypt<K,S>(
+fn aes256_gcm_decrypt<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Decrypt, false)
 }
@@ -257,14 +257,14 @@ fn aes256_gcm_decrypt<K,S>(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes256_gcm_decrypt_auth<K,S>(
+fn aes256_gcm_decrypt_auth<K, S>(
     register: &Register,
-    _: &Context<K,S>,
+    _: &Context<K, S>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Decrypt, true)
 }
 
-pub fn lookup<K,S>(key: &str) -> Option<NaslFunction<K,S>> {
+pub fn lookup<K, S>(key: &str) -> Option<NaslFunction<K, S>> {
     match key {
         "aes128_gcm_encrypt" => Some(aes128_gcm_encrypt),
         "aes128_gcm_encrypt_auth" => Some(aes128_gcm_encrypt_auth),

@@ -15,7 +15,7 @@ use crate::{get_data, get_key, NaslFunction};
 /// This function expects 2 named arguments key and data either in a string or data type.
 /// It is important to notice, that internally the CMAC algorithm is used and not, as the name
 /// suggests, CBC-MAC.
-fn aes_cmac<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, FunctionErrorKind> {
+fn aes_cmac<K, S>(register: &Register, _: &Context<K, S>) -> Result<NaslValue, FunctionErrorKind> {
     let key = get_key(register)?;
     let data = get_data(register)?;
 
@@ -26,7 +26,7 @@ fn aes_cmac<K,S>(register: &Register, _: &Context<K,S>) -> Result<NaslValue, Fun
     Ok(mac.finalize().into_bytes().to_vec().into())
 }
 
-pub fn lookup<K,S>(key: &str) -> Option<NaslFunction<K,S>> {
+pub fn lookup<K, S>(key: &str) -> Option<NaslFunction<K, S>> {
     match key {
         "aes_mac_cbc" => Some(aes_cmac),
         "aes_cmac" => Some(aes_cmac),

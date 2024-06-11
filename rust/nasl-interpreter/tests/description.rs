@@ -34,9 +34,9 @@ mod tests {
     use nasl_syntax::NaslValue;
 
     use storage::item::NvtPreference;
+    use storage::item::NvtRef;
     use storage::item::PreferenceType::*;
     use storage::item::ACT::Denial;
-    use storage::item::NvtRef;
     use storage::DefaultDispatcher;
     use storage::Storage;
 

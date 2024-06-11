@@ -39,10 +39,10 @@ impl From<verify::Error> for ErrorKind {
     }
 }
 /// Loads the plugin_feed_info and returns the feed version
-pub fn feed_version<S>(
-    loader: &dyn Loader,
-    dispatcher: &S,
-) -> Result<String, ErrorKind> where S: Storage {
+pub fn feed_version<S>(loader: &dyn Loader, dispatcher: &S) -> Result<String, ErrorKind>
+where
+    S: Storage,
+{
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
@@ -126,10 +126,8 @@ where
     fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
         let feed_version = self.feed_version()?;
         // TODO: add retry possibility
-        self.dispatcher.cache_nvt_field(
-            "",
-            NVTField::Version(feed_version).into(),
-        )?;
+        self.dispatcher
+            .cache_nvt_field("", NVTField::Version(feed_version).into())?;
         let feed_info_key = "plugin_feed_info.inc";
         Ok(feed_info_key.into())
     }

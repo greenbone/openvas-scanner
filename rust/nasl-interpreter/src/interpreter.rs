@@ -107,7 +107,7 @@ pub struct Interpreter<'a, K, S> {
 /// When a result does not contain a value than NaslValue::Null must be returned.
 pub type InterpretResult = Result<NaslValue, InterpretError>;
 
-impl<'a, K , S> Interpreter<'a, K, S>
+impl<'a, K, S> Interpreter<'a, K, S>
 where
     K: AsRef<str>,
 {

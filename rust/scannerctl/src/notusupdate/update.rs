@@ -60,15 +60,14 @@ where
 
         for adv in advisories.advisories {
             let nadv = models::VulnerabilityData {
-                    adv,
-                    famile: advisories.family.clone(),
-                    filename: filename.to_owned(),
-                };
+                adv,
+                famile: advisories.family.clone(),
+                filename: filename.to_owned(),
+            };
             // TODO: feels wrong to ignore errors?
             let _ = storage.store_notus_advisory(nadv);
         }
     }
-    
 
     Ok(())
 }

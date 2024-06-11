@@ -341,7 +341,10 @@ pub struct Context<'a, K, S> {
     executor: &'a dyn super::NaslFunctionExecuter<K, S>,
 }
 
-impl<'a, K, S> Context<'a, K, S> where S: Storage {
+impl<'a, K, S> Context<'a, K, S>
+where
+    S: Storage,
+{
     /// Creates an empty configuration
     pub fn new(
         key: &'a K,
@@ -362,9 +365,7 @@ impl<'a, K, S> Context<'a, K, S> where S: Storage {
     }
 }
 
-
 impl<'a, K, S> Context<'a, K, S> {
-
     /// Executes a function by name
     ///
     /// Returns None when the function was not found.

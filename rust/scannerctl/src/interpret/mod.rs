@@ -19,11 +19,13 @@ struct Run<K: AsRef<str>, S> {
     feed: Option<PathBuf>,
 }
 
-impl<S> Run<String, S> where S: storage::Storage {
+impl<S> Run<String, S>
+where
+    S: storage::Storage,
+{
     fn new(db: S, feed: Option<PathBuf>, target: Option<String>) -> Run<String, S> {
         let key = String::default();
 
-       
         let mut context_builder = ContextBuilder::new(key, db);
         context_builder = match feed.clone() {
             Some(x) => context_builder.loader(FSPluginLoader::new(x)),
@@ -109,26 +111,30 @@ pub fn run(
     script: String,
     target: Option<String>,
 ) -> Result<(), CliError> {
- // let mut context_builder = match db {
-        //     Db::InMemory => ContextBuilder::new(key, DefaultDispatcher::default()),
-        //     Db::Redis(url) => ContextBuilder::new(
-        //         key,
-        //             redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR)
-        //                 .unwrap(),
-        //     ),
-        // };
+    // let mut context_builder = match db {
+    //     Db::InMemory => ContextBuilder::new(key, DefaultDispatcher::default()),
+    //     Db::Redis(url) => ContextBuilder::new(
+    //         key,
+    //             redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR)
+    //                 .unwrap(),
+    //     ),
+    // };
     match db {
-        Db::InMemory => Run::new(DefaultDispatcher::default(), feed, target).run(&script).map_err(|e| CliError {
-        filename: script,
-        kind: e,
-    }), 
-        Db::Redis(url) => Run::new(redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap(), feed, target).run(&script).map_err(|e| CliError {
-        filename: script,
-        kind: e,
-    }),
-
-
-
+        Db::InMemory => Run::new(DefaultDispatcher::default(), feed, target)
+            .run(&script)
+            .map_err(|e| CliError {
+                filename: script,
+                kind: e,
+            }),
+        Db::Redis(url) => Run::new(
+            redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap(),
+            feed,
+            target,
+        )
+        .run(&script)
+        .map_err(|e| CliError {
+            filename: script,
+            kind: e,
+        }),
     }
-    
 }
