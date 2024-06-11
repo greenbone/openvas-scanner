@@ -342,9 +342,7 @@ impl Retriever for DefaultDispatcher {
                 let scope = scope.clone();
                 let scope2 = scope.clone();
                 v.into_iter()
-                    .filter(move |v| {
-                        scope.for_field(v)
-                    })
+                    .filter(move |v| scope.for_field(v))
                     .map(move |v| {
                         (
                             match &scope2 {
