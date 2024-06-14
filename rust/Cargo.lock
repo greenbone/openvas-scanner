@@ -2072,6 +2072,7 @@ dependencies = [
  "nasl-interpreter",
  "nasl-syntax",
  "num-bigint",
+ "openssl",
  "rand 0.8.5",
  "rayon 0.4.2",
  "ripemd",
