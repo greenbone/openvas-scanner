@@ -28,10 +28,16 @@ fn rsa_public_encrypt<K>(
         rsa::BigUint::from_bytes_be(e),
     )
     .unwrap();
-    let enc_data = pub_key
-        .encrypt(&mut rng, Pkcs1v15Encrypt, data)
-        .expect("failed to encrypt");
-    Ok(enc_data.to_vec().into())
+    let enc_data = match pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, data) {
+        Ok(val) => Ok(val),
+        Err(code) => Err(nasl_builtin_utils::FunctionErrorKind::GeneralError(
+            nasl_builtin_utils::error::GeneralErrorType::UnexpectedData(format!(
+                "Error code {}",
+                code
+            )),
+        )),
+    };
+    Ok(enc_data.unwrap().to_vec().into())
 }
 
 fn rsa_private_decrypt<K>(
@@ -42,17 +48,30 @@ fn rsa_private_decrypt<K>(
     let n = get_required_named_data(register, "n")?;
     let e = get_required_named_data(register, "e")?;
     let d = get_required_named_data(register, "d")?;
-    let priv_key = RsaPrivateKey::from_components(
+    let priv_key = match RsaPrivateKey::from_components(
         rsa::BigUint::from_bytes_be(n),
         rsa::BigUint::from_bytes_be(e),
         rsa::BigUint::from_bytes_be(d),
         vec![],
-    )
-    .unwrap();
-    let dec_data = priv_key
-        .decrypt(Pkcs1v15Encrypt, data)
-        .expect("failed to decrypt");
-    Ok(dec_data.to_vec().into())
+    ) {
+        Ok(val) => Ok(val),
+        Err(code) => Err(nasl_builtin_utils::FunctionErrorKind::GeneralError(
+            nasl_builtin_utils::error::GeneralErrorType::UnexpectedData(format!(
+                "Error code {}",
+                code
+            )),
+        )),
+    };
+    let dec_data = match priv_key.unwrap().decrypt(Pkcs1v15Encrypt, data) {
+        Ok(val) => Ok(val),
+        Err(code) => Err(nasl_builtin_utils::FunctionErrorKind::GeneralError(
+            nasl_builtin_utils::error::GeneralErrorType::UnexpectedData(format!(
+                "Error code {}",
+                code
+            )),
+        )),
+    };
+    Ok(dec_data.unwrap().to_vec().into())
 }
 
 fn rsa_sign<K>(
