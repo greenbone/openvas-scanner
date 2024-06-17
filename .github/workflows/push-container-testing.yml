@@ -51,7 +51,7 @@ jobs:
           username: ${{ secrets.dockerhub_user }}
           password: ${{ secrets.dockerhub_token }}
       - name: Build and push Container image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == 'main') }}
