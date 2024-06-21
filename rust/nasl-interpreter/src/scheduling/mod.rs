@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
@@ -91,11 +95,11 @@ impl TryFrom<usize> for Stage {
     }
 }
 
-/// Enhances the Retriever trait with execution_plan possibibility.
+/// Enhances the Retriever trait with execution_plan possibility.
 pub trait ExecutionPlaner {
     /// Creates an execution plan based on the given scan using ExecutionPlan impl E.
     ///
-    /// To make it as inconvient as possible for the caller to accidentally execute scripts that should
+    /// To make it as inconvenient as possible for the caller to accidentally execute scripts that should
     /// not run concurrently in a concurrent fashion we return an iterator containing the stage as well
     /// as scripts that can be run concurrently instead of returning the struct that contains the stage
     /// data directly.
@@ -106,7 +110,7 @@ pub trait ExecutionPlaner {
     /// # Example
     ///
     /// This examples shows the usage of the default implementation for a storage::Retriever to may
-    /// help you understanding the behaviour for your own implementation or when using it.
+    /// help you understanding the behavior for your own implementation or when using it.
     ///
     /// ```
     ///
@@ -186,8 +190,8 @@ pub type ConcurrentVT = (Stage, Vec<RuntimeVT>);
 /// The categorization or ordering of VT may error
 pub type ConcurrentVTResult = Result<ConcurrentVT, VTError>;
 
-/// To make it as inconvient as possible for the caller to accidentally execute scripts that should
-/// not run concurrently in a concurrent fashion we reutn an iterator containing the stage as well
+/// To make it as inconvenient as possible for the caller to accidentally execute scripts that should
+/// not run concurrently in a concurrent fashion we return an iterator containing the stage as well
 /// as scripts that can be run concurrently instead of returning the struct that contains the stage
 /// data.
 /// See: issues/63063 impl Trait in type aliases is unstable
@@ -208,7 +212,7 @@ pub trait ExecutionPlan: Iterator<Item = Result<Vec<RuntimeVT>, VTError>> + Defa
     ) -> Result<(), VTError>;
 }
 
-struct ExeccutionPlanData<E>
+struct ExecutionPlanData<E>
 where
     E: ExecutionPlan,
 {
@@ -216,7 +220,7 @@ where
     idx: usize,
 }
 
-impl<E> ExeccutionPlanData<E>
+impl<E> ExecutionPlanData<E>
 where
     E: ExecutionPlan,
 {
@@ -225,7 +229,7 @@ where
     }
 }
 
-impl<E> Iterator for ExeccutionPlanData<E>
+impl<E> Iterator for ExecutionPlanData<E>
 where
     E: ExecutionPlan,
 {
@@ -269,7 +273,7 @@ where
         let mut results = core::array::from_fn(|_| E::default());
         let mut vts = Vec::new();
         let mut unresolved_dependencies = Vec::new();
-        let mut resolved_depndencies = HashMap::new();
+        let mut resolved_dependencies = HashMap::new();
         for (i, x) in self
             .retrieve_by_fields(oids, storage::Retrieve::NVT(None))?
             .filter_map(|(_, f)| match f {
@@ -304,7 +308,7 @@ where
                         storage::Field::NVT(storage::item::NVTField::FileName(x.to_string()))
                     }));
                     //results[usize::from(stage)].append_vt(x.clone(), None)?;
-                    resolved_depndencies.insert(x.filename.clone(), x.clone());
+                    resolved_dependencies.insert(x.filename.clone(), x.clone());
                 }
                 ret
             }
@@ -313,10 +317,10 @@ where
         for (x, p) in vts.into_iter() {
             let stage = Stage::from(&x);
             tracing::trace!(?stage, oid = x.oid, "adding");
-            results[usize::from(stage)].append_vt((x, p), &resolved_depndencies)?;
+            results[usize::from(stage)].append_vt((x, p), &resolved_dependencies)?;
         }
 
-        Ok(ExeccutionPlanData::new(results))
+        Ok(ExecutionPlanData::new(results))
     }
 }
 

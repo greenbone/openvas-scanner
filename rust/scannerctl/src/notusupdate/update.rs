@@ -64,7 +64,7 @@ where
                 &ContextKey::FileName(filename.to_owned()),
                 storage::Field::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
                     adv,
-                    famile: advisories.family.clone(),
+                    family: advisories.family.clone(),
                     filename: filename.to_owned(),
                 }))),
             );

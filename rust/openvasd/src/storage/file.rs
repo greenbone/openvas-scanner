@@ -108,7 +108,7 @@ impl<S> Storage<S> {
                 for adv in advisories.advisories {
                     let data = models::VulnerabilityData {
                         adv,
-                        famile: advisories.family.clone(),
+                        family: advisories.family.clone(),
                         filename: filename.to_owned(),
                     };
                     let nvt: Nvt = data.into();
@@ -464,7 +464,7 @@ where
         {
             let hash = self.hash.read().await;
             // since we override the file once instead of changing its content we update all
-            // configured feeds, regardless if the changd or not.
+            // configured feeds, regardless if the changed or not.
             for h in hash.iter() {
                 match h.typus {
                     FeedType::NASL => {

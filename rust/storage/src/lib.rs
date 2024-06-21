@@ -211,7 +211,7 @@ pub trait Dispatcher: Sync + Send {
     /// Some database require a cleanup therefore this method is called when a script finishes.
     fn on_exit(&self) -> Result<(), StorageError>;
 
-    /// Retries a dispatch for the amount of retries when a retrieable error occurs.
+    /// Retries a dispatch for the amount of retries when a retrievable error occurs.
     fn retry_dispatch(
         &self,
         retries: usize,
@@ -533,7 +533,7 @@ impl Retriever for DefaultDispatcher {
                 // are there use cases to get a KB outside of a scan?
                 tracing::warn!(
                     kb = x,
-                    "trying to get kb without scan_id returning empty resultt"
+                    "trying to get kb without scan_id returning empty result"
                 );
                 Ok(Box::new(vec![].into_iter()))
             }

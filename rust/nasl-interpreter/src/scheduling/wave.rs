@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::collections::{HashMap, VecDeque};
 use storage::item::Nvt;
 
@@ -11,7 +15,7 @@ use super::{ExecutionPlan, RuntimeVT, VTError};
 /// When a script only has dependencies that have no dependencies themselves it will be
 /// executed at index 1.
 ///
-/// When a script has depdencies that have dependencies themselves it will be executed at index 2
+/// When a script has dependencies that have dependencies themselves it will be executed at index 2
 /// and so on.
 ///
 #[derive(Default, Clone)]
@@ -340,22 +344,22 @@ mod tests {
             |x| x.last().cloned().into_iter().collect(),
         );
 
-        let mut non_evasive_scipt_calls = Vec::with_capacity(4);
+        let mut non_evasive_script_calls = Vec::with_capacity(4);
         for r in results
             .into_iter()
             .filter_map(|x| x.ok())
             .filter(|(s, _)| s == &Stage::NonEvasive)
             .map(|(_, r)| r)
         {
-            non_evasive_scipt_calls.push(r.len());
+            non_evasive_script_calls.push(r.len());
         }
         assert_eq!(
             generator.nonevasive,
-            non_evasive_scipt_calls.len(),
+            non_evasive_script_calls.len(),
             "expect a list of VTs per dependency depth"
         );
 
-        non_evasive_scipt_calls
+        non_evasive_script_calls
             .iter()
             .enumerate()
             .take(generator.nonevasive)
@@ -371,7 +375,7 @@ mod tests {
 
         assert_eq!(
             { generator.nonevasive * (generator.nonevasive + 1) / 2 },
-            non_evasive_scipt_calls.iter().sum(),
+            non_evasive_script_calls.iter().sum(),
             "expect each known VT to be called"
         );
     }

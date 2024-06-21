@@ -160,7 +160,7 @@ impl ProductsAdivisories {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VulnerabilityData {
     pub adv: Advisories,
-    pub famile: String,
+    pub family: String,
     pub filename: String,
 }
 
@@ -191,7 +191,7 @@ impl From<VulnerabilityData> for Vulnerability {
             severity_vector: sv,
             filename: data.filename,
             refs,
-            family: data.famile,
+            family: data.family,
             name: data.adv.title,
             category: "3".to_string(),
         }
