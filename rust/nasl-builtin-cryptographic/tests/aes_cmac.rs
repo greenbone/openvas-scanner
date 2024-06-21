@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 mod helper;
 #[cfg(test)]
@@ -15,12 +15,10 @@ mod tests {
         data = hexstr_to_data("d2e8a3e86ae0b9edc7cc3116d929a16f13ee3643");
         crypt = aes_mac_cbc(key: key, data: data);
         "#;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
         assert_eq!(

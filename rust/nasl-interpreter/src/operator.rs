@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use nasl_syntax::{Statement, TokenCategory};
 use regex::Regex;
@@ -15,10 +15,7 @@ pub(crate) trait OperatorExtension {
     fn operator(&mut self, category: &TokenCategory, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> Interpreter<'a> {
     fn execute(
         &mut self,
         stmts: &[Statement],
@@ -81,45 +78,70 @@ fn not_match_regex(a: NaslValue, matches: Option<NaslValue>) -> InterpretResult 
     Ok(NaslValue::Boolean(!bool::from(result)))
 }
 
-impl<'a, K> OperatorExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+macro_rules! add_left_right_string {
+    ($left: ident, $right:ident) => {{
+        let right = $right.map(|x| x.to_string()).unwrap_or_default();
+        let x = $left;
+        Ok(NaslValue::String(format!("{x}{right}")))
+    }};
+}
+
+macro_rules! minus_left_right_string {
+    ($left: ident, $right:ident) => {{
+        let right = $right.map(|x| x.to_string()).unwrap_or_default();
+        let x = $left.to_string();
+        Ok(NaslValue::String(x.replacen(&right, "", 1)))
+    }};
+}
+
+macro_rules! add_left_right_data {
+    ($left: ident, $right:ident) => {{
+        let right = $right.map(|x| x.to_string()).unwrap_or_default();
+        let x: Vec<u8> = $left.into();
+        let x: String = x.into_iter().map(|b| b as char).collect();
+        Ok(NaslValue::Data(format!("{x}{right}").into()))
+    }};
+}
+
+macro_rules! minus_left_right_data {
+    ($left: ident, $right:ident) => {{
+        let right = $right.map(|x| x.to_string()).unwrap_or_default();
+        let x: Vec<u8> = $left.into();
+        let x: String = x.into_iter().map(|b| b as char).collect();
+        Ok(NaslValue::Data(x.replacen(&right, "", 1).into()))
+    }};
+}
+
+impl<'a> OperatorExtension for Interpreter<'a> {
     fn operator(&mut self, category: &TokenCategory, stmts: &[Statement]) -> InterpretResult {
         match category {
             // number and string
             TokenCategory::Plus => self.execute(stmts, |a, b| match a {
-                NaslValue::String(x) => {
-                    let right = b.map(|x| x.to_string()).unwrap_or_default();
-                    Ok(NaslValue::String(format!("{x}{right}")))
-                }
-                NaslValue::Data(x) => {
-                    let right: String = b.map(|x| x.to_string()).unwrap_or_default();
-                    let x: String = x.into_iter().map(|b| b as char).collect();
-                    Ok(NaslValue::String(format!("{x}{right}")))
-                }
-                left => {
-                    let right = b.map(|x| i64::from(&x)).unwrap_or_default();
-                    Ok(NaslValue::Number(i64::from(&left) + right))
-                }
+                NaslValue::String(x) => add_left_right_string!(x, b),
+                NaslValue::Data(x) => add_left_right_data!(x, b),
+                left => match b {
+                    Some(NaslValue::String(_)) => add_left_right_string!(left, b),
+                    Some(NaslValue::Data(_)) => add_left_right_data!(left, b),
+                    _ => {
+                        let right = b.map(|x| i64::from(&x)).unwrap_or_default();
+                        Ok(NaslValue::Number(i64::from(&left) + right))
+                    }
+                },
             }),
             TokenCategory::Minus => self.execute(stmts, |a, b| match a {
-                NaslValue::String(x) => {
-                    let right: String = b.map(|x| x.to_string()).unwrap_or_default();
-                    Ok(NaslValue::String(x.replacen(&right, "", 1)))
-                }
-                NaslValue::Data(x) => {
-                    let right: String = b.map(|x| x.to_string()).unwrap_or_default();
-                    let x: String = x.into_iter().map(|b| b as char).collect();
-                    Ok(NaslValue::String(x.replacen(&right, "", 1)))
-                }
-                left => {
-                    let result = match b {
-                        Some(right) => i64::from(&left) - i64::from(&right),
-                        None => -i64::from(&left),
-                    };
-                    Ok(NaslValue::Number(result))
-                }
+                NaslValue::String(x) => minus_left_right_string!(x, b),
+                NaslValue::Data(x) => minus_left_right_data!(x, b),
+                left => match b {
+                    Some(NaslValue::String(_)) => minus_left_right_string!(left, b),
+                    Some(NaslValue::Data(_)) => minus_left_right_data!(left, b),
+                    _ => {
+                        let result = match b {
+                            Some(right) => i64::from(&left) - i64::from(&right),
+                            None => -i64::from(&left),
+                        };
+                        Ok(NaslValue::Number(result))
+                    }
+                },
             }),
             // number
             TokenCategory::Star => self.execute(stmts, |a, b| num_expr!(* a b)),
@@ -228,10 +250,10 @@ mod tests {
         $(
             #[test]
             fn $name() {
-                let mut register = Register::default();
-                let binding = ContextBuilder::default();
-                let context = binding.build();
-                let mut interpreter = Interpreter::new(&mut register, &context);
+                let register = Register::default();
+                let binding = ContextFactory ::default();
+                let context = binding.build(Default::default(), Default::default());
+                let mut interpreter = Interpreter::new(register, &context);
                 let parser = parse($code).map(|x|
                     interpreter.resolve(&x.expect("unexpected parse error"))
                 );
@@ -242,10 +264,19 @@ mod tests {
     }
     create_test! {
         numeric_plus: "1+2;" => 3.into(),
+        cast_to_string_middle_plus: "1+\"\"+2;" => "12".into(),
+        cast_to_string_end_plus: "1+2+\"\";" => "3".into(),
+        cast_to_string_end_plus_4: "1+2+\"\" + 4;" => "34".into(),
+        cast_to_string_minus: "11-\"1\";" => "1".into(),
         string_plus: "\"hello \" + \"world!\";" => "hello world!".into(),
         string_minus : "\"hello \" - 'o ';" => "hell".into(),
-        data_plus: "'hello ' + 'world!';" => "hello world!".into(),
-        data_minus: "'hello ' - 'o ';" => "hell".into(),
+        data_plus: "'hello ' + 'world!';" => "hello world!".as_bytes().into(),
+        data_minus: "'hello ' - 'o ';" => "hell".as_bytes().into(),
+
+        cast_to_data_middle_plus: "1+''+2;" => "12".as_bytes().into(),
+        cast_to_data_end_plus: "1+2+'';" => "3".as_bytes().into(),
+        cast_to_data_end_plus_4: "1+2+'' + 4;" => "34".as_bytes().into(),
+        cast_to_data_minus: "11-'1';" => "1".as_bytes().into(),
         numeric_minus : "1 - 2;" => NaslValue::Number(-1),
         multiplication: "1*2;" => 2.into(),
         division: "512/2;" => 256.into(),

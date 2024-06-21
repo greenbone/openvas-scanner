@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::sync::RwLock;
 
@@ -64,7 +64,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self.feed_config = Some(config);
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
-            let dispatcher: DefaultDispatcher<String> = DefaultDispatcher::default();
+            let dispatcher: DefaultDispatcher = DefaultDispatcher::default();
             let version =
                 feed::version(&loader, &dispatcher).unwrap_or_else(|_| String::from("UNDEFINED"));
             self.response.set_feed_version(&version);
@@ -218,6 +218,10 @@ pub struct NoOpScanner;
 impl ScanStarter for NoOpScanner {
     async fn start_scan(&self, _: models::Scan) -> Result<(), Error> {
         Ok(())
+    }
+
+    async fn can_start_scan(&self, _: &models::Scan) -> bool {
+        true
     }
 }
 

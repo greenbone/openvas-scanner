@@ -2,12 +2,12 @@
 
 Contains functions that are within the std library of nasl.
 
-To use the std functions it is recommended to use the defined [ContextBuilder] as it sets the function register to the one created in [nasl_std_functions] automatically.
+To use the std functions it is recommended to use the defined [ContextFactory] as it sets the function register to the one created in [nasl_std_functions] automatically.
 
 All you have todo as a user is to create the builder
 
 ```
-let cb = nasl_builtin_std::ContextBuilder::default();
+let cb = nasl_builtin_std::ContextFactory::default();
 ```
 
 and set all but the functions. This will use the DefaultDispatcher as well as an empty String as a key.
@@ -15,8 +15,11 @@ and set all but the functions. This will use the DefaultDispatcher as well as an
 For production use cases it is recommended to use new method and include a key and a storage:
 
 ```
-let key = "test:localhost".to_string();
-let cb = nasl_builtin_std::ContextBuilder::new(key, Box::new(storage::DefaultDispatcher::default()));
+
+let loader = nasl_syntax::FSPluginLoader::new("/feed");
+let logger = nasl_syntax::logger::DefaultLogger::default();
+let storage = storage::DefaultDispatcher::default();
+let cb = nasl_builtin_std::ContextFactory::new(loader, logger, storage);
 ```
 
 ## Add functions to std
@@ -80,16 +83,16 @@ Afterwards you need to create two methods. One for when the library is not inclu
 
 ```
 #[cfg(not(feature = "nasl-builtin-ssh"))]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
     builder
 }
 
 #[cfg(feature = "nasl-builtin-ssh")]
-fn add_ssh<K: AsRef<str>>(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder<K>,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder<K> {
+fn add_ssh(
+    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
+) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
     builder.push_register(nasl_builtin_ssh::Ssh::default())
 }
 

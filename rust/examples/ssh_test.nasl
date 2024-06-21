@@ -2,7 +2,7 @@
 # Some text descriptions might be excerpted from (a) referenced
 # source(s), and are Copyright (C) by the respective right holder(s).
 #
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 ## This shows a simple use case of the nasl ssh functions.
 

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
     fmt::{self, Display, Formatter},
@@ -567,23 +567,23 @@ impl Config {
             config.scheduler.check_interval = Duration::from_millis(*check_interval)
         }
         if let Some(path) = cmds.get_one::<PathBuf>("ospd-socket") {
-            config.scanner.ospd.socket = path.clone();
+            config.scanner.ospd.socket.clone_from(path);
         }
         if let Some(interval) = cmds.get_one::<u64>("read-timeout") {
             config.scanner.ospd.read_timeout = Some(Duration::from_secs(*interval));
         }
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
-            config.feed.path = path.clone();
+            config.feed.path.clone_from(path);
         }
         if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
-            config.notus.products_path = path.clone();
+            config.notus.products_path.clone_from(path);
         }
         if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
-            config.notus.advisories_path = path.clone();
+            config.notus.advisories_path.clone_from(path);
         }
         if let Some(path) = cmds.get_one::<String>("redis-url") {
-            config.storage.redis.url = path.clone();
+            config.storage.redis.url.clone_from(path);
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());
@@ -604,13 +604,13 @@ impl Config {
             config.listener.address = *ip;
         }
         if let Some(log_level) = cmds.get_one::<String>("log-level") {
-            config.log.level = log_level.clone();
+            config.log.level.clone_from(log_level);
         }
         if let Some(stype) = cmds.get_one::<StorageType>("storage_type") {
             config.storage.storage_type = stype.clone();
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
-            config.storage.fs.path = path.clone();
+            config.storage.fs.path.clone_from(path);
         }
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
             config.mode = mode.clone();

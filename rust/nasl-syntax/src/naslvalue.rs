@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
@@ -28,6 +28,22 @@ pub enum NaslValue {
     Null,
     /// Returns value of the context
     Return(Box<NaslValue>),
+    /// Creates n runs for each entry
+    ///
+    /// If the value is more than one element the interpreter creates n - 1 shadow clones from
+    /// itself and will execute each following statement based on each stored instance. This needs
+    /// to be done for downwards compatible reasons. Within `openvas` `get_kb_item` does create for
+    /// each item within found key when it is a list a fork to allow scripts like:
+    /// ```text
+    /// set_kb_item(name: "test", value: 1);
+    /// set_kb_item(name: "test", value: 2);
+    /// set_kb_item(name: "test", value: 3);
+    /// set_kb_item(name: "test", value: 4);
+    /// set_kb_item(name: "test", value: 5);
+    /// display(get_kb_item("test"));
+    /// ```
+    /// to print each kb_item within test.
+    Fork(Vec<NaslValue>),
     /// Signals continuing a loop
     Continue,
     /// Signals a break of a control structure
@@ -99,7 +115,22 @@ impl Display for NaslValue {
             NaslValue::Return(rc) => write!(f, "return({:?})", *rc),
             NaslValue::Continue => write!(f, "continue"),
             NaslValue::Break => write!(f, "break"),
+            NaslValue::Fork(x) => write!(
+                f,
+                "Creates {} runs, for {}",
+                x.len(),
+                x.iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
         }
+    }
+}
+
+impl From<&[u8]> for NaslValue {
+    fn from(value: &[u8]) -> Self {
+        value.to_vec().into()
     }
 }
 
@@ -151,6 +182,29 @@ impl From<HashMap<String, NaslValue>> for NaslValue {
     }
 }
 
+impl From<NaslValue> for Vec<u8> {
+    fn from(value: NaslValue) -> Self {
+        match value {
+            NaslValue::String(x) => x.into(),
+            NaslValue::Data(x) => x,
+            NaslValue::Array(x) => x
+                .iter()
+                .flat_map(<&NaslValue as Into<Vec<u8>>>::into)
+                .collect(),
+            NaslValue::Boolean(_) | NaslValue::Number(_) | NaslValue::Dict(_) => {
+                value.to_string().as_bytes().into()
+            }
+            NaslValue::AttackCategory(_)
+            | NaslValue::Fork(_)
+            | NaslValue::Null
+            | NaslValue::Return(_)
+            | NaslValue::Continue
+            | NaslValue::Break
+            | NaslValue::Exit(_) => vec![],
+        }
+    }
+}
+
 impl From<NaslValue> for bool {
     fn from(value: NaslValue) -> Self {
         match value {
@@ -166,6 +220,7 @@ impl From<NaslValue> for bool {
             NaslValue::Return(_) => true,
             NaslValue::Continue => false,
             NaslValue::Break => false,
+            NaslValue::Fork(v) => v.is_empty(),
         }
     }
 }
@@ -185,6 +240,7 @@ impl From<&NaslValue> for i64 {
             &NaslValue::Return(_) => -1,
             &NaslValue::Continue => 0,
             &NaslValue::Break => 0,
+            NaslValue::Fork(_) => 1,
         }
     }
 }

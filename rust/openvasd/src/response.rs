@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{convert::Infallible, error::Error, pin::Pin, sync::mpsc::Receiver, task::Poll, thread};
 
@@ -261,6 +261,10 @@ impl Response {
         T: ?Sized + Serialize + std::fmt::Debug,
     {
         self.create(hyper::StatusCode::OK, value)
+    }
+
+    pub fn ok_static(&self, value: &[u8]) -> Result {
+        self.ok_json_response(BodyKind::Binary(value.to_vec().into()))
     }
 
     pub fn created<T>(&self, value: &T) -> Result

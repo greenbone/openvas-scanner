@@ -283,8 +283,6 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
           return NULL;
         }
     }
-  //#include <signal.h>
-  // raise(SIGINT);
 
   handle = handle_table[table_slot]->handle;
 

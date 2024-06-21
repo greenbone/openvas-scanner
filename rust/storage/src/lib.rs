@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
@@ -13,12 +13,46 @@ pub mod types;
 use std::{
     fmt::Display,
     io,
-    marker::PhantomData,
     sync::{Arc, PoisonError, RwLock},
 };
 
 use item::NVTField;
 use types::Primitive;
+
+/// Is a key used by a Storage to find data within a certain scope.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ContextKey {
+    /// The context is used within a scan.
+    ///
+    /// This is used to limit kb items or results to a specific scan.
+    Scan(String),
+    /// The context is used within a feed update.
+    ///
+    /// The filename is used to know that a given information belongs to certain nasl script.
+    FileName(String),
+}
+
+impl Default for ContextKey {
+    fn default() -> Self {
+        ContextKey::FileName(Default::default())
+    }
+}
+
+impl From<&str> for ContextKey {
+    fn from(value: &str) -> Self {
+        Self::FileName(value.into())
+    }
+}
+
+impl ContextKey {
+    /// Returns the owned inner value of ContextKey
+    pub fn value(&self) -> String {
+        match self {
+            ContextKey::Scan(x) => x.to_string(),
+            ContextKey::FileName(x) => x.to_string(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(
@@ -135,11 +169,11 @@ impl Display for StorageError {
 impl std::error::Error for StorageError {}
 
 /// Defines the Dispatcher interface to distribute fields
-pub trait Dispatcher<K>: Sync + Send {
+pub trait Dispatcher: Sync + Send {
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError>;
+    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError>;
 
     /// On exit is called when a script exit
     ///
@@ -147,7 +181,12 @@ pub trait Dispatcher<K>: Sync + Send {
     fn on_exit(&self) -> Result<(), StorageError>;
 
     /// Retries a dispatch for the amount of retries when a retrieable error occurs.
-    fn retry_dispatch(&self, retries: usize, key: &K, scope: Field) -> Result<(), StorageError> {
+    fn retry_dispatch(
+        &self,
+        retries: usize,
+        key: &ContextKey,
+        scope: Field,
+    ) -> Result<(), StorageError> {
         match self.dispatch(key, scope.clone()) {
             Ok(r) => Ok(r),
             Err(e) => {
@@ -161,11 +200,11 @@ pub trait Dispatcher<K>: Sync + Send {
     }
 }
 
-impl<K, T> Dispatcher<K> for Arc<T>
+impl<T> Dispatcher for Arc<T>
 where
-    T: Dispatcher<K>,
+    T: Dispatcher,
 {
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
+    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         self.as_ref().dispatch(key, scope)
     }
 
@@ -175,22 +214,22 @@ where
 }
 
 /// Convenience trait to use a dispatcher and retriever implementation
-pub trait Storage<K>: Dispatcher<K> + Retriever<K> {
+pub trait Storage: Dispatcher + Retriever {
     /// Returns a reference to the retriever
-    fn as_retriever(&self) -> &dyn Retriever<K>;
+    fn as_retriever(&self) -> &dyn Retriever;
     /// Returns a reference to the dispatcher
-    fn as_dispatcher(&self) -> &dyn Dispatcher<K>;
+    fn as_dispatcher(&self) -> &dyn Dispatcher;
 }
 
-impl<K, T> Storage<K> for T
+impl<T> Storage for T
 where
-    T: Dispatcher<K> + Retriever<K>,
+    T: Dispatcher + Retriever,
 {
-    fn as_retriever(&self) -> &dyn Retriever<K> {
+    fn as_retriever(&self) -> &dyn Retriever {
         self
     }
 
-    fn as_dispatcher(&self) -> &dyn Dispatcher<K> {
+    fn as_dispatcher(&self) -> &dyn Dispatcher {
         self
     }
 }
@@ -202,23 +241,21 @@ type StoreItem = Vec<(String, Vec<Field>)>;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
 #[derive(Default)]
-pub struct DefaultDispatcher<K> {
+pub struct DefaultDispatcher {
     /// If dirty it will not clean the data on_exit
     dirty: bool,
-    key: PhantomData<K>,
     /// The data storage
     ///
     /// The memory access is managed via an Arc while the Mutex ensures that only one consumer at a time is accessing it.
     data: Arc<RwLock<StoreItem>>,
 }
 
-impl<K> DefaultDispatcher<K> {
+impl DefaultDispatcher {
     /// Creates a new DefaultDispatcher
     pub fn new(dirty: bool) -> Self {
         Self {
             dirty,
             data: Default::default(),
-            key: PhantomData,
         }
     }
 
@@ -231,17 +268,13 @@ impl<K> DefaultDispatcher<K> {
     }
 }
 
-impl<K> Dispatcher<K> for DefaultDispatcher<K>
-where
-    K: AsRef<str> + Display + Default + From<String> + Send + Sync,
-{
-    fn dispatch(&self, key: &K, scope: Field) -> Result<(), StorageError> {
+impl Dispatcher for DefaultDispatcher {
+    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.data).write()?;
-        match data.iter_mut().find(|(k, _)| k.as_str() == key.as_ref()) {
+        match data.iter_mut().find(|(k, _)| k == &key.value()) {
             Some((_, v)) => v.push(scope),
-            None => data.push((key.as_ref().to_owned(), vec![scope])),
+            None => data.push((key.value(), vec![scope])),
         }
-        tracing::trace!("Keys: {}", data.len());
         Ok(())
     }
 
@@ -278,18 +311,15 @@ impl<T> Iterator for InMemoryDataWrapper<T> {
     }
 }
 
-impl<K> Retriever<K> for DefaultDispatcher<K>
-where
-    K: AsRef<str> + Display + Default + From<String> + 'static,
-{
+impl Retriever for DefaultDispatcher {
     fn retrieve(
         &self,
-        key: &K,
+        key: &ContextKey,
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         let data = Arc::as_ref(&self.data).read()?;
         let data = InMemoryDataWrapper::new(data.clone());
-        let skey = key.to_string();
+        let skey = key.value();
         Ok(Box::new(
             data.into_iter()
                 .filter(move |(k, _)| k == &skey)
@@ -302,18 +332,27 @@ where
         &self,
         field: Field,
         scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         let data = Arc::as_ref(&self.data).read()?;
-        tracing::debug!("Entries: {:?}", data.len());
         let data = InMemoryDataWrapper::new(data.clone());
         let result = data
             .into_iter()
             .filter(move |(_, v)| v.contains(&field))
             .flat_map(move |(k, v)| {
                 let scope = scope.clone();
+                let scope2 = scope.clone();
                 v.into_iter()
                     .filter(move |v| scope.for_field(v))
-                    .map(move |v| (K::from(k.clone()), v))
+                    .map(move |v| {
+                        (
+                            match &scope2 {
+                                Retrieve::NVT(_) => ContextKey::FileName(k.clone()),
+                                Retrieve::KB(_) => ContextKey::Scan(k.clone()),
+                                Retrieve::NotusAdvisory(_) => ContextKey::FileName(k.clone()),
+                            },
+                            v,
+                        )
+                    })
             });
         Ok(Box::new(result))
     }
@@ -330,7 +369,7 @@ mod tests {
     #[test]
     pub fn default_storage() -> Result<(), StorageError> {
         let storage = DefaultDispatcher::default();
-        let key: String = Default::default();
+        let key = ContextKey::FileName(String::new());
         storage.dispatch(&key, NVT(Oid("moep".to_owned())))?;
         assert_eq!(
             storage

@@ -1,6 +1,6 @@
 // Copyright (C) 2023 Greenbone Networks GmbH
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines NASL packet forgery functions
 
@@ -119,10 +119,7 @@ fn safe_copy_from_slice(
 /// - ip_v is: the IP version. 4 by default.
 ///
 /// Returns the IP datagram or NULL on error.
-fn forge_ip_packet<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let dst_addr = get_host_ip(configs)?;
 
     if dst_addr.is_ipv6() {
@@ -269,9 +266,9 @@ fn forge_ip_packet<K>(
 /// - ip_v: IP version, 4 by default
 ///  
 /// Returns the modified IP datagram
-fn set_ip_elements<K>(
+fn set_ip_elements(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let mut buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -369,10 +366,7 @@ fn set_ip_elements<K>(
 /// - ip_sum
 /// - ip_src
 /// - ip_dst
-fn get_ip_element<K>(
-    register: &Register,
-    _configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
@@ -407,10 +401,7 @@ fn get_ip_element<K>(
 }
 
 /// Receive a list of IP packets and print them in a readable format in the screen.
-fn dump_ip_packet<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -498,9 +489,9 @@ fn dump_ip_packet<K>(
 /// - code: is the identifier of the option to add
 /// - length: is the length of the option data
 /// - value: is the option data
-fn insert_ip_options<K>(
+fn insert_ip_options(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -595,9 +586,9 @@ fn insert_ip_options<K>(
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 ///  
 /// The modified IP datagram or NULL on error.
-fn forge_tcp_packet<K>(
+fn forge_tcp_packet(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -718,9 +709,9 @@ fn forge_tcp_packet<K>(
 /// - data
 ///  
 /// Returns an TCP element from a IP datagram.
-fn get_tcp_element<K>(
+fn get_tcp_element(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -766,10 +757,7 @@ fn get_tcp_element<K>(
 /// - 8: TCPOPT_TIMESTAMP, 8 bytes value for timestamp and echo timestamp, 4 bytes each one.
 ///  
 /// The returned option depends on the given *option* parameter. It is either an int for option 2, 3 and 4 or an array containing the two values for option 8.
-fn get_tcp_option<K>(
-    register: &Register,
-    _configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
@@ -847,9 +835,9 @@ fn get_tcp_option<K>(
 /// - th_win: is the TCP window size. NASL will convert it into network order if necessary. 0 by default.
 /// - th_x2: is a reserved field and should probably be left unchanged. 0 by default.
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
-fn set_tcp_elements<K>(
+fn set_tcp_elements(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -992,9 +980,9 @@ fn set_tcp_elements<K>(
 /// - 3: TCPOPT_WINDOW, with values between 0 and 14
 /// - 4: TCPOPT_SACK_PERMITTED, no value required.
 /// - 8: TCPOPT_TIMESTAMP, 8 bytes value for timestamp and echo timestamp, 4 bytes each one.
-fn insert_tcp_options<K>(
+fn insert_tcp_options(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -1177,10 +1165,7 @@ fn insert_tcp_options<K>(
 }
 
 /// Receive a list of IPv4 datagrams and print their TCP part in a readable format in the screen.
-fn dump_tcp_packet<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_tcp_packet(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Err(FunctionErrorKind::Dirty(
@@ -1342,9 +1327,9 @@ fn dump_tcp_packet<K>(
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 
 /// Returns the modified IP datagram or NULL on error.
-fn forge_udp_packet<K>(
+fn forge_udp_packet(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -1428,9 +1413,9 @@ fn forge_udp_packet<K>(
 /// - uh_sport: is the source port. NASL will convert it into network order if necessary. 0 by default.
 /// - uh_sum: is the UDP checksum. Although it is not compulsory, the right value is computed by default.
 /// - uh_ulen: is the data length. By default it is set to the length the data argument plus the size of the UDP header.
-fn set_udp_elements<K>(
+fn set_udp_elements(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("udp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -1538,10 +1523,7 @@ fn set_udp_elements<K>(
 }
 
 /// Receive a list of IPv4 datagrams and print their UDP part in a readable format in the screen.
-fn dump_udp_packet<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_udp_packet(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Err(FunctionErrorKind::Dirty(
@@ -1606,9 +1588,9 @@ fn dump_udp_packet<K>(
 /// - uh_ulen
 /// - uh_sum
 /// - data
-fn get_udp_element<K>(
+fn get_udp_element(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("udp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -1646,9 +1628,9 @@ fn get_udp_element<K>(
 /// - *icmp_seq*: ICMP sequence number.
 /// - *icmp_type*: ICMP type. 0 by default.
 /// - *update_ip_len*: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
-fn forge_icmp_packet<K>(
+fn forge_icmp_packet(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -1744,9 +1726,9 @@ fn forge_icmp_packet<K>(
 /// - icmp_seq
 /// - icmp_chsum
 /// - icmp_data
-fn get_icmp_element<K>(
+fn get_icmp_element(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let buf = match register.named("icmp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -1805,9 +1787,9 @@ fn get_icmp_element<K>(
 }
 
 /// Receive a list of IPv4 ICMP packets and print them in a readable format in the screen.
-fn dump_icmp_packet<K>(
+fn dump_icmp_packet(
     register: &Register,
-    configs: &Context<K>,
+    configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
@@ -1947,9 +1929,9 @@ pub mod igmp {
 /// - group: IGMP group
 /// - type: IGMP type. 0 by default.
 /// - update_ip_len: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
-fn forge_igmp_packet<K>(
+fn forge_igmp_packet(
     register: &Register,
-    _configs: &Context<K>,
+    _configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
@@ -2055,10 +2037,7 @@ fn new_raw_socket() -> Result<Socket, FunctionErrorKind> {
 ///  
 /// Its argument is:
 /// - port: port for the ping
-fn nasl_tcp_ping<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -2194,9 +2173,9 @@ fn nasl_tcp_ping<K>(
 /// - pcap_filter: BPF filter used for the answers
 /// - pcap_timeout: time to wait for the answers in seconds, 5 by default
 /// - allow_broadcast: default FALSE
-fn nasl_send_packet<K>(
+fn nasl_send_packet(
     register: &Register,
-    configs: &Context<K>,
+    configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let use_pcap = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
@@ -2324,10 +2303,7 @@ fn nasl_send_packet<K>(
 /// - interface: network interface name, by default NASL will try to find the best one
 /// - pcap_filter: BPF filter, by default it listens to everything
 /// - timeout: timeout in seconds, 5 by default
-fn nasl_pcap_next<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_pcap_next(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_send_capture(register, configs)
 }
 
@@ -2336,9 +2312,9 @@ fn nasl_pcap_next<K>(
 /// - interface: network interface name, by default NASL will try to find the best one
 /// - pcap_filter: BPF filter, by default it listens to everything
 /// - timeout: timeout in seconds, 5 by default
-fn nasl_send_capture<K>(
+fn nasl_send_capture(
     register: &Register,
-    configs: &Context<K>,
+    configs: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let interface = match register.named("interface") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
@@ -2445,7 +2421,7 @@ pub fn expose_vars() -> NaslVars<'static> {
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "forge_ip_packet" => Some(forge_ip_packet),
         "set_ip_elements" => Some(set_ip_elements),

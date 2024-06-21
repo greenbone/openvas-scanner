@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::HashMap;
 
@@ -170,6 +170,7 @@ where
             Product::EBuild(adv) => Self::parse_and_compare(packages, adv)?,
             Product::Rpm(adv) => Self::parse_and_compare(packages, adv)?,
             Product::Slack(adv) => Self::parse_and_compare(packages, adv)?,
+            Product::Windows(adv) => Self::parse_and_compare(packages, adv)?,
         };
 
         Ok(results)

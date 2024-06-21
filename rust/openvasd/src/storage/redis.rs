@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -43,7 +43,7 @@ impl<T> Storage<T> {
             let loader = FSPluginLoader::new(notus_feed_path);
             let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
 
-            let redis_cache: CacheDispatcher<RedisCtx, String> =
+            let redis_cache: CacheDispatcher<RedisCtx> =
                 redis_storage::CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
             let store = PerItemDispatcher::new(redis_cache);
             for filename in advisories_files.get_advisories()?.iter() {
@@ -55,10 +55,13 @@ impl<T> Storage<T> {
                         famile: advisories.family.clone(),
                         filename: filename.to_owned(),
                     };
-                    store.dispatch(&"".to_string(), Field::NotusAdvisory(Box::new(Some(data))))?;
+                    store.dispatch(
+                        &Default::default(),
+                        Field::NotusAdvisory(Box::new(Some(data))),
+                    )?;
                 }
             }
-            store.dispatch(&"".to_string(), Field::NotusAdvisory(Box::new(None)))?;
+            store.dispatch(&Default::default(), Field::NotusAdvisory(Box::new(None)))?;
             tracing::debug!("finished notus feed update");
             Ok(())
         })
@@ -74,10 +77,10 @@ impl<T> Storage<T> {
             let loader = FSPluginLoader::new(nasl_feed_path);
             let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
-            let redis_cache: CacheDispatcher<RedisCtx, String> =
+            let redis_cache: CacheDispatcher<RedisCtx> =
                 redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
             let store = PerItemDispatcher::new(redis_cache);
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 Err(Error::from(x))
             } else {
@@ -170,7 +173,7 @@ where
             let mut h = self.hash.write().await;
             for ha in h.iter_mut() {
                 if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
-                    ha.hash = nh.hash.clone()
+                    ha.hash.clone_from(&nh.hash)
                 }
             }
         }

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use nasl_syntax::{IdentifierType, Statement, Token, TokenCategory};
 
@@ -61,10 +61,7 @@ pub(crate) trait LoopExtension {
 
 /// Implementation for the Loop extension. Note that for all loops, we do not
 /// change the context, as the current NASL also does not change it too.
-impl<'a, K> LoopExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> LoopExtension for Interpreter<'a> {
     fn for_loop(
         &mut self,
         assignment: &Statement,
@@ -112,7 +109,8 @@ where
         // Iterate through the iterable Statement
         for val in Vec::<NaslValue>::from(self.resolve(iterable)?) {
             // Change the value of the iteration variable after each iteration
-            self.registrat.add_local(iter_name, ContextType::Value(val));
+            self.register_mut()
+                .add_local(iter_name, ContextType::Value(val));
 
             // Execute loop body
             let ret = self.resolve(body)?;
@@ -179,10 +177,10 @@ mod tests {
         }
         a;
         "###;
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut register = Register::default();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let register = Register::default();
+        let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
@@ -199,10 +197,10 @@ mod tests {
         }
         a;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
@@ -221,10 +219,10 @@ mod tests {
         }
         a;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(3.into())));
@@ -247,10 +245,10 @@ mod tests {
         a;
         i;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(4.into())));
@@ -274,10 +272,10 @@ mod tests {
         a;
         i;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(10.into())));
@@ -306,10 +304,10 @@ mod tests {
         a;
         i;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
         assert_eq!(interpreter.next(), Some(Ok(0.into())));

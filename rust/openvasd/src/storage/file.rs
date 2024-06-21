@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
     ops::Deref,
@@ -79,7 +79,7 @@ impl<S> Storage<S> {
                 storage: cache,
                 feed_version,
             });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 tracing::debug!("{}", x);
                 Err(Error::from(x))
@@ -416,7 +416,7 @@ struct Dispa {
     feed_version: Arc<std::sync::RwLock<String>>,
 }
 
-impl ItemDispatcher<String> for Dispa {
+impl ItemDispatcher for Dispa {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
         let mut storage = self.storage.write().unwrap();
         let oid = nvt.oid.clone();
@@ -451,7 +451,7 @@ where
             let mut h = self.hash.write().await;
             for ha in h.iter_mut() {
                 if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
-                    ha.hash = nh.hash.clone()
+                    ha.hash.clone_from(&nh.hash)
                 }
             }
         }
@@ -630,7 +630,7 @@ mod tests {
         );
         memory_storage.synchronize_feeds(feeds).await.unwrap();
         let amount_memory_oids = memory_storage.oids().await.unwrap().count();
-        assert_eq!(amount_memory_oids, 2);
+        assert_eq!(amount_memory_oids, 4);
         assert_eq!(amount_memory_oids, amount_file_oids);
     }
 

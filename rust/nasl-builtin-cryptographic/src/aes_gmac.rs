@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::NaslFunction;
 
@@ -8,9 +8,9 @@ use crate::NaslFunction;
 ///
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 #[cfg(feature = "nasl-c-lib")]
-fn aes_gmac<K>(
+fn aes_gmac(
     register: &nasl_builtin_utils::Register,
-    _: &nasl_builtin_utils::Context<K>,
+    _: &nasl_builtin_utils::Context,
 ) -> Result<nasl_syntax::NaslValue, nasl_builtin_utils::FunctionErrorKind> {
     use crate::{get_data, get_iv, get_key};
     use nasl_c_lib::cryptographic::mac::aes_gmac;
@@ -31,7 +31,7 @@ fn aes_gmac<K>(
 }
 
 #[cfg(feature = "nasl-c-lib")]
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "aes_mac_gcm" => Some(aes_gmac),
         "aes_gmac" => Some(aes_gmac),
@@ -40,6 +40,6 @@ pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
 }
 
 #[cfg(not(feature = "nasl-c-lib"))]
-pub fn lookup<K>(_: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(_: &str) -> Option<NaslFunction> {
     None
 }

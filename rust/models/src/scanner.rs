@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
 
@@ -26,6 +26,11 @@ pub struct ScanResults {
 pub trait ScanStarter {
     /// Starts a scan
     async fn start_scan(&self, scan: Scan) -> Result<(), Error>;
+
+    /// Returns true when the Scanner can start a scan.
+    async fn can_start_scan(&self, _: &Scan) -> bool {
+        true
+    }
 }
 
 /// Stops a scan
@@ -67,6 +72,7 @@ pub struct Lambda {
     stop: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
     delete: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
     fetch: Box<dyn Fn(&str) -> Result<ScanResults, Error> + Sync + Send + 'static>,
+    can_start: Box<dyn Fn(&Scan) -> bool + Sync + Send + 'static>,
 }
 
 impl Default for Lambda {
@@ -76,11 +82,12 @@ impl Default for Lambda {
             stop: Box::new(|_| Ok(())),
             delete: Box::new(|_| Ok(())),
             fetch: Box::new(|_| Ok(ScanResults::default())),
+            can_start: Box::new(|_| true),
         }
     }
 }
 
-/// Builds a Lambda scanenr implementation.
+/// Builds a Lambda scanner implementation.
 ///
 /// Usage:
 /// ```
@@ -137,6 +144,14 @@ impl LambdaBuilder {
         self
     }
 
+    pub fn with_can_start<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&Scan) -> bool + Sync + Send + 'static,
+    {
+        self.lambda.can_start = Box::new(f);
+        self
+    }
+
     pub fn build(self) -> Lambda {
         self.lambda
     }
@@ -146,6 +161,10 @@ impl LambdaBuilder {
 impl ScanStarter for Lambda {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         (self.start)(scan)
+    }
+
+    async fn can_start_scan(&self, scan: &Scan) -> bool {
+        (self.can_start)(scan)
     }
 }
 
@@ -186,9 +205,27 @@ pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {
 impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum ObservableResources {
+    CPU,
+    Memory,
+    IO,
+}
+
+impl std::fmt::Display for ObservableResources {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CPU => write!(f, "CPU"),
+            Self::Memory => write!(f, "Memory"),
+            Self::IO => write!(f, "IO"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     Unexpected(String),
     Connection(String),
+    InsufficientResources(Vec<ObservableResources>),
     Poisoned,
 }
 
@@ -199,6 +236,14 @@ impl std::fmt::Display for Error {
         match self {
             Self::Unexpected(x) => write!(f, "Unexpecdted issue: {x}"),
             Self::Connection(x) => write!(f, "Connection issue: {x}"),
+            Self::InsufficientResources(x) => write!(
+                f,
+                "Not enough resources of {}",
+                x.iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
             _ => write!(f, "{:?}", self),
         }
     }

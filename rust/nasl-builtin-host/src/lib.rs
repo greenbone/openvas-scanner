@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{net::IpAddr, str, str::FromStr};
 
@@ -37,7 +37,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionErrorKind> {
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-fn get_host_names<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -45,12 +45,12 @@ fn get_host_names<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, F
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-fn get_host_name<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     resolve_hostname(register).map(NaslValue::String)
 }
 
 /// Return the target's IP address as IpAddr.
-pub fn get_host_ip<K>(context: &Context<K>) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = match context.target() {
         x if !x.is_empty() => IpAddr::from_str(x),
@@ -64,16 +64,16 @@ pub fn get_host_ip<K>(context: &Context<K>) -> Result<IpAddr, FunctionErrorKind>
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
-fn nasl_get_host_ip<K>(
+fn nasl_get_host_ip(
     _register: &Register,
-    context: &Context<K>,
+    context: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let ip = get_host_ip(context)?;
     Ok(NaslValue::String(ip.to_string()))
 }
 
 /// Returns found function for key or None when not found
-fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "get_host_name" => Some(get_host_name),
         "get_host_names" => Some(get_host_names),
@@ -85,17 +85,17 @@ fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
 /// The description builtin function
 pub struct Host;
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Host {
+impl nasl_builtin_utils::NaslFunctionExecuter for Host {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         lookup(name).map(|x| x(register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup::<K>(name).is_some()
+        lookup(name).is_some()
     }
 }

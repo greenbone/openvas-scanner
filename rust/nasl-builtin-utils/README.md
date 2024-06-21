@@ -8,12 +8,12 @@ To create a builtin function you have to implement the [NaslFunctionExecuter] tr
 
 use nasl_builtin_utils::{Context, Register, NaslFunctionExecuter, NaslResult, get_named_parameter};
 struct Test;
-impl NaslFunctionExecuter<String> for Test {
+impl NaslFunctionExecuter for Test {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        _context: &Context<String>,
+        _context: &Context,
     ) -> Option<NaslResult> {
         match name {
             "test" => {
@@ -46,12 +46,12 @@ If you want to construct it manually (e.g. for testing) you can do it by creatin
 use nasl_builtin_utils::*;
 
 struct Test;
-impl NaslFunctionExecuter<String> for Test {
+impl NaslFunctionExecuter for Test {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        _context: &Context<String>,
+        _context: &Context,
     ) -> Option<NaslResult> {
         match name {
             "test" => {
@@ -73,13 +73,13 @@ impl NaslFunctionExecuter<String> for Test {
 }
 
 
-let key = "test".to_owned();
-let target = "localhost";
+let key = "test".into();
+let target = "localhost".into();
 let storage = storage::DefaultDispatcher::default();
 let loader = nasl_syntax::NoOpLoader::default();
 let logger = nasl_syntax::logger::DefaultLogger::default();
 let context =
-    Context::new(&key, target, &storage, &storage, &loader, &logger, &Test);
+    Context::new(key, target, &storage, &storage, &loader, &logger, &Test);
 let mut register = Register::default();
 register.add_local("a", 1.into());
 register.add_local("b", 2.into());

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #[cfg(test)]
 mod test {
@@ -54,9 +54,9 @@ mod test {
             Err(x) => panic!("expected to contain current_exe: {x:?}"),
         };
         let loader = FSPluginLoader::new(&root);
-        let storage: DefaultDispatcher<String> = DefaultDispatcher::new(true);
+        let storage: DefaultDispatcher = DefaultDispatcher::new(true);
         let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
-        let updater = Update::init("1", 1, loader.clone(), storage, verifier);
+        let updater = Update::init("1", 1, &loader, &storage, verifier);
         let files = updater.filter_map(|x| x.ok()).collect::<Vec<String>>();
         // feed version and filename of script
         assert_eq!(

@@ -40,7 +40,7 @@ spec:
         emptyDir: {}
       - name: ospd-socket
         emptyDir: {}
-      - name: ospd-logs
+      - name: openvas-logs
         emptyDir: {}
       {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
       - name: ingress-certificate
@@ -82,15 +82,8 @@ spec:
             mountPath: /mnt/notus
         env:
           - name: MOUNT_PATH 
-            value: "/mnt/notus"
-      - name: mqtt-broker-openvas-fix
-        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
-        imagePullPolicy: Always
-        volumeMounts:
-          - name: openvas-config
-            mountPath: /mnt/ovc
-        command: ['sh', '-c']
-        args: ["sed 's/mqtt-broker/localhost/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]
+            value: "/mnt/notus" 
+      {{- if eq .Values.openvasd.scanner_type "ospd" }}
       - name: ospd-disable-notus-hashsum-verification #since can mount local volumes which may be altered we have to disable hashsum verification for notus  
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
@@ -103,14 +96,42 @@ spec:
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
         volumeMounts:
-          - name: ospd-logs
+          - name: openvas-logs
             mountPath: /mnt/ovc
         command: ['sh', '-c']
         args: ["touch /mnt/ovc/openvas.log && chown ospd-openvas:ospd-openvas /mnt/ovc/openvas.log"]
-      containers:
-      - name: broker
-        image: "{{ .Values.mqtt.repository }}:{{ .Values.mqtt.tag }}"
+      - name: mqtt-broker-openvas-fix
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
+        volumeMounts:
+          - name: openvas-config
+            mountPath: /mnt/ovc
+        command: ['sh', '-c']
+        args: ["sed 's/mqtt-broker/localhost/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]
+      {{ else }}
+      - name: create-dummy-openvas-log
+        image: "{{ .Values.openvas.repository }}:{{ .Values.openvas.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: openvas-logs
+            mountPath: /mnt/ovc
+        command: ['sh', '-c']
+        args: ["touch /mnt/ovc/openvas.log"]
+      - name: mqtt-broker-openvas-fix
+        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: openvas-config
+            mountPath: /mnt/ovc
+        command: ['sh', '-c']
+        {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
+        args: ["sed 's/mqtt_server_uri = .*/openvasd_server = https:\\/\\/localhost:443/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]          
+        {{ else }}
+        args: ["sed 's/mqtt_server_uri = .*/openvasd_server = http:\\/\\/localhost:80/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]          
+        {{ end }}
+
+      {{ end }} 
+      containers:
       - name: redis
         image: "{{ .Values.redis.repository }}:{{ .Values.redis.tag }}"
         imagePullPolicy: Always
@@ -120,8 +141,10 @@ spec:
       # although the main purpose is to display openvas logs 
       # we make it as ospd so that there is a container running
       # to play around
+      {{- if eq .Values.openvasd.scanner_type "ospd"}}
       - name: openvas
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
+
         imagePullPolicy: Always
         command: [ "tail", "-f", "/var/log/gvm/openvas.log" ]
         volumeMounts:
@@ -135,15 +158,113 @@ spec:
           mountPath: /var/lib/notus
         - name: openvas-config
           mountPath: /etc/openvas
-        - name: ospd-config
-          mountPath: /etc/gvm/
-        - name: ospd-logs
+        {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
+        - mountPath: "/etc/openvasd/tls/"
+          name: ingress-certificate
+          readOnly: true
+        {{ end }}
+        {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
+        - mountPath: "/etc/openvasd/clientcerts"
+          name: client-certs
+          readOnly: true
+        {{ end }}
+        - name: openvas-logs
           mountPath: /var/log/gvm
         securityContext:
           capabilities:
             add:
               - NET_ADMIN
               - NET_RAW
+      {{ else }}
+     # openvas log replicate
+      - name: openvas
+        image: "{{ .Values.openvas.repository }}:{{ .Values.openvas.tag }}"
+        imagePullPolicy: Always
+        command: [ "tail", "-f", "/var/log/gvm/openvas.log" ]
+        volumeMounts:
+        - name: redis-socket
+          mountPath: /run/redis
+        - name: nasl-plugins
+          mountPath: /var/lib/openvas/plugins
+        - name: notus-data
+          mountPath: /var/lib/notus
+        - name: openvas-config
+          mountPath: /etc/openvas
+        - name: ospd-socket
+          mountPath: /run/ospd/
+        {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
+        - mountPath: "/etc/openvasd/tls/"
+          name: ingress-certificate
+          readOnly: true
+        {{ end }}
+        {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
+        - mountPath: "/etc/openvasd/clientcerts"
+          name: client-certs
+          readOnly: true
+        {{ end }}
+        - name: openvas-logs
+          mountPath: /var/log/gvm
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+        env:
+          {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
+          - name: LISTENING
+            value: "0.0.0.0:443"
+          {{ else }}
+          - name: LISTENING
+            value: "0.0.0.0:80"
+          {{ end }}
+          - name: OPENVASD_LOG
+            value: {{ .Values.openvasd.loglevel | default "INFO" }} 
+          {{ with .Values.openvasd.apikey }}
+          - name: API_KEY
+            value: {{.}}
+          {{ end }}
+          {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
+          - name: TLS_CERTS
+            value: "/etc/openvasd/tls/certs.pem"
+          - name: TLS_KEY
+            value: "/etc/openvasd/tls/key.pem"
+          {{ end }}
+          {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
+          - name: TLS_CLIENT_CERTS
+            value: "/etc/openvasd/clientcerts/"
+          {{ end }}
+          - name: FEED_PATH
+            value: /var/lib/openvas/plugins
+          # - name: FEED_CHECK_INTERVAL
+          #   value: 3600
+          - name: NOTUS_ADVISORIES
+            value: /var/lib/notus/advisories
+          - name: NOTUS_PRODUCTS
+            value: /var/lib/notus/products
+          - name: ENABLE_GET_SCANS
+            value: "true"
+          - name: SCANNER_TYPE
+            value: {{ .Values.openvasd.scanner_type  }}
+          - name: STORAGE_TYPE
+            value: "redis"
+          - name: REDIS_URL
+            value: "unix:///run/redis/redis.sock"
+          # - name: MAX_QUEUED_SCANS
+          #   value: "TBD"
+          # - name: MAX_RUNNING_SCANS
+          #   value: "TBD"
+          # - name: MIN_FREE_MEMORY
+          #   value: "TBD"
+          # - name: SCHEDULER_CHECK_INTERVAL
+          #   value: "TBD"
+          # - name: READ_TIMEOUT
+          #   value: "TBD"
+          # - name: RESULT_CHECK_INTERVAL
+          #   value: "TBD"
+          - name: OPENVASD_MODE
+            value: "service"
+      {{ end }}
+     # openvas log replicate end
       - name: openvasd
         image: "{{ .Values.openvas.repository }}:{{ .Values.openvas.tag }}"
         imagePullPolicy: Always
@@ -158,6 +279,8 @@ spec:
           mountPath: /etc/openvas
         - name: ospd-socket
           mountPath: /run/ospd/
+        - name: openvas-logs
+          mountPath: /var/log/gvm
         {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
         - mountPath: "/etc/openvasd/tls/"
           name: ingress-certificate
@@ -207,6 +330,48 @@ spec:
           - name: TLS_CLIENT_CERTS
             value: "/etc/openvasd/clientcerts/"
           {{ end }}
+          - name: FEED_PATH
+            value: /var/lib/openvas/plugins
+          # - name: FEED_CHECK_INTERVAL
+          #   value: 3600
+          - name: NOTUS_ADVISORIES
+            value: /var/lib/notus/advisories
+          - name: NOTUS_PRODUCTS
+            value: /var/lib/notus/products
+          - name: ENABLE_GET_SCANS
+            value: "true"
+          - name: SCANNER_TYPE
+            value: {{ .Values.openvasd.scanner_type }}
+          {{- if eq .Values.openvasd.scanner_type "ospd" }}
+          - name: OSPD_SOCKET
+            value: "/run/ospd/"
+          - name: STORAGE_TYPE
+            value: "in_memory"
+          # - name: STORAGE_PATH
+          #   value: "TBD"
+          # - name: STORAGE_KEY
+          #   value: "TBD"
+          {{ else }}
+          - name: STORAGE_TYPE
+            value: "redis"
+          - name: REDIS_URL
+            value: "unix:///run/redis/redis.sock"
+          {{ end }}
+          # - name: MAX_QUEUED_SCANS
+          #   value: "TBD"
+          # - name: MAX_RUNNING_SCANS
+          #   value: "TBD"
+          # - name: MIN_FREE_MEMORY
+          #   value: "TBD"
+          # - name: SCHEDULER_CHECK_INTERVAL
+          #   value: "TBD"
+          # - name: READ_TIMEOUT
+          #   value: "TBD"
+          # - name: RESULT_CHECK_INTERVAL
+          #   value: "TBD"
+          - name: OPENVASD_MODE
+            value: "service"
+      {{- if eq .Values.openvasd.scanner_type "ospd" }}
       - name: ospd
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
@@ -223,20 +388,14 @@ spec:
           mountPath: /etc/gvm/
         - name: ospd-socket
           mountPath: /run/ospd/
-        - name: ospd-logs
+        - name: openvas-logs
           mountPath: /var/log/gvm
         securityContext:
           capabilities:
             add:
               - NET_ADMIN
               - NET_RAW
-      - name: notus
-        image: "{{ .Values.notus.repository }}:{{ .Values.notus.tag }}"
-        imagePullPolicy: Always
-        volumeMounts:
-        - name: notus-data
-          mountPath: /var/lib/notus
-        command: ["notus-scanner", "-f", "--disable-hashsum-verification=True"]
+      {{ end }}
       # what does it mean?
       {{- with .Values.nodeSelector }}
       nodeSelector:

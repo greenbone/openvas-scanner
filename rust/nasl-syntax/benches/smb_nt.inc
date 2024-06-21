@@ -1,3 +1,5 @@
+# This file is neither compiled into a distribution nor is it part of the distribution.
+# The sole purpose is to test the scanner during build time.
 # SPDX-FileCopyrightText: 2004 Anonymous
 # Some text descriptions might be excerpted from (a) referenced
 # source(s), and are Copyright (C) by the respective right holder(s).

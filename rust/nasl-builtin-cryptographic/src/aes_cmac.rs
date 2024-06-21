@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use aes::Aes128;
 use cmac::{Cmac, Mac};
@@ -15,7 +15,7 @@ use crate::{get_data, get_key, NaslFunction};
 /// This function expects 2 named arguments key and data either in a string or data type.
 /// It is important to notice, that internally the CMAC algorithm is used and not, as the name
 /// suggests, CBC-MAC.
-fn aes_cmac<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let key = get_key(register)?;
     let data = get_data(register)?;
 
@@ -26,7 +26,7 @@ fn aes_cmac<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functio
     Ok(mac.finalize().into_bytes().to_vec().into())
 }
 
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "aes_mac_cbc" => Some(aes_cmac),
         "aes_cmac" => Some(aes_cmac),

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use nasl_syntax::{LoadError, Loader};
 
@@ -72,18 +72,24 @@ if(description)
             "description".to_owned(),
             ContextType::Value(NaslValue::Number(1)),
         )];
-        let mut register = Register::root_initial(&initial);
+        let register = Register::root_initial(&initial);
         let logger = DefaultLogger::default();
-        let key = "test.nasl".to_owned();
+        let key: storage::ContextKey = "test.nasl".into();
         let target = String::new();
         let functions = nasl_builtin_std::nasl_std_functions();
         let ctxconfigs = Context::new(
-            &key, &target, &storage, &storage, &loader, &logger, &functions,
+            key.clone(),
+            target,
+            &storage,
+            &storage,
+            &loader,
+            &logger,
+            &functions,
         );
-        let mut interpreter = Interpreter::new(&mut register, &ctxconfigs);
+        let mut interpreter = Interpreter::new(register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {
-                Ok(stmt) => interpreter.resolve(&stmt),
+                Ok(stmt) => interpreter.retry_resolve_next(&stmt, 1),
                 Err(r) => Err(InterpretError::from(r)),
             })
             .last()
@@ -97,7 +103,7 @@ if(description)
                 .collect::<Vec<_>>(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
-                NVT(FileName(key)),
+                NVT(FileName(key.value())),
                 NVT(NoOp),
                 NVT(Tag(CreationDate, TagValue::Number(1366091481))),
                 NVT(Name("that is a very long and descriptive name".to_owned())),

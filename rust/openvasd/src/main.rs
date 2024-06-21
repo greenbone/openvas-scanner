@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
@@ -13,6 +13,7 @@ pub mod controller;
 pub mod crypt;
 pub mod feed;
 pub mod notus;
+pub mod preference;
 pub mod request;
 pub mod response;
 mod scheduling;
@@ -157,9 +158,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let redis_url = openvas::cmd::get_redis_socket();
             if redis_url != config.storage.redis.url {
                 tracing::warn!(openvas_redis=&redis_url, openvasd_redis=&config.storage.redis.url, "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url");
-                config.storage.redis.url = redis_url;
+                config.storage.redis.url.clone_from(&redis_url);
             }
-            run(openvas::Scanner::default(), &config).await
+            run(
+                openvas::Scanner::new(
+                    config.scheduler.min_free_mem,
+                    None,
+                    openvas::cmd::check_sudo(),
+                    redis_url,
+                ),
+                &config,
+            )
+            .await
         }
     }
 }

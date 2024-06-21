@@ -89,6 +89,27 @@ paths:
                 get_actions:
                   $ref: "#/components/examples/scan_actions"
 
+  /scans/preferences:
+    get:
+      description: "Get all preferences available for a scan. These can be set, when creating a scan via scan_preferences."
+      operationId: "get_preferences"
+      tags:
+        - "scan"
+      requestBody:
+        description: "Get Preferences"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Preferences"
+            examples:
+              preferences:
+                $ref: "#/components/examples/preferences"
+      responses:
+        "204":
+          description: "Scan Preferences received"
+        "400":
+          description: "Bad request"
+
   /scans/{id}:
     get:
       description: "Get a scan from the scan manager."
@@ -152,22 +173,22 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ScanID"
       requestBody:
-          description: "The new status"
-          content:
-            application/json:
+        description: "The new status"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Status"
+            examples:
               schema:
-                $ref: "#/components/schemas/Status"
-              examples:
-                schema:
-                  description: "Schema of a status response."
-                status of a stored scan:
-                  $ref: "#/components/examples/scan_status_stored"
-                status of a running scan:
-                  $ref: "#/components/examples/scan_status_running"
-                status of a succeeded scan:
-                  $ref: "#/components/examples/scan_status_success"
-                status of a failed scan:
-                  $ref: "#/components/examples/scan_status_fail"
+                description: "Schema of a status response."
+              status of a stored scan:
+                $ref: "#/components/examples/scan_status_stored"
+              status of a running scan:
+                $ref: "#/components/examples/scan_status_running"
+              status of a succeeded scan:
+                $ref: "#/components/examples/scan_status_success"
+              status of a failed scan:
+                $ref: "#/components/examples/scan_status_fail"
       responses:
         "204":
           description: "Status received"
@@ -228,7 +249,7 @@ components:
           $ref: "#/components/schemas/ScanID"
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
+        scan_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
@@ -573,14 +594,34 @@ components:
       items:
         $ref: "#/components/schemas/ScanAction"
 
+    Preferences:
+      description: "List of preferences available"
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          id:
+            description: "ID of the preference"
+            type: "string"
+          type:
+            description: "Type of the preference"
+          name:
+            description: "Display name for the preference"
+            type: "string"
+          description:
+            description: "Description of the preference"
+            type: "string"
+          default:
+            description: "Default value for scans"
+            type: "string"
+          values:
+            description: "Allowed values"
+            type: "string"
 
   examples:
     sensor_simple:
       description: "A simple example for sensor."
-      value:
-        {
-          "sensor_id": "6c591f83-8f7b-452a-8c78-ba35779e682f"
-        }
+      value: { "sensor_id": "6c591f83-8f7b-452a-8c78-ba35779e682f" }
     scan_simple:
       description: "A simple example for creating a scan."
       value:
@@ -656,7 +697,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
+          "scan_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
@@ -677,19 +718,20 @@ components:
       value: "6c591f83-8f7b-452a-8c78-ba35779e682f"
     scan_actions:
       description: "Actions to perform"
-      value: [
+      value:
+        [
           {
             "scan_id": "6c591f83-8f7b-452a-8c78-ba35779e682f",
-            "action": "start"
+            "action": "start",
           },
           {
             "scan_id": "24591f83-8f7b-452a-8c78-ba35779e6816",
-            "action": "stop"
+            "action": "stop",
           },
           {
             "scan_id": "13591f83-8f74-45da-8c7d-ba35779e682a",
-            "action": "delete"
-          }
+            "action": "delete",
+          },
         ]
 
     scan_results:
@@ -824,4 +866,22 @@ components:
           "1.3.6.1.4.1.25623.1.0.100127",
           "1.3.6.1.4.1.25623.1.0.10441",
           "1.3.6.1.4.1.25623.1.0.100313",
+        ]
+
+    preferences:
+      description: "A example with a list of preferences"
+      value:
+        [
+          {
+            "id": "optimize_test",
+            "name": "Optimize Test",
+            "default": true,
+            "description": "By default, optimize_test is enabled which means openvas does trust the remote host banners and is only launching plugins against the services they have been designed to check. For example it will check a web server claiming to be IIS only for IIS related flaws but will skip plugins testing for Apache flaws, and so on. This default behavior is used to optimize the scanning performance and to avoid false positives. If you are not sure that the banners of the remote host have been tampered with, you can disable this option.",
+          },
+          {
+            "id": "plugins_timeout",
+            "name": "Plugins Timeout",
+            "default": 5,
+            "description": "This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins, use 'ACT_SCANNER plugins timeout' for them instead.",
+          },
         ]

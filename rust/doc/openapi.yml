@@ -195,6 +195,23 @@ paths:
         "400":
           description: "Bad Request body"
 
+  /scans/preferences:
+    get:
+      description: "Get all preferences available for a scan. These can be set, when creating a scan via scan_preferences."
+      operationId: "get_preferences"
+      tags:
+        - "scan"
+      responses:
+        "200":
+          description: "Get Preferences"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+              examples:
+                preferences:
+                  $ref: "#/components/examples/preferences"
+
   /scans/{id}:
     get:
       description: "Get a scan from the scan manager."
@@ -414,7 +431,7 @@ components:
       properties:
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
+        scan_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
@@ -445,7 +462,7 @@ components:
           $ref: "#/components/schemas/ScanID"
         target:
           $ref: "#/components/schemas/Target"
-        scanner_preferences:
+        scan_preferences:
           description: "Overwrite the default settings of the Scanner."
           type: "array"
           items:
@@ -869,6 +886,30 @@ components:
       required:
         - "action"
 
+    Preferences:
+      description: "List of preferences available"
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          id:
+            description: "ID of the preference"
+            type: "string"
+          type:
+            description: "Type of the preference"
+          name:
+            description: "Display name for the preference"
+            type: "string"
+          description:
+            description: "Description of the preference"
+            type: "string"
+          default:
+            description: "Default value for scans"
+            type: "string"
+          values:
+            description: "Allowed values"
+            type: "string"
+
   examples:
     scan_simple:
       description: "A simple example for creating a scan."
@@ -949,7 +990,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
+          "scan_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
@@ -1030,7 +1071,7 @@ components:
               "reverse_lookup_unify": true,
               "reverse_lookup_only": false,
             },
-          "scanner_preferences":
+          "scan_preferences":
             [
               { "id": "target_port", "value": "443" },
               { "id": "use_https", "value": "1" },
@@ -1247,5 +1288,23 @@ components:
                   "fixed_versions": { "version": "1.2.5", "specifier": ">=" },
                 },
               ],
+          },
+        ]
+
+    preferences:
+      description: "A example with a list of preferences"
+      value:
+        [
+          {
+            "id": "optimize_test",
+            "name": "Optimize Test",
+            "default": true,
+            "description": "By default, optimize_test is enabled which means openvas does trust the remote host banners and is only launching plugins against the services they have been designed to check. For example it will check a web server claiming to be IIS only for IIS related flaws but will skip plugins testing for Apache flaws, and so on. This default behavior is used to optimize the scanning performance and to avoid false positives. If you are not sure that the banners of the remote host have been tampered with, you can disable this option.",
+          },
+          {
+            "id": "plugins_timeout",
+            "name": "Plugins Timeout",
+            "default": 5,
+            "description": "This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins, use 'ACT_SCANNER plugins timeout' for them instead.",
           },
         ]

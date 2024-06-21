@@ -1,0 +1,20 @@
+[package]
+name = "nasl-builtin-http"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+h2 = "0.4.4"
+http = "1.1.0"
+nasl-builtin-utils = {path = "../nasl-builtin-utils"}
+nasl-syntax = {path = "../nasl-syntax"}
+rustls = "0.23.5"
+rustls-pemfile = "2.1.2"
+storage = {path = "../storage"}
+tokio = { version = "1.28.1", features = ["full"] }
+tokio-rustls = "0.26.0"
+
+[dev-dependencies]
+nasl-interpreter = {path = "../nasl-interpreter"}

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 /// This file contains structs and methods for retrieve scan information from redis
 /// and store it into the given storage to be collected later for the clients.

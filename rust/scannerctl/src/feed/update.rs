@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::path::PathBuf;
 
@@ -11,14 +11,14 @@ use crate::CliError;
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher<String>,
+    S: Sync + Send + Dispatcher,
 {
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
     let loader = FSPluginLoader::new(path);
     let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-    let updater = feed::Update::init("1", 5, loader.clone(), storage, verifier);
+    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
 
     if signature_check {
         match updater.verify_signature() {

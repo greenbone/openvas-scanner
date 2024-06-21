@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 /// Represents an product json file for notus
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
@@ -27,6 +27,8 @@ pub enum PackageType {
     RPM,
     #[cfg_attr(feature = "serde_support", serde(rename = "slack"))]
     SLACK,
+    #[cfg_attr(feature = "serde_support", serde(rename = "msp"))]
+    MSP,
 }
 
 /// Representing a single Vulnerability Test entry

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::fmt::Display;
 use std::time::SystemTime;
@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use models::scanner::Error as ScanError;
 use models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
 use models::Phase;
-use sysinfo::System;
 use tokio::sync::RwLock;
 
 use crate::{
@@ -167,7 +166,7 @@ where
         } else {
             let mut running = self.running.write().await;
             if let Some(idx) = running.iter().position(|x| x == id) {
-                self.stop_scan(id.to_string()).await?;
+                self.scanner.stop_scan(id.to_string()).await?;
                 running.swap_remove(idx);
             }
         }
@@ -192,46 +191,41 @@ where
         } else {
             queued.len()
         };
-        let mut sys = System::new();
 
         tracing::trace!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
-            sys.refresh_memory();
-            if let Some(min_free_memory) = self.config.min_free_mem {
-                let available_memory = sys.available_memory();
-                if available_memory < min_free_memory {
-                    tracing::debug!(%min_free_memory, %available_memory, "insufficient memory to start a scan.");
-                    break;
-                }
-            }
             if let Some(scan_id) = queued.pop() {
                 let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
-                tracing::debug!(?status, %scan_id, "starting scan");
-
-                match self.scanner.start_scan(scan).await {
-                    Ok(_) => {
-                        tracing::debug!(%scan_id, "started");
-                        running.push(scan_id.clone());
-                    }
-                    Err(ScanError::Connection(e)) => {
-                        tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
-                        queued.push(scan_id);
-                    }
-                    Err(e) => {
-                        tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
-                        self.db
-                            .update_status(
-                                &scan_id,
-                                models::Status {
-                                    start_time: None,
-                                    end_time: None,
-                                    status: Phase::Failed,
-                                    host_info: None,
-                                },
-                            )
-                            .await?;
-                    }
-                };
+                if !self.scanner.can_start_scan(&scan).await {
+                    tracing::debug!(?status, %scan_id, "unable to start scan");
+                    queued.push(scan_id);
+                } else {
+                    tracing::debug!(?status, %scan_id, "starting scan");
+                    match self.scanner.start_scan(scan).await {
+                        Ok(_) => {
+                            tracing::debug!(%scan_id, "started");
+                            running.push(scan_id.clone());
+                        }
+                        Err(ScanError::Connection(e)) => {
+                            tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
+                            queued.push(scan_id);
+                        }
+                        Err(e) => {
+                            tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
+                            self.db
+                                .update_status(
+                                    &scan_id,
+                                    models::Status {
+                                        start_time: None,
+                                        end_time: None,
+                                        status: Phase::Failed,
+                                        host_info: None,
+                                    },
+                                )
+                                .await?;
+                        }
+                    };
+                }
             } else {
                 break;
             }
@@ -358,32 +352,28 @@ where
         I: AsRef<str> + Send + 'static,
     {
         let cid = id.as_ref().to_string();
-        match self.scanner.stop_scan(id).await {
-            Ok(_) => {
-                let mut queued = self.queued.write().await;
-                if let Some(idx) = queued.iter().position(|x| x == &cid) {
-                    queued.swap_remove(idx);
-                    return Ok(());
-                };
-                drop(queued);
-                let mut running = self.running.write().await;
-                if let Some(idx) = running.iter().position(|x| x == &cid) {
-                    running.swap_remove(idx);
-                }
-                let mut current_status = self.db.get_status(&cid).await?;
-                current_status.status = Phase::Stopped;
-                current_status.end_time = Some(
-                    SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .expect("Valid timestamp for end scan")
-                        .as_secs() as u32,
-                );
-
-                self.db.update_status(&cid, current_status).await?;
-                Ok(())
-            }
-            Err(e) => Err(e),
+        self.scanner.stop_scan(id).await?;
+        let mut queued = self.queued.write().await;
+        if let Some(idx) = queued.iter().position(|x| x == &cid) {
+            queued.swap_remove(idx);
+            return Ok(());
+        };
+        drop(queued);
+        let mut running = self.running.write().await;
+        if let Some(idx) = running.iter().position(|x| x == &cid) {
+            running.swap_remove(idx);
         }
+        let mut current_status = self.db.get_status(&cid).await?;
+        current_status.status = Phase::Stopped;
+        current_status.end_time = Some(
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .expect("Valid timestamp for end scan")
+                .as_secs() as u32,
+        );
+
+        self.db.update_status(&cid, current_status).await?;
+        Ok(())
     }
 }
 
@@ -497,7 +487,7 @@ where
     async fn vts<'a>(
         &self,
     ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, StorageError> {
-        self.vts().await
+        self.db.vts().await
     }
 
     async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, StorageError> {
@@ -612,8 +602,10 @@ mod tests {
                     y
                 })
                 .collect::<Vec<_>>();
-            let mut config = config::Scheduler::default();
-            config.max_running_scans = Some(5);
+            let config = config::Scheduler {
+                max_running_scans: Some(5),
+                ..Default::default()
+            };
             let db = inmemory::Storage::default();
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
@@ -646,17 +638,15 @@ mod tests {
                     y
                 })
                 .collect::<Vec<_>>();
-            let mut config = config::Scheduler::default();
-
-            let mut sys = sysinfo::System::new();
-            sys.refresh_memory();
-            config.min_free_mem = Some(sys.available_memory() + 1000);
+            let config = config::Scheduler::default();
 
             let db = inmemory::Storage::default();
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::Lambda::default();
+            let scanner = models::scanner::LambdaBuilder::new()
+                .with_can_start(|_| false)
+                .build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -853,8 +843,10 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn error_queue_is_full() {
-            let mut config = config::Scheduler::default();
-            config.max_queued_scans = Some(0);
+            let config = config::Scheduler {
+                max_queued_scans: Some(0),
+                ..Default::default()
+            };
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();
@@ -871,8 +863,10 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn error_resume_unsupported() {
-            let mut config = config::Scheduler::default();
-            config.max_queued_scans = Some(0);
+            let config = config::Scheduler {
+                max_queued_scans: Some(0),
+                ..Default::default()
+            };
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();

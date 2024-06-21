@@ -8,7 +8,7 @@
 
 *any* **get_kb_list**(0: *string*);
 
-**get_kb_item** takes 1 positional argument.
+**get_kb_list** takes 1 positional argument.
 
 
 ## DESCRIPTION
@@ -28,25 +28,13 @@ first positional argument is not given
 
 ## EXAMPLES
 
-**1**: Create an entry, which expires after 10 minutes
+**1**: Create a list with expiring keys and display it
 ```cpp
-set_kb_item(name: "hosts", value: "foo");
-set_kb_item(name: "hosts", value: "bar");
+set_kb_item(name: "hosts", value: "foo", expire: 600);
+set_kb_item(name: "hosts", value: "bar", expire: 600);
 
-display(get_kb_list("abc"));
-# should print [ hosts: 'bar', hosts: 'foo', boo: 'baz' ]
-```
-
-**2**: Create an entry, which does not expire
-```cpp
-set_kb_item(name: "age", value: "42");
-```
-
-
-**3**: Create a list
-```cpp
-set_kb_item(name: "hosts", value: "foo");
-set_kb_item(name: "hosts", value: "bar");
+display(get_kb_list("hosts"));
+# should print [ hosts: 'foo', boo: 'baz' ]
 ```
 
 ## SEE ALSO

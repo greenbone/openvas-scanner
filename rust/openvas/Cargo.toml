@@ -12,7 +12,6 @@ osp = { version = "0.1.0", path = "../osp" }
 redis = "0.22.0"
 redis-storage = { version = "0.1.0", path = "../redis-storage" }
 storage = { version = "0.1.0", path = "../storage" }
-sysinfo = "0.30.5"
 tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"
 serde = { version = "1", features = ["derive"], optional = true }

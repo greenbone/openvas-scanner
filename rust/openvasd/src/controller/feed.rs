@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::sync::Arc;
 
@@ -28,9 +28,11 @@ async fn changed_hash(signature_check: bool, feeds: &[FeedHash]) -> Result<Vec<F
         }
 
         let path = h.path.clone();
-        let hash = tokio::task::spawn_blocking(move || match FeedIdentifier::sumfile_hash(path) {
+        let hash = tokio::task::spawn_blocking(move || match FeedIdentifier::sumfile_hash(&path) {
             Ok(h) => h,
-            Err(e) => {
+            Err(mut e) => {
+                e.key = path.to_str().unwrap_or_default().to_string();
+
                 tracing::warn!(%e, "Failed to compute sumfile hash");
                 "".to_string()
             }

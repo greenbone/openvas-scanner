@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use digest::{
     block_buffer::Eager,
@@ -55,45 +55,42 @@ where
 }
 
 /// NASL function to get HMAC MD2 string
-pub fn hmac_md2<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_md2(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Md2>(register)
 }
 
 /// NASL function to get HMAC MD5 string
-pub fn hmac_md5<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_md5(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Md5>(register)
 }
 
 /// NASL function to get HMAC RIPEMD160 string
-pub fn hmac_ripemd160<K>(
-    register: &Register,
-    _: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_ripemd160(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Ripemd160>(register)
 }
 
 /// NASL function to get HMAC SHA1 string
-pub fn hmac_sha1<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha1(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Sha1>(register)
 }
 
 /// NASL function to get HMAC SHA256 string
-pub fn hmac_sha256<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha256(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Sha256>(register)
 }
 
 /// NASL function to get HMAC SHA384 string
-pub fn hmac_sha384<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha384(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Sha384>(register)
 }
 
 /// NASL function to get HMAC SHA512 string
-pub fn hmac_sha512<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha512(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     hmac::<Sha512>(register)
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "HMAC_MD2" => Some(hmac_md2),
         "HMAC_MD5" => Some(hmac_md5),

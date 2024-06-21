@@ -1,4 +1,4 @@
-ARG VERSION=unstable
+ARG VERSION=edge
 
 FROM greenbone/gvm-libs:$VERSION
 LABEL deprecated="This image is deprecated and may be removed soon."

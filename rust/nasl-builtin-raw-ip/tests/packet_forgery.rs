@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines NASL frame forgery and arp functions
 #[cfg(test)]
 mod tests {
 
-    use nasl_builtin_std::ContextBuilder;
+    use nasl_builtin_std::ContextFactory;
     use nasl_builtin_utils::{error::FunctionErrorKind, Register};
-    use nasl_interpreter::Interpreter;
-    use nasl_syntax::{parse, NaslValue};
+    use nasl_interpreter::CodeInterpreter;
+    use nasl_syntax::NaslValue;
 
     /// Copy from a slice in safe way, performing the necessary test to avoid panicking
     fn safe_copy_from_slice(
@@ -63,14 +63,12 @@ mod tests {
                               th_sum:   0,
                               th_urp:   0);
         "###;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Data(vec![
@@ -105,14 +103,12 @@ mod tests {
         ip_packet = set_ip_elements(ip: ip_packet, ip_ttl: 127, ip_src: 192.168.0.10);
         elem = get_ip_element(ip: ip_packet, element: "ip_ttl");
         "#;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(255))));
         parser.next();
@@ -136,14 +132,12 @@ mod tests {
         ip_packet = insert_ip_options(ip: ip_packet, code: 131, length:5, value: "12");
         opt = get_ip_element(ip: ip_packet, element: "ip_hl");
         "#;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(8))));
@@ -178,14 +172,12 @@ mod tests {
         tcp_packet = insert_tcp_options(tcp: tcp_packet, 3, 2);
         opt = get_tcp_option(tcp: tcp_packet, option: 3);
         "###;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
         parser.next();
@@ -213,14 +205,12 @@ mod tests {
                                       th_sum:   0,
                                       data: "1234");
         "#;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Data(vec![
@@ -257,14 +247,12 @@ mod tests {
                      icmp_id:   1,
                      data: "1234");
         "#;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(
             parser.next(),
@@ -295,14 +283,12 @@ mod tests {
                      group: 224.0.0.1,
                      );
         "###;
-        let mut register = Register::default();
-        let mut binding = ContextBuilder::default();
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(
             parser.next(),

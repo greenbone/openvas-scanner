@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::HashMap;
 
@@ -51,18 +51,15 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl<'a, K> Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> Interpreter<'a> {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
-        self.registrat
+        self.register_mut()
             .add_to_index(idx, key, ContextType::Value(value));
     }
 
     fn named_value(&self, key: &str) -> Result<(usize, NaslValue), InterpretError> {
         match self
-            .registrat()
+            .register()
             .index_named(key)
             .unwrap_or((0, &ContextType::Value(NaslValue::Null)))
         {
@@ -186,10 +183,7 @@ where
     }
 }
 
-impl<'a, K> AssignExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> AssignExtension for Interpreter<'a> {
     fn assign(
         &mut self,
         category: &TokenCategory,
@@ -276,12 +270,10 @@ mod tests {
         a--;
         --a;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(25.into())));
         assert_eq!(parser.next(), Some(Ok(23.into())));
@@ -311,12 +303,10 @@ mod tests {
         a[0]++;
         ++a[0];
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(25.into())));
         assert_eq!(parser.next(), Some(Ok(23.into())));
@@ -335,12 +325,10 @@ mod tests {
         a[2] = 12;
         a;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
             parser.next(),
@@ -360,12 +348,10 @@ mod tests {
         a[2] = 12;
         a;
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -386,12 +372,10 @@ mod tests {
         a;
         a['hi'];
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
             parser.next(),
@@ -408,12 +392,10 @@ mod tests {
         let code = r###"
         a = [1, 2, 3];
         "###;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
             Some(Ok(NaslValue::Array(vec![1.into(), 2.into(), 3.into()])))

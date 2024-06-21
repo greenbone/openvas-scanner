@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod update;
 use std::{io, path::PathBuf};
@@ -47,14 +47,12 @@ pub fn extend_args(cmd: Command) -> Command {
 }
 
 pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
-    fn get_vts_path(args: &clap::ArgMatches) -> PathBuf {
-        args.get_one::<PathBuf>("vts-path")
-            .cloned()
-            .unwrap_or_else(|| {
-                let config = read_openvas_config()
-                    .expect("openvas -s must be executable when path is not set");
-                get_path_from_openvas(config)
-            })
+    fn get_vts_path(key: &str, args: &clap::ArgMatches) -> PathBuf {
+        args.get_one::<PathBuf>(key).cloned().unwrap_or_else(|| {
+            let config =
+                read_openvas_config().expect("openvas -s must be executable when path is not set");
+            get_path_from_openvas(config)
+        })
     }
 
     let (args, verbose) = crate::get_args_set_logging(root, "feed")?;
@@ -99,7 +97,7 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             // if not notus only, load vts
             let mut ret: Option<Result<(), CliError>> = None;
             if !loadup_notus_only {
-                let path = get_vts_path(args);
+                let path = get_vts_path("vts-path", args);
 
                 let dispatcher =
                     redis_storage::CacheDispatcher::as_dispatcher(&redis, FEEDUPDATE_SELECTOR)
@@ -152,7 +150,7 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             ret
         }
         Some(("transform", args)) => {
-            let path = get_vts_path(args);
+            let path = get_vts_path("path", args);
 
             let mut o = json_storage::ArrayWrapper::new(io::stdout());
             let dispatcher = json_storage::ItemDispatcher::as_dispatcher(&mut o);
@@ -166,8 +164,8 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         }
 
         Some(("transpile", args)) => {
-            let path = get_vts_path(args);
-            let rules = match args.get_one::<String>("rules").cloned() {
+            let path = get_vts_path("path", args);
+            let rules = match args.get_one::<PathBuf>("rules").cloned() {
                 Some(x) => x,
                 None => unreachable!("rules is set to required"),
             };

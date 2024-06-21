@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 /// Tests local_var behavior
 
@@ -19,13 +19,13 @@ if (a) {
 }
 a;
         "###;
-        let dc = ContextBuilder::default();
-        let mut register = Register::default();
-        let ctx = dc.build();
-        let mut interpreter = Interpreter::new(&mut register, &ctx);
+        let dc = ContextFactory::default();
+        let register = Register::default();
+        let ctx = dc.build(Default::default(), Default::default());
+        let mut interpreter = Interpreter::new(register, &ctx);
         let results = parse(code)
             .map(|stmt| match stmt {
-                Ok(stmt) => interpreter.resolve(&stmt),
+                Ok(stmt) => interpreter.retry_resolve_next(&stmt, 1),
                 Err(r) => Err(InterpretError::from(r)),
             })
             .last()

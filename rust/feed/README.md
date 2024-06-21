@@ -39,13 +39,13 @@ Is [implemented](./src/update/mod.rs) as a Iterator over String and [UpdateError
 ```no_run
 use nasl_interpreter::{Interpreter, FSPluginLoader, Register};
 use storage::DefaultDispatcher;
-let storage: DefaultDispatcher<String> = DefaultDispatcher::new(false);
+let storage: DefaultDispatcher = DefaultDispatcher::new(false);
 let path = "/var/lib/openvas/plugins/";
 let loader = FSPluginLoader::new(path);
 let verifier = feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
 let max_retries = 5;
 let openvas_version = "1";
-let updater = feed::Update::init(openvas_version, max_retries, loader.clone(), storage, verifier);
+let updater = feed::Update::init(openvas_version, max_retries, &loader, &storage, verifier);
 
 for s in updater {
     println!("updated {s:?}");

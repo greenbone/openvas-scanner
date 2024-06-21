@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use storage::{self, item::PerItemDispatcher, Kb, NotusAdvisory, StorageError};
+use storage::{self, item::PerItemDispatcher, ContextKey, Kb, NotusAdvisory, StorageError};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -87,10 +87,7 @@ where
     }
 
     /// Returns a new instance as a Dispatcher
-    pub fn as_dispatcher<K>(w: S) -> PerItemDispatcher<Self, K>
-    where
-        K: AsRef<str>,
-    {
+    pub fn as_dispatcher(w: S) -> PerItemDispatcher<Self> {
         PerItemDispatcher::new(Self::new(w))
     }
 
@@ -102,7 +99,7 @@ where
     }
 }
 
-impl<S, K> storage::item::ItemDispatcher<K> for ItemDispatcher<S>
+impl<S> storage::item::ItemDispatcher for ItemDispatcher<S>
 where
     S: Write,
 {
@@ -115,7 +112,7 @@ where
         Ok(())
     }
 
-    fn dispatch_kb(&self, _: &K, kb: Kb) -> Result<(), StorageError> {
+    fn dispatch_kb(&self, _: &ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
         let mut context = self.w.lock().map_err(StorageError::from)?;
         serde_json::to_vec(&kb)
@@ -135,14 +132,13 @@ where
     }
 }
 
-impl<S, K> storage::Retriever<K> for ItemDispatcher<S>
+impl<S> storage::Retriever for ItemDispatcher<S>
 where
     S: Write,
-    K: 'static,
 {
     fn retrieve(
         &self,
-        _: &K,
+        _: &ContextKey,
         scope: storage::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
@@ -164,7 +160,7 @@ where
         &self,
         _: storage::Field,
         _: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, storage::Field)>>, StorageError> {
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
         Ok(Box::new([].into_iter()))
     }
 }

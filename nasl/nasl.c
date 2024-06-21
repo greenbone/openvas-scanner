@@ -330,6 +330,7 @@ main (int argc, char **argv)
       struct in6_addr ip6;
       kb_t kb;
       int rc;
+      int process_id;
 
       if (prefs_get_bool ("expand_vhosts"))
         gvm_host_add_reverse_lookup (host);
@@ -341,6 +342,8 @@ main (int argc, char **argv)
         exit (1);
 
       set_main_kb (kb);
+      process_id = getpid ();
+
       script_infos = init (&ip6, host->vhosts, kb);
       for (int i = 0; nasl_filenames[i] != NULL; i++)
         {
@@ -383,9 +386,13 @@ main (int argc, char **argv)
 
           if (exec_nasl_script (script_infos, mode) < 0)
             err++;
+
+          if (process_id != getpid ())
+            exit (0);
         }
       g_free (script_infos->globals);
       g_free (script_infos);
+
       kb_delete (kb);
     }
 

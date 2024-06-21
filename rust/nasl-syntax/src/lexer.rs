@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Lexer is used to parse a single statement based on token::Tokenizer.
 use std::ops::Not;
@@ -43,13 +43,6 @@ impl End {
             End::Continue => false,
         }
     }
-
-    // pub fn category(&self) -> &Option<Category> {
-    //     match self {
-    //         End::Done(t) => &Some(t.category),
-    //         End::Continue => &None,
-    //     }
-    // }
 }
 
 impl Not for End {

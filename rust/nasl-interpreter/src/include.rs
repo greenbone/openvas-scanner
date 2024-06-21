@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #[cfg(test)]
 mod tests {
@@ -41,14 +41,15 @@ mod tests {
         a;
         test();
         "#;
-        let mut register = Register::default();
-        let context = ContextBuilder {
-            loader: Box::new(loader),
-            ..Default::default()
+        let register = Register::default();
+        let context = ContextFactory {
+            loader,
+            logger: logger::DefaultLogger::default(),
+            functions: nasl_std_functions(),
+            storage: storage::DefaultDispatcher::default(),
         };
-        let ctx = context.build();
-        let mut interpreter = Interpreter::new(&mut register, &ctx);
-        let mut interpreter = parse(code).map(|x| interpreter.resolve(&x.expect("expected")));
+        let ctx = context.build(Default::default(), Default::default());
+        let mut interpreter = CodeInterpreter::new(code, register, &ctx);
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));
         assert_eq!(

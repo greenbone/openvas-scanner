@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::HashMap;
 
@@ -95,26 +95,35 @@ where
 
                 // prepare vt preferences
                 for pref in &vt.parameters {
-                    let (prefid, class, name, value): (String, String, String, String) = nvt
-                        .preferences
-                        .iter()
-                        .find(|p| p.id.unwrap() as u16 == pref.id)
-                        .unwrap()
-                        .into();
+                    if let Some((prefid, class, name, value)) =
+                        nvt.preferences.iter().find_map(|p| {
+                            if let Some(i) = p.id {
+                                if i as u16 == pref.id {
+                                    Some(p.into())
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                    {
+                        let value_aux: String = if class == *"checkbox" {
+                            bool_to_str(&pref.value)
+                        } else {
+                            value
+                        };
 
-                    let value_aux: String = if class == *"checkbox" {
-                        bool_to_str(&pref.value)
+                        pref_list.insert(
+                            format!("{}:{}:{}:{}", vt.oid, prefid, class, name),
+                            value_aux,
+                        );
                     } else {
-                        value
-                    };
-
-                    pref_list.insert(
-                        format!("{}:{}:{}:{}", vt.oid, prefid, class, name),
-                        value_aux,
-                    );
+                        tracing::debug!(oid = vt.oid, pref = pref.id, "set preference not found");
+                    }
                 }
             } else {
-                tracing::debug!("{} not found or handled via notus", vt.oid);
+                tracing::debug!(oid = vt.oid, "not found or handled via notus");
                 continue;
             }
         }
@@ -339,7 +348,7 @@ where
     async fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
         let options = self
             .scan_config
-            .scanner_preferences
+            .scan_preferences
             .clone()
             .iter()
             .map(|x| format!("{}|||{}", x.id, x.value))
@@ -528,8 +537,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_prefs() {
-        let mut scan = Scan::default();
-        scan.scan_id = "123-456".to_string();
+        let mut scan = Scan {
+            scan_id: "123-456".to_string(),
+            ..Default::default()
+        };
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
         scan.target.credentials = vec![Credential {
             service: models::Service::SSH,

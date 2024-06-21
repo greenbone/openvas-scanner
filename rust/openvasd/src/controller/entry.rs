@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines the entry point for the controller.
 //!
@@ -34,6 +34,8 @@ enum HealthOpts {
 enum KnownPaths {
     /// /scans/{id}
     Scans(Option<String>),
+    /// /scans/preferences
+    ScanPreferences,
     /// /scans/{id}/results/{result_id}
     ScanResults(String, Option<String>),
     /// /scans/{id}/status
@@ -72,7 +74,13 @@ impl KnownPaths {
                             ),
                             Some("status") => KnownPaths::ScanStatus(id.to_string()),
                             Some(_) => KnownPaths::Unknown,
-                            None => KnownPaths::Scans(Some(id.to_string())),
+                            None => {
+                                if id == "preferences" {
+                                    KnownPaths::ScanPreferences
+                                } else {
+                                    KnownPaths::Scans(Some(id.to_string()))
+                                }
+                            }
                         },
                         None => KnownPaths::Scans(None),
                     }
@@ -129,6 +137,7 @@ impl Display for KnownPaths {
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
+            KnownPaths::ScanPreferences => write!(f, "/scans/preferences"),
         }
     }
 }
@@ -183,6 +192,21 @@ where
             let kp = KnownPaths::from_path(req.uri().path(), &ctx.mode);
             let cid: Option<ClientHash> = {
                 match &*cid {
+                    ClientIdentifier::Disabled => {
+                        if let Some(key) = ctx.api_key.as_ref() {
+                            match req.headers().get("x-api-key") {
+                                Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
+                                Some(v) => {
+                                    tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
+                                    None
+                                }
+                                None => None,
+                            }
+                        } else {
+                            Some("disabled".into())
+                        }
+                    }
+                    ClientIdentifier::Known(cid) => Some(cid.clone()),
                     ClientIdentifier::Unknown => {
                         if let Some(key) = ctx.api_key.as_ref() {
                             match req.headers().get("x-api-key") {
@@ -191,13 +215,14 @@ where
                                     tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
                                     None
                                 }
-                                _ => None,
+                                None => None,
                             }
                         } else {
+                            // We don't allow no api key and no client certs when we have a server
+                            // certificate to prevent accidental misconfiguration.
                             None
                         }
                     }
-                    ClientIdentifier::Known(cid) => Some(cid.clone()),
                 }
             };
 
@@ -281,7 +306,7 @@ where
                             }
                             let id = uuid::Uuid::new_v4().to_string();
                             let resp = ctx.response.created(&id);
-                            scan.scan_id = id.clone();
+                            scan.scan_id.clone_from(&id);
                             ctx.scheduler.insert_scan(scan).await?;
                             ctx.scheduler.add_scan_client_id(id.clone(), cid).await?;
                             tracing::debug!(%id, "Scan created");
@@ -335,6 +360,9 @@ where
                         Ok(ctx.response.not_found("scans", "all"))
                     }
                 }
+                (&Method::GET, ScanPreferences) => Ok(ctx
+                    .response
+                    .ok_static(crate::preference::PREFERENCES_JSON.as_bytes())),
                 (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
                     Ok((mut scan, _)) => {
                         let credentials = scan

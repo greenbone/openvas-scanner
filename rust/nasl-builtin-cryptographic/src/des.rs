@@ -7,9 +7,10 @@ use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
 use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
 
-fn encrypt_des<K>(
+
+fn encrypt_des(
     register: &Register,
-    _: &Context<K>,
+    _: &Context,
 ) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.len() != 2 {

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //!Contains the scanner implementation for ospd.
 //!
@@ -57,6 +57,10 @@ impl ScanStarter for Scanner {
                 .map_err(models::scanner::Error::from)
         })
         .await
+    }
+
+    async fn can_start_scan(&self, _: &models::Scan) -> bool {
+        true
     }
 }
 

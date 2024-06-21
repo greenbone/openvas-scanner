@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 // SPDX-FileCopyrightText: 2018 Nicolas Moutschen
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: (GPL-2.0-or-later WITH x11vnc-openssl-exception) AND MIT
 
 //! # Library to perform operations over dependency graphs.
 //!
@@ -256,9 +256,10 @@ mod tests {
     #[test]
     fn par_thousand_graph() {
         let mut nodes: Vec<Node<_>> = (0..1000).map(|i| Node::new(format!("{}", i))).collect();
-        for i in 1..1000 {
-            nodes[i].add_dep("0".to_string());
-        }
+        nodes
+            .iter_mut()
+            .skip(1)
+            .for_each(|n| n.add_dep("0".to_string()));
 
         let r = DepGraph::new(&nodes);
         let result = r.into_par_iter().map(|_| true).collect::<Vec<bool>>();

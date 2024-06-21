@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::HashMap;
 
@@ -8,7 +8,7 @@ use models::{FixedPackage, FixedVersion, Specifier};
 
 use crate::{
     error::Error,
-    packages::{deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, Package},
+    packages::{deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, windows::Windows, Package},
 };
 
 /// VulnerabilityTests is a collection of Tests to detect vulnerabilities, in case of notus these
@@ -23,6 +23,7 @@ pub enum Product {
     EBuild(VulnerabilityTests<EBuild>),
     Rpm(VulnerabilityTests<Rpm>),
     Slack(VulnerabilityTests<Slack>),
+    Windows(VulnerabilityTests<Windows>),
 }
 
 impl Product {
@@ -82,6 +83,10 @@ impl TryFrom<models::Product> for Product {
             models::PackageType::SLACK => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::Slack(vts))
+            }
+            models::PackageType::MSP => {
+                let vts = Self::transform(value.vulnerability_tests)?;
+                Ok(Self::Windows(vts))
             }
         }
     }

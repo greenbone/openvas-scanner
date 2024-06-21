@@ -80,7 +80,9 @@ Bigger changes should be discussed with the development team via the [issues sec
 
 ## License
 
-This module is licensed under the [GNU General Public License v2.0
-only](COPYING). Single files, however, are licensed either the GNU General
-Public License v2.0 only or under GNU General Public License v2.0 or later,
-please see the [license-details.md](license-details.md) file for details.
+This repository consists of two scanner implementation, one in programming language C and one in programming language Rust.
+
+This module except for the Rust-implementation in directory rust/ is licensed under the GNU General Public License v2.0 only. Single files, however, are licensed either under the GNU General Public License v2.0 only or under GNU General Public License v2.0 or later, please see the [license-details.md](license-details.md) file for details.
+
+The Rust-implementation in directory rust/ is licensed under the GNU General Public License v2.0 or later with OpenSSL exception. Single files, however, are additionally licensed under MIT.
+

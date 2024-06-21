@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use digest::Digest;
 use md2::Md2;
@@ -22,7 +22,7 @@ where
 {
     let positional = register.positional();
     if positional.is_empty() {
-        return Ok(NaslValue::Null)
+        return Ok(NaslValue::Null);
     };
     let data = match &positional[0] {
         NaslValue::String(x) => x.as_bytes(),
@@ -37,45 +37,42 @@ where
 }
 
 /// NASL function to get MD2 hash
-pub fn hash_md2<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_md2(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Md2>(register)
 }
 
 /// NASL function to get MD4 hash
-pub fn hash_md4<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_md4(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Md4>(register)
 }
 
 /// NASL function to get MD5 hash
-pub fn hash_md5<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_md5(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Md5>(register)
 }
 
 /// NASL function to get SHA1 hash
-pub fn hash_sha1<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_sha1(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Sha1>(register)
 }
 
 /// NASL function to get SHA256 hash
-pub fn hash_sha256<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_sha256(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Sha256>(register)
 }
 
 /// NASL function to get SHA512 hash
-pub fn hash_sha512<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_sha512(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Sha512>(register)
 }
 
 /// NASL function to get RIPemd160 hash
-pub fn hash_ripemd160<K>(
-    register: &Register,
-    _: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hash_ripemd160(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     nasl_hash::<Ripemd160>(register)
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "MD2" => Some(hash_md2),
         "MD4" => Some(hash_md4),

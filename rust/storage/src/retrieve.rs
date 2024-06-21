@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
-
-use std::marker::PhantomData;
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::{
     item::{NVTField, NVTKey},
-    Field, StorageError,
+    ContextKey, Field, StorageError,
 };
 
 /// Retrieve command for a given Field
@@ -85,20 +83,22 @@ impl Retrieve {
 }
 
 /// Retrieves fields based on a key and scope.
-pub trait Retriever<K> {
+pub trait Retriever {
     /// Gets Fields find by key and scope. This is to get all instances.
     fn retrieve(
         &self,
-        key: &K,
+        key: &ContextKey,
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
     /// Gets Fields find by field and scope.
+    ///
+    /// This is used to filter results.
     fn retrieve_by_field(
         &self,
         field: Field,
         scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError>;
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError>;
 }
 
 /// A NoOpRetriever is for cases that don't require a retriever but it is needed due to contract.
@@ -107,14 +107,12 @@ pub trait Retriever<K> {
 /// but since it is not needed for a description run it wouldn't make sense to instantiate a
 /// reriever instance.
 #[derive(Default)]
-pub struct NoOpRetriever<K> {
-    phantom: PhantomData<K>,
-}
+pub struct NoOpRetriever {}
 
-impl<K: 'static> Retriever<K> for NoOpRetriever<K> {
+impl Retriever for NoOpRetriever {
     fn retrieve(
         &self,
-        _: &K,
+        _: &ContextKey,
         _: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         Ok(Box::new(vec![].into_iter()))
@@ -124,7 +122,7 @@ impl<K: 'static> Retriever<K> for NoOpRetriever<K> {
         &self,
         _: Field,
         _: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         Ok(Box::new(vec![].into_iter()))
     }
 }

@@ -162,22 +162,22 @@ In all shift operators, the count is on the right, i.e., `x>>2` is equivalent to
 - Using unitialized variables is bad. However, to ensure that old scripts still work, the NULL undefined value will be converted to 0 or “” according to the context (integer or string). That is why isnull has to be used to test if a variable is undefined. See “Warnings about the NULL value” in NASL Documentation.
 
 ## Precedence
-|Operators|Associativity|
-|-----------------------------------|----|
-|++ --|None|
-|**|Right|
-|~- (unary minus)|Left|
-|!|Left|
-|* / %|Left|
-|+ -|Left|
-|<< >> >>>|Left|
-|&|Left|
-|^|Left|
-|\|| Left|
-|< <= > >= == != <> =~ !~ >!< ><|None|
-|&&|Left|
-|\|\||Left|
-|= += -= *= /= %= <<= >>= >>>=|Right|
+| Operators                       | Associativity |
+| ------------------------------- | ------------- |
+| ++ --                           | None          |
+| **                              | Right         |
+| ~- (unary minus)                | Left          |
+| !                               | Left          |
+| * / %                           | Left          |
+| + -                             | Left          |
+| << >> >>>                       | Left          |
+| &                               | Left          |
+| ^                               | Left          |
+| \|                              | Left          |
+| < <= > >= == != <> =~ !~ >!< >< | None          |
+| &&                              | Left          |
+| \|\|                            | Left          |
+| = += -= *= /= %= <<= >>= >>>=   | Right         |
 
 
 ## Loops and Control Flow
@@ -240,14 +240,14 @@ if (NASL_LEVEL < 2190) exit(0); # _FCT_ANON_ARGS is not implemented
 
 Here is an example with named arguments:
 ```
-function fact(x)
+function fact(n)
 {
    local_var i, f;
    f = 1;
    for (i = 1; i <= n; i ++) f *= i;
    return f;
 }
-display("3 ! = ", fact(x: 3), "\n");
+display("3 ! = ", fact(n: 3), "\n");
 ```
 
 And the same with unnamed arguments:

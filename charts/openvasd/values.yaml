@@ -22,6 +22,17 @@ openvasd:
   loglevel: TRACE
   # When set it will be the used API-KEY. It is not required when deploy_client is true.
   # apikey: changeme
+  # can be either service: fill openvasd capabilities, service_notus: only notus
+  mode: service
+  # can be either:
+  # - openvas, use openvas and redis 
+  # - ospd, use ospd-openvas 
+  scanner_type: openvas 
+  # can be either:
+  # - redis, when scanner_type is set to openvas it has to redis and this field is ignored
+  # - in_memory, uses a in memory storage
+  # - fs, uses a file system storage
+  storage_type: redis
   tls:
     # enables the server-/client-certs deployment via secret 
     # server-key

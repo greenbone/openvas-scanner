@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
@@ -269,9 +269,9 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-pub fn parse_vts<R, K>(
+pub fn parse_vts<R>(
     sc: R,
-    retriever: &dyn storage::Retriever<K>,
+    retriever: &dyn storage::Retriever,
     vts: &[models::VT],
 ) -> Result<Vec<models::VT>, Error>
 where
@@ -459,17 +459,17 @@ mod tests {
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
         assert_eq!(result.preferences.preference.len(), 3);
-        let shop: storage::DefaultDispatcher<String> = storage::DefaultDispatcher::default();
+        let shop: storage::DefaultDispatcher = storage::DefaultDispatcher::default();
         let add_product_detection = |oid: &str| {
             shop.as_dispatcher()
                 .dispatch(
-                    &oid.to_string(),
+                    &storage::ContextKey::Scan(oid.to_string()),
                     storage::Field::NVT(storage::item::NVTField::Oid(oid.to_owned().to_string())),
                 )
                 .unwrap();
             shop.as_dispatcher()
                 .dispatch(
-                    &oid.to_string(),
+                    &storage::ContextKey::Scan(oid.to_string()),
                     storage::Field::NVT(storage::item::NVTField::Family(
                         "Product detection".to_string(),
                     )),

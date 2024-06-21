@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines NASL frame forgery and arp functions
 
@@ -347,9 +347,9 @@ fn send_frame(
 ///  
 /// It takes the following argument:
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
-fn nasl_send_arp_request<K>(
+fn nasl_send_arp_request(
     register: &Register,
-    context: &Context<K>,
+    context: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
@@ -390,9 +390,9 @@ fn nasl_send_arp_request<K>(
 
 /// Get the MAC address of a local IP address.
 /// The first positional argument is a local IP address as string.
-fn nasl_get_local_mac_address_from_ip<K>(
+fn nasl_get_local_mac_address_from_ip(
     register: &Register,
-    _: &Context<K>,
+    _: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
@@ -425,10 +425,7 @@ fn nasl_get_local_mac_address_from_ip<K>(
 /// - dst_haddr: is a string containing the destination MAC address
 /// -ether_proto: is an int containing the ethernet type (normally given as hexadecimal). It is optional and its default value is 0x0800. A list of Types can be e.g. looked up here.
 /// -payload: is any data, which is then attached as payload to the frame.
-fn nasl_forge_frame<K>(
-    register: &Register,
-    _: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let src_haddr = validate_mac_address(register.named("src_haddr"))?;
     let dst_haddr = validate_mac_address(register.named("dst_haddr"))?;
     let ether_proto = match register.named("ether_proto") {
@@ -456,10 +453,7 @@ fn nasl_forge_frame<K>(
 /// - pcap_active: option to capture the answer, default is TRUE
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
-fn nasl_send_frame<K>(
-    register: &Register,
-    context: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => return Err(("Data", "Invalid data type").into()),
@@ -498,10 +492,7 @@ fn nasl_send_frame<K>(
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
 /// This function is meant to be used for debugging.
-fn nasl_dump_frame<K>(
-    register: &Register,
-    configs: &Context<K>,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_dump_frame(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
         _ => return Err(("Data", "Invalid data type").into()),
@@ -512,7 +503,7 @@ fn nasl_dump_frame<K>(
 }
 
 /// Returns found function for key or None when not found
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "send_frame" => Some(nasl_send_frame),
         "dump_frame" => Some(nasl_dump_frame),

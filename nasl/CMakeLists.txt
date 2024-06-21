@@ -172,7 +172,7 @@ add_definitions (-DOPENVAS_GPG_BASE_DIR="${OPENVAS_GPG_BASE_DIR}")
 
 include_directories (${GLIB_INCLUDE_DIRS}
                      ${LIBOPENVAS_MISC_INCLUDE_DIRS}
-                     ${GLIB_JSON_INCLUDE_DIRS} 
+                     ${GLIB_JSON_INCLUDE_DIRS}
                      ${GPGME_INCLUDE_DIRS}
                      ${LIBSSH_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
@@ -181,16 +181,16 @@ include_directories (${GLIB_INCLUDE_DIRS}
                      ${GCRYPT_INCLUDE_DIRS})
 
 
-# Build shared 
+# Build shared
 add_library (openvas_nasl_shared SHARED ${FILES})
 set_target_properties (openvas_nasl_shared PROPERTIES OUTPUT_NAME "openvas_nasl")
 set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
 set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 # line below is needed so it also works with no-undefined which is e.g. used by Mandriva
-target_link_libraries (openvas_nasl_shared openvas_misc_shared pcap ${GLIB_LDFLAGS}
+target_link_libraries (openvas_nasl_shared openvas_misc_shared curl pcap ${GLIB_LDFLAGS}
                          ${LIBOPENVAS_MISC_LDFLAGS}
-                         ${GLIB_JSON_LDFLAGS} 
+                         ${GLIB_JSON_LDFLAGS}
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
                          ${LIBGVM_BASE_LDFLAGS}
                          ${LIBGVM_UTIL_LDFLAGS}
@@ -219,5 +219,5 @@ install (FILES ${CMAKE_SOURCE_DIR}/doc/man/openvas-nasl.1
          DESTINATION ${DATADIR}/man/man1 )
 
 install (FILES ${CMAKE_SOURCE_DIR}/doc/man/openvas-nasl-lint.1
-         DESTINATION ${DATADIR}/man/man1 )   
+         DESTINATION ${DATADIR}/man/man1 )
 ## End

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::path::PathBuf;
 
@@ -8,11 +8,11 @@ use crate::{CliError, CliErrorKind};
 
 use nasl_syntax::{FSPluginLoader, LoadError};
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
-use storage::Dispatcher;
+use storage::{ContextKey, Dispatcher};
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher<String>,
+    S: Sync + Send + Dispatcher,
 {
     let loader = FSPluginLoader::new(path);
     let advisories_files = match HashsumAdvisoryLoader::new(loader.clone()) {
@@ -61,7 +61,7 @@ where
 
         for adv in advisories.advisories {
             let _ = storage.dispatch(
-                &String::new(),
+                &Default::default(),
                 storage::Field::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
                     adv,
                     famile: advisories.family.clone(),
@@ -71,7 +71,8 @@ where
         }
     }
     let _ = storage.dispatch(
-        &"notuscache".to_string(),
+        // TODO: incorrect?
+        &ContextKey::FileName("notuscache".to_string()),
         storage::Field::NotusAdvisory(Box::new(None)),
     );
 

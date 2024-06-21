@@ -1,61 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
-
-use crate::{
-    error::SyntaxError,
-    lexer::{End, Lexer},
-    token::Category,
-    Statement, StatementKind,
-};
-
-pub(crate) trait CommaGroup {
-    fn parse_comma_group(
-        &mut self,
-        category: Category,
-    ) -> Result<(End, Vec<Statement>), SyntaxError>;
-}
-
-impl<'a> CommaGroup for Lexer<'a> {
-    fn parse_comma_group(
-        &mut self,
-        category: Category,
-    ) -> Result<(End, Vec<Statement>), SyntaxError> {
-        let mut params = vec![];
-        let mut end = End::Continue;
-        while let Some(token) = self.peek() {
-            if *token.category() == category {
-                self.token();
-                end = End::Done(token);
-                break;
-            }
-            let (stmtend, param) =
-                self.statement(0, &|c| c == &category || c == &Category::Comma)?;
-            match param.kind() {
-                StatementKind::Parameter(nparams) => params.extend_from_slice(nparams),
-                _ => params.push(param),
-            }
-            match stmtend {
-                End::Done(endcat) => {
-                    if endcat.category() == &category {
-                        end = End::Done(endcat);
-                        break;
-                    }
-                }
-                End::Continue => {}
-            };
-        }
-
-        self.depth = 0;
-        Ok((end, params))
-    }
-}
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        parse, Statement, {AssignOrder, StatementKind},
-    };
+    use crate::{parse, AssignOrder, Statement, StatementKind, TokenCategory};
 
     use StatementKind::*;
 
@@ -73,7 +22,7 @@ mod test {
         assert!(matches!(result("a[0];").kind(), Array(Some(_))));
         let re = result("a = [1, 2, 3];");
         match re.kind() {
-            Assign(super::Category::Equal, AssignOrder::AssignReturn, arr, _) => {
+            Assign(TokenCategory::Equal, AssignOrder::AssignReturn, arr, _) => {
                 assert!(matches!(arr.kind(), Array(None)))
             }
             _ => panic!("{re} must be an assign statement"),
@@ -81,7 +30,7 @@ mod test {
 
         let re = result("a[0] = [1, 2, 4];");
         match re.kind() {
-            Assign(super::Category::Equal, AssignOrder::AssignReturn, arr, _) => {
+            Assign(TokenCategory::Equal, AssignOrder::AssignReturn, arr, _) => {
                 assert!(matches!(arr.kind(), &Array(Some(_))))
             }
             _ => panic!("{re} must be an assign statement"),

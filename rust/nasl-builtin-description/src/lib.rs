@@ -1,12 +1,15 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::str::FromStr;
 
 use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
 
-use storage::item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
+use storage::{
+    item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
+    ContextKey,
+};
 
 use nasl_builtin_utils::{get_named_parameter, NaslFunction};
 use nasl_syntax::NaslValue;
@@ -54,10 +57,10 @@ macro_rules! make_storage_function {
         )?
         ///
         /// Returns NaslValue::Null on success.
-        pub fn $name<K>(
+        pub fn $name(
             registrat: &Register,
-            ctxconfigs: &Context<K>,
-        ) -> Result<NaslValue, FunctionErrorKind> where K: AsRef<str> {
+            ctxconfigs: &Context,
+        ) -> Result<NaslValue, FunctionErrorKind> {
             let mut variables = vec![];
             $(
             let positional = registrat.positional();
@@ -92,7 +95,7 @@ macro_rules! make_storage_function {
         }
         )*
         /// Returns found function for key or None when not found
-        pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> where K: AsRef<str> {
+        pub fn lookup(key: &str) -> Option<NaslFunction> {
             match key {
                 $(
                 stringify!($name) => Some($name),
@@ -105,7 +108,7 @@ macro_rules! make_storage_function {
 
 type Transform = Result<Vec<NVTField>, FunctionErrorKind>;
 
-fn as_timeout_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_timeout_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Preference(NvtPreference {
         id: Some(0),
         name: "timeout".to_owned(),
@@ -114,46 +117,43 @@ fn as_timeout_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     })])
 }
 
-fn as_category_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_category_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(vec![NVTField::Category(*cat)]),
         a => Err(("AttackCategory", a).into()),
     }
 }
 
-fn as_name_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_name_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Name(arguments[0].to_string())])
 }
 
-fn as_oid_field<K>(key: &K, arguments: &[&NaslValue]) -> Transform
-where
-    K: AsRef<str>,
-{
+fn as_oid_field(key: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![
         NVTField::Oid(arguments[0].to_string()),
-        NVTField::FileName(key.as_ref().to_owned()),
+        NVTField::FileName(key.value()),
     ])
 }
 
-fn as_family_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_family_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Family(arguments[0].to_string())])
 }
 
-fn as_noop<K>(_: &K, _arguments: &[&NaslValue]) -> Transform {
+fn as_noop(_: &ContextKey, _arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::NoOp])
 }
 
-fn as_dependencies_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_dependencies_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(vec![NVTField::Dependencies(values)])
 }
 
-fn as_exclude_keys_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_exclude_keys_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(vec![NVTField::ExcludedKeys(values)])
 }
 
-fn as_mandatory_keys_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_mandatory_keys_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     match values.clone().last().and_then(|x| x.rsplit_once('=')) {
         Some((remove, _)) => {
@@ -167,22 +167,22 @@ fn as_mandatory_keys_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     }
 }
 
-fn as_require_ports_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_require_ports_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(vec![NVTField::RequiredPorts(values)])
 }
 
-fn as_require_udp_ports_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_require_udp_ports_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(vec![NVTField::RequiredUdpPorts(values)])
 }
 
-fn as_require_keys_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_require_keys_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let values: Vec<String> = arguments.iter().map(|x| x.to_string()).collect();
     Ok(vec![NVTField::RequiredKeys(values)])
 }
 
-fn as_cve_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_cve_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let result = arguments
         .iter()
         .map(|x| ("cve", x.to_string()).into())
@@ -190,7 +190,7 @@ fn as_cve_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Reference(result)])
 }
 
-fn as_tag_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_tag_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     let key: TagKey = arguments[0].to_string().parse()?;
     Ok(vec![match TagValue::parse(key, arguments[1])? {
         TagValue::Null => NVTField::NoOp,
@@ -198,7 +198,7 @@ fn as_tag_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     }])
 }
 
-fn as_xref_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() != 2 {
         return Err(FunctionErrorKind::MissingArguments(vec![
             "name".to_owned(),
@@ -211,7 +211,7 @@ fn as_xref_field<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
     }])])
 }
 
-fn as_preference<K>(_: &K, arguments: &[&NaslValue]) -> Transform {
+fn as_preference(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() < 3 {
         return Err(FunctionErrorKind::MissingArguments(vec![
             "type".to_owned(),
@@ -264,17 +264,17 @@ make_storage_function! {
 /// The description builtin function
 pub struct Description;
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Description {
+impl nasl_builtin_utils::NaslFunctionExecuter for Description {
     fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         lookup(name).map(|x| x(register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup::<K>(name).is_some()
+        lookup(name).is_some()
     }
 }

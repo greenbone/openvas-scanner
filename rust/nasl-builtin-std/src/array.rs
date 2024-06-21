@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines various built-in functions for NASL arrays and lists.
 //!
@@ -21,7 +21,7 @@ use nasl_builtin_utils::resolve_positional_arguments;
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-fn make_array<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn make_array(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
     let mut values = HashMap::new();
     for (idx, val) in positional.iter().enumerate() {
@@ -47,20 +47,20 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionErrorKi
     Ok(values)
 }
 /// NASL function to create a list out of a number of unnamed arguments
-fn make_list<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn make_list(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let values = nasl_make_list(register)?;
     Ok(NaslValue::Array(values))
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-fn nasl_sort<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let mut values = nasl_make_list(register)?;
     values.sort();
     Ok(NaslValue::Array(values))
 }
 
 /// Returns an array with the keys of a dict
-fn keys<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn keys(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = resolve_positional_arguments(register);
     let mut keys = Vec::<NaslValue>::new();
     for val in positional.iter() {
@@ -75,7 +75,7 @@ fn keys<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErr
 }
 
 /// NASL function to return the length of an array|dict.
-fn max_index<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, FunctionErrorKind> {
+fn max_index(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
         return Ok(NaslValue::Null);
@@ -89,7 +89,7 @@ fn max_index<K>(register: &Register, _: &Context<K>) -> Result<NaslValue, Functi
 }
 
 /// Returns found function for key or None when not found
-pub(crate) fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub(crate) fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "make_array" => Some(make_array),
         "make_list" => Some(make_list),

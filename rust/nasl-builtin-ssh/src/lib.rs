@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 // TODO replace if (verbose) calls to debug calls
 // TODO make error handling less redundant
@@ -25,7 +25,7 @@ use std::{
     time::Duration,
 };
 
-type NaslSSHFunction<K> = fn(&Ssh, &Register, &Context<K>) -> Result<NaslValue, FunctionErrorKind>;
+type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
 
 fn read_ssh_blocking(channel: &Channel, timeout: Duration, response: &mut String) -> i32 {
     let mut buf: [u8; 4096] = [0; 4096];
@@ -415,10 +415,10 @@ impl Ssh {
     /// seconds (defined by libssh internally) if not given.
     ///
     /// nasl return An integer to identify the ssh session. Zero on error.
-    fn nasl_ssh_connect<K>(
+    fn nasl_ssh_connect(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let sock: i64 = register
             .named("socket")
@@ -627,10 +627,10 @@ impl Ssh {
     ///
     /// nasl params
     /// - An SSH session id.  A value of 0 is allowed and acts as a NOP.
-    fn nasl_ssh_disconnect<K>(
+    fn nasl_ssh_disconnect(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -671,10 +671,10 @@ impl Ssh {
     ///
     /// return An integer with the corresponding ssh session id or 0 if
     ///          no session id is known for the given socket.
-    fn nasl_ssh_session_id_from_sock<K>(
+    fn nasl_ssh_session_id_from_sock(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -701,10 +701,10 @@ impl Ssh {
     /// - An SSH session id.
     ///  
     /// return An integer representing the socket or -1 on error.
-    fn nasl_ssh_get_sock<K>(
+    fn nasl_ssh_get_sock(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -740,10 +740,10 @@ impl Ssh {
     ///  
     /// nasl named params
     /// - login: A string with the login name (optional).
-    fn nasl_ssh_set_login<K>(
+    fn nasl_ssh_set_login(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -829,10 +829,10 @@ impl Ssh {
     /// - passphrase: A string with the passphrase used to unprotect privatekey.
     ///  
     /// return An integer as status value; 0 indicates success.
-    fn nasl_ssh_userauth<K>(
+    fn nasl_ssh_userauth(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1098,10 +1098,10 @@ impl Ssh {
     ///    description.
     ///
     /// return A data block on success or NULL on error.
-    fn nasl_ssh_request_exec<K>(
+    fn nasl_ssh_request_exec(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1198,10 +1198,10 @@ impl Ssh {
     /// - pty: To enable/disable the interactive shell. Default is 1 (interactive).
     ///
     /// @naslret An int on success or NULL on error.
-    fn nasl_ssh_shell_open<K>(
+    fn nasl_ssh_shell_open(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1274,10 +1274,10 @@ impl Ssh {
     /// bytes left to read.
     ///
     /// return A string on success or NULL on error.
-    fn nasl_ssh_shell_read<K>(
+    fn nasl_ssh_shell_read(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1350,10 +1350,10 @@ impl Ssh {
     /// - cmd: A string to write to shell.
     ///
     /// return An integer: 0 on success, -1 on failure.
-    fn nasl_ssh_shell_write<K>(
+    fn nasl_ssh_shell_write(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1419,10 +1419,10 @@ impl Ssh {
     ///
     /// nasl params
     /// - An SSH session id.
-    fn nasl_ssh_shell_close<K>(
+    fn nasl_ssh_shell_close(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1480,10 +1480,10 @@ impl Ssh {
     /// - login: A string with the login name.
     ///  
     /// return A data block on success or NULL on error.
-    fn nasl_ssh_login_interactive<K>(
+    fn nasl_ssh_login_interactive(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1607,10 +1607,10 @@ impl Ssh {
     ///
     /// return An integer as status value; 0 indicates success.
     ///
-    fn nasl_ssh_login_interactive_pass<K>(
+    fn nasl_ssh_login_interactive_pass(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1720,10 +1720,10 @@ impl Ssh {
     ///
     /// return A data block on success or NULL on error.
     ///
-    fn nasl_ssh_get_issue_banner<K>(
+    fn nasl_ssh_get_issue_banner(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1780,10 +1780,10 @@ impl Ssh {
     /// - An SSH session id.
     ///
     /// return A data block on success or NULL on error.
-    fn nasl_ssh_get_server_banner<K>(
+    fn nasl_ssh_get_server_banner(
         &self,
         register: &Register,
-        _: &Context<K>,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1832,10 +1832,10 @@ impl Ssh {
     /// - An SSH session id.
     ///
     /// return A string on success or NULL on error.
-    fn nasl_ssh_get_auth_methods<K>(
+    fn nasl_ssh_get_auth_methods(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1908,10 +1908,10 @@ impl Ssh {
     /// - An SSH session id.
     ///
     /// @naslret A data block on success or NULL on error.
-    fn nasl_ssh_get_host_key<K>(
+    fn nasl_ssh_get_host_key(
         &self,
         register: &Register,
-        _: &Context<K>,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1962,10 +1962,10 @@ impl Ssh {
     /// return An integer: 0 on success, -1 (SSH_ERROR) on Channel request
     /// subsystem failure. Greater than 0 means an error during SFTP init. NULL
     /// indicates a failure during session id verification.
-    fn nasl_sftp_enabled_check<K>(
+    fn nasl_sftp_enabled_check(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -2021,10 +2021,10 @@ impl Ssh {
     ///
     /// param[in] lexic Lexical context of NASL interpreter.
     /// return Session ID on success, NULL on failure.
-    fn nasl_ssh_execute_netconf_subsystem<K>(
+    fn nasl_ssh_execute_netconf_subsystem(
         &self,
         register: &Register,
-        _ctx: &Context<K>,
+        _ctx: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -2091,7 +2091,7 @@ impl Ssh {
         }
     }
 
-    fn lookup<K>(key: &str) -> Option<NaslSSHFunction<K>> {
+    fn lookup(key: &str) -> Option<NaslSSHFunction> {
         match key {
             "ssh_connect" => Some(Ssh::nasl_ssh_connect),
             "ssh_disconnect" => Some(Ssh::nasl_ssh_disconnect),
@@ -2117,7 +2117,7 @@ impl Ssh {
     }
 }
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Ssh {
+impl nasl_builtin_utils::NaslFunctionExecuter for Ssh {
     fn nasl_fn_cache_clear(&self) -> Option<usize> {
         let mut data = Arc::as_ref(&self.sessions).lock().unwrap();
         if data.is_empty() {
@@ -2133,12 +2133,12 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for Ssh {
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         Ssh::lookup(name).map(|f| f(self, register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        Ssh::lookup::<K>(name).is_some()
+        Ssh::lookup(name).is_some()
     }
 }

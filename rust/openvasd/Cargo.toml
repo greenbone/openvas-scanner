@@ -39,7 +39,7 @@ base64 = "0.21.2"
 hyper-util = { version = "0", features = ["tokio"] }
 http-body-util = "0.1.0"
 http-body = "1"
-sysinfo = "0.30.5"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 tracing-test = "0.1"

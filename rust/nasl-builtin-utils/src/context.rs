@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use nasl_syntax::{logger::NaslLogger, Loader, NaslValue, Statement};
-use storage::{Dispatcher, Retriever};
+use storage::{ContextKey, Dispatcher, Retriever};
 
 use crate::lookup_keys::FC_ANON_ARGS;
 
@@ -20,11 +20,11 @@ pub enum ContextType {
     Value(NaslValue),
 }
 
-impl ToString for ContextType {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for ContextType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContextType::Function(_, _) => "".to_owned(),
-            ContextType::Value(v) => v.to_string(),
+            ContextType::Function(_, _) => write!(f, ""),
+            ContextType::Value(v) => write!(f, "{v}"),
         }
     }
 }
@@ -114,6 +114,7 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// When creating a new context call a corresponding create method.
 /// Warning since those will be stored within a vector each context must be manually
 /// deleted by calling drop_last when the context runs out of scope.
+#[derive(Clone)]
 pub struct Register {
     blocks: Vec<NaslContext>,
 }
@@ -187,13 +188,13 @@ impl Register {
         global.add_named(name, value);
     }
 
-    /// Adds a named parameter to the root context
+    /// Adds a named parameter to a specified context
     pub fn add_to_index(&mut self, idx: usize, name: &str, value: ContextType) {
         if idx >= self.blocks.len() {
             panic!("The given index should be retrieved by named_value. Therefore this should not happen.");
         } else {
-            let global = &mut self.blocks[idx];
-            global.add_named(name, value);
+            let ctx = &mut self.blocks[idx];
+            ctx.add_named(name, value);
         }
     }
     /// Adds a named parameter to the last context
@@ -218,6 +219,61 @@ impl Register {
     pub fn drop_last(&mut self) {
         self.blocks.pop();
     }
+
+    /// This function extracts number of positional arguments, available functions and variables
+    /// and prints them. This function is used as a debugging tool.
+    pub fn dump(&self, index: usize) {
+        match self.blocks.get(index) {
+            Some(mut current) => {
+                let mut vars = vec![];
+                let mut funs = vec![];
+
+                // Get number of positional arguments
+                let num_pos = match current.named(self, FC_ANON_ARGS).map(|(_, val)| val) {
+                    Some(ContextType::Value(NaslValue::Array(arr))) => arr.len(),
+                    _ => 0,
+                };
+
+                // collect all available functions and variables available in current and parent
+                // context recursively
+                loop {
+                    for (name, ctype) in current.defined.clone() {
+                        if vars.contains(&name) || funs.contains(&name) || name == FC_ANON_ARGS {
+                            continue;
+                        }
+
+                        match ctype {
+                            ContextType::Function(_, _) => funs.push(name),
+                            ContextType::Value(_) => vars.push(name),
+                        };
+                    }
+                    if let Some(parent) = current.parent {
+                        current = &self.blocks[parent];
+                    } else {
+                        break;
+                    }
+                }
+
+                // Print all available information
+                println!("--------<CTXT>--------");
+                println!("number of positional arguments: {}", num_pos);
+                println!();
+                println!("available functions:");
+                for function in funs {
+                    print!("{function}\t");
+                }
+                println!();
+                println!();
+                println!("available variables:");
+                for var in vars {
+                    print!("{var}\t");
+                }
+                println!();
+                println!("----------------------");
+            }
+            None => println!("No context available"),
+        };
+    }
 }
 
 impl Default for Register {
@@ -232,7 +288,7 @@ type Named = HashMap<String, ContextType>;
 ///
 /// A context should never be created directly but via a Register.
 /// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct NaslContext {
     /// Parent id within the register
     parent: Option<usize>,
@@ -269,34 +325,34 @@ impl NaslContext {
 ///
 /// This struct includes all objects that a nasl function requires.
 /// New objects must be added here in
-pub struct Context<'a, K> {
-    /// key for this context. A name or an OID
-    key: &'a K,
+pub struct Context<'a> {
+    /// key for this context. A file name or a scan id
+    key: ContextKey,
     /// target to run a scan against
-    target: &'a str,
+    target: String,
     /// Default Dispatcher
-    dispatcher: &'a dyn Dispatcher<K>,
+    dispatcher: &'a dyn Dispatcher,
     /// Default Retriever
-    retriever: &'a dyn Retriever<K>,
+    retriever: &'a dyn Retriever,
     /// Default Loader
     loader: &'a dyn Loader,
     // TODO remove logger in favor of tracing
     /// Default logger.
     logger: &'a dyn NaslLogger,
     /// Default logger.
-    executor: &'a dyn super::NaslFunctionExecuter<K>,
+    executor: &'a dyn super::NaslFunctionExecuter,
 }
 
-impl<'a, K> Context<'a, K> {
+impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
-        key: &'a K,
-        target: &'a str,
-        dispatcher: &'a dyn Dispatcher<K>,
-        retriever: &'a dyn Retriever<K>,
+        key: ContextKey,
+        target: String,
+        dispatcher: &'a dyn Dispatcher,
+        retriever: &'a dyn Retriever,
         loader: &'a dyn Loader,
         logger: &'a dyn NaslLogger,
-        executor: &'a dyn super::NaslFunctionExecuter<K>,
+        executor: &'a dyn super::NaslFunctionExecuter,
     ) -> Self {
         Self {
             key,
@@ -327,24 +383,24 @@ impl<'a, K> Context<'a, K> {
     }
 
     /// Get the executor
-    pub fn executor(&self) -> &'a dyn super::NaslFunctionExecuter<K> {
+    pub fn executor(&self) -> &'a dyn super::NaslFunctionExecuter {
         self.executor
     }
 
     /// Get the Key
-    pub fn key(&self) -> &K {
-        self.key
+    pub fn key(&self) -> &ContextKey {
+        &self.key
     }
     /// Get the target host
     pub fn target(&self) -> &str {
-        self.target
+        &self.target
     }
     /// Get the storage
-    pub fn dispatcher(&self) -> &dyn Dispatcher<K> {
+    pub fn dispatcher(&self) -> &dyn Dispatcher {
         self.dispatcher
     }
     /// Get the storage
-    pub fn retriever(&self) -> &dyn Retriever<K> {
+    pub fn retriever(&self) -> &dyn Retriever {
         self.retriever
     }
     /// Get the loader

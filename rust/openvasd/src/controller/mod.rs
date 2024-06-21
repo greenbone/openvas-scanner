@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 mod context;
 pub mod entry;
@@ -42,6 +42,8 @@ pub enum ClientIdentifier {
     /// When there in no information available
     #[default]
     Unknown,
+    /// Purposely disabled
+    Disabled,
     /// Contains a hashed number of an identifier
     ///
     /// openvasd uses the identifier as a key for results. This key is usually calculated by an
@@ -82,6 +84,9 @@ where
             None
         }
     };
+    if tlsc.is_none() && ctx.api_key.is_none() {
+        tracing::warn!("Neither mTLS nor an API key are set. /scans endpoint is unsecured.");
+    }
     let addr = config.listener.address;
     let addr: SocketAddr = addr;
     let incoming = TcpListener::bind(&addr).await?;
@@ -131,7 +136,7 @@ where
             let (tcp_stream, _remote_addr) = incoming.accept().await?;
             let ctx = controller.clone();
             tokio::spawn(async move {
-                let cci = ClientIdentifier::Unknown;
+                let cci = ClientIdentifier::Disabled;
                 let service = entry::EntryPoint::new(ctx, Arc::new(cci));
                 if let Err(err) = Builder::new()
                     .serve_connection(TokioIo::new(tcp_stream), service)
@@ -168,6 +173,10 @@ mod tests {
     impl models::scanner::ScanStarter for FakeScanner {
         async fn start_scan(&self, _scan: models::Scan) -> Result<(), models::scanner::Error> {
             Ok(())
+        }
+
+        async fn can_start_scan(&self, _: &models::Scan) -> bool {
+            true
         }
     }
 
@@ -285,6 +294,24 @@ mod tests {
         let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
         assert_eq!(resp.headers().get("api-version").unwrap(), "1");
         assert_eq!(resp.headers().get("authentication").unwrap(), "");
+    }
+
+    #[tokio::test]
+    async fn get_scan_preferences() {
+        let controller = Arc::new(Context::default());
+        let req = Request::builder()
+            .uri("/scans/preferences")
+            .method(Method::GET)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let cid = Arc::new(ClientIdentifier::Known("42".into()));
+        entrypoint(req, Arc::clone(&controller), cid)
+            .await
+            .unwrap()
+            .into_body()
+            .collect()
+            .await
+            .unwrap();
     }
 
     async fn get_scan_status<S, DB>(id: &str, ctx: Arc<Context<S, DB>>) -> crate::response::Result
@@ -433,8 +460,10 @@ mod tests {
         let scanner = FakeScanner {
             count: Arc::new(RwLock::new(0)),
         };
-        let mut ns = crate::config::Scheduler::default();
-        ns.check_interval = std::time::Duration::from_nanos(10);
+        let ns = crate::config::Scheduler {
+            check_interval: std::time::Duration::from_nanos(10),
+            ..Default::default()
+        };
         let root = "/tmp/openvasd/fetch_results";
         let nfp = "../../examples/feed/nasl";
         let nofp = "../../examples/feed/notus/advisories";
@@ -510,7 +539,7 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(&scan).unwrap().into())
             .unwrap();
-        let cid = Arc::new(ClientIdentifier::Unknown);
+        let cid = Arc::new(ClientIdentifier::Disabled);
         let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
 
         assert_eq!(resp.status(), 401);
@@ -520,7 +549,7 @@ mod tests {
             .method(Method::POST)
             .body(serde_json::to_string(&scan).unwrap().into())
             .unwrap();
-        let cid = Arc::new(ClientIdentifier::Unknown);
+        let cid = Arc::new(ClientIdentifier::Disabled);
         let resp = entrypoint(req, Arc::clone(&controller), cid).await.unwrap();
         assert_eq!(resp.status(), 201);
     }

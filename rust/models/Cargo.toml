@@ -10,6 +10,7 @@ license = "GPL-2.0-or-later"
 async-trait = "0.1.77"
 serde = { version = "1", features = ["derive"], optional = true }
 uuid = { version = "1", features = ["v4"] }
+sysinfo = "0.30.5"
 
 [features]
 default = ["serde_support"]

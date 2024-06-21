@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines an item in storage. Currently support Kb items, Nvts in the cache, and notus advisories in the cache
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Display,
-    marker::PhantomData,
     str::FromStr,
     sync::{Arc, Mutex},
 };
@@ -14,7 +13,8 @@ use std::{
 use models::{Vulnerability, VulnerabilityData};
 
 use crate::{
-    time::AsUnixTimeStamp, types, Dispatcher, Field, Kb, NotusAdvisory, Retriever, StorageError,
+    time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Retriever,
+    StorageError,
 };
 
 /// Attack Category either set by script_category
@@ -588,7 +588,7 @@ impl From<(&str, Vulnerability)> for Nvt {
     }
 }
 /// Is a specialized Dispatcher for NVT information within the description block.
-pub trait ItemDispatcher<K> {
+pub trait ItemDispatcher {
     /// Dispatches the feed version as well as NVT.
     ///
     /// The NVT is collected when a description run is finished.
@@ -604,7 +604,7 @@ pub trait ItemDispatcher<K> {
     /// accordingly.
     /// The default is set to return `Ok(())` without doing something to net enforce every
     /// ItemDispatcher to implement it.
-    fn dispatch_kb(&self, _: &K, _: Kb) -> Result<(), StorageError> {
+    fn dispatch_kb(&self, _: &ContextKey, _: Kb) -> Result<(), StorageError> {
         Ok(())
     }
     /// Stores an advisory
@@ -614,26 +614,23 @@ pub trait ItemDispatcher<K> {
 
 /// Collects the information while being in a description run and calls the dispatch method
 /// on exit.
-pub struct PerItemDispatcher<S, K>
+pub struct PerItemDispatcher<S>
 where
-    S: ItemDispatcher<K>,
+    S: ItemDispatcher,
 {
     nvt: Arc<Mutex<Option<Nvt>>>,
     dispatcher: S,
-    phantom: PhantomData<K>,
 }
 
-impl<S, K> PerItemDispatcher<S, K>
+impl<S> PerItemDispatcher<S>
 where
-    S: ItemDispatcher<K>,
-    K: AsRef<str>,
+    S: ItemDispatcher,
 {
     /// Creates a new ItemDispatcher without a feed_version and nvt.
     pub fn new(dispatcher: S) -> Self {
         Self {
             nvt: Arc::new(Mutex::new(None)),
             dispatcher,
-            phantom: PhantomData,
         }
     }
 
@@ -671,16 +668,16 @@ where
     }
 }
 
-impl<S, K> Dispatcher<K> for PerItemDispatcher<S, K>
+impl<S> Dispatcher for PerItemDispatcher<S>
 where
-    K: AsRef<str> + Send + Sync,
-    S: ItemDispatcher<K> + Send + Sync,
+    S: ItemDispatcher + Send + Sync,
 {
-    fn dispatch(&self, key: &K, scope: crate::Field) -> Result<(), StorageError> {
+    fn dispatch(&self, key: &ContextKey, scope: crate::Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
-            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), adv),
+            // TODO: rename value to owned_value, create value to return a ref
+            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(&key.value(), adv),
         }
     }
 
@@ -695,14 +692,13 @@ where
     }
 }
 
-impl<S, K> Retriever<K> for PerItemDispatcher<S, K>
+impl<S> Retriever for PerItemDispatcher<S>
 where
-    K: AsRef<str>,
-    S: ItemDispatcher<K> + Retriever<K>,
+    S: ItemDispatcher + Retriever,
 {
     fn retrieve(
         &self,
-        key: &K,
+        key: &ContextKey,
         scope: crate::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         self.dispatcher.retrieve(key, scope)
@@ -712,7 +708,7 @@ where
         &self,
         field: Field,
         scope: crate::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, Field)>>, StorageError> {
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         self.dispatcher.retrieve_by_field(field, scope)
     }
 }

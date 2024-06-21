@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 mod advisories;
 mod credential;
@@ -8,6 +8,7 @@ mod host_info;
 mod parameter;
 mod port;
 mod product;
+pub mod resources;
 mod result;
 mod scan;
 mod scan_action;
@@ -137,7 +138,7 @@ mod tests {
     "reverse_lookup_unify": true,
     "reverse_lookup_only": false
   },
-  "scanner_preferences": [
+  "scan_preferences": [
     {
       "id": "target_port",
       "value": "443"

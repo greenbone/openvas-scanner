@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::io::{self, Cursor};
 
@@ -185,7 +185,7 @@ fn write_vts(scan: &Scan, writer: &mut Writer) -> Result<()> {
 // it is called scanner parameters.
 fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
-    for p in &scan.scanner_preferences {
+    for p in &scan.scan_preferences {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
         writer.write_event(Event::Text(BytesText::new(&p.value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;

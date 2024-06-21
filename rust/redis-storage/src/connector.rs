@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -22,6 +21,7 @@ use storage::item::NvtRef;
 use storage::item::PerItemDispatcher;
 use storage::item::TagKey;
 use storage::item::TagValue;
+use storage::ContextKey;
 use storage::Kb;
 use storage::NotusAdvisory;
 
@@ -645,20 +645,15 @@ impl RedisCtx {
 /// we need to have all references and preferences to respect the order to be downwards compatible.
 /// This should be changed when there is new OSP frontend available.
 #[derive(Debug, Default)]
-pub struct CacheDispatcher<R, K>
+pub struct CacheDispatcher<R>
 where
     R: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
 {
     cache: Arc<Mutex<R>>,
     kbs: Arc<Mutex<Vec<Kb>>>,
-    phanton: PhantomData<K>,
 }
 
-impl<K> CacheDispatcher<RedisCtx, K>
-where
-    K: AsRef<str>,
-{
+impl CacheDispatcher<RedisCtx> {
     /// Initialize and return an NVT Cache Object
     ///
     /// The redis_url must be a complete url including the used protocol e.g.:
@@ -666,13 +661,12 @@ where
     pub fn init(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<CacheDispatcher<RedisCtx, K>> {
+    ) -> RedisStorageResult<CacheDispatcher<RedisCtx>> {
         let rctx = RedisCtx::open(redis_url, selector)?;
 
         Ok(CacheDispatcher {
             cache: Arc::new(Mutex::new(rctx)),
             kbs: Arc::new(Mutex::new(Vec::new())),
-            phanton: PhantomData,
         })
     }
 
@@ -683,7 +677,7 @@ where
     pub fn as_dispatcher(
         redis_url: &str,
         selector: &[NameSpaceSelector],
-    ) -> RedisStorageResult<PerItemDispatcher<CacheDispatcher<RedisCtx, K>, K>> {
+    ) -> RedisStorageResult<PerItemDispatcher<CacheDispatcher<RedisCtx>>> {
         let cache = Self::init(redis_url, selector)?;
         cache.flushdb()?;
         Ok(PerItemDispatcher::new(cache))
@@ -706,10 +700,9 @@ where
     }
 }
 
-impl<S, K> storage::item::ItemDispatcher<K> for CacheDispatcher<S, K>
+impl<S> storage::item::ItemDispatcher for CacheDispatcher<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
 {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock()?;
@@ -721,7 +714,7 @@ where
         cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
     }
 
-    fn dispatch_kb(&self, _: &K, kb: storage::Kb) -> Result<(), StorageError> {
+    fn dispatch_kb(&self, _: &ContextKey, kb: storage::Kb) -> Result<(), StorageError> {
         let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
         kbs.push(kb);
         Ok(())
@@ -736,14 +729,13 @@ where
     }
 }
 
-impl<S, K> storage::Retriever<K> for CacheDispatcher<S, K>
+impl<S> storage::Retriever for CacheDispatcher<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-    K: AsRef<str>,
 {
     fn retrieve(
         &self,
-        _: &K,
+        _: &ContextKey,
         scope: storage::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
@@ -764,14 +756,13 @@ where
         &self,
         _field: storage::Field,
         _scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (K, storage::Field)>>, StorageError> {
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
         todo!()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
@@ -883,14 +874,12 @@ mod tests {
         let fr = FakeRedis { sender };
         let cache = Arc::new(Mutex::new(fr));
         let kbs = Arc::new(Mutex::new(Vec::new()));
-        let rcache = CacheDispatcher {
-            cache,
-            kbs,
-            phanton: PhantomData,
-        };
+        let rcache = CacheDispatcher { cache, kbs };
         let dispatcher = PerItemDispatcher::new(rcache);
         for c in commands {
-            dispatcher.dispatch(&"test.nasl", c).unwrap();
+            dispatcher
+                .dispatch(&storage::ContextKey::FileName("test.nasl".to_string()), c)
+                .unwrap();
         }
         dispatcher.on_exit().unwrap();
         let mut results = 0;

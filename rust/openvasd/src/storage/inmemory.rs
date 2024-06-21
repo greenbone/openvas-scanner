@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::HashSet;
 
@@ -37,7 +37,7 @@ struct Dispa {
     feed_version: Arc<RwLock<String>>,
 }
 
-impl ItemDispatcher<String> for Dispa {
+impl ItemDispatcher for Dispa {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .build()
@@ -359,7 +359,7 @@ where
             let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
             let store = PerItemDispatcher::new(Dispa { nvts, feed_version });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 Err(Error::from(x))
             } else {
@@ -384,7 +384,7 @@ where
             let mut h = self.hash.write().await;
             for ha in h.iter_mut() {
                 if let Some(nh) = hash.iter().find(|x| x.typus == ha.typus) {
-                    ha.hash = nh.hash.clone()
+                    ha.hash.clone_from(&nh.hash)
                 }
             }
         }
@@ -507,7 +507,7 @@ mod tests {
     async fn store_scan(storage: &Storage<crypt::ChaCha20Crypt>) -> String {
         let mut scan = Scan::default();
         let id = uuid::Uuid::new_v4().to_string();
-        scan.scan_id = id.clone();
+        scan.scan_id.clone_from(&id);
         storage.insert_scan(scan).await.unwrap();
         id
     }

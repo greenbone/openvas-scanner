@@ -11,6 +11,7 @@ nasl-builtin-knowledge-base = {path = "../nasl-builtin-knowledge-base"}
 nasl-builtin-cryptographic = {path = "../nasl-builtin-cryptographic"}
 nasl-builtin-string = {path = "../nasl-builtin-string"}
 nasl-builtin-host = {path = "../nasl-builtin-host"}
+nasl-builtin-http = { version = "0.1.0", path = "../nasl-builtin-http" }
 nasl-builtin-description = {path = "../nasl-builtin-description"}
 nasl-builtin-misc = {path = "../nasl-builtin-misc"}
 storage = {path = "../storage"}

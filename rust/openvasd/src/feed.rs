@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
     path::Path,
     sync::{Arc, RwLock},
 };
 
-use storage::StorageError::{self};
+use storage::{ContextKey, StorageError};
 #[derive(Debug, Default, Clone)]
 pub struct FeedIdentifier {
     oids: Arc<RwLock<Vec<String>>>,
@@ -28,7 +28,7 @@ impl FeedIdentifier {
         // e.g. 2006/something.nasl
         let loader = nasl_interpreter::FSPluginLoader::new(path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-        let updater = feed::Update::init("1", 5, loader.clone(), storage, verifier);
+        let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
 
         if signature_check {
             match updater.verify_signature() {
@@ -85,8 +85,8 @@ impl FeedIdentifier {
     }
 }
 
-impl storage::Dispatcher<String> for FeedIdentifier {
-    fn dispatch(&self, _: &String, scope: storage::Field) -> Result<(), storage::StorageError> {
+impl storage::Dispatcher for FeedIdentifier {
+    fn dispatch(&self, _: &ContextKey, scope: storage::Field) -> Result<(), storage::StorageError> {
         use storage::item::NVTField::Oid;
         if let storage::Field::NVT(Oid(x)) = scope {
             let mut oids = self.oids.write()?;

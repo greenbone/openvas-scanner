@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 // SPDX-FileCopyrightText: 2018 Nicolas Moutschen
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: (GPL-2.0-or-later WITH x11vnc-openssl-exception) AND MIT
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use dep_graph::{DepGraph, Node};
