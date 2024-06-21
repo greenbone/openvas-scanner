@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 //! scan-interpreter interprets models::Scan
 
 use nasl_builtin_utils::NaslFunctionExecuter;
@@ -11,7 +15,7 @@ use crate::{scheduling::ExecutionPlaner, InterpretError};
 
 /// Runs a scan in a synchronous mode
 ///
-/// As a Scan is able to configure the behaviour of scripts (e.g. consider_alive means that each
+/// As a Scan is able to configure the behavior of scripts (e.g. consider_alive means that each
 /// port within the scan is considered reachable without testing) each Interpreter must be created
 /// for each scan and is not reuseable.
 pub struct SyncScanInterpreter<'a, S, L, N> {
@@ -22,19 +26,19 @@ pub struct SyncScanInterpreter<'a, S, L, N> {
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
-/// An error occured while executing the script
+/// An error occurred while executing the script
 pub enum ExecuteError {
-    #[error("storage error occured: {0}")]
+    #[error("storage error occurred: {0}")]
     /// Storage error
     Storage(#[from] storage::StorageError),
-    #[error("Scheduling error occured: {0}")]
+    #[error("Scheduling error occurred: {0}")]
     /// An error while scheduling
     Scheduling(#[from] crate::scheduling::VTError),
     #[error("unable to load: {0}")]
     /// Script was not found
     NotFound(#[from] nasl_syntax::LoadError),
     #[error("unable to handle parameter: {0}")]
-    /// The parameter could not be proceesed
+    /// The parameter could not be processed
     Parameter(models::Parameter),
 }
 #[derive(Debug)]
@@ -325,7 +329,7 @@ where
     {
         // TODO: set scan parameter
         // TODO: remove non alive target#hosts
-        // TODO: either save whole scan or partial ports into storage 
+        // TODO: either save whole scan or partial ports into storage
         // We have to reconstruct:
         // set Host/scanned TRUE when host tcp is scanned
         // set Host/scanners/$name TRUE
@@ -347,7 +351,7 @@ where
     /// Runs the given scan
     ///
     /// Uses the storage to create a scheduling plan T to utilize that to execute the scripts
-    /// within scan by returning an iterator of ScrfuptResults.
+    /// within scan by returning an iterator of ScriptResults.
     ///
     /// To execute all vt the iterator must be fully consumed.
     ///
@@ -438,7 +442,7 @@ exit({rc});
     }
 
     #[test]
-    fn run_with_scheule() {
+    fn run_with_schedule() {
         let only_success = [
             create_script("0", 0, &[]),
             create_script("1", 0, &["0"]),

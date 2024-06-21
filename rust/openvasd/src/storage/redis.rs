@@ -52,7 +52,7 @@ impl<T> Storage<T> {
                 for adv in advisories.advisories {
                     let data = models::VulnerabilityData {
                         adv,
-                        famile: advisories.family.clone(),
+                        family: advisories.family.clone(),
                         filename: filename.to_owned(),
                     };
                     store.dispatch(

@@ -118,7 +118,7 @@ pub trait Retriever {
 ///
 /// A use case may be when updating the feed. The context of an interpreter requires a Retriever
 /// but since it is not needed for a description run it wouldn't make sense to instantiate a
-/// reriever instance.
+/// retriever instance.
 #[derive(Default)]
 pub struct NoOpRetriever {}
 
