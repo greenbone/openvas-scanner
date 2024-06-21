@@ -20,10 +20,7 @@ pub(crate) trait CallExtension {
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> CallExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> CallExtension for Interpreter<'a> {
     fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context
@@ -127,8 +124,8 @@ mod tests {
         test();
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));

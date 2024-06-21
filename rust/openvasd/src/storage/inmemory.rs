@@ -37,7 +37,7 @@ struct Dispa {
     feed_version: Arc<RwLock<String>>,
 }
 
-impl ItemDispatcher<String> for Dispa {
+impl ItemDispatcher for Dispa {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .build()
@@ -359,7 +359,7 @@ where
             let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
             let store = PerItemDispatcher::new(Dispa { nvts, feed_version });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 Err(Error::from(x))
             } else {

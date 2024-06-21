@@ -16,8 +16,8 @@ mod tests {
         a = MD5();
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -40,8 +40,8 @@ mod tests {
         MD4("hola mundo");
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -58,8 +58,8 @@ mod tests {
         MD2("hola mundo");
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -75,8 +75,8 @@ mod tests {
         SHA1("hola mundo");
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -96,8 +96,8 @@ mod tests {
         SHA256("hola mundo");
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -117,8 +117,8 @@ mod tests {
         SHA512("hola mundo");
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -140,8 +140,8 @@ mod tests {
         RIPEMD160("hola mundo");
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),

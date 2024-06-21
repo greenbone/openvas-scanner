@@ -19,8 +19,7 @@ use rustls::ClientConfig;
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 
-type NaslHttp2Function<K> =
-    fn(&NaslHttp, &Register, &Context<K>) -> Result<NaslValue, FunctionErrorKind>;
+type NaslHttp2Function = fn(&NaslHttp, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
 
 pub struct Handle {
     pub handle_id: i32,
@@ -233,10 +232,10 @@ impl NaslHttp {
     }
 
     /// Perform request with the given method.
-    fn http2_req<K>(
+    fn http2_req(
         &self,
         register: &Register,
-        ctx: &Context<K>,
+        ctx: &Context,
         method: Method,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let handle_id = match register.named("handle") {
@@ -336,47 +335,27 @@ impl NaslHttp {
     }
 
     /// Wrapper function for GET request. See http2_req
-    fn get<K>(
-        &self,
-        register: &Register,
-        ctx: &Context<K>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn get(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::GET)
     }
 
     /// Wrapper function for POST request. See http2_req
-    fn post<K>(
-        &self,
-        register: &Register,
-        ctx: &Context<K>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn post(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::POST)
     }
 
     /// Wrapper function for PUT request. See http2_req
-    fn put<K>(
-        &self,
-        register: &Register,
-        ctx: &Context<K>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn put(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::PUT)
     }
 
     /// Wrapper function for HEAD request. See http2_req
-    fn head<K>(
-        &self,
-        register: &Register,
-        ctx: &Context<K>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn head(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::HEAD)
     }
 
     /// Wrapper function for DELETE request. See http2_req
-    fn delete<K>(
-        &self,
-        register: &Register,
-        ctx: &Context<K>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn delete(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::DELETE)
     }
 
@@ -386,11 +365,7 @@ impl NaslHttp {
     ///
     /// On success the function returns a and integer with the handle
     /// identifier. Null on error.
-    fn handle<K>(
-        &self,
-        _register: &Register,
-        _: &Context<K>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn handle(&self, _register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = lock_handles(&self.handles)?;
         let handle_id = next_handle_id(&handles);
         let h = Handle {
@@ -409,10 +384,10 @@ impl NaslHttp {
     ///
     /// The function returns an integer.
     /// O on success, -1 on error.
-    fn close_handle<K>(
+    fn close_handle(
         &self,
         register: &Register,
-        _: &Context<K>,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -454,10 +429,10 @@ impl NaslHttp {
     ///
     /// On success the function returns an integer
     /// representing the http code response. Null on error.
-    fn get_response_code<K>(
+    fn get_response_code(
         &self,
         register: &Register,
-        _: &Context<K>,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
@@ -487,10 +462,10 @@ impl NaslHttp {
     ///   - handle The handle identifier
     ///   - header_item A string to add to the header
     /// On success the function returns an integer. 0 on success. Null on error.
-    fn set_custom_header<K>(
+    fn set_custom_header(
         &self,
         register: &Register,
-        _: &Context<K>,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let header_item = match register.named("header_item") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
@@ -526,7 +501,7 @@ impl NaslHttp {
     }
 
     /// Returns found function for key or None when not found
-    fn lookup<K>(key: &str) -> Option<NaslHttp2Function<K>> {
+    fn lookup(key: &str) -> Option<NaslHttp2Function> {
         match key {
             "http2_handle" => Some(NaslHttp::handle),
             "http2_close_handle" => Some(NaslHttp::close_handle),
@@ -542,7 +517,7 @@ impl NaslHttp {
     }
 }
 
-impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for NaslHttp {
+impl nasl_builtin_utils::NaslFunctionExecuter for NaslHttp {
     fn nasl_fn_cache_clear(&self) -> Option<usize> {
         let mut data = Arc::as_ref(&self.handles).lock().unwrap();
         if data.is_empty() {
@@ -558,12 +533,12 @@ impl<K: AsRef<str>> nasl_builtin_utils::NaslFunctionExecuter<K> for NaslHttp {
         &self,
         name: &str,
         register: &Register,
-        context: &Context<K>,
+        context: &Context,
     ) -> Option<nasl_builtin_utils::NaslResult> {
         NaslHttp::lookup(name).map(|x| x(self, register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        NaslHttp::lookup::<K>(name).is_some()
+        NaslHttp::lookup(name).is_some()
     }
 }

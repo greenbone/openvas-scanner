@@ -9,7 +9,7 @@
 //!
 //! ```rust
 //!let scanner = scan::OSPDWrapper::from_env();
-//!let ctx = controller::ContextBuilder::new()
+//!let ctx = controller::ContextFactory | update::new()
 //!    .scanner(scanner)
 //!    .build();
 //!let controller = std::sync::Arc::new(ctx);

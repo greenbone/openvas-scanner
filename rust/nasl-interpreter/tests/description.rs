@@ -74,11 +74,17 @@ if(description)
         )];
         let register = Register::root_initial(&initial);
         let logger = DefaultLogger::default();
-        let key = "test.nasl".to_owned();
+        let key: storage::ContextKey = "test.nasl".into();
         let target = String::new();
         let functions = nasl_builtin_std::nasl_std_functions();
         let ctxconfigs = Context::new(
-            &key, &target, &storage, &storage, &loader, &logger, &functions,
+            key.clone(),
+            target,
+            &storage,
+            &storage,
+            &loader,
+            &logger,
+            &functions,
         );
         let mut interpreter = Interpreter::new(register, &ctxconfigs);
         let results = parse(code)
@@ -97,7 +103,7 @@ if(description)
                 .collect::<Vec<_>>(),
             vec![
                 NVT(Oid("0.0.0.0.0.0.0.0.0.1".to_owned())),
-                NVT(FileName(key)),
+                NVT(FileName(key.value())),
                 NVT(NoOp),
                 NVT(Tag(CreationDate, TagValue::Number(1366091481))),
                 NVT(Name("that is a very long and descriptive name".to_owned())),

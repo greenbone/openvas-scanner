@@ -51,10 +51,7 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl<'a, K> Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> Interpreter<'a> {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
         self.register_mut()
             .add_to_index(idx, key, ContextType::Value(value));
@@ -186,10 +183,7 @@ where
     }
 }
 
-impl<'a, K> AssignExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> AssignExtension for Interpreter<'a> {
     fn assign(
         &mut self,
         category: &TokenCategory,
@@ -277,8 +271,8 @@ mod tests {
         --a;
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(25.into())));
@@ -310,8 +304,8 @@ mod tests {
         ++a[0];
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(25.into())));
@@ -332,8 +326,8 @@ mod tests {
         a;
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
@@ -355,8 +349,8 @@ mod tests {
         a;
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(parser.next(), Some(Ok(12.into())));
@@ -379,8 +373,8 @@ mod tests {
         a['hi'];
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(12.into())));
         assert_eq!(
@@ -399,8 +393,8 @@ mod tests {
         a = [1, 2, 3];
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),

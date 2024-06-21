@@ -18,10 +18,7 @@ pub(crate) trait DeclareFunctionExtension {
     ) -> InterpretResult;
 }
 
-impl<'a, K> DeclareFunctionExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> DeclareFunctionExtension for Interpreter<'a> {
     fn declare_function(
         &mut self,
         name: &Token,
@@ -49,10 +46,7 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a, K> DeclareVariableExtension for Interpreter<'a, K>
-where
-    K: AsRef<str>,
-{
+impl<'a> DeclareVariableExtension for Interpreter<'a> {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
@@ -97,8 +91,8 @@ mod tests {
         c;
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));
@@ -114,8 +108,8 @@ mod tests {
         test(a: 1, b: 2);
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));

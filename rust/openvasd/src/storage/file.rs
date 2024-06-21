@@ -79,7 +79,7 @@ impl<S> Storage<S> {
                 storage: cache,
                 feed_version,
             });
-            let mut fu = feed::Update::init(oversion, 5, loader.clone(), store, verifier);
+            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
             if let Some(x) = fu.find_map(|x| x.err()) {
                 tracing::debug!("{}", x);
                 Err(Error::from(x))
@@ -416,7 +416,7 @@ struct Dispa {
     feed_version: Arc<std::sync::RwLock<String>>,
 }
 
-impl ItemDispatcher<String> for Dispa {
+impl ItemDispatcher for Dispa {
     fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
         let mut storage = self.storage.write().unwrap();
         let oid = nvt.oid.clone();

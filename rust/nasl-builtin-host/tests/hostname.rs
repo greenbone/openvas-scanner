@@ -12,8 +12,8 @@ mod tests {
         get_host_names();
         "###;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::String(_)))));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Array(_)))));

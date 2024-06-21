@@ -19,8 +19,8 @@ mod tests {
         aes128_ccm_decrypt(key: key, data: crypt, iv: iv);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -50,8 +50,8 @@ mod tests {
         aes128_ccm_decrypt_auth(key: key, data: crypt, iv: iv, aad: aad);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -81,8 +81,8 @@ mod tests {
         aes192_ccm_decrypt(key: key, data: crypt, iv: iv);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -112,8 +112,8 @@ mod tests {
         aes192_ccm_decrypt_auth(key: key, data: crypt, iv: iv, aad: aad);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -143,8 +143,8 @@ mod tests {
         aes256_ccm_decrypt(key: key, data: crypt, iv: iv);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -174,8 +174,8 @@ mod tests {
         aes256_ccm_decrypt_auth(key: key, data: crypt, iv: iv, aad: aad);
         "#;
         let register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();

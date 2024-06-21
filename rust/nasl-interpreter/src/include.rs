@@ -42,11 +42,13 @@ mod tests {
         test();
         "#;
         let register = Register::default();
-        let context = ContextBuilder {
-            loader: Box::new(loader),
-            ..Default::default()
+        let context = ContextFactory {
+            loader,
+            logger: logger::DefaultLogger::default(),
+            functions: nasl_std_functions(),
+            storage: storage::DefaultDispatcher::default(),
         };
-        let ctx = context.build();
+        let ctx = context.build(Default::default(), Default::default());
         let mut interpreter = CodeInterpreter::new(code, register, &ctx);
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));
