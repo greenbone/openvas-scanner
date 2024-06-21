@@ -28,16 +28,8 @@ fn rsa_public_encrypt<K>(
         rsa::BigUint::from_bytes_be(e),
     )
     .unwrap();
-    let enc_data = match pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, data) {
-        Ok(val) => Ok(val),
-        Err(code) => Err(nasl_builtin_utils::FunctionErrorKind::GeneralError(
-            nasl_builtin_utils::error::GeneralErrorType::UnexpectedData(format!(
-                "Error code {}",
-                code
-            )),
-        )),
-    };
-    Ok(enc_data.unwrap().to_vec().into())
+    let enc_data = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, data).unwrap();
+    Ok(enc_data.to_vec().into())
 }
 
 fn rsa_private_decrypt<K>(
@@ -81,9 +73,14 @@ fn rsa_sign<K>(
     let data = get_required_named_data(register, "data")?;
     let pem = get_required_named_data(register, "priv")?;
     let passphrase = get_required_named_data(register, "passphrase")?;
-    let rsa = Rsa::private_key_from_pem_passphrase(pem, passphrase)
-        .expect("Failed to get private key from passphrase");
-    let pkey = PKey::from_rsa(rsa).expect("Failed");
+    let rsa;
+    if passphrase.len() == 0 {
+        rsa = Rsa::private_key_from_pem(pem).expect("Failed to get private key");
+    } else {
+        rsa = Rsa::private_key_from_pem_passphrase(pem, passphrase)
+            .expect("Failed to get private key from passphrase");
+    }
+    let pkey = PKey::from_rsa(rsa).expect("Failed to get private key from rsa(pem)");
     let mut signer = Signer::new(MessageDigest::sha1(), &pkey).expect("Failed to init signer");
     signer.update(data).expect("Failed to update signer");
     let signature = signer.sign_to_vec().expect("Failed to get vector");
@@ -99,15 +96,15 @@ fn rsa_public_decrypt<K>(
     let e = get_required_named_data(register, "e")?;
     let mut e_b = BigNum::new().unwrap();
     let mut n_b = BigNum::new().unwrap();
-    BigNum::copy_from_slice(&mut n_b, n).expect("Failed");
-    BigNum::copy_from_slice(&mut e_b, e).expect("Failed");
-    let public_key = Rsa::from_public_components(n_b, e_b).expect("Failed");
-    let pkey = PKey::from_rsa(public_key.clone()).expect("Failed");
+    BigNum::copy_from_slice(&mut n_b, n).expect("Failed to get n");
+    BigNum::copy_from_slice(&mut e_b, e).expect("Failed to get e");
+    let public_key = Rsa::from_public_components(n_b, e_b).expect("Failed to get public key");
+    let pkey = PKey::from_rsa(public_key.clone()).expect("Failed to get public key from clone");
     let sign_bytes = sign;
     let mut decrypted = vec![0; pkey.size() as usize];
     let len = public_key
         .public_decrypt(&sign_bytes, &mut decrypted, Padding::PKCS1)
-        .expect("Failed");
+        .expect("Failed to public decrypt");
     decrypted.truncate(len);
     Ok(decrypted.to_vec().into())
 }
