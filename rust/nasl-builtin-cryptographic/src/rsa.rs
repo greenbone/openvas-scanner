@@ -3,7 +3,6 @@
 
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::get_required_named_data;
 use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
 use openssl::bn::BigNum;
 use openssl::hash::MessageDigest;
@@ -13,6 +12,8 @@ use openssl::rsa::Rsa;
 use openssl::sign::Signer;
 use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use std::str;
+
+use crate::get_required_named_data;
 
 fn rsa_public_encrypt<K>(
     register: &Register,
