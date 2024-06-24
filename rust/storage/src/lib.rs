@@ -84,6 +84,16 @@ pub struct Kb {
     pub expire: Option<u64>,
 }
 
+impl<K, V> From<(K, V)> for Kb where K: Into<String>, V: Into<Primitive> {
+    fn from((key, value): (K, V)) -> Self {
+        Kb {
+            key: key.into(),
+            value: value.into(),
+            expire: None,
+        }
+    }
+}
+
 /// Redefine Vulnerability so that other libraries using that don't have to include models
 pub type NotusAdvisory = models::VulnerabilityData;
 

@@ -41,17 +41,25 @@ pub enum ExecuteError {
     /// The parameter could not be processed
     Parameter(models::Parameter),
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Contains the result of a executed script
 pub enum ScriptResultKind {
     /// Contains the code provided by exit call or 0 when script finished successful without exit
     /// call
     ReturnCode(i64),
+    /// Script did not run because of missing required keys
+    ///
+    /// It contains the first not found key.
+    MissingRequiredKey(String),
+    /// Script did not run because of missing mandatory keys
+    ///
+    /// It contains the first not found key.
+    MissingMandatoryKey(String),
     /// Contains the error the script returned
     Error(InterpretError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Contains meta data of the script and its result
 pub struct ScriptResult {
     /// Object identifier of the script
@@ -66,8 +74,20 @@ pub struct ScriptResult {
 
 impl ScriptResult {
     /// Returns true when the return code of the script is 0.
-    pub fn is_success(&self) -> bool {
+    pub fn has_succeeded(&self) -> bool {
         matches!(&self.kind, ScriptResultKind::ReturnCode(0))
+    }
+    /// Returns true when the return code of the script not 0
+    pub fn has_failed(&self) -> bool {
+        !self.has_succeeded()
+    }
+
+    /// Returns true when the script didn't run
+    pub fn has_not_run(&self) -> bool {
+        matches!(
+            self.kind,
+            ScriptResultKind::MissingRequiredKey(_) | ScriptResultKind::MissingMandatoryKey(_)
+        )
     }
 }
 
@@ -133,6 +153,47 @@ where
         Err(ExecuteError::Parameter(parameter.clone()))
     }
 
+    fn check_keys(&self, vt: &storage::item::Nvt) -> Result<(), ScriptResultKind> {
+        let key = ContextKey::Scan(self.scan.scan_id.clone());
+        let check_key = |k: &str| {
+            match self
+                .storage
+                .retrieve(&key, storage::Retrieve::KB(k.to_string()))
+            {
+                Ok(mut x) => {
+                    let x = x.next();
+                    if x.is_none() {
+                        tracing::trace!(key = k, "kb not found");
+                        return Err(ScriptResultKind::MissingRequiredKey(k.into()));
+                    }
+                    println!("{:?}", x)
+                }
+                Err(e) => {
+                    tracing::warn!(error=%e, key=k, "unable to retrive kb");
+                    return Err(ScriptResultKind::MissingRequiredKey(k.into()));
+                }
+            }
+            Ok(())
+        };
+
+        println!(
+            "len required_keys: {}, mandatory: {}",
+            vt.required_keys.len(),
+            vt.mandatory_keys.len()
+        );
+        for k in &vt.required_keys {
+            check_key(k)?
+        }
+        for k in &vt.mandatory_keys {
+            check_key(k)?
+        }
+        Ok(())
+    }
+
+    fn generate_key(&self, target: &str) -> ContextKey {
+        ContextKey::Scan(format!("{}-{}", self.scan.scan_id, target))
+    }
+
     fn execute(
         &mut self,
         stage: crate::scheduling::Stage,
@@ -161,27 +222,36 @@ where
         )
         .entered();
 
-        let context = crate::Context::new(
-            ContextKey::Scan(self.scan.scan_id.clone()),
-            target,
-            self.storage.as_dispatcher(),
-            self.storage.as_retriever(),
-            self.loader,
-            self.logger,
-            self.executor,
-        );
-        let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
+        // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = interpret
-            .find_map(|r| match r {
-                Ok(NaslValue::Exit(x)) => Some(ScriptResultKind::ReturnCode(x)),
-                Err(e) => Some(ScriptResultKind::Error(e.clone())),
-                Ok(x) => {
-                    tracing::trace!(statement_result=?x);
-                    None
+        let kind = {
+            match self.check_keys(&vt) {
+                Err(e) => e,
+                Ok(()) => {
+                    let context = crate::Context::new(
+                        self.generate_key(&target),
+                        target,
+                        self.storage.as_dispatcher(),
+                        self.storage.as_retriever(),
+                        self.loader,
+                        self.logger,
+                        self.executor,
+                    );
+                    let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
+
+                    interpret
+                        .find_map(|r| match r {
+                            Ok(NaslValue::Exit(x)) => Some(ScriptResultKind::ReturnCode(x)),
+                            Err(e) => Some(ScriptResultKind::Error(e.clone())),
+                            Ok(x) => {
+                                tracing::trace!(statement_result=?x);
+                                None
+                            }
+                        })
+                        .unwrap_or_else(|| ScriptResultKind::ReturnCode(0))
                 }
-            })
-            .unwrap_or_else(|| ScriptResultKind::ReturnCode(0));
+            }
+        };
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: vt.oid,
@@ -227,6 +297,7 @@ where
                 unreachable!("error handling of sef.schedule.next is be done before to not run into borrow issues");
             }
             None => {
+                // TODO: cleanup target specific keys
                 // host is finished
                 self.current_host = None;
                 return self.next();
@@ -392,7 +463,6 @@ where
     /// interpreter.run::<WaveExecutionPlan>(&scan).unwrap().for_each(|x|println!("{x:?}"));
     ///
     /// ```
-
     pub fn run<T>(
         &'a self,
         scan: &'a models::Scan,
@@ -407,6 +477,95 @@ where
 
 #[cfg(test)]
 mod tests {
+    use storage::{DefaultDispatcher, Dispatcher, Retriever};
+
+    fn create_script_with_keys(
+        id: &str,
+        rc: usize,
+        required_keys: &[&str],
+        mandatory_keys: &[&str],
+    ) -> (String, storage::item::Nvt) {
+        let keys = |x: &[&str]| -> String {
+            x.iter().fold(String::default(), |acc, e| {
+                let acc = if acc.is_empty() {
+                    acc
+                } else {
+                    format!("{acc}, ")
+                };
+                format!("\"{acc}{e}\"")
+            })
+        };
+        let printable = |name, x| -> String {
+            let dependencies = keys(x);
+            if dependencies.is_empty() {
+                String::default()
+            } else {
+                format!("{name}({dependencies});")
+            }
+        };
+        let mandatory = printable("script_mandatory_keys", mandatory_keys);
+        let required = printable("script_require_keys", required_keys);
+
+        let code = format!(
+            r#"
+if (description)
+{{
+  script_oid("{id}");
+  script_category(ACT_GATHER_INFO);
+  {mandatory}
+  {required}
+  exit(0);
+}}
+exit({rc});
+"#
+        );
+        let filename = format!("{id}.nasl");
+        let nvt = parse_meta_data(&filename, &code).expect("exptected metadata");
+        (code, nvt)
+    }
+
+    fn parse_meta_data(id: &str, code: &str) -> Option<storage::item::Nvt> {
+        let initial = vec![
+            ("description".to_owned(), true.into()),
+            ("OPENVAS_VERSION".to_owned(), "testus".into()),
+        ];
+        let storage = storage::DefaultDispatcher::new(true);
+
+        let register = nasl_builtin_utils::Register::root_initial(&initial);
+        let logger = nasl_syntax::logger::DefaultLogger::default();
+        let target = String::default();
+        let functions = crate::nasl_std_functions();
+        let loader = |_: &str| code.to_string();
+
+        let context = nasl_builtin_utils::Context::new(
+            storage::ContextKey::FileName(id.to_string()),
+            target,
+            &storage,
+            &storage,
+            &loader,
+            &logger,
+            &functions,
+        );
+        let interpreter = crate::CodeInterpreter::new(code, register, &context);
+        for stmt in interpreter {
+            if let nasl_syntax::NaslValue::Exit(_) = stmt.expect("stmt success") {
+                storage.on_exit().expect("result");
+                let result = storage
+                    .retrieve(
+                        &storage::ContextKey::FileName(id.to_string()),
+                        storage::Retrieve::NVT(None),
+                    )
+                    .expect("nvt for id")
+                    .next();
+                if let Some(storage::Field::NVT(storage::item::NVTField::Nvt(nvt))) = result {
+                    return Some(nvt);
+                } else {
+                    return None;
+                }
+            }
+        }
+        None
+    }
 
     fn create_script(id: &str, rc: usize, dependencies: &[&str]) -> (String, storage::item::Nvt) {
         let mut dependencies = dependencies.iter().fold(String::default(), |acc, e| {
@@ -432,13 +591,113 @@ if (description)
 exit({rc});
 "#
         );
-        let nvt = storage::item::Nvt {
-            oid: id.to_string(),
-            filename: format!("{id}.nasl"),
-            category: nasl_syntax::ACT::GatherInfo,
-            ..Default::default()
-        };
+        let filename = format!("{id}.nasl");
+        let nvt = parse_meta_data(&filename, &code).expect("exptected metadata");
         (code, nvt)
+    }
+
+    fn prepare_vt_storage(scripts: &[(String, storage::item::Nvt)]) -> storage::DefaultDispatcher {
+        let dispatcher = storage::DefaultDispatcher::new(true);
+        scripts.iter().map(|(_, v)| v).for_each(|n| {
+            dispatcher
+                .dispatch(
+                    &storage::ContextKey::FileName(n.filename.clone()),
+                    storage::Field::NVT(storage::item::NVTField::Nvt(n.clone())),
+                )
+                .expect("sending")
+        });
+        dispatcher
+    }
+
+    fn run(
+        scripts: &[(String, storage::item::Nvt)],
+        storage: storage::DefaultDispatcher,
+    ) -> Result<Vec<Result<crate::ScriptResult, crate::ExecuteError>>, crate::ExecuteError> {
+        let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
+        let loader = |s: &str| scripts[stou(s)].0.clone();
+        let scan = models::Scan {
+            scan_id: "sid".to_string(),
+            target: models::Target {
+                hosts: vec!["test.host".to_string()],
+                ..Default::default()
+            },
+            scan_preferences: vec![],
+            vts: scripts
+                .iter()
+                .map(|(_, v)| models::VT {
+                    oid: v.oid.clone(),
+                    parameters: vec![],
+                })
+                .collect(),
+        };
+        let interpreter =
+            super::SyncScanInterpreter::with_default_function_executor(&storage, &loader);
+        let results = interpreter
+            .run::<crate::scheduling::WaveExecutionPlan>(&scan)?
+            .collect::<Vec<_>>();
+        Ok(results)
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn required_keys() {
+        let only_success = [
+            create_script_with_keys("0", 0, &["key/not"], &[]),
+            create_script_with_keys("1", 0, &["key/exists"], &[]),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        dispatcher
+            .dispatch(
+                &storage::ContextKey::Scan("sid".into()),
+                storage::Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        let result = run(&only_success, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 1);
+        assert_eq!(failure.len(), 1);
+    }
+
+    #[test]
+    fn mandatory_keys() {
+
+        let only_success = [
+            create_script_with_keys("0", 0, &["key/exists"], &["key/not"]),
+            create_script_with_keys("1", 0, &["key/exists"], &["key/not"]),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        dispatcher
+            .dispatch(
+                &storage::ContextKey::Scan("sid".into()),
+                storage::Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        let result = run(&only_success, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 1);
+        assert_eq!(failure.len(), 1);
     }
 
     #[test]
@@ -448,40 +707,12 @@ exit({rc});
             create_script("1", 0, &["0"]),
             create_script("2", 0, &["1"]),
         ];
-        use storage::Dispatcher;
-        let dispatcher = storage::DefaultDispatcher::new(true);
-        only_success.iter().map(|(_, v)| v).for_each(|n| {
-            dispatcher
-                .dispatch(
-                    &storage::ContextKey::FileName(n.filename.clone()),
-                    storage::Field::NVT(storage::item::NVTField::Nvt(n.clone())),
-                )
-                .expect("sending")
-        });
-        let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
-        let loader = |s: &str| only_success[stou(s)].0.clone();
-        let scan = models::Scan {
-            scan_id: "sid".to_string(),
-            target: models::Target {
-                hosts: vec!["test.host".to_string()],
-                ..Default::default()
-            },
-            scan_preferences: vec![],
-            vts: only_success
-                .iter()
-                .map(|(_, v)| models::VT {
-                    oid: v.oid.clone(),
-                    parameters: vec![],
-                })
-                .collect(),
-        };
-        let interpreter =
-            super::SyncScanInterpreter::with_default_function_executor(&dispatcher, &loader);
-        let result = interpreter
-            .run::<crate::scheduling::WaveExecutionPlan>(&scan)
-            .expect("success")
+        let dispatcher = prepare_vt_storage(&only_success);
+        let result = run(&only_success, dispatcher).expect("success");
+        let result = result
+            .into_iter()
             .filter_map(|x| x.ok())
-            .filter(|x| x.is_success())
+            .filter(|x| x.has_succeeded())
             .collect::<Vec<_>>();
         assert_eq!(result.len(), 3);
     }
