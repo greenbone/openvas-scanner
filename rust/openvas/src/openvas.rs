@@ -359,7 +359,7 @@ impl ScanResultFetcher for Scanner {
                     host_info: Some(hosts_info),
                 };
 
-                let scan_res = ScanResults {
+                let mut scan_res = ScanResults {
                     id: scan_id.to_string(),
                     status: st,
                     results: all_results
@@ -369,14 +369,23 @@ impl ScanResultFetcher for Scanner {
                         .collect(),
                 };
 
-                // If the scan finished, release
+                // If the scan finished, release. Openvas "finished" status is translated todo
+                // Succeeded. It is necessary to read the exit code to know if it failed.
                 if status == Phase::Succeeded {
                     let mut scan = match self.remove_running(scan_id) {
                         Some(scan) => scan.0,
                         None => return Err(OpenvasError::ScanNotFound(scan_id.to_string()).into()),
                     };
 
-                    scan.wait().map_err(OpenvasError::CmdError)?;
+                    // Read openvas scanner exit code and if failed, reset the status to Failed.
+                    let exit_status = scan.wait().map_err(OpenvasError::CmdError)?;
+                    if let Some(code) = exit_status.code() {
+                        if code != 0 {
+                            scan_res.status.status = Phase::Failed;
+                            scan_res.status.start_time = scan_res.status.end_time;
+                            scan_res.status.host_info = None;
+                        }
+                    }
 
                     redis_help
                         .release()
