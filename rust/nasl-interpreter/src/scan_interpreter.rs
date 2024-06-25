@@ -9,7 +9,7 @@ use nasl_syntax::{
     logger::{DefaultLogger, NaslLogger},
     Loader, NaslValue,
 };
-use storage::{ContextKey, Storage};
+use storage::{types::Primitive, ContextKey, Storage};
 
 use crate::{scheduling::ExecutionPlaner, InterpretError};
 
@@ -47,6 +47,8 @@ pub enum ScriptResultKind {
     /// Contains the code provided by exit call or 0 when script finished successful without exit
     /// call
     ReturnCode(i64),
+    /// Script did not run because an excluded key is set
+    ContainsExcludedKey(String),
     /// Script did not run because of missing required keys
     ///
     /// It contains the first not found key.
@@ -86,7 +88,9 @@ impl ScriptResult {
     pub fn has_not_run(&self) -> bool {
         matches!(
             self.kind,
-            ScriptResultKind::MissingRequiredKey(_) | ScriptResultKind::MissingMandatoryKey(_)
+            ScriptResultKind::MissingRequiredKey(_)
+                | ScriptResultKind::MissingMandatoryKey(_)
+                | ScriptResultKind::ContainsExcludedKey(_)
         )
     }
 }
@@ -153,39 +157,89 @@ where
         Err(ExecuteError::Parameter(parameter.clone()))
     }
 
-    fn check_keys(&self, vt: &storage::item::Nvt) -> Result<(), ScriptResultKind> {
-        let key = ContextKey::Scan(self.scan.scan_id.clone());
-        let check_key = |k: &str| {
-            match self
-                .storage
-                .retrieve(&key, storage::Retrieve::KB(k.to_string()))
-            {
-                Ok(mut x) => {
-                    let x = x.next();
-                    if x.is_none() {
-                        tracing::trace!(key = k, "kb not found");
-                        return Err(ScriptResultKind::MissingRequiredKey(k.into()));
+    fn check_key<A, B, C>(
+        &self,
+        key: &storage::ContextKey,
+        k: &str,
+        result_none: A,
+        result_some: B,
+        result_err: C,
+    ) -> Result<(), ScriptResultKind>
+    where
+        A: Fn() -> Option<ScriptResultKind>,
+        B: Fn(Primitive) -> Option<ScriptResultKind>,
+        C: Fn(storage::StorageError) -> Option<ScriptResultKind>,
+    {
+        let result = match self
+            .storage
+            .retrieve(key, storage::Retrieve::KB(k.to_string()))
+        {
+            Ok(mut x) => {
+                let x = x.next();
+                if let Some(x) = x {
+                    match x {
+                        storage::Field::KB(kb) => {
+                            tracing::trace!(key = k, value=?kb.value, "kb found");
+                            result_some(kb.value)
+                        }
+                        x => {
+                            tracing::trace!(key = k, field=?x, "found key but it is not a KB item");
+                            result_none()
+                        }
                     }
-                    println!("{:?}", x)
-                }
-                Err(e) => {
-                    tracing::warn!(error=%e, key=k, "unable to retrive kb");
-                    return Err(ScriptResultKind::MissingRequiredKey(k.into()));
+                } else {
+                    tracing::trace!(key = k, "kb not found");
+                    result_none()
                 }
             }
-            Ok(())
+            Err(e) => {
+                tracing::warn!(error=%e, key=k, "unable to retrive kb");
+                result_err(e)
+            }
         };
+        match result {
+            None => Ok(()),
+            Some(x) => Err(x),
+        }
+    }
 
-        println!(
-            "len required_keys: {}, mandatory: {}",
-            vt.required_keys.len(),
-            vt.mandatory_keys.len()
-        );
+    fn check_keys(&self, vt: &storage::item::Nvt) -> Result<(), ScriptResultKind> {
+        let key = ContextKey::Scan(self.scan.scan_id.clone());
+        let check_required_key = |k: &str| {
+            self.check_key(
+                &key,
+                k,
+                || Some(ScriptResultKind::MissingRequiredKey(k.into())),
+                |_| None,
+                |_| Some(ScriptResultKind::MissingRequiredKey(k.into())),
+            )
+        };
+        let check_mandatory_key = |k: &str| {
+            self.check_key(
+                &key,
+                k,
+                || Some(ScriptResultKind::MissingMandatoryKey(k.into())),
+                |_| None,
+                |_| Some(ScriptResultKind::MissingMandatoryKey(k.into())),
+            )
+        };
+        let check_exclude_key = |k: &str| {
+            self.check_key(
+                &key,
+                k,
+                || None,
+                |_| Some(ScriptResultKind::ContainsExcludedKey(k.into())),
+                |_| None,
+            )
+        };
         for k in &vt.required_keys {
-            check_key(k)?
+            check_required_key(k)?
         }
         for k in &vt.mandatory_keys {
-            check_key(k)?
+            check_mandatory_key(k)?
+        }
+        for k in &vt.excluded_keys {
+            check_exclude_key(k)?
         }
         Ok(())
     }
@@ -477,51 +531,102 @@ where
 
 #[cfg(test)]
 mod tests {
-    use storage::{DefaultDispatcher, Dispatcher, Retriever};
+    use storage::{Dispatcher, Retriever};
 
-    fn create_script_with_keys(
-        id: &str,
+    #[derive(Debug, Default)]
+    struct GenerateScript {
+        id: String,
         rc: usize,
-        required_keys: &[&str],
-        mandatory_keys: &[&str],
-    ) -> (String, storage::item::Nvt) {
-        let keys = |x: &[&str]| -> String {
-            x.iter().fold(String::default(), |acc, e| {
-                let acc = if acc.is_empty() {
-                    acc
-                } else {
-                    format!("{acc}, ")
-                };
-                format!("\"{acc}{e}\"")
-            })
-        };
-        let printable = |name, x| -> String {
-            let dependencies = keys(x);
-            if dependencies.is_empty() {
-                String::default()
-            } else {
-                format!("{name}({dependencies});")
-            }
-        };
-        let mandatory = printable("script_mandatory_keys", mandatory_keys);
-        let required = printable("script_require_keys", required_keys);
+        dependencies: Vec<String>,
+        required_keys: Vec<String>,
+        mandatory_keys: Vec<String>,
+        exclude: Vec<String>,
+    }
 
-        let code = format!(
-            r#"
+    impl GenerateScript {
+        fn with_dependencies(id: &str, dependencies: &[&str]) -> GenerateScript {
+            let dependencies = dependencies.iter().map(|x| x.to_string()).collect();
+
+            GenerateScript {
+                id: id.to_string(),
+                dependencies,
+                ..Default::default()
+            }
+        }
+
+        fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
+            let required_keys = required_keys.iter().map(|x| x.to_string()).collect();
+            GenerateScript {
+                id: id.to_string(),
+                required_keys,
+                ..Default::default()
+            }
+        }
+
+        fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
+            let mandatory_keys = mandatory_keys.iter().map(|x| x.to_string()).collect();
+            GenerateScript {
+                id: id.to_string(),
+                mandatory_keys,
+                ..Default::default()
+            }
+        }
+
+        fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
+            let exclude = exclude_keys.iter().map(|x| x.to_string()).collect();
+            GenerateScript {
+                id: id.to_string(),
+                exclude,
+                ..Default::default()
+            }
+        }
+
+        fn generate(&self) -> (String, storage::item::Nvt) {
+            let keys = |x: &[String]| -> String {
+                x.iter().fold(String::default(), |acc, e| {
+                    let acc = if acc.is_empty() {
+                        acc
+                    } else {
+                        format!("{acc}, ")
+                    };
+                    format!("\"{acc}{e}\"")
+                })
+            };
+            let printable = |name, x| -> String {
+                let dependencies = keys(x);
+                if dependencies.is_empty() {
+                    String::default()
+                } else {
+                    format!("{name}({dependencies});")
+                }
+            };
+            let mandatory = printable("script_mandatory_keys", &self.mandatory_keys);
+            let required = printable("script_require_keys", &self.required_keys);
+            let dependencies = printable("script_dependencies", &self.dependencies);
+            let exclude = printable("script_exclude_keys", &self.exclude);
+
+            let rc = self.rc;
+            let id = &self.id;
+
+            let code = format!(
+                r#"
 if (description)
 {{
   script_oid("{id}");
   script_category(ACT_GATHER_INFO);
+  {dependencies}
   {mandatory}
   {required}
+  {exclude}
   exit(0);
 }}
 exit({rc});
 "#
-        );
-        let filename = format!("{id}.nasl");
-        let nvt = parse_meta_data(&filename, &code).expect("exptected metadata");
-        (code, nvt)
+            );
+            let filename = format!("{id}.nasl");
+            let nvt = parse_meta_data(&filename, &code).expect("exptected metadata");
+            (code, nvt)
+        }
     }
 
     fn parse_meta_data(id: &str, code: &str) -> Option<storage::item::Nvt> {
@@ -565,35 +670,6 @@ exit({rc});
             }
         }
         None
-    }
-
-    fn create_script(id: &str, rc: usize, dependencies: &[&str]) -> (String, storage::item::Nvt) {
-        let mut dependencies = dependencies.iter().fold(String::default(), |acc, e| {
-            let acc = if acc.is_empty() {
-                acc
-            } else {
-                format!("{acc}, ")
-            };
-            format!("\"{acc}{e}.nasl\"")
-        });
-        if !dependencies.is_empty() {
-            dependencies = format!("script_dependencies({})", dependencies);
-        }
-        let code = format!(
-            r#"
-if (description)
-{{
-  script_oid("{id}");
-  script_category(ACT_GATHER_INFO);
-  {dependencies};
-  exit(0);
-}}
-exit({rc});
-"#
-        );
-        let filename = format!("{id}.nasl");
-        let nvt = parse_meta_data(&filename, &code).expect("exptected metadata");
-        (code, nvt)
     }
 
     fn prepare_vt_storage(scripts: &[(String, storage::item::Nvt)]) -> storage::DefaultDispatcher {
@@ -640,10 +716,42 @@ exit({rc});
 
     #[test]
     #[tracing_test::traced_test]
+    fn exclude_keys() {
+        let only_success = [
+            GenerateScript::with_excluded_keys("0", &["key/not"]).generate(),
+            GenerateScript::with_excluded_keys("1", &["key/not"]).generate(),
+            GenerateScript::with_excluded_keys("2", &["key/exists"]).generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        dispatcher
+            .dispatch(
+                &storage::ContextKey::Scan("sid".into()),
+                storage::Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        let result = run(&only_success, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 2);
+        assert_eq!(failure.len(), 1);
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
     fn required_keys() {
         let only_success = [
-            create_script_with_keys("0", 0, &["key/not"], &[]),
-            create_script_with_keys("1", 0, &["key/exists"], &[]),
+            GenerateScript::with_required_keys("0", &["key/not"]).generate(),
+            GenerateScript::with_required_keys("1", &["key/exists"]).generate(),
         ];
         let dispatcher = prepare_vt_storage(&only_success);
         dispatcher
@@ -671,10 +779,9 @@ exit({rc});
 
     #[test]
     fn mandatory_keys() {
-
         let only_success = [
-            create_script_with_keys("0", 0, &["key/exists"], &["key/not"]),
-            create_script_with_keys("1", 0, &["key/exists"], &["key/not"]),
+            GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
+            GenerateScript::with_mandatory_keys("1", &["key/exists"]).generate(),
         ];
         let dispatcher = prepare_vt_storage(&only_success);
         dispatcher
@@ -703,9 +810,9 @@ exit({rc});
     #[test]
     fn run_with_schedule() {
         let only_success = [
-            create_script("0", 0, &[]),
-            create_script("1", 0, &["0"]),
-            create_script("2", 0, &["1"]),
+            GenerateScript::with_dependencies("0", &[]).generate(),
+            GenerateScript::with_dependencies("1", &["0.nasl"]).generate(),
+            GenerateScript::with_dependencies("2", &["1.nasl"]).generate(),
         ];
         let dispatcher = prepare_vt_storage(&only_success);
         let result = run(&only_success, dispatcher).expect("success");
