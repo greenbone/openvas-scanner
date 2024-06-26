@@ -1885,6 +1885,7 @@ pub mod igmp {
 
     /// Represents a generic IGMP packet.
     #[packet]
+    #[allow(dead_code)]
     pub struct Igmp {
         #[construct_with(u8)]
         pub igmp_type: IgmpType,

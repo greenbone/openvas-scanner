@@ -17,7 +17,7 @@ use crate::{scheduling::ExecutionPlaner, InterpretError};
 ///
 /// As a Scan is able to configure the behavior of scripts (e.g. consider_alive means that each
 /// port within the scan is considered reachable without testing) each Interpreter must be created
-/// for each scan and is not reuseable.
+/// for each scan and is not reusable.
 pub struct SyncScanInterpreter<'a, S, L, N> {
     storage: &'a S,
     loader: &'a L,
