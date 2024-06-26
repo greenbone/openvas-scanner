@@ -52,7 +52,7 @@ impl Display for PortRange {
 }
 
 /// Enum representing the protocol used for scanning a port.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -71,6 +71,15 @@ impl TryFrom<&str> for Protocol {
             "udp" => Ok(Protocol::UDP),
             "tcp" => Ok(Protocol::TCP),
             _ => Err(format!("Invalid protocol: {}", value)),
+        }
+    }
+}
+
+impl Display for Protocol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Protocol::UDP => write!(f, "udp"),
+            Protocol::TCP => write!(f, "tcp"),
         }
     }
 }
