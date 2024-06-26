@@ -90,6 +90,10 @@ jobs:
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN}}
       cosign_key_opensight: ${{ secrets.COSIGN_KEY_OPENSIGHT }}
       cosign_password_opensight: ${{ secrets.COSIGN_KEY_PASSWORD_OPENSIGHT }}
+      greenbone_registry: ${{ secrets.GREENBONE_REGISTRY }}
+      greenbone_registry_user: ${{ secrets.GREENBONE_REGISTRY_USER }}
+      greenbone_registry_token: ${{ secrets.GREENBONE_REGISTRY_TOKEN }}
+      mattermost_webhook_url: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
     with:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
