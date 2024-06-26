@@ -16,10 +16,12 @@ mod tests {
         data = hexstr_to_data("95f8a5e5dd31d900");
         DES(data,key);
         "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
+        let mut register = Register::default();
+        let binding = ContextBuilder::default();
+        let context = binding.build();
+        let mut interpreter = Interpreter::new(&mut register, &context);
+        let mut parser =
+            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
         parser.next();
         parser.next();
         assert_eq!(

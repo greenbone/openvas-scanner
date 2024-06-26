@@ -17,6 +17,7 @@ pub mod aes_gmac;
 pub mod des;
 pub mod hash;
 pub mod hmac;
+pub mod rsa;
 
 enum Crypt {
     Encrypt,
@@ -36,6 +37,7 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
         .or_else(|| aes_gmac::lookup(function_name))
         .or_else(|| hash::lookup(function_name))
         .or_else(|| des::lookup(function_name))
+        .or_else(|| rsa::lookup(function_name))
 }
 
 pub struct Cryptographic;
