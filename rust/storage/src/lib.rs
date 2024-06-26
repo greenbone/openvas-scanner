@@ -33,6 +33,15 @@ pub enum ContextKey {
     FileName(String),
 }
 
+impl Display for ContextKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ContextKey::Scan(id) => write!(f, "scan_id={id}"),
+            ContextKey::FileName(name) => write!(f, "file={name}"),
+        }
+    }
+}
+
 impl AsRef<str> for ContextKey {
     fn as_ref(&self) -> &str {
         match self {
