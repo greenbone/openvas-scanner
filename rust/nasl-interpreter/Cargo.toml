@@ -23,4 +23,4 @@ nasl-c-lib = ["nasl-builtin-std/nasl-c-lib"]
 experimental = ["nasl-builtin-ssh", "nasl-builtin-raw-ip", "nasl-c-lib"]
 
 [dev-dependencies]
-tracing-test = "0.2.4"
+tracing-test = "0"
