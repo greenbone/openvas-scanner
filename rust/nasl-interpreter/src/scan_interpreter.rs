@@ -9,7 +9,7 @@ use nasl_syntax::{
     logger::{DefaultLogger, NaslLogger},
     Loader, NaslValue,
 };
-use storage::{ContextKey, Storage};
+use storage::{types::Primitive, ContextKey, Storage};
 
 use crate::{scheduling::ExecutionPlaner, InterpretError};
 
@@ -41,17 +41,29 @@ pub enum ExecuteError {
     /// The parameter could not be processed
     Parameter(models::Parameter),
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Contains the result of a executed script
 pub enum ScriptResultKind {
     /// Contains the code provided by exit call or 0 when script finished successful without exit
     /// call
     ReturnCode(i64),
+    /// Is missing a port
+    MissingPort(models::Protocol, String),
+    /// Script did not run because an excluded key is set
+    ContainsExcludedKey(String),
+    /// Script did not run because of missing required keys
+    ///
+    /// It contains the first not found key.
+    MissingRequiredKey(String),
+    /// Script did not run because of missing mandatory keys
+    ///
+    /// It contains the first not found key.
+    MissingMandatoryKey(String),
     /// Contains the error the script returned
     Error(InterpretError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Contains meta data of the script and its result
 pub struct ScriptResult {
     /// Object identifier of the script
@@ -66,9 +78,27 @@ pub struct ScriptResult {
 
 impl ScriptResult {
     /// Returns true when the return code of the script is 0.
-    pub fn is_success(&self) -> bool {
+    pub fn has_succeeded(&self) -> bool {
         matches!(&self.kind, ScriptResultKind::ReturnCode(0))
     }
+    /// Returns true when the return code of the script not 0
+    pub fn has_failed(&self) -> bool {
+        !self.has_succeeded()
+    }
+
+    /// Returns true when the script didn't run
+    pub fn has_not_run(&self) -> bool {
+        matches!(
+            self.kind,
+            ScriptResultKind::MissingRequiredKey(_)
+                | ScriptResultKind::MissingMandatoryKey(_)
+                | ScriptResultKind::ContainsExcludedKey(_)
+                | ScriptResultKind::MissingPort(..)
+        )
+    }
+}
+pub(crate) fn generate_port_kb_key(protocol: models::Protocol, port: &str) -> String {
+    format!("Ports/{protocol}/{port}")
 }
 
 struct ScriptExecutor<'a, T> {
@@ -133,6 +163,126 @@ where
         Err(ExecuteError::Parameter(parameter.clone()))
     }
 
+    fn check_key<A, B, C>(
+        &self,
+        key: &storage::ContextKey,
+        kb_key: &str,
+        result_none: A,
+        result_some: B,
+        result_err: C,
+    ) -> Result<(), ScriptResultKind>
+    where
+        A: Fn() -> Option<ScriptResultKind>,
+        B: Fn(Primitive) -> Option<ScriptResultKind>,
+        C: Fn(storage::StorageError) -> Option<ScriptResultKind>,
+    {
+        let _span = tracing::error_span!("kb_item", %key, kb_key).entered();
+        let result = match self
+            .storage
+            .retrieve(key, storage::Retrieve::KB(kb_key.to_string()))
+        {
+            Ok(mut x) => {
+                let x = x.next();
+                if let Some(x) = x {
+                    match x {
+                        storage::Field::KB(kb) => {
+                            tracing::trace!(value=?kb.value, "found");
+                            result_some(kb.value)
+                        }
+                        x => {
+                            tracing::trace!(field=?x, "found but it is not a KB item");
+                            result_none()
+                        }
+                    }
+                } else {
+                    tracing::trace!("not found");
+                    result_none()
+                }
+            }
+            Err(e) => {
+                tracing::warn!(error=%e, "storage error");
+                result_err(e)
+            }
+        };
+        match result {
+            None => Ok(()),
+            Some(x) => Err(x),
+        }
+    }
+
+    fn check_keys(&self, vt: &storage::item::Nvt) -> Result<(), ScriptResultKind> {
+        let key = ContextKey::Scan(self.scan.scan_id.clone());
+        let check_required_key = |k: &str| {
+            self.check_key(
+                &key,
+                k,
+                || Some(ScriptResultKind::MissingRequiredKey(k.into())),
+                |_| None,
+                |_| Some(ScriptResultKind::MissingRequiredKey(k.into())),
+            )
+        };
+        for k in &vt.required_keys {
+            check_required_key(k)?
+        }
+
+        let check_mandatory_key = |k: &str| {
+            self.check_key(
+                &key,
+                k,
+                || Some(ScriptResultKind::MissingMandatoryKey(k.into())),
+                |_| None,
+                |_| Some(ScriptResultKind::MissingMandatoryKey(k.into())),
+            )
+        };
+        for k in &vt.mandatory_keys {
+            check_mandatory_key(k)?
+        }
+
+        let check_exclude_key = |k: &str| {
+            self.check_key(
+                &key,
+                k,
+                || None,
+                |_| Some(ScriptResultKind::ContainsExcludedKey(k.into())),
+                |_| None,
+            )
+        };
+        for k in &vt.excluded_keys {
+            check_exclude_key(k)?
+        }
+
+        use models::Protocol;
+        let check_port = |pt: Protocol, port: &str| {
+            let kbk = generate_port_kb_key(pt, port);
+            self.check_key(
+                &key,
+                &kbk,
+                || Some(ScriptResultKind::MissingPort(pt, port.to_string())),
+                |v| {
+                    if v.into() {
+                        None
+                    } else {
+                        Some(ScriptResultKind::MissingPort(pt, port.to_string()))
+                    }
+                },
+                |_| Some(ScriptResultKind::MissingPort(pt, port.to_string())),
+            )
+        };
+        for k in &vt.required_ports {
+            check_port(Protocol::TCP, k)?
+        }
+        for k in &vt.required_udp_ports {
+            check_port(Protocol::UDP, k)?
+        }
+
+        Ok(())
+    }
+
+    // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
+    fn generate_key(&self, target: &str) -> ContextKey {
+        ContextKey::Scan(format!("{}-{}", self.scan.scan_id, target))
+    }
+
     fn execute(
         &mut self,
         stage: crate::scheduling::Stage,
@@ -161,27 +311,36 @@ where
         )
         .entered();
 
-        let context = crate::Context::new(
-            ContextKey::Scan(self.scan.scan_id.clone()),
-            target,
-            self.storage.as_dispatcher(),
-            self.storage.as_retriever(),
-            self.loader,
-            self.logger,
-            self.executor,
-        );
-        let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
+        // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = interpret
-            .find_map(|r| match r {
-                Ok(NaslValue::Exit(x)) => Some(ScriptResultKind::ReturnCode(x)),
-                Err(e) => Some(ScriptResultKind::Error(e.clone())),
-                Ok(x) => {
-                    tracing::trace!(statement_result=?x);
-                    None
+        let kind = {
+            match self.check_keys(&vt) {
+                Err(e) => e,
+                Ok(()) => {
+                    let context = crate::Context::new(
+                        self.generate_key(&target),
+                        target,
+                        self.storage.as_dispatcher(),
+                        self.storage.as_retriever(),
+                        self.loader,
+                        self.logger,
+                        self.executor,
+                    );
+                    let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
+
+                    interpret
+                        .find_map(|r| match r {
+                            Ok(NaslValue::Exit(x)) => Some(ScriptResultKind::ReturnCode(x)),
+                            Err(e) => Some(ScriptResultKind::Error(e.clone())),
+                            Ok(x) => {
+                                tracing::trace!(statement_result=?x);
+                                None
+                            }
+                        })
+                        .unwrap_or_else(|| ScriptResultKind::ReturnCode(0))
                 }
-            })
-            .unwrap_or_else(|| ScriptResultKind::ReturnCode(0));
+            }
+        };
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: vt.oid,
@@ -227,6 +386,7 @@ where
                 unreachable!("error handling of sef.schedule.next is be done before to not run into borrow issues");
             }
             None => {
+                // TODO: cleanup target specific keys
                 // host is finished
                 self.current_host = None;
                 return self.next();
@@ -392,7 +552,6 @@ where
     /// interpreter.run::<WaveExecutionPlan>(&scan).unwrap().for_each(|x|println!("{x:?}"));
     ///
     /// ```
-
     pub fn run<T>(
         &'a self,
         scan: &'a models::Scan,
@@ -407,50 +566,177 @@ where
 
 #[cfg(test)]
 mod tests {
+    use storage::{Dispatcher, Retriever};
 
-    fn create_script(id: &str, rc: usize, dependencies: &[&str]) -> (String, storage::item::Nvt) {
-        let mut dependencies = dependencies.iter().fold(String::default(), |acc, e| {
-            let acc = if acc.is_empty() {
-                acc
-            } else {
-                format!("{acc}, ")
-            };
-            format!("\"{acc}{e}.nasl\"")
-        });
-        if !dependencies.is_empty() {
-            dependencies = format!("script_dependencies({})", dependencies);
+    #[derive(Debug, Default)]
+    struct GenerateScript {
+        id: String,
+        rc: usize,
+        dependencies: Vec<String>,
+        required_keys: Vec<String>,
+        mandatory_keys: Vec<String>,
+        required_tcp_ports: Vec<String>,
+        required_udp_ports: Vec<String>,
+        exclude: Vec<String>,
+    }
+
+    impl GenerateScript {
+        fn with_dependencies(id: &str, dependencies: &[&str]) -> GenerateScript {
+            let dependencies = dependencies.iter().map(|x| x.to_string()).collect();
+
+            GenerateScript {
+                id: id.to_string(),
+                dependencies,
+                ..Default::default()
+            }
         }
-        let code = format!(
-            r#"
+
+        fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
+            let required_keys = required_keys.iter().map(|x| x.to_string()).collect();
+            GenerateScript {
+                id: id.to_string(),
+                required_keys,
+                ..Default::default()
+            }
+        }
+
+        fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
+            let mandatory_keys = mandatory_keys.iter().map(|x| x.to_string()).collect();
+            GenerateScript {
+                id: id.to_string(),
+                mandatory_keys,
+                ..Default::default()
+            }
+        }
+
+        fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
+            let exclude = exclude_keys.iter().map(|x| x.to_string()).collect();
+            GenerateScript {
+                id: id.to_string(),
+                exclude,
+                ..Default::default()
+            }
+        }
+
+        fn with_required_ports(id: &str, ports: &[(models::Protocol, &str)]) -> GenerateScript {
+            let required_tcp_ports = ports
+                .iter()
+                .filter(|(p, _)| matches!(p, models::Protocol::TCP))
+                .map(|(_, p)| p.to_string())
+                .collect();
+            let required_udp_ports = ports
+                .iter()
+                .filter(|(p, _)| matches!(p, models::Protocol::UDP))
+                .map(|(_, p)| p.to_string())
+                .collect();
+
+            GenerateScript {
+                id: id.to_string(),
+                required_tcp_ports,
+                required_udp_ports,
+
+                ..Default::default()
+            }
+        }
+
+        fn generate(&self) -> (String, storage::item::Nvt) {
+            let keys = |x: &[String]| -> String {
+                x.iter().fold(String::default(), |acc, e| {
+                    let acc = if acc.is_empty() {
+                        acc
+                    } else {
+                        format!("{acc}, ")
+                    };
+                    format!("\"{acc}{e}\"")
+                })
+            };
+            let printable = |name, x| -> String {
+                let dependencies = keys(x);
+                if dependencies.is_empty() {
+                    String::default()
+                } else {
+                    format!("{name}({dependencies});")
+                }
+            };
+            let mandatory = printable("script_mandatory_keys", &self.mandatory_keys);
+            let required = printable("script_require_keys", &self.required_keys);
+            let dependencies = printable("script_dependencies", &self.dependencies);
+            let exclude = printable("script_exclude_keys", &self.exclude);
+            let require_ports = printable("script_require_ports", &self.required_tcp_ports);
+            let require_udp_ports = printable("script_require_udp_ports", &self.required_udp_ports);
+
+            let rc = self.rc;
+            let id = &self.id;
+
+            let code = format!(
+                r#"
 if (description)
 {{
   script_oid("{id}");
   script_category(ACT_GATHER_INFO);
-  {dependencies};
+  {dependencies}
+  {mandatory}
+  {required}
+  {exclude}
+  {require_ports}
+  {require_udp_ports}
   exit(0);
 }}
 exit({rc});
 "#
-        );
-        let nvt = storage::item::Nvt {
-            oid: id.to_string(),
-            filename: format!("{id}.nasl"),
-            category: nasl_syntax::ACT::GatherInfo,
-            ..Default::default()
-        };
-        (code, nvt)
+            );
+            let filename = format!("{id}.nasl");
+            let nvt = parse_meta_data(&filename, &code).expect("expected metadata");
+            (code, nvt)
+        }
     }
 
-    #[test]
-    fn run_with_schedule() {
-        let only_success = [
-            create_script("0", 0, &[]),
-            create_script("1", 0, &["0"]),
-            create_script("2", 0, &["1"]),
+    fn parse_meta_data(id: &str, code: &str) -> Option<storage::item::Nvt> {
+        let initial = vec![
+            ("description".to_owned(), true.into()),
+            ("OPENVAS_VERSION".to_owned(), "testus".into()),
         ];
-        use storage::Dispatcher;
+        let storage = storage::DefaultDispatcher::new(true);
+
+        let register = nasl_builtin_utils::Register::root_initial(&initial);
+        let logger = nasl_syntax::logger::DefaultLogger::default();
+        let target = String::default();
+        let functions = crate::nasl_std_functions();
+        let loader = |_: &str| code.to_string();
+
+        let context = nasl_builtin_utils::Context::new(
+            storage::ContextKey::FileName(id.to_string()),
+            target,
+            &storage,
+            &storage,
+            &loader,
+            &logger,
+            &functions,
+        );
+        let interpreter = crate::CodeInterpreter::new(code, register, &context);
+        for stmt in interpreter {
+            if let nasl_syntax::NaslValue::Exit(_) = stmt.expect("stmt success") {
+                storage.on_exit().expect("result");
+                let result = storage
+                    .retrieve(
+                        &storage::ContextKey::FileName(id.to_string()),
+                        storage::Retrieve::NVT(None),
+                    )
+                    .expect("nvt for id")
+                    .next();
+                if let Some(storage::Field::NVT(storage::item::NVTField::Nvt(nvt))) = result {
+                    return Some(nvt);
+                } else {
+                    return None;
+                }
+            }
+        }
+        None
+    }
+
+    fn prepare_vt_storage(scripts: &[(String, storage::item::Nvt)]) -> storage::DefaultDispatcher {
         let dispatcher = storage::DefaultDispatcher::new(true);
-        only_success.iter().map(|(_, v)| v).for_each(|n| {
+        scripts.iter().map(|(_, v)| v).for_each(|n| {
             dispatcher
                 .dispatch(
                     &storage::ContextKey::FileName(n.filename.clone()),
@@ -458,8 +744,15 @@ exit({rc});
                 )
                 .expect("sending")
         });
+        dispatcher
+    }
+
+    fn run(
+        scripts: &[(String, storage::item::Nvt)],
+        storage: storage::DefaultDispatcher,
+    ) -> Result<Vec<Result<crate::ScriptResult, crate::ExecuteError>>, crate::ExecuteError> {
         let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
-        let loader = |s: &str| only_success[stou(s)].0.clone();
+        let loader = |s: &str| scripts[stou(s)].0.clone();
         let scan = models::Scan {
             scan_id: "sid".to_string(),
             target: models::Target {
@@ -467,7 +760,7 @@ exit({rc});
                 ..Default::default()
             },
             scan_preferences: vec![],
-            vts: only_success
+            vts: scripts
                 .iter()
                 .map(|(_, v)| models::VT {
                     oid: v.oid.clone(),
@@ -476,12 +769,197 @@ exit({rc});
                 .collect(),
         };
         let interpreter =
-            super::SyncScanInterpreter::with_default_function_executor(&dispatcher, &loader);
-        let result = interpreter
-            .run::<crate::scheduling::WaveExecutionPlan>(&scan)
-            .expect("success")
+            super::SyncScanInterpreter::with_default_function_executor(&storage, &loader);
+        let results = interpreter
+            .run::<crate::scheduling::WaveExecutionPlan>(&scan)?
+            .collect::<Vec<_>>();
+        Ok(results)
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn required_ports() {
+        let vts = [
+            GenerateScript::with_required_ports(
+                "0",
+                &[
+                    (models::Protocol::UDP, "2000"),
+                    (models::Protocol::TCP, "20"),
+                ],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "1",
+                &[
+                    (models::Protocol::UDP, "2000"),
+                    (models::Protocol::TCP, "2"),
+                ],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "2",
+                &[
+                    (models::Protocol::UDP, "200"),
+                    (models::Protocol::TCP, "20"),
+                ],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "3",
+                &[
+                    (models::Protocol::UDP, "2000"),
+                    (models::Protocol::TCP, "22"),
+                ],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "4",
+                &[
+                    (models::Protocol::UDP, "2002"),
+                    (models::Protocol::TCP, "20"),
+                ],
+            )
+            .generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&vts);
+        [
+            (models::Protocol::TCP, "20", 1),   // TCP 20 is considered enabled
+            (models::Protocol::TCP, "22", 0),   // TCP 22 is considered disabled
+            (models::Protocol::UDP, "2000", 1), // UDP 2000 is considered enabled
+            (models::Protocol::UDP, "2002", 0), // UDP 2002 is considered disabled
+        ]
+        .into_iter()
+        .for_each(|(p, port, enabled)| {
+            dispatcher
+                .dispatch(
+                    &storage::ContextKey::Scan("sid".into()),
+                    storage::Field::KB((&super::generate_port_kb_key(p, port), enabled).into()),
+                )
+                .expect("store kb");
+        });
+        let result = run(&vts, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
             .filter_map(|x| x.ok())
-            .filter(|x| x.is_success())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 1);
+        assert_eq!(failure.len(), 4);
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn exclude_keys() {
+        let only_success = [
+            GenerateScript::with_excluded_keys("0", &["key/not"]).generate(),
+            GenerateScript::with_excluded_keys("1", &["key/not"]).generate(),
+            GenerateScript::with_excluded_keys("2", &["key/exists"]).generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        dispatcher
+            .dispatch(
+                &storage::ContextKey::Scan("sid".into()),
+                storage::Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        let result = run(&only_success, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 2);
+        assert_eq!(failure.len(), 1);
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn required_keys() {
+        let only_success = [
+            GenerateScript::with_required_keys("0", &["key/not"]).generate(),
+            GenerateScript::with_required_keys("1", &["key/exists"]).generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        dispatcher
+            .dispatch(
+                &storage::ContextKey::Scan("sid".into()),
+                storage::Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        let result = run(&only_success, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 1);
+        assert_eq!(failure.len(), 1);
+    }
+
+    #[test]
+    fn mandatory_keys() {
+        let only_success = [
+            GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
+            GenerateScript::with_mandatory_keys("1", &["key/exists"]).generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        dispatcher
+            .dispatch(
+                &storage::ContextKey::Scan("sid".into()),
+                storage::Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        let result = run(&only_success, dispatcher).expect("success run");
+        let success = result
+            .clone()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
+            .collect::<Vec<_>>();
+        let failure = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_failed())
+            .filter(|x| x.has_not_run())
+            .collect::<Vec<_>>();
+        assert_eq!(success.len(), 1);
+        assert_eq!(failure.len(), 1);
+    }
+
+    #[test]
+    fn run_with_schedule() {
+        let only_success = [
+            GenerateScript::with_dependencies("0", &[]).generate(),
+            GenerateScript::with_dependencies("1", &["0.nasl"]).generate(),
+            GenerateScript::with_dependencies("2", &["1.nasl"]).generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&only_success);
+        let result = run(&only_success, dispatcher).expect("success");
+        let result = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter(|x| x.has_succeeded())
             .collect::<Vec<_>>();
         assert_eq!(result.len(), 3);
     }
