@@ -568,10 +568,6 @@ where
 mod tests {
     use storage::{Dispatcher, Retriever};
 
-    
-
-    
-
     #[derive(Debug, Default)]
     struct GenerateScript {
         id: String,
