@@ -690,7 +690,7 @@ exit({rc});
 "#
             );
             let filename = format!("{id}.nasl");
-            let nvt = parse_meta_data(&filename, &code).expect("exptected metadata");
+            let nvt = parse_meta_data(&filename, &code).expect("expected metadata");
             (code, nvt)
         }
     }
