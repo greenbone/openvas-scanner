@@ -42,4 +42,4 @@ http-body = "1"
 lazy_static = "1.4.0"
 
 [dev-dependencies]
-tracing-test = "0.1"
+tracing-test = "0"
