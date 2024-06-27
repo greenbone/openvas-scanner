@@ -93,7 +93,11 @@ pub struct Kb {
     pub expire: Option<u64>,
 }
 
-impl<K, V> From<(K, V)> for Kb where K: Into<String>, V: Into<Primitive> {
+impl<K, V> From<(K, V)> for Kb
+where
+    K: Into<String>,
+    V: Into<Primitive>,
+{
     fn from((key, value): (K, V)) -> Self {
         Kb {
             key: key.into(),
