@@ -272,8 +272,8 @@ where
             .collect::<Vec<_>>();
         let mut results = core::array::from_fn(|_| E::default());
         let mut vts = Vec::new();
-        let mut unresolved_dependencies = Vec::new();
-        let mut resolved_dependencies = HashMap::new();
+        let mut unknown_dependencies = Vec::new();
+        let mut found_dependencies = HashMap::new();
         for (i, x) in self
             .retrieve_by_fields(oids, storage::Retrieve::NVT(None))?
             .filter_map(|(_, f)| match f {
@@ -284,7 +284,7 @@ where
         {
             let params: Option<Vec<models::Parameter>> =
                 scan.vts.get(i).map(|x| x.parameters.clone());
-            unresolved_dependencies.extend(
+            unknown_dependencies.extend(
                 x.dependencies
                     .iter()
                     .map(|x| storage::Field::NVT(storage::item::NVTField::FileName(x.to_string()))),
@@ -292,11 +292,11 @@ where
             vts.push((x.clone(), params));
         }
 
-        while !unresolved_dependencies.is_empty() {
-            unresolved_dependencies = {
+        while !unknown_dependencies.is_empty() {
+            let new_unresolved_dependencies = {
                 let mut ret = Vec::new();
                 for x in self
-                    .retrieve_by_fields(unresolved_dependencies, storage::Retrieve::NVT(None))?
+                    .retrieve_by_fields(unknown_dependencies, storage::Retrieve::NVT(None))?
                     .filter_map(|(_, f)| match f {
                         storage::Field::NVT(storage::item::NVTField::Nvt(x)) => Some(x),
                         _ => None,
@@ -304,20 +304,29 @@ where
                 {
                     let stage = Stage::from(&x);
                     tracing::trace!(?stage, oid = x.oid, "adding script_dependency");
-                    ret.extend(x.dependencies.iter().map(|x| {
-                        storage::Field::NVT(storage::item::NVTField::FileName(x.to_string()))
-                    }));
+                    ret.extend(
+                        x.dependencies
+                            .iter()
+                            .filter(|x| !found_dependencies.contains_key(*x))
+                            .map(|x| {
+                                storage::Field::NVT(storage::item::NVTField::FileName(
+                                    x.to_string(),
+                                ))
+                            }),
+                    );
                     //results[usize::from(stage)].append_vt(x.clone(), None)?;
-                    resolved_dependencies.insert(x.filename.clone(), x.clone());
+                    found_dependencies.insert(x.filename.clone(), x.clone());
                 }
                 ret
-            }
+            };
+            tracing::trace!(?new_unresolved_dependencies, "unresolved");
+            unknown_dependencies = new_unresolved_dependencies;
         }
 
         for (x, p) in vts.into_iter() {
             let stage = Stage::from(&x);
             tracing::trace!(?stage, oid = x.oid, "adding");
-            results[usize::from(stage)].append_vt((x, p), &resolved_dependencies)?;
+            results[usize::from(stage)].append_vt((x, p), &found_dependencies)?;
         }
 
         Ok(ExecutionPlanData::new(results))
