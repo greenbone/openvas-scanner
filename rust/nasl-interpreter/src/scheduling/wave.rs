@@ -488,6 +488,28 @@ mod tests {
 
     #[test]
     #[tracing_test::traced_test]
+    fn circular_dependency() {
+        let generator = NvtGenerator {
+            discovery: 3,
+            nonevasive: 0,
+            exhausting: 0,
+            end: 0,
+        };
+        let mut vts = generator.generate_pyramid();
+        //let with_dependency = vts.iter().find(|x|!x.dependencies.is_empty()).unwrap();
+        let with_dependency = vts.last().unwrap();
+        let to_be_add = with_dependency.filename.to_string();
+        let to_be_found = with_dependency.dependencies.first().unwrap().to_string();
+        vts.iter_mut()
+            .filter(|x| x.oid == to_be_found[1..])
+            .for_each(|x| x.dependencies.push(to_be_add.clone()));
+        let results =
+            create_results_iter(|| vts.clone(), |x| x.last().cloned().into_iter().collect());
+        assert!(results.is_err())
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
     fn return_error_once_on_missing_dependencies() {
         let generator = NvtGenerator {
             discovery: 15,
