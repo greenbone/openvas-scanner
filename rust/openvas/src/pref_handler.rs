@@ -293,24 +293,28 @@ where
 
         if let Some(reverse_lookup_only) = self.scan_config.target.reverse_lookup_only {
             if reverse_lookup_only {
-                lookup_opts.push(format!("reverse_lookup_only|||{}", "yes"));
+                lookup_opts.push("reverse_lookup_only|||yes".to_string());
+            } else {
+                lookup_opts.push("reverse_lookup_only|||no".to_string());
             }
-        } else {
-            lookup_opts.push(format!("reverse_lookup_only|||{}", "no"));
         }
 
         if let Some(reverse_lookup_unify) = self.scan_config.target.reverse_lookup_unify {
             if reverse_lookup_unify {
-                lookup_opts.push(format!("reverse_lookup_unify|||{}", "yes"));
+                lookup_opts.push("reverse_lookup_unify|||yes".to_string());
+            } else {
+                lookup_opts.push("reverse_lookup_unify|||no ".to_string());
             }
-        } else {
-            lookup_opts.push(format!("reverse_lookup_unify|||{}", "no"));
         }
 
-        self.redis_connector.push_kb_item(
-            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-            lookup_opts,
-        )
+        if !lookup_opts.is_empty() {
+            self.redis_connector.push_kb_item(
+                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
+                lookup_opts,
+            )?
+        }
+
+        Ok(())
     }
 
     async fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
