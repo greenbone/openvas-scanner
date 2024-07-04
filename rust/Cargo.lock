@@ -722,7 +722,6 @@ dependencies = [
  "crossbeam-channel",
  "num_cpus 1.16.0",
  "rayon 1.10.0",
-<<<<<<< HEAD
 ]
 
 [[package]]
@@ -740,15 +739,7 @@ dependencies = [
  "const-oid",
  "pem-rfc7468",
  "zeroize",
-=======
->>>>>>> 31b4ef9c (Add: NASL builtin function DES)
 ]
-
-[[package]]
-name = "deque"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a694dae478589798d752c7125542f8a5ae8b6e59476172baf2eed67357bdfa27"
 
 [[package]]
 name = "deranged"
@@ -994,15 +985,12 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
 name = "fs_extra"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
-=======
->>>>>>> 31b4ef9c (Add: NASL builtin function DES)
 name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1977,11 +1965,7 @@ version = "0.1.0"
 dependencies = [
  "aes",
  "aes-gcm",
-<<<<<<< HEAD
  "base64 0.21.7",
-=======
- "base64",
->>>>>>> 31b4ef9c (Add: NASL builtin function DES)
  "cbc",
  "ccm",
  "cmac",
@@ -1997,12 +1981,9 @@ dependencies = [
  "nasl-c-lib",
  "nasl-interpreter",
  "nasl-syntax",
-<<<<<<< HEAD
  "num-bigint",
  "openssl",
  "rand 0.8.5",
-=======
->>>>>>> 31b4ef9c (Add: NASL builtin function DES)
  "rayon 0.4.2",
  "ripemd",
  "rsa",
@@ -2284,15 +2265,6 @@ checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
  "libm",
-]
-
-[[package]]
-name = "num_cpus"
-version = "0.2.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cee7e88156f3f9e19bdd598f8d6c9db7bf4078f99f8381f43a55b09648d1a6e3"
-dependencies = [
- "libc",
 ]
 
 [[package]]
