@@ -18,6 +18,14 @@ on:
         required: true
       cosign_password_opensight:
         required: true
+      greenbone_registry:
+        required: true
+      greenbone_registry_user:
+        required: true
+      greenbone_registry_token:
+        required: true
+      mattermost_webhook_url:
+        required: true
 
 # Grants rights to push to the Github container registry.
 permissions:
@@ -122,3 +130,23 @@ jobs:
           registry-password: ${{ secrets.GITHUB_TOKEN }}
           scout-user: ${{ secrets.dockerhub_user }}
           scout-password: ${{ secrets.dockerhub_token }}
+
+  greenbone_reg_debian_stable:
+    name: greenbone-reg:debian:stable
+    uses: greenbone/workflows/.github/workflows/container-build-push-2nd-gen.yml@main
+    with:
+      image-url: community/openvas-scanner
+      image-labels: |
+        org.opencontainers.image.vendor=Greenbone
+        org.opencontainers.image.base.name=greenbone/gvm-libs
+      artifact-name: rs-binaries
+      artifact-path: assets
+    secrets:
+      COSIGN_KEY_OPENSIGHT: ${{ secrets.cosign_key_opensight }}
+      COSIGN_KEY_PASSWORD_OPENSIGHT: ${{ secrets.cosign_password_opensight }}
+      DOCKERHUB_USERNAME: ${{ secrets.dockerhub_user }}
+      DOCKERHUB_TOKEN: ${{ secrets.dockerhub_token }}
+      GREENBONE_REGISTRY: ${{ secrets.greenbone_registry }}
+      GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
+      GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
+      MATTERMOST_WEBHOOK_URL: ${{ secrets.mattermost_webhook_url }}
