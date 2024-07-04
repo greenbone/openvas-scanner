@@ -70,13 +70,12 @@ fn rsa_sign(register: &Register, _: &Context) -> Result<nasl_syntax::NaslValue, 
     let data = get_required_named_data(register, "data")?;
     let pem = get_required_named_data(register, "priv")?;
     let passphrase = get_required_named_data(register, "passphrase")?;
-    let rsa;
-    if passphrase.len() == 0 {
-        rsa = Rsa::private_key_from_pem(pem).expect("Failed to get private key");
+    let rsa = if passphrase.is_empty() {
+        Rsa::private_key_from_pem(pem).expect("Failed to get private key")
     } else {
-        rsa = Rsa::private_key_from_pem_passphrase(pem, passphrase)
-            .expect("Failed to get private key from passphrase");
-    }
+        Rsa::private_key_from_pem_passphrase(pem, passphrase)
+            .expect("Failed to get private key from passphrase")
+    };
     let pkey = PKey::from_rsa(rsa).expect("Failed to get private key from rsa(pem)");
     let mut signer = Signer::new(MessageDigest::sha1(), &pkey).expect("Failed to init signer");
     signer.update(data).expect("Failed to update signer");
@@ -98,9 +97,9 @@ fn rsa_public_decrypt(
     let public_key = Rsa::from_public_components(n_b, e_b).expect("Failed to get public key");
     let pkey = PKey::from_rsa(public_key.clone()).expect("Failed to get public key from clone");
     let sign_bytes = sign;
-    let mut decrypted = vec![0; pkey.size() as usize];
+    let mut decrypted = vec![0; pkey.size()];
     let len = public_key
-        .public_decrypt(&sign_bytes, &mut decrypted, Padding::PKCS1)
+        .public_decrypt(sign_bytes, &mut decrypted, Padding::PKCS1)
         .expect("Failed to public decrypt");
     decrypted.truncate(len);
     Ok(decrypted.to_vec().into())
