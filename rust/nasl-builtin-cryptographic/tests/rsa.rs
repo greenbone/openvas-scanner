@@ -23,12 +23,10 @@ mod tests {
         sign = rsa_sign(data:data,priv:priv_pem,passphrase:raw_string(""));
         rsa_public_decrypt(sign:sign,e:e,n:n);
         "#;
-        let mut register = Register::default();
-        let binding = ContextBuilder::default();
-        let context = binding.build();
-        let mut interpreter = Interpreter::new(&mut register, &context);
-        let mut parser =
-            parse(code).map(|x| interpreter.resolve(&x.expect("no parse error expected")));
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
         parser.next();

@@ -15,9 +15,9 @@ use std::str;
 
 use crate::get_required_named_data;
 
-fn rsa_public_encrypt<K>(
+fn rsa_public_encrypt(
     register: &Register,
-    _: &Context<K>,
+    _: &Context,
 ) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
     let data = get_required_named_data(register, "data")?;
     let n = get_required_named_data(register, "n")?;
@@ -32,9 +32,9 @@ fn rsa_public_encrypt<K>(
     Ok(enc_data.to_vec().into())
 }
 
-fn rsa_private_decrypt<K>(
+fn rsa_private_decrypt(
     register: &Register,
-    _: &Context<K>,
+    _: &Context,
 ) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
     let data = get_required_named_data(register, "data")?;
     let n = get_required_named_data(register, "n")?;
@@ -66,10 +66,7 @@ fn rsa_private_decrypt<K>(
     Ok(dec_data.unwrap().to_vec().into())
 }
 
-fn rsa_sign<K>(
-    register: &Register,
-    _: &Context<K>,
-) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
+fn rsa_sign(register: &Register, _: &Context) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
     let data = get_required_named_data(register, "data")?;
     let pem = get_required_named_data(register, "priv")?;
     let passphrase = get_required_named_data(register, "passphrase")?;
@@ -87,9 +84,9 @@ fn rsa_sign<K>(
     Ok(signature.into())
 }
 
-fn rsa_public_decrypt<K>(
+fn rsa_public_decrypt(
     register: &Register,
-    _: &Context<K>,
+    _: &Context,
 ) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
     let sign = get_required_named_data(register, "sign")?;
     let n = get_required_named_data(register, "n")?;
@@ -109,7 +106,7 @@ fn rsa_public_decrypt<K>(
     Ok(decrypted.to_vec().into())
 }
 
-pub fn lookup<K>(key: &str) -> Option<NaslFunction<K>> {
+pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "rsa_public_encrypt" => Some(rsa_public_encrypt),
         "rsa_private_decrypt" => Some(rsa_private_decrypt),
