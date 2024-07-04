@@ -86,8 +86,9 @@ struct ScriptExecutor<'a, T> {
     executor: &'a dyn NaslFunctionExecuter,
     // index of the current host within scan
     current_host: Option<usize>,
+    end_host: usize,
     handled_hosts: usize,
-    current_results: Option<crate::scheduling::ConcurrentVTResult>,
+    executable_scripts: Option<crate::scheduling::ConcurrentVTResult>,
 }
 
 impl<'a, T> ScriptExecutor<'a, T>
@@ -96,6 +97,8 @@ where
 {
     pub fn new<S, L, N>(
         scan: &'a models::Scan,
+        start_host: usize,
+        end_host: usize,
         storage: &'a S,
         loader: &'a L,
         logger: &'a DefaultLogger,
@@ -107,10 +110,15 @@ where
         L: Loader,
         N: NaslFunctionExecuter,
     {
-        let current_host = if scan.target.hosts.is_empty() {
-            None
+        let current_host = if start_host < scan.target.hosts.len() {
+            Some(start_host)
         } else {
-            Some(0)
+            None
+        };
+        let end_host = if end_host > scan.target.hosts.len() {
+            scan.target.hosts.len()
+        } else {
+            end_host
         };
         Self {
             schedule,
@@ -119,8 +127,9 @@ where
             loader,
             logger,
             executor,
-            current_results: None,
+            executable_scripts: None,
             current_host,
+            end_host,
             handled_hosts: 0,
         }
     }
@@ -199,27 +208,27 @@ where
     type Item = Result<ScriptResult, ExecuteError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current_results.is_none() {
+        if self.executable_scripts.is_none() {
             match self.schedule.next() {
                 Some(Err(e)) => return Some(Err(e.into())),
-                result => self.current_results = result,
+                result => self.executable_scripts = result,
             }
         }
         if self.current_host.is_none() {
             self.handled_hosts += 1;
-            if self.scan.target.hosts.len() < self.handled_hosts {
+            if self.end_host < self.handled_hosts {
                 self.current_host = Some(self.handled_hosts);
             } else {
                 // finished
                 return None;
             }
         }
-        let (stage, vt, param) = match self.current_results.as_mut() {
+        let (stage, vt, param) = match self.executable_scripts.as_mut() {
             Some(Ok((stage, vts))) => match vts.pop() {
                 Some((vt, param)) => (stage.clone(), vt.clone(), param.clone()),
                 None => {
                     // stage is finished
-                    self.current_results = None;
+                    self.executable_scripts = None;
                     return self.next();
                 }
             },
@@ -273,6 +282,7 @@ where
             function_executor,
         }
     }
+
     /// Runs the given scan based on the given schedule.
     ///
     /// Uses the given schedule to run each vt in scan.
@@ -327,6 +337,66 @@ where
     where
         T: Iterator<Item = crate::scheduling::ConcurrentVTResult> + 'a,
     {
+        self.run_with_limited_host(0, scan.target.hosts.len(), scan, schedule)
+    }
+
+    /// Runs the given scan based on the given schedule and range of hosts.
+    ///
+    /// Uses the given schedule to run each vt in scan and the range of hosts to retrieve the hosts by index over scan.target.
+    ///
+    /// To execute all vt the iterator must be fully consumed.
+    ///
+    /// ## Example
+    ///
+    /// In this example we create an artificial feed with a single script that just exits with 0.
+    ///
+    /// ```
+    /// use nasl_interpreter::scheduling::ExecutionPlaner;
+    /// use nasl_interpreter::scheduling::WaveExecutionPlan;
+    /// use nasl_interpreter::SyncScanInterpreter;
+    /// use storage::Dispatcher;
+    /// // create fake data
+    /// let nvt = storage::item::Nvt {
+    ///     oid: "0".to_string(),
+    ///     filename: format!("0.nasl"),
+    ///     ..Default::default()
+    /// };
+    /// let loader = |x:&str| "exit(0);".to_string();
+    /// let store = storage::DefaultDispatcher::default();
+    /// store.dispatch(&storage::ContextKey::FileName("0.nasl".into()), nvt.into());
+    /// // use that for scanning
+    /// let scan = models::Scan {
+    ///     scan_id: "sid".to_string(),
+    ///     target: models::Target {
+    ///         hosts: vec!["0.host".to_string(), "1.host".to_string()],
+    ///         ..Default::default()
+    ///     },
+    ///     scan_preferences: vec![],
+    ///     vts: vec![models::VT {
+    ///             oid: "0".to_string(),
+    ///             parameters: vec![],
+    ///         }],
+    /// };
+    /// let schedule = store
+    ///   .execution_plan::<WaveExecutionPlan>(&scan)
+    ///   .expect("expected to be schedulable");
+    /// let interpreter = SyncScanInterpreter::with_default_function_executor(
+    ///        &store, &loader,
+    /// );
+    /// // This will just scan the first host.
+    /// interpreter.run_with_limited_hosts(0, 1, &scan, schedule).unwrap().for_each(|x|println!("{x:?}"));
+    ///
+    /// ```
+    pub fn run_with_limited_host<T>(
+        &'a self,
+        start_host: usize,
+        end_host: usize,
+        scan: &'a models::Scan,
+        schedule: T,
+    ) -> Result<impl Iterator<Item = Result<ScriptResult, ExecuteError>> + 'a, ExecuteError>
+    where
+        T: Iterator<Item = crate::scheduling::ConcurrentVTResult> + 'a,
+    {
         // TODO: set scan parameter
         // TODO: remove non alive target#hosts
         // TODO: either save whole scan or partial ports into storage
@@ -340,6 +410,8 @@ where
         // TODO: set kb item ports
         Ok(ScriptExecutor::new::<S, L, N>(
             scan,
+            start_host,
+            end_host,
             self.storage,
             self.loader,
             &self.logger,
@@ -407,6 +479,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
 
     fn create_script(id: &str, rc: usize, dependencies: &[&str]) -> (String, storage::item::Nvt) {
         let mut dependencies = dependencies.iter().fold(String::default(), |acc, e| {
@@ -484,5 +557,63 @@ exit({rc});
             .filter(|x| x.is_success())
             .collect::<Vec<_>>();
         assert_eq!(result.len(), 3);
+    }
+
+    #[test]
+    fn script_executor_may_only_execute_single_host() {
+        let only_success = [
+            create_script("0", 0, &[]),
+            create_script("1", 0, &["0"]),
+            create_script("2", 0, &["1"]),
+        ];
+        use storage::Dispatcher;
+        let dispatcher = storage::DefaultDispatcher::new(true);
+        only_success.iter().map(|(_, v)| v).for_each(|n| {
+            dispatcher
+                .dispatch(
+                    &storage::ContextKey::FileName(n.filename.clone()),
+                    storage::Field::NVT(storage::item::NVTField::Nvt(n.clone())),
+                )
+                .expect("sending")
+        });
+        let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
+        let loader = |s: &str| only_success[stou(s)].0.clone();
+        let scan = models::Scan {
+            scan_id: "sid".to_string(),
+            target: models::Target {
+                hosts: vec!["0.host".to_string(), "1.host".to_string()],
+                ..Default::default()
+            },
+            scan_preferences: vec![],
+            vts: only_success
+                .iter()
+                .map(|(_, v)| models::VT {
+                    oid: v.oid.clone(),
+                    parameters: vec![],
+                })
+                .collect(),
+        };
+        // Get list of hosts
+        // Create scanner
+        // Create script executor with start host / end host
+
+        let schedule: Vec<_> = dispatcher
+            .execution_plan::<WaveExecutionPlan>(&scan)
+            .expect("Expected scheduling plan")
+            .collect();
+        let interpreter =
+            super::SyncScanInterpreter::with_default_function_executor(&dispatcher, &loader);
+        let si1 = interpreter
+            .run_with_limited_host(0, 1, &scan, schedule.clone().into_iter())
+            .unwrap();
+        let si2 = interpreter
+            .run_with_limited_host(1, 2, &scan, schedule.into_iter())
+            .unwrap();
+        assert_eq!(si1.count(), 3);
+        assert_eq!(si2.count(), 3);
+
+        // super::SyncScanInterpreter::with_default_function_executor(&dispatcher, &loader);
+        //     logger: nasl_syntax::logger::DefaultLogger::default(),
+        //     function_executor: crate::nasl_std_functions(),
     }
 }
