@@ -290,6 +290,8 @@ impl NaslSockets {
         let timeout = super::get_opt_int(r, "timeout");
         let mut data = vec![0; len];
 
+        let mut ret = Ok(NaslValue::Null);
+
         match self
             .handles
             .write()
@@ -300,7 +302,6 @@ impl NaslSockets {
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
-                // TODO: revert timeout on error
                 let mut old = None;
                 if let Some(timeout) = timeout {
                     old = conn.socket.read_timeout().unwrap();
@@ -308,34 +309,54 @@ impl NaslSockets {
                         .set_read_timeout(Some(Duration::from_secs(timeout as u64)))?;
                 }
                 // TODO: process min for magic read function"
-                let size = conn.socket.read(data.as_mut_slice())?;
-                data.truncate(size);
+                match conn.socket.read(data.as_mut_slice()) {
+                    Ok(size) => {
+                        data.truncate(size);
+                        ret = Ok(NaslValue::Data(data));
+                    }
+                    Err(e) => ret = Err(e.into()),
+                };
 
                 if let Some(timeout) = old {
                     conn.socket.set_read_timeout(Some(timeout))?;
                 }
 
-                Ok(NaslValue::Data(data))
+                ret
             }
             NaslSocket::Udp(conn) => {
-                // TODO: use timeout
+                let mut old = None;
+                if let Some(timeout) = timeout {
+                    old = conn.socket.read_timeout().unwrap();
+                    conn.socket
+                        .set_read_timeout(Some(Duration::from_secs(timeout as u64)))?;
+                }
+
+                let mut result = conn.socket.recv(data.as_mut_slice());
+
                 for _ in 0..5 {
-                    let size = match conn.socket.recv(data.as_mut_slice()) {
-                        Ok(size) => size,
+                    match result {
+                        Ok(size) => {
+                            data.truncate(size);
+                            ret = Ok(NaslValue::Data(data));
+                            break;
+                        }
                         Err(e) => match e.kind() {
                             io::ErrorKind::TimedOut => {
                                 conn.socket.send(&conn.buffer)?;
-                                continue;
                             }
-                            kind => return Err(FunctionErrorKind::IOError(kind)),
+                            kind => {
+                                ret = Err(FunctionErrorKind::IOError(kind));
+                                break;
+                            }
                         },
                     };
 
-                    data.truncate(size);
-
-                    return Ok(NaslValue::Data(data));
+                    result = conn.socket.recv(data.as_mut_slice());
                 }
-                Ok(NaslValue::Null)
+                if let Some(timeout) = old {
+                    conn.socket.set_read_timeout(Some(timeout))?;
+                }
+                ret
             }
             NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
                 "the given socket FD is already closed".to_string(),
