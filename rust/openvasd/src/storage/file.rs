@@ -8,10 +8,12 @@ use std::{
     sync::RwLock,
 };
 
+use infisto::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
 use nasl_interpreter::FSPluginLoader;
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
 use storage::item::{ItemDispatcher, Nvt, PerItemDispatcher};
 use tokio::task::JoinSet;
+use tracing::{info, warn};
 
 use super::*;
 
@@ -20,14 +22,11 @@ pub struct Storage<S> {
     storage: Arc<std::sync::RwLock<S>>,
     feed_version: Arc<std::sync::RwLock<String>>,
 }
-pub fn unencrypted<P>(
-    path: P,
-    feeds: Vec<FeedHash>,
-) -> Result<Storage<infisto::base::IndexedFileStorer>, Error>
+pub fn unencrypted<P>(path: P, feeds: Vec<FeedHash>) -> Result<Storage<IndexedFileStorer>, Error>
 where
     P: AsRef<Path>,
 {
-    let ifs = infisto::base::IndexedFileStorer::init(path)?;
+    let ifs = IndexedFileStorer::init(path)?;
     Ok(Storage::new(ifs, feeds))
 }
 
@@ -35,16 +34,13 @@ pub fn encrypted<P, K>(
     path: P,
     key: K,
     feeds: Vec<FeedHash>,
-) -> Result<
-    Storage<infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>>,
-    Error,
->
+) -> Result<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>, Error>
 where
     P: AsRef<Path>,
     K: Into<infisto::crypto::Key>,
 {
-    let ifs = infisto::base::IndexedFileStorer::init(path)?;
-    let ifs = infisto::crypto::ChaCha20IndexFileStorer::new(ifs, key);
+    let ifs = IndexedFileStorer::init(path)?;
+    let ifs = ChaCha20IndexFileStorer::new(ifs, key);
     Ok(Storage::new(ifs, feeds))
 }
 
@@ -542,6 +538,30 @@ where
 
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.hash.read().await.to_vec()
+    }
+}
+
+impl FromConfigAndFeeds for Storage<ChaCha20IndexFileStorer<IndexedFileStorer>> {
+    fn from_config_and_feeds(
+        config: &Config,
+        feeds: Vec<FeedHash>,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+        info!("using in file storage. Sensitive data will be encrypted stored on disk.");
+        // If this is even being called, we can assume we have a key
+        let key = config.storage.fs.key.as_ref().unwrap();
+        Ok(file::encrypted(&config.storage.fs.path, key, feeds)?)
+    }
+}
+
+impl FromConfigAndFeeds for Storage<IndexedFileStorer> {
+    fn from_config_and_feeds(
+        config: &Config,
+        feeds: Vec<FeedHash>,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+        warn!(
+            "using in file storage. Sensitive data will be stored on disk without any encryption."
+        );
+        Ok(file::unencrypted(&config.storage.fs.path, feeds)?)
     }
 }
 

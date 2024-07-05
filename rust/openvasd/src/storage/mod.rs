@@ -14,7 +14,7 @@ use std::{
 use async_trait::async_trait;
 use models::scanner::ScanResults;
 
-use crate::{controller::ClientHash, crypt};
+use crate::{config::Config, controller::ClientHash, crypt};
 
 #[derive(Debug)]
 pub enum Error {
@@ -222,4 +222,12 @@ pub trait Storage:
 impl<T> Storage for T where
     T: ProgressGetter + ScanStorer + AppendFetchResult + NVTStorer + ScanIDClientMapper
 {
+}
+
+/// A storage type that can be created from a Config and a list of feeds.
+pub trait FromConfigAndFeeds: Storage + Sized {
+    fn from_config_and_feeds(
+        config: &Config,
+        feeds: Vec<FeedHash>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>;
 }

@@ -66,6 +66,8 @@ pub enum ScannerType {
     OSPD,
     #[serde(rename = "openvas")]
     Openvas,
+    #[serde(rename = "openvasd")]
+    Openvasd,
 }
 
 impl Default for ScannerType {
@@ -86,6 +88,7 @@ impl TypedValueParser for ScannerType {
         Ok(match value.to_str().unwrap_or_default() {
             "ospd" => ScannerType::OSPD,
             "openvas" => ScannerType::Openvas,
+            "openvasd" => ScannerType::Openvasd,
             x => {
                 let mut cmd = cmd.clone();
                 let err = cmd.error(

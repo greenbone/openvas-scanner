@@ -15,6 +15,8 @@ nasl-builtin-std = {path = "../nasl-builtin-std", default-features = false}
 regex = "1"
 tracing = "0.1.40"
 thiserror = "1.0.60"
+async-trait = "0.1.77"
+tokio = "1.38.0"
 
 [features]
 nasl-builtin-raw-ip = ["nasl-builtin-std/nasl-builtin-raw-ip"]

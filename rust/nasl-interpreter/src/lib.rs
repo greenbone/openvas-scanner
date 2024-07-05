@@ -16,6 +16,7 @@ mod interpreter;
 mod loop_extension;
 mod operator;
 mod scan_interpreter;
+mod scanner;
 pub mod scheduling;
 
 pub use error::FunctionError;
@@ -25,6 +26,9 @@ pub use fork_interpreter::*;
 pub use interpreter::ContextLifeTimeCapture;
 pub use interpreter::Interpreter;
 pub use scan_interpreter::*;
+
+pub use scanner::DefaultScannerStack;
+pub use scanner::Scanner;
 
 // we expose the other libraries to allow users to use them without having to import them
 pub use nasl_builtin_std::{nasl_std_functions, ContextFactory, RegisterBuilder};

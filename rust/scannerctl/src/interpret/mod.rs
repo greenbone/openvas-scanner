@@ -153,7 +153,7 @@ fn create_redis_storage(
     redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
-fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader<PathBuf>, CliError>
+fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader, CliError>
 where
     S: storage::Dispatcher,
 {

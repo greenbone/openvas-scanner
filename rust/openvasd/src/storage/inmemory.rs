@@ -9,6 +9,7 @@ use nasl_interpreter::FSPluginLoader;
 use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
 use storage::item::{ItemDispatcher, Nvt, PerItemDispatcher};
 use tokio::{sync::RwLock, task::JoinSet};
+use tracing::info;
 
 #[derive(Clone, Debug, Default)]
 struct Progress {
@@ -288,6 +289,19 @@ where
             results.push(b);
         }
         Ok(Box::new(results.into_iter()))
+    }
+}
+
+impl<E> FromConfigAndFeeds for Storage<E>
+where
+    E: crate::crypt::Crypt + Send + Sync + 'static + Default,
+{
+    fn from_config_and_feeds(
+        _: &Config,
+        feeds: Vec<FeedHash>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        info!("using in memory store. No sensitive data will be stored on disk.");
+        Ok(inmemory::Storage::new(E::default(), feeds))
     }
 }
 
