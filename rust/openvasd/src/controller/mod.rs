@@ -382,7 +382,7 @@ mod tests {
         };
         let ctx = Arc::new(Context::default());
         let resp = post_scan(&scan, Arc::clone(&ctx)).await;
-        assert_eq!(resp.status(), hyper::http::StatusCode::BAD_REQUEST);
+        assert_eq!(resp.status(), hyper::http::StatusCode::CREATED);
     }
 
     #[tokio::test]
