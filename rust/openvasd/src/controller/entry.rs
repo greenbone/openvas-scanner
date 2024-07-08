@@ -299,12 +299,12 @@ where
                     match crate::request::json_request::<models::Scan, _>(&ctx.response, req).await
                     {
                         Ok(mut scan) => {
-                            if !scan.scan_id.is_empty() {
-                                return Ok(ctx
-                                    .response
-                                    .bad_request("field scan_id is not allowed to be set."));
-                            }
-                            let id = uuid::Uuid::new_v4().to_string();
+                            let id = if scan.scan_id.is_empty() {
+                                uuid::Uuid::new_v4().to_string()
+                            } else {
+                                scan.scan_id.clone()
+                            };
+
                             let resp = ctx.response.created(&id);
                             scan.scan_id.clone_from(&id);
                             ctx.scheduler.insert_scan(scan).await?;
