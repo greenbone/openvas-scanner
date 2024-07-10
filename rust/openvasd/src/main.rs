@@ -24,7 +24,7 @@ fn create_context<DB, ScanHandler>(
     db: DB,
     sh: ScanHandler,
     config: &config::Config,
-) -> controller::Context<ScanHandler, DB>
+) -> Result<controller::Context<ScanHandler, DB>, Box<dyn std::error::Error + Send + Sync>>
 where
     ScanHandler: ScanStarter
         + ScanStopper
@@ -46,15 +46,18 @@ where
         Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),
     }
 
-    ctx_builder
+    let tls_config = tls::tls_config(config)?;
+
+    Ok(ctx_builder
         .mode(config.mode.clone())
         .scheduler_config(config.scheduler.clone())
         .feed_config(config.feed.clone())
         .scanner(sh)
         .api_key(config.endpoints.key.clone())
+        .tls_config(tls_config)
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
-        .build()
+        .build())
 }
 
 async fn run<S>(
@@ -92,7 +95,7 @@ where
                 storage::redis::Storage::new(ic, config.storage.redis.url.clone(), feeds),
                 scanner,
                 config,
-            );
+            )?;
             controller::run(ctx, config).await
         }
         config::StorageType::InMemory => {
@@ -102,7 +105,7 @@ where
                 storage::inmemory::Storage::new(crate::crypt::ChaCha20Crypt::default(), feeds),
                 scanner,
                 config,
-            );
+            )?;
             controller::run(ctx, config).await
         }
         config::StorageType::FileSystem => {
@@ -115,7 +118,7 @@ where
                     storage::file::encrypted(&config.storage.fs.path, key, feeds)?,
                     scanner,
                     config,
-                );
+                )?;
                 controller::run(ctx, config).await
             } else {
                 tracing::warn!(
@@ -125,7 +128,7 @@ where
                     storage::file::unencrypted(&config.storage.fs.path, feeds)?,
                     scanner,
                     config,
-                );
+                )?;
                 controller::run(ctx, config).await
             }
         }

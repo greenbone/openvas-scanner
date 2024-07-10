@@ -12,10 +12,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::{
-    config,
-    tls::{self},
-};
+use crate::config;
 pub use context::{Context, ContextBuilder, NoOpScanner};
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use tokio::net::TcpListener;
@@ -59,6 +56,7 @@ fn retrieve_and_reset(id: Arc<RwLock<ClientIdentifier>>) -> ClientIdentifier {
     *ci = ClientIdentifier::Unknown;
     cci
 }
+
 pub async fn run<'a, S, DB>(
     mut ctx: Context<S, DB>,
     config: &config::Config,
@@ -73,24 +71,11 @@ where
         + 'static,
     DB: crate::storage::Storage + std::marker::Send + 'static + std::marker::Sync,
 {
-    let tlsc = {
-        if let Some((c, conf, has_clients)) = tls::tls_config(config)? {
-            if has_clients && ctx.api_key.is_some() {
-                tracing::warn!("Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored.");
-                ctx.api_key = None;
-            }
-            Some((c, conf))
-        } else {
-            None
-        }
-    };
-    if tlsc.is_none() && ctx.api_key.is_none() {
-        tracing::warn!("Neither mTLS nor an API key are set. /scans endpoint is unsecured.");
-    }
     let addr = config.listener.address;
     let addr: SocketAddr = addr;
     let incoming = TcpListener::bind(&addr).await?;
 
+    let tls_config = ctx.tls_config.take();
     let controller = std::sync::Arc::new(ctx);
     tracing::info!(?config.mode, "running in");
     if config.mode == config::Mode::Service {
@@ -98,18 +83,18 @@ where
     }
     tokio::spawn(crate::controller::feed::fetch(Arc::clone(&controller)));
 
-    if let Some((ci, conf)) = tlsc {
+    if let Some(tls_config) = tls_config {
         use hyper::server::conn::http2::Builder;
         tracing::info!("listening on https://{}", addr);
 
-        let config = Arc::new(conf);
+        let config = Arc::new(tls_config.config);
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(config);
 
         loop {
             let (tcp_stream, _remote_addr) = incoming.accept().await?;
 
             let tls_acceptor = tls_acceptor.clone();
-            let identifier = ci.clone();
+            let identifier = tls_config.client_identifier.clone();
             let ctx = controller.clone();
             tokio::spawn(async move {
                 let tls_stream = match tls_acceptor.accept(tcp_stream).await {
