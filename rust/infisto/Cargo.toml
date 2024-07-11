@@ -1,6 +1,6 @@
 [package]
 name = "infisto"
-description = "A library to store and retrieve serializeable vec data in a file that can be accessed by an index."
+description = "A library to store and retrieve serializable vec data in a file that can be accessed by an index."
 version.workspace = true
 license.workspace = true
 edition.workspace = true

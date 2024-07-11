@@ -272,7 +272,7 @@ where
                         }
                         new_status.scanning = Some(hs);
 
-                        // update the hosts stauts into the result before storing
+                        // update the hosts status into the result before storing
                         results.status.host_info = Some(new_status);
 
                         // Update start and end time if set from openvas
