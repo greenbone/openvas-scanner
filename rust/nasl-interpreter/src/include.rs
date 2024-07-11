@@ -44,7 +44,6 @@ mod tests {
         let register = Register::default();
         let context = ContextFactory {
             loader,
-            logger: logger::DefaultLogger::default(),
             functions: nasl_std_functions(),
             storage: storage::DefaultDispatcher::default(),
         };

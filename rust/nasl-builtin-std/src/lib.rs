@@ -168,61 +168,37 @@ fn add_raw_ip_vars(
 /// This is the main entry point for the nasl interpreter and adds all the functions defined in
 /// [nasl_std_functions] to functions register.
 // TODO: remove key and target and box dyn
-pub struct ContextFactory<Loader, Logger, Storage> {
+pub struct ContextFactory<Loader, Storage> {
     /// The shared storage
     pub storage: Storage,
     /// The loader to load the nasl files.
     pub loader: Loader,
-    /// The logger to log.
-    pub logger: Logger,
     /// The functions available to the nasl script.
     pub functions: NaslFunctionRegister,
 }
 
-impl Default
-    for ContextFactory<
-        nasl_syntax::NoOpLoader,
-        nasl_syntax::logger::DefaultLogger,
-        storage::DefaultDispatcher,
-    >
-{
+impl Default for ContextFactory<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
     fn default() -> Self {
         Self {
             loader: nasl_syntax::NoOpLoader::default(),
-            logger: Default::default(),
             functions: nasl_std_functions(),
             storage: DefaultDispatcher::default(),
         }
     }
 }
 
-impl<A, B, C> ContextFactory<A, B, C>
+impl<L, S> ContextFactory<L, S>
 where
-    A: nasl_syntax::Loader,
-    B: nasl_syntax::logger::NaslLogger,
-    C: storage::Storage,
+    L: nasl_syntax::Loader,
+    S: storage::Storage,
 {
     /// Creates a new ContextFactory with nasl_std_functions
     ///
     /// If you want to override the functions register please use functions method.
-    pub fn new(loader: A, logger: B, storage: C) -> ContextFactory<A, B, C> {
+    pub fn new(loader: L, storage: S) -> ContextFactory<L, S> {
         ContextFactory {
             storage,
             loader,
-            logger,
-            functions: nasl_std_functions(),
-        }
-    }
-
-    /// Creates a new ContextFactory with a DefaultLogger
-    pub fn with_default_logger(
-        loader: A,
-        storage: C,
-    ) -> ContextFactory<A, nasl_syntax::logger::DefaultLogger, C> {
-        ContextFactory {
-            storage,
-            loader,
-            logger: Default::default(),
             functions: nasl_std_functions(),
         }
     }
@@ -241,7 +217,6 @@ where
             self.storage.as_dispatcher(),
             self.storage.as_retriever(),
             &self.loader,
-            &self.logger,
             &self.functions,
         )
     }

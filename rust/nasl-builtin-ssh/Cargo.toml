@@ -10,6 +10,7 @@ nasl-builtin-utils = {path = "../nasl-builtin-utils"}
 nasl-syntax = {path = "../nasl-syntax"}
 libssh-rs = {version = "~0.2", features = ["vendored-openssl", "vendored"]}
 storage = {path = "../storage"}
+tracing = "0.1.40"
 
 [dev-dependencies]
 nasl-interpreter = {path = "../nasl-interpreter"}

@@ -8,14 +8,13 @@ use nasl_interpreter::{
     load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
     RegisterBuilder,
 };
-use nasl_syntax::logger::DefaultLogger;
 use redis_storage::FEEDUPDATE_SELECTOR;
 use storage::{ContextKey, DefaultDispatcher};
 
 use crate::{CliError, CliErrorKind, Db};
 
 struct Run<L, S> {
-    context_builder: nasl_interpreter::ContextFactory<L, DefaultLogger, S>,
+    context_builder: nasl_interpreter::ContextFactory<L, S>,
     target: String,
     scan_id: String,
 }
@@ -73,11 +72,7 @@ where
 
     pub fn build(self) -> Run<L, S> {
         Run {
-            context_builder: nasl_interpreter::ContextFactory::new(
-                self.loader,
-                nasl_syntax::logger::DefaultLogger::default(),
-                self.storage,
-            ),
+            context_builder: nasl_interpreter::ContextFactory::new(self.loader, self.storage),
             scan_id: self.scan_id,
             target: self.target,
         }

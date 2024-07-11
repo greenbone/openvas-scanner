@@ -29,7 +29,6 @@ mod tests {
     use nasl_interpreter::InterpretError;
     use nasl_interpreter::Interpreter;
 
-    use nasl_syntax::logger::DefaultLogger;
     use nasl_syntax::parse;
     use nasl_syntax::NaslValue;
 
@@ -76,19 +75,10 @@ if(description)
             ContextType::Value(NaslValue::Number(1)),
         )];
         let register = Register::root_initial(&initial);
-        let logger = DefaultLogger::default();
         let key: storage::ContextKey = "test.nasl".into();
         let target = String::new();
         let functions = nasl_builtin_std::nasl_std_functions();
-        let ctxconfigs = Context::new(
-            key.clone(),
-            target,
-            &storage,
-            &storage,
-            &loader,
-            &logger,
-            &functions,
-        );
+        let ctxconfigs = Context::new(key.clone(), target, &storage, &storage, &loader, &functions);
         let mut interpreter = Interpreter::new(register, &ctxconfigs);
         let results = parse(code)
             .map(|stmt| match stmt {
