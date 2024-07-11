@@ -10,7 +10,7 @@
 
 **rsa_public_decrypt** decrypts provided data with the public RSA key given by e and n. Returns the decrypted data.
 
-## DESCRIPTIONN
+## DESCRIPTION
 Decrypts provided sig with the public RSA key given by e and n. Returns the decrypted data.
 
 - sign: the data to encrypt
