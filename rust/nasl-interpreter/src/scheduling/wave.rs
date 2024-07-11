@@ -496,7 +496,6 @@ mod tests {
             end: 0,
         };
         let mut vts = generator.generate_pyramid();
-        //let with_dependency = vts.iter().find(|x|!x.dependencies.is_empty()).unwrap();
         let with_dependency = vts.last().unwrap();
         let to_be_add = with_dependency.filename.to_string();
         let to_be_found = with_dependency.dependencies.first().unwrap().to_string();
