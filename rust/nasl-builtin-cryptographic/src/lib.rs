@@ -23,9 +23,6 @@ enum Crypt {
     Decrypt,
 }
 
-/// Decodes given string as hex and returns the result as a byte array
-// TODO only used in tests, move tests to its own module and define there
-
 pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
     aes_ccm::lookup(function_name)
         .or_else(|| hmac::lookup(function_name))
