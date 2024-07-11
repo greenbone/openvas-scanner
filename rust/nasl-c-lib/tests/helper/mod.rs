@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::num::ParseIntError;
+
+/// Decodes given string as hex and returns the result as a byte array
 pub(crate) fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
     (0..s.len())
         .step_by(2)
