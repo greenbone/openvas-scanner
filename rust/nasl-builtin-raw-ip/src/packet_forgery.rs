@@ -1104,7 +1104,7 @@ fn insert_tcp_options(
         FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
-    // At this point, opts len is a 4bytes multiple and the ofset is expressed in 32bits words
+    // At this point, opts len is a 4bytes multiple and the offset is expressed in 32bits words
     ori_tcp.set_data_offset(5 + opts_len as u8 / 4);
     if !opts.is_empty() {
         ori_tcp.set_options(&opts);
