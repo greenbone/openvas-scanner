@@ -7,7 +7,10 @@ mod wave;
 
 use std::{collections::HashMap, fmt::Display};
 
-use storage::item::Nvt;
+use storage::{
+    item::{NVTField, Nvt},
+    Retrieve, Retriever, StorageError,
+};
 use thiserror::Error;
 pub use wave::WaveExecutionPlan;
 /// Error cases for VTFetcher
@@ -15,7 +18,7 @@ pub use wave::WaveExecutionPlan;
 pub enum VTError {
     /// Underlying DB error.
     #[error("data-base error: {0}")]
-    DB(#[from] storage::StorageError),
+    DB(#[from] StorageError),
     #[error("{0} misses required dependencies {1:?}")]
     /// Will be returned when Scheduler tries to schedule a VT with missing dependencies
     MissingDependencies(Nvt, Vec<String>),
@@ -109,7 +112,7 @@ pub trait ExecutionPlaner {
     ///
     /// # Example
     ///
-    /// This examples shows the usage of the default implementation for a storage::Retriever to may
+    /// This examples shows the usage of the default implementation for a Retriever to may
     /// help you understanding the behavior for your own implementation or when using it.
     ///
     /// ```
@@ -120,27 +123,29 @@ pub trait ExecutionPlaner {
     /// use storage::Dispatcher;
     /// use storage::Retriever;
     /// use storage::ContextKey;
+    /// use storage::item::Nvt;
+    /// use storage::DefaultDispatcher;
     ///
     /// let feed = vec![
-    ///     storage::item::Nvt {
+    ///     Nvt {
     ///         oid: "0".to_string(),
     ///         filename: "/0".to_string(),
     ///         ..Default::default()
     ///     },
-    ///     storage::item::Nvt {
+    ///     Nvt {
     ///         oid: "1".to_string(),
     ///         filename: "/1".to_string(),
     ///         dependencies: vec!["/0".to_string()],
     ///         ..Default::default()
     ///     },
-    ///     storage::item::Nvt {
+    ///     Nvt {
     ///         oid: "2".to_string(),
     ///         filename: "/2".to_string(),
     ///         dependencies: vec!["/1".to_string()],
     ///         ..Default::default()
     ///     },
     /// ];
-    /// let retrieve = storage::DefaultDispatcher::new(true);
+    /// let retrieve = DefaultDispatcher::new(true);
     /// feed.clone().into_iter().for_each(|x| {
     ///     retrieve
     ///         .dispatch(&ContextKey::FileName(x.filename.clone()), x.into())
@@ -255,7 +260,7 @@ where
 
 impl<T> ExecutionPlaner for T
 where
-    T: storage::Retriever + ?Sized,
+    T: Retriever + ?Sized,
 {
     fn execution_plan<'a, E>(
         &self,
@@ -268,16 +273,16 @@ where
             .clone()
             .vts
             .into_iter()
-            .map(|x| storage::item::NVTField::Oid(x.oid).into())
+            .map(|x| NVTField::Oid(x.oid).into())
             .collect::<Vec<_>>();
         let mut results = core::array::from_fn(|_| E::default());
         let mut vts = Vec::new();
         let mut unknown_dependencies = Vec::new();
-        let mut found_dependencies = HashMap::new();
+        let mut known_dependencies = HashMap::new();
         for (i, x) in self
-            .retrieve_by_fields(oids, storage::Retrieve::NVT(None))?
+            .retrieve_by_fields(oids, Retrieve::NVT(None))?
             .filter_map(|(_, f)| match f {
-                storage::Field::NVT(storage::item::NVTField::Nvt(x)) => Some(x),
+                storage::Field::NVT(NVTField::Nvt(x)) => Some(x),
                 _ => None,
             })
             .enumerate()
@@ -287,7 +292,7 @@ where
             unknown_dependencies.extend(
                 x.dependencies
                     .iter()
-                    .map(|x| storage::Field::NVT(storage::item::NVTField::FileName(x.to_string()))),
+                    .map(|x| storage::Field::NVT(NVTField::FileName(x.to_string()))),
             );
             vts.push((x.clone(), params));
         }
@@ -296,9 +301,9 @@ where
             let new_unresolved_dependencies = {
                 let mut ret = Vec::new();
                 for x in self
-                    .retrieve_by_fields(unknown_dependencies, storage::Retrieve::NVT(None))?
+                    .retrieve_by_fields(unknown_dependencies, Retrieve::NVT(None))?
                     .filter_map(|(_, f)| match f {
-                        storage::Field::NVT(storage::item::NVTField::Nvt(x)) => Some(x),
+                        storage::Field::NVT(NVTField::Nvt(x)) => Some(x),
                         _ => None,
                     })
                 {
@@ -307,15 +312,10 @@ where
                     ret.extend(
                         x.dependencies
                             .iter()
-                            .filter(|x| !found_dependencies.contains_key(*x))
-                            .map(|x| {
-                                storage::Field::NVT(storage::item::NVTField::FileName(
-                                    x.to_string(),
-                                ))
-                            }),
+                            .filter(|x| !known_dependencies.contains_key(*x))
+                            .map(|x| storage::Field::NVT(NVTField::FileName(x.to_string()))),
                     );
-                    //results[usize::from(stage)].append_vt(x.clone(), None)?;
-                    found_dependencies.insert(x.filename.clone(), x.clone());
+                    known_dependencies.insert(x.filename.clone(), x.clone());
                 }
                 ret
             };
@@ -326,7 +326,7 @@ where
         for (x, p) in vts.into_iter() {
             let stage = Stage::from(&x);
             tracing::trace!(?stage, oid = x.oid, "adding");
-            results[usize::from(stage)].append_vt((x, p), &found_dependencies)?;
+            results[usize::from(stage)].append_vt((x, p), &known_dependencies)?;
         }
 
         Ok(ExecutionPlanData::new(results))
@@ -335,6 +335,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use storage::item::Nvt;
 
     #[test]
     #[tracing_test::traced_test]
@@ -345,18 +346,18 @@ mod tests {
         use storage::Dispatcher;
 
         let feed = vec![
-            storage::item::Nvt {
+            Nvt {
                 oid: "0".to_string(),
                 filename: "/0".to_string(),
                 ..Default::default()
             },
-            storage::item::Nvt {
+            Nvt {
                 oid: "1".to_string(),
                 filename: "/1".to_string(),
                 dependencies: vec!["/0".to_string()],
                 ..Default::default()
             },
-            storage::item::Nvt {
+            Nvt {
                 oid: "2".to_string(),
                 filename: "/2".to_string(),
                 dependencies: vec!["/1".to_string()],
