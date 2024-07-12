@@ -10,41 +10,36 @@ use storage::Field;
 
 pub mod socket;
 
-macro_rules! i64_to_enum {
-    ($(#[$meta:meta])* $vis:vis enum $name:ident {
-        $($(#[$vmeta:meta])* $vname:ident $(= $val:expr)?,)*
-    }) => {
-        $(#[$meta])*
-        $vis enum $name {
-            $($(#[$vmeta])* $vname $(= $val)?,)*
-        }
-
-        impl std::convert::TryFrom<i64> for $name {
-            type Error = ();
-
-            fn try_from(v: i64) -> Result<Self, Self::Error> {
-                match v {
-                    $(x if x == $name::$vname as i64 => Ok($name::$vname),)*
-                    _ => Err(()),
-                }
-            }
-        }
-    }
+pub enum OpenvasEncaps {
+    Auto = 0, /* Request auto detection.  */
+    Ip,
+    Ssl23, /* Ask for compatibility options */
+    Ssl2,
+    Ssl3,
+    Tls1,
+    Tls11,
+    Tls12,
+    Tls13,
+    TlsCustom, /* SSL/TLS using custom priorities.  */
+    Max,
 }
 
-i64_to_enum! {
-    pub enum OpenvasEncaps {
-        Auto = 0, /* Request auto detection.  */
-        Ip,
-        Ssl23, /* Ask for compatibility options */
-        Ssl2,
-        Ssl3,
-        Tls1,
-        Tls11,
-        Tls12,
-        Tls13,
-        TlsCustom, /* SSL/TLS using custom priorities.  */
-        Max,
+impl OpenvasEncaps {
+    pub fn from_i64(val: i64) -> Option<Self> {
+        match val {
+            0 => Some(Self::Auto),
+            1 => Some(Self::Ip),
+            2 => Some(Self::Ssl23),
+            3 => Some(Self::Ssl2),
+            4 => Some(Self::Ssl3),
+            5 => Some(Self::Tls1),
+            6 => Some(Self::Tls11),
+            7 => Some(Self::Tls12),
+            8 => Some(Self::Tls13),
+            9 => Some(Self::TlsCustom),
+            10 => Some(Self::Max),
+            _ => None,
+        }
     }
 }
 
@@ -67,14 +62,12 @@ impl Display for OpenvasEncaps {
 fn get_named_value(r: &Register, name: &str) -> Result<NaslValue, FunctionErrorKind> {
     match r.named(name) {
         Some(x) => match x {
-            nasl_builtin_utils::ContextType::Function(_, _) => {
-                Err(FunctionErrorKind::MissingArguments(vec![name.to_string()]))
-            }
+            nasl_builtin_utils::ContextType::Function(_, _) => Err(
+                FunctionErrorKind::WrongArgument(format!("{name} is a function")),
+            ),
             nasl_builtin_utils::ContextType::Value(val) => Ok(val.to_owned()),
         },
-        None => Err(FunctionErrorKind::MissingArguments(vec![
-            "socket".to_string()
-        ])),
+        None => Err(FunctionErrorKind::MissingArguments(vec![name.to_string()])),
     }
 }
 
@@ -95,7 +88,7 @@ fn get_usize(r: &Register, name: &str) -> Result<usize, FunctionErrorKind> {
 }
 
 fn get_data(r: &Register) -> Result<Vec<u8>, FunctionErrorKind> {
-    Ok((&get_named_value(r, "data")?).into())
+    Ok((get_named_value(r, "data")?).into())
 }
 
 fn get_opt_int(r: &Register, name: &str) -> Option<i64> {
