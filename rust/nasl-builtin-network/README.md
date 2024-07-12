@@ -33,4 +33,3 @@
 - telnet_init
 - this_host_name
 - this_host
-- 
