@@ -20,5 +20,6 @@ fn main() {
         .file("c/cryptographic/gcrypt_mac.c")
         .file("c/cryptographic/gcrypt_error.c")
         .include(canonicalize("./include").unwrap())
+        .opt_level(2)
         .compile("crypt");
 }
