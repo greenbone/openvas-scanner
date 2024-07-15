@@ -489,9 +489,9 @@ impl NaslSockets {
         let timeout = super::get_opt_int(register, "timeout");
         let transport = super::get_opt_int(register, "transport").unwrap_or(-1);
         // TODO: Extract information from custom priority string
-        let _priority = super::get_named_value(register, "priority")
-            .ok()
-            .map(|val| val.to_string());
+        // let _priority = super::get_named_value(register, "priority")
+        // .ok()
+        // .map(|val| val.to_string());
         let bufsz =
             super::get_opt_int(register, "bufsz").and_then(|x| if x < 0 { None } else { Some(x) });
 
