@@ -8,6 +8,7 @@
 use nasl_builtin_utils::{Context, NaslFunctionRegister, NaslVarRegister, Register};
 use storage::{ContextKey, DefaultDispatcher};
 mod array;
+mod report_functions;
 
 /// The description builtin function
 ///
@@ -70,6 +71,7 @@ impl nasl_builtin_utils::NaslFunctionExecuter for Std {
 pub fn nasl_std_functions() -> nasl_builtin_utils::NaslFunctionRegister {
     let mut builder = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
         .push_register(Std)
+        .push_register(report_functions::Reporting::default())
         .push_register(nasl_builtin_knowledge_base::KnowledgeBase)
         .push_register(nasl_builtin_misc::Misc)
         .push_register(nasl_builtin_string::NaslString)
@@ -77,6 +79,7 @@ pub fn nasl_std_functions() -> nasl_builtin_utils::NaslFunctionRegister {
         .push_register(nasl_builtin_http::NaslHttp::default())
         .push_register(nasl_builtin_cryptographic::Cryptographic)
         .push_register(nasl_builtin_description::Description);
+
     builder = add_ssh(builder);
     builder = add_raw_ip(builder);
     builder.build()

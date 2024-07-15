@@ -61,6 +61,7 @@ pub struct Result {
         feature = "serde_support",
         serde(skip_serializing_if = "Option::is_none", default)
     )]
+    /// Details are only set on status and can be ignored
     pub detail: Option<Detail>,
 }
 
