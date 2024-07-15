@@ -7,7 +7,7 @@ use std::sync::RwLock;
 use async_trait::async_trait;
 use storage::DefaultDispatcher;
 
-use crate::{config, notus::NotusWrapper, response, scheduling};
+use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
 
 use models::scanner::{
     Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
@@ -25,6 +25,7 @@ pub struct ContextBuilder<S, DB, T> {
     storage: DB,
     feed_config: Option<crate::config::Feed>,
     api_key: Option<String>,
+    tls_config: Option<TlsConfig>,
     enable_get_scans: bool,
     marker: std::marker::PhantomData<S>,
     response: response::Response,
@@ -43,6 +44,7 @@ impl<S>
             storage: crate::storage::inmemory::Storage::default(),
             feed_config: None,
             api_key: None,
+            tls_config: None,
             marker: std::marker::PhantomData,
             enable_get_scans: false,
             response: response::Response::default(),
@@ -75,9 +77,12 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
     /// Sets the api key.
     pub fn api_key(mut self, api_key: impl Into<Option<String>>) -> Self {
         self.api_key = api_key.into();
-        if self.api_key.is_some() {
-            self.response.add_authentication("x-api-key");
-        }
+        self
+    }
+
+    /// Set the TLS config
+    pub fn tls_config(mut self, tls_config: Option<TlsConfig>) -> Self {
+        self.tls_config = tls_config;
         self
     }
 
@@ -106,6 +111,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             storage: _,
             feed_config,
             api_key,
+            tls_config,
             enable_get_scans,
             marker,
             response,
@@ -118,6 +124,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             storage,
             feed_config,
             api_key,
+            tls_config,
             enable_get_scans,
             marker,
             response,
@@ -141,6 +148,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
         let Self {
             feed_config,
             api_key,
+            tls_config,
             enable_get_scans,
             scanner: _,
             marker: _,
@@ -156,6 +164,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             feed_config,
             marker: std::marker::PhantomData,
             api_key,
+            tls_config,
             enable_get_scans,
             response,
             notus,
@@ -166,7 +175,31 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
 }
 
 impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
-    pub fn build(self) -> Context<S, DB> {
+    fn configure_authentication_methods(&mut self) {
+        let tls_config = if let Some(tls_config) = self.tls_config.take() {
+            if tls_config.has_clients && self.api_key.is_some() {
+                tracing::warn!("Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored.");
+                self.api_key = None;
+            }
+            Some(tls_config)
+        } else {
+            None
+        };
+        self.tls_config = tls_config;
+        match (self.tls_config.is_some(), self.api_key.is_some()) {
+            (true, true) => unreachable!(),
+            (true, false) => self.response.add_authentication("mTLS"),
+            (false, true) => self.response.add_authentication("x-api-key"),
+            (false, false) => {
+                tracing::warn!(
+                    "Neither mTLS nor an API key are set. /scans endpoint is unsecured."
+                );
+            }
+        }
+    }
+
+    pub fn build(mut self) -> Context<S, DB> {
+        self.configure_authentication_methods();
         let scheduler = scheduling::Scheduler::new(
             self.scheduler_config.unwrap_or_default(),
             self.scanner.0,
@@ -178,6 +211,7 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             feed_config: self.feed_config,
             abort: Default::default(),
             api_key: self.api_key,
+            tls_config: self.tls_config,
             enable_get_scans: self.enable_get_scans,
             notus: self.notus,
             mode: self.mode,
@@ -196,6 +230,7 @@ pub struct Context<S, DB> {
     ///
     /// When none api key is set, no authentication is required.
     pub api_key: Option<String>,
+    pub tls_config: Option<TlsConfig>,
     /// Whether to enable the GET /scans endpoint
     pub enable_get_scans: bool,
     pub mode: config::Mode,

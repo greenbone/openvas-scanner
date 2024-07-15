@@ -165,9 +165,14 @@ pub fn config_to_tls_paths(
     )))
 }
 
-pub type TlsData = (Arc<RwLock<ClientIdentifier>>, ServerConfig, bool);
+#[derive(Debug)]
+pub struct TlsConfig {
+    pub client_identifier: Arc<RwLock<ClientIdentifier>>,
+    pub config: ServerConfig,
+    pub has_clients: bool,
+}
 
-pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Error> {
+pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsConfig>, Error> {
     let (key, certs, clients) = match config_to_tls_paths(config)? {
         Some(x) => x,
         None => return Ok(None),
@@ -191,7 +196,11 @@ pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Err
 
         config.alpn_protocols = vec![b"h2".to_vec()];
 
-        Ok(Some((client_identifier, config, !clients.is_empty())))
+        Ok(Some(TlsConfig {
+            client_identifier,
+            config,
+            has_clients: !clients.is_empty(),
+        }))
     } else {
         match &config.tls.client_certs {
             Some(clicerts) => {
@@ -222,7 +231,11 @@ pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsData>, Err
 
         config.alpn_protocols = vec![b"h2".to_vec()];
 
-        Ok(Some((client_identifier, config, !clients.is_empty())))
+        Ok(Some(TlsConfig {
+            client_identifier,
+            config,
+            has_clients: !clients.is_empty(),
+        }))
     }
 }
 
