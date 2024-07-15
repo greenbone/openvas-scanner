@@ -554,7 +554,7 @@ impl Nvt {
                 NVTField::Nvt(x) => self == x,
                 NVTField::NoOp | NVTField::Version(_) => false,
             },
-            Field::KB(_) | Field::NotusAdvisory(_) => false,
+            Field::KB(_) | Field::NotusAdvisory(_) | Field::Result(_) => false,
         }
     }
     /// Verifies if a nvt is matching a field
@@ -918,6 +918,7 @@ where
             Field::NVT(nvt) => self.store_nvt_field(nvt),
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
             Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), *adv),
+            Field::Result(result) => self.dispatch(key, Field::Result(result)),
         }
     }
 

@@ -15,6 +15,7 @@ nasl-builtin-http = { version = "0.1.0", path = "../nasl-builtin-http" }
 nasl-builtin-description = {path = "../nasl-builtin-description"}
 nasl-builtin-misc = {path = "../nasl-builtin-misc"}
 storage = {path = "../storage"}
+models = { path = "../models" }
 nasl-syntax = {path = "../nasl-syntax"}
 
 # depend on c libraries and are considered unstable for now
