@@ -883,6 +883,7 @@ dependencies = [
  "serde",
  "sha2",
  "storage",
+ "thiserror",
  "toml 0.8.14",
  "tracing",
 ]
@@ -1924,6 +1925,7 @@ version = "0.1.0"
 dependencies = [
  "nasl-syntax",
  "storage",
+ "thiserror",
  "tracing",
 ]
 

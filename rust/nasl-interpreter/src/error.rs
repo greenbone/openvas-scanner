@@ -9,13 +9,16 @@ use nasl_syntax::{Statement, SyntaxError, TokenCategory};
 use storage::StorageError;
 
 use nasl_syntax::LoadError;
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// An error that occurred while calling a function
+#[error("Error while calling function '{function}': {kind}")]
 pub struct FunctionError {
     /// Name of the function
     pub function: String,
     /// Kind of error
+    #[source]
     pub kind: FunctionErrorKind,
 }
 
@@ -29,22 +32,17 @@ impl FunctionError {
     }
 }
 
-impl Display for FunctionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.function, self.kind)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Is used to represent an error while interpreting
 pub struct InterpretError {
     /// Defined the type of error that occurred.
+    #[source]
     pub kind: InterpretErrorKind,
     /// The statement on which this error occurred.
     pub origin: Option<Statement>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.

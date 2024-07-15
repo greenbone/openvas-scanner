@@ -273,8 +273,8 @@ mod test {
 
         assert!(context.nasl_fn_defined("test"));
         assert_eq!(
-            context.nasl_fn_execute("test", &register),
-            Some(Ok(3.into()))
+            context.nasl_fn_execute("test", &register).unwrap().unwrap(),
+            3.into()
         );
     }
 }

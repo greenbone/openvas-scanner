@@ -4,11 +4,13 @@
 
 //! Replaces the function calls within a feed.
 
-use std::error::Error;
+mod error;
 
 use nasl_syntax::{Statement, StatementKind};
 
 use crate::{verify, NaslFileFinder};
+
+use self::error::{ReplaceError, TranspileError};
 
 /// Is used to find parameter by either name or index within a ReplaceCommand
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -34,7 +36,7 @@ pub enum Find {
     FunctionByNameAndParameter(String, Vec<FindParameter>),
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 /// Describes parameter
 pub enum Parameter {
     /// Named parameter (e.g.: a: 1)
@@ -52,7 +54,7 @@ impl std::fmt::Display for Parameter {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 /// Describes how to manipulate parameter
 pub enum ParameterOperation {
     /// Pushes a parameter to the end
@@ -106,7 +108,7 @@ impl std::fmt::Display for ParameterOperation {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 /// Replace function operation
 pub enum Replace {
     /// Replaces name of a function
@@ -300,24 +302,6 @@ pub struct ReplaceCommand {
     pub with: Replace,
 }
 
-#[derive(Debug)]
-/// Error cases on a replace operation
-pub enum ReplaceError {
-    /// The replace operation is invalid on statement
-    Unsupported(Replace, Statement),
-}
-impl std::fmt::Display for ReplaceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ReplaceError::Unsupported(op, s) => {
-                write!(f, "Operation {} not allowed on {}.", op, s)
-            }
-        }
-    }
-}
-
-impl Error for ReplaceError {}
-
 /// Handles the inplace replacements
 pub struct CodeReplacer {
     // since the first position we need to add offset
@@ -445,7 +429,7 @@ impl CodeReplacer {
     ///
     /// Spawns a Replacer that contains a copy of the source code and manipulates it iteratively
     /// based on the order of the given commands.
-    pub fn replace(code: &str, replace: &[ReplaceCommand]) -> Result<String, Box<dyn Error>> {
+    pub fn replace(code: &str, replace: &[ReplaceCommand]) -> Result<String, ReplaceError> {
         let mut code = code.to_string();
         let mut cached_stmts = Vec::new();
         // We need to be aware of parameter changes otherwise it can bug out
@@ -664,10 +648,11 @@ impl<'a> FeedReplacer<'a> {
         let finder = crate::NaslFileFinder::new(&root, false);
         FeedReplacer { finder, replace }
     }
+
     fn replace(
         &mut self,
         path: Result<String, verify::Error>,
-    ) -> Result<Option<(String, String)>, Box<dyn Error>> {
+    ) -> Result<Option<(String, String)>, TranspileError> {
         let name = path?;
         let code = nasl_syntax::load_non_utf8_path(&name)?;
         let new_code = CodeReplacer::replace(&code, self.replace)?;
@@ -681,7 +666,7 @@ impl<'a> FeedReplacer<'a> {
 }
 
 impl<'a> Iterator for FeedReplacer<'a> {
-    type Item = Result<Option<(String, String)>, Box<dyn Error>>;
+    type Item = Result<Option<(String, String)>, TranspileError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let path = self.finder.next()?;

@@ -11,7 +11,6 @@
 //! be loaded
 
 use std::{
-    fmt::Display,
     fs::File,
     io::{self, BufRead, BufReader, Read},
     path::Path,
@@ -32,15 +31,19 @@ use openpgp::{
 };
 use sequoia_ipc::keybox::{Keybox, KeyboxRecord};
 use sequoia_openpgp as openpgp;
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Defines error cases that can happen while verifying
 pub enum Error {
-    /// Feed is incorrect
+    #[error("Incorrect feed.")]
+    /// Corrupt sums file
     SumsFileCorrupt(Hasher),
+    #[error("Unable to load the file.")]
     /// Unable to load the file
-    LoadError(LoadError),
-    /// When the calculated hash is not the same as in hashsum file.
+    LoadError(#[from] LoadError),
+    #[error("Invalid hash for file with key '{key}'. Expected '{expected}', found '{actual}'.")]
+    /// Invalid hash.
     HashInvalid {
         /// The hash within the sums file
         expected: String,
@@ -49,37 +52,13 @@ pub enum Error {
         /// The key of the file
         key: String,
     },
-    /// When signature check of the hashsumfile fails
+    #[error("Bad signature: {0}")]
+    /// Bad Signature
     BadSignature(String),
-    /// Missingkeyring
+    #[error("Signature check is enabled but there is no keyring. Set the GNUPGHOME environment variable")]
+    /// Missing keyring
     MissingKeyring,
 }
-
-impl From<LoadError> for Error {
-    fn from(value: LoadError) -> Self {
-        Error::LoadError(value)
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::SumsFileCorrupt(e) => write!(f, "{} is corrupted.", e.sum_file()),
-            Error::LoadError(e) => write!(f, "{e}"),
-            Error::HashInvalid {
-                expected,
-                actual,
-                key,
-            } => write!(f, "{key} hash {actual} is not as expected ({expected})."),
-            Error::BadSignature(e) => write!(f, "{e}"),
-            Error::MissingKeyring => write!(
-                f,
-                "Signature check is enabled but there is no keyring. Set the GNUPGHOME environment variable"
-            ),
-        }
-    }
-}
-impl std::error::Error for Error {}
 
 struct VHelper {
     keyring: String,

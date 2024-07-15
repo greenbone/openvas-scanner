@@ -4,6 +4,7 @@
 
 //! Defines function error kinds
 use std::{convert::Infallible, fmt::Display, io};
+use thiserror::Error;
 
 use nasl_syntax::NaslValue;
 use storage::StorageError;
@@ -13,7 +14,7 @@ use crate::context::ContextType;
 /// Reuses the StorageError definitions as they should fit most cases.
 pub type GeneralErrorType = StorageError;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
     /// Function called with insufficient arguments
@@ -26,26 +27,20 @@ pub enum FunctionErrorKind {
     /// Function called without required named arguments
     MissingArguments(Vec<String>),
     /// Wraps formatting error
-    FMTError(std::fmt::Error),
+    FMTError(#[from] std::fmt::Error),
     /// Wraps Infallible
     Infallible(Infallible),
-    /// Wraps io::ErrorKind
+    /// Wraps io::Error
     IOError(io::ErrorKind),
     /// Function was called with wrong arguments
     WrongArgument(String),
     /// Diagnostic string is informational and the second arg is the return value for the user
     Diagnostic(String, Option<NaslValue>),
     /// Generic error
-    GeneralError(GeneralErrorType),
+    GeneralError(#[from] GeneralErrorType),
     /// There is a deeper problem
     /// An example would be that there is no free memory left in the system
     Dirty(String),
-}
-
-impl From<GeneralErrorType> for FunctionErrorKind {
-    fn from(e: GeneralErrorType) -> Self {
-        FunctionErrorKind::GeneralError(e)
-    }
 }
 
 impl Display for FunctionErrorKind {
@@ -65,6 +60,16 @@ impl Display for FunctionErrorKind {
             FunctionErrorKind::GeneralError(x) => write!(f, "{x}"),
             FunctionErrorKind::Dirty(x) => write!(f, "{x}"),
         }
+    }
+}
+
+// It would be nicer to derive this using #[from] from
+// thiserror, but io::Error does not impl `PartialEq`,
+// `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
+// does not impl `Error` which is why this `From` impl exists.
+impl From<io::Error> for FunctionErrorKind {
+    fn from(e: io::Error) -> Self {
+        Self::IOError(e.kind())
     }
 }
 
@@ -127,23 +132,5 @@ impl From<(&str, &NaslValue)> for FunctionErrorKind {
 impl From<Infallible> for FunctionErrorKind {
     fn from(se: Infallible) -> Self {
         Self::Infallible(se)
-    }
-}
-
-impl From<std::fmt::Error> for FunctionErrorKind {
-    fn from(fe: std::fmt::Error) -> Self {
-        Self::FMTError(fe)
-    }
-}
-
-impl From<io::ErrorKind> for FunctionErrorKind {
-    fn from(iek: io::ErrorKind) -> Self {
-        Self::IOError(iek)
-    }
-}
-
-impl From<io::Error> for FunctionErrorKind {
-    fn from(e: io::Error) -> Self {
-        Self::IOError(e.kind())
     }
 }

@@ -31,7 +31,7 @@ pub fn random_impl() -> Result<i64, FunctionErrorKind> {
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
         .map(|_| i64::from_be_bytes(buffer))
-        .map_err(|e| e.kind().into())
+        .map_err(|e| e.into())
 }
 
 /// NASL function to get random number
