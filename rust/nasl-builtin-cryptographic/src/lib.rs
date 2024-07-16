@@ -15,10 +15,7 @@ pub mod aes_ctr;
 pub mod aes_gcm;
 pub mod aes_gmac;
 pub mod des;
-<<<<<<< HEAD
 pub mod hash;
-=======
->>>>>>> 31b4ef9c (Add: NASL builtin function DES)
 pub mod hmac;
 pub mod rsa;
 
