@@ -247,7 +247,7 @@ impl NaslSockets {
                     let mut stream = rustls::Stream::new(tls, &mut conn.socket);
                     let mut ret = 0;
                     while !data.is_empty() {
-                        let n = stream.write(&data)?;
+                        let n = stream.write(data)?;
                         ret += n;
                         data = &data[n..];
                     }
@@ -303,7 +303,7 @@ impl NaslSockets {
 
     fn socket_recv<S: Read>(
         socket: &mut S,
-        data: &mut Vec<u8>,
+        data: &mut [u8],
         len: usize,
         min: usize,
     ) -> Result<(), FunctionErrorKind> {
