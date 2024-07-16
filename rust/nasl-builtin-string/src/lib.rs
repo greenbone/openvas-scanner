@@ -238,19 +238,17 @@ fn hexstr_to_data(register: &Register, _: &Context) -> Result<NaslValue, Functio
     match resolve_positional_arguments(register).first() {
         Some(NaslValue::String(x)) => match decode_hex(x) {
             Ok(y) => Ok(NaslValue::Data(y)),
-            Err(_) => Err((
+            Err(_) => Err(FunctionErrorKind::wrong_argument(
                 "first positional argument",
                 "a string only containing 0-9a-fA-F of a even length",
                 x.as_str(),
-            )
-                .into()),
+            )),
         },
-        Some(x) => Err((
+        Some(x) => Err(FunctionErrorKind::wrong_argument(
             "first positional argument",
             "string",
             x.to_string().as_str(),
-        )
-            .into()),
+        )),
         None => Err("0".into()),
     }
 }
@@ -261,7 +259,11 @@ fn hexstr_to_data(register: &Register, _: &Context) -> Result<NaslValue, Functio
 fn data_to_hexstr(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     match resolve_positional_arguments(register).first() {
         Some(NaslValue::Data(x)) => Ok(encode_hex(x)?.into()),
-        Some(x) => Err(("first positional argument", "data", x.to_string().as_str()).into()),
+        Some(x) => Err(FunctionErrorKind::wrong_argument(
+            "first positional argument",
+            "data",
+            x.to_string().as_str(),
+        )),
         None => Err("0".into()),
     }
 }
@@ -277,7 +279,9 @@ fn crap(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind
         Some(x) => {
             let ek = match x {
                 ContextType::Value(a) => ("data", "string", a).into(),
-                ContextType::Function(_, _) => ("data", "string", "function").into(),
+                ContextType::Function(_, _) => {
+                    FunctionErrorKind::wrong_argument("data", "string", "function")
+                }
             };
             return Err(ek);
         }

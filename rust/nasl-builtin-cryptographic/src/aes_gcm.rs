@@ -66,9 +66,7 @@ where
             },
             Crypt::Encrypt => Ok(x.into()),
         },
-        Err(_) => Err(FunctionErrorKind::WrongArgument(
-            "Authentication failed".to_string(),
-        )),
+        Err(_) => Err(FunctionErrorKind::Authentication),
     }
 }
 

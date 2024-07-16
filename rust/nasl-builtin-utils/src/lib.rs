@@ -90,7 +90,7 @@ pub fn get_named_parameter<'a>(
         }
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
-            _ => Err((key, "value", "function").into()),
+            _ => Err(FunctionErrorKind::wrong_argument(key, "value", "function")),
         },
     }
 }

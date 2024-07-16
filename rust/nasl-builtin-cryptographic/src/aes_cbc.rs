@@ -47,12 +47,11 @@ where
 
             // len should not be more than the length of the data
             if len > data.len() {
-                return Err((
+                return Err(FunctionErrorKind::wrong_argument(
                     "len",
                     format!("<={:?}", data.len()).as_str(),
                     len.to_string().as_str(),
-                )
-                    .into());
+                ));
             }
             let res = Decryptor::<D>::new_from_slices(key, iv);
             match res {

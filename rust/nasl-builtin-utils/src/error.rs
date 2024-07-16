@@ -37,6 +37,9 @@ pub enum FunctionErrorKind {
     /// Function was called with wrong arguments
     #[error("Function was called with wrong arguments: {0}")]
     WrongArgument(String),
+    /// Authentication failed
+    #[error("Authentication failed.")]
+    Authentication,
     /// Diagnostic string is informational and the second arg is the return value for the user
     #[error("{0}")]
     Diagnostic(String, Option<NaslValue>),
@@ -59,10 +62,12 @@ impl From<io::Error> for FunctionErrorKind {
     }
 }
 
-impl From<(&str, &str, &str)> for FunctionErrorKind {
-    fn from(value: (&str, &str, &str)) -> Self {
-        let (key, expected, got) = value;
-        FunctionErrorKind::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
+impl FunctionErrorKind {
+    /// Helper function to quickly construct a `WrongArgument` variant
+    /// containing the name of the argument, the expected value and
+    /// the actual value.
+    pub fn wrong_argument(key: &str, expected: &str, got: &str) -> Self {
+        Self::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
     }
 }
 
@@ -83,7 +88,7 @@ impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
     fn from(value: (&str, &str, &NaslValue)) -> Self {
         let (key, expected, got) = value;
         let got: &str = &got.to_string();
-        (key, expected, got).into()
+        FunctionErrorKind::wrong_argument(key, expected, got)
     }
 }
 
@@ -91,7 +96,7 @@ impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
     fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
         match value {
             (key, expected, Some(x)) => (key, expected, x).into(),
-            (key, expected, None) => (key, expected, "NULL").into(),
+            (key, expected, None) => FunctionErrorKind::wrong_argument(key, expected, "NULL"),
         }
     }
 }
@@ -101,12 +106,13 @@ impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
         match value {
             (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
             (key, expected, Some(ContextType::Function(_, _))) => {
-                (key, expected, "function").into()
+                FunctionErrorKind::wrong_argument(key, expected, "function")
             }
-            (key, expected, None) => (key, expected, "NULL").into(),
+            (key, expected, None) => FunctionErrorKind::wrong_argument(key, expected, "NULL"),
         }
     }
 }
+
 impl From<(&str, &NaslValue)> for FunctionErrorKind {
     fn from(value: (&str, &NaslValue)) -> Self {
         let (expected, got) = value;

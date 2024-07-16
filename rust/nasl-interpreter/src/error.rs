@@ -268,16 +268,7 @@ impl From<FunctionError> for InterpretError {
             FunctionErrorKind::GeneralError(e) => {
                 Self::new(InterpretErrorKind::StorageError(e), None)
             }
-            FunctionErrorKind::MissingPositionalArguments {
-                expected: _,
-                got: _,
-            }
-            | FunctionErrorKind::MissingArguments(_)
-            | FunctionErrorKind::WrongArgument(_)
-            | FunctionErrorKind::Dirty(_)
-            | FunctionErrorKind::Diagnostic(_, _) => {
-                Self::new(InterpretErrorKind::FunctionCallError(fe), None)
-            }
+            _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),
         }
     }
 }

@@ -415,7 +415,7 @@ fn nasl_get_local_mac_address_from_ip(
             }
         }
         _ => Err(FunctionErrorKind::WrongArgument(
-            "valid ip address".to_string(),
+            "Expected String containing a valid IP address.".to_string(),
         )),
     }
 }
