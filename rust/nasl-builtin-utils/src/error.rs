@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines function error kinds
-use std::{convert::Infallible, fmt::Display, io};
+use std::io;
 use thiserror::Error;
 
 use nasl_syntax::NaslValue;
@@ -18,6 +18,7 @@ pub type GeneralErrorType = StorageError;
 /// Descriptive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
     /// Function called with insufficient arguments
+    #[error("Expected {expected} but got {got}")]
     MissingPositionalArguments {
         /// Expected amount of arguments
         expected: usize,
@@ -25,42 +26,27 @@ pub enum FunctionErrorKind {
         got: usize,
     },
     /// Function called without required named arguments
+    #[error("Missing arguments: {}", .0.join(", "))]
     MissingArguments(Vec<String>),
     /// Wraps formatting error
+    #[error("Formatting error: {0}")]
     FMTError(#[from] std::fmt::Error),
-    /// Wraps Infallible
-    Infallible(Infallible),
     /// Wraps io::Error
+    #[error("IOError: {0}")]
     IOError(io::ErrorKind),
     /// Function was called with wrong arguments
+    #[error("Function was called with wrong arguments: {0}")]
     WrongArgument(String),
     /// Diagnostic string is informational and the second arg is the return value for the user
+    #[error("{0}")]
     Diagnostic(String, Option<NaslValue>),
     /// Generic error
+    #[error("Generic error: {0}")]
     GeneralError(#[from] GeneralErrorType),
     /// There is a deeper problem
     /// An example would be that there is no free memory left in the system
+    #[error("{0}")]
     Dirty(String),
-}
-
-impl Display for FunctionErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FunctionErrorKind::MissingPositionalArguments { expected, got } => {
-                write!(f, "expected {expected} arguments but got {got}")
-            }
-            FunctionErrorKind::MissingArguments(x) => {
-                write!(f, "missing arguments: {}", x.join(", "))
-            }
-            FunctionErrorKind::FMTError(e) => write!(f, "{e}"),
-            FunctionErrorKind::Infallible(e) => write!(f, "{e}"),
-            FunctionErrorKind::IOError(e) => write!(f, "{e}"),
-            FunctionErrorKind::WrongArgument(x) => write!(f, "wrong argument: {x}"),
-            FunctionErrorKind::Diagnostic(x, _) => write!(f, "{x}"),
-            FunctionErrorKind::GeneralError(x) => write!(f, "{x}"),
-            FunctionErrorKind::Dirty(x) => write!(f, "{x}"),
-        }
-    }
 }
 
 // It would be nicer to derive this using #[from] from
@@ -126,11 +112,5 @@ impl From<(&str, &NaslValue)> for FunctionErrorKind {
         let (expected, got) = value;
         let got: &str = &got.to_string();
         (expected, got).into()
-    }
-}
-
-impl From<Infallible> for FunctionErrorKind {
-    fn from(se: Infallible) -> Self {
-        Self::Infallible(se)
     }
 }

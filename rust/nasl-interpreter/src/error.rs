@@ -273,7 +273,6 @@ impl From<FunctionError> for InterpretError {
                 got: _,
             }
             | FunctionErrorKind::MissingArguments(_)
-            | FunctionErrorKind::Infallible(_)
             | FunctionErrorKind::WrongArgument(_)
             | FunctionErrorKind::Dirty(_)
             | FunctionErrorKind::Diagnostic(_, _) => {
