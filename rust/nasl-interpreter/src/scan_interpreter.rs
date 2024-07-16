@@ -6,7 +6,6 @@
 
 use nasl_builtin_utils::NaslFunctionExecuter;
 use nasl_syntax::{
-    logger::{DefaultLogger, NaslLogger},
     Loader, NaslValue,
 };
 use storage::{ContextKey, Storage};
@@ -23,7 +22,6 @@ use crate::InterpretError;
 pub struct SyncScanInterpreter<'a, S: ScannerStack> {
     storage: &'a S::Storage,
     loader: &'a S::Loader,
-    logger: DefaultLogger,
     function_executor: &'a S::Executor,
 }
 
@@ -84,10 +82,6 @@ struct ScriptExecutor<'a, T> {
     storage: &'a dyn Storage,
     /// Default Loader
     loader: &'a dyn Loader,
-    // TODO remove logger in favor of tracing
-    /// Default logger.
-    logger: &'a dyn NaslLogger,
-    /// Default logger.
     executor: &'a dyn NaslFunctionExecuter,
     // index of the current host within scan
     current_host: Option<usize>,
@@ -103,7 +97,6 @@ where
         scan: &'a models::Scan,
         storage: &'a S::Storage,
         loader: &'a S::Loader,
-        logger: &'a DefaultLogger,
         executor: &'a S::Executor,
         schedule: T,
     ) -> Self {
@@ -117,7 +110,6 @@ where
             scan,
             storage,
             loader,
-            logger,
             executor,
             current_results: None,
             current_host,
@@ -167,7 +159,6 @@ where
             self.storage.as_dispatcher(),
             self.storage.as_retriever(),
             self.loader,
-            self.logger,
             self.executor,
         );
         let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
@@ -251,8 +242,6 @@ where
         Self {
             storage,
             loader,
-            // hiding logger implementation as we want to replace it with tracing
-            logger: nasl_syntax::logger::DefaultLogger::default(),
             function_executor,
         }
     }
@@ -329,7 +318,6 @@ impl<'a, S: ScannerStack> SyncScanInterpreter<'a, S> {
             scan,
             self.storage,
             self.loader,
-            &self.logger,
             &self.function_executor,
             schedule,
         ))

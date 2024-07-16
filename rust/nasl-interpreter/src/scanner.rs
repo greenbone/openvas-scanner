@@ -3,7 +3,7 @@ use std::{
     path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, RwLock,
     },
 };
 
@@ -33,11 +33,15 @@ impl<S: ScannerStack> RunningScan<S> {
         let loader: &S::Loader = &self.loader.lock().unwrap();
         let function_executor: &S::Executor = &self.function_executor.lock().unwrap();
         let interpreter = SyncScanInterpreter::new(storage, loader, function_executor);
+        tracing::debug!(scan_id = self.scan.scan_id);
         interpreter
             // Todo: Make this generic over the scheduler
             .run::<WaveExecutionPlan>(&self.scan)
             .map(|it| {
+                
+                // TODO: check for error and abort, we need to keep track of the state
                 for _ in it {
+                    
                     if !self.keep_running.load(Ordering::SeqCst) {
                         break;
                     }
@@ -46,12 +50,13 @@ impl<S: ScannerStack> RunningScan<S> {
             .map_err(|_|
                      // Todo: proper error handling
                      Error::Poisoned)
+                
     }
 }
-
 struct RunningScanHandle {
     handle: JoinHandle<Result<(), Error>>,
     keep_running: Arc<AtomicBool>,
+    status: Arc<RwLock<models::Status>>,
 }
 
 impl RunningScanHandle {
@@ -79,6 +84,7 @@ impl RunningScanHandle {
                 .run(),
             ),
             keep_running,
+            status: Default::default(),
         }
     }
 }
@@ -103,6 +109,10 @@ where
 /// The default scanner stack, consisting of `DefaultDispatcher`,
 /// `FSPluginLoader` and `NaslFunctionRegister`.
 pub type DefaultScannerStack = (DefaultDispatcher, FSPluginLoader, NaslFunctionRegister);
+
+/// The with storage scanner strack consisting of a statically living sendable Storage
+/// implementation,`FSPPluginLoader` nasl `NaslFunctionRegister`.
+pub type WithStorageScannerStack<S> = (S, FSPluginLoader, NaslFunctionRegister) ;
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
@@ -137,6 +147,21 @@ impl Scanner<DefaultScannerStack> {
         let executor = crate::nasl_std_functions();
         Self::new(storage, loader, executor)
     }
+
+
+}
+
+impl<S> Scanner<WithStorageScannerStack<S>> where S: storage::Storage + Send + 'static {
+    
+    /// Creates a new scanner with a Storage and the rest based on the DefaultScannerStack.
+    ///
+    /// Requires the root path for the loader and the storage implementation.
+    pub fn with_storage(storage: S, root: &Path) -> Self {
+        let loader = FSPluginLoader::new(root);
+        let executor = crate::nasl_std_functions();
+        Self::new(storage, loader, executor)
+    }
+
 }
 
 #[async_trait]

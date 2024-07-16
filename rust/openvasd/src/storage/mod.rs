@@ -5,6 +5,8 @@
 pub mod file;
 pub mod inmemory;
 pub mod redis;
+pub use storage::Storage as NaslStorage;
+
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -15,6 +17,8 @@ use async_trait::async_trait;
 use models::scanner::ScanResults;
 
 use crate::{config::Config, controller::ClientHash, crypt};
+use nasl_interpreter::FSPluginLoader;
+use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
 
 #[derive(Debug)]
 pub enum Error {
@@ -210,6 +214,122 @@ pub trait ScanStorer {
 pub trait AppendFetchResult {
     async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error>;
 }
+#[async_trait]
+impl<T> AppendFetchResult for Arc<T>
+where
+    T: AppendFetchResult + Send + Sync,
+{
+    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+        self.as_ref().append_fetched_result(results).await
+    }
+}
+
+#[async_trait]
+impl<T> ProgressGetter for Arc<T>
+where
+    T: ProgressGetter + Send + Sync,
+{
+    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+        self.as_ref().get_scan(id).await
+    }
+
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+        self.as_ref().get_decrypted_scan(id).await
+    }
+
+    async fn get_scan_ids(&self) -> Result<Vec<String>, Error> {
+        self.as_ref().get_scan_ids().await
+    }
+
+    async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
+        self.as_ref().get_status(id).await
+    }
+
+    async fn get_results(
+        &self,
+        id: &str,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
+        self.as_ref().get_results(id, from, to).await
+    }
+}
+
+#[async_trait]
+impl<T> ScanStorer for Arc<T>
+where
+    T: ScanStorer + Send + Sync,
+{
+    async fn insert_scan(&self, t: models::Scan) -> Result<(), Error> {
+        self.as_ref().insert_scan(t).await
+    }
+    async fn remove_scan(&self, id: &str) -> Result<(), Error> {
+        self.as_ref().remove_scan(id).await
+    }
+
+    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
+        self.as_ref().update_status(id, status).await
+    }
+}
+
+#[async_trait]
+impl<T> NVTStorer for Arc<T>
+where
+    T: NVTStorer + Send + Sync,
+{
+    async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error> {
+        self.as_ref().synchronize_feeds(hash).await
+    }
+
+    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+        self.as_ref().oids().await
+    }
+
+    async fn vts<'a>(
+        &self,
+    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+        self.as_ref().vts().await
+    }
+
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+        self.as_ref().vt_by_oid(oid).await
+    }
+
+    async fn feed_hash(&self) -> Vec<FeedHash> {
+        self.as_ref().feed_hash().await
+    }
+}
+
+#[async_trait]
+impl<T> ScanIDClientMapper for Arc<T>
+where
+    T: ScanIDClientMapper + Send + Sync,
+{
+    async fn add_scan_client_id(
+        &self,
+        scan_id: String,
+        client_id: ClientHash,
+    ) -> Result<(), Error> {
+        self.as_ref().add_scan_client_id(scan_id, client_id).await
+    }
+    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.as_ref().remove_scan_id(scan_id).await
+    }
+
+    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
+        self.as_ref().get_scans_of_client_id(client_id).await
+    }
+
+    async fn is_client_allowed<I>(&self, scan_id: I, client_id: &ClientHash) -> Result<bool, Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.as_ref().is_client_allowed(scan_id, client_id).await
+    }
+}
 
 #[async_trait]
 /// Combines the traits `ProgressGetter`, `ScanStorer` and `AppendFetchResult`.
@@ -225,9 +345,276 @@ impl<T> Storage for T where
 }
 
 /// A storage type that can be created from a Config and a list of feeds.
-pub trait FromConfigAndFeeds: Storage + Sized {
+pub trait FromConfigAndFeeds: ResultHandler + Storage + Sized {
     fn from_config_and_feeds(
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>;
+}
+
+async fn update_notus_feed(
+    p: PathBuf,
+    store: Arc<storage::DefaultDispatcher>,
+) -> Result<(), Error> {
+    let notus_advisories_path = p;
+    store.clean_advisories()?;
+
+    tokio::task::spawn_blocking(move || {
+        tracing::debug!("starting notus feed update");
+        let loader = FSPluginLoader::new(notus_advisories_path);
+        let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
+        for filename in advisories_files.get_advisories()?.iter() {
+            let advisories = advisories_files.load_advisory(filename)?;
+
+            for adv in advisories.advisories {
+                let data = models::VulnerabilityData {
+                    adv,
+                    family: advisories.family.clone(),
+                    filename: filename.to_owned(),
+                };
+
+                store.as_dispatcher().dispatch(
+                    &storage::ContextKey::FileName(filename.to_owned()),
+                    storage::Field::NotusAdvisory(Some(data).into()),
+                )?;
+            }
+        }
+        tracing::debug!("finished notus feed update");
+        Ok(())
+    })
+    .await
+    .expect("notus handler to be executed.")
+}
+
+async fn update_nasl_feed(p: PathBuf, store: Arc<storage::DefaultDispatcher>) -> Result<(), Error> {
+    let nasl_feed_path = p;
+    store.as_ref().clean_vts()?;
+
+    tokio::task::spawn_blocking(move || {
+        tracing::debug!("starting nasl feed update");
+        let oversion = "0.1";
+        let loader = FSPluginLoader::new(nasl_feed_path);
+        let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+
+        let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
+        if let Some(x) = fu.find_map(|x| x.err()) {
+            Err(Error::from(x))
+        } else {
+            tracing::debug!("finished nasl feed update");
+            Ok(())
+        }
+    })
+    .await
+    .expect("nasl feed handler to be executed.")
+}
+
+pub trait ResultHandler {
+    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher>;
+    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    where
+        E: From<storage::StorageError>;
+}
+
+/// Uses a storage::Storage device to handle KB and VT elements when used within a
+/// nasl-interpreter::Interpreter.
+///
+/// This is used for file storage and inmemeory storage.
+pub struct UserNASLStorageForKBandVT<T>(pub T)
+where
+    T: Storage + ResultHandler + Sync + Send;
+
+impl<T> ResultHandler for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Sync + Send,
+{
+    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
+        self.0.underlying_storage()
+    }
+    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    where
+        E: From<storage::StorageError>,
+    {
+        self.0.handle_result(key, result)
+    }
+}
+
+impl<T> storage::Retriever for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Sync + Send,
+{
+    fn retrieve(
+        &self,
+        key: &storage::ContextKey,
+        scope: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, storage::StorageError> {
+        // Although somebody may try to get a result through the storage::Stoage trait it is very
+        // unlikely as this is a openvasd specific implementation and the results are fetched though
+        // `get_results`. If that changes we need to:
+        // - create a tokio thread,
+        // - get scan progressa
+        // - check for id or return all
+        // - decrypt all results or the specific id and return it as a Field.
+        // relatively similiar to `dispatch`.
+        self.underlying_storage().retrieve(key, scope)
+    }
+
+    fn retrieve_by_field(
+        &self,
+        field: storage::Field,
+        scope: storage::Retrieve,
+    ) -> storage::FieldKeyResult {
+        // We should never try to return results without an ID
+        self.underlying_storage().retrieve_by_field(field, scope)
+    }
+
+    fn retrieve_by_fields(
+        &self,
+        field: Vec<storage::Field>,
+        scope: storage::Retrieve,
+    ) -> storage::FieldKeyResult {
+        // We should never try to return results without an ID
+        self.underlying_storage().retrieve_by_fields(field, scope)
+    }
+}
+
+impl<T> storage::Dispatcher for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Sync + Send,
+{
+    fn dispatch(
+        &self,
+        key: &storage::ContextKey,
+        scope: storage::Field,
+    ) -> Result<(), storage::StorageError> {
+        match scope {
+            storage::Field::Result(result) => {
+                // we may already run in an specialized thread therefore we use current thread.
+                self.handle_result(key, *result)
+            }
+            _ => self
+                .underlying_storage()
+                .as_dispatcher()
+                .dispatch(key, scope),
+        }
+    }
+
+    fn on_exit(&self) -> Result<(), storage::StorageError> {
+        self.underlying_storage().on_exit()
+    }
+}
+
+#[async_trait]
+impl<T> ProgressGetter for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Send + Sync,
+{
+    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+        self.0.get_scan(id).await
+    }
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+        self.0.get_decrypted_scan(id).await
+    }
+
+    async fn get_scan_ids(&self) -> Result<Vec<String>, Error> {
+        self.0.get_scan_ids().await
+    }
+    /// Returns the status of a scan.
+    async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
+        self.0.get_status(id).await
+    }
+    /// Returns the results of a scan as json bytes.
+    ///
+    /// OpenVASD just stores to results without processing them therefore we
+    /// can just return the json bytes.
+    async fn get_results(
+        &self,
+        id: &str,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
+        self.0.get_results(id, from, to).await
+    }
+}
+#[async_trait]
+impl<T> ScanStorer for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Send + Sync,
+{
+    async fn insert_scan(&self, t: models::Scan) -> Result<(), Error> {
+        self.0.insert_scan(t).await
+    }
+    async fn remove_scan(&self, id: &str) -> Result<(), Error> {
+        self.0.remove_scan(id).await
+    }
+    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
+        self.0.update_status(id, status).await
+    }
+}
+
+#[async_trait]
+impl<T> AppendFetchResult for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Send + Sync,
+{
+    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+        self.0.append_fetched_result(results).await
+    }
+}
+
+#[async_trait]
+impl<T> NVTStorer for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Send + Sync,
+{
+    async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error> {
+        self.0.synchronize_feeds(hash).await
+    }
+
+    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+        self.0.oids().await
+    }
+
+    async fn vts<'a>(
+        &self,
+    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+        self.0.vts().await
+    }
+
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+        self.0.vt_by_oid(oid).await
+    }
+
+    async fn feed_hash(&self) -> Vec<FeedHash> {
+        self.0.feed_hash().await
+    }
+}
+#[async_trait]
+impl<T> ScanIDClientMapper for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Send + Sync,
+{
+    async fn add_scan_client_id(
+        &self,
+        scan_id: String,
+        client_id: ClientHash,
+    ) -> Result<(), Error> {
+        self.0.add_scan_client_id(scan_id, client_id).await
+    }
+    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.0.remove_scan_id(scan_id).await
+    }
+
+    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
+        self.0.get_scans_of_client_id(client_id).await
+    }
+
+    async fn is_client_allowed<I>(&self, scan_id: I, client_id: &ClientHash) -> Result<bool, Error>
+    where
+        I: AsRef<str> + Send + 'static,
+    {
+        self.0.is_client_allowed(scan_id, client_id).await
+    }
 }

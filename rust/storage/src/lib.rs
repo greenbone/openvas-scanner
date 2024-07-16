@@ -261,6 +261,27 @@ where
     }
 }
 
+impl<T> Retriever for Arc<T>
+where
+    T: Retriever,
+{
+    fn retrieve(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        self.as_ref().retrieve(key, scope)
+    }
+
+    fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult {
+        self.as_ref().retrieve_by_field(field, scope)
+    }
+
+    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
+        self.as_ref().retrieve_by_fields(field, scope)
+    }
+}
+
 /// Convenience trait to use a dispatcher and retriever implementation
 pub trait Storage: Dispatcher + Retriever {
     /// Returns a reference to the retriever
@@ -296,7 +317,7 @@ type Vts = HashMap<String, item::Nvt>;
 type Results = HashMap<String, Vec<models::Result>>;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DefaultDispatcher {
     /// If dirty it will not clean the data on_exit
     dirty: bool,
@@ -391,6 +412,22 @@ impl DefaultDispatcher {
             .into_iter()
             .map(item::Nvt::from);
         Ok(vts.chain(notus))
+    }
+
+    /// Removes all stored nasl_vts
+    pub fn clean_vts(&self) -> Result<(), StorageError> {
+        let mut vts = self.vts.write()?;
+        vts.clear();
+        let mut version = self.feed_version.write()?;
+        *version = String::new();
+        Ok(())
+    }
+
+    /// Removes all stored nasl_vts
+    pub fn clean_advisories(&self) -> Result<(), StorageError> {
+        let mut advisories = self.advisories.write()?;
+        advisories.clear();
+        Ok(())
     }
 }
 
