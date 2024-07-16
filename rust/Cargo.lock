@@ -1411,6 +1411,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "sha2",
+ "thiserror",
  "uuid",
 ]
 

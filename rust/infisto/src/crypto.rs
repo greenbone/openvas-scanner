@@ -12,6 +12,7 @@ use rand::RngCore;
 use sha2::Sha256;
 
 use crate::base::IndexedByteStorage;
+use crate::error::Error;
 
 #[derive(Clone, Debug)]
 struct Encrypted {
@@ -127,7 +128,7 @@ impl<S> IndexedByteStorage for ChaCha20IndexFileStorer<S>
 where
     S: IndexedByteStorage,
 {
-    fn put<T>(&mut self, key: &str, data: T) -> Result<(), crate::base::Error>
+    fn put<T>(&mut self, key: &str, data: T) -> Result<(), Error>
     where
         T: AsRef<[u8]>,
     {
@@ -135,7 +136,7 @@ where
         self.store.put(key, encrypted)
     }
 
-    fn append_all<T>(&mut self, key: &str, data: &[T]) -> Result<(), crate::base::Error>
+    fn append_all<T>(&mut self, key: &str, data: &[T]) -> Result<(), Error>
     where
         T: AsRef<[u8]>,
     {
@@ -146,19 +147,15 @@ where
         self.store.append_all(key, &data)
     }
 
-    fn remove(&mut self, key: &str) -> Result<(), crate::base::Error> {
+    fn remove(&mut self, key: &str) -> Result<(), Error> {
         self.store.remove(key)
     }
 
-    fn indices(&self, key: &str) -> Result<Vec<crate::base::Index>, crate::base::Error> {
+    fn indices(&self, key: &str) -> Result<Vec<crate::base::Index>, Error> {
         self.store.indices(key)
     }
 
-    fn by_indices<T>(
-        &self,
-        key: &str,
-        indices: &[crate::base::Index],
-    ) -> Result<Vec<T>, crate::base::Error>
+    fn by_indices<T>(&self, key: &str, indices: &[crate::base::Index]) -> Result<Vec<T>, Error>
     where
         T: TryFrom<Vec<u8>>,
     {

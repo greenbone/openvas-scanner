@@ -7,4 +7,8 @@
 
 pub mod base;
 pub mod crypto;
+mod error;
 pub mod serde;
+
+pub use error::Error;
+pub use error::IoErrorKind;
