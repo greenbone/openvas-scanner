@@ -123,9 +123,31 @@ where
                     severity: StringF32::from(0.0),
                     name: rname,
                 });
-            } else if start_end_msg || result_type == "LOG" {
+            } else if result_type == "LOG" {
                 scan_results.push(ScanResult {
                     result_type: osp::ResultType::Log,
+                    host: current_host,
+                    hostname: host_name,
+                    port,
+                    test_id: roid.to_string(),
+                    description: value,
+                    severity: StringF32::from(0.0),
+                    name: rname,
+                });
+            } else if result_type == "HOST_START" {
+                scan_results.push(ScanResult {
+                    result_type: osp::ResultType::HostStart,
+                    host: current_host,
+                    hostname: host_name,
+                    port,
+                    test_id: roid.to_string(),
+                    description: value,
+                    severity: StringF32::from(0.0),
+                    name: rname,
+                });
+            } else if result_type == "HOST_END" {
+                scan_results.push(ScanResult {
+                    result_type: osp::ResultType::HostEnd,
                     host: current_host,
                     hostname: host_name,
                     port,
