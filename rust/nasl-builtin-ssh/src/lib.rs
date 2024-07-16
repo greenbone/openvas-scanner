@@ -764,7 +764,7 @@ impl Ssh {
 
         let login = match register.named("login") {
             Some(ContextType::Value(NaslValue::String(x))) => Some(x.to_owned()),
-            _ => return Err(FunctionErrorKind::from("login")),
+            _ => return Err(FunctionErrorKind::missing_argument("login")),
         };
 
         let mut sessions = lock_sessions(&self.sessions)?;
@@ -1122,7 +1122,7 @@ impl Ssh {
 
         let cmd = match register.named("cmd") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(FunctionErrorKind::from("No command passed")),
+            _ => return Err(FunctionErrorKind::missing_argument("No command passed")),
         };
 
         let stdout = match register.named("stdout") {
@@ -1379,7 +1379,7 @@ impl Ssh {
                 binding = x.iter().map(|x| *x as char).collect::<String>();
                 &binding
             }
-            _ => return Err(FunctionErrorKind::from("cmd")),
+            _ => return Err(FunctionErrorKind::missing_argument("cmd")),
         };
 
         let mut sessions = lock_sessions(&self.sessions)?;
@@ -1504,7 +1504,7 @@ impl Ssh {
 
         let login = match register.named("login") {
             Some(ContextType::Value(NaslValue::String(x))) => Some(x.to_owned()),
-            _ => return Err(FunctionErrorKind::from("login")),
+            _ => return Err(FunctionErrorKind::missing_argument("login")),
         };
 
         let mut sessions = lock_sessions(&self.sessions)?;
@@ -1631,7 +1631,7 @@ impl Ssh {
 
         let password = match register.named("pass") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(FunctionErrorKind::from("pass")),
+            _ => return Err(FunctionErrorKind::missing_argument("pass")),
         };
 
         let mut sessions = lock_sessions(&self.sessions)?;

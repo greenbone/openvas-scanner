@@ -107,7 +107,7 @@ impl TryFrom<&[u8]> for Frame {
 
     fn try_from(f: &[u8]) -> Result<Self, Self::Error> {
         if f.len() < 14 {
-            Err(("valid ip address").into())
+            Err(FunctionErrorKind::missing_argument("valid ip address"))
         } else {
             let mut frame = Frame::new();
             frame.set_dsthaddr(MacAddr(f[0], f[1], f[2], f[3], f[4], f[5]));
@@ -262,26 +262,21 @@ fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -
     frame.into()
 }
 
-fn convert_vec_into_mac_address(v: &[u8]) -> Result<MacAddr, FunctionErrorKind> {
+fn convert_vec_into_mac_address(v: &[u8]) -> Option<MacAddr> {
     if v.len() != 6 {
-        Err(("Invalid mac address").into())
+        None
     } else {
-        Ok(MacAddr::from([v[0], v[1], v[2], v[3], v[4], v[5]]))
+        Some(MacAddr::from([v[0], v[1], v[2], v[3], v[4], v[5]]))
     }
 }
 
 fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErrorKind> {
-    match v {
-        Some(ContextType::Value(NaslValue::String(x))) => match MacAddr::from_str(x) {
-            Ok(macaddr) => Ok(macaddr),
-            Err(_) => Err(("mac address", "invalid mac address").into()),
-        },
-        Some(ContextType::Value(NaslValue::Data(x))) => match convert_vec_into_mac_address(x) {
-            Ok(macaddr) => Ok(macaddr),
-            Err(_) => Err(("mac address", "invalid mac address").into()),
-        },
-        _ => Err(("mac address", "invalid mac address").into()),
-    }
+    let mac_addr = match v {
+        Some(ContextType::Value(NaslValue::String(x))) => MacAddr::from_str(x).ok(),
+        Some(ContextType::Value(NaslValue::Data(x))) => convert_vec_into_mac_address(x),
+        _ => None,
+    };
+    mac_addr.ok_or_else(|| ("mac address", "invalid mac address").into())
 }
 
 /// Return the MAC address, given the interface name
@@ -366,17 +361,29 @@ fn nasl_send_arp_request(
     let iface = get_interface_by_local_ip(local_ip)?;
     let local_mac_address = match get_local_mac_address(&iface.name) {
         Some(x) => x,
-        _ => return Err(("No possible to get a src mac address.").into()),
+        _ => {
+            return Err(FunctionErrorKind::missing_argument(
+                "Not possible to get a src mac address.",
+            ))
+        }
     };
 
     let src_ip = match Ipv4Addr::from_str(&local_ip.to_string()) {
         Ok(x) => x,
-        Err(_) => return Err(("No possible to parse the src IP address.").into()),
+        Err(_) => {
+            return Err(FunctionErrorKind::missing_argument(
+                "Not possible to parse the src IP address.",
+            ))
+        }
     };
 
     let dst_ip = match Ipv4Addr::from_str(&target_ip.to_string()) {
         Ok(x) => x,
-        Err(_) => return Err(("No possible to parse the dst IP address.").into()),
+        Err(_) => {
+            return Err(FunctionErrorKind::missing_argument(
+                "Not possible to parse the dst IP address.",
+            ))
+        }
     };
 
     let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
@@ -543,7 +550,7 @@ mod tests {
     fn test_mac_converter() {
         let data = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
         let mac = MacAddr::from_str("1:2:3:4:5:6").unwrap();
-        assert_eq!(convert_vec_into_mac_address(&data), Ok(mac));
+        assert_eq!(convert_vec_into_mac_address(&data), Some(mac));
     }
 
     #[test]

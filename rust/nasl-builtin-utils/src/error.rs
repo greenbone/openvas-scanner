@@ -69,11 +69,11 @@ impl FunctionErrorKind {
     pub fn wrong_argument(key: &str, expected: &str, got: &str) -> Self {
         Self::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
     }
-}
 
-impl From<&str> for FunctionErrorKind {
-    fn from(value: &str) -> Self {
-        FunctionErrorKind::MissingArguments(vec![value.to_owned()])
+    /// Helper function to quickly construct a `MissingArguments` variant
+    /// for a single missing argument.
+    pub fn missing_argument(val: &str) -> Self {
+        Self::MissingArguments(vec![val.to_string()])
     }
 }
 

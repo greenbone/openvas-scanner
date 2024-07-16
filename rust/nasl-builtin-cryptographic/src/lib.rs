@@ -68,7 +68,7 @@ fn get_required_named_data<'a>(
             format!("{:?}", x).as_str(),
         )
         .into()),
-        _ => Err((key).into()),
+        _ => Err(FunctionErrorKind::missing_argument(key)),
     }
 }
 

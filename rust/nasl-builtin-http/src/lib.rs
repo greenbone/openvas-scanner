@@ -469,7 +469,7 @@ impl NaslHttp {
     ) -> Result<NaslValue, FunctionErrorKind> {
         let header_item = match register.named("header_item") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(FunctionErrorKind::from("No command passed")),
+            _ => return Err(FunctionErrorKind::missing_argument("No command passed")),
         };
 
         let (key, val) = header_item.split_once(": ").expect("Missing header_item");

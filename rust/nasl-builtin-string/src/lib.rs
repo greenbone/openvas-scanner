@@ -249,7 +249,7 @@ fn hexstr_to_data(register: &Register, _: &Context) -> Result<NaslValue, Functio
             "string",
             x.to_string().as_str(),
         )),
-        None => Err("0".into()),
+        None => Err(FunctionErrorKind::missing_argument("0")),
     }
 }
 
@@ -264,7 +264,7 @@ fn data_to_hexstr(register: &Register, _: &Context) -> Result<NaslValue, Functio
             "data",
             x.to_string().as_str(),
         )),
-        None => Err("0".into()),
+        None => Err(FunctionErrorKind::missing_argument("0")),
     }
 }
 
