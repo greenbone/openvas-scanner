@@ -307,6 +307,18 @@ pub enum ResultType {
     /// Making them a bit special
     #[serde(rename = "Host Detail")]
     HostDetail,
+    /// Host start message
+    ///
+    /// Host start are not sent by the NASL script but by openvas.
+    /// Making them a bit special
+    #[serde(rename = "Host Start")]
+    HostStart,
+    /// Host end message
+    ///
+    /// Host end are not sent by the NASL script but by openvas.
+    /// Making them a bit special
+    #[serde(rename = "Host End")]
+    HostEnd,
 }
 
 /// Scan result within the get_scans response
@@ -348,6 +360,8 @@ impl From<&ScanResult> for models::ResultType {
             (_, ResultType::Log) => models::ResultType::Log,
             (_, ResultType::Alarm) => models::ResultType::Alarm,
             (_, ResultType::Error) => models::ResultType::Error,
+            (_, ResultType::HostStart) => models::ResultType::HostStart,
+            (_, ResultType::HostEnd) => models::ResultType::HostEnd,
             // host details are sent via log messages
             (_, ResultType::HostDetail) => unreachable!(),
         }
