@@ -2072,7 +2072,12 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
     let port = match register.named("port") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0, //TODO: implement plug_get_host_open_port()
-        _ => return Err(("Number", "Invalid length value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Number",
+                "Invalid length value",
+            ))
+        }
     };
 
     if islocalhost(target_ip) {
@@ -2179,25 +2184,49 @@ fn nasl_send_packet(
     let use_pcap = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
         None => true,
-        _ => return Err(("Boolean", "Invalid pcap_active value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Boolean",
+                "Invalid pcap_active value",
+            )
+            .into())
+        }
     };
 
     let filter = match register.named("pcap_filter") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
-        _ => return Err(("String", "Invalid pcap_filter value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid pcap_filter value",
+            )
+            .into())
+        }
     };
 
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => return Err(("Integer", "Invalid timeout value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Integer",
+                "Invalid timeout value",
+            )
+            .into())
+        }
     };
 
     let mut allow_broadcast = match register.named("allow_broadcast") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
         None => false,
-        _ => return Err(("Boolean", "Invalid allow_broadcast value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Boolean",
+                "Invalid allow_broadcast value",
+            )
+            .into())
+        }
     };
 
     let positional = register.positional();
@@ -2217,7 +2246,11 @@ fn nasl_send_packet(
     let _dflt_packet_sz = match register.named("length") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0,
-        _ => return Err(("Number", "Invalid length value").into()),
+        _ => {
+            return Err(
+                FunctionErrorKind::wrong_unnamed_argument("Number", "Invalid length value").into(),
+            )
+        }
     };
 
     // Get the iface name, to set the capture device.
@@ -2236,7 +2269,11 @@ fn nasl_send_packet(
     for pkt in positional.iter() {
         let packet_raw = match pkt {
             NaslValue::Data(data) => data as &[u8],
-            _ => return Err(("Data", "Invalid packet").into()),
+            _ => {
+                return Err(
+                    FunctionErrorKind::wrong_unnamed_argument("Data", "Invalid packet").into(),
+                )
+            }
         };
         let packet = packet::ipv4::Ipv4Packet::new(packet_raw).ok_or_else(|| {
             FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
@@ -2318,19 +2355,37 @@ fn nasl_send_capture(
     let interface = match register.named("interface") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
-        _ => return Err(("String", "Invalid interface value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid interface value",
+            )
+            .into())
+        }
     };
 
     let filter = match register.named("pcap_filter") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
-        _ => return Err(("String", "Invalid pcap_filter value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid pcap_filter value",
+            )
+            .into())
+        }
     };
 
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => return Err(("Integer", "Invalid timeout value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Integer",
+                "Invalid timeout value",
+            )
+            .into())
+        }
     };
 
     // Get the iface name, to set the capture device.

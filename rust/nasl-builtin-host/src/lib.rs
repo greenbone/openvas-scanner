@@ -59,7 +59,10 @@ pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
 
     match r_sock_addr {
         Ok(x) => Ok(x),
-        Err(e) => Err(("IP address", e.to_string().as_str()).into()),
+        Err(e) => Err(FunctionErrorKind::wrong_unnamed_argument(
+            "IP address",
+            e.to_string().as_str(),
+        )),
     }
 }
 

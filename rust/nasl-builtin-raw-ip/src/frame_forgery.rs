@@ -276,7 +276,9 @@ fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErro
         Some(ContextType::Value(NaslValue::Data(x))) => convert_vec_into_mac_address(x),
         _ => None,
     };
-    mac_addr.ok_or_else(|| ("mac address", "invalid mac address").into())
+    mac_addr.ok_or_else(|| {
+        FunctionErrorKind::wrong_unnamed_argument("mac address", "invalid mac address")
+    })
 }
 
 /// Return the MAC address, given the interface name
@@ -349,13 +351,23 @@ fn nasl_send_arp_request(
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => return Err(("Integer", "Invalid timeout value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Integer",
+                "Invalid timeout value",
+            )
+            .into())
+        }
     };
 
     let target_ip = get_host_ip(context)?;
 
     if target_ip.is_ipv6() {
-        return Err(("IPv4", "IPv6 does not support ARP protocol.").into());
+        return Err(FunctionErrorKind::wrong_unnamed_argument(
+            "IPv4",
+            "IPv6 does not support ARP protocol.",
+        )
+        .into());
     }
     let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
@@ -463,25 +475,47 @@ fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, Funct
 fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
-        _ => return Err(("Data", "Invalid data type").into()),
+        _ => {
+            return Err(
+                FunctionErrorKind::wrong_unnamed_argument("Data", "Invalid data type").into(),
+            )
+        }
     };
 
     let pcap_active = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => x,
         None => &true,
-        _ => return Err(("Boolean", "Invalid pcap_active value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Boolean",
+                "Invalid pcap_active value",
+            )
+            .into())
+        }
     };
 
     let filter = match register.named("pcap_filter") {
         Some(ContextType::Value(NaslValue::String(x))) => Some(x),
         None => None,
-        _ => return Err(("String", "Invalid pcap_filter value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid pcap_filter value",
+            )
+            .into())
+        }
     };
 
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => return Err(("Integer", "Invalid timeout value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Integer",
+                "Invalid timeout value",
+            )
+            .into())
+        }
     };
 
     let target_ip = get_host_ip(context)?;
@@ -502,7 +536,11 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
 fn nasl_dump_frame(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
-        _ => return Err(("Data", "Invalid data type").into()),
+        _ => {
+            return Err(
+                FunctionErrorKind::wrong_unnamed_argument("Data", "Invalid data type").into(),
+            )
+        }
     };
 
     configs.logger().info(&frame);

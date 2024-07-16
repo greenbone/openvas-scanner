@@ -70,17 +70,17 @@ impl FunctionErrorKind {
         Self::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
     }
 
+    /// Helper function to quickly construct a `WrongArgument` variant
+    /// containing the name of the argument, the expected value and
+    /// the actual value.
+    pub fn wrong_unnamed_argument(expected: &str, got: &str) -> Self {
+        Self::WrongArgument(format!("Expected {expected} but {got}"))
+    }
+
     /// Helper function to quickly construct a `MissingArguments` variant
     /// for a single missing argument.
     pub fn missing_argument(val: &str) -> Self {
         Self::MissingArguments(vec![val.to_string()])
-    }
-}
-
-impl From<(&str, &str)> for FunctionErrorKind {
-    fn from(value: (&str, &str)) -> Self {
-        let (expected, got) = value;
-        FunctionErrorKind::WrongArgument(format!("Expected {expected} but got {got}"))
     }
 }
 
@@ -117,6 +117,6 @@ impl From<(&str, &NaslValue)> for FunctionErrorKind {
     fn from(value: (&str, &NaslValue)) -> Self {
         let (expected, got) = value;
         let got: &str = &got.to_string();
-        (expected, got).into()
+        FunctionErrorKind::wrong_unnamed_argument(expected, got)
     }
 }

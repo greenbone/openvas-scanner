@@ -247,11 +247,11 @@ macro_rules! ccm_call_typed {
                                     Ok(ccm_crypt::<D, $t1, $t2>(crypt, key, nonce, data, aad))
                                 }
                             ),*
-                            other => Err(("iv must be between 7 and 13", other.to_string().as_str()).into())
+                            other => Err(FunctionErrorKind::wrong_unnamed_argument("iv must be between 7 and 13", other.to_string().as_str()))
                         }
                     }
                 ),*
-                other => Err(("tag_size must be 4, 6, 8, 10, 12, 14 or 16", other.to_string().as_str()).into())
+                other => Err(FunctionErrorKind::wrong_unnamed_argument("tag_size must be 4, 6, 8, 10, 12, 14 or 16", other.to_string().as_str()))
             }
          }
      }

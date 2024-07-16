@@ -114,7 +114,7 @@ fn isnull(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKi
 fn unixtime(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     match std::time::SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(NaslValue::Number(t.as_secs() as i64)),
-        Err(_) => Err(("0", "numeric").into()),
+        Err(_) => Err(FunctionErrorKind::wrong_unnamed_argument("0", "numeric")),
     }
 }
 
