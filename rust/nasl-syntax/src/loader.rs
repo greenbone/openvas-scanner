@@ -43,6 +43,7 @@ where
         Err(err) => Err((path.as_ref().to_str().unwrap_or_default(), err).into()),
     }
 }
+
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
 pub trait Loader {
     /// Resolves the given key to nasl code

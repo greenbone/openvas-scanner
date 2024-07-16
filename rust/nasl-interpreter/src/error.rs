@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{fmt::Display, io};
+use std::io;
 
 use nasl_builtin_utils::error::FunctionErrorKind;
 use nasl_syntax::{Statement, SyntaxError, TokenCategory};
@@ -34,6 +34,7 @@ impl FunctionError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Is used to represent an error while interpreting
+#[error("{}{kind}", self.origin.clone().map(|e| format!("{e}: ")).unwrap_or_default())]
 pub struct InterpretError {
     /// Defined the type of error that occurred.
     #[source]
@@ -46,16 +47,22 @@ pub struct InterpretError {
 /// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.
+    #[error("Expected a value but got a function.")]
     FunctionExpectedValue,
     /// When returned context is a value when a function is required.
+    #[error("Expected a function but got a value.")]
     ValueExpectedFunction,
     /// When a specific type is expected
+    #[error("Expected the type {0}")]
     WrongType(String),
     /// When a specific token category is required but not given.
+    #[error("Expected the category {0}")]
     WrongCategory(TokenCategory),
     /// Regex parsing went wrong.
+    #[error("Invalid regular expression: {0}")]
     InvalidRegex(String),
-    /// An SyntaxError while including another script
+    /// A SyntaxError while including another script
+    #[error("Error while including file {filename}{}: {err}", {err}.as_token() .map(|t| format!(", line: {}, col: {}", t.position.0, t.position.1)) .unwrap_or_default())]
     IncludeSyntaxError {
         /// The name of the file trying to include
         filename: String,
@@ -63,66 +70,27 @@ pub enum InterpretErrorKind {
         err: SyntaxError,
     },
     /// SyntaxError
+    #[error("{0}")]
     SyntaxError(SyntaxError),
     /// When the given key was not found in the context
+    #[error("Key not found: {0}")]
     NotFound(String),
     /// A StorageError occurred
     // FIXME rename to general error
+    #[error("{0}")]
     StorageError(StorageError),
     /// A LoadError occurred
+    #[error("{0}")]
     LoadError(LoadError),
     /// A Formatting error occurred
+    #[error("{0}")]
     FMTError(std::fmt::Error),
     /// An IOError occurred
+    #[error("{0}")]
     IOError(io::ErrorKind),
     /// An error occurred while calling a built-in function.
+    #[error("{0}")]
     FunctionCallError(FunctionError),
-}
-
-impl Display for InterpretErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InterpretErrorKind::FunctionExpectedValue => {
-                write!(f, "expected a value but got a function")
-            }
-            InterpretErrorKind::ValueExpectedFunction => {
-                write!(f, "expected a function but got a value")
-            }
-            InterpretErrorKind::WrongType(e) => write!(f, "expected the type {e}"),
-            InterpretErrorKind::WrongCategory(e) => write!(f, "expecteced category {e}"),
-            InterpretErrorKind::InvalidRegex(e) => write!(f, "regular expression: {e} is invalid"),
-            InterpretErrorKind::IncludeSyntaxError { filename, err } => {
-                write!(
-                    f,
-                    "on include {filename}{}: {err}",
-                    err.as_token()
-                        .map(|t| format!(", line: {}, col: {}", t.position.0, t.position.1))
-                        .unwrap_or_default()
-                )
-            }
-            InterpretErrorKind::SyntaxError(e) => write!(f, "{e}"),
-            InterpretErrorKind::NotFound(e) => write!(f, "{e} not found"),
-            InterpretErrorKind::StorageError(e) => write!(f, "{e}"),
-            InterpretErrorKind::LoadError(e) => write!(f, "{e}"),
-            InterpretErrorKind::FMTError(e) => write!(f, "{e}"),
-            InterpretErrorKind::IOError(e) => write!(f, "{e}"),
-            InterpretErrorKind::FunctionCallError(e) => write!(f, "{e}"),
-        }
-    }
-}
-
-impl Display for InterpretError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}",
-            self.origin
-                .clone()
-                .map(|e| format!("{e}: "))
-                .unwrap_or_default(),
-            self.kind
-        )
-    }
 }
 
 impl InterpretError {

@@ -4,36 +4,46 @@
 
 //! Defines TokenError and its companion macros.
 
-use core::fmt;
-use std::{error::Error, io};
+use std::io;
+
+use thiserror::Error;
 
 use crate::{token::Token, Statement};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 /// A list specifying general categories of Syntax error.
 pub enum ErrorKind {
     /// An unexpected token occurred
+    #[error("Unexpected token: {0}")]
     UnexpectedToken(Token),
     /// A token is unclosed
     ///
     /// Could happen on string literals.
+    #[error("Unclosed token: {0}")]
     UnclosedToken(Token),
     /// An unexpected statement occurred
+    #[error("Unexpected statement: {0}")]
     UnexpectedStatement(Statement),
     /// When an unexpected Statement occurs it maybe an MissingSemicolon
+    #[error("Missing semicolon: {0}")]
     MissingSemicolon(Statement),
     /// An token is unclosed
+    #[error("Unclosed statement: {0}")]
     UnclosedStatement(Statement),
     /// Maximal recursion depth reached. Simplify NASL code.
+    #[error("Maximal recursion depth of {0} reached, the NASL script is too complex.")]
     MaxRecursionDepth(u8),
     /// The cursor is already at the end but that is not expected
+    #[error("Unexpected end of file.")]
     EoF,
     /// An IO Error occurred while loading a NASL file
+    #[error("IOError: {0}")]
     IOError(io::ErrorKind),
 }
 
 /// Is used to express errors while parsing.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[error("{kind}")]
 pub struct SyntaxError {
     /// A human readable reason why this error is returned
     kind: ErrorKind,
@@ -199,30 +209,6 @@ macro_rules! max_recursion {
         syntax_error!(ErrorKind::MaxRecursionDepth($reason))
     }};
 }
-impl fmt::Display for SyntaxError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.kind)
-    }
-}
-
-impl fmt::Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            // TODO fix statement print
-            ErrorKind::UnexpectedToken(token) => write!(f, "unexpected token: {token}"),
-            ErrorKind::UnclosedToken(token) => write!(f, "unclosed token: {token}"),
-            ErrorKind::UnexpectedStatement(stmt) => write!(f, "unexpected statement: {stmt:?}"),
-            ErrorKind::UnclosedStatement(stmt) => write!(f, "unclosed statement: {stmt}"),
-            ErrorKind::MissingSemicolon(stmt) => write!(f, "missing semicolon: {stmt}"),
-            ErrorKind::EoF => write!(f, "end of file."),
-            ErrorKind::IOError(kind) => write!(f, "IOError: {kind}"),
-            ErrorKind::MaxRecursionDepth(max) => write!(
-                f,
-                "Maximal recursion depth of {max} reached, the NASL script is too complex."
-            ),
-        }
-    }
-}
 
 impl SyntaxError {
     /// Creates a new SyntaxError.
@@ -235,8 +221,6 @@ impl SyntaxError {
         &self.kind
     }
 }
-
-impl Error for SyntaxError {}
 
 impl From<io::Error> for SyntaxError {
     fn from(initial: io::Error) -> Self {
