@@ -2,26 +2,22 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{fmt::Display, io};
+use std::io;
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum OpenvasError {
+    #[error("A scan with ID {0} already exists.")]
     DuplicateScanID(String),
+    #[error("Unable to launch openvas executable.")]
     MissingExec,
+    #[error("A scan with ID {0} not found.")]
     ScanNotFound(String),
+    #[error("Unable to run command: {0}")]
     CmdError(io::Error),
+    #[error("Maximum number of queued scan reached.")]
     MaxQueuedScans,
+    #[error("Unable to run openvas.")]
     UnableToRunExec,
-}
-
-impl Display for OpenvasError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OpenvasError::DuplicateScanID(id) => write!(f, "a scan with ID {id} already exists"),
-            OpenvasError::MissingExec => write!(f, "unable to launch openvas executable"),
-            OpenvasError::ScanNotFound(id) => write!(f, "a scan with ID {id} not found"),
-            OpenvasError::CmdError(e) => write!(f, "unable to run command: {e}"),
-            OpenvasError::MaxQueuedScans => write!(f, "maximum number of queued scan reached"),
-            OpenvasError::UnableToRunExec => write!(f, "unable to run openvas"),
-        }
-    }
 }

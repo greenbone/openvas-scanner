@@ -2138,6 +2138,7 @@ dependencies = [
  "redis-storage",
  "serde",
  "storage",
+ "thiserror",
  "tokio",
  "tracing",
 ]
