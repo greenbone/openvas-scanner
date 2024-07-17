@@ -2367,6 +2367,7 @@ dependencies = [
  "dep-graph",
  "generic-array 1.0.0",
  "rayon",
+ "thiserror",
 ]
 
 [[package]]
