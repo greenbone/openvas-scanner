@@ -8,7 +8,7 @@ use redis_storage::{
 };
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, MutexGuard},
 };
 use storage::item::Nvt;
 
@@ -36,6 +36,18 @@ where
             task_kb: kb_cache,
         }
     }
+
+    fn lock_task_kb(&self) -> Result<MutexGuard<'_, R>, DbError> {
+        self.task_kb
+            .lock()
+            .map_err(|e| DbError::PoisonedLock(format!("{e:?}")))
+    }
+
+    fn lock_cache(&self) -> Result<MutexGuard<'_, R>, DbError> {
+        self.cache
+            .lock()
+            .map_err(|e| DbError::PoisonedLock(format!("{e:?}")))
+    }
 }
 
 pub trait KbAccess {
@@ -62,50 +74,37 @@ pub trait KbAccess {
 impl KbAccess for RedisHelper<RedisCtx> {
     /// Provide access to the cache
     fn kb_id(&self) -> RedisStorageResult<u32> {
-        let cache = Arc::as_ref(&self.task_kb)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        Ok(cache.db)
+        // TODO: Should this really be self.lock_task_kb? This seems
+        // like it should be self.lock_cache, but I'm keeping it as it
+        // was for now.
+        Ok(self.lock_task_kb()?.db)
     }
+
     /// Release the redis namespace and make it available again for other tasks
     fn release(&mut self) -> RedisStorageResult<()> {
-        let mut kb = Arc::as_ref(&self.task_kb)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        kb.delete_namespace()
+        self.lock_task_kb()?.delete_namespace()
     }
+
     fn push_kb_item<T: redis::ToRedisArgs>(
         &mut self,
         key: &str,
         value: T,
     ) -> RedisStorageResult<()> {
-        let mut kb = Arc::as_ref(&self.task_kb)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-
-        kb.lpush(key, value)?;
+        self.lock_task_kb()?.lpush(key, value)?;
         Ok(())
     }
 
     fn scan_status(&mut self, scan_id: String) -> RedisStorageResult<String> {
-        let mut kb = Arc::as_ref(&self.task_kb)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        kb.lindex(&format!("internal/{}", scan_id), 0)
+        self.lock_task_kb()?
+            .lindex(&format!("internal/{}", scan_id), 0)
     }
 
     fn results(&mut self) -> RedisStorageResult<Vec<String>> {
-        let mut kb = Arc::as_ref(&self.task_kb)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        kb.pop("internal/results")
+        self.lock_task_kb()?.pop("internal/results")
     }
 
     fn status(&mut self) -> RedisStorageResult<Vec<String>> {
-        let mut kb = Arc::as_ref(&self.task_kb)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        kb.pop("internal/status")
+        self.lock_task_kb()?.pop("internal/status")
     }
 }
 
@@ -115,11 +114,7 @@ pub trait VtHelper {
 
 impl VtHelper for RedisHelper<RedisCtx> {
     fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
-        let mut cache = Arc::as_ref(&self.cache)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-
-        cache.redis_get_vt(oid)
+        self.lock_cache()?.redis_get_vt(oid)
     }
 }
 

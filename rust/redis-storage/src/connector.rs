@@ -8,6 +8,7 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 use crate::dberror::DbError;
 use crate::dberror::RedisStorageResult;
@@ -652,6 +653,14 @@ where
     kbs: Arc<Mutex<Vec<Kb>>>,
 }
 
+impl<R: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt> CacheDispatcher<R> {
+    fn lock_cache(&self) -> Result<MutexGuard<'_, R>, DbError> {
+        self.cache
+            .lock()
+            .map_err(|e| DbError::PoisonedLock(format!("{e:?}")))
+    }
+}
+
 impl CacheDispatcher<RedisCtx> {
     /// Initialize and return an NVT Cache Object
     ///
@@ -684,18 +693,12 @@ impl CacheDispatcher<RedisCtx> {
 
     /// Reset the NVT Cache and release the redis namespace
     pub fn reset(&self) -> RedisStorageResult<()> {
-        let mut cache = Arc::as_ref(&self.cache)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        cache.delete_namespace()
+        self.lock_cache()?.delete_namespace()
     }
 
     /// Reset the NVT Cache. Do not release the namespace. Only ensure it is clean
     pub fn flushdb(&self) -> RedisStorageResult<()> {
-        let mut cache = Arc::as_ref(&self.cache)
-            .lock()
-            .map_err(|e| DbError::SystemError(format!("{e:?}")))?;
-        cache.flush_namespace()
+        self.lock_cache()?.flush_namespace()
     }
 }
 
