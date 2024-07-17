@@ -8,11 +8,11 @@
 pub mod item;
 mod retrieve;
 pub use retrieve::*;
+use thiserror::Error;
 pub mod time;
 pub mod types;
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
     io,
     sync::{Arc, PoisonError, RwLock},
 };
@@ -123,21 +123,25 @@ impl From<models::VulnerabilityData> for Field {
 }
 
 /// Defines abstract error cases
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum StorageError {
     /// Informs the caller to retry the call
+    #[error("There was a temporary issue while reading: {0}")]
     Retry(String),
     /// The connection to a DB was lost.
     ///
     /// The default solution in those cases are most of the times to try a reconnect.
+    #[error("Connection lost: {0}")]
     ConnectionLost(String),
     /// Did expected a different kind of data and is unable to fulfil the request.
     ///
     /// This is usually a usage error.
+    #[error("Unexpected data: {0}")]
     UnexpectedData(String),
     /// There is a deeper problem with the underlying DataBase
     ///
     /// An example would be that there is no free db left on redis and that it needs to be cleaned up.
+    #[error("Unexpected issue: {0}")]
     Dirty(String),
 }
 
@@ -185,19 +189,6 @@ impl From<io::Error> for StorageError {
         }
     }
 }
-
-impl Display for StorageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            StorageError::Retry(p) => write!(f, "There was a temporary issue while reading {p}."),
-            StorageError::ConnectionLost(p) => write!(f, "Connection lost {p}."),
-            StorageError::UnexpectedData(p) => write!(f, "Unexpected data {p}"),
-            StorageError::Dirty(p) => write!(f, "Unexpected issue {p}"),
-        }
-    }
-}
-
-impl std::error::Error for StorageError {}
 
 /// Defines the Dispatcher interface to distribute fields
 pub trait Dispatcher: Sync + Send {

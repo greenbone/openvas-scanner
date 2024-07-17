@@ -3212,6 +3212,7 @@ version = "0.1.0"
 dependencies = [
  "models",
  "serde",
+ "thiserror",
  "time",
  "tracing",
 ]
