@@ -278,8 +278,10 @@ function get_version_from_build( string, win_name ) {
     if( "19045" >< string ) return "22H2";
   }
   else if( win_name == "win11" ) {
+    # https://en.wikipedia.org/wiki/Windows_11_version_history for the version <> build mapping
     if( "22000" >< string ) return "21H2";
     if( "22621" >< string ) return "22H2";
+    if( "22631" >< string ) return "23H2";
   }
   return;
 }
@@ -994,7 +996,7 @@ function smb_neg_prot_extract_NTLMSSP( r ) {
     if( strlen( r ) < 89 ) return NULL; # SMBv1 Answer is too short
     if( ( ord( r[15] ) & 8 ) != 8 ) return NULL; # Extended Security Negotiation is not set
     blob_len = ord( r[71] ) + ord( r[72] ) * 256; # [MS-SMB 2.2.4.5.2.1]
-    if( blob_len < 17 ) return NULL; # Verify that the security blob is present by checking the blob length
+    if( blob_len == 16 ) return TRUE; # Only Server GUID is present, Client initiates authentication via NTLMSSP
 
     offset = 4 + 32 + 53; # Netbios + SMBv1 Header + Negotiate Protocol Request, Offset is fixed
 
@@ -2762,7 +2764,7 @@ function create_smb2_transform_header_package( len_hi, len_lo, req, uid ) {
 # @param domain The Netbios domain name.
 # @param cs The selected dialect.
 # @param version The NTLM version that should be used.
-# @return Return the received answer or FALSE in case somethin fails.
+# @return Return the received answer or FALSE in case something fails.
 function smb_session_setup_NTLMvN( soc, login, password, domain, cs, version ) {
 
   local_var soc, login, password, domain, cs, version;

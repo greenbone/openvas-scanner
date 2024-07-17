@@ -97,7 +97,7 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
                     }
                 }).for_each(|x|{
                     let _span = tracing::warn_span!("script_result", ilename=x.filename, oid=x.oid, stage=%x.stage).entered();
-                    if x.is_success() {
+                    if x.has_succeeded() {
                             tracing::info!("success")
                         } else {
                             tracing::warn!(kind=?x.kind,"failed")
