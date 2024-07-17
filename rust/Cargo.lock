@@ -1997,6 +1997,7 @@ dependencies = [
  "nasl-syntax",
  "serde",
  "serde_json",
+ "thiserror",
  "tracing",
 ]
 

@@ -15,3 +15,4 @@ models = { path = "../models" }
 feed = { path = "../feed" }
 nasl-syntax = { path = "../nasl-syntax" }
 tracing = "0.1.40"
+thiserror = "1.0.62"

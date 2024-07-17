@@ -2,70 +2,55 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{fmt::Display, io};
+use std::io;
 
 use models::FixedPackage;
 use nasl_syntax::LoadError;
+use thiserror::Error;
 
-/// Error types that can occur, when unable to load a products file.
-#[derive(Debug)]
+/// Error types that can occur when unable to load a products file.
+#[derive(Debug, Error)]
 pub enum LoadProductErrorKind {
-    IOError(io::Error),
-    LoadError(LoadError),
-}
-
-impl Display for LoadProductErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LoadProductErrorKind::IOError(e) => write!(f, "{e}"),
-            LoadProductErrorKind::LoadError(e) => write!(f, "{e}"),
-        }
-    }
+    #[error("{0}")]
+    IOError(#[from] io::Error),
+    #[error("{0}")]
+    LoadError(#[from] LoadError),
 }
 
 /// Errors that might occur, when working with the notus library.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    // The directory containing the notus products does not exist
+    /// The directory containing the notus products does not exist
+    #[error("The directory {0}, which should contain the notus product does not exist")]
     MissingProductsDir(String),
     /// The given notus products directory is a file
+    #[error("The given notus products directory {0} is a file")]
     ProductsDirIsFile(String),
     /// The given notus products directory is not readable
+    #[error("The directory {0} is not readable: {1}")]
     UnreadableProductsDir(String, io::Error),
     /// There are no corresponding notus files for the given Operating System
+    #[error( "the File {0} was not found, that is either due to a typo or missing notus product for the corresponding OS")]
     UnknownProduct(String),
     /// General error while loading notus product
+    #[error("Unable to load product from {0}: {1}")]
     LoadProductError(String, LoadProductErrorKind),
     /// Unable to parse notus product file due to a JSON error
+    #[error("unable to parse Notus file {0}. The corresponding parse error was: {1}")]
     JSONParseError(String, serde_json::Error),
     /// The version of the notus product file is not supported
+    #[error( "the version of the parsed product file {0} is {1}. This version is currently not supported, the version {2} is required")]
     UnsupportedVersion(String, String, String),
     /// Unable to parse a given package
+    #[error("Unable to parse the given package {0}")]
     PackageParseError(String),
     /// Unable to parse a package in the notus product file
+    #[error("Unable to parse fixed package information {1:?} in the product {0}")]
     VulnerabilityTestParseError(String, FixedPackage),
     /// Some issues caused by a HashsumLoader
+    #[error("Hashsum verification failed: {0}")]
     HashsumLoadError(feed::VerifyError),
     /// Signature check error
+    #[error("Signature check failed: {0}")]
     SignatureCheckError(feed::VerifyError),
 }
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::UnknownProduct(path) => write!(f, "the File {path} was not found, that is either due to a typo or missing notus product for the corresponding OS"),
-            Error::JSONParseError(path, json_err) => write!(f, "unable to parse Notus file {path}. The corresponding parse error was: {json_err}"),
-            Error::UnsupportedVersion(path, version1, version2) => write!(f, "the version of the parsed product file {path} is {version1}. This version is currently not supported, the version {version2} is required"),
-            Error::MissingProductsDir(path) => write!(f, "The directory {path}, which should contain the notus product does not exist"),
-            Error::ProductsDirIsFile(path) => write!(f, "The given notus products directory {path} is a file"),
-            Error::LoadProductError(path, err) => write!(f, "Unable to load product from {path}: {err}"),
-            Error::PackageParseError(pkg) => write!(f, "Unable to parse the given package {pkg}"),
-            Error::VulnerabilityTestParseError(path, pkg) => write!(f, "Unable to parse fixed package information {:?} in the product {path}", pkg),
-            Error::UnreadableProductsDir(path, err) => write!(f, "The directory {path} is not readable: {err}"),
-            Error::HashsumLoadError(err) => write!(f, "Hashsum verification failed: {err}"),
-            Error::SignatureCheckError(err) => write!(f, "Signature check failed: {err}"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
