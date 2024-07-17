@@ -13,6 +13,7 @@ pub mod time;
 pub mod types;
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Display,
     io,
     sync::{Arc, PoisonError, RwLock},
 };
@@ -31,6 +32,15 @@ pub enum ContextKey {
     ///
     /// The filename is used to know that a given information belongs to certain nasl script.
     FileName(String),
+}
+
+impl Display for ContextKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ContextKey::Scan(id) => write!(f, "scan_id={id}"),
+            ContextKey::FileName(name) => write!(f, "file={name}"),
+        }
+    }
 }
 
 impl AsRef<str> for ContextKey {
@@ -82,6 +92,20 @@ pub struct Kb {
     /// When an entry expires `get_kb` will not find that entry anymore.
     /// When it is Null the KB entry will stay the whole run.
     pub expire: Option<u64>,
+}
+
+impl<K, V> From<(K, V)> for Kb
+where
+    K: Into<String>,
+    V: Into<Primitive>,
+{
+    fn from((key, value): (K, V)) -> Self {
+        Kb {
+            key: key.into(),
+            value: value.into(),
+            expire: None,
+        }
+    }
 }
 
 /// Redefine Vulnerability so that other libraries using that don't have to include models
