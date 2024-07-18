@@ -50,8 +50,7 @@ where
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "valid size key",
                 "invalid size key",
-            )
-            .into())
+            ))
         }
     };
     hmac.update(data.as_bytes());

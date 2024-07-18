@@ -355,8 +355,7 @@ fn nasl_send_arp_request(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -366,8 +365,7 @@ fn nasl_send_arp_request(
         return Err(FunctionErrorKind::wrong_unnamed_argument(
             "IPv4",
             "IPv6 does not support ARP protocol.",
-        )
-        .into());
+        ));
     }
     let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
@@ -476,9 +474,10 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => {
-            return Err(
-                FunctionErrorKind::wrong_unnamed_argument("Data", "Invalid data type").into(),
-            )
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Data",
+                "Invalid data type",
+            ))
         }
     };
 
@@ -489,8 +488,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid pcap_active value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -501,8 +499,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -513,8 +510,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -537,9 +533,10 @@ fn nasl_dump_frame(register: &Register, configs: &Context) -> Result<NaslValue, 
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
         _ => {
-            return Err(
-                FunctionErrorKind::wrong_unnamed_argument("Data", "Invalid data type").into(),
-            )
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Data",
+                "Invalid data type",
+            ))
         }
     };
 

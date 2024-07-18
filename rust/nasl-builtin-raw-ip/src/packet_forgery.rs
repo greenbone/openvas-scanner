@@ -2188,8 +2188,7 @@ fn nasl_send_packet(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid pcap_active value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -2200,8 +2199,7 @@ fn nasl_send_packet(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -2212,8 +2210,7 @@ fn nasl_send_packet(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -2224,8 +2221,7 @@ fn nasl_send_packet(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid allow_broadcast value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -2247,9 +2243,10 @@ fn nasl_send_packet(
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0,
         _ => {
-            return Err(
-                FunctionErrorKind::wrong_unnamed_argument("Number", "Invalid length value").into(),
-            )
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Number",
+                "Invalid length value",
+            ))
         }
     };
 
@@ -2270,9 +2267,10 @@ fn nasl_send_packet(
         let packet_raw = match pkt {
             NaslValue::Data(data) => data as &[u8],
             _ => {
-                return Err(
-                    FunctionErrorKind::wrong_unnamed_argument("Data", "Invalid packet").into(),
-                )
+                return Err(FunctionErrorKind::wrong_unnamed_argument(
+                    "Data",
+                    "Invalid packet",
+                ))
             }
         };
         let packet = packet::ipv4::Ipv4Packet::new(packet_raw).ok_or_else(|| {
@@ -2359,8 +2357,7 @@ fn nasl_send_capture(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "String",
                 "Invalid interface value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -2371,8 +2368,7 @@ fn nasl_send_capture(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
-            )
-            .into())
+            ))
         }
     };
 
@@ -2383,8 +2379,7 @@ fn nasl_send_capture(
             return Err(FunctionErrorKind::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            )
-            .into())
+            ))
         }
     };
 

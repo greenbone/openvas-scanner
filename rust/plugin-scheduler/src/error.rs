@@ -18,7 +18,7 @@ pub enum SchedulerError {
 
 fn format_plugin_not_found(deps: &[String], not_found: &str) -> String {
     if deps.is_empty() {
-        format!("NVT not found")
+        "NVT not found".to_string()
     } else {
         format!("Dependency {not_found} not found ({})", deps.join(","))
     }

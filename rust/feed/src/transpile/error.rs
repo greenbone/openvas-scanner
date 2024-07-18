@@ -11,13 +11,13 @@ use super::Replace;
 pub enum TranspileError {
     /// Loader is unable to handle operation
     #[error("Load error: {0}")]
-    LoadError(#[from] LoadError),
+    Load(#[from] LoadError),
     /// Describes an error while verifying the file
     #[error("Verify error: {0}")]
-    VerifyError(#[from] verify::Error),
+    Verify(#[from] verify::Error),
     /// Describes an error while verifying the file
     #[error("Replace error: {0}")]
-    ReplaceError(#[from] ReplaceError),
+    Replace(#[from] ReplaceError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]

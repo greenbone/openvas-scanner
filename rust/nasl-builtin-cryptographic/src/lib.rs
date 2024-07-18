@@ -66,8 +66,7 @@ fn get_required_named_data<'a>(
             key,
             "a String or Data Value",
             format!("{:?}", x).as_str(),
-        )
-        .into()),
+        )),
         _ => Err(FunctionErrorKind::missing_argument(key)),
     }
 }
@@ -86,8 +85,7 @@ fn get_optional_named_number(
             key,
             "a Number Value",
             format!("{:?}", x).as_str(),
-        )
-        .into()),
+        )),
         _ => Ok(None),
     }
 }

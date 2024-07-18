@@ -194,9 +194,10 @@ where
             let storage = &storage.read().unwrap();
             let scans: Vec<Serialization<String>> = match storage.by_range("scans", Range::All) {
                 Ok(s) => s,
-                Err(infisto::Error::IoError(infisto::IoErrorKind::FileOpen, io))
-                    if io == std::io::ErrorKind::NotFound =>
-                {
+                Err(infisto::Error::IoError(
+                    infisto::IoErrorKind::FileOpen,
+                    std::io::ErrorKind::NotFound,
+                )) => {
                     vec![]
                 }
                 Err(e) => return Err(e.into()),
