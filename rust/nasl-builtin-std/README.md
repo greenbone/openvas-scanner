@@ -17,9 +17,8 @@ For production use cases it is recommended to use new method and include a key a
 ```
 
 let loader = nasl_syntax::FSPluginLoader::new("/feed");
-let logger = nasl_syntax::logger::DefaultLogger::default();
 let storage = storage::DefaultDispatcher::default();
-let cb = nasl_builtin_std::ContextFactory::new(loader, logger, storage);
+let cb = nasl_builtin_std::ContextFactory::new(loader, storage);
 ```
 
 ## Add functions to std

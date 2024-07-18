@@ -4,7 +4,7 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use nasl_syntax::{logger::NaslLogger, Loader, NaslValue, Statement};
+use nasl_syntax::{Loader, NaslValue, Statement};
 use storage::{ContextKey, Dispatcher, Retriever};
 
 use crate::lookup_keys::FC_ANON_ARGS;
@@ -336,10 +336,7 @@ pub struct Context<'a> {
     retriever: &'a dyn Retriever,
     /// Default Loader
     loader: &'a dyn Loader,
-    // TODO remove logger in favor of tracing
-    /// Default logger.
-    logger: &'a dyn NaslLogger,
-    /// Default logger.
+    /// Default function executor.
     executor: &'a dyn super::NaslFunctionExecuter,
 }
 
@@ -351,7 +348,6 @@ impl<'a> Context<'a> {
         dispatcher: &'a dyn Dispatcher,
         retriever: &'a dyn Retriever,
         loader: &'a dyn Loader,
-        logger: &'a dyn NaslLogger,
         executor: &'a dyn super::NaslFunctionExecuter,
     ) -> Self {
         Self {
@@ -360,7 +356,6 @@ impl<'a> Context<'a> {
             dispatcher,
             retriever,
             loader,
-            logger,
             executor,
         }
     }
@@ -375,11 +370,6 @@ impl<'a> Context<'a> {
     /// Checks if a function is defined
     pub fn nasl_fn_defined(&self, name: &str) -> bool {
         self.executor.nasl_fn_defined(name)
-    }
-
-    /// Get the logger to print messages
-    pub fn logger(&self) -> &dyn NaslLogger {
-        self.logger
     }
 
     /// Get the executor

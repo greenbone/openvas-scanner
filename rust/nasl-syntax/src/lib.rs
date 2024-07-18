@@ -16,8 +16,6 @@ mod prefix_extension;
 mod statement;
 mod token;
 mod variable_extension;
-// should be replaced with tracing
-pub mod logger;
 
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;

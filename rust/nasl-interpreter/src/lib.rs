@@ -32,6 +32,6 @@ pub use nasl_builtin_utils::{
     Context, ContextType, FunctionErrorKind, NaslFunctionRegister, NaslVarRegister, Register,
 };
 pub use nasl_syntax::{
-    load_non_utf8_path, logger, parse, AsBufReader, FSPluginLoader, LoadError, Loader, NaslValue,
+    load_non_utf8_path, parse, AsBufReader, FSPluginLoader, LoadError, Loader, NaslValue,
     NoOpLoader,
 };

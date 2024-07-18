@@ -1879,6 +1879,7 @@ dependencies = [
  "pnet_macros_support",
  "socket2 0.5.7",
  "storage",
+ "tracing",
 ]
 
 [[package]]
@@ -1890,6 +1891,7 @@ dependencies = [
  "nasl-interpreter",
  "nasl-syntax",
  "storage",
+ "tracing",
 ]
 
 [[package]]

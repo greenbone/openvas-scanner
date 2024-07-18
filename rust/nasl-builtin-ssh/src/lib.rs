@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-// TODO replace if (verbose) calls to debug calls
 // TODO make error handling less redundant
 // TODO clean up and maybe split as 2000 lines is a bit much
 //! Defines NASL ssh and sftp functions
@@ -12,7 +11,6 @@ mod sessions;
 use core::str;
 use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
 use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
-use nasl_syntax::logger::NaslLogger;
 use nasl_syntax::NaslValue;
 use sessions::SshSession;
 use std::io::Write;
@@ -24,6 +22,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use tracing::{debug, info};
 
 type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
 
@@ -208,11 +207,10 @@ fn set_opt_user(
 fn get_authmethods(
     session: &mut SshSession,
     session_id: i32,
-    logger: &dyn NaslLogger,
 ) -> Result<AuthMethods, FunctionErrorKind> {
     match session.session.userauth_none(None) {
         Ok(libssh_rs::AuthStatus::Success) => {
-            logger.info(&"SSH authentication succeeded using the none method - should not happen; very old server?");
+            info!("SSH authentication succeeded using the none method - should not happen; very old server?");
             session.authmethods = AuthMethods::NONE;
             session.authmethods_valid = true;
             Ok(AuthMethods::NONE)
@@ -224,10 +222,7 @@ fn get_authmethods(
                 Ok(list)
             }
             Err(_) => {
-                logger.debug(
-                    &"SSH server did not return a list of authentication methods - trying all"
-                        .to_string(),
-                );
+                debug!("SSH server did not return a list of authentication methods - trying all");
                 let methods = AuthMethods::HOST_BASED
                     | AuthMethods::INTERACTIVE
                     | AuthMethods::NONE
@@ -287,11 +282,9 @@ fn channel_read(
 fn exec_ssh_cmd(
     session: &SshSession,
     cmd: &str,
-    verbose: bool,
     compat_mode: bool,
     to_stdout: i32,
     to_stderr: i32,
-    logger: &dyn NaslLogger,
 ) -> Result<(String, String), FunctionErrorKind> {
     let channel = match session.session.new_channel() {
         Ok(c) => c,
@@ -322,12 +315,10 @@ fn exec_ssh_cmd(
     match channel.request_pty("xterm", 80, 24) {
         Ok(_) => (),
         Err(e) => {
-            if verbose {
-                logger.info(&format!(
-                    "Channel failed to request pty for session ID {}: {}",
-                    session.session_id, e
-                ));
-            }
+            debug!(
+                session_id=session.session_id, error=%e,
+                "Channel failed to request pty for session ID",
+            );
         }
     }
 
@@ -480,10 +471,10 @@ impl Ssh {
             .unwrap_or(0);
 
         let log_level = match verbose {
-            verbose if verbose <= 0 => LogLevel::NoLogging,
-            verbose if verbose <= 1 => LogLevel::Warning,
-            verbose if verbose <= 2 => LogLevel::Protocol,
-            verbose if verbose <= 3 => LogLevel::Packet,
+            0 => LogLevel::NoLogging,
+            1 => LogLevel::Warning,
+            2 => LogLevel::Protocol,
+            3 => LogLevel::Packet,
             _ => LogLevel::Functions,
         };
         let option = SshOption::LogLevel(log_level);
@@ -561,14 +552,12 @@ impl Ssh {
             let my_sock = UdpSocket::bind("127.0.0.1:0").unwrap();
             let option = SshOption::Socket(my_sock.as_raw_fd());
 
-            if verbose > 0 {
-                ctx.logger().info(&format!(
-                    "Setting SSH fd for '{}' to {} (NASL sock={}",
-                    ip_str,
-                    my_sock.as_raw_fd(),
-                    sock
-                ));
-            }
+            debug!(
+                ip_str = ip_str,
+                sock_fd = my_sock.as_raw_fd(),
+                nasl_sock = sock,
+                "Setting SSH fd for socket",
+            );
 
             if let Err(err) = session.set_option(option) {
                 return Err(FunctionErrorKind::Dirty(
@@ -580,12 +569,10 @@ impl Ssh {
             forced_sock = sock; // TODO: check and fix everything related to open socket
         }
 
-        if verbose > 0 {
-            ctx.logger().info(&format!(
-                "Connecting to SSH server '{}' (port {}, sock {})",
-                ip_str, port, sock
-            ));
-        }
+        debug!(
+            "Connecting to SSH server '{}' (port {}, sock {})",
+            ip_str, port, sock
+        );
 
         match session.connect() {
             Ok(_) => {
@@ -599,7 +586,6 @@ impl Ssh {
                     authmethods: AuthMethods::NONE,
                     authmethods_valid: false,
                     user_set: false,
-                    verbose,
                     channel: None,
                 };
 
@@ -832,7 +818,7 @@ impl Ssh {
     fn nasl_ssh_userauth(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -851,46 +837,21 @@ impl Ssh {
             }
         };
 
-        // Login is optional. It must be later check if the login was
+        let get_named_val = |name| match register.named(name) {
+            Some(ContextType::Value(NaslValue::String(x))) => Ok(Some(x.as_str())),
+            None => Ok(None),
+            _ => Err(FunctionErrorKind::WrongArgument(format!(
+                "Invalid value for {}",
+                name
+            ))),
+        };
+
+        // Login is optional. It must be later checked if the login was
         // already set by another option.
-        let login = match register.named("login") {
-            Some(ContextType::Value(NaslValue::String(x))) => Some(x.to_owned()),
-            None => None,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid value for login").to_string(),
-                ))
-            }
-        };
-
-        let password = match register.named("password") {
-            Some(ContextType::Value(NaslValue::String(x))) => Some(x.as_str()),
-            None => None,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid value for password").to_string(),
-                ))
-            }
-        };
-
-        let privatekey = match register.named("privatekey") {
-            Some(ContextType::Value(NaslValue::String(x))) => Some(x.as_str()),
-            None => None,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid value for privatekey").to_string(),
-                ))
-            }
-        };
-        let passphrase = match register.named("passphrase") {
-            Some(ContextType::Value(NaslValue::String(x))) => Some(x.as_str()),
-            None => None,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid invalid value for passphrase").to_string(),
-                ))
-            }
-        };
+        let login = get_named_val("login")?.map(str::to_string);
+        let password = get_named_val("password")?;
+        let privatekey = get_named_val("privatekey")?;
+        let passphrase = get_named_val("passphrase")?;
 
         if password.is_none() && privatekey.is_none() && passphrase.is_none() {
             //TODO: Get values from KB
@@ -910,20 +871,16 @@ impl Ssh {
                 if !session.user_set {
                     set_opt_user(session, login, session_id)?;
                 }
-                let verbose = session.verbose > 0;
 
                 // Get the authentication methods only once per session.
                 let methods: AuthMethods = {
                     if !session.authmethods_valid {
-                        get_authmethods(session, session_id, ctx.logger())?
+                        get_authmethods(session, session_id)?
                     } else {
                         session.authmethods
                     }
                 };
-                if verbose {
-                    ctx.logger()
-                        .info(&format!("Available methods:\n{:?}", methods));
-                }
+                debug!("Available methods:\n{:?}", methods);
 
                 if methods == AuthMethods::NONE {
                     return Ok(NaslValue::Number(0));
@@ -941,12 +898,10 @@ impl Ssh {
                             return Ok(NaslValue::Number(0));
                         }
                         Ok(_) => {
-                            if verbose {
-                                ctx.logger().info(&format!(
-                                    "SSH password authentication failed for session {}",
-                                    session_id
-                                ));
-                            }
+                            debug!(
+                                session_id = session_id,
+                                "SSH password authentication failed.",
+                            );
                         }
                         Err(_) => {
                             return Err(FunctionErrorKind::Dirty(format!(
@@ -973,13 +928,11 @@ impl Ssh {
                                         )));
                                         }
                                     };
-                                if verbose {
-                                    ctx.logger().info(&format!("SSH kbdint name={}", info.name));
-                                    ctx.logger().info(&format!(
-                                        "SSH kbdint instruction{}",
-                                        info.instruction
-                                    ));
-                                }
+                                debug!(
+                                    name = info.name,
+                                    instruction = info.instruction,
+                                    "SSH keyboard-interactive"
+                                );
 
                                 let mut answers: Vec<String> = Vec::new();
                                 for p in info.prompts.into_iter() {
@@ -1000,11 +953,10 @@ impl Ssh {
                                 }
                             }
                             Ok(_) => {
-                                if verbose {
-                                    ctx.logger().info(&format!(
-                                    "SSH keyboard-interactive authentication failed for session {}",
-                                    session_id));
-                                };
+                                debug!(
+                                    session_id = session_id,
+                                    "SSH keyboard-interactive authentication failed.",
+                                );
                                 continue;
                             }
                             Err(_) => {
@@ -1027,22 +979,16 @@ impl Ssh {
                                         return Ok(NaslValue::Number(0));
                                     }
                                     _ => {
-                                        if verbose {
-                                            ctx.logger().info(&format!("SSH authentication failed for session {}: No more authentication methods to try", session_id));
-                                        };
+                                        debug!(session_id=session_id, "SSH authentication failed. No more authentication methods to try");
                                     }
                                 }
                             }
                             _ => {
-                                if verbose {
-                                    ctx.logger().info(&format!("SSH public key authentication failed for session {}: Server does not want our key", session_id));
-                                };
+                                debug!(session_id=session_id, "SSH public key authentication failed.: Server does not want our key");
                             }
                         },
                         Err(_) => {
-                            if verbose {
-                                ctx.logger().info(&format!("SSH public key authentication failed for session {}: Error converting provided key", session.session_id));
-                            };
+                            debug!(session_id=session.session_id, "SSH public key authentication failed: Error converting provided key");
                         }
                     };
                 };
@@ -1101,7 +1047,7 @@ impl Ssh {
     fn nasl_ssh_request_exec(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1142,8 +1088,6 @@ impl Ssh {
             .find(|(_i, s)| s.session_id == session_id)
         {
             Some((_i, session)) => {
-                let verbose = session.verbose > 0;
-
                 if cmd.is_empty() {
                     return Ok(NaslValue::Null);
                 }
@@ -1165,15 +1109,8 @@ impl Ssh {
                     to_stderr = 0;
                 }
 
-                let (mut response, compat_buf) = exec_ssh_cmd(
-                    session,
-                    cmd,
-                    verbose,
-                    compat_mode,
-                    to_stdout,
-                    to_stderr,
-                    ctx.logger(),
-                )?;
+                let (mut response, compat_buf) =
+                    exec_ssh_cmd(session, cmd, compat_mode, to_stdout, to_stderr)?;
 
                 if compat_mode {
                     response.push_str(&compat_buf)
@@ -1483,7 +1420,7 @@ impl Ssh {
     fn nasl_ssh_login_interactive(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1517,20 +1454,17 @@ impl Ssh {
                 if !session.user_set {
                     set_opt_user(session, login, session_id)?;
                 }
-                let verbose = session.verbose > 0;
 
                 // Get the authentication methods only once per session.
                 let methods: AuthMethods = {
                     if !session.authmethods_valid {
-                        get_authmethods(session, session_id, ctx.logger())?
+                        get_authmethods(session, session_id)?
                     } else {
                         session.authmethods
                     }
                 };
-                if verbose {
-                    ctx.logger()
-                        .info(&format!("Available methods:\n{:?}", methods));
-                }
+                debug!("Available methods:\n{:?}", methods);
+
                 if methods.contains(AuthMethods::INTERACTIVE) {
                     let mut prompt = String::new();
                     loop {
@@ -1546,13 +1480,11 @@ impl Ssh {
                                         )));
                                         }
                                     };
-                                if verbose {
-                                    ctx.logger().info(&format!("SSH kbdint name={}", info.name));
-                                    ctx.logger().info(&format!(
-                                        "SSH kbdint instruction{}",
-                                        info.instruction
-                                    ));
-                                }
+                                debug!(
+                                    name = info.name,
+                                    instruction = info.instruction,
+                                    "SSH keyboard-interactive"
+                                );
 
                                 for p in info.prompts.into_iter() {
                                     if !p.echo {
@@ -1562,11 +1494,10 @@ impl Ssh {
                                 break;
                             }
                             Ok(_) => {
-                                if verbose {
-                                    ctx.logger().info(&format!(
+                                debug!(
                                     "SSH keyboard-interactive authentication failed for session {}",
-                                    session_id));
-                                };
+                                    session_id
+                                );
                                 continue;
                             }
                             Err(_) => {
@@ -1610,7 +1541,7 @@ impl Ssh {
     fn nasl_ssh_login_interactive_pass(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1641,7 +1572,6 @@ impl Ssh {
             .find(|(_i, s)| s.session_id == session_id)
         {
             Some((_i, session)) => {
-                let verbose = session.verbose > 0;
                 let info = match session.session.userauth_keyboard_interactive_info() {
                     Ok(i) => i,
                     Err(_) => {
@@ -1655,11 +1585,11 @@ impl Ssh {
                     }
                 };
 
-                if verbose {
-                    ctx.logger().info(&format!("SSH kbdint name={}", info.name));
-                    ctx.logger()
-                        .info(&format!("SSH kbdint instruction{}", info.instruction));
-                }
+                debug!(
+                    name = info.name,
+                    instruction = info.instruction,
+                    "SSH keyboard-interactive"
+                );
 
                 let mut answers: Vec<String> = Vec::new();
                 for p in info.prompts.into_iter() {
@@ -1723,7 +1653,7 @@ impl Ssh {
     fn nasl_ssh_get_issue_banner(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1755,7 +1685,7 @@ impl Ssh {
                 }
 
                 if !session.authmethods_valid {
-                    get_authmethods(session, session_id, ctx.logger())?;
+                    get_authmethods(session, session_id)?;
                 }
 
                 match session.session.get_issue_banner() {
@@ -1835,7 +1765,7 @@ impl Ssh {
     fn nasl_ssh_get_auth_methods(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1867,7 +1797,7 @@ impl Ssh {
                 }
 
                 if !session.authmethods_valid {
-                    get_authmethods(session, session_id, ctx.logger())?;
+                    get_authmethods(session, session_id)?;
                 };
 
                 let mut methods = vec![];
@@ -1965,7 +1895,7 @@ impl Ssh {
     fn nasl_sftp_enabled_check(
         &self,
         register: &Register,
-        ctx: &Context,
+        _: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let positional = register.positional();
         if positional.is_empty() {
@@ -1990,19 +1920,14 @@ impl Ssh {
             .enumerate()
             .find(|(_i, s)| s.session_id == session_id)
         {
-            Some((_i, session)) => {
-                let verbose = session.verbose > 0;
-                match session.session.sftp() {
-                    Ok(_) => Ok(NaslValue::Number(0)),
-                    Err(e) => {
-                        if verbose {
-                            ctx.logger()
-                                .info(&format!("SFTP enabled check error: {}", e));
-                        }
-                        Ok(NaslValue::Number(1))
-                    }
+            Some((_i, session)) => match session.session.sftp() {
+                Ok(_) => Ok(NaslValue::Number(0)),
+                Err(e) => {
+                    debug!("SFTP enabled check error: {}", e);
+
+                    Ok(NaslValue::Number(1))
                 }
-            }
+            },
             _ => Err(FunctionErrorKind::Dirty(format!(
                 "Session ID {} not found",
                 session_id

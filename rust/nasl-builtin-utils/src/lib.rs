@@ -257,16 +257,7 @@ mod test {
         let target = "localhost";
         let storage = storage::DefaultDispatcher::default();
         let loader = nasl_syntax::NoOpLoader::default();
-        let logger = nasl_syntax::logger::DefaultLogger::default();
-        let context = crate::Context::new(
-            key,
-            target.into(),
-            &storage,
-            &storage,
-            &loader,
-            &logger,
-            &Test,
-        );
+        let context = crate::Context::new(key, target.into(), &storage, &storage, &loader, &Test);
         let mut register = crate::Register::default();
         register.add_local("a", 1.into());
         register.add_local("b", 2.into());
