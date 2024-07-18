@@ -12,7 +12,7 @@ pub type RedisStorageResult<T> = std::result::Result<T, DbError>;
 #[derive(Debug, Error)]
 pub enum DbError {
     /// The redis-library does not know about this error kind
-    #[error("Unclassified error occured on redis: {0}.")]
+    #[error("Unclassified error occurred on redis: {0}.")]
     Unknown(String),
     #[error("Unable to use redis due to wrong configuration: {0}.")]
     /// Indicates that redis is wrongfully configured for our use case
