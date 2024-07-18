@@ -96,7 +96,7 @@ impl NaslSockets {
         ip: &str,
         port: u16,
         bufsz: Option<i64>,
-        timeout: Option<Duration>,
+        timeout: Duration,
         tls_config: Option<&TLSConfig>,
     ) -> Result<NaslSocket, FunctionErrorKind> {
         // Resolve Address and Port to SocketAddr
@@ -116,12 +116,7 @@ impl NaslSockets {
             None
         };
 
-        // Create socket for connection
-        let socket = if let Some(timeout) = timeout {
-            TcpStream::connect_timeout(&sock, timeout)?
-        } else {
-            TcpStream::connect(sock)?
-        };
+        let socket = TcpStream::connect_timeout(&sock, timeout)?;
 
         // Unwrap, because it cannot fail
         socket
@@ -454,7 +449,7 @@ impl NaslSockets {
         let use_tcp: bool = get_kb_item(context, "Secret/kdc_use_tcp")?.into();
 
         let socket = match use_tcp {
-            true => Self::open_tcp(&hostname, port, None, None, None),
+            true => Self::open_tcp(&hostname, port, None, Duration::from_secs(30), None),
             false => Self::open_udp(&hostname, port),
         }?;
 
@@ -506,14 +501,15 @@ impl NaslSockets {
 
         let mut fds = vec![];
 
+        // TODO: set timeout to global recv timeout * 2 when available
         let timeout = if let Some(sec) = timeout {
             if sec < 1 {
-                None
+                Duration::from_secs(10)
             } else {
-                Some(Duration::from_secs(sec as u64))
+                Duration::from_secs(sec as u64)
             }
         } else {
-            None
+            Duration::from_secs(10)
         };
 
         // TODO: for every vhost
@@ -590,7 +586,7 @@ impl NaslSockets {
         addr: &str,
         port: u16,
         bufsz: Option<i64>,
-        timeout: Option<Duration>,
+        timeout: Duration,
         tls_config: Option<TLSConfig>,
     ) -> Result<NaslSocket, FunctionErrorKind> {
         let mut retry = super::get_kb_item(context, "timeout_retry")
@@ -650,7 +646,7 @@ impl NaslSockets {
         addr: &str,
         port: u16,
         bufsz: Option<i64>,
-        timeout: Option<Duration>,
+        timeout: Duration,
         hostname: &str,
     ) -> Result<NaslSocket, FunctionErrorKind> {
         let cert_path = get_kb_item(context, "SSL/cert")?.to_string();
