@@ -5,10 +5,7 @@
 //! scan-interpreter interprets models::Scan
 
 use nasl_builtin_utils::NaslFunctionExecuter;
-use nasl_syntax::{
-    logger::{DefaultLogger, NaslLogger},
-    Loader, NaslValue,
-};
+use nasl_syntax::{Loader, NaslValue};
 use storage::{types::Primitive, ContextKey, Storage};
 
 use crate::{scheduling::ExecutionPlaner, InterpretError};
@@ -21,7 +18,6 @@ use crate::{scheduling::ExecutionPlaner, InterpretError};
 pub struct SyncScanInterpreter<'a, S, L, N> {
     storage: &'a S,
     loader: &'a L,
-    logger: DefaultLogger,
     function_executor: N,
 }
 
@@ -109,10 +105,7 @@ struct ScriptExecutor<'a, T> {
     storage: &'a dyn Storage,
     /// Default Loader
     loader: &'a dyn Loader,
-    // TODO remove logger in favor of tracing
-    /// Default logger.
-    logger: &'a dyn NaslLogger,
-    /// Default logger.
+    /// Default function executor.
     executor: &'a dyn NaslFunctionExecuter,
     // index of the current host within scan
     current_host: Option<usize>,
@@ -128,7 +121,6 @@ where
         scan: &'a models::Scan,
         storage: &'a S,
         loader: &'a L,
-        logger: &'a DefaultLogger,
         executor: &'a N,
         schedule: T,
     ) -> Self
@@ -147,7 +139,6 @@ where
             scan,
             storage,
             loader,
-            logger,
             executor,
             current_results: None,
             current_host,
@@ -323,7 +314,6 @@ where
                         self.storage.as_dispatcher(),
                         self.storage.as_retriever(),
                         self.loader,
-                        self.logger,
                         self.executor,
                     );
                     let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
@@ -410,7 +400,6 @@ where
         SyncScanInterpreter {
             storage,
             loader,
-            logger: nasl_syntax::logger::DefaultLogger::default(),
             function_executor: crate::nasl_std_functions(),
         }
     }
@@ -428,8 +417,6 @@ where
         Self {
             storage,
             loader,
-            // hiding logger implementation as we want to replace it with tracing
-            logger: nasl_syntax::logger::DefaultLogger::default(),
             function_executor,
         }
     }
@@ -502,7 +489,6 @@ where
             scan,
             self.storage,
             self.loader,
-            &self.logger,
             &self.function_executor,
             schedule,
         ))
@@ -699,7 +685,6 @@ exit({rc});
         let storage = storage::DefaultDispatcher::new(true);
 
         let register = nasl_builtin_utils::Register::root_initial(&initial);
-        let logger = nasl_syntax::logger::DefaultLogger::default();
         let target = String::default();
         let functions = crate::nasl_std_functions();
         let loader = |_: &str| code.to_string();
@@ -710,7 +695,6 @@ exit({rc});
             &storage,
             &storage,
             &loader,
-            &logger,
             &functions,
         );
         let interpreter = crate::CodeInterpreter::new(code, register, &context);

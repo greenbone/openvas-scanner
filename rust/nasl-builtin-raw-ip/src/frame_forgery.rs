@@ -18,6 +18,8 @@ use nasl_syntax::NaslValue;
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 
+use tracing::info;
+
 /// Hardware type ethernet
 pub const ARPHRD_ETHER: u16 = 0x0001;
 /// Protocol type IP
@@ -492,13 +494,13 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
 /// This function is meant to be used for debugging.
-fn nasl_dump_frame(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_dump_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
         _ => return Err(("Data", "Invalid data type").into()),
     };
 
-    configs.logger().info(&frame);
+    info!(frame=%frame);
     Ok(NaslValue::Null)
 }
 

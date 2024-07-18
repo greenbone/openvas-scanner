@@ -17,6 +17,7 @@ pnet = "0.33.0"
 socket2 = {version = "0.5.2", features = ["all"]}
 pnet_macros = "0.33.0"
 pnet_macros_support = "0.33.0"
+tracing = "0.1.40"
 
 [dev-dependencies]
 nasl-builtin-std = {path = "../nasl-builtin-std"}
