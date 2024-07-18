@@ -18,8 +18,6 @@ pub struct SshSession {
     pub authmethods_valid: bool,
     /// Set if a user has been set for the session
     pub user_set: bool,
-    /// Verbose diagnostic
-    pub verbose: i32,
     /// Channel
     pub channel: Option<Channel>,
 }
@@ -33,7 +31,6 @@ impl Default for SshSession {
                 authmethods: AuthMethods::NONE,
                 authmethods_valid: false,
                 user_set: false,
-                verbose: 0,
                 channel: None,
             }
         }

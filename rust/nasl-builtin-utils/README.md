@@ -77,9 +77,8 @@ let key = "test".into();
 let target = "localhost".into();
 let storage = storage::DefaultDispatcher::default();
 let loader = nasl_syntax::NoOpLoader::default();
-let logger = nasl_syntax::logger::DefaultLogger::default();
 let context =
-    Context::new(key, target, &storage, &storage, &loader, &logger, &Test);
+    Context::new(key, target, &storage, &storage, &loader, &Test);
 let mut register = Register::default();
 register.add_local("a", 1.into());
 register.add_local("b", 2.into());

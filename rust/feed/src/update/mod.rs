@@ -9,8 +9,7 @@ pub use error::Error;
 use std::{fs::File, io::Read};
 
 use nasl_interpreter::{
-    logger::DefaultLogger, AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader,
-    NaslValue, Register,
+    AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register,
 };
 use storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
@@ -43,13 +42,12 @@ pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
-    let logger = DefaultLogger::default();
     let k = ContextKey::default();
     let fr = NoOpRetriever::default();
     let target = String::default();
     // TODO add parameter to struct
     let functions = nasl_interpreter::nasl_std_functions();
-    let context = Context::new(k, target, dispatcher, &fr, loader, &logger, &functions);
+    let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
     let mut interpreter = Interpreter::new(register, &context);
     for stmt in nasl_syntax::parse(&code) {
         match stmt {
@@ -137,7 +135,6 @@ where
         let code = self.loader.load(&key.value())?;
 
         let register = Register::root_initial(&self.initial);
-        let logger = DefaultLogger::default();
         let fr = NoOpRetriever::default();
         let target = String::default();
         let functions = nasl_interpreter::nasl_std_functions();
@@ -148,7 +145,6 @@ where
             self.dispatcher,
             &fr,
             self.loader,
-            &logger,
             &functions,
         );
         let interpreter = CodeInterpreter::new(&code, register, &context);
