@@ -6,7 +6,9 @@
 #![warn(missing_docs)]
 pub mod context;
 pub mod error;
+pub mod function;
 pub mod lookup_keys;
+
 use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
