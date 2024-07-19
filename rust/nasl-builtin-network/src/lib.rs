@@ -4,7 +4,7 @@
 
 use std::fmt::Display;
 
-use nasl_builtin_utils::{Context, FunctionErrorKind, NaslResult, Register};
+use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 use storage::Field;
 
@@ -100,7 +100,7 @@ fn get_opt_int(r: &Register, name: &str) -> Option<i64> {
         .unwrap_or_default()
 }
 
-pub fn get_kb_item(context: &Context, name: &str) -> NaslResult {
+pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
     context
         .retriever()
         .retrieve(context.key(), storage::Retrieve::KB(name.to_string()))
@@ -111,8 +111,8 @@ pub fn get_kb_item(context: &Context, name: &str) -> NaslResult {
             })
         })
         .map(|x| match x {
-            Some(x) => x.into(),
-            None => NaslValue::Null,
+            Some(x) => Some(x.into()),
+            None => None,
         })
         .map_err(|e| e.into())
 }
