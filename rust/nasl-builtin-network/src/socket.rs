@@ -417,36 +417,39 @@ impl NaslSockets {
         context: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let hostname = match get_kb_item(context, "Secret/kdc_hostname")? {
-            NaslValue::String(x) => x,
-            x => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "KB key 'Secret/kdc_hostname' is either missing or has wrong type".to_string(),
-                    Some(x),
-                ));
-            }
-        };
+            Some(x) => Ok(x.to_string()),
+            None => Err(FunctionErrorKind::Diagnostic(
+                "KB key 'Secret/kdc_hostname' is not set".to_string(),
+                None,
+            )),
+        }?;
 
         let port = get_kb_item(context, "Secret/kdc_port")?;
 
         let port = match port {
-            NaslValue::Number(x) => {
+            Some(NaslValue::Number(x)) => {
                 if x <= 0 || x > 65535 {
-                    return Err(FunctionErrorKind::Diagnostic(
+                    Err(FunctionErrorKind::Diagnostic(
                         "KB key 'Secret/kdc_port' out of range".to_string(),
-                        Some(port),
-                    ));
+                        port,
+                    ))
+                } else {
+                    Ok(x as u16)
                 }
-                x as u16
             }
-            x => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "KB key 'Secret/kdc_port' is either missing or has wrong type".to_string(),
-                    Some(x),
-                ));
-            }
-        };
+            Some(_) => Err(FunctionErrorKind::Diagnostic(
+                "KB key 'Secret/kdc_port' has wrong type".to_string(),
+                port,
+            )),
+            None => Err(FunctionErrorKind::Diagnostic(
+                "KB key 'Secret/kdc_port' is not set".to_string(),
+                None,
+            )),
+        }?;
 
-        let use_tcp: bool = get_kb_item(context, "Secret/kdc_use_tcp")?.into();
+        let use_tcp: bool = get_kb_item(context, "Secret/kdc_use_tcp")?
+            .map(|x| x.into())
+            .unwrap_or(false);
 
         let socket = match use_tcp {
             true => Self::open_tcp(&hostname, port, None, Duration::from_secs(30), None),
@@ -589,14 +592,13 @@ impl NaslSockets {
         timeout: Duration,
         tls_config: Option<TLSConfig>,
     ) -> Result<NaslSocket, FunctionErrorKind> {
-        let mut retry = super::get_kb_item(context, "timeout_retry")
-            .ok()
+        let mut retry = super::get_kb_item(context, "timeout_retry")?
             .map(|val| match val {
                 NaslValue::String(val) => val.parse::<i64>().unwrap_or_default(),
                 NaslValue::Number(val) => val,
-                _ => 0,
+                _ => 2,
             })
-            .unwrap_or_default();
+            .unwrap_or(2);
 
         while retry >= 0 {
             match Self::open_tcp(addr, port, bufsz, timeout, tls_config.as_ref()) {
@@ -649,10 +651,27 @@ impl NaslSockets {
         timeout: Duration,
         hostname: &str,
     ) -> Result<NaslSocket, FunctionErrorKind> {
-        let cert_path = get_kb_item(context, "SSL/cert")?.to_string();
-        let key_path = get_kb_item(context, "SSL/key")?.to_string();
-        let password = get_kb_item(context, "SSL/password")?.to_string();
-        let cafile_path = get_kb_item(context, "SSL/CA")?.to_string();
+        let cert_path = get_kb_item(context, "SSL/cert")?
+            .ok_or(FunctionErrorKind::Diagnostic(
+                "unable to open TLS connection: kes 'SSL/cert' is missing".to_string(),
+                None,
+            ))?
+            .to_string();
+        let key_path = get_kb_item(context, "SSL/key")?
+            .ok_or(FunctionErrorKind::Diagnostic(
+                "unable to open TLS connection: kes 'SSL/key' is missing".to_string(),
+                None,
+            ))?
+            .to_string();
+        let password = get_kb_item(context, "SSL/password")?
+            .unwrap_or(NaslValue::Null)
+            .to_string();
+        let cafile_path = get_kb_item(context, "SSL/CA")?
+            .ok_or(FunctionErrorKind::Diagnostic(
+                "unable to open TLS connection: kes 'SSL/CA' is missing".to_string(),
+                None,
+            ))?
+            .to_string();
 
         // TODO: From vhost name
         let server = ServerName::try_from(hostname.to_owned()).map_err(|_| {
