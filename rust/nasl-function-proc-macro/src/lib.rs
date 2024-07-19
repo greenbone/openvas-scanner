@@ -10,7 +10,7 @@ use syn::{
     parenthesized, parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned,
     FnArg, Ident, ItemFn, Signature, Token, Type,
 };
-use utils::subty_if_name;
+use utils::{get_subty_if_name_is, ty_is_context};
 
 #[proc_macro_attribute]
 pub fn nasl_function(
@@ -71,7 +71,10 @@ struct Attrs {
 }
 
 impl Attrs {
-    fn get_arg_kind(&self, ident: &Ident, position: usize) -> ArgKind {
+    fn get_arg_kind(&self, ident: &Ident, position: usize, ty: &Type) -> ArgKind {
+        if ty_is_context(ty) {
+            return ArgKind::Context;
+        }
         let attr_kind = self
             .attrs
             .iter()
@@ -133,6 +136,7 @@ enum ArgKind {
     Positional(PositionalArg),
     Named(NamedArg),
     MaybeNamed(PositionalArg, NamedArg),
+    Context,
 }
 
 struct NamedArg {
@@ -146,7 +150,7 @@ struct PositionalArg {
 impl<'a> Arg<'a> {
     fn new(arg: &'a FnArg, attrs: &Attrs, position: usize) -> Result<Self> {
         let (ident, ty, optional) = get_arg_info(arg)?;
-        let kind = attrs.get_arg_kind(ident, position);
+        let kind = attrs.get_arg_kind(ident, position, ty);
         Ok(Self {
             kind,
             ident,
@@ -170,7 +174,7 @@ fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool)> {
                 }
             };
             let ty = &typed.ty;
-            let (optional, ty) = if let Some(ty) = subty_if_name(ty, "Option") {
+            let (optional, ty) = if let Some(ty) = get_subty_if_name_is(ty, "Option") {
                 (true, ty)
             } else {
                 (false, ty.as_ref())
@@ -295,6 +299,11 @@ impl<'a> ArgsStruct<'a> {
                             quote! {
                                 ::nasl_builtin_utils::function::utils::get_maybe_named_arg::<#ty>(_register, #name, #position)?
                             }
+                        }
+                    }
+                    ArgKind::Context => {
+                        quote! {
+                            _context
                         }
                     }
                 };
