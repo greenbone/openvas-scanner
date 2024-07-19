@@ -6,6 +6,7 @@
 // TODO: implement http functions once socket handling is available
 
 use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
 use h2::client;
@@ -365,7 +366,8 @@ impl NaslHttp {
     ///
     /// On success the function returns a and integer with the handle
     /// identifier. Null on error.
-    fn handle(&self, _register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+    #[nasl_function]
+    fn handle(&self) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = lock_handles(&self.handles)?;
         let handle_id = next_handle_id(&handles);
         let h = Handle {
@@ -384,40 +386,20 @@ impl NaslHttp {
     ///
     /// The function returns an integer.
     /// O on success, -1 on error.
-    fn close_handle(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        };
-
-        let handle_id = match &positional[0] {
-            NaslValue::Number(handle_id) => *handle_id as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid handle ID").to_string(),
-                ))
-            }
-        };
-
+    #[nasl_function(named(handle))]
+    fn close_handle(&self, handle: i32) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = lock_handles(&self.handles)?;
         match handles
             .iter_mut()
             .enumerate()
-            .find(|(_i, h)| h.handle_id == handle_id)
+            .find(|(_i, h)| h.handle_id == handle)
         {
             Some((i, _h)) => {
                 handles.remove(i);
                 Ok(NaslValue::Number(0))
             }
             _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Handle ID {} not found", handle_id),
+                format!("Handle ID {} not found", handle),
                 Some(NaslValue::Number(-1)),
             )),
         }

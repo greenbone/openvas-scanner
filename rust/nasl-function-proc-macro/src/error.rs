@@ -8,19 +8,14 @@ pub struct Error {
     pub kind: ErrorKind,
 }
 
-#[allow(unused)]
 pub enum ErrorKind {
-    NotAStruct,
-    ForbiddenGenerics,
     TooManyAttributes,
+    OnlyNormalArgumentsAllowed,
 }
 
 impl Error {
     pub fn emit(&self) -> TokenStream {
-        let message = format!(
-            "Error while deriving trait NaslFunctionArg: {}",
-            self.message()
-        );
+        let message = format!("Error in nasl_function: {}", self.message());
         quote_spanned! {
             self.span =>
             compile_error!(#message);
@@ -29,11 +24,12 @@ impl Error {
 
     pub fn message(&self) -> String {
         match self.kind {
-            ErrorKind::NotAStruct => "trait NaslFunctionArg can only be derived on structs.".into(),
-            ErrorKind::ForbiddenGenerics => {
-                "Struct can only have a single lifetime or none at all.".into()
+            ErrorKind::OnlyNormalArgumentsAllowed => {
+                "Only normal identifier arguments are allowed on the function.".into()
             }
-            ErrorKind::TooManyAttributes => "Field has more than one attribute.".into(),
+            ErrorKind::TooManyAttributes => {
+                "Argument is named more than once in attributes.".into()
+            }
         }
     }
 }

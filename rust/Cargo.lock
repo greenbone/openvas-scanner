@@ -1977,6 +1977,7 @@ dependencies = [
  "h2 0.4.5",
  "http 1.1.0",
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "rustls 0.23.11",
