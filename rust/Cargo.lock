@@ -2065,6 +2065,7 @@ name = "nasl-builtin-string"
 version = "0.1.0"
 dependencies = [
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "storage",
@@ -2086,6 +2087,15 @@ version = "0.1.0"
 dependencies = [
  "cc",
  "libgcrypt-sys",
+]
+
+[[package]]
+name = "nasl-function-proc-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
 ]
 
 [[package]]

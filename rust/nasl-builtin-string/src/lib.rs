@@ -6,8 +6,9 @@
 
 use core::fmt::Write;
 use nasl_builtin_utils::{
-    resolve_positional_arguments, Context, ContextType, FunctionErrorKind, NaslFunction, Register,
+    resolve_positional_arguments, Context, FunctionErrorKind, NaslFunction, Register,
 };
+use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
 
 use nasl_syntax::NaslValue;
@@ -272,33 +273,10 @@ fn data_to_hexstr(register: &Register, _: &Context) -> Result<NaslValue, Functio
 ///
 /// Length argument is required and can be a named argument or a positional argument.
 /// Data argument is an optional named argument and is taken to be "X" if not provided.
-fn crap(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let data = match register.named("data") {
-        None => "X",
-        Some(ContextType::Value(NaslValue::String(x))) => x,
-        Some(x) => {
-            let ek = match x {
-                ContextType::Value(a) => ("data", "string", a).into(),
-                ContextType::Function(_, _) => {
-                    FunctionErrorKind::wrong_argument("data", "string", "function")
-                }
-            };
-            return Err(ek);
-        }
-    };
-    match register.named("length") {
-        None => {
-            let positional = resolve_positional_arguments(register);
-            match positional.first() {
-                Some(NaslValue::Number(x)) => Ok(NaslValue::String(data.repeat(*x as usize))),
-                x => Err(("0", "numeric", x).into()),
-            }
-        }
-        Some(ContextType::Value(NaslValue::Number(x))) => {
-            Ok(NaslValue::String(data.repeat(*x as usize)))
-        }
-        x => Err(("length", "numeric", x).into()),
-    }
+#[nasl_function(maybe_named(length), named(data))]
+fn crap(length: usize, data: Option<&str>) -> Result<NaslValue, FunctionErrorKind> {
+    let data = data.unwrap_or("X");
+    Ok(NaslValue::String(data.repeat(length)))
 }
 
 /// NASL function to remove trailing whitespaces from a string
@@ -324,24 +302,13 @@ fn chomp(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKin
 /// The first positional argument is the *string* to search through.
 /// The second positional argument is the *string* to search for.
 /// The optional third positional argument is an *int* containing an offset from where to start the search.
-fn stridx(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    let haystack = match positional.first() {
-        Some(NaslValue::String(x)) => x,
-        x => return Err(("0", "string", x).into()),
-    };
-    let needle = match positional.get(1) {
-        Some(NaslValue::String(x)) => x,
-        x => return Err(("1", "string", x).into()),
-    };
-    let offset = match positional.get(2) {
-        Some(NaslValue::Number(x)) => *x as usize,
-        _ => 0_usize,
-    };
-    Ok(match &haystack[offset..].find(needle) {
-        Some(index) => NaslValue::Number(*index as i64),
-        None => NaslValue::Number(-1),
-    })
+#[nasl_function]
+fn stridx(haystack: String, needle: String, offset: Option<usize>) -> i64 {
+    let offset = offset.unwrap_or(0);
+    match &haystack[offset..].find(&needle) {
+        Some(index) => *index as i64,
+        None => -1,
+    }
 }
 
 /// NASL function to display any number of NASL values

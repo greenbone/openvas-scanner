@@ -31,6 +31,7 @@ members = [
   "notus",
   "plugin-scheduler",
   "dep-graph",
+  "nasl-function-proc-macro",
 ]
 
 [workspace.package]
