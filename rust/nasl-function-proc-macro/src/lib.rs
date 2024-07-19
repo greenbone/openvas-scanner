@@ -1,12 +1,14 @@
 mod error;
 mod utils;
 
-use error::Result;
+use std::collections::HashSet;
+
+use error::{Error, ErrorKind, Result};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parenthesized, parse::Parse, parse_macro_input, punctuated::Punctuated, FnArg, Ident,
-    ItemFn, Signature, Token, Type,
+    parenthesized, parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned,
+    FnArg, Ident, ItemFn, Signature, Token, Type,
 };
 use utils::subty_if_name;
 
@@ -24,6 +26,7 @@ pub fn nasl_function(
 
 fn nasl_function_internal(function: ItemFn, attrs: Attrs) -> Result<TokenStream> {
     let args = ArgsStruct::try_parse(&function, &attrs)?;
+    attrs.verify()?;
     Ok(args.impl_nasl_function_args())
 }
 
@@ -69,7 +72,11 @@ struct Attrs {
 
 impl Attrs {
     fn get_arg_kind(&self, ident: &Ident, position: usize) -> ArgKind {
-        let attr_kind = self.attrs.iter().find(|attr| &attr.ident == ident).map(|attr| &attr.kind);
+        let attr_kind = self
+            .attrs
+            .iter()
+            .find(|attr| &attr.ident == ident)
+            .map(|attr| &attr.kind);
         let make_named = || NamedArg {
             name: ident.to_string(),
         };
@@ -78,6 +85,19 @@ impl Attrs {
             None => ArgKind::Positional(make_positional()),
             Some(AttrKind::Named) => ArgKind::Named(make_named()),
             Some(AttrKind::MaybeNamed) => ArgKind::MaybeNamed(make_positional(), make_named()),
+        }
+    }
+
+    fn verify(&self) -> Result<()> {
+        let ids: HashSet<_> = self.attrs.iter().map(|attr| &attr.ident).collect();
+        if ids.len() != self.attrs.iter().count() {
+            Err(Error {
+                // TODO: Fix the span here
+                span: self.attrs[0].ident.span(),
+                kind: ErrorKind::TooManyAttributes,
+            })
+        } else {
+            Ok(())
         }
     }
 }
@@ -91,13 +111,17 @@ impl Parse for Attrs {
     }
 }
 
-#[derive(Debug)]
 struct ArgsStruct<'a> {
     function: &'a ItemFn,
     args: Vec<Arg<'a>>,
+    receiver_type: ReceiverType,
 }
 
-#[derive(Debug)]
+enum ReceiverType {
+    None,
+    RefSelf,
+}
+
 struct Arg<'a> {
     ident: &'a Ident,
     ty: &'a Type,
@@ -105,19 +129,16 @@ struct Arg<'a> {
     kind: ArgKind,
 }
 
-#[derive(Debug)]
 enum ArgKind {
     Positional(PositionalArg),
     Named(NamedArg),
     MaybeNamed(PositionalArg, NamedArg),
 }
 
-#[derive(Debug)]
 struct NamedArg {
     name: String,
 }
 
-#[derive(Debug)]
 struct PositionalArg {
     position: usize,
 }
@@ -137,11 +158,16 @@ impl<'a> Arg<'a> {
 
 fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool)> {
     match arg {
-        FnArg::Receiver(_) => panic!(),
+        FnArg::Receiver(_) => unreachable!(),
         FnArg::Typed(typed) => {
             let ident = match typed.pat.as_ref() {
                 syn::Pat::Ident(ident) => &ident.ident,
-                _ => panic!(),
+                _ => {
+                    return Err(Error {
+                        span: typed.pat.span(),
+                        kind: ErrorKind::OnlyNormalArgumentsAllowed,
+                    })
+                }
             };
             let ty = &typed.ty;
             let (optional, ty) = if let Some(ty) = subty_if_name(ty, "Option") {
@@ -154,17 +180,37 @@ fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool)> {
     }
 }
 
+fn is_self_arg(arg: &FnArg) -> bool {
+    matches!(arg, FnArg::Receiver(_))
+}
+
+fn parse_function_args<'a>(
+    function: &'a ItemFn,
+    attrs: &Attrs,
+) -> Result<(Vec<Arg<'a>>, ReceiverType)> {
+    let args = function
+        .sig
+        .inputs
+        .iter()
+        .filter(|arg| !is_self_arg(arg))
+        .enumerate()
+        .map(|(position, arg)| Arg::new(arg, attrs, position))
+        .collect::<Result<Vec<_>>>()?;
+    let receiver_type = if function.sig.inputs.iter().any(is_self_arg) {
+        ReceiverType::RefSelf
+    } else {
+        ReceiverType::None
+    };
+    Ok((args, receiver_type))
+}
+
 impl<'a> ArgsStruct<'a> {
     fn try_parse(function: &'a ItemFn, attrs: &'a Attrs) -> Result<Self> {
+        let (args, receiver_type) = parse_function_args(function, attrs)?;
         Ok(Self {
             function: function,
-            args: function
-                .sig
-                .inputs
-                .iter()
-                .enumerate()
-                .map(|(position, arg)| Arg::new(arg, attrs, position))
-                .collect::<Result<Vec<_>>>()?,
+            args,
+            receiver_type,
         })
     }
 
@@ -195,9 +241,14 @@ impl<'a> ArgsStruct<'a> {
             output,
             ..
         } = sig;
+        let self_arg = match self.receiver_type {
+            ReceiverType::None => quote! {},
+            ReceiverType::RefSelf => quote! {&self,},
+        };
         let inputs = quote! {
-            register: &::nasl_builtin_utils::Register,
-            context: &::nasl_builtin_utils::Context,
+            #self_arg
+            _register: &::nasl_builtin_utils::Register,
+            _context: &::nasl_builtin_utils::Context,
         };
         quote! {
             #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) #output {
@@ -217,19 +268,19 @@ impl<'a> ArgsStruct<'a> {
                     ArgKind::Positional(positional) => {
                         let position = positional.position;
                             if arg.optional {
-                                quote! { ::nasl_builtin_utils::function::utils::get_optional_positional_arg::<#ty>(register, #position)? }
+                                quote! { ::nasl_builtin_utils::function::utils::get_optional_positional_arg::<#ty>(_register, #position)? }
                             }
                             else {
-                                quote! { ::nasl_builtin_utils::function::utils::get_positional_arg::<#ty>(register, #position, #num_required_positional_args)? }
+                                quote! { ::nasl_builtin_utils::function::utils::get_positional_arg::<#ty>(_register, #position, #num_required_positional_args)? }
                             }
                     }
                     ArgKind::Named(named) => {
                         let name = &named.name;
                         if arg.optional {
-                            quote! { ::nasl_builtin_utils::function::utils::get_optional_named_arg::<#ty>(register, #name)? }
+                            quote! { ::nasl_builtin_utils::function::utils::get_optional_named_arg::<#ty>(_register, #name)? }
                         }
                         else {
-                            quote! { ::nasl_builtin_utils::function::utils::get_named_arg::<#ty>(register, #name)? }
+                            quote! { ::nasl_builtin_utils::function::utils::get_named_arg::<#ty>(_register, #name)? }
                         }
                     }
                     ArgKind::MaybeNamed(positional, named) => {
@@ -237,12 +288,12 @@ impl<'a> ArgsStruct<'a> {
                         let position = positional.position;
                         if arg.optional {
                             quote! {
-                                ::nasl_builtin_utils::function::utils::get_optional_maybe_named_arg::<#ty>(register, #name, #position)?
+                                ::nasl_builtin_utils::function::utils::get_optional_maybe_named_arg::<#ty>(_register, #name, #position)?
                             }
                         }
                         else {
                             quote! {
-                                ::nasl_builtin_utils::function::utils::get_maybe_named_arg::<#ty>(register, #name, #position)?
+                                ::nasl_builtin_utils::function::utils::get_maybe_named_arg::<#ty>(_register, #name, #position)?
                             }
                         }
                     }
