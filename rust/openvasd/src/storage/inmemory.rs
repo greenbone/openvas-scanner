@@ -384,68 +384,6 @@ where
     }
 }
 
-// impl<E> storage::Retriever for Storage<E>
-// where
-//     E: Send + Sync + 'static,
-// {
-//     fn retrieve(
-//         &self,
-//         key: &storage::ContextKey,
-//         scope: storage::Retrieve,
-//     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, storage::StorageError> {
-//         // Although somebody may try to get a result through the storage::Stoage trait it is very
-//         // unlikely as this is a openvasd specific implementation and the results are fetched though
-//         // `get_results`. If that changes we need to:
-//         // - create a tokio thread,
-//         // - get scan progressa
-//         // - check for id or return all
-//         // - decrypt all results or the specific id and return it as a Field.
-//         // relatively similiar to `dispatch`.
-//         self.underlying.retrieve(key, scope)
-//     }
-//
-//     fn retrieve_by_field(
-//         &self,
-//         field: storage::Field,
-//         scope: storage::Retrieve,
-//     ) -> storage::FieldKeyResult {
-//         // We should never try to return results without an ID
-//         self.underlying.retrieve_by_field(field, scope)
-//     }
-//
-//     fn retrieve_by_fields(
-//         &self,
-//         field: Vec<storage::Field>,
-//         scope: storage::Retrieve,
-//     ) -> storage::FieldKeyResult {
-//         // We should never try to return results without an ID
-//         self.underlying.retrieve_by_fields(field, scope)
-//     }
-// }
-//
-// impl<E> storage::Dispatcher for Storage<E>
-// where
-//     E: crate::crypt::Crypt + Send + Sync + 'static,
-// {
-//     fn dispatch(
-//         &self,
-//         key: &storage::ContextKey,
-//         scope: storage::Field,
-//     ) -> Result<(), storage::StorageError> {
-//         match scope {
-//             storage::Field::Result(result) => {
-//                 // we may already run in an specialized thread therefore we use current thread.
-//                 self.handle_result(key, *result)
-//             }
-//             _ => self.underlying.as_dispatcher().dispatch(key, scope),
-//         }
-//     }
-//
-//     fn on_exit(&self) -> Result<(), storage::StorageError> {
-//         self.underlying.on_exit()
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use models::Scan;
