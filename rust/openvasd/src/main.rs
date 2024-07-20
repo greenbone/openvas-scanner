@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{
-    marker::{Send, Sync},
-    sync::Arc,
-};
+use std::marker::{Send, Sync};
 
 use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use config::{Config, Mode, ScannerType};
@@ -140,7 +137,7 @@ where
 
 async fn run_with_storage<St>(config: &Config) -> Result<()>
 where
-    St: FromConfigAndFeeds + storage::ResultHandler  + Storage + Send + 'static + Sync,
+    St: FromConfigAndFeeds + storage::ResultHandler + Storage + Send + 'static + Sync,
 {
     let feeds = get_feeds(config);
     let storage = St::from_config_and_feeds(config, feeds)?;
@@ -155,7 +152,7 @@ where
             run_with_scanner_and_storage(scanner, storage, config).await
         }
         ScannerType::Openvasd => {
-            let storage = std::sync::Arc::new(storage::UserNASLStorageForKBandVT( storage));
+            let storage = std::sync::Arc::new(storage::UserNASLStorageForKBandVT(storage));
             let scanner = make_openvasd_scanner(config, storage.clone());
             run_with_scanner_and_storage(scanner, storage, config).await
         }

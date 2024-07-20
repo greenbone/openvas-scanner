@@ -5,8 +5,6 @@
 use std::{collections::HashSet, sync::RwLock};
 
 use super::*;
-use nasl_interpreter::FSPluginLoader;
-use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
 use tokio::task::JoinSet;
 use tracing::info;
 

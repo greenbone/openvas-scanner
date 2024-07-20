@@ -11,28 +11,28 @@ use crate::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StringU32(u32);
+pub struct StringU64(u64);
 
-impl From<i64> for StringU32 {
+impl From<i64> for StringU64 {
     fn from(value: i64) -> Self {
-        StringU32(value as u32)
+        StringU64(value as u64)
     }
 }
 
-impl From<StringU32> for u32 {
-    fn from(value: StringU32) -> Self {
+impl From<StringU64> for u64 {
+    fn from(value: StringU64) -> Self {
         value.0
     }
 }
 
-impl From<StringU32> for i64 {
-    fn from(value: StringU32) -> Self {
+impl From<StringU64> for i64 {
+    fn from(value: StringU64) -> Self {
         value.0 as i64
     }
 }
 
-impl From<StringU32> for i32 {
-    fn from(value: StringU32) -> Self {
+impl From<StringU64> for i32 {
+    fn from(value: StringU64) -> Self {
         value.0 as i32
     }
 }
@@ -85,14 +85,14 @@ impl<'de> Deserialize<'de> for StringF32 {
     }
 }
 
-impl<'de> Deserialize<'de> for StringU32 {
+impl<'de> Deserialize<'de> for StringU64 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         struct MyVisitor;
         impl<'de> Visitor<'de> for MyVisitor {
-            type Value = StringU32;
+            type Value = StringU64;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("string")
@@ -102,8 +102,8 @@ impl<'de> Deserialize<'de> for StringU32 {
             where
                 E: serde::de::Error,
             {
-                match value.parse::<u32>() {
-                    Ok(value) => Ok(StringU32(value)),
+                match value.parse::<u64>() {
+                    Ok(value) => Ok(StringU64(value)),
                     Err(_) => Err(E::custom("invalid number")),
                 }
             }
@@ -268,7 +268,7 @@ pub struct Status {
     pub text: String,
     #[serde(rename = "@status")]
     /// Status code
-    pub code: StringU32,
+    pub code: StringU64,
 }
 
 impl Status {
@@ -508,13 +508,13 @@ pub struct Scan {
     pub target: String,
     #[serde(rename = "@start_time")]
     /// Start time
-    pub start_time: Option<StringU32>,
+    pub start_time: Option<StringU64>,
     #[serde(rename = "@end_time")]
     /// End time
-    pub end_time: Option<StringU32>,
+    pub end_time: Option<StringU64>,
     #[serde(rename = "@progress")]
     /// Progress
-    pub progress: StringU32,
+    pub progress: StringU64,
     #[serde(rename = "@status")]
     /// Status
     pub status: ScanStatus,
@@ -549,7 +549,7 @@ pub struct HostInfo {
 pub struct ElementU32 {
     #[serde(rename = "$text")]
     /// Content of the element
-    pub content: StringU32,
+    pub content: StringU64,
 }
 
 /// Progress information for a single host
@@ -560,7 +560,7 @@ pub struct Host {
     pub name: String,
     #[serde(rename = "$text")]
     /// Current progress for the host
-    pub progress: StringU32,
+    pub progress: StringU64,
 }
 
 impl Default for Scan {
@@ -570,7 +570,7 @@ impl Default for Scan {
             target: "".to_string(),
             start_time: None,
             end_time: None,
-            progress: StringU32(0),
+            progress: StringU64(0),
             status: ScanStatus::default(),
             results: Results { result: vec![] },
             host_info: None,
@@ -610,7 +610,7 @@ impl From<Scan> for models::Status {
                 queued: i.count_total.content.0
                     - i.count_excluded.content.0
                     - i.count_alive.content.0
-                    - i.host.len() as u32,
+                    - i.host.len() as u64,
                 finished: i.count_alive.content.0,
                 scanning: Some(scanning),
             }),

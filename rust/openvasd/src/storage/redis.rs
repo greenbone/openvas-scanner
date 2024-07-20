@@ -331,14 +331,18 @@ where
     }
 }
 
-impl<S> super::ResultHandler for Storage<S> where S: super::ResultHandler  {
+impl<S> super::ResultHandler for Storage<S>
+where
+    S: super::ResultHandler,
+{
     fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
         self.underlying.underlying_storage()
     }
 
     fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
     where
-        E: From<storage::StorageError> {
+        E: From<storage::StorageError>,
+    {
         self.underlying.handle_result(key, result)
     }
 }

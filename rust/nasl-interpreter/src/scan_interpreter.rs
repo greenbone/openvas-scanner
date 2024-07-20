@@ -713,6 +713,7 @@ if (description)
   {require_udp_ports}
   exit(0);
 }}
+log_message(data: "Ja, junge dat is Kaffee, echt jetzt, und Kaffee ist nun mal lecker.");
 exit({rc});
 "#
             );

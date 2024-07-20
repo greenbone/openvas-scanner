@@ -369,7 +369,7 @@ where
             SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .expect("Valid timestamp for end scan")
-                .as_secs() as u32,
+                .as_secs(),
         );
 
         self.db.update_status(&cid, current_status).await?;

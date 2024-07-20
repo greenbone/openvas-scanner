@@ -28,8 +28,8 @@ pub use interpreter::Interpreter;
 pub use scan_interpreter::*;
 
 pub use scanner::DefaultScannerStack;
-pub use scanner::WithStorageScannerStack;
 pub use scanner::Scanner;
+pub use scanner::WithStorageScannerStack;
 
 // we expose the other libraries to allow users to use them without having to import them
 pub use nasl_builtin_std::{nasl_std_functions, ContextFactory, RegisterBuilder};

@@ -308,10 +308,10 @@ impl NaslHttp {
 
         uri = format!("{}{}", uri, item);
 
-        // TODO: we will run into an issue when this is called within an async thread. 
+        // TODO: we will run into an issue when this is called within an async thread.
         // making it effectively worthless when OpenVASD is run in openvasd mode.
         // The error is:
-        // Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) 
+        // Cannot start a runtime from within a runtime. This happens because a function (like `block_on`)
         // attempted to block the current thread while the thread is being used to drive asynchronous tasks.
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(1)
