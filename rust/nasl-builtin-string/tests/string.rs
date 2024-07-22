@@ -232,4 +232,30 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn ord() {
+        let code = r#"
+        ord("a");
+        ord("b");
+        ord("c");
+        ord("");
+        ord(1);
+        ord();
+        "#;
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(97))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(98))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(99))));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_err(parser.next(), |err| {
+            matches!(err, FunctionErrorKind::WrongArgument { .. })
+        });
+        assert_err(parser.next(), |err| {
+            matches!(err, FunctionErrorKind::MissingPositionalArguments { .. })
+        });
+    }
 }

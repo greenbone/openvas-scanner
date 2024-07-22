@@ -65,6 +65,7 @@ macro_rules! impl_to_nasl_result_for_numeric_type {
     };
 }
 
+impl_to_nasl_result_for_numeric_type!(u8);
 impl_to_nasl_result_for_numeric_type!(i32);
 impl_to_nasl_result_for_numeric_type!(i64);
 impl_to_nasl_result_for_numeric_type!(u32);
