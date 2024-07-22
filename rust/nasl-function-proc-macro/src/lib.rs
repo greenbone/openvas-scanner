@@ -10,7 +10,7 @@ use syn::{
     parenthesized, parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned,
     FnArg, Ident, ItemFn, Signature, Token, Type,
 };
-use utils::{get_subty_if_name_is, ty_is_context};
+use utils::{get_subty_if_name_is, ty_is_context, ty_name_is};
 
 #[proc_macro_attribute]
 pub fn nasl_function(
@@ -75,6 +75,12 @@ impl Attrs {
         if ty_is_context(ty) {
             return ArgKind::Context;
         }
+        if ty_name_is(ty, "Positionals") {
+            return ArgKind::PositionalIterator;
+        }
+        if ty_name_is(ty, "CheckedPositionals") {
+            return ArgKind::CheckedPositionalIterator;
+        }
         let attr_kind = self
             .attrs
             .iter()
@@ -137,6 +143,8 @@ enum ArgKind {
     Named(NamedArg),
     MaybeNamed(PositionalArg, NamedArg),
     Context,
+    PositionalIterator,
+    CheckedPositionalIterator,
 }
 
 struct NamedArg {
@@ -254,10 +262,17 @@ impl<'a> ArgsStruct<'a> {
             _register: &::nasl_builtin_utils::Register,
             _context: &::nasl_builtin_utils::Context,
         };
+        let output_ty = match output {
+            syn::ReturnType::Default => quote! { () },
+            syn::ReturnType::Type(_, ty) => quote! { #ty }
+        };
         quote! {
-            #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) #output {
+            #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {
                 #args
-                #(#stmts)*
+                let _inner = || {
+                    #(#stmts)*
+                };
+                <#output_ty as ::nasl_builtin_utils::function::ToNaslResult>::to_nasl_result(_inner())
             }
         }
     }
@@ -304,6 +319,16 @@ impl<'a> ArgsStruct<'a> {
                     ArgKind::Context => {
                         quote! {
                             _context
+                        }
+                    },
+                    ArgKind::PositionalIterator => {
+                        quote! {
+                            ::nasl_builtin_utils::function::Positionals::new(_register)
+                        }
+                    }
+                    ArgKind::CheckedPositionalIterator => {
+                        quote! {
+                            ::nasl_builtin_utils::function::CheckedPositionals::new(_register)?
                         }
                     }
                 };

@@ -135,27 +135,7 @@ where
                     name: rname,
                 });
             } else if result_type == "HOST_START" {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::HostStart,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
             } else if result_type == "HOST_END" {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::HostEnd,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
             } else if result_type == "ALARM" {
                 scan_results.push(ScanResult {
                     result_type: osp::ResultType::Alarm,
