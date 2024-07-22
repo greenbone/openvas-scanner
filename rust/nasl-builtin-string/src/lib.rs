@@ -287,6 +287,14 @@ fn display(register: &Register, configs: &Context) -> Result<NaslValue, Function
     Ok(NaslValue::Null)
 }
 
+/// NASL function that returns the ASCII code of the first character of a given string.
+///
+/// Takes a single positional argument.
+#[nasl_function]
+fn ord(s: &str) -> Option<u8> {
+    s.chars().next().map(|c| c as u8)
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -303,6 +311,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "display" => Some(display),
         "hexstr_to_data" => Some(hexstr_to_data),
         "data_to_hexstr" => Some(data_to_hexstr),
+        "ord" => Some(ord),
         _ => None,
     }
 }
