@@ -74,7 +74,6 @@ impl<'a, T: FromNaslValue<'a>> CheckedPositionals<T> {
     }
 }
 
-
 impl<'a, T: FromNaslValue<'a>> IntoIterator for CheckedPositionals<T> {
     type Item = T;
 

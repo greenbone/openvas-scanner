@@ -264,7 +264,7 @@ impl<'a> ArgsStruct<'a> {
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },
-            syn::ReturnType::Type(_, ty) => quote! { #ty }
+            syn::ReturnType::Type(_, ty) => quote! { #ty },
         };
         quote! {
             #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {

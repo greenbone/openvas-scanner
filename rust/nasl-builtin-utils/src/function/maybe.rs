@@ -25,7 +25,7 @@ impl<T> From<Maybe<T>> for Option<T> {
 impl<T> Maybe<T> {
     /// Map a Maybe<T> to an Option<S> using a function
     /// f: T -> S.
-    pub fn map<S>(self, f: impl Fn(T) -> S) -> Option<S>{
+    pub fn map<S>(self, f: impl Fn(T) -> S) -> Option<S> {
         self.0.map(f)
     }
 

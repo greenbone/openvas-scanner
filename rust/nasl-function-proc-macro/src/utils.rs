@@ -2,7 +2,7 @@ use syn::*;
 
 pub fn ty_name_is(ty: &Type, name: &str) -> bool {
     get_last_segment(ty)
-        .map(|seg| seg.ident ==name)
+        .map(|seg| seg.ident == name)
         .unwrap_or(false)
 }
 
