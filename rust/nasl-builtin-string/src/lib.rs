@@ -6,12 +6,31 @@
 
 use core::fmt::Write;
 use nasl_builtin_utils::{
-    resolve_positional_arguments, Context, FunctionErrorKind, NaslFunction, Register,
+    function::{FromNaslValue, Maybe},
+    Context, FunctionErrorKind, NaslFunction, Register,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
 
 use nasl_syntax::NaslValue;
+
+/// `Some(string)` if constructed from either a `NaslValue::String`
+/// or `NaslValue::Data`.
+struct StringOrData(String);
+
+impl<'a> FromNaslValue<'a> for StringOrData {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
+        match value {
+            NaslValue::String(string) => Ok(Self(string.clone())),
+            NaslValue::Data(buffer) => {
+                Ok(Self(buffer.iter().map(|x| *x as char).collect::<String>()))
+            }
+            _ => Err(FunctionErrorKind::WrongArgument(
+                "Expected string or byte buffer.".to_string(),
+            )),
+        }
+    }
+}
 
 /// Decodes given string as hex and returns the result as a byte array
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
@@ -22,12 +41,12 @@ pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
 }
 
 /// Encodes given bytes to a hex string
-pub fn encode_hex(bytes: &[u8]) -> Result<String, FunctionErrorKind> {
-    let mut s = String::with_capacity(bytes.len() * 2);
-    for &b in bytes {
-        write!(&mut s, "{:02x}", b)?;
-    }
-    Ok(s)
+pub fn encode_hex(bytes: &[u8]) -> String {
+    bytes
+        .into_iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn append_nasl_value_as_u8(data: &mut Vec<u8>, p: &NaslValue) {
@@ -59,13 +78,13 @@ fn append_nasl_value_as_u8(data: &mut Vec<u8>, p: &NaslValue) {
 }
 
 /// NASL function to parse numeric values into characters and combine with additional values
-fn raw_string(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
+#[nasl_function]
+fn raw_string(positional: CheckedPositionals<&NaslValue>) -> Vec<u8> {
     let mut data: Vec<u8> = vec![];
-    for p in positional {
+    for p in positional.iter() {
         append_nasl_value_as_u8(&mut data, &p);
     }
-    Ok(data.into())
+    data
 }
 
 fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionErrorKind> {
@@ -101,8 +120,8 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
 }
 
 /// NASL function to parse values into string representations
-fn string(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
+#[nasl_function]
+fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, FunctionErrorKind> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
         write_nasl_string_value(&mut s, &p)?;
@@ -140,47 +159,32 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Func
 /// NASL function to return uppercase equivalent of a given string
 ///
 /// If this function retrieves anything but a string it returns NULL
-fn toupper(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    Ok(match positional.first() {
-        Some(NaslValue::String(x)) => x.to_uppercase().into(),
-        Some(NaslValue::Data(x)) => x
-            .iter()
-            .map(|x| *x as char)
-            .collect::<String>()
-            .to_uppercase()
-            .into(),
-        _ => NaslValue::Null,
-    })
+#[nasl_function]
+fn toupper(s: Option<Maybe<StringOrData>>) -> Option<String> {
+    s.map(Maybe::as_option)
+        .flatten()
+        .map(|inner| inner.0.to_uppercase())
 }
 
 /// NASL function to return lowercase equivalent of a given string
 ///
 /// If this function retrieves anything but a string it returns NULL
-fn tolower(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    Ok(match positional.first() {
-        Some(NaslValue::String(x)) => x.to_lowercase().into(),
-        Some(NaslValue::Data(x)) => x
-            .iter()
-            .map(|x| *x as char)
-            .collect::<String>()
-            .to_lowercase()
-            .into(),
-        _ => NaslValue::Null,
-    })
+#[nasl_function]
+fn tolower(s: Option<Maybe<StringOrData>>) -> Option<String> {
+    s.map(Maybe::as_option)
+        .flatten()
+        .map(|inner| inner.0.to_lowercase())
 }
 
 /// NASL function to return the length of string
 ///
 /// If this function retrieves anything but a string it returns 0
-fn strlen(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    Ok(match positional.first() {
-        Some(NaslValue::String(x)) => x.len().into(),
-        Some(NaslValue::Data(x)) => x.len().into(),
-        _ => 0_i64.into(),
-    })
+#[nasl_function]
+fn strlen(s: Option<Maybe<StringOrData>>) -> usize {
+    s.map(Maybe::as_option)
+        .flatten()
+        .map(|inner| inner.0.len())
+        .unwrap_or(0)
 }
 
 /// NASL function to return a substr of a string.
@@ -190,25 +194,18 @@ fn strlen(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKi
 /// The optional third positional argument is an *int* and contains the end index for the slice.
 /// If not given it is set to the end of the string.
 /// If the start integer is higher than the value of the string NULL is returned.
-fn substr(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    if positional.len() < 2 {
-        return Ok(NaslValue::Null);
-    }
-    // we checked previously if the size is sufficient
-    unsafe {
-        let s = positional.get_unchecked(0).to_string();
-        let lidx: i64 = positional.get_unchecked(1).into();
-        if lidx as usize > s.len() {
-            return Ok(NaslValue::Null);
-        }
-        Ok(match positional.get(2) {
-            Some(nv) => {
-                let ridx: i64 = nv.into();
-                (&s[lidx as usize..ridx as usize]).into()
+#[nasl_function]
+fn substr(s: StringOrData, start: usize, end: Option<usize>) -> Option<String> {
+    if start > s.0.len() {
+        None
+    } else {
+        Some(
+            match end {
+                Some(end) => &s.0[start..end],
+                None => &s.0[start..],
             }
-            _ => (&s[lidx as usize..]).into(),
-        })
+            .into(),
+        )
     }
 }
 
@@ -216,57 +213,34 @@ fn substr(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKi
 ///
 /// If the positional arguments are empty it returns NaslValue::Null.
 /// It only uses the first positional argument and when it is not a NaslValue:String than it returns NaslValue::Null.
-fn hexstr(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    let hexler = |x: &str| -> Result<NaslValue, FunctionErrorKind> {
-        let mut s = String::with_capacity(2 * x.len());
-        for byte in x.as_bytes() {
-            write!(s, "{byte:02x}")?
-        }
-        Ok(s.into())
-    };
-    match positional.first() {
-        Some(NaslValue::String(x)) => hexler(x),
-        Some(NaslValue::Data(x)) => Ok(NaslValue::String(encode_hex(x)?.to_string())),
-        _ => Ok(NaslValue::Null),
+#[nasl_function]
+fn hexstr(s: Option<NaslValue>) -> Option<String> {
+    match s? {
+        NaslValue::String(s) => Some(encode_hex(s.as_bytes())),
+        NaslValue::Data(bytes) => Some(encode_hex(&bytes)),
+        _ => None,
     }
 }
 
 /// NASL function to convert a hexadecimal representation into byte data.
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
-fn hexstr_to_data(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    match resolve_positional_arguments(register).first() {
-        Some(NaslValue::String(x)) => match decode_hex(x) {
-            Ok(y) => Ok(NaslValue::Data(y)),
-            Err(_) => Err(FunctionErrorKind::wrong_argument(
-                "first positional argument",
-                "a string only containing 0-9a-fA-F of a even length",
-                x.as_str(),
-            )),
-        },
-        Some(x) => Err(FunctionErrorKind::wrong_argument(
-            "first positional argument",
-            "string",
-            x.to_string().as_str(),
-        )),
-        None => Err(FunctionErrorKind::missing_argument("0")),
-    }
+#[nasl_function]
+fn hexstr_to_data(s: &str) -> Result<Vec<u8>, FunctionErrorKind> {
+    decode_hex(s).map_err(|_| {
+        FunctionErrorKind::WrongArgument(format!(
+            "Expected an even-length string containing only 0-9a-fA-F, found '{}'",
+            s
+        ))
+    })
 }
 
 /// NASL function to convert byte data into hexadecimal representation as lower case string.
 ///
 /// The first positional argument must be byte data, all other arguments are ignored. If either the no argument was given or the first positional is not byte data, a error is returned.
-fn data_to_hexstr(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    match resolve_positional_arguments(register).first() {
-        Some(NaslValue::Data(x)) => Ok(encode_hex(x)?.into()),
-        Some(x) => Err(FunctionErrorKind::wrong_argument(
-            "first positional argument",
-            "data",
-            x.to_string().as_str(),
-        )),
-        None => Err(FunctionErrorKind::missing_argument("0")),
-    }
+#[nasl_function]
+fn data_to_hexstr(bytes: Maybe<&[u8]>) -> Option<String> {
+    bytes.map(encode_hex)
 }
 
 /// NASL function to return a buffer of required length with repeated occurrences of a specified string
@@ -274,27 +248,17 @@ fn data_to_hexstr(register: &Register, _: &Context) -> Result<NaslValue, Functio
 /// Length argument is required and can be a named argument or a positional argument.
 /// Data argument is an optional named argument and is taken to be "X" if not provided.
 #[nasl_function(maybe_named(length), named(data))]
-fn crap(length: usize, data: Option<&str>) -> Result<NaslValue, FunctionErrorKind> {
+fn crap(length: usize, data: Option<&str>) -> String {
     let data = data.unwrap_or("X");
-    Ok(NaslValue::String(data.repeat(length)))
+    data.repeat(length)
 }
 
 /// NASL function to remove trailing whitespaces from a string
 ///
 /// Takes one required positional argument of string type.
-fn chomp(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    match positional.first() {
-        Some(NaslValue::String(x)) => Ok(x.trim_end().to_owned().into()),
-        Some(NaslValue::Data(x)) => Ok(x
-            .iter()
-            .map(|x| *x as char)
-            .collect::<String>()
-            .trim_end()
-            .to_owned()
-            .into()),
-        x => Err(("0", "string", x).into()),
-    }
+#[nasl_function]
+fn chomp(s: StringOrData) -> String {
+    s.0.trim_end().into()
 }
 
 /// NASL function to lookup position of a substring within a string

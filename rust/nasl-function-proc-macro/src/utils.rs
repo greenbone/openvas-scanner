@@ -1,16 +1,20 @@
 use syn::*;
 
-pub fn ty_is_context(ty: &Type) -> bool {
-    if let Type::Reference(TypeReference { elem, .. }) = ty {
-        get_last_segment(elem).map(|seg| seg.ident == "Context").unwrap_or(false)
-    }
-    else {
-        false}
-    
+pub fn ty_name_is(ty: &Type, name: &str) -> bool {
+    get_last_segment(ty)
+        .map(|seg| seg.ident ==name)
+        .unwrap_or(false)
 }
 
-pub fn get_subty_if_name_is<'a>(ty: &'a Type, name: &str) -> Option<&'a Type>
-{
+pub fn ty_is_context(ty: &Type) -> bool {
+    if let Type::Reference(TypeReference { elem, .. }) = ty {
+        ty_name_is(elem, "Context")
+    } else {
+        false
+    }
+}
+
+pub fn get_subty_if_name_is<'a>(ty: &'a Type, name: &str) -> Option<&'a Type> {
     get_last_segment(ty)
         .filter(|segment| segment.ident == name)
         .and_then(|segment| {

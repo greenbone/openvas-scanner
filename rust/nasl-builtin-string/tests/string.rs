@@ -5,6 +5,19 @@
 mod tests {
     use nasl_interpreter::*;
 
+    fn assert_err(
+        a: Option<Result<NaslValue, InterpretError>>,
+        f: impl Fn(FunctionErrorKind) -> bool,
+    ) {
+        let val = a.unwrap().unwrap_err();
+        match val.kind {
+            InterpretErrorKind::FunctionCallError(err) => {
+                assert!(f(err.kind));
+            }
+            _ => panic!("Function did not return expected error."),
+        }
+    }
+
     #[test]
     fn hexstr() {
         let code = r#"
@@ -67,6 +80,7 @@ mod tests {
         let code = r###"
         toupper(0x7B);
         toupper('hallo');
+        toupper();
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
@@ -74,6 +88,7 @@ mod tests {
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok("HALLO".into())));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
     }
     #[test]
     fn strlen() {
@@ -145,6 +160,7 @@ mod tests {
         chomp("abc\n");
         chomp("abc  ");
         chomp("abc\n\t\r ");
+        chomp();
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
@@ -154,6 +170,9 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
         assert_eq!(parser.next(), Some(Ok("abc".into())));
+        assert_err(parser.next(), |err| {
+            matches!(err, FunctionErrorKind::MissingPositionalArguments { .. })
+        });
     }
 
     #[test]
