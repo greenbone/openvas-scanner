@@ -5,6 +5,7 @@
 //! Defines NASL functions that deal with string and their helpers
 
 use core::fmt::Write;
+use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
     function::{FromNaslValue, Maybe},
     Context, FunctionErrorKind, NaslFunction, Register,
@@ -291,6 +292,28 @@ fn ord(s: &str) -> Option<u8> {
     s.chars().next().map(|c| c as u8)
 }
 
+/// Matches a string against a simple shell like pattern.
+///
+/// `string` is the string to be searched.
+/// `pattern` contains the pattern to search for.
+/// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
+#[nasl_function(named(string), named(pattern), named(icase))]
+fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, FunctionErrorKind> {
+    let options = MatchOptions {
+        case_sensitive: !icase.unwrap_or(false),
+        require_literal_separator: false,
+        require_literal_leading_dot: false,
+    };
+    Ok(Pattern::new(pattern)
+        .map_err(|err| {
+            FunctionErrorKind::WrongArgument(format!(
+                "Argument 'pattern' to 'match' is not a valid pattern: {}. {}",
+                pattern, err
+            ))
+        })?
+        .matches_with(string, options))
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -308,6 +331,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "hexstr_to_data" => Some(hexstr_to_data),
         "data_to_hexstr" => Some(data_to_hexstr),
         "ord" => Some(ord),
+        "match" => Some(match_),
         _ => None,
     }
 }

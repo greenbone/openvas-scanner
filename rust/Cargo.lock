@@ -2065,6 +2065,7 @@ dependencies = [
 name = "nasl-builtin-string"
 version = "0.1.0"
 dependencies = [
+ "glob",
  "nasl-builtin-utils",
  "nasl-function-proc-macro",
  "nasl-interpreter",

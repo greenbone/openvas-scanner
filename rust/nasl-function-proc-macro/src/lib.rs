@@ -266,10 +266,12 @@ impl<'a> ArgsStruct<'a> {
             syn::ReturnType::Default => quote! { () },
             syn::ReturnType::Type(_, ty) => quote! { #ty },
         };
+        // We annotate the _inner closure with the output_ty to aid
+        // the compiler with type inference.
         quote! {
             #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {
                 #args
-                let _inner = || {
+                let _inner = || -> #output_ty {
                     #(#stmts)*
                 };
                 <#output_ty as ::nasl_builtin_utils::function::ToNaslResult>::to_nasl_result(_inner())

@@ -55,6 +55,12 @@ impl ToNaslResult for Vec<u8> {
     }
 }
 
+impl ToNaslResult for bool {
+    fn to_nasl_result(self) -> Result<NaslValue, FunctionErrorKind> {
+        Ok(NaslValue::Boolean(self))
+    }
+}
+
 macro_rules! impl_to_nasl_result_for_numeric_type {
     ($ty: ty) => {
         impl ToNaslResult for $ty {

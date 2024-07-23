@@ -160,4 +160,27 @@ mod tests {
             matches!(err, MissingPositionalArguments { .. })
         });
     }
+
+    #[test]
+    fn match_() {
+        check_ok(r#"match(string: "abcd", pattern: "*cd");"#, true);
+        check_ok(r#"match(string: "abcd", pattern: "*CD");"#, false);
+        check_ok(
+            r#"match(string: "abcd", pattern: "*CD", icase: FALSE);"#,
+            false,
+        );
+        check_ok(
+            r#"match(string: "abcd", pattern: "*CD", icase: TRUE);"#,
+            true,
+        );
+        // g_pattern_spec allows globs to match slashes, make sure we do too
+        check_ok(r#"match(string: "a///", pattern: "a*");"#, true);
+        check_ok(r#"match(string: "///a", pattern: "*a");"#, true);
+        check_err(r#"match(string: "abcd");"#, |err| {
+            matches!(err, MissingArguments { .. })
+        });
+        check_err(r#"match(pattern: "ab");"#, |err| {
+            matches!(err, MissingArguments { .. })
+        });
+    }
 }
