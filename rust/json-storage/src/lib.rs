@@ -138,9 +138,9 @@ where
     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
         Ok(match scope {
             // currently not supported
-            storage::Retrieve::NVT(_) | storage::Retrieve::NotusAdvisory(_) => {
-                Box::new([].into_iter())
-            }
+            storage::Retrieve::NVT(_)
+            | storage::Retrieve::NotusAdvisory(_)
+            | storage::Retrieve::Result(_) => Box::new([].into_iter()),
             storage::Retrieve::KB(s) => Box::new({
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
                 let kbs = kbs.clone();

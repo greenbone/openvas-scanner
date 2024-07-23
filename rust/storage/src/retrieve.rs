@@ -18,6 +18,10 @@ pub enum Retrieve {
     KB(String),
     /// Metadata of the Notus advisory
     NotusAdvisory(Option<String>),
+    /// Result
+    ///
+    /// When None retrieve all results when set the result with matching index.
+    Result(Option<usize>),
 }
 
 impl Retrieve {
@@ -27,6 +31,7 @@ impl Retrieve {
             Retrieve::NVT(_) => "nvt",
             Retrieve::KB(_) => "kb",
             Retrieve::NotusAdvisory(_) => "notus",
+            Retrieve::Result(_) => "result",
         }
     }
 
@@ -78,6 +83,14 @@ impl Retrieve {
             }
 
             Retrieve::NotusAdvisory(_) => matches!(field, Field::NotusAdvisory(_)),
+            Retrieve::Result(None) => matches!(field, Field::Result(_)),
+            Retrieve::Result(Some(id)) => {
+                if let Field::Result(r) = field {
+                    &r.id == id
+                } else {
+                    false
+                }
+            }
         }
     }
 }
@@ -105,6 +118,31 @@ pub trait Retriever {
                     _ => None,
                 }),
         ))
+    }
+
+    /// Returns all results of a scan
+    fn results(
+        &self,
+        key: &ContextKey,
+    ) -> Result<Box<dyn Iterator<Item = models::Result>>, StorageError> {
+        Ok(Box::new(
+            self.retrieve(key, Retrieve::Result(None))?
+                .filter_map(|x| match x {
+                    Field::Result(r) => Some(*r),
+                    _ => None,
+                }),
+        ))
+    }
+
+    /// Returns result with the given id
+    fn result(&self, key: &ContextKey, id: usize) -> Result<Option<models::Result>, StorageError> {
+        Ok(self
+            .retrieve(key, Retrieve::Result(Some(id)))?
+            .filter_map(|x| match x {
+                Field::Result(r) => Some(*r),
+                _ => None,
+            })
+            .next())
     }
 
     /// Gets Fields find by field and scope.

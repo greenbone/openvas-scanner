@@ -54,7 +54,7 @@ fn get_kb_item(register: &Register, c: &Context) -> Result<NaslValue, FunctionEr
             .map(|r| {
                 r.into_iter()
                     .filter_map(|x| match x {
-                        Field::NVT(_) | Field::NotusAdvisory(_) => None,
+                        Field::NVT(_) | Field::NotusAdvisory(_) | Field::Result(_) => None,
                         Field::KB(kb) => Some(kb.value.into()),
                     })
                     .collect::<Vec<_>>()

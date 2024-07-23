@@ -1898,6 +1898,7 @@ dependencies = [
 name = "nasl-builtin-std"
 version = "0.1.0"
 dependencies = [
+ "models",
  "nasl-builtin-cryptographic",
  "nasl-builtin-description",
  "nasl-builtin-host",
