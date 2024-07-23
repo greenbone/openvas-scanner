@@ -223,6 +223,15 @@ fn hexstr(s: Option<NaslValue>) -> Option<String> {
     }
 }
 
+/// NASL function to convert an integer into a hexadecimal number.
+/// This only works properly for numbers from 0 to 255, as it always
+/// returns a string in the form 0x00.
+#[nasl_function]
+fn hex(s: i64) -> String {
+    let wrapped = s.rem_euclid(256);
+    format!("0x{:02x}", wrapped)
+}
+
 /// NASL function to convert a hexadecimal representation into byte data.
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
@@ -318,6 +327,7 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "hexstr" => Some(hexstr),
+        "hex" => Some(hex),
         "raw_string" => Some(raw_string),
         "tolower" => Some(tolower),
         "toupper" => Some(toupper),

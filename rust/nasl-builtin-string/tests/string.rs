@@ -183,4 +183,17 @@ mod tests {
             matches!(err, MissingArguments { .. })
         });
     }
+
+    #[test]
+    fn hex() {
+        check_ok(r#"hex(0);"#, "0x00");
+        check_ok(r#"hex(32);"#, "0x20");
+        check_ok(r#"hex(255);"#, "0xff");
+        check_ok(r#"hex(256);"#, "0x00");
+        check_ok(r#"hex(257);"#, "0x01");
+        check_ok(r#"hex(-2);"#, "0xfe");
+        check_err(r#"hex();"#, |err| {
+            matches!(err, MissingPositionalArguments { .. })
+        });
+    }
 }
