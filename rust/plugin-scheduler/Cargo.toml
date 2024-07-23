@@ -9,3 +9,4 @@ edition = "2021"
 dep-graph = { path = "../dep-graph" }
 generic-array = "1.0"
 rayon = "1.8"
+thiserror = "1.0.62"

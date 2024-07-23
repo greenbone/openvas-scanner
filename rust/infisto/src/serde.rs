@@ -5,7 +5,7 @@
 //! Contains helper for serializing and deserializing structs.
 use serde::{Deserialize, Serialize};
 
-use crate::base;
+use crate::error::Error;
 
 #[derive(Debug)]
 /// Serializes and deserializes data
@@ -21,18 +21,18 @@ where
     T: Serialize,
 {
     /// Serializes given data to Vec<u8>
-    pub fn serialize(t: T) -> Result<Self, base::Error> {
+    pub fn serialize(t: T) -> Result<Self, Error> {
         match rmp_serde::to_vec(&t) {
             Ok(v) => Ok(Serialization::Serialized(v)),
-            Err(_) => Err(base::Error::Serialize),
+            Err(_) => Err(Error::Serialize),
         }
     }
 
     /// Deserializes given Serialization to T
-    pub fn deserialize(self) -> Result<T, base::Error> {
+    pub fn deserialize(self) -> Result<T, Error> {
         match self {
             Serialization::Deserialized(s) => Ok(s),
-            Serialization::Serialized(_) => Err(base::Error::Serialize),
+            Serialization::Serialized(_) => Err(Error::Serialize),
         }
     }
 }
@@ -41,12 +41,12 @@ impl<T> TryFrom<Vec<u8>> for Serialization<T>
 where
     T: for<'de> Deserialize<'de>,
 {
-    type Error = base::Error;
+    type Error = Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         match rmp_serde::from_slice(&value) {
             Ok(t) => Ok(Serialization::Deserialized(t)),
-            Err(_) => Err(base::Error::Serialize),
+            Err(_) => Err(Error::Serialize),
         }
     }
 }

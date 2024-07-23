@@ -25,7 +25,7 @@ where
     C: Phase + Clone,
 {
     pub dependency_graphs: GenericArray<Option<DepGraph<String>>, C::LEN>,
-    pub errors: Vec<(String, SchedulerError<C>)>,
+    pub errors: Vec<(String, SchedulerError)>,
 }
 
 impl<C> PluginScheduler<C>
@@ -40,9 +40,9 @@ where
     fn collect_deps<PC, P>(
         plugin_collection: &PC,
         plugin: &P,
-        entry_map: &mut HashMap<String, Result<C, SchedulerError<C>>>,
+        entry_map: &mut HashMap<String, Result<C, SchedulerError>>,
         dependency_chain: &mut Vec<String>,
-    ) -> Result<Vec<(C, Node<String>)>, SchedulerError<C>>
+    ) -> Result<Vec<(C, Node<String>)>, SchedulerError>
     where
         PC: PluginCollection<P, C>,
         P: Plugin<C>,
@@ -127,9 +127,9 @@ where
         C: Phase + PartialEq + Clone,
     {
         // Hashmap to check if plugin was already added to the scheduler
-        let mut entry_map: HashMap<String, Result<C, SchedulerError<C>>> = HashMap::new();
+        let mut entry_map: HashMap<String, Result<C, SchedulerError>> = HashMap::new();
 
-        let mut error_list: Vec<(String, SchedulerError<C>)> = vec![];
+        let mut error_list: Vec<(String, SchedulerError)> = vec![];
 
         let mut scheduler: GenericArray<Option<DepGraph<String>>, C::LEN> =
             GenericArray::generate(|_| None);
@@ -207,7 +207,7 @@ where
 
     /// Get the Errors, collected during the creation. Those errors contain a List of Plugins, that
     /// could not be added to the Scheduler, including a Reason as an SchedulerError.
-    pub fn get_errors(&self) -> Vec<(String, SchedulerError<C>)> {
+    pub fn get_errors(&self) -> Vec<(String, SchedulerError)> {
         self.errors.clone()
     }
 

@@ -276,8 +276,7 @@ fn set_ip_elements(
     let mut buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            // Missingarguments
-            return Err(FunctionErrorKind::from("ip"));
+            return Err(FunctionErrorKind::missing_argument("ip"));
         }
     };
 
@@ -373,7 +372,7 @@ fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, 
     let buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("ip"));
+            return Err(FunctionErrorKind::missing_argument("ip"));
         }
     };
 
@@ -398,8 +397,7 @@ fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, 
                 "Invalid element".to_string(),
             )),
         },
-        // Missingarguments
-        _ => Err(FunctionErrorKind::from("element")),
+        _ => Err(FunctionErrorKind::missing_argument("element")),
     }
 }
 
@@ -470,27 +468,27 @@ fn insert_ip_options(
     let buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("ip"));
+            return Err(FunctionErrorKind::missing_argument("ip"));
         }
     };
 
     let code = match register.named("code") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         _ => {
-            return Err(FunctionErrorKind::from("code"));
+            return Err(FunctionErrorKind::missing_argument("code"));
         }
     };
     let length = match register.named("length") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as usize,
         _ => {
-            return Err(FunctionErrorKind::from("length"));
+            return Err(FunctionErrorKind::missing_argument("length"));
         }
     };
     let value = match register.named("value") {
         Some(ContextType::Value(NaslValue::String(x))) => x.as_bytes(),
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => {
-            return Err(FunctionErrorKind::from("value"));
+            return Err(FunctionErrorKind::missing_argument("value"));
         }
     };
 
@@ -568,7 +566,7 @@ fn forge_tcp_packet(
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
             // Missingarguments
-            return Err(FunctionErrorKind::from("ip"));
+            return Err(FunctionErrorKind::missing_argument("ip"));
         }
     };
     let original_ip_len = ip_buf.len();
@@ -690,7 +688,7 @@ fn get_tcp_element(
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("tcp"));
+            return Err(FunctionErrorKind::missing_argument("tcp"));
         }
     };
 
@@ -716,7 +714,7 @@ fn get_tcp_element(
             "th_data" => Ok(NaslValue::Data(tcp.payload().to_vec())),
             _ => Err(FunctionErrorKind::WrongArgument("element".to_string())),
         },
-        _ => Err(FunctionErrorKind::from("element")),
+        _ => Err(FunctionErrorKind::missing_argument("element")),
     }
 }
 
@@ -735,7 +733,7 @@ fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, 
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("tcp"));
+            return Err(FunctionErrorKind::missing_argument("tcp"));
         }
     };
 
@@ -790,7 +788,7 @@ fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, 
                 "Invalid option".to_string(),
             )),
         },
-        _ => Err(FunctionErrorKind::from("option")),
+        _ => Err(FunctionErrorKind::missing_argument("option")),
     }
 }
 
@@ -816,7 +814,7 @@ fn set_tcp_elements(
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("tcp"));
+            return Err(FunctionErrorKind::missing_argument("tcp"));
         }
     };
 
@@ -1249,7 +1247,7 @@ fn forge_udp_packet(
 ) -> Result<NaslValue, FunctionErrorKind> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
-        _ => return Err(FunctionErrorKind::from("ip")),
+        _ => return Err(FunctionErrorKind::missing_argument("ip")),
     };
     let original_ip_len = ip_buf.len();
 
@@ -1336,7 +1334,7 @@ fn set_udp_elements(
     let buf = match register.named("udp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("udp"));
+            return Err(FunctionErrorKind::missing_argument("udp"));
         }
     };
 
@@ -1501,7 +1499,7 @@ fn get_udp_element(
     let buf = match register.named("udp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("udp"));
+            return Err(FunctionErrorKind::missing_argument("udp"));
         }
     };
 
@@ -1541,7 +1539,7 @@ fn forge_icmp_packet(
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("icmp"));
+            return Err(FunctionErrorKind::missing_argument("icmp"));
         }
     };
     let original_ip_len = ip_buf.len();
@@ -1639,7 +1637,7 @@ fn get_icmp_element(
     let buf = match register.named("icmp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("icmp"));
+            return Err(FunctionErrorKind::missing_argument("icmp"));
         }
     };
 
@@ -1688,7 +1686,7 @@ fn get_icmp_element(
             }
             _ => Ok(NaslValue::Null),
         },
-        _ => Err(FunctionErrorKind::from("element")),
+        _ => Err(FunctionErrorKind::missing_argument("element")),
     }
 }
 
@@ -1696,7 +1694,7 @@ fn get_icmp_element(
 fn dump_icmp_packet(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::from("icmp"));
+        return Err(FunctionErrorKind::missing_argument("icmp"));
     }
 
     for icmp_pkt in positional.iter() {
@@ -1828,7 +1826,7 @@ fn forge_igmp_packet(
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::from("igmp"));
+            return Err(FunctionErrorKind::missing_argument("igmp"));
         }
     };
     let original_ip_len = ip_buf.len();
@@ -1965,7 +1963,12 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
     let port = match register.named("port") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0, //TODO: implement plug_get_host_open_port()
-        _ => return Err(("Number", "Invalid length value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Number",
+                "Invalid length value",
+            ))
+        }
     };
 
     if islocalhost(target_ip) {
@@ -2072,25 +2075,45 @@ fn nasl_send_packet(
     let use_pcap = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
         None => true,
-        _ => return Err(("Boolean", "Invalid pcap_active value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Boolean",
+                "Invalid pcap_active value",
+            ))
+        }
     };
 
     let filter = match register.named("pcap_filter") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
-        _ => return Err(("String", "Invalid pcap_filter value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid pcap_filter value",
+            ))
+        }
     };
 
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => return Err(("Integer", "Invalid timeout value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Integer",
+                "Invalid timeout value",
+            ))
+        }
     };
 
     let mut allow_broadcast = match register.named("allow_broadcast") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
         None => false,
-        _ => return Err(("Boolean", "Invalid allow_broadcast value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Boolean",
+                "Invalid allow_broadcast value",
+            ))
+        }
     };
 
     let positional = register.positional();
@@ -2110,7 +2133,12 @@ fn nasl_send_packet(
     let _dflt_packet_sz = match register.named("length") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0,
-        _ => return Err(("Number", "Invalid length value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Number",
+                "Invalid length value",
+            ))
+        }
     };
 
     // Get the iface name, to set the capture device.
@@ -2129,7 +2157,12 @@ fn nasl_send_packet(
     for pkt in positional.iter() {
         let packet_raw = match pkt {
             NaslValue::Data(data) => data as &[u8],
-            _ => return Err(("Data", "Invalid packet").into()),
+            _ => {
+                return Err(FunctionErrorKind::wrong_unnamed_argument(
+                    "Data",
+                    "Invalid packet",
+                ))
+            }
         };
         let packet = packet::ipv4::Ipv4Packet::new(packet_raw).ok_or_else(|| {
             FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
@@ -2211,19 +2244,34 @@ fn nasl_send_capture(
     let interface = match register.named("interface") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
-        _ => return Err(("String", "Invalid interface value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid interface value",
+            ))
+        }
     };
 
     let filter = match register.named("pcap_filter") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
-        _ => return Err(("String", "Invalid pcap_filter value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "String",
+                "Invalid pcap_filter value",
+            ))
+        }
     };
 
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
-        _ => return Err(("Integer", "Invalid timeout value").into()),
+        _ => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "Integer",
+                "Invalid timeout value",
+            ))
+        }
     };
 
     // Get the iface name, to set the capture device.

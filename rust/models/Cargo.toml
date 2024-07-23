@@ -11,6 +11,7 @@ async-trait = "0.1.77"
 serde = { version = "1", features = ["derive"], optional = true }
 uuid = { version = "1", features = ["v4"] }
 sysinfo = "0.30.5"
+thiserror = "1.0.62"
 
 [features]
 default = ["serde_support"]

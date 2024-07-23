@@ -8,6 +8,7 @@ license = "GPL-2.0-or-later"
 
 [dependencies]
 storage = { path = "../storage" }
+thiserror = "1.0.62"
 
 [dev-dependencies]
 criterion = "0"

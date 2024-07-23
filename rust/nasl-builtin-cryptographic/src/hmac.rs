@@ -46,7 +46,12 @@ where
     };
     let mut hmac = match Hmac::<D>::new_from_slice(key.as_bytes()) {
         Ok(x) => x,
-        Err(InvalidLength) => return Err(("valid size key", "invalid size key").into()),
+        Err(InvalidLength) => {
+            return Err(FunctionErrorKind::wrong_unnamed_argument(
+                "valid size key",
+                "invalid size key",
+            ))
+        }
     };
     hmac.update(data.as_bytes());
     Ok(NaslValue::String(encode(

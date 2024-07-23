@@ -5,37 +5,29 @@
 //! This crate is used to load NASL code based on a name.
 
 use std::{
-    fmt::Display,
     fs::{self, File},
     io,
     path::Path,
 };
 
+use thiserror::Error;
+
 /// Defines abstract Loader error cases
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum LoadError {
     /// Informs the caller to retry the call
+    #[error("There was a temporary issue while reading {0}.")]
     Retry(String),
     /// The given key was not found
+    #[error("{0} not found.")]
     NotFound(String),
     /// Not allowed to read data of key
+    #[error("Insufficient rights to read {0}.")]
     PermissionDenied(String),
     /// There is a deeper problem with the underlying DataBase
+    #[error("Unexpected issue while trying to read {0}")]
     Dirty(String),
 }
-
-impl Display for LoadError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LoadError::Retry(p) => write!(f, "There was a temporary issue while reading {}.", p),
-            LoadError::NotFound(p) => write!(f, "{} not found.", p),
-            LoadError::PermissionDenied(p) => write!(f, "Insufficient rights to read {}", p),
-            LoadError::Dirty(p) => write!(f, "Unexpected issue while trying to read {}", p),
-        }
-    }
-}
-
-impl std::error::Error for LoadError {}
 
 /// Loads the content of the path to String by parsing each byte to a character.
 ///
@@ -51,6 +43,7 @@ where
         Err(err) => Err((path.as_ref().to_str().unwrap_or_default(), err).into()),
     }
 }
+
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
 pub trait Loader {
     /// Resolves the given key to nasl code

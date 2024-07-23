@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 nasl-syntax = { path = "../nasl-syntax" }
 storage = { path = "../storage" }
+thiserror = "1.0.62"
 tracing = "0.1"

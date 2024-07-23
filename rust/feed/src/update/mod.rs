@@ -5,6 +5,7 @@
 mod error;
 
 pub use error::Error;
+pub use error::ErrorKind;
 
 use std::{fs::File, io::Read};
 
@@ -14,8 +15,6 @@ use nasl_interpreter::{
 use storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
 use crate::verify::{self, HashSumFileItem, SignatureChecker};
-
-pub use self::error::ErrorKind;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
@@ -32,11 +31,6 @@ pub struct Update<'a, S, L, V> {
     feed_version_set: bool,
 }
 
-impl From<verify::Error> for ErrorKind {
-    fn from(value: verify::Error) -> Self {
-        ErrorKind::VerifyError(value)
-    }
-}
 /// Loads the plugin_feed_info and returns the feed version
 pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<String, ErrorKind> {
     let feed_info_key = "plugin_feed_info.inc";

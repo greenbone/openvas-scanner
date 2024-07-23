@@ -218,7 +218,7 @@ where
                         } else if counter_val > 0 {
                             continue;
                         } else {
-                            return Err(Error::ResolveGraphError("circular dependency detected"));
+                            return Err(Error::ResolveGraphError{reason: "circular dependency detected"});
                         }
                     },
                 };

@@ -5,13 +5,26 @@
 //! The base module contains the basic building blocks for the file store.
 
 use std::{
-    fs,
+    fs::{self, File, OpenOptions},
     io::{Read, Seek, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
 };
 
 use serde::{Deserialize, Serialize};
+
+use crate::error::{Error, IoErrorKind};
+
+fn open_file<P: AsRef<Path>>(path: P, opts: &mut OpenOptions) -> Result<File, Error> {
+    opts.open(path.as_ref())
+        .map_err(|e| Error::IoError(IoErrorKind::FileOpen, e.kind()))
+}
+
+fn write_file(file: &mut File, buf: &[u8]) -> Result<(), Error> {
+    file.write_all(buf)
+        .map_err(|e| Error::IoError(IoErrorKind::Write, e.kind()))
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 /// The index is used to store the start and end position of a data set in the file.
 pub struct Index {
@@ -33,24 +46,6 @@ pub struct IndexedFileStorer {
     base: PathBuf,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-/// The error type for the store.
-pub enum Error {
-    /// The base directory could not be created.
-    CreateBaseDir(std::io::ErrorKind),
-    /// The file could not be opened.
-    FileOpen(std::io::ErrorKind),
-    /// The file could not be written to.
-    Write(std::io::ErrorKind),
-    /// The file could not be read from.
-    Read(std::io::ErrorKind),
-    /// The file could not be removed.
-    Remove(std::io::ErrorKind),
-    /// The file could not be sought.
-    Seek(std::io::ErrorKind),
-    /// The index could not be serialized.
-    Serialize,
-}
 /// Is a storage that stores bytes by using a key.
 pub trait IndexedByteStorage {
     /// Overrides, creates a file with the given data.
@@ -106,23 +101,6 @@ pub trait IndexedByteStorage {
     fn indices(&self, key: &str) -> Result<Vec<Index>, Error>;
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let msg = match self {
-            Error::CreateBaseDir(e) => format!("Could not create base directory: {}", e),
-            Error::FileOpen(e) => format!("Could not open file: {}", e),
-            Error::Write(e) => format!("Could not write to file: {}", e),
-            Error::Read(e) => format!("Could not read from file: {}", e),
-            Error::Remove(e) => format!("Could not remove file: {}", e),
-            Error::Seek(e) => format!("Could not seek in file: {}", e),
-            Error::Serialize => "Could not serialize index".to_string(),
-        };
-        write!(f, "{}", msg)
-    }
-}
-
-impl std::error::Error for Error {}
-
 impl IndexedFileStorer {
     /// Verifies if the base path exists and creates it if not before returning the store.
     pub fn init<P>(path: P) -> Result<IndexedFileStorer, Error>
@@ -132,8 +110,7 @@ impl IndexedFileStorer {
         let path = path.as_ref();
         if !path.exists() {
             std::fs::create_dir_all(path)
-                .map_err(|e| e.kind())
-                .map_err(Error::CreateBaseDir)?;
+                .map_err(|e| Error::IoError(IoErrorKind::CreateBaseDir, e.kind()))?
         }
         Ok(IndexedFileStorer {
             base: PathBuf::from(path),
@@ -153,16 +130,14 @@ impl IndexedFileStorer {
         self.store_index(&index, id)?;
         let fn_name = format!("{}.dat", id);
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(path)
-            .map_err(|e| e.kind())
-            .map_err(Error::FileOpen)?;
-        file.write_all(element)
-            .map_err(|e| e.kind())
-            .map_err(Error::Write)?;
+        let mut file = open_file(
+            path,
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true),
+        )?;
+        write_file(&mut file, element)?;
 
         Ok(index)
     }
@@ -172,16 +147,14 @@ impl IndexedFileStorer {
         let to_store = rmp_serde::to_vec(index).map_err(|_e| Error::Serialize)?;
 
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = std::fs::OpenOptions::new()
-            .truncate(true)
-            .create(true)
-            .write(true)
-            .open(path)
-            .map_err(|e| e.kind())
-            .map_err(Error::FileOpen)?;
-        file.write_all(&to_store)
-            .map_err(|e| e.kind())
-            .map_err(Error::Write)?;
+        let mut file = open_file(
+            path,
+            std::fs::OpenOptions::new()
+                .truncate(true)
+                .create(true)
+                .write(true),
+        )?;
+        write_file(&mut file, &to_store)?;
         Ok(())
     }
 
@@ -189,18 +162,12 @@ impl IndexedFileStorer {
     pub fn data_by_index(&self, key: &str, idx: &Index) -> Result<Vec<u8>, Error> {
         let fn_name = format!("{}.dat", key);
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = std::fs::OpenOptions::new()
-            .read(true)
-            .open(path)
-            .map_err(|e| e.kind())
-            .map_err(Error::FileOpen)?;
+        let mut file = open_file(path, std::fs::OpenOptions::new().read(true))?;
         let mut buffer = vec![0; idx.end - idx.start];
         file.seek(std::io::SeekFrom::Start(idx.start as u64))
-            .map_err(|e| e.kind())
-            .map_err(Error::Seek)?;
+            .map_err(|e| Error::IoError(IoErrorKind::Seek, e.kind()))?;
         file.read_exact(&mut buffer)
-            .map_err(|e| e.kind())
-            .map_err(Error::Read)?;
+            .map_err(|e| Error::IoError(IoErrorKind::Read, e.kind()))?;
         Ok(buffer)
     }
 
@@ -211,15 +178,10 @@ impl IndexedFileStorer {
     pub fn load_index(&self, key: &str) -> Result<Vec<Index>, Error> {
         let fn_name = format!("{}.idx", key);
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = std::fs::OpenOptions::new()
-            .read(true)
-            .open(path)
-            .map_err(|e| e.kind())
-            .map_err(Error::FileOpen)?;
+        let mut file = open_file(path, std::fs::OpenOptions::new().read(true))?;
         let mut buffer = vec![];
         file.read_to_end(&mut buffer)
-            .map_err(|e| e.kind())
-            .map_err(Error::Read)?;
+            .map_err(|e| Error::IoError(IoErrorKind::Read, e.kind()))?;
 
         let index = rmp_serde::from_slice(&buffer).map_err(|_e| Error::Serialize)?;
         Ok(index)
@@ -245,19 +207,13 @@ impl IndexedFileStorer {
     {
         let fn_name = format!("{}.dat", key);
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = std::fs::OpenOptions::new()
-            .append(true)
-            .open(path)
-            .map_err(|e| e.kind())
-            .map_err(Error::FileOpen)?;
+        let mut file = open_file(path, std::fs::OpenOptions::new().append(true))?;
         let mut index = index.to_vec();
         index.reserve(data.len());
         let mut start = index.last().map(|e| e.end).unwrap_or(0);
         for d in data {
             let b = d.as_ref();
-            file.write_all(b)
-                .map_err(|e| e.kind())
-                .map_err(Error::Write)?;
+            write_file(&mut file, b)?;
             let end = start + b.len();
             let idx = Index { start, end };
             index.push(idx);
@@ -269,16 +225,12 @@ impl IndexedFileStorer {
 
     /// Removes dat and idx files from the file system.
     pub fn clean(&self, key: &str) -> Result<(), Error> {
-        let dat_fn = format!("{}.dat", key);
-        let dat_path = Path::new(&self.base).join(dat_fn);
-        fs::remove_file(dat_path)
-            .map_err(|e| e.kind())
-            .map_err(Error::Remove)?;
-        let idx_fn = format!("{}.idx", key);
-        let idx_path = Path::new(&self.base).join(idx_fn);
-        fs::remove_file(idx_path)
-            .map_err(|e| e.kind())
-            .map_err(Error::Remove)?;
+        let remove_file = |path| {
+            let dat_path = Path::new(&self.base).join(path);
+            fs::remove_file(dat_path).map_err(|e| Error::IoError(IoErrorKind::Remove, e.kind()))
+        };
+        remove_file(format!("{}.dat", key))?;
+        remove_file(format!("{}.idx", key))?;
         Ok(())
     }
 
@@ -289,8 +241,7 @@ impl IndexedFileStorer {
     /// Do not use carelessly.
     pub unsafe fn remove_base(self) -> Result<(), Error> {
         fs::remove_dir_all(self.base)
-            .map_err(|e| e.kind())
-            .map_err(Error::Remove)
+            .map_err(|e| Error::IoError(IoErrorKind::Remove, e.kind()))
             .map(|_| ())
     }
 }
@@ -313,14 +264,11 @@ impl IndexedByteStorage for IndexedFileStorer {
         let result = self.load_index(key);
         match result {
             Ok(i) => self.append_all_index(key, &i, data).map(|_| ()),
-            Err(Error::FileOpen(ioe)) => match ioe {
-                std::io::ErrorKind::NotFound => {
-                    let initial_index = self.create(key, &data[0])?;
-                    self.append_all_index(key, &initial_index, &data[1..])
-                        .map(|_| ())
-                }
-                _ => Err(Error::FileOpen(ioe)),
-            },
+            Err(Error::IoError(IoErrorKind::FileOpen, std::io::ErrorKind::NotFound)) => {
+                let initial_index = self.create(key, &data[0])?;
+                self.append_all_index(key, &initial_index, &data[1..])
+                    .map(|_| ())
+            }
             Err(e) => Err(e),
         }
     }
@@ -480,18 +428,18 @@ impl IndexedByteStorage for CachedIndexFileStorer {
                     self.cache.len() - 1,
                     self.base.append_all_index(key, &i, data)?,
                 ),
-                Err(Error::FileOpen(ioe)) => match ioe {
-                    std::io::ErrorKind::NotFound if !data.is_empty() => {
+                Err(Error::IoError(IoErrorKind::FileOpen, std::io::ErrorKind::NotFound)) => {
+                    if !data.is_empty() {
                         let initial_index = self.base.create(key, &data[0])?;
 
                         let end_index =
                             self.base
                                 .append_all_index(key, &initial_index, &data[1..])?;
                         (self.cache.len() - 1, end_index)
+                    } else {
+                        (0, vec![])
                     }
-                    std::io::ErrorKind::NotFound if data.is_empty() => (0, vec![]),
-                    _ => return Err(Error::FileOpen(ioe)),
-                },
+                }
                 Err(e) => return Err(e),
             }
         };
@@ -548,10 +496,7 @@ where
     fn load_indices(key: &str, storage: &S) -> Result<Vec<Index>, Error> {
         match storage.indices(key) {
             Ok(i) => Ok(i),
-            Err(Error::FileOpen(ioe)) => match ioe {
-                std::io::ErrorKind::NotFound => Ok(vec![]),
-                _ => Err(Error::FileOpen(ioe)),
-            },
+            Err(Error::IoError(IoErrorKind::FileOpen, std::io::ErrorKind::NotFound)) => Ok(vec![]),
             Err(e) => Err(e),
         }
     }
@@ -624,7 +569,8 @@ mod iter {
         let key = "indexed_single";
         let mut store = CachedIndexFileStorer::init(BASE).unwrap();
         store.put(key, "Hello World".as_bytes()).unwrap();
-        let mut iter = IndexedByteStorageIterator::new(key, store.clone()).unwrap();
+        let mut iter: IndexedByteStorageIterator<_, Vec<u8>> =
+            IndexedByteStorageIterator::new(key, store.clone()).unwrap();
         assert_eq!(iter.next(), Some(Ok("Hello World".as_bytes().to_vec())));
         assert_eq!(iter.next(), None);
         store.remove(key).unwrap();

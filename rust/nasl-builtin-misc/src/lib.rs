@@ -31,7 +31,7 @@ pub fn random_impl() -> Result<i64, FunctionErrorKind> {
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
         .map(|_| i64::from_be_bytes(buffer))
-        .map_err(|e| e.kind().into())
+        .map_err(|e| e.into())
 }
 
 /// NASL function to get random number
@@ -114,7 +114,7 @@ fn isnull(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKi
 fn unixtime(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     match std::time::SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(NaslValue::Number(t.as_secs() as i64)),
-        Err(_) => Err(("0", "numeric").into()),
+        Err(_) => Err(FunctionErrorKind::wrong_unnamed_argument("0", "numeric")),
     }
 }
 
@@ -123,7 +123,7 @@ fn gzip(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(("data").into()),
+        _ => return Err(FunctionErrorKind::missing_argument("data")),
     };
     let headformat = match register.named("headformat") {
         Some(ContextType::Value(NaslValue::String(x))) => x,
@@ -159,7 +159,7 @@ fn gunzip(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKi
     let data = match register.named("data") {
         Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
         Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(("data").into()),
+        _ => return Err(FunctionErrorKind::missing_argument("data")),
     };
 
     let mut uncompress = ZlibDecoder::new(&data[..]);

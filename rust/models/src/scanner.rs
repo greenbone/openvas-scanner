@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
+use thiserror::Error;
 
 use crate::{Scan, Status};
 
@@ -221,30 +222,21 @@ impl std::fmt::Display for ObservableResources {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum Error {
+    #[error("Unexpected issue: {0}")]
     Unexpected(String),
+    #[error("Connection issue: {0}")]
     Connection(String),
+    #[error("Not enough resources of types: {}", display_resources(.0))]
     InsufficientResources(Vec<ObservableResources>),
+    #[error("Poisoned")]
     Poisoned,
 }
 
-impl std::error::Error for Error {}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Unexpected(x) => write!(f, "Unexpecdted issue: {x}"),
-            Self::Connection(x) => write!(f, "Connection issue: {x}"),
-            Self::InsufficientResources(x) => write!(
-                f,
-                "Not enough resources of {}",
-                x.iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<String>>()
-                    .join(",")
-            ),
-            _ => write!(f, "{:?}", self),
-        }
-    }
+fn display_resources(v: &[ObservableResources]) -> String {
+    v.iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(",")
 }

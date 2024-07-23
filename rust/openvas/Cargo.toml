@@ -16,6 +16,7 @@ tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"
 serde = { version = "1", features = ["derive"], optional = true }
 async-trait = "0.1.77"
+thiserror = "1.0.62"
 
 [features]
 default = ["serde_support"]

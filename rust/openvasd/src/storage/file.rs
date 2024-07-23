@@ -48,8 +48,8 @@ where
     Ok(Storage::new(ifs, feeds))
 }
 
-impl From<infisto::base::Error> for Error {
-    fn from(e: infisto::base::Error) -> Self {
+impl From<infisto::Error> for Error {
+    fn from(e: infisto::Error) -> Self {
         Self::Storage(Box::new(e))
     }
 }
@@ -194,7 +194,12 @@ where
             let storage = &storage.read().unwrap();
             let scans: Vec<Serialization<String>> = match storage.by_range("scans", Range::All) {
                 Ok(s) => s,
-                Err(infisto::base::Error::FileOpen(std::io::ErrorKind::NotFound)) => vec![],
+                Err(infisto::Error::IoError(
+                    infisto::IoErrorKind::FileOpen,
+                    std::io::ErrorKind::NotFound,
+                )) => {
+                    vec![]
+                }
                 Err(e) => return Err(e.into()),
             };
             let mut scans: Vec<_> = scans

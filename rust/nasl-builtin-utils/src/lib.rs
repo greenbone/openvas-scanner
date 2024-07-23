@@ -90,7 +90,7 @@ pub fn get_named_parameter<'a>(
         }
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
-            _ => Err((key, "value", "function").into()),
+            _ => Err(FunctionErrorKind::wrong_argument(key, "value", "function")),
         },
     }
 }
@@ -264,8 +264,8 @@ mod test {
 
         assert!(context.nasl_fn_defined("test"));
         assert_eq!(
-            context.nasl_fn_execute("test", &register),
-            Some(Ok(3.into()))
+            context.nasl_fn_execute("test", &register).unwrap().unwrap(),
+            3.into()
         );
     }
 }
