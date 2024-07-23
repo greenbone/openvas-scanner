@@ -209,6 +209,7 @@ impl NaslSockets {
     /// - data: the data block. A string is expected here (pure or impure, this does not matter).
     /// - length: is optional and will be the full data length if not set
     /// - option: is the flags for the send() system call. You should not use a raw numeric value here.
+    ///
     /// On success the number of sent bytes is returned.
     fn send(&self, r: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
         let socket = super::get_usize(r, "socket")?;

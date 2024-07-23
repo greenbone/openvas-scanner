@@ -106,14 +106,11 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, F
         .retrieve(context.key(), storage::Retrieve::KB(name.to_string()))
         .map(|r| {
             r.into_iter().find_map(|x| match x {
-                Field::NVT(_) | Field::NotusAdvisory(_) => None,
                 Field::KB(kb) => kb.value.into(),
+                _ => None,
             })
         })
-        .map(|x| match x {
-            Some(x) => Some(x.into()),
-            None => None,
-        })
+        .map(|x| x.map(|x| x.into()))
         .map_err(|e| e.into())
 }
 

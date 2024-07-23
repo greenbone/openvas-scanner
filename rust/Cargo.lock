@@ -2086,6 +2086,7 @@ dependencies = [
  "nasl-builtin-http",
  "nasl-builtin-knowledge-base",
  "nasl-builtin-misc",
+ "nasl-builtin-network",
  "nasl-builtin-raw-ip",
  "nasl-builtin-ssh",
  "nasl-builtin-string",
