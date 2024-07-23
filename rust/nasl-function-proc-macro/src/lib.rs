@@ -136,6 +136,7 @@ struct Arg<'a> {
     ty: &'a Type,
     optional: bool,
     kind: ArgKind,
+    mutable: bool,
 }
 
 enum ArgKind {
@@ -157,23 +158,24 @@ struct PositionalArg {
 
 impl<'a> Arg<'a> {
     fn new(arg: &'a FnArg, attrs: &Attrs, position: usize) -> Result<Self> {
-        let (ident, ty, optional) = get_arg_info(arg)?;
+        let (ident, ty, mutable, optional) = get_arg_info(arg)?;
         let kind = attrs.get_arg_kind(ident, position, ty);
         Ok(Self {
             kind,
             ident,
             ty,
             optional,
+            mutable,
         })
     }
 }
 
-fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool)> {
+fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool, bool)> {
     match arg {
         FnArg::Receiver(_) => unreachable!(),
         FnArg::Typed(typed) => {
-            let ident = match typed.pat.as_ref() {
-                syn::Pat::Ident(ident) => &ident.ident,
+            let (ident, mutable) = match typed.pat.as_ref() {
+                syn::Pat::Ident(ident) => (&ident.ident, ident.mutability.is_some()),
                 _ => {
                     return Err(Error {
                         span: typed.pat.span(),
@@ -187,7 +189,7 @@ fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool)> {
             } else {
                 (false, ty.as_ref())
             };
-            Ok((ident, ty, optional))
+            Ok((ident, ty, mutable, optional))
         }
     }
 }
@@ -284,6 +286,7 @@ impl<'a> ArgsStruct<'a> {
             .args.iter().map(|arg| {
                 let num_required_positional_args = self.num_required_positional();
                 let ident = &arg.ident;
+                let mutability = if arg.mutable { quote! { mut } } else { quote ! {}};
                 let ty = &arg.ty;
                 let parse = match &arg.kind {
                     ArgKind::Positional(positional) => {
@@ -335,7 +338,7 @@ impl<'a> ArgsStruct<'a> {
                     }
                 };
                 quote! {
-                    let #ident = #parse;
+                    let #mutability #ident = #parse;
                 }
             })
             .collect()

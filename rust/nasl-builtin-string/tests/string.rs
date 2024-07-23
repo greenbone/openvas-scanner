@@ -196,4 +196,13 @@ mod tests {
             matches!(err, MissingPositionalArguments { .. })
         });
     }
+
+    #[test]
+    fn insstr() {
+        check_ok(r#"insstr("foo bar", "rab", 4);"#, "foo rab");
+        check_ok(r#"insstr("foo bar", "rab", 4, 100);"#, "foo rab");
+        check_err(r#"insstr("foo bar", "rab", 4, 0);"#, |err| {
+            matches!(err, WrongArgument { .. })
+        });
+    }
 }

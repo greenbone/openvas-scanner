@@ -301,6 +301,29 @@ fn ord(s: &str) -> Option<u8> {
     s.chars().next().map(|c| c as u8)
 }
 
+/// NASL function that replaces a substring in one string with another string.
+/// 1st positional argument: string in which the replacement takes place.
+/// 2nd positional argument: string to replace the substring in the 1st argument with
+/// 3rd positional argument: start index in the original string at which to perform the replacement
+/// 4rd positional argument (optional): end index in the original string at which to perform the replacement.
+#[nasl_function]
+fn insstr(
+    mut s: String,
+    to_insert: &str,
+    start: usize,
+    end: Option<usize>,
+) -> Result<String, FunctionErrorKind> {
+    let end = end.unwrap_or(s.len()).min(s.len());
+    if start > end {
+        return Err(FunctionErrorKind::WrongArgument(format!(
+            "start index ({}) larger than end ({}).",
+            start, end
+        )));
+    }
+    s.replace_range(start..end, to_insert);
+    Ok(s)
+}
+
 /// Matches a string against a simple shell like pattern.
 ///
 /// `string` is the string to be searched.
@@ -342,6 +365,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "data_to_hexstr" => Some(data_to_hexstr),
         "ord" => Some(ord),
         "match" => Some(match_),
+        "insstr" => Some(insstr),
         _ => None,
     }
 }
