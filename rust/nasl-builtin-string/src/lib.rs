@@ -371,8 +371,30 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
         .matches_with(string, options))
 }
 
+/// This function splits a given string into parts, puts them into an array and returns it.
+///
+/// The first positional argument is the *string* to split.
+///
+/// The optional named argument *sep* is a *string* containing the
+/// separator for splitting the string. The string is split after the
+/// separator. By default the string is split at every line break.
+///
+/// The optional named argument *keep* is a *bool* and is used as flag
+/// to enable/disable keeping the separator within the separated
+/// string. By default *keep* is set to *TRUE*. *TRUE* means the
+/// separator is kept, *FALSE* means the separator is discarded.
+#[nasl_function(named(sep), named(keep))]
+fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
+    let sep = sep.unwrap_or("\n");
+    if keep.unwrap_or(true) {
+        string.split_inclusive(sep).map(String::from).collect()
+    } else {
+        string.split(sep).map(String::from).collect()
+    }
+}
+
 /// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
+fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "hexstr" => Some(hexstr),
         "hex" => Some(hex),
@@ -392,6 +414,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "match" => Some(match_),
         "insstr" => Some(insstr),
         "int" => Some(int),
+        "split" => Some(split),
         _ => None,
     }
 }

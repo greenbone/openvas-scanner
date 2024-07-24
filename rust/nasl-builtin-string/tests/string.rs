@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 #[cfg(test)]
 mod tests {
+    use nasl_builtin_utils::function::ToNaslResult;
     use nasl_interpreter::*;
     use FunctionErrorKind::*;
     use NaslValue::*;
@@ -27,8 +28,8 @@ mod tests {
         });
     }
 
-    fn check_ok(code: &str, expected: impl Into<NaslValue>) {
-        let expected = expected.into();
+    fn check_ok(code: &str, expected: impl ToNaslResult) {
+        let expected = expected.to_nasl_result().unwrap();
         check_line_of_code(code, |val| {
             let val = val.unwrap();
             assert_eq!(val, expected);
@@ -213,5 +214,24 @@ mod tests {
         check_ok(r#"int("123x");"#, 123);
         check_ok(r#"int("123xx");"#, 0);
         check_ok(r#"int(TRUE);"#, 1);
+    }
+
+    #[test]
+    fn split() {
+        check_ok(
+            r#"split("a\nb\nc");"#,
+            vec!["a\n".to_string(), "b\n".to_string(), "c".to_string()],
+        );
+        check_ok(
+            r#"split("a\nb\nc", keep: FALSE);"#,
+            vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        );
+        check_ok(
+            r#"split("a;b;c", sep: ";");"#,
+            vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
+        );
+        check_err(r#"split();"#, |err| {
+            matches!(err, MissingPositionalArguments { .. })
+        });
     }
 }
