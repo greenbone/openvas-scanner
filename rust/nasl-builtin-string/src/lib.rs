@@ -393,12 +393,29 @@ fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
     }
 }
 
+/// This function looks up a substring within a string and replaces them with a given string.
+/// The named argument string is the string to modify.
+/// The named argument find is a string containing the substring to replace.
+/// The optional named argument replace is a string containing the string to replace
+/// `find` with. Assumed to be the empty string if not given.
+/// The optional named argument count is an int. If specified, it
+/// limits the number of replacements made to count. If left out
+/// or set to 0, there is no limit on the number of replacements.
+#[nasl_function(named(string, find, replace, count))]
+fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>) -> String {
+    match count {
+        Some(count) if count > 0 => string.replacen(find, replace.unwrap_or(""), count),
+        _ => string.replace(find, replace.unwrap_or("")),
+    }
+}
+
 /// Returns found function for key or None when not found
 fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
         "hexstr" => Some(hexstr),
         "hex" => Some(hex),
         "raw_string" => Some(raw_string),
+        "strcat" => Some(raw_string),
         "tolower" => Some(tolower),
         "toupper" => Some(toupper),
         "strlen" => Some(strlen),
@@ -415,6 +432,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
         "insstr" => Some(insstr),
         "int" => Some(int),
         "split" => Some(split),
+        "replace" => Some(replace),
         _ => None,
     }
 }

@@ -234,4 +234,20 @@ mod tests {
             matches!(err, MissingPositionalArguments { .. })
         });
     }
+
+    #[test]
+    fn replace() {
+        check_ok(
+            r#"replace(string: "abc", find: "b", replace: "foo");"#,
+            "afooc",
+        );
+        check_err(r#"replace();"#, |err| {
+            matches!(err, MissingArguments { .. })
+        });
+        check_err(r#"replace(string: "abc");"#, |err| {
+            matches!(err, MissingArguments { .. })
+        });
+        check_ok(r#"replace(string: "abc", find: "b");"#, "ac");
+        check_ok(r#"replace(string: "abcbd", find: "b", count: 1);"#, "acbd");
+    }
 }
