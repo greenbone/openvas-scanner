@@ -409,6 +409,17 @@ fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>
     }
 }
 
+#[nasl_function]
+/// This function finds the first occurrence of a substring within
+/// a string and returns the rest of the string, starting at the substring
+/// index.
+///
+/// 1st positional argument: string to search in.
+/// 2nd positional argument: substring to search for.
+fn strstr(string: &str, find: &str) -> Option<&str> {
+    string.find(&find).map(|index| &string[index..])
+}
+
 /// Returns found function for key or None when not found
 fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
@@ -433,6 +444,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
         "int" => Some(int),
         "split" => Some(split),
         "replace" => Some(replace),
+        "strstr" => Some(strstr),
         _ => None,
     }
 }

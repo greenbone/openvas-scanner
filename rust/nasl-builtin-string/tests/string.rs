@@ -250,4 +250,16 @@ mod tests {
         check_ok(r#"replace(string: "abc", find: "b");"#, "ac");
         check_ok(r#"replace(string: "abcbd", find: "b", count: 1);"#, "acbd");
     }
+
+    #[test]
+    fn strstr() {
+        check_ok(r#"strstr("abc", "b");"#, "bc");
+        check_ok(r#"strstr("abcbd", "b");"#, "bcbd");
+        check_err(r#"strstr();"#, |err| {
+            matches!(err, MissingPositionalArguments { .. })
+        });
+        check_err(r#"strstr("a");"#, |err| {
+            matches!(err, MissingPositionalArguments { .. })
+        });
+    }
 }
