@@ -215,7 +215,7 @@ where
         let url = self.url.to_string();
         let nr = tokio::task::spawn_blocking(move || {
             let mut nvt_redis = RedisCtx::open(&url, FEEDUPDATE_SELECTOR)?;
-            nvt_redis.redis_get_advisory(&aoid)
+            nvt_redis.redis_get_vt(&aoid)
         })
         .await
         .unwrap()?;
@@ -243,7 +243,7 @@ where
                 .keys("nvt:*")?
                 .into_iter()
                 .filter_map(|x| x.split('/').last().map(|x| x.to_string()))
-                .filter_map(move |oid| nvt_redis.redis_get_vt(&oid).ok())
+                .filter_map(move |oid| nvt_redis.redis_get_vt(&oid[4..]).ok())
                 .flatten();
             Ok::<_, Error>(foids)
         });
