@@ -2004,6 +2004,7 @@ dependencies = [
  "chrono",
  "flate2",
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "storage",

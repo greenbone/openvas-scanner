@@ -7,127 +7,67 @@ mod tests {
     use chrono::Offset;
 
     use nasl_builtin_utils::Register;
-    use nasl_interpreter::{CodeInterpreter, ContextFactory};
+    use nasl_interpreter::{
+        check_ok_matches,
+        test_utils::{check_multiple, check_ok},
+        CodeInterpreter, ContextFactory,
+    };
     use nasl_syntax::NaslValue;
     use std::time::Instant;
 
     #[test]
     fn rand() {
-        let code = r###"
-        rand();
-        rand();
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        let first = parser.next();
-        let second = parser.next();
-        assert!(matches!(first, Some(Ok(NaslValue::Number(_)))));
-        assert!(matches!(second, Some(Ok(NaslValue::Number(_)))));
-        assert_ne!(first, second);
+        check_ok_matches!("rand();", NaslValue::Number(_));
+        check_ok_matches!("rand();", NaslValue::Number(_));
     }
 
     #[test]
     fn get_byte_order() {
-        let code = r###"
-        get_byte_order();
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert!(matches!(parser.next(), Some(Ok(NaslValue::Boolean(_)))));
+        check_ok_matches!("get_byte_order();", NaslValue::Boolean(_));
     }
 
     #[test]
     fn dec2str() {
-        let code = r###"
-        dec2str(num: 23);
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok("23".into())));
+        check_ok("dec2str(num: 23);", "23");
     }
 
     #[test]
     fn nasl_typeof() {
-        let code = r#"
-        typeof("AA");
-        typeof(1);
-        typeof('AA');
-        typeof(make_array());
-        d['test'] = 2;
-        typeof(d);
-        typeof(NULL);
-        typeof(a);
-        typeof(23,76);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("string".into()))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("int".into()))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("data".into()))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("array".into()))));
-        parser.next();
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("array".into()))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("undef".into()))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("undef".into()))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("int".into()))));
+        check_ok(r#"typeof("AA");"#, "string");
+        check_ok(r#"typeof(1);"#, "int");
+        check_ok(r#"typeof('AA');"#, "data");
+        check_ok(r#"typeof(make_array());"#, "array");
+        check_ok(r#"typeof(NULL);"#, "undef");
+        check_ok(r#"typeof(a);"#, "undef");
+        check_ok(r#"typeof(23,76);"#, "int");
+        check_multiple(
+            "d['test'] = 2; typeof(d);",
+            vec![NaslValue::from(2), NaslValue::from("array")],
+        )
     }
 
     #[test]
     fn isnull() {
-        let code = r###"
-        isnull(42);
-        isnull(Null);
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(true))));
+        check_ok(r#"isnull(42);"#, false);
+        check_ok(r#"isnull(Null);"#, true);
     }
 
     #[test]
     fn unixtime() {
-        let code = r###"
-        unixtime();
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
+        check_ok_matches!(r#"unixtime();"#, NaslValue::Number(_));
     }
 
     #[test]
     fn gzip() {
-        let code = r#"
-        gzip(data: 'z', headformat: "gzip");
-        gzip(data: 'z');
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Data(
-                [31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0]
-                    .into()
-            )))
+        check_ok(
+            r#"gzip(data: 'z', headformat: "gzip");"#,
+            vec![
+                31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0,
+            ],
         );
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Data(
-                [120, 156, 171, 2, 0, 0, 123, 0, 123].into()
-            )))
+        check_ok(
+            r#"gzip(data: 'z');"#,
+            vec![120, 156, 171, 2, 0, 0, 123, 0, 123],
         );
     }
 
@@ -231,45 +171,24 @@ mod tests {
 
     #[test]
     fn mktime() {
-        let code = r###"
-        mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Number(10921 - offset as i64)))
+        check_ok(
+            r#"mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);"#,
+            10921 - offset,
         );
     }
 
     #[test]
     fn sleep() {
-        let code = r###"
-        sleep(1);
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
         let now = Instant::now();
-        parser.next();
+        check_ok(r#"sleep(1);"#, NaslValue::Null);
         assert!(now.elapsed().as_secs() >= 1);
     }
 
     #[test]
     fn usleep() {
-        let code = r###"
-        usleep(1000);
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
         let now = Instant::now();
-        parser.next();
+        check_ok(r#"usleep(1000);"#, NaslValue::Null);
         assert!(now.elapsed().as_micros() >= 1000);
     }
 
@@ -283,15 +202,16 @@ mod tests {
         defined_func("a");
         defined_func(a);
         "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null))); // defining function b
-        assert_eq!(parser.next(), Some(Ok(true.into()))); // is b defined
-        assert_eq!(parser.next(), Some(Ok(true.into()))); // is defined_func defined
-        assert_eq!(parser.next(), Some(Ok(12i64.into()))); // defining variable a
-        assert_eq!(parser.next(), Some(Ok(false.into()))); // is a a function
-        assert_eq!(parser.next(), Some(Ok(false.into()))); // is the value of a a function
+        check_multiple(
+            code,
+            vec![
+                NaslValue::Null, // defining function b
+                true.into(),     // is b defined
+                true.into(),     // is defined_func defined
+                12i64.into(),    // defining variable a
+                false.into(),    // is a a function
+                false.into(),    // is the value of a a function
+            ],
+        )
     }
 }
