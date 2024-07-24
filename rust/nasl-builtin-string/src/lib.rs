@@ -19,13 +19,15 @@ use nasl_syntax::NaslValue;
 /// or `NaslValue::Data`.
 struct StringOrData(String);
 
+fn bytes_to_str(bytes: &[u8]) -> String {
+    bytes.iter().map(|x| *x as char).collect::<String>()
+}
+
 impl<'a> FromNaslValue<'a> for StringOrData {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::String(string) => Ok(Self(string.clone())),
-            NaslValue::Data(buffer) => {
-                Ok(Self(buffer.iter().map(|x| *x as char).collect::<String>()))
-            }
+            NaslValue::Data(buffer) => Ok(Self(bytes_to_str(buffer))),
             _ => Err(FunctionErrorKind::WrongArgument(
                 "Expected string or byte buffer.".to_string(),
             )),
@@ -301,6 +303,29 @@ fn ord(s: &str) -> Option<u8> {
     s.chars().next().map(|c| c as u8)
 }
 
+/// NASL function to convert a string to an integer.  This function
+/// tries to convert any given parameter into an integer. If the
+/// conversion is not possible or no argument was given, a 0 is
+/// returned instead. If a string contains any non-numerical
+/// characters, it only converts, if the string starts with a
+/// numerical character and end at the first appearance of any
+/// non-numerical character. The TRUE value converts to 1, FALSE to 0.
+#[nasl_function]
+fn int(s: &NaslValue) -> i64 {
+    match s {
+        NaslValue::String(s) => str_to_int(s),
+        NaslValue::Data(data) => str_to_int(&bytes_to_str(data)),
+        NaslValue::Number(num) => *num,
+        NaslValue::Boolean(b) => *b as i64,
+        _ => 0,
+    }
+}
+
+fn str_to_int(s: &str) -> i64 {
+    s.parse::<i64>()
+        .unwrap_or_else(|_| s[..s.len() - 1].parse::<i64>().unwrap_or(0))
+}
+
 /// NASL function that replaces a substring in one string with another string.
 /// 1st positional argument: string in which the replacement takes place.
 /// 2nd positional argument: string to replace the substring in the 1st argument with
@@ -366,6 +391,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
         "ord" => Some(ord),
         "match" => Some(match_),
         "insstr" => Some(insstr),
+        "int" => Some(int),
         _ => None,
     }
 }

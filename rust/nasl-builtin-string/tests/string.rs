@@ -205,4 +205,13 @@ mod tests {
             matches!(err, WrongArgument { .. })
         });
     }
+
+    #[test]
+    fn int() {
+        check_ok(r#"int("123");"#, 123);
+        check_ok(r#"int(123);"#, 123);
+        check_ok(r#"int("123x");"#, 123);
+        check_ok(r#"int("123xx");"#, 0);
+        check_ok(r#"int(TRUE);"#, 1);
+    }
 }
