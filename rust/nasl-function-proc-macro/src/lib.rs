@@ -37,7 +37,7 @@ mod attrs {
 
 struct Attr {
     kind: AttrKind,
-    ident: Ident,
+    idents: Vec<Ident>,
 }
 
 enum AttrKind {
@@ -59,9 +59,11 @@ impl Parse for Attr {
         }?;
         let content;
         let _ = parenthesized!(content in stream);
+        let idents: Punctuated<Ident, Token![,]> =
+            content.parse_terminated(Ident::parse, Token![,])?;
         Ok(Self {
             kind,
-            ident: content.parse()?,
+            idents: idents.into_iter().collect(),
         })
     }
 }
@@ -84,7 +86,7 @@ impl Attrs {
         let attr_kind = self
             .attrs
             .iter()
-            .find(|attr| &attr.ident == ident)
+            .find(|attr| attr.idents.contains(ident))
             .map(|attr| &attr.kind);
         let make_named = || NamedArg {
             name: ident.to_string(),
@@ -98,16 +100,18 @@ impl Attrs {
     }
 
     fn verify(&self) -> Result<()> {
-        let ids: HashSet<_> = self.attrs.iter().map(|attr| &attr.ident).collect();
-        if ids.len() != self.attrs.iter().count() {
-            Err(Error {
-                // TODO: Fix the span here
-                span: self.attrs[0].ident.span(),
-                kind: ErrorKind::TooManyAttributes,
-            })
-        } else {
-            Ok(())
+        let mut ids: HashSet<_> = HashSet::default();
+        for attr in self.attrs.iter() {
+            for ident in attr.idents.iter() {
+                if !ids.insert(ident) {
+                    return Err(Error {
+                        span: ident.span(),
+                        kind: ErrorKind::TooManyAttributes,
+                    });
+                }
+            }
         }
+        Ok(())
     }
 }
 

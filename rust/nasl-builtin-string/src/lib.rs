@@ -354,7 +354,7 @@ fn insstr(
 /// `string` is the string to be searched.
 /// `pattern` contains the pattern to search for.
 /// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
-#[nasl_function(named(string), named(pattern), named(icase))]
+#[nasl_function(named(string, pattern, icase))]
 fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, FunctionErrorKind> {
     let options = MatchOptions {
         case_sensitive: !icase.unwrap_or(false),
@@ -383,7 +383,7 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
 /// to enable/disable keeping the separator within the separated
 /// string. By default *keep* is set to *TRUE*. *TRUE* means the
 /// separator is kept, *FALSE* means the separator is discarded.
-#[nasl_function(named(sep), named(keep))]
+#[nasl_function(named(sep, keep))]
 fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
     let sep = sep.unwrap_or("\n");
     if keep.unwrap_or(true) {
