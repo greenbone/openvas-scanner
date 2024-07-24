@@ -59,7 +59,7 @@ impl<'a, T: FromNaslValue<'a>> CheckedPositionals<T> {
 
     /// Returns an iterator over the references to the positional arguments
     /// in the target type `T`.
-    pub fn iter<'b>(&'b self) -> impl Iterator<Item = &T> + 'b {
+    pub fn iter(&self) -> impl Iterator<Item = &T> + '_ {
         self.data.iter()
     }
 

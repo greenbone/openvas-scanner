@@ -46,7 +46,7 @@ pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
 /// Encodes given bytes to a hex string
 pub fn encode_hex(bytes: &[u8]) -> String {
     bytes
-        .into_iter()
+        .iter()
         .map(|b| format!("{:02x}", b))
         .collect::<Vec<_>>()
         .join("")
@@ -85,7 +85,7 @@ fn append_nasl_value_as_u8(data: &mut Vec<u8>, p: &NaslValue) {
 fn raw_string(positional: CheckedPositionals<&NaslValue>) -> Vec<u8> {
     let mut data: Vec<u8> = vec![];
     for p in positional.iter() {
-        append_nasl_value_as_u8(&mut data, &p);
+        append_nasl_value_as_u8(&mut data, p);
     }
     data
 }
@@ -164,8 +164,7 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Func
 /// If this function retrieves anything but a string it returns NULL
 #[nasl_function]
 fn toupper(s: Option<Maybe<StringOrData>>) -> Option<String> {
-    s.map(Maybe::as_option)
-        .flatten()
+    s.and_then(Maybe::as_option)
         .map(|inner| inner.0.to_uppercase())
 }
 
@@ -174,8 +173,7 @@ fn toupper(s: Option<Maybe<StringOrData>>) -> Option<String> {
 /// If this function retrieves anything but a string it returns NULL
 #[nasl_function]
 fn tolower(s: Option<Maybe<StringOrData>>) -> Option<String> {
-    s.map(Maybe::as_option)
-        .flatten()
+    s.and_then(Maybe::as_option)
         .map(|inner| inner.0.to_lowercase())
 }
 
@@ -184,8 +182,7 @@ fn tolower(s: Option<Maybe<StringOrData>>) -> Option<String> {
 /// If this function retrieves anything but a string it returns 0
 #[nasl_function]
 fn strlen(s: Option<Maybe<StringOrData>>) -> usize {
-    s.map(Maybe::as_option)
-        .flatten()
+    s.and_then(Maybe::as_option)
         .map(|inner| inner.0.len())
         .unwrap_or(0)
 }
@@ -417,7 +414,7 @@ fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>
 /// 1st positional argument: string to search in.
 /// 2nd positional argument: substring to search for.
 fn strstr(string: &str, find: &str) -> Option<&str> {
-    string.find(&find).map(|index| &string[index..])
+    string.find(find).map(|index| &string[index..])
 }
 
 /// Returns found function for key or None when not found

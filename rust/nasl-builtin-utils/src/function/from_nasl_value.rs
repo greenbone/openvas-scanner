@@ -57,8 +57,8 @@ impl<'a> FromNaslValue<'a> for Vec<String> {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::Array(vals) => Ok(vals
-                .into_iter()
-                .map(|val| String::from_nasl_value(val))
+                .iter()
+                .map(String::from_nasl_value)
                 .collect::<Result<Vec<String>, FunctionErrorKind>>()?),
             _ => Err(FunctionErrorKind::WrongArgument(
                 "Expected an array of strings.".to_string(),

@@ -154,7 +154,7 @@ impl<'a> ArgsStruct<'a> {
     pub fn try_parse(function: &'a ItemFn, attrs: &'a Attrs) -> Result<Self> {
         let (args, receiver_type) = parse_function_args(function, attrs)?;
         Ok(Self {
-            function: function,
+            function,
             args,
             receiver_type,
         })

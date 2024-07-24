@@ -17,7 +17,7 @@ pub fn nasl_function(
     let function = parse_macro_input!(input as syn::ItemFn);
     let attrs = parse_macro_input!(attrs as Attrs);
     nasl_function_internal(function, attrs)
-        .unwrap_or_else(|e| e.emit().into())
+        .unwrap_or_else(|e| e.emit())
         .into()
 }
 
