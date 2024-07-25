@@ -83,8 +83,13 @@ impl ToNaslResult for Vec<String> {
     }
 }
 
-impl<T: ToNaslResult> ToNaslResult for HashMap<String, T>
-{
+impl ToNaslResult for Vec<NaslValue> {
+    fn to_nasl_result(self) -> NaslResult {
+        Ok(NaslValue::Array(self))
+    }
+}
+
+impl<T: ToNaslResult> ToNaslResult for HashMap<String, T> {
     fn to_nasl_result(self) -> NaslResult {
         Ok(NaslValue::Dict(
             self.into_iter()
@@ -99,7 +104,6 @@ impl ToNaslResult for bool {
         Ok(NaslValue::Boolean(self))
     }
 }
-
 
 macro_rules! impl_to_nasl_result_for_numeric_type {
     ($ty: ty) => {

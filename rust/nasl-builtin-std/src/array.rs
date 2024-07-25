@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use nasl_builtin_utils::error::FunctionErrorKind;
 
 use nasl_builtin_utils::{Context, NaslFunction, Register};
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
 use nasl_builtin_utils::resolve_positional_arguments;
@@ -60,31 +61,26 @@ fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionErro
 }
 
 /// Returns an array with the keys of a dict
-fn keys(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    let mut keys = Vec::<NaslValue>::new();
-    for val in positional.iter() {
-        match val {
+#[nasl_function]
+fn keys(positionals: Positionals) -> Option<Vec<NaslValue>> {
+    let mut keys = vec![];
+    for val in positionals.iter() {
+        match val.unwrap() {
             NaslValue::Dict(x) => keys.extend(x.keys().map(|a| NaslValue::from(a.to_string()))),
             NaslValue::Array(x) => keys.extend((0..(x.len() as i64)).map(NaslValue::from)),
-            _ => return Ok(NaslValue::Null),
+            _ => return None,
         }
     }
-
-    Ok(NaslValue::Array(keys))
+    Some(keys)
 }
 
 /// NASL function to return the length of an array|dict.
-fn max_index(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = register.positional();
-    if positional.is_empty() {
-        return Ok(NaslValue::Null);
-    };
-
-    match &positional[0] {
-        NaslValue::Dict(x) => Ok(NaslValue::Number(x.len() as i64)),
-        NaslValue::Array(x) => Ok(NaslValue::Number(x.len() as i64)),
-        _ => Ok(NaslValue::Null),
+#[nasl_function]
+fn max_index(arr: &NaslValue) -> Option<usize> {
+    match arr {
+        NaslValue::Dict(x) => Some(x.len()),
+        NaslValue::Array(x) => Some(x.len()),
+        _ => None,
     }
 }
 

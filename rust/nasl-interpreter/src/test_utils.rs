@@ -1,29 +1,21 @@
 //! Utilities to test the outcome of NASL functions
 
 use crate::*;
-use nasl_builtin_utils::function::ToNaslResult;
+use nasl_builtin_utils::{function::ToNaslResult, NaslResult};
 
 /// Check that a single line of code fulfills some property by running
 /// a check function on the result.
-pub fn check_line_of_code(code: &str, f: impl Fn(Result<NaslValue, InterpretError>)) {
-    let register = Register::default();
-    let binding = ContextFactory::default();
-    let context = binding.build(Default::default(), Default::default());
-    let mut parser = CodeInterpreter::new(code, register, &context);
-    f(parser.next().unwrap())
+pub fn check_line_of_code(code: &str, f: impl Fn(NaslResult)) {
+    let mut vals = run(code);
+    f(vals.remove(0))
 }
 
 /// Check that the returned error from a line of NASL code fulfills a given
 /// property
 pub fn check_err(code: &str, f: impl Fn(&FunctionErrorKind) -> bool) {
     check_line_of_code(code, |val| {
-        let val = val.unwrap_err();
-        match val.kind {
-            InterpretErrorKind::FunctionCallError(err) => {
-                assert!(f(&err.kind), "Found {}", &err.kind);
-            }
-            _ => panic!("Function did not return expected error."),
-        }
+        let err = val.unwrap_err();
+        assert!(f(&err), "Found {}", &err);
     });
 }
 
@@ -41,13 +33,27 @@ pub fn check_ok(code: &str, expected: impl ToNaslResult) {
 /// Check that the expected value of multiple lines of NASL code
 /// matches the given values.
 pub fn check_multiple(code: &str, expected: Vec<impl ToNaslResult>) {
+    let vals = run(code);
+    for (val, expected) in vals.into_iter().zip(expected.into_iter()) {
+        assert_eq!(val, Ok(expected.to_nasl_result().unwrap()));
+    }
+}
+
+/// Check that the expected value of multiple lines of NASL code
+/// matches the given values.
+pub fn run(code: &str) -> Vec<NaslResult> {
     let register = Register::default();
     let binding = ContextFactory::default();
     let context = binding.build(Default::default(), Default::default());
     let parser = CodeInterpreter::new(code, register, &context);
-    for (val, expected) in parser.zip(expected.into_iter()) {
-        assert_eq!(val, Ok(expected.to_nasl_result().unwrap()));
-    }
+    parser
+        .map(|res| {
+            res.map_err(|e| match e.kind {
+                InterpretErrorKind::FunctionCallError(f) => f.kind,
+                _ => panic!(),
+            })
+        })
+        .collect()
 }
 
 /// Check that the line of NASL code returns an Err variant

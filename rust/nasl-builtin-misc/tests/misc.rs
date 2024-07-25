@@ -6,11 +6,9 @@
 mod tests {
     use chrono::Offset;
 
-    use nasl_builtin_utils::Register;
     use nasl_interpreter::{
         check_ok_matches,
-        test_utils::{check_multiple, check_ok},
-        CodeInterpreter, ContextFactory,
+        test_utils::{check_multiple, check_ok, run},
     };
     use nasl_syntax::NaslValue;
     use std::time::Instant;
@@ -83,16 +81,10 @@ mod tests {
         ngz = gzip(data: "ngz");
         gunzip(data: ngz);
         "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        parser.next();
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("z".into()))));
-        parser.next();
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("gz".into()))));
-        parser.next();
-        assert_eq!(parser.next(), Some(Ok(NaslValue::String("ngz".into()))));
+        let results = run(code);
+        assert_eq!(results[1], Ok(NaslValue::String("z".into())));
+        assert_eq!(results[3], Ok(NaslValue::String("gz".into())));
+        assert_eq!(results[5], Ok(NaslValue::String("ngz".into())));
     }
 
     #[test]
@@ -103,13 +95,11 @@ mod tests {
         c = localtime(utc: TRUE);
         d = localtime(utc: FALSE);
         "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
+        let results = run(code);
+        let mut results = results.into_iter();
 
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
-        let date_a = parser.next();
+        let date_a = results.next();
         assert!(matches!(date_a, Some(Ok(NaslValue::Dict(_)))));
         match date_a.unwrap().unwrap() {
             NaslValue::Dict(x) => {
@@ -126,7 +116,7 @@ mod tests {
             _ => panic!("NO DICT"),
         }
 
-        let date_b = parser.next();
+        let date_b = results.next();
         assert!(matches!(date_b, Some(Ok(NaslValue::Dict(_)))));
         match date_b.unwrap().unwrap() {
             NaslValue::Dict(x) => {
@@ -143,8 +133,8 @@ mod tests {
             _ => panic!("NO DICT"),
         }
 
-        let date_c = parser.next().unwrap().unwrap();
-        let date_d = parser.next().unwrap().unwrap();
+        let date_c = results.next().unwrap().unwrap();
+        let date_d = results.next().unwrap().unwrap();
         let hour_c: i64;
         let hour_d: i64;
         let min_c: i64;

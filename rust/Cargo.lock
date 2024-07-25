@@ -2057,6 +2057,7 @@ dependencies = [
  "nasl-builtin-ssh",
  "nasl-builtin-string",
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "storage",
