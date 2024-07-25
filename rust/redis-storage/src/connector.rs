@@ -350,7 +350,15 @@ pub trait RedisGetNvt: RedisWrapper {
 
         for (k, v) in tag_list.into_iter() {
             if let Ok(tk) = TagKey::from_str(k) {
-                tag_map.insert(tk, TagValue::from(v));
+                match tk {
+                    TagKey::CreationDate | TagKey::LastModification | TagKey::SeverityDate => {
+                        tag_map.insert(
+                            tk,
+                            TagValue::from(i64::from_str(v).expect("Valid timestamp")),
+                        )
+                    }
+                    _ => tag_map.insert(tk, TagValue::from(v)),
+                };
             }
         }
 
