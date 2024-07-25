@@ -48,6 +48,12 @@ impl<S: ScannerStack> RunningScan<S> {
         let mut status = self.status.write().unwrap();
         status.status = models::Phase::Running;
         status.start_time = current_time_in_seconds("start_time").into();
+        status.host_info = Some(models::HostInfo {
+            all: self.scan.target.hosts.len() as u64,
+            // TODO: remove alive and excluded?
+            queued: self.scan.target.hosts.len() as u64,
+            ..Default::default()
+        });
     }
 
     async fn run(self) -> Result<(), Error> {
@@ -59,6 +65,7 @@ impl<S: ScannerStack> RunningScan<S> {
         tracing::debug!(scan_id = self.scan.scan_id);
         self.set_status_to_running();
         let mut end_phase = models::Phase::Succeeded;
+        let mut last_target = String::new();
 
         let results = interpreter
             // Todo: Make this generic over the scheduler
@@ -69,6 +76,29 @@ impl<S: ScannerStack> RunningScan<S> {
                 for it in it {
                     match it {
                         Ok(x) => {
+                            tracing::trace!(last_target, target = x.target, targets=?self.scan.target.hosts);
+                            if x.target != last_target {
+                                let mut status = self.status.write().unwrap();
+                                if let Some(y) = status.host_info.as_mut() {
+                                    if y.queued > 0 {
+                                        y.queued -= 1;
+                                    }
+                                    y.finished += 1;
+                                    // TODO why is it a hashmap when we return a list of strings
+                                    // within the API?
+                                    if let Some(scanning) = y.scanning.as_mut() {
+                                        scanning.remove(&last_target);
+
+                                        scanning.insert(x.target.clone(), 1);
+                                    } else {
+                                        let mut current_scan = HashMap::new();
+                                        current_scan.insert(x.target.clone(), 1);
+                                        y.scanning = Some(current_scan);
+                                    }
+                                }
+
+                                last_target = x.target.clone();
+                            }
                             tracing::debug!(result=?x, "script finished");
 
                             if x.has_failed() {
@@ -91,6 +121,10 @@ impl<S: ScannerStack> RunningScan<S> {
         let mut status = self.status.write().unwrap();
         status.status = end_phase;
         status.end_time = current_time_in_seconds("end_time").into();
+
+        if let Some(hi) = status.host_info.as_mut() {
+            hi.scanning = None;
+        }
         results
         // Todo: proper error handling
     }
@@ -331,14 +365,15 @@ mod tests {
             if scan_results.status.status == phase {
                 return scan_results;
             }
-
         }
     }
 
     #[tokio::test]
     #[traced_test]
     async fn start_scan_success() {
-        let (scanner, scan) = make_scanner_and_scan();
+        let (scanner, mut scan) = make_scanner_and_scan();
+        scan.target.hosts.push("wald.fee".to_string());
+
         let id = scan.scan_id.clone();
         let res = scanner.start_scan(scan).await;
         assert!(res.is_ok());
@@ -352,5 +387,12 @@ mod tests {
             scan_results.status.end_time.is_some(),
             "expect end time to be set when scan finished"
         );
+        assert!(
+            scan_results.status.host_info.is_some(),
+            "host_info should be set"
+        );
+        let host_info = scan_results.status.host_info.unwrap();
+        assert_eq!(host_info.finished, 2);
+        assert_eq!(host_info.queued, 0);
     }
 }

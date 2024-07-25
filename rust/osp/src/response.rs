@@ -532,21 +532,21 @@ pub struct HostInfo {
     /// Currently scanned hosts
     pub host: Vec<Host>,
     /// Overall progress
-    pub overall: ElementU32,
+    pub overall: ElementU64,
     /// Number of alive hosts finished
     // TODO: Consider divide into alive and finished
-    pub count_alive: ElementU32,
+    pub count_alive: ElementU64,
     /// Number of dead hosts
-    pub count_dead: ElementU32,
+    pub count_dead: ElementU64,
     /// Number of excluded hosts
-    pub count_excluded: ElementU32,
+    pub count_excluded: ElementU64,
     /// Total number of hosts
-    pub count_total: ElementU32,
+    pub count_total: ElementU64,
 }
 
 /// An StringU32 element
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct ElementU32 {
+pub struct ElementU64 {
     #[serde(rename = "$text")]
     /// Content of the element
     pub content: StringU64,

@@ -10,7 +10,7 @@ use storage::types::Primitive;
 use storage::{ContextKey, Storage};
 
 use crate::scanner::ScannerStack;
-use crate::scheduling::ExecutionPlaner;
+use crate::scheduling::{ConcurrentVT, ExecutionPlaner};
 use crate::InterpretError;
 
 /// Runs a scan in a synchronous mode
@@ -104,7 +104,7 @@ pub(crate) fn generate_port_kb_key(protocol: models::Protocol, port: &str) -> St
     format!("Ports/{protocol}/{port}")
 }
 
-struct ScriptExecutor<'a, T> {
+struct SyncScriptExecutor<'a, T> {
     schedule: T,
     scan: &'a models::Scan,
 
@@ -113,13 +113,21 @@ struct ScriptExecutor<'a, T> {
     /// Default Loader
     loader: &'a dyn Loader,
     executor: &'a dyn NaslFunctionExecuter,
-    // index of the current host within scan
-    current_host: Option<usize>,
-    handled_hosts: usize,
-    current_results: Option<crate::scheduling::ConcurrentVTResult>,
+    /// Is used to remember which host we currently are executing. The host name will get through
+    /// the stored scan reference.
+    current_host: usize,
+    /// this stores the current index of the current host within the stage
+    ///
+    /// This is necessary after the first host. Internally we use schedule and iterate over it,
+    /// when there is no error then we store it within concurrent vts. After the first host is done
+    /// we cached all schedule results and switch to the next host. To not have to reschedule we
+    /// keep track of the position
+    current_host_concurrent_vt_idx: (usize, usize),
+    /// We cache the results of the scheduler
+    concurrent_vts: Vec<ConcurrentVT>,
 }
 
-impl<'a, T> ScriptExecutor<'a, T>
+impl<'a, T> SyncScriptExecutor<'a, T>
 where
     T: Iterator<Item = crate::scheduling::ConcurrentVTResult> + 'a,
 {
@@ -130,20 +138,16 @@ where
         executor: &'a S::Executor,
         schedule: T,
     ) -> Self {
-        let current_host = if scan.target.hosts.is_empty() {
-            None
-        } else {
-            Some(0)
-        };
+        let current_host = 0;
         Self {
             schedule,
             scan,
             storage,
             loader,
             executor,
-            current_results: None,
+            concurrent_vts: Vec::with_capacity(1000),
             current_host,
-            handled_hosts: 0,
+            current_host_concurrent_vt_idx: (0, 0),
         }
     }
     // TODO: implement
@@ -282,10 +286,7 @@ where
         param: Option<Vec<models::Parameter>>,
     ) -> Result<ScriptResult, ExecuteError> {
         let code = self.loader.load(&vt.filename)?;
-        let target = match self.current_host {
-            None => unreachable!("host check must be done in the iterator implementation"),
-            Some(i) => self.scan.target.hosts[i].to_string(),
-        };
+        let target = self.scan.target.hosts[self.current_host].to_string();
         let mut register = crate::Register::default();
         if let Some(params) = param {
             for p in params.iter() {
@@ -341,50 +342,89 @@ where
             target,
         })
     }
+
+    /// Checks if current current_host_concurrent_vt_idx as well as current_host are valid and may
+    /// adapt them. Returns None when there are no hosts left.
+    fn sanitize_indeces(&mut self) -> Option<Result<(usize, (usize, usize)), ExecuteError>> {
+        let (mut si, mut vi) = self.current_host_concurrent_vt_idx;
+        let mut hi = self.current_host;
+        if self.current_host == 0 {
+            // we cache all staging steps so that we can iterator through all vts per hosts.
+            // this is easier to handle for the callter as they can
+            match self.schedule.next() {
+                Some(next) => {
+                    match next {
+                        Ok(next) => {
+                            self.concurrent_vts.push(next);
+                        }
+                        Err(e) => {
+                            // Note: if the caller ignores the error and continues then the
+                            // VT will be skipped and may result in unpredictable behaviour
+                            // in the following runs. An alternative approach would be to
+                            // go to the next host. That way the run would stop at the
+                            // fauly scheduling for each run instead of trying to continue.
+                            return Some(Err(e.into()));
+                        }
+                    }
+                }
+                None => {
+                    // finished first run
+                }
+            }
+        }
+        if si < self.concurrent_vts.len() {
+            if vi >= self.concurrent_vts[si].1.len() {
+                if si + 1 < self.concurrent_vts.len() {
+                    si += 1;
+                    vi = 0;
+                } else {
+                    // TODO: cleanup kb items of storage
+                    si = 0;
+                    vi = 0;
+                    hi += 1;
+                }
+            }
+        } else {
+            // TODO: cleanup kb items of storage
+            si = 0;
+            vi = 0;
+            hi += 1;
+        }
+
+        if hi < self.scan.target.hosts.len() {
+            self.current_host = hi;
+            self.current_host_concurrent_vt_idx = (si, vi);
+            Some(Ok((hi, (si, vi))))
+        } else {
+            None
+        }
+    }
 }
 
-impl<'a, T> Iterator for ScriptExecutor<'a, T>
+impl<'a, T> Iterator for SyncScriptExecutor<'a, T>
 where
     T: Iterator<Item = crate::scheduling::ConcurrentVTResult> + 'a,
 {
     type Item = Result<ScriptResult, ExecuteError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current_results.is_none() {
-            match self.schedule.next() {
-                Some(Err(e)) => return Some(Err(e.into())),
-                result => self.current_results = result,
-            }
-        }
-        if self.current_host.is_none() {
-            self.handled_hosts += 1;
-            if self.scan.target.hosts.len() < self.handled_hosts {
-                self.current_host = Some(self.handled_hosts);
-            } else {
-                // finished
-                return None;
-            }
-        }
-        let (stage, vt, param) = match self.current_results.as_mut() {
-            Some(Ok((stage, vts))) => match vts.pop() {
-                Some((vt, param)) => (stage.clone(), vt.clone(), param.clone()),
-                None => {
-                    // stage is finished
-                    self.current_results = None;
-                    return self.next();
-                }
-            },
-            Some(Err(_)) => {
-                unreachable!("error handling of sef.schedule.next is be done before to not run into borrow issues");
-            }
-            None => {
-                // host is finished
-                self.current_host = None;
-                return self.next();
+        let (_, (si, vi)) = match self.sanitize_indeces()? {
+            Ok(x) => x,
+            Err(e) => {
+                self.current_host_concurrent_vt_idx = (
+                    self.current_host_concurrent_vt_idx.0,
+                    self.current_host_concurrent_vt_idx.1 + 1,
+                );
+                return Some(Err(e));
             }
         };
 
-        Some(self.execute(stage, vt, param))
+        let (stage, vts) = &self.concurrent_vts[si];
+        let (vt, param) = &vts[vi];
+
+        self.current_host_concurrent_vt_idx = (si, vi + 1);
+
+        Some(self.execute(stage.clone(), vt.clone(), param.clone()))
     }
 }
 
@@ -473,7 +513,7 @@ impl<'a, S: ScannerStack> SyncScanInterpreter<'a, S> {
         // - Ports/tcp/port/$port value 0 for closed or 1 for open
         // - Ports/udp/port/$port value 0 for closed or 1 for open
         // TODO: set kb item ports
-        Ok(ScriptExecutor::new::<S>(
+        Ok(SyncScriptExecutor::new::<S>(
             scan,
             self.storage,
             self.loader,
@@ -963,6 +1003,7 @@ exit({rc});
     }
 
     #[test]
+    #[tracing_test::traced_test]
     fn mandatory_keys() {
         let only_success = [
             GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
