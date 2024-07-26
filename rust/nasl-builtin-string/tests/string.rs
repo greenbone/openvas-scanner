@@ -13,7 +13,10 @@ mod tests {
     #[test]
     fn hexstr() {
         check_ok("hexstr('foo');", "666f6f");
-        check_ok("hexstr('foo', 'I will be ignored');", "666f6f");
+        check_err_matches!(
+            "hexstr('foo', 'I will be ignored');",
+            TrailingPositionalArguments { .. }
+        );
         check_ok("hexstr(6);", Null);
         check_ok("hexstr();", Null);
         check_ok("hexstr(raw_string(10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121));", "0ad066a5d29f3f2a2a1c7c17dd082a79");

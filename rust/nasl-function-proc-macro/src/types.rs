@@ -44,6 +44,24 @@ pub enum ArgKind {
     CheckedPositionalIterator,
 }
 
+impl ArgKind {
+    pub fn get_named_arg_name(&self) -> Option<&str> {
+        if let Self::Named(name) = self {
+            Some(&name.name)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_maybe_named_arg_name(&self) -> Option<&str> {
+        if let Self::MaybeNamed(_, name) = self {
+            Some(&name.name)
+        } else {
+            None
+        }
+    }
+}
+
 pub struct NamedArg {
     pub name: String,
 }

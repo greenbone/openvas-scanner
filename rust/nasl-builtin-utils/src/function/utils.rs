@@ -1,6 +1,7 @@
 //! Convenience functions, used internally in the `NaslFunctionArg` macro.
 
 use crate::function::FromNaslValue;
+use crate::lookup_keys::FC_ANON_ARGS;
 use crate::{ContextType, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 
@@ -102,4 +103,54 @@ pub fn get_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     } else {
         get_named_arg(register, name)
     }
+}
+
+/// Check that named and maybe_named arguments account for
+/// all given named arguments (i.e. no additional, unknown
+/// arguments exist).
+/// Return the number of maybe named arguments that were given
+/// as a named argument.
+fn check_named_args(
+    register: &Register,
+    named: &[&str],
+    maybe_named: &[&str],
+) -> Result<usize, FunctionErrorKind> {
+    let mut num_maybe_named = 0;
+    for arg_name in register.iter_named_args().unwrap() {
+        if arg_name == FC_ANON_ARGS {
+            continue;
+        } else {
+            if named.contains(&arg_name) {
+                continue;
+            } else if maybe_named.contains(&arg_name) {
+                num_maybe_named += 1;
+            } else {
+                return Err(FunctionErrorKind::UnexpectedArgument(arg_name.into()));
+            }
+        }
+    }
+    Ok(num_maybe_named)
+}
+
+/// Check that the number of expected positional arguments given to a
+/// NASL function matches the actual number given, and that all given
+/// named arguments exist.
+pub fn check_args(
+    register: &Register,
+    named: &[&str],
+    maybe_named: &[&str],
+    max_num_expected_positional: Option<usize>,
+) -> Result<(), FunctionErrorKind> {
+    let num_maybe_named_given = check_named_args(register, named, maybe_named)?;
+    let num_positional_given = register.positional().len();
+    if let Some(max_num_expected_positional) = max_num_expected_positional {
+        let num_positional_expected = max_num_expected_positional - num_maybe_named_given;
+        if num_positional_given > num_positional_expected {
+            return Err(FunctionErrorKind::TrailingPositionalArguments {
+                expected: num_positional_expected,
+                got: num_positional_given,
+            });
+        }
+    }
+    Ok(())
 }

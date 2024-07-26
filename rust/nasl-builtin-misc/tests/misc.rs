@@ -7,8 +7,9 @@ mod tests {
     use chrono::Offset;
 
     use nasl_interpreter::{
-        check_ok_matches,
+        check_err_matches, check_ok_matches,
         test_utils::{check_multiple, check_ok, run},
+        FunctionErrorKind,
     };
     use nasl_syntax::NaslValue;
     use std::time::Instant;
@@ -37,7 +38,10 @@ mod tests {
         check_ok(r#"typeof(make_array());"#, "array");
         check_ok(r#"typeof(NULL);"#, "undef");
         check_ok(r#"typeof(a);"#, "undef");
-        check_ok(r#"typeof(23,76);"#, "int");
+        check_err_matches!(
+            r#"typeof(23,76);"#,
+            FunctionErrorKind::TrailingPositionalArguments { .. }
+        );
         check_multiple(
             "d['test'] = 2; typeof(d);",
             vec![NaslValue::from(2), NaslValue::from("array")],

@@ -15,6 +15,22 @@ impl<'a> ArgsStruct<'a> {
         self.positional().filter(|(arg, _)| !arg.optional).count()
     }
 
+    fn max_num_allowed_positional(&self) -> usize {
+        self.args
+            .iter()
+            .filter(|arg| matches!(arg.kind, ArgKind::Positional(_) | ArgKind::MaybeNamed(_, _)))
+            .count()
+    }
+
+    fn has_positional_iterator_arg(&self) -> bool {
+        self.args.iter().any(|arg| {
+            matches!(
+                arg.kind,
+                ArgKind::PositionalIterator | ArgKind::CheckedPositionalIterator
+            )
+        })
+    }
+
     fn get_args(&self) -> TokenStream {
         self
             .args.iter().map(|arg| {
@@ -84,6 +100,32 @@ impl<'a> ArgsStruct<'a> {
             .collect()
     }
 
+    fn make_array_of_names(&self, f: impl Fn(&ArgKind) -> Option<&str>) -> TokenStream {
+        let contents: TokenStream = self
+            .args
+            .iter()
+            .filter_map(|arg| f(&arg.kind))
+            .map(|name| {
+                quote! { #name, }
+            })
+            .collect();
+        quote! { &[#contents] }
+    }
+
+    fn gen_checks(&self) -> TokenStream {
+        let named_array = self.make_array_of_names(ArgKind::get_named_arg_name);
+        let maybe_named_array = self.make_array_of_names(ArgKind::get_maybe_named_arg_name);
+        let num_allowed_positional_args = if self.has_positional_iterator_arg() {
+            quote! { None }
+        } else {
+            let num = self.max_num_allowed_positional();
+            quote! { Some(#num) }
+        };
+        quote! {
+            ::nasl_builtin_utils::function::utils::check_args(_register, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
+        }
+    }
+
     pub fn impl_nasl_function_args(&self) -> TokenStream {
         let ItemFn {
             attrs,
@@ -113,10 +155,12 @@ impl<'a> ArgsStruct<'a> {
             syn::ReturnType::Default => quote! { () },
             syn::ReturnType::Type(_, ty) => quote! { #ty },
         };
+        let checks = self.gen_checks();
         // We annotate the _inner closure with the output_ty to aid
         // the compiler with type inference.
         quote! {
             #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {
+                #checks
                 #args
                 let _inner = || -> #output_ty {
                     #(#stmts)*
