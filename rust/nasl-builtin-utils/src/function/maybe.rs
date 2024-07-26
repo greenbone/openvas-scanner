@@ -8,6 +8,7 @@ use super::FromNaslValue;
 /// of a particular type, but it being of a different type
 /// will be handled by ignoring the value (and probably returning
 /// `None` or some sentinel value), instead of producing an error.
+#[derive(Debug)]
 pub struct Maybe<T>(Option<T>);
 
 impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for Maybe<T> {

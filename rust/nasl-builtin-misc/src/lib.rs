@@ -21,7 +21,7 @@ use nasl_syntax::NaslValue;
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
-use nasl_builtin_utils::{error::FunctionErrorKind, resolve_positional_arguments, NaslFunction};
+use nasl_builtin_utils::{error::FunctionErrorKind, function::Maybe, NaslFunction};
 use nasl_builtin_utils::{Context, ContextType, Register};
 
 #[inline]
@@ -208,16 +208,15 @@ fn localtime(secs: Option<i64>, utc: Option<NaslValue>) -> HashMap<String, NaslV
 /// Uses the first positional argument to verify if a function is defined.
 /// This argument must be a string everything else will return False per default.
 /// Returns NaslValue::Boolean(true) when defined NaslValue::Boolean(false) otherwise.
-fn defined_func(register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-
-    Ok(match positional.first() {
-        Some(NaslValue::String(x)) => match register.named(x) {
-            Some(ContextType::Function(_, _)) => true.into(),
-            _ => ctx.nasl_fn_defined(x).into(),
-        },
-        _ => false.into(),
-    })
+#[nasl_function]
+fn defined_func(fn_name: Option<Maybe<&str>>, ctx: &Context, register: &Register) -> bool {
+    fn_name
+        .and_then(Maybe::as_option)
+        .map(|fn_name| match register.named(fn_name) {
+            Some(ContextType::Function(_, _)) => true,
+            _ => ctx.nasl_fn_defined(fn_name),
+        })
+        .unwrap_or(false)
 }
 
 /// Returns the seconds and microseconds counted from 1st January 1970. It formats a string
@@ -237,9 +236,9 @@ fn gettimeofday() -> Result<String, FunctionErrorKind> {
 
 /// Is a debug function to print the keys available within the called context. It does not take any
 /// nor returns any arguments.
-fn dump_ctxt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+#[nasl_function]
+fn dump_ctxt(register: &Register) {
     register.dump(register.index() - 1);
-    Ok(NaslValue::Null)
 }
 
 /// Returns found function for key or None when not found

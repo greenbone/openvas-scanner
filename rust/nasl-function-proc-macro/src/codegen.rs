@@ -60,6 +60,11 @@ impl<'a> ArgsStruct<'a> {
                             _context
                         }
                     },
+                    ArgKind::Register => {
+                        quote! {
+                            _register
+                        }
+                    },
                     ArgKind::PositionalIterator => {
                         quote! {
                             ::nasl_builtin_utils::function::Positionals::new(_register)

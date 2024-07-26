@@ -38,6 +38,7 @@ pub enum ArgKind {
     Named(NamedArg),
     MaybeNamed(PositionalArg, NamedArg),
     Context,
+    Register,
     PositionalIterator,
     CheckedPositionalIterator,
 }

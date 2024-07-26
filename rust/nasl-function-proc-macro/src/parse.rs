@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::types::*;
-use crate::utils::{get_subty_if_name_is, ty_is_context, ty_name_is};
+use crate::utils::{get_subty_if_name_is, ty_is_context, ty_is_register, ty_name_is};
 use syn::{
     parenthesized, parse::Parse, punctuated::Punctuated, spanned::Spanned, FnArg, Ident, ItemFn,
     Token, Type,
@@ -40,6 +40,9 @@ impl Attrs {
     fn get_arg_kind(&self, ident: &Ident, position: usize, ty: &Type) -> ArgKind {
         if ty_is_context(ty) {
             return ArgKind::Context;
+        }
+        if ty_is_register(ty) {
+            return ArgKind::Register;
         }
         if ty_name_is(ty, "Positionals") {
             return ArgKind::PositionalIterator;
