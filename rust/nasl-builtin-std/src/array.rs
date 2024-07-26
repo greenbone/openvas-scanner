@@ -9,14 +9,10 @@
 
 use std::collections::HashMap;
 
-use nasl_builtin_utils::error::FunctionErrorKind;
-
 use nasl_builtin_utils::function::{CheckedPositionals, Positionals};
-use nasl_builtin_utils::{Context, NaslFunction, Register};
+use nasl_builtin_utils::NaslFunction;
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
-
-use nasl_builtin_utils::resolve_positional_arguments;
 
 /// NASL function to create a dictionary out of an even number of arguments
 ///
@@ -34,11 +30,9 @@ fn make_array(positionals: CheckedPositionals<NaslValue>) -> HashMap<String, Nas
     values.into()
 }
 
-/// NASL function to create a list out of a number of unnamed arguments
-fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionErrorKind> {
-    let arr = resolve_positional_arguments(register);
+fn create_list(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {
     let mut values = Vec::<NaslValue>::new();
-    for val in arr.iter() {
+    for val in positionals.iter() {
         match val {
             NaslValue::Dict(x) => values.extend(x.values().cloned().collect::<Vec<NaslValue>>()),
             NaslValue::Array(x) => values.extend(x.clone()),
@@ -46,19 +40,20 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionErrorKi
             x => values.push(x.clone()),
         }
     }
-    Ok(values)
+    values
 }
 /// NASL function to create a list out of a number of unnamed arguments
-fn make_list(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let values = nasl_make_list(register)?;
-    Ok(NaslValue::Array(values))
+#[nasl_function]
+fn make_list(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {
+    create_list(positionals)
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let mut values = nasl_make_list(register)?;
+#[nasl_function]
+fn nasl_sort(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {
+    let mut values = create_list(positionals);
     values.sort();
-    Ok(NaslValue::Array(values))
+    values
 }
 
 /// Returns an array with the keys of a dict
