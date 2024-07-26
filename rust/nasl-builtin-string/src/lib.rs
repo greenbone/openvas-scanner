@@ -7,7 +7,7 @@
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
-    function::{FromNaslValue, Maybe},
+    function::{CheckedPositionals, FromNaslValue, Maybe},
     Context, FunctionErrorKind, NaslFunction, Register,
 };
 use nasl_function_proc_macro::nasl_function;

@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Index};
 
 use crate::{FunctionErrorKind, Register};
 
@@ -81,5 +81,13 @@ impl<'a, T: FromNaslValue<'a>> IntoIterator for CheckedPositionals<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
+    }
+}
+
+impl<T> Index<usize> for CheckedPositionals<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
     }
 }

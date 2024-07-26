@@ -21,24 +21,25 @@ impl<'a> ArgsStruct<'a> {
                 let num_required_positional_args = self.num_required_positional();
                 let ident = &arg.ident;
                 let mutability = if arg.mutable { quote! { mut } } else { quote ! {}};
+                let inner_ty = &arg.inner_ty;
                 let ty = &arg.ty;
-                let parse = match &arg.kind {
+                let expr = match &arg.kind {
                     ArgKind::Positional(positional) => {
                         let position = positional.position;
                             if arg.optional {
-                                quote! { ::nasl_builtin_utils::function::utils::get_optional_positional_arg::<#ty>(_register, #position)? }
+                                quote! { ::nasl_builtin_utils::function::utils::get_optional_positional_arg::<#inner_ty>(_register, #position)? }
                             }
                             else {
-                                quote! { ::nasl_builtin_utils::function::utils::get_positional_arg::<#ty>(_register, #position, #num_required_positional_args)? }
+                                quote! { ::nasl_builtin_utils::function::utils::get_positional_arg::<#inner_ty>(_register, #position, #num_required_positional_args)? }
                             }
                     }
                     ArgKind::Named(named) => {
                         let name = &named.name;
                         if arg.optional {
-                            quote! { ::nasl_builtin_utils::function::utils::get_optional_named_arg::<#ty>(_register, #name)? }
+                            quote! { ::nasl_builtin_utils::function::utils::get_optional_named_arg::<#inner_ty>(_register, #name)? }
                         }
                         else {
-                            quote! { ::nasl_builtin_utils::function::utils::get_named_arg::<#ty>(_register, #name)? }
+                            quote! { ::nasl_builtin_utils::function::utils::get_named_arg::<#inner_ty>(_register, #name)? }
                         }
                     }
                     ArgKind::MaybeNamed(positional, named) => {
@@ -46,12 +47,12 @@ impl<'a> ArgsStruct<'a> {
                         let position = positional.position;
                         if arg.optional {
                             quote! {
-                                ::nasl_builtin_utils::function::utils::get_optional_maybe_named_arg::<#ty>(_register, #name, #position)?
+                                ::nasl_builtin_utils::function::utils::get_optional_maybe_named_arg::<#inner_ty>(_register, #name, #position)?
                             }
                         }
                         else {
                             quote! {
-                                ::nasl_builtin_utils::function::utils::get_maybe_named_arg::<#ty>(_register, #name, #position)?
+                                ::nasl_builtin_utils::function::utils::get_maybe_named_arg::<#inner_ty>(_register, #name, #position)?
                             }
                         }
                     }
@@ -77,7 +78,7 @@ impl<'a> ArgsStruct<'a> {
                     }
                 };
                 quote! {
-                    let #mutability #ident = #parse;
+                    let #mutability #ident: #ty = #expr;
                 }
             })
             .collect()

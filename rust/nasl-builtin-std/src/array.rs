@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use nasl_builtin_utils::error::FunctionErrorKind;
 
+use nasl_builtin_utils::function::{CheckedPositionals, Positionals};
 use nasl_builtin_utils::{Context, NaslFunction, Register};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
@@ -22,15 +23,15 @@ use nasl_builtin_utils::resolve_positional_arguments;
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-fn make_array(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
+#[nasl_function]
+fn make_array(positionals: CheckedPositionals<NaslValue>) -> HashMap<String, NaslValue> {
     let mut values = HashMap::new();
-    for (idx, val) in positional.iter().enumerate() {
+    for (idx, val) in positionals.iter().enumerate() {
         if idx % 2 == 1 {
-            values.insert(positional[idx - 1].to_string(), val.clone());
+            values.insert(positionals[idx - 1].to_string(), val.clone());
         }
     }
-    Ok(values.into())
+    values.into()
 }
 
 /// NASL function to create a list out of a number of unnamed arguments
@@ -62,7 +63,7 @@ fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionErro
 
 /// Returns an array with the keys of a dict
 #[nasl_function]
-fn keys(positionals: Positionals) -> Option<Vec<NaslValue>> {
+fn keys(positionals: Positionals<NaslValue>) -> Option<Vec<NaslValue>> {
     let mut keys = vec![];
     for val in positionals.iter() {
         match val.unwrap() {

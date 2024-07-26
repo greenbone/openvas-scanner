@@ -28,6 +28,7 @@ pub enum ReceiverType {
 pub struct Arg<'a> {
     pub ident: &'a Ident,
     pub ty: &'a Type,
+    pub inner_ty: &'a Type,
     pub optional: bool,
     pub kind: ArgKind,
     pub mutable: bool,
