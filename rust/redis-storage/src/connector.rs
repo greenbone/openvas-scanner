@@ -194,6 +194,7 @@ pub const NOTUSUPDATE_SELECTOR: &[NameSpaceSelector] =
 pub trait RedisWrapper {
     fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()>;
     fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()>;
+    fn del(&mut self, key: &str) -> RedisStorageResult<()>;
     fn lindex(&mut self, key: &str, index: isize) -> RedisStorageResult<String>;
     fn lrange(&mut self, key: &str, start: isize, end: isize) -> RedisStorageResult<Vec<String>>;
     fn keys(&mut self, pattern: &str) -> RedisStorageResult<Vec<String>>;
@@ -218,6 +219,16 @@ impl RedisWrapper for RedisCtx {
             .as_mut()
             .expect("Valid redis connection")
             .lpush(key, val)
+            .map_err(|e| e.into())
+    }
+
+    ///Wrapper function to avoid accessing kb member directly.
+    #[inline(always)]
+    fn del(&mut self, key: &str) -> RedisStorageResult<()> {
+        self.kb
+            .as_mut()
+            .expect("Valid redis connection")
+            .del(key)
             .map_err(|e| e.into())
     }
 
@@ -551,12 +562,14 @@ pub trait RedisAddNvt: RedisWrapper {
             &family,
             &name,
         ];
+        self.del(&key_name)?;
         self.rpush(&key_name, &values)?;
 
         // Add preferences
         let prefs = Self::prefs(&nvt.preferences);
         if !prefs.is_empty() {
             let key_name = format!("oid:{oid}:prefs");
+            self.del(&key_name)?;
             self.lpush(&key_name, prefs)?;
             //self.kb.lpush(&key_name, prefs)?;
         }
@@ -721,6 +734,7 @@ where
 
     fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError> {
         let mut cache = Arc::as_ref(&self.cache).lock()?;
+        cache.del(CACHE_KEY)?;
         cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
     }
 
@@ -812,6 +826,10 @@ mod tests {
                 .unwrap();
             Ok(())
         }
+        fn del(&mut self, _: &str) -> crate::dberror::RedisStorageResult<()> {
+            Ok(())
+        }
+
         fn lindex(&mut self, _: &str, _: isize) -> crate::dberror::RedisStorageResult<String> {
             Ok(String::new())
         }
