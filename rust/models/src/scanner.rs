@@ -234,8 +234,8 @@ pub enum Error {
     Poisoned,
     #[error("Scan not found: {0}")]
     ScanNotFound(String),
-    #[error("Unable to schedule scan {0}: {1}")]
-    SchedulingError(String, String),
+    #[error("Unable to schedule scan {id}: {reason}")]
+    SchedulingError{ id: String, reason: String},
 }
 
 fn display_resources(v: &[ObservableResources]) -> String {

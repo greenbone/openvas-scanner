@@ -19,8 +19,8 @@ use storage::{DefaultDispatcher, Storage};
 use tokio::task::JoinHandle;
 
 use crate::{
-    scheduling::{ExecutionPlaner, WaveExecutionPlan},
-    ExecuteError, SyncScanInterpreter,
+    scheduling::WaveExecutionPlan,
+    SyncScanInterpreter,
 };
 
 struct RunningScan<S: ScannerStack> {
@@ -116,7 +116,10 @@ impl<S: ScannerStack> RunningScan<S> {
                     }
                 }
             })
-            .map_err(|e| todo!());
+            .map_err(|e| Error::SchedulingError {
+                id: self.scan.scan_id.to_string(), 
+                reason: e.to_string(),
+            });
 
         let mut status = self.status.write().unwrap();
         status.status = end_phase;
@@ -126,7 +129,6 @@ impl<S: ScannerStack> RunningScan<S> {
             hi.scanning = None;
         }
         results
-        // Todo: proper error handling
     }
 }
 struct RunningScanHandle {
@@ -274,8 +276,7 @@ impl<S: ScannerStack> ScanStopper for Scanner<S> {
             .write()
             .unwrap()
             .remove(id)
-            // TODO: Do this properly
-            .ok_or_else(|| Error::Unexpected(id.to_string()))?;
+            .ok_or_else(|| Error::ScanNotFound(id.to_string()))?;
         handle.keep_running.store(false, Ordering::SeqCst);
         handle.handle.abort();
         Ok(())
@@ -327,9 +328,10 @@ mod tests {
         Scan,
     };
     use nasl_builtin_utils::NaslFunctionRegister;
+    use storage::item::Nvt;
     use tracing_test::traced_test;
 
-    use crate::{scanner::Scanner, tests::setup};
+    use crate::{scanner::Scanner, tests::{setup_success, GenerateScript}};
 
     type TestStack = (
         storage::DefaultDispatcher,
@@ -337,8 +339,13 @@ mod tests {
         NaslFunctionRegister,
     );
 
-    fn make_scanner_and_scan() -> (Scanner<TestStack>, Scan) {
-        let ((storage, loader, executor), scan) = setup();
+    fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
+        let ((storage, loader, executor), scan) = setup_success();
+        (Scanner::new(storage, loader, executor), scan)
+    }
+
+    fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (Scanner<TestStack>, Scan) {
+        let ((storage, loader, executor), scan) = crate::tests::setup(scripts);
         (Scanner::new(storage, loader, executor), scan)
     }
 
@@ -352,9 +359,8 @@ mod tests {
         assert!(start > 0);
         loop {
             let current = super::current_time_in_seconds("loop test");
-            assert!(current > 0);
+            assert!(current > 0, "it was not possible to get the system time in seconds");
             assert!(current - start < 1, "time for finishing scan is up.");
-
             // we need the sloep to not instantly read lock running and preventing write access
             tokio::time::sleep(Duration::from_nanos(100)).await;
             let scan_results = scanner
@@ -370,8 +376,46 @@ mod tests {
 
     #[tokio::test]
     #[traced_test]
+    async fn start_scan_failure() {
+        let failures = 
+        [
+
+            GenerateScript {
+                id: "0".into(),
+                rc: 1,
+                ..Default::default()
+            }.generate()
+        ];
+        
+        let (scanner,scan) = make_scanner_and_scan(&failures);
+
+        let id = scan.scan_id.clone();
+        let res = scanner.start_scan(scan).await;
+        assert!(res.is_ok());
+        let scan_results = wait_for_status(scanner, &id, models::Phase::Succeeded).await;
+
+        assert!(
+            scan_results.status.start_time.is_some(),
+            "expect start time to be set when scan starts"
+        );
+        assert!(
+            scan_results.status.end_time.is_some(),
+            "expect end time to be set when scan finished"
+        );
+        assert!(
+            scan_results.status.host_info.is_some(),
+            "host_info should be set"
+        );
+        let host_info = scan_results.status.host_info.unwrap();
+        assert_eq!(host_info.finished, 1);
+        assert_eq!(host_info.queued, 0);
+    }
+
+
+    #[tokio::test]
+    #[traced_test]
     async fn start_scan_success() {
-        let (scanner, mut scan) = make_scanner_and_scan();
+        let (scanner, mut scan) = make_scanner_and_scan_success();
         scan.target.hosts.push("wald.fee".to_string());
 
         let id = scan.scan_id.clone();

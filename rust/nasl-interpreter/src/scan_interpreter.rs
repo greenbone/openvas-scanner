@@ -601,7 +601,9 @@ pub(super) mod tests {
         only_success[stou(s)].0.clone()
     }
 
-    pub fn setup() -> (
+    pub fn setup(
+        scripts: &[(String, storage::item::Nvt)],
+    ) -> (
         (
             storage::DefaultDispatcher,
             fn(&str) -> String,
@@ -609,10 +611,9 @@ pub(super) mod tests {
         ),
         models::Scan,
     ) {
-        let only_success = only_success();
         use storage::Dispatcher;
         let storage = storage::DefaultDispatcher::new(true);
-        only_success.iter().map(|(_, v)| v).for_each(|n| {
+        scripts.iter().map(|(_, v)| v).for_each(|n| {
             storage
                 .dispatch(
                     &storage::ContextKey::FileName(n.filename.clone()),
@@ -627,7 +628,7 @@ pub(super) mod tests {
                 ..Default::default()
             },
             scan_preferences: vec![],
-            vts: only_success
+            vts: scripts
                 .iter()
                 .map(|(_, v)| models::VT {
                     oid: v.oid.clone(),
@@ -639,20 +640,31 @@ pub(super) mod tests {
         ((storage, loader, executor), scan)
     }
 
+    pub fn setup_success() -> (
+        (
+            storage::DefaultDispatcher,
+            fn(&str) -> String,
+            NaslFunctionRegister,
+        ),
+        models::Scan,
+    ) {
+        setup(&only_success())
+    }
+
     #[derive(Debug, Default)]
-    struct GenerateScript {
-        id: String,
-        rc: usize,
-        dependencies: Vec<String>,
-        required_keys: Vec<String>,
-        mandatory_keys: Vec<String>,
-        required_tcp_ports: Vec<String>,
-        required_udp_ports: Vec<String>,
-        exclude: Vec<String>,
+    pub struct GenerateScript {
+        pub id: String,
+        pub rc: usize,
+        pub dependencies: Vec<String>,
+        pub required_keys: Vec<String>,
+        pub mandatory_keys: Vec<String>,
+        pub required_tcp_ports: Vec<String>,
+        pub required_udp_ports: Vec<String>,
+        pub exclude: Vec<String>,
     }
 
     impl GenerateScript {
-        fn with_dependencies(id: &str, dependencies: &[&str]) -> GenerateScript {
+        pub fn with_dependencies(id: &str, dependencies: &[&str]) -> GenerateScript {
             let dependencies = dependencies.iter().map(|x| x.to_string()).collect();
 
             GenerateScript {
@@ -662,7 +674,7 @@ pub(super) mod tests {
             }
         }
 
-        fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
+        pub fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
             let required_keys = required_keys.iter().map(|x| x.to_string()).collect();
             GenerateScript {
                 id: id.to_string(),
@@ -671,7 +683,7 @@ pub(super) mod tests {
             }
         }
 
-        fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
+        pub fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
             let mandatory_keys = mandatory_keys.iter().map(|x| x.to_string()).collect();
             GenerateScript {
                 id: id.to_string(),
@@ -680,7 +692,7 @@ pub(super) mod tests {
             }
         }
 
-        fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
+        pub fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
             let exclude = exclude_keys.iter().map(|x| x.to_string()).collect();
             GenerateScript {
                 id: id.to_string(),
@@ -689,7 +701,7 @@ pub(super) mod tests {
             }
         }
 
-        fn with_required_ports(id: &str, ports: &[(models::Protocol, &str)]) -> GenerateScript {
+        pub fn with_required_ports(id: &str, ports: &[(models::Protocol, &str)]) -> GenerateScript {
             let required_tcp_ports = ports
                 .iter()
                 .filter(|(p, _)| matches!(p, models::Protocol::TCP))
@@ -710,7 +722,7 @@ pub(super) mod tests {
             }
         }
 
-        fn generate(&self) -> (String, storage::item::Nvt) {
+        pub fn generate(&self) -> (String, storage::item::Nvt) {
             let keys = |x: &[String]| -> String {
                 x.iter().fold(String::default(), |acc, e| {
                     let acc = if acc.is_empty() {
@@ -850,7 +862,7 @@ exit({rc});
 
     #[test]
     fn run_with_schedule() {
-        let ((storage, loader, executor), scan) = setup();
+        let ((storage, loader, executor), scan) = setup_success();
         let interpreter = super::SyncScanInterpreter::new(&storage, &loader, &executor);
         let result = interpreter
             .run::<crate::scheduling::WaveExecutionPlan>(&scan)
