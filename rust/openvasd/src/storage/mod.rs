@@ -413,15 +413,31 @@ pub trait ResultHandler {
     fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
     where
         E: From<storage::StorageError>;
+    fn remove_result<E>(
+        &self,
+        key: &storage::ContextKey,
+        idx: Option<usize>,
+    ) -> Result<Vec<models::Result>, E>
+    where
+        E: From<storage::StorageError>;
 }
 
 /// Uses a storage::Storage device to handle KB and VT elements when used within a
 /// nasl-interpreter::Interpreter.
 ///
 /// This is used for file storage and inmemeory storage.
-pub struct UserNASLStorageForKBandVT<T>(pub T)
+pub struct UserNASLStorageForKBandVT<T>(T)
 where
     T: Storage + ResultHandler + Sync + Send;
+
+impl<T> UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Sync + Send,
+{
+    pub fn new(underlying: T) -> Self {
+        Self(underlying)
+    }
+}
 
 impl<T> ResultHandler for UserNASLStorageForKBandVT<T>
 where
@@ -435,6 +451,17 @@ where
         E: From<storage::StorageError>,
     {
         self.0.handle_result(key, result)
+    }
+
+    fn remove_result<E>(
+        &self,
+        key: &storage::ContextKey,
+        idx: Option<usize>,
+    ) -> Result<Vec<models::Result>, E>
+    where
+        E: From<storage::StorageError>,
+    {
+        self.0.remove_result(key, idx)
     }
 }
 
@@ -498,8 +525,29 @@ where
         }
     }
 
-    fn on_exit(&self) -> Result<(), storage::StorageError> {
-        self.underlying_storage().on_exit()
+    fn on_exit(&self, key: &storage::ContextKey) -> Result<(), storage::StorageError> {
+        self.underlying_storage().on_exit(key)
+    }
+}
+
+impl<T> storage::Remover for UserNASLStorageForKBandVT<T>
+where
+    T: Storage + ResultHandler + Sync + Send,
+{
+    fn remove_kb(
+        &self,
+        key: &storage::ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<storage::Kb>>, storage::StorageError> {
+        self.underlying_storage().remove_kb(key, kb_key)
+    }
+
+    fn remove_result(
+        &self,
+        key: &storage::ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, storage::StorageError> {
+        todo!()
     }
 }
 

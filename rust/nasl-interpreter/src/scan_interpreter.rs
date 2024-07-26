@@ -612,7 +612,7 @@ pub(super) mod tests {
         models::Scan,
     ) {
         use storage::Dispatcher;
-        let storage = storage::DefaultDispatcher::new(true);
+        let storage = storage::DefaultDispatcher::new();
         scripts.iter().map(|(_, v)| v).for_each(|n| {
             storage
                 .dispatch(
@@ -780,25 +780,20 @@ exit({rc});
             ("description".to_owned(), true.into()),
             ("OPENVAS_VERSION".to_owned(), "testus".into()),
         ];
-        let storage = storage::DefaultDispatcher::new(true);
+        let storage = storage::DefaultDispatcher::new();
 
         let register = nasl_builtin_utils::Register::root_initial(&initial);
         let target = String::default();
         let functions = crate::nasl_std_functions();
         let loader = |_: &str| code.to_string();
+        let key = storage::ContextKey::FileName(id.to_string());
 
-        let context = nasl_builtin_utils::Context::new(
-            storage::ContextKey::FileName(id.to_string()),
-            target,
-            &storage,
-            &storage,
-            &loader,
-            &functions,
-        );
+        let context =
+            nasl_builtin_utils::Context::new(key, target, &storage, &storage, &loader, &functions);
         let interpreter = crate::CodeInterpreter::new(code, register, &context);
         for stmt in interpreter {
             if let nasl_syntax::NaslValue::Exit(_) = stmt.expect("stmt success") {
-                storage.on_exit().expect("result");
+                storage.on_exit(context.key()).expect("result");
                 let result = storage
                     .retrieve(
                         &storage::ContextKey::FileName(id.to_string()),
@@ -817,7 +812,7 @@ exit({rc});
     }
 
     fn prepare_vt_storage(scripts: &[(String, storage::item::Nvt)]) -> storage::DefaultDispatcher {
-        let dispatcher = storage::DefaultDispatcher::new(true);
+        let dispatcher = storage::DefaultDispatcher::new();
         scripts.iter().map(|(_, v)| v).for_each(|n| {
             dispatcher
                 .dispatch(

@@ -59,7 +59,7 @@ fn execute(
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
-    let storage = Arc::new(storage::DefaultDispatcher::new(true));
+    let storage = Arc::new(storage::DefaultDispatcher::new());
     let mut scan = {
         if stdin {
             tracing::debug!("reading scan config from stdin");

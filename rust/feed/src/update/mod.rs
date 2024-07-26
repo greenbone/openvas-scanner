@@ -145,7 +145,7 @@ where
         for stmt in interpreter {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
-                    self.dispatcher.on_exit()?;
+                    self.dispatcher.on_exit(context.key())?;
                     return Ok(i);
                 }
                 Ok(_) => {}

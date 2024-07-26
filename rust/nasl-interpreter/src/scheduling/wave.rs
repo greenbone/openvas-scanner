@@ -299,7 +299,7 @@ mod tests {
         use storage::Dispatcher;
         use storage::Retriever;
         let nvts = vt_gen();
-        let retrieve = storage::DefaultDispatcher::new(true);
+        let retrieve = storage::DefaultDispatcher::new();
         nvts.clone().into_iter().for_each(|x| {
             retrieve
                 .dispatch(&storage::ContextKey::default(), x.into())

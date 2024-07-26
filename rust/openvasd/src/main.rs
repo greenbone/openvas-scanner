@@ -152,7 +152,7 @@ where
             run_with_scanner_and_storage(scanner, storage, config).await
         }
         ScannerType::Openvasd => {
-            let storage = std::sync::Arc::new(storage::UserNASLStorageForKBandVT(storage));
+            let storage = std::sync::Arc::new(storage::UserNASLStorageForKBandVT::new(storage));
             let scanner = make_openvasd_scanner(config, storage.clone());
             run_with_scanner_and_storage(scanner, storage, config).await
         }

@@ -192,7 +192,7 @@ pub fn run(
             builder.storage(storage).build().run(script)
         }
         (Db::InMemory, Some(path)) => {
-            let storage = DefaultDispatcher::new(true);
+            let storage = DefaultDispatcher::new();
             let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
             builder.storage(storage).build().run(script)
         }

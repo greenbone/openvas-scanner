@@ -55,16 +55,11 @@ impl<S> Storage<S> {
     }
 }
 
-#[async_trait]
-impl<S> ProgressGetter for Storage<S>
+impl<S> Storage<S>
 where
     S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
 {
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
-        // the encryption is done in whole, unlike when in memory
-        self.get_scan(id).await
-    }
-    async fn get_results(
+    fn get_results_sync(
         &self,
         id: &str,
         from: Option<usize>,
@@ -87,6 +82,25 @@ where
         )?;
         let parsed = iter.filter_map(|x| x.ok());
         Ok(Box::new(parsed))
+    }
+}
+
+#[async_trait]
+impl<S> ProgressGetter for Storage<S>
+where
+    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+{
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+        // the encryption is done in whole, unlike when in memory
+        self.get_scan(id).await
+    }
+    async fn get_results(
+        &self,
+        id: &str,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
+        self.get_results_sync(id, from, to)
     }
     async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
         let key = format!("scan_{id}");
@@ -408,12 +422,12 @@ where
         let store = &mut self.storage.write().unwrap();
         let key = format!("results_{}", key.value());
 
-        let results = vec![result];
-        let mut serialized_results = Vec::with_capacity(results.len());
         let ilen = match store.indices(&key) {
             Ok(x) => x.len(),
             Err(_) => 0,
         };
+        let results = vec![result];
+        let mut serialized_results = Vec::with_capacity(results.len());
         for (i, mut result) in results.into_iter().enumerate() {
             result.id = ilen + i;
             let bytes = serde_json::to_vec(&result).map_err(|x| {
@@ -423,8 +437,36 @@ where
         }
         store
             .append_all(&key, &serialized_results)
-            .map_err(|x| storage::StorageError::Dirty(format!("Unable to store to diskL {x}")))?;
+            .map_err(|x| storage::StorageError::Dirty(format!("Unable to store to disk: {x}")))?;
         Ok(())
+    }
+
+    fn remove_result<E>(
+        &self,
+        key: &storage::ContextKey,
+        idx: Option<usize>,
+    ) -> Result<Vec<models::Result>, E>
+    where
+        E: From<storage::StorageError>,
+    {
+        let deleted_results = self
+            .get_results_sync(key.as_ref(), idx, idx.map(|x| x + 1))
+            .map_err(|x| storage::StorageError::Dirty(x.to_string()))?
+            .filter_map(|x| serde_json::de::from_slice(&x).ok())
+            .collect();
+        if let Some(_idx) = idx {
+            // is unsupported as then the result index wouldn't match tyhye file index anymore
+            // which could have side effects for get results in the openvasd api as we store the
+            // json as is.
+            tracing::warn!("called an unsupported function to delete a result within the file storage, ignoring");
+        } else {
+            let key = format!("results_{}", key.value());
+            let store = &mut self.storage.write().unwrap();
+            store
+                .remove(&key)
+                .map_err(|_| storage::StorageError::NotFound(key))?;
+        }
+        Ok(deleted_results)
     }
 }
 
@@ -578,6 +620,19 @@ mod tests {
             .filter_map(|x| x.ok())
             .collect();
         assert_eq!(2, range.len());
+        let deleted_results = storage
+            .remove_result::<Error>(&storage::ContextKey::Scan("42".to_string()), None)
+            .unwrap();
+        assert_eq!(deleted_results.len(), range.len());
+        let range: Vec<String> = storage
+            .get_results("42", None, None)
+            .await
+            .unwrap()
+            .map(String::from_utf8)
+            .filter_map(|x| x.ok())
+            .collect();
+        assert_eq!(0, range.len());
+
         for s in scans {
             let _ = storage.remove_scan(&s.scan_id).await;
         }

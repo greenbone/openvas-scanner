@@ -80,7 +80,6 @@ impl ContextKey {
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-
 /// Structure to hold a knowledge base item
 pub struct Kb {
     /// Key of the knowledge base entry
@@ -169,6 +168,9 @@ pub enum StorageError {
     /// An example would be that there is no free db left on redis and that it needs to be cleaned up.
     #[error("Unexpected issue: {0}")]
     Dirty(String),
+    #[error("Not found: {0}")]
+    /// Not found variant
+    NotFound(String),
 }
 
 impl<S> From<PoisonError<S>> for StorageError {
@@ -226,7 +228,7 @@ pub trait Dispatcher: Sync + Send {
     /// On exit is called when a script exit
     ///
     /// Some database require a cleanup therefore this method is called when a script finishes.
-    fn on_exit(&self) -> Result<(), StorageError>;
+    fn on_exit(&self, key: &ContextKey) -> Result<(), StorageError>;
 
     /// Retries a dispatch for the amount of retries when a retrievable error occurs.
     fn retry_dispatch(
@@ -248,6 +250,34 @@ pub trait Dispatcher: Sync + Send {
     }
 }
 
+/// This trait defines methods to delete knowledge base items and results.
+///
+/// Kb (KnowledgeBase) are information that are shared between individual script (VT) runs and are
+/// usually obsolete when a whole scan is finished.
+///
+/// Results are log_-, security- or error_messages send from a VT to inform our customer about
+/// found information, vulnerabilities or unexpected errors. A customer can request to delete those
+/// messages.
+pub trait Remover: Sync + Send {
+    /// Removes a knowledge base of a contextkye
+    ///
+    /// When kb_key is None all KBs of that key are deleted
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError>;
+
+    /// Removes a result of a ContextKey
+    ///
+    /// When result_id is None all results of that CotnextKey get deleted.
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError>;
+}
+
 impl<T> Dispatcher for Arc<T>
 where
     T: Dispatcher,
@@ -256,20 +286,48 @@ where
         self.as_ref().dispatch(key, scope)
     }
 
-    fn on_exit(&self) -> Result<(), StorageError> {
-        self.as_ref().on_exit()
+    fn on_exit(&self, key: &ContextKey) -> Result<(), StorageError> {
+        self.as_ref().on_exit(key)
+    }
+
+    fn retry_dispatch(
+        &self,
+        retries: usize,
+        key: &ContextKey,
+        scope: Field,
+    ) -> Result<(), StorageError> {
+        self.as_ref().retry_dispatch(retries, key, scope)
     }
 }
+
+impl<T> Remover for Arc<T>
+where
+    T: Remover,
+{
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
+        self.as_ref().remove_kb(key, kb_key)
+    }
+
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
+        self.as_ref().remove_result(key, result_id)
+    }
+}
+
+type FieldIter = Box<dyn Iterator<Item = Field>>;
 
 impl<T> Retriever for Arc<T>
 where
     T: Retriever,
 {
-    fn retrieve(
-        &self,
-        key: &ContextKey,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+    fn retrieve(&self, key: &ContextKey, scope: Retrieve) -> Result<FieldIter, StorageError> {
         self.as_ref().retrieve(key, scope)
     }
 
@@ -283,16 +341,33 @@ where
 }
 
 /// Convenience trait to use a dispatcher and retriever implementation
-pub trait Storage: Dispatcher + Retriever {
+pub trait Storage: Dispatcher + Retriever + Remover {
     /// Returns a reference to the retriever
     fn as_retriever(&self) -> &dyn Retriever;
     /// Returns a reference to the dispatcher
     fn as_dispatcher(&self) -> &dyn Dispatcher;
+
+    /// Is called when the whole scan is finished.
+    ///
+    /// It has to remove all knowledge base items of that scan.
+    fn scan_finished(&self, key: &ContextKey) -> Result<(), StorageError> {
+        self.remove_kb(key, None)?;
+        Ok(())
+    }
+
+    /// Is called to remove the whole scan and returns its results.
+    ///
+    /// It has to remove all kb items as welL as results of that scan.
+    fn remove_scan(&self, key: &ContextKey) -> Result<Vec<models::Result>, StorageError> {
+        self.remove_kb(key, None)?;
+        let results = self.remove_result(key, None)?;
+        Ok(results.unwrap_or_default())
+    }
 }
 
 impl<T> Storage for T
 where
-    T: Dispatcher + Retriever,
+    T: Dispatcher + Retriever + Remover,
 {
     fn as_retriever(&self) -> &dyn Retriever {
         self
@@ -319,8 +394,6 @@ type Results = HashMap<String, Vec<models::Result>>;
 /// Is a in-memory dispatcher that behaves like a Storage.
 #[derive(Default, Debug)]
 pub struct DefaultDispatcher {
-    /// If dirty it will not clean the data on_exit
-    dirty: bool,
     vts: Arc<RwLock<Vts>>,
     feed_version: Arc<RwLock<String>>,
     advisories: Arc<RwLock<HashSet<NotusAdvisory>>>,
@@ -330,21 +403,10 @@ pub struct DefaultDispatcher {
 
 impl DefaultDispatcher {
     /// Creates a new DefaultDispatcher
-    pub fn new(dirty: bool) -> Self {
+    pub fn new() -> Self {
         Self {
-            dirty,
             ..Default::default()
         }
-    }
-
-    /// Cleanses stored data.
-    pub fn cleanse(&self) -> Result<(), StorageError> {
-        // TODO cleanse at least kbs, may rest?
-        // let mut data = Arc::as_ref(&self.data).write()?;
-        // data.clear();
-        // data.shrink_to_fit();
-
-        Ok(())
     }
 
     fn cache_nvt_field(&self, filename: &str, field: NVTField) -> Result<(), StorageError> {
@@ -431,6 +493,46 @@ impl DefaultDispatcher {
     }
 }
 
+impl Remover for DefaultDispatcher {
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
+        let mut kbs = self.kbs.write().unwrap();
+        Ok(match kb_key {
+            None => kbs
+                .remove(key.as_ref())
+                .map(|x| x.values().flat_map(|x| x.clone()).collect()),
+            Some(x) => {
+                if let Some(kbs) = kbs.get_mut(key.as_ref()) {
+                    kbs.remove(&x)
+                } else {
+                    None
+                }
+            }
+        })
+    }
+
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
+        let mut results = self.results.write().unwrap();
+        if let Some(idx) = result_id {
+            if let Some(results) = results.get_mut(key.as_ref()) {
+                if let Some(idx) = results.iter().position(|x| x.id == idx) {
+                    return Ok(Some(vec![results.remove(idx)]));
+                }
+            }
+            Ok(None)
+        } else {
+            Ok(results.remove(key.as_ref()))
+        }
+    }
+}
+
 impl Dispatcher for DefaultDispatcher {
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
@@ -446,11 +548,7 @@ impl Dispatcher for DefaultDispatcher {
         Ok(())
     }
 
-    fn on_exit(&self) -> Result<(), StorageError> {
-        if !self.dirty {
-            self.cleanse()?;
-        }
-
+    fn on_exit(&self, _: &ContextKey) -> Result<(), StorageError> {
         Ok(())
     }
 }

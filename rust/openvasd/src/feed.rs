@@ -95,7 +95,7 @@ impl storage::Dispatcher for FeedIdentifier {
         Ok(())
     }
 
-    fn on_exit(&self) -> Result<(), storage::StorageError> {
+    fn on_exit(&self, _: &ContextKey) -> Result<(), storage::StorageError> {
         Ok(())
     }
 }

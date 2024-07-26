@@ -235,7 +235,7 @@ pub enum Error {
     #[error("Scan not found: {0}")]
     ScanNotFound(String),
     #[error("Unable to schedule scan {id}: {reason}")]
-    SchedulingError{ id: String, reason: String},
+    SchedulingError { id: String, reason: String },
 }
 
 fn display_resources(v: &[ObservableResources]) -> String {

@@ -345,4 +345,15 @@ where
     {
         self.underlying.handle_result(key, result)
     }
+
+    fn remove_result<E>(
+        &self,
+        key: &storage::ContextKey,
+        idx: Option<usize>,
+    ) -> Result<Vec<models::Result>, E>
+    where
+        E: From<storage::StorageError>,
+    {
+        self.underlying.remove_result(key, idx)
+    }
 }

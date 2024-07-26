@@ -50,7 +50,7 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         .get_one::<PathBuf>("path")
         .expect("A feed path is required to run a scan")
         .clone();
-    let storage = storage::DefaultDispatcher::new(true);
+    let storage = storage::DefaultDispatcher::new();
     tracing::info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(feed);

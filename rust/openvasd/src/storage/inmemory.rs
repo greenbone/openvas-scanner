@@ -63,6 +63,42 @@ where
             results: Vec::new(),
         })
     }
+
+    fn decrypt_results_sync(
+        crypter: Arc<E>,
+        progress: &Progress,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> Box<dyn Iterator<Item = Vec<u8>> + Send> {
+        let from = from.unwrap_or(0);
+        let to = to.unwrap_or(progress.results.len());
+        let to = to.min(progress.results.len());
+        if from > to || from > progress.results.len() {
+            return Box::new(Vec::new().into_iter());
+        }
+        let mut results = Vec::with_capacity(to - from);
+        for result in &progress.results[from..to] {
+            let b = crypter.decrypt_sync(result);
+            results.push(b);
+        }
+        Box::new(results.into_iter())
+    }
+
+    fn get_results_sync(
+        &self,
+        id: &str,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
+        let scans = self.scans.read().unwrap();
+        let progress = scans.get(id).ok_or(Error::NotFound)?;
+        Ok(Self::decrypt_results_sync(
+            self.crypter.clone(),
+            progress,
+            from,
+            to,
+        ))
+    }
 }
 
 impl Default for Storage<crate::crypt::ChaCha20Crypt> {
@@ -228,26 +264,14 @@ where
         let progress = scans.get(id).ok_or(Error::NotFound)?;
         Ok(progress.status.clone())
     }
+    // TODO: figure out a way to get rid of send so that we can use await
     async fn get_results(
         &self,
         id: &str,
         from: Option<usize>,
         to: Option<usize>,
     ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
-        let scans = self.scans.read().unwrap();
-        let progress = scans.get(id).ok_or(Error::NotFound)?;
-        let from = from.unwrap_or(0);
-        let to = to.unwrap_or(progress.results.len());
-        let to = to.min(progress.results.len());
-        if from > to || from > progress.results.len() {
-            return Ok(Box::new(Vec::new().into_iter()));
-        }
-        let mut results = Vec::with_capacity(to - from);
-        for result in &progress.results[from..to] {
-            let b = self.crypter.decrypt_sync(result);
-            results.push(b);
-        }
-        Ok(Box::new(results.into_iter()))
+        self.get_results_sync(id, from, to)
     }
 }
 
@@ -380,6 +404,34 @@ where
 
         Ok(())
     }
+
+    fn remove_result<E>(
+        &self,
+        key: &storage::ContextKey,
+        idx: Option<usize>,
+    ) -> Result<Vec<models::Result>, E>
+    where
+        E: From<storage::StorageError>,
+    {
+        let result = self
+            .get_results_sync(key.as_ref(), idx, idx.map(|x| x + 1))
+            .map_err(|_| storage::StorageError::NotFound(key.value()))?
+            .filter_map(|b| serde_json::de::from_slice(&b).ok());
+
+        let mut scans = self.scans.write().unwrap();
+        let progress = scans.get_mut(key.as_ref()).ok_or_else(|| {
+            storage::StorageError::UnexpectedData(format!("Expected scan for {key}"))
+        })?;
+        if let Some(idx) = idx {
+            if idx < progress.results.len() {
+                progress.results.remove(idx);
+            }
+        } else {
+            progress.results.clear();
+            progress.results.shrink_to_fit();
+        }
+        Ok(result.collect())
+    }
 }
 
 #[cfg(test)]
@@ -475,6 +527,50 @@ mod tests {
         }
         let scans = storage.get_scan_ids().await.unwrap();
         assert_eq!(scans.len(), 10);
+    }
+
+    #[tokio::test]
+    async fn delete_results() {
+        let storage = Storage::default();
+        let scan = Scan::default();
+        let id = scan.scan_id.clone();
+        storage.insert_scan(scan).await.unwrap();
+        let fetch_result = ScanResults {
+            id: id.clone(),
+            status: models::Status::default(),
+            results: vec![
+                models::Result::default(),
+                models::Result::default(),
+                models::Result::default(),
+                models::Result::default(),
+                models::Result::default(),
+            ],
+        };
+        storage
+            .append_fetched_result(vec![fetch_result])
+            .await
+            .unwrap();
+        let results: Vec<_> = storage
+            .get_results(&id, None, None)
+            .await
+            .unwrap()
+            .collect();
+        assert_eq!(results.len(), 5);
+        let ck = storage::ContextKey::Scan(id.clone());
+        storage.remove_result::<Error>(&ck, Some(1)).unwrap();
+        let results: Vec<_> = storage
+            .get_results(&id, None, None)
+            .await
+            .unwrap()
+            .collect();
+        assert_eq!(results.len(), 4);
+        storage.remove_result::<Error>(&ck, None).unwrap();
+        let results: Vec<_> = storage
+            .get_results(&id, None, None)
+            .await
+            .unwrap()
+            .collect();
+        assert_eq!(results.len(), 0);
     }
 
     #[tokio::test]

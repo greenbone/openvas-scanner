@@ -145,7 +145,7 @@ pub trait ExecutionPlaner {
     ///         ..Default::default()
     ///     },
     /// ];
-    /// let retrieve = DefaultDispatcher::new(true);
+    /// let retrieve = DefaultDispatcher::new();
     /// feed.clone().into_iter().for_each(|x| {
     ///     retrieve
     ///         .dispatch(&ContextKey::FileName(x.filename.clone()), x.into())
@@ -364,7 +364,7 @@ mod tests {
                 ..Default::default()
             },
         ];
-        let retrieve = storage::DefaultDispatcher::new(true);
+        let retrieve = storage::DefaultDispatcher::new();
         feed.clone().into_iter().for_each(|x| {
             retrieve
                 .dispatch(&storage::ContextKey::default(), x.into())

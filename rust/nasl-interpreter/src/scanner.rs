@@ -18,15 +18,12 @@ use nasl_syntax::{FSPluginLoader, Loader};
 use storage::{DefaultDispatcher, Storage};
 use tokio::task::JoinHandle;
 
-use crate::{
-    scheduling::WaveExecutionPlan,
-    SyncScanInterpreter,
-};
+use crate::{scheduling::WaveExecutionPlan, SyncScanInterpreter};
 
 struct RunningScan<S: ScannerStack> {
     scan: Scan,
     // Remove mutex to allow parallel usage of those
-    storage: Arc<Mutex<S::Storage>>,
+    storage: Arc<RwLock<S::Storage>>,
     loader: Arc<Mutex<S::Loader>>,
     function_executor: Arc<Mutex<S::Executor>>,
     keep_running: Arc<AtomicBool>,
@@ -56,8 +53,13 @@ impl<S: ScannerStack> RunningScan<S> {
         });
     }
 
-    async fn run(self) -> Result<(), Error> {
-        let storage: &S::Storage = &self.storage.lock().unwrap();
+    async fn run<T>(self) -> Result<(), Error>
+    where
+        T: crate::scheduling::ExecutionPlan,
+    {
+        // FIXME: based on the lock which is based on a mutex we can just run one scan at a time,
+        // the other runs would wait until a lock is freed.
+        let storage: &S::Storage = &self.storage.read().unwrap();
         let loader: &S::Loader = &self.loader.lock().unwrap();
         let function_executor: &S::Executor = &self.function_executor.lock().unwrap();
         let interpreter = SyncScanInterpreter::new(storage, loader, function_executor);
@@ -68,8 +70,7 @@ impl<S: ScannerStack> RunningScan<S> {
         let mut last_target = String::new();
 
         let results = interpreter
-            // Todo: Make this generic over the scheduler
-            .run::<WaveExecutionPlan>(&self.scan)
+            .run::<T>(&self.scan)
             .map(|it| {
                 // TODO: check for error and abort, we need to keep track of the state
 
@@ -117,10 +118,13 @@ impl<S: ScannerStack> RunningScan<S> {
                 }
             })
             .map_err(|e| Error::SchedulingError {
-                id: self.scan.scan_id.to_string(), 
+                id: self.scan.scan_id.to_string(),
                 reason: e.to_string(),
             });
 
+        storage.scan_finished(&storage::ContextKey::Scan(self.scan.scan_id.clone())).map_err(|e|{
+            Error::Unexpected(e.to_string())
+        })?;
         let mut status = self.status.write().unwrap();
         status.status = end_phase;
         status.end_time = current_time_in_seconds("end_time").into();
@@ -138,9 +142,9 @@ struct RunningScanHandle {
 }
 
 impl RunningScanHandle {
-    fn start<S, L, N>(
+    fn start<S, L, N, T>(
         scan: Scan,
-        storage: Arc<Mutex<S>>,
+        storage: Arc<RwLock<S>>,
         loader: Arc<Mutex<L>>,
         function_executor: Arc<Mutex<N>>,
     ) -> Self
@@ -148,6 +152,7 @@ impl RunningScanHandle {
         S: Storage + Send + 'static,
         L: Loader + Send + 'static,
         N: NaslFunctionExecuter + Send + 'static,
+        T: crate::scheduling::ExecutionPlan + 'static,
     {
         let keep_running: Arc<AtomicBool> = Arc::new(true.into());
         let status = Arc::new(RwLock::new(models::Status {
@@ -164,7 +169,7 @@ impl RunningScanHandle {
                     status: status.clone(),
                 }
                 // TODO run per target
-                .run(),
+                .run::<T>(),
             ),
             keep_running,
             status,
@@ -173,7 +178,7 @@ impl RunningScanHandle {
 }
 
 pub trait ScannerStack {
-    type Storage: Storage + Send + 'static;
+    type Storage: Storage + Sync + Send + 'static;
     type Loader: Loader + Send + 'static;
     type Executor: NaslFunctionExecuter + Send + 'static;
 }
@@ -200,7 +205,7 @@ pub type WithStorageScannerStack<S> = (S, FSPluginLoader, NaslFunctionRegister);
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
-    storage: Arc<Mutex<S::Storage>>,
+    storage: Arc<RwLock<S::Storage>>,
     loader: Arc<Mutex<S::Loader>>,
     function_executor: Arc<Mutex<S::Executor>>,
 }
@@ -214,7 +219,7 @@ where
     fn new(storage: St, loader: L, executor: F) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
-            storage: Arc::new(Mutex::new(storage)),
+            storage: Arc::new(RwLock::new(storage)),
             loader: Arc::new(Mutex::new(loader)),
             function_executor: Arc::new(Mutex::new(executor)),
         }
@@ -225,7 +230,7 @@ impl Scanner<DefaultScannerStack> {
     /// Create a new scanner with the default stack.
     /// Requires the root path for the loader.
     pub fn with_default_stack(root: &Path) -> Self {
-        let storage = DefaultDispatcher::new(true);
+        let storage = DefaultDispatcher::new();
         let loader = FSPluginLoader::new(root);
         let executor = crate::nasl_std_functions();
         Self::new(storage, loader, executor)
@@ -253,7 +258,12 @@ impl<S: ScannerStack> ScanStarter for Scanner<S> {
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
-        let handle = RunningScanHandle::start(scan, storage, loader, function_executor);
+        let handle = RunningScanHandle::start::<_, _, _, WaveExecutionPlan>(
+            scan,
+            storage,
+            loader,
+            function_executor,
+        );
         self.running.write().unwrap().insert(id, handle);
         Ok(())
     }
@@ -289,9 +299,13 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
+        let ck = storage::ContextKey::Scan(id.as_ref().to_string());
         self.stop_scan(id).await?;
-        // TODO: Delete the results
-        todo!()
+        let store = self.storage.read().unwrap();
+        store
+            .remove_scan(&ck)
+            .map_err(|_| Error::ScanNotFound(ck.as_ref().to_string()))?;
+        Ok(())
     }
 }
 
@@ -331,7 +345,10 @@ mod tests {
     use storage::item::Nvt;
     use tracing_test::traced_test;
 
-    use crate::{scanner::Scanner, tests::{setup_success, GenerateScript}};
+    use crate::{
+        scanner::Scanner,
+        tests::{setup_success, GenerateScript},
+    };
 
     type TestStack = (
         storage::DefaultDispatcher,
@@ -359,7 +376,10 @@ mod tests {
         assert!(start > 0);
         loop {
             let current = super::current_time_in_seconds("loop test");
-            assert!(current > 0, "it was not possible to get the system time in seconds");
+            assert!(
+                current > 0,
+                "it was not possible to get the system time in seconds"
+            );
             assert!(current - start < 1, "time for finishing scan is up.");
             // we need the sloep to not instantly read lock running and preventing write access
             tokio::time::sleep(Duration::from_nanos(100)).await;
@@ -377,17 +397,14 @@ mod tests {
     #[tokio::test]
     #[traced_test]
     async fn start_scan_failure() {
-        let failures = 
-        [
+        let failures = [GenerateScript {
+            id: "0".into(),
+            rc: 1,
+            ..Default::default()
+        }
+        .generate()];
 
-            GenerateScript {
-                id: "0".into(),
-                rc: 1,
-                ..Default::default()
-            }.generate()
-        ];
-        
-        let (scanner,scan) = make_scanner_and_scan(&failures);
+        let (scanner, scan) = make_scanner_and_scan(&failures);
 
         let id = scan.scan_id.clone();
         let res = scanner.start_scan(scan).await;
@@ -410,7 +427,6 @@ mod tests {
         assert_eq!(host_info.finished, 1);
         assert_eq!(host_info.queued, 0);
     }
-
 
     #[tokio::test]
     #[traced_test]
