@@ -2033,6 +2033,7 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "pcap",

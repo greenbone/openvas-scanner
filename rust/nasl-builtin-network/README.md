@@ -5,6 +5,7 @@
 - close
 - send
 - recv
+- this_host_name
 
 ## Missing
 
@@ -31,5 +32,4 @@
 - start_denial
 - tcp_ping
 - telnet_init
-- this_host_name
 - this_host

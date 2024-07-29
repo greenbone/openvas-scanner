@@ -8,6 +8,7 @@ use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 use storage::Field;
 
+pub mod network;
 pub mod socket;
 
 pub enum OpenvasEncaps {
