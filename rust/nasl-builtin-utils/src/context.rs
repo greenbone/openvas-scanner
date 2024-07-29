@@ -183,7 +183,7 @@ impl Register {
     }
 
     /// Return an iterator over the names of the named arguments.
-    pub fn iter_named_args<'a>(&'a self) -> Option<impl Iterator<Item = &str>> {
+    pub fn iter_named_args(&self) -> Option<impl Iterator<Item = &str>> {
         self.blocks
             .last()
             .map(|x| x.defined.keys().map(|x| x.as_str()))

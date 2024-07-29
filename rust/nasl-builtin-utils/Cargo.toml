@@ -10,3 +10,7 @@ nasl-syntax = { path = "../nasl-syntax" }
 storage = { path = "../storage" }
 thiserror = "1.0.62"
 tracing = "0.1"
+
+[features]
+default = ["enforce-no-trailing-arguments"]
+enforce-no-trailing-arguments = []

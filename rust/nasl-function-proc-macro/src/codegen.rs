@@ -121,8 +121,9 @@ impl<'a> ArgsStruct<'a> {
             let num = self.max_num_allowed_positional();
             quote! { Some(#num) }
         };
+        let fn_name = self.function.sig.ident.to_string();
         quote! {
-            ::nasl_builtin_utils::function::utils::check_args(_register, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
+            ::nasl_builtin_utils::function::utils::check_args(_register, #fn_name, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
         }
     }
 

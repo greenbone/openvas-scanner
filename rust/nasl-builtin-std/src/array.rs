@@ -27,7 +27,7 @@ fn make_array(positionals: CheckedPositionals<NaslValue>) -> HashMap<String, Nas
             values.insert(positionals[idx - 1].to_string(), val.clone());
         }
     }
-    values.into()
+    values
 }
 
 fn create_list(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {

@@ -127,7 +127,7 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
 fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, FunctionErrorKind> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
-        write_nasl_string_value(&mut s, &p)?;
+        write_nasl_string_value(&mut s, p)?;
     }
     Ok(s.into())
 }
