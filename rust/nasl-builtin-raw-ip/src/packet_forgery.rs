@@ -1239,7 +1239,7 @@ fn format_flags(pkt: &TcpPacket) -> String {
 /// - uh_sum: is the UDP checksum. Although it is not compulsory, the right value is computed by default.
 /// - uh_ulen: is the data length. By default it is set to the length the data argument plus the size of the UDP header.
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
-
+///
 /// Returns the modified IP datagram or NULL on error.
 fn forge_udp_packet(
     register: &Register,

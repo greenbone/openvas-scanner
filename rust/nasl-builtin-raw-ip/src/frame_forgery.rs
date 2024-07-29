@@ -442,8 +442,9 @@ fn nasl_get_local_mac_address_from_ip(
 ///This function forges a datalink layer frame.
 /// - src_haddr: is a string containing the source MAC address
 /// - dst_haddr: is a string containing the destination MAC address
-/// -ether_proto: is an int containing the ethernet type (normally given as hexadecimal). It is optional and its default value is 0x0800. A list of Types can be e.g. looked up here.
-/// -payload: is any data, which is then attached as payload to the frame.
+/// - ether_proto: is an int containing the ethernet type (normally given as hexadecimal).
+///   It is optional and its default value is 0x0800. A list of Types can be e.g. looked up here.
+/// - payload: is any data, which is then attached as payload to the frame.
 fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let src_haddr = validate_mac_address(register.named("src_haddr"))?;
     let dst_haddr = validate_mac_address(register.named("dst_haddr"))?;

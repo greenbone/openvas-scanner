@@ -403,7 +403,7 @@ impl Ssh {
     /// - scciphers SSH server-to-client ciphers.
     ///
     /// - timeout Set a timeout for the connection in seconds. Defaults to 10
-    /// seconds (defined by libssh internally) if not given.
+    ///   seconds (defined by libssh internally) if not given.
     ///
     /// nasl return An integer to identify the ssh session. Zero on error.
     fn nasl_ssh_connect(
@@ -1208,7 +1208,7 @@ impl Ssh {
     ///
     /// nasl named params
     /// - timeout: Enable the blocking ssh read until it gives the timeout or there is no
-    /// bytes left to read.
+    ///   bytes left to read.
     ///
     /// return A string on success or NULL on error.
     fn nasl_ssh_shell_read(
@@ -1942,6 +1942,7 @@ impl Ssh {
     ///
     /// nasluparam
     /// - An SSH session id.
+    ///
     /// naslret An int on success or NULL on error.
     ///
     /// param[in] lexic Lexical context of NASL interpreter.

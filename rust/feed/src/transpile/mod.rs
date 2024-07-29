@@ -135,8 +135,10 @@ trait Matcher {
     fn matches(&self, s: &Statement) -> bool;
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct CallMatcher {}
+
 impl Matcher for CallMatcher {
     fn matches(&self, s: &Statement) -> bool {
         // Although Exit and Include are handled differently they share the call nature and hence

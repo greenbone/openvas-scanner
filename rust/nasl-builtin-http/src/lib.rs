@@ -443,6 +443,7 @@ impl NaslHttp {
     /// nasl named param
     ///   - handle The handle identifier
     ///   - header_item A string to add to the header
+    ///
     /// On success the function returns an integer. 0 on success. Null on error.
     fn set_custom_header(
         &self,
