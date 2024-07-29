@@ -9,6 +9,7 @@ edition = "2021"
 h2 = "0.4.4"
 http = "1.1.0"
 nasl-builtin-utils = {path = "../nasl-builtin-utils"}
+nasl-function-proc-macro = {path = "../nasl-function-proc-macro"}
 nasl-syntax = {path = "../nasl-syntax"}
 rustls = "0.23.5"
 rustls-pemfile = "2.1.2"
