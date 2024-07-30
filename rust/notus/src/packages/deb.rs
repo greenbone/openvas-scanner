@@ -6,10 +6,14 @@ use super::{Package, PackageVersion};
 use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::Ordering;
 
-static RE: Lazy<Regex> = lazy_regex!(r"(.*)-(?:(\d*):)?(\d.*)-(.*)");
-static RE_WO_REVISION: Lazy<Regex> = lazy_regex!(r"(.*)-(?:(\d*):)?(\d.*)");
-static RE_VERSION: Lazy<Regex> = lazy_regex!(r"(?:(\d*):)?(\d.*)-(.*)");
-static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(r"(?:(\d*):)?(\d.*)");
+static RE: Lazy<Regex> = lazy_regex!(
+    r"^([a-z0-9](?:[a-z0-9+\-.])*)-(?:(\d*):)?(\d[[:alnum:]+\-.~]*)(?:-([[:alnum:]+\-.~]*))$"
+);
+static RE_WO_REVISION: Lazy<Regex> =
+    lazy_regex!(r"^([a-z0-9](?:[a-z0-9+\-.])*)-(?:(\d*):)?(\d[[:alnum:]+\-.~]*)$");
+static RE_VERSION: Lazy<Regex> =
+    lazy_regex!(r"^(?:(\d*):)?(\d[[:alnum:]+\-.~]*)(?:-([[:alnum:]+\-.~]*))$");
+static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(r"^(?:(\d*):)?(\d[[:alnum:]+\-.~]*)$");
 
 /// Represent a based Redhat package
 #[derive(Debug, PartialEq, Clone)]
@@ -366,6 +370,19 @@ mod deb_tests {
         assert_eq!(package.upstream_version, PackageVersion("020".to_string()));
         assert_eq!(package.debian_revision, PackageVersion("".to_string()));
         assert_eq!(package.full_name, "apport-symptoms-020");
+
+        let package = Deb::from_full_name("mariadb-server-10.6-1:10.6.18+maria~ubu2204").unwrap();
+        assert_eq!(package.name, "mariadb-server-10.6");
+        assert_eq!(package.epoch, 1);
+        assert_eq!(
+            package.upstream_version,
+            PackageVersion("10.6.18+maria~ubu2204".to_string())
+        );
+        assert_eq!(package.debian_revision, PackageVersion("".to_string()));
+        assert_eq!(
+            package.full_name,
+            "mariadb-server-10.6-1:10.6.18+maria~ubu2204"
+        );
     }
     #[test]
     pub fn from_name_and_full_version() {
