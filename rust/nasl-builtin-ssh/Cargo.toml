@@ -8,9 +8,10 @@ edition = "2021"
 [dependencies]
 nasl-builtin-utils = {path = "../nasl-builtin-utils"}
 nasl-syntax = {path = "../nasl-syntax"}
-libssh-rs = {version = "~0.2", features = ["vendored-openssl", "vendored"]}
 storage = {path = "../storage"}
 tracing = "0.1.40"
+libssh-rs = {version = "~0.2", features = ["vendored-openssl", "vendored"]}
+russh = { version = "0.44.0", features = ["vendored-openssl"] }
 
 [dev-dependencies]
 nasl-interpreter = {path = "../nasl-interpreter"}
