@@ -2265,10 +2265,12 @@ version = "0.1.0"
 dependencies = [
  "libssh-rs",
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "russh",
  "storage",
+ "thiserror",
  "tracing",
 ]
 

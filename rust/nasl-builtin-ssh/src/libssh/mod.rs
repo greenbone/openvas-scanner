@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-// TODO make error handling less redundant
-// TODO clean up and maybe split as 2000 lines is a bit much
 //! Defines NASL ssh and sftp functions
-//!
-mod sessions;
+
+pub mod sessions;
 
 use core::str;
 use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
-use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
+use nasl_builtin_utils::function::{Maybe, StringOrData};
+use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register, Result};
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 use sessions::SshSession;
 use std::io::Write;
@@ -24,100 +24,12 @@ use std::{
 };
 use tracing::{debug, info};
 
-type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
+use self::sessions::{SessionId, Sessions};
 
-fn read_ssh_blocking(channel: &Channel, timeout: Duration, response: &mut String) -> i32 {
-    let mut buf: [u8; 4096] = [0; 4096];
+type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue>;
 
-    // read stderr
-    loop {
-        match channel.read_timeout(&mut buf, true, Some(timeout)) {
-            Ok(0) => break,
-            // that looks buggy, on TryAgain we should continue without reading the buffer
-            Ok(_) | Err(libssh_rs::Error::TryAgain) => {
-                let buf_as_str = match std::str::from_utf8(&buf) {
-                    Ok(s) => s,
-                    Err(_) => {
-                        return -1;
-                    }
-                };
-                response.push_str(buf_as_str);
-            }
-            Err(_) => {
-                return -1;
-            }
-        }
-    }
-    // read stdout
-    loop {
-        match channel.read_timeout(&mut buf, false, Some(timeout)) {
-            Ok(0) => break,
-            Ok(_) | Err(libssh_rs::Error::TryAgain) => {
-                let buf_as_str = match std::str::from_utf8(&buf) {
-                    Ok(s) => s,
-                    Err(_) => {
-                        return -1;
-                    }
-                };
-                response.push_str(buf_as_str);
-            }
-            Err(_) => {
-                return -1;
-            }
-        }
-    }
-
-    0
-}
-
-fn read_ssh_nonblocking(channel: &Channel, response: &mut String) -> i32 {
-    if channel.is_closed() || channel.is_eof() {
-        return -1;
-    }
-
-    let mut buf: [u8; 4096] = [0; 4096];
-    // stderr
-    match channel.read_nonblocking(&mut buf, true) {
-        Ok(n) if n > 0 => {
-            let buf_as_str = match std::str::from_utf8(&buf) {
-                Ok(s) => s,
-                Err(_) => {
-                    return -1;
-                }
-            };
-            response.push_str(buf_as_str);
-        }
-        Ok(_) => (),
-        Err(_) => {
-            return -1;
-        }
-    }
-
-    let mut buf: [u8; 4096] = [0; 4096];
-    // stdout
-    match channel.read_nonblocking(&mut buf, false) {
-        Ok(n) if n > 0 => {
-            let buf_as_str = match std::str::from_utf8(&buf) {
-                Ok(s) => s,
-                Err(_) => {
-                    return -1;
-                }
-            };
-            response.push_str(buf_as_str);
-        }
-        Ok(_) => (),
-        Err(_) => {
-            return -1;
-        }
-    }
-    0
-}
 /// Request and set a shell. It set the pty if necessary.
-fn request_ssh_shell(
-    session_id: i32,
-    channel: &mut Channel,
-    pty: bool,
-) -> Result<(), FunctionErrorKind> {
+fn request_ssh_shell(session_id: i32, channel: &mut Channel, pty: bool) -> Result<()> {
     if pty {
         match channel.request_pty("xterm", 80, 24) {
             Ok(_) => (),
@@ -172,9 +84,7 @@ fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
     new_val
 }
 
-fn lock_sessions(
-    sessions: &Arc<Mutex<Vec<SshSession>>>,
-) -> Result<MutexGuard<Vec<SshSession>>, FunctionErrorKind> {
+fn lock_sessions(sessions: &Arc<Mutex<Vec<SshSession>>>) -> Result<MutexGuard<Vec<SshSession>>> {
     // we actually need to panic as a lock error is fatal
     // alternatively we need to add a poison error on FunctionErrorKind
     Ok(Arc::as_ref(sessions).lock().unwrap())
@@ -184,7 +94,7 @@ fn set_opt_user(
     ssh_session: &mut SshSession,
     login: Option<String>,
     session_id: i32,
-) -> Result<NaslValue, FunctionErrorKind> {
+) -> Result<NaslValue> {
     // TODO: get the username alternatively from the kb.
     let opt_user = SshOption::User(login.clone());
     match ssh_session.session.set_option(opt_user) {
@@ -204,10 +114,7 @@ fn set_opt_user(
     }
 }
 
-fn get_authmethods(
-    session: &mut SshSession,
-    session_id: i32,
-) -> Result<AuthMethods, FunctionErrorKind> {
+fn get_authmethods(session: &mut SshSession, session_id: i32) -> Result<AuthMethods> {
     match session.session.userauth_none(None) {
         Ok(libssh_rs::AuthStatus::Success) => {
             info!("SSH authentication succeeded using the none method - should not happen; very old server?");
@@ -245,7 +152,7 @@ fn channel_read(
     session_id: i32,
     stderr: bool,
     timeout: Option<Duration>,
-) -> Result<String, FunctionErrorKind> {
+) -> Result<String> {
     let mut buf: [u8; 4096] = [0; 4096];
     let mut buf_as_str = String::new();
     loop {
@@ -285,7 +192,7 @@ fn exec_ssh_cmd(
     compat_mode: bool,
     to_stdout: i32,
     to_stderr: i32,
-) -> Result<(String, String), FunctionErrorKind> {
+) -> Result<(String, String)> {
     let channel = match session.session.new_channel() {
         Ok(c) => c,
         Err(e) => {
@@ -368,8 +275,8 @@ fn exec_ssh_cmd(
     Ok((response, compat_buf))
 }
 
-#[derive(Default)]
 pub struct Ssh {
+    sess: Sessions,
     sessions: Arc<Mutex<Vec<SshSession>>>,
 }
 
@@ -406,11 +313,7 @@ impl Ssh {
     /// seconds (defined by libssh internally) if not given.
     ///
     /// nasl return An integer to identify the ssh session. Zero on error.
-    fn nasl_ssh_connect(
-        &self,
-        register: &Register,
-        ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_connect(&self, register: &Register, ctx: &Context) -> Result<NaslValue> {
         let sock: i64 = register
             .named("socket")
             .unwrap_or(&ContextType::Value(NaslValue::Number(0)))
@@ -613,11 +516,7 @@ impl Ssh {
     ///
     /// nasl params
     /// - An SSH session id.  A value of 0 is allowed and acts as a NOP.
-    fn nasl_ssh_disconnect(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_disconnect(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -661,7 +560,7 @@ impl Ssh {
         &self,
         register: &Register,
         _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -687,11 +586,7 @@ impl Ssh {
     /// - An SSH session id.
     ///  
     /// return An integer representing the socket or -1 on error.
-    fn nasl_ssh_get_sock(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_get_sock(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -726,11 +621,7 @@ impl Ssh {
     ///  
     /// nasl named params
     /// - login: A string with the login name (optional).
-    fn nasl_ssh_set_login(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_set_login(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -815,11 +706,7 @@ impl Ssh {
     /// - passphrase: A string with the passphrase used to unprotect privatekey.
     ///  
     /// return An integer as status value; 0 indicates success.
-    fn nasl_ssh_userauth(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_userauth(&self, register: &Register, _: &Context) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -1044,11 +931,7 @@ impl Ssh {
     ///    description.
     ///
     /// return A data block on success or NULL on error.
-    fn nasl_ssh_request_exec(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_request_exec(&self, register: &Register, _: &Context) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -1135,11 +1018,7 @@ impl Ssh {
     /// - pty: To enable/disable the interactive shell. Default is 1 (interactive).
     ///
     /// @naslret An int on success or NULL on error.
-    fn nasl_ssh_shell_open(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn nasl_ssh_shell_open(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
         let positional = register.positional();
         if positional.is_empty() {
             return Err(FunctionErrorKind::MissingPositionalArguments {
@@ -1169,28 +1048,10 @@ impl Ssh {
             .find(|(_i, s)| s.session_id == session_id)
         {
             Some((_i, session)) => {
-                // new channel
-                let mut channel = match session.session.new_channel() {
-                    Ok(c) => c,
-                    Err(e) => {
-                        return Err(FunctionErrorKind::Dirty(format!(
-                            "Failed to open a new channel for session ID {}: {}",
-                            session.session_id, e
-                        )));
-                    }
-                };
+                let mut channel = session.new_channel()?;
+                channel.open_session()?;
 
-                match channel.open_session() {
-                    Ok(_) => (),
-                    Err(e) => {
-                        return Err(FunctionErrorKind::Dirty(format!(
-                            "Channel failed to open session for session ID {}: {}",
-                            session.session_id, e
-                        )));
-                    }
-                };
-
-                request_ssh_shell(session_id, &mut channel, pty)?;
+                request_ssh_shell(session_id, channel.channel_mut(), pty)?;
 
                 session.channel = Some(channel);
                 Ok(NaslValue::Number(session_id as i64))
@@ -1203,201 +1064,47 @@ impl Ssh {
     }
 
     /// Read the output of an ssh shell.
-    /// nasl params
-    /// - An SSH session id.
-    ///
-    /// nasl named params
-    /// - timeout: Enable the blocking ssh read until it gives the timeout or there is no
-    /// bytes left to read.
-    ///
-    /// return A string on success or NULL on error.
+    /// If timeout is given, repeatedly use blocking read until until
+    /// there are no more bytes left to read. Otherwise use non_blocking
+    /// read mode.
+    #[nasl_function]
     fn nasl_ssh_shell_read(
         &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
+        session_id: SessionId,
+        timeout: Option<Maybe<u64>>,
+    ) -> Result<String> {
+        let session = self.sess.get_by_id(session_id)?;
+        let timeout = Duration::from_secs(timeout.and_then(Maybe::as_option).unwrap_or(0));
+        let channel = session.get_channel()?;
+        channel.ensure_open()?;
 
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let timeout = match register.named("timeout") {
-            Some(ContextType::Value(NaslValue::Number(x))) => Duration::from_secs(*x as u64),
-            _ => Duration::from_secs(0),
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                let channel = match &session.channel {
-                    Some(c) => c,
-                    _ => {
-                        return Ok(NaslValue::Null);
-                    }
-                };
-
-                if channel.is_closed() {
-                    return Err(FunctionErrorKind::Dirty(format!(
-                        "Session ID {} not found",
-                        session_id
-                    )));
-                }
-
-                let mut response = String::new();
-                if timeout.as_secs() > 0 {
-                    if read_ssh_blocking(channel, timeout, &mut response) != 0 {
-                        return Ok(NaslValue::Null);
-                    }
-                } else if read_ssh_nonblocking(channel, &mut response) != 0 {
-                    return Ok(NaslValue::Null);
-                }
-
-                Ok(NaslValue::String(response))
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
+        if timeout.as_secs() > 0 {
+            Ok(channel.read_ssh_blocking(timeout)?)
+        } else {
+            Ok(channel.read_ssh_nonblocking()?)
         }
     }
 
-    /// Write string to ssh shell.
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// nasl named params
-    ///
-    /// - cmd: A string to write to shell.
-    ///
-    /// return An integer: 0 on success, -1 on failure.
-    fn nasl_ssh_shell_write(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
+    /// Write the string `cmd` to an ssh shell.
+    #[nasl_function]
+    fn nasl_ssh_shell_write(&self, session_id: SessionId, cmd: StringOrData) -> Result<i32> {
+        let session = self.sess.get_by_id(session_id)?;
+        let channel = session.get_channel()?;
+        channel.ensure_open()?;
 
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
+        let result = match channel.stdin().write_all(cmd.0.as_bytes()) {
+            Ok(_) => Ok(0),
+            Err(_) => Ok(-1),
         };
-
-        let binding;
-        let cmd = match register.named("cmd") {
-            Some(ContextType::Value(NaslValue::String(x))) => x,
-            Some(ContextType::Value(NaslValue::Data(x))) => {
-                binding = x.iter().map(|x| *x as char).collect::<String>();
-                &binding
-            }
-            _ => return Err(FunctionErrorKind::missing_argument("cmd")),
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                let channel = match &session.channel {
-                    Some(c) => c,
-                    _ => {
-                        return Ok(NaslValue::Null);
-                    }
-                };
-
-                if channel.is_closed() {
-                    return Err(FunctionErrorKind::Dirty(format!(
-                        "Session ID {} not found",
-                        session_id
-                    )));
-                }
-
-                match channel.stdin().write_all(cmd.as_bytes()) {
-                    Ok(_) => Ok(NaslValue::Number(0)),
-                    Err(_) => Ok(NaslValue::Number(-1)),
-                }
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+        result
     }
 
     /// Close an ssh shell.
-    ///
-    /// nasl params
-    /// - An SSH session id.
-    fn nasl_ssh_shell_close(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                let _ = &session
-                    .channel
-                    .as_mut()
-                    .map_or((), |c| c.close().unwrap_or(()));
-
-                session.channel = None;
-                Ok(NaslValue::Null)
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+    #[nasl_function]
+    fn nasl_ssh_shell_close(&self, session_id: SessionId) -> Result<()> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        session.close();
+        Ok(())
     }
 
     /// Authenticate a user on an ssh connection
@@ -1407,236 +1114,108 @@ impl Ssh {
     /// id as its first unnamed argument.
     /// The first time this function is called for a session id, the named
     /// argument "login" is also expected.
-    ///  
-    /// nasl params
-    ///  
-    /// - An SSH session id.
-    ///  
-    /// nasl named params
-    ///  
-    /// - login: A string with the login name.
-    ///  
-    /// return A data block on success or NULL on error.
+    #[nasl_function(named(login))]
     fn nasl_ssh_login_interactive(
         &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
+        session_id: SessionId,
+        login: Option<String>,
+    ) -> Result<Option<String>> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        if !session.user_set {
+            set_opt_user(&mut session, login, session_id)?;
         }
 
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
+        // Get the authentication methods only once per session.
+        let methods: AuthMethods = {
+            if !session.authmethods_valid {
+                get_authmethods(&mut session, session_id)?
+            } else {
+                session.authmethods
             }
         };
+        debug!("Available methods:\n{:?}", methods);
 
-        let login = match register.named("login") {
-            Some(ContextType::Value(NaslValue::String(x))) => Some(x.to_owned()),
-            _ => return Err(FunctionErrorKind::missing_argument("login")),
-        };
+        if methods.contains(AuthMethods::INTERACTIVE) {
+            let mut prompt = String::new();
+            loop {
+                let status = session.userauth_keyboard_interactive(None, None)?;
+                match status {
+                    AuthStatus::Info => {
+                        let info = session.userauth_keyboard_interactive_info()?;
+                        debug!(
+                            name = info.name,
+                            instruction = info.instruction,
+                            "SSH keyboard-interactive"
+                        );
 
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                if !session.user_set {
-                    set_opt_user(session, login, session_id)?;
-                }
-
-                // Get the authentication methods only once per session.
-                let methods: AuthMethods = {
-                    if !session.authmethods_valid {
-                        get_authmethods(session, session_id)?
-                    } else {
-                        session.authmethods
-                    }
-                };
-                debug!("Available methods:\n{:?}", methods);
-
-                if methods.contains(AuthMethods::INTERACTIVE) {
-                    let mut prompt = String::new();
-                    loop {
-                        match session.session.userauth_keyboard_interactive(None, None) {
-                            Ok(AuthStatus::Info) => {
-                                let info =
-                                    match session.session.userauth_keyboard_interactive_info() {
-                                        Ok(i) => i,
-                                        Err(_) => {
-                                            return Err(FunctionErrorKind::Dirty(format!(
-                                            "Failed setting user authentication for SessionID {}",
-                                            session_id
-                                        )));
-                                        }
-                                    };
-                                debug!(
-                                    name = info.name,
-                                    instruction = info.instruction,
-                                    "SSH keyboard-interactive"
-                                );
-
-                                for p in info.prompts.into_iter() {
-                                    if !p.echo {
-                                        prompt = p.prompt;
-                                    }
-                                }
-                                break;
-                            }
-                            Ok(_) => {
-                                debug!(
-                                    "SSH keyboard-interactive authentication failed for session {}",
-                                    session_id
-                                );
-                                continue;
-                            }
-                            Err(_) => {
-                                return Err(FunctionErrorKind::Dirty(format!(
-                                    "Failed setting user authentication for SessionID {}",
-                                    session_id
-                                )));
+                        for p in info.prompts.into_iter() {
+                            if !p.echo {
+                                prompt = p.prompt;
                             }
                         }
+                        break;
                     }
-                    return Ok(NaslValue::String(prompt));
+                    _ => {
+                        debug!(
+                            "SSH keyboard-interactive authentication failed for session {}",
+                            session_id
+                        );
+                        continue;
+                    }
                 }
-                Ok(NaslValue::Null)
             }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
+            Ok(Some(prompt))
+        } else {
+            Ok(None)
         }
     }
 
-    /// Authenticate a user on an ssh connection
+    /// Authenticate a user on an ssh connection.
     ///
     /// The function finishes the authentication process started by
-    /// ssh_login_interactive. The function expects the session id as its first
-    /// unnamed argument.
-    ///
-    /// To finish the password, the named argument "password" must contain
-    /// a password.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// nasl named params
-    ///
-    /// - password: A string with the password.
-    ///
-    /// return An integer as status value; 0 indicates success.
-    ///
-    fn nasl_ssh_login_interactive_pass(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
+    /// ssh_login_interactive.
+    #[nasl_function(named(password))]
+    fn nasl_ssh_login_interactive_pass(&self, session_id: SessionId, password: &str) -> Result<()> {
+        let session = self.sess.get_by_id(session_id)?;
+        let info = session.userauth_keyboard_interactive_info()?;
+        debug!(
+            name = info.name,
+            instruction = info.instruction,
+            "SSH keyboard-interactive"
+        );
+
+        let mut answers: Vec<String> = Vec::new();
+        for p in info.prompts.into_iter() {
+            if !p.echo {
+                answers.push(password.to_string());
+            } else {
+                answers.push(String::new());
+            };
         }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let password = match register.named("pass") {
-            Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(FunctionErrorKind::missing_argument("pass")),
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                let info = match session.session.userauth_keyboard_interactive_info() {
-                    Ok(i) => i,
-                    Err(_) => {
-                        return Err(FunctionErrorKind::Diagnostic(
-                            format!(
-                                "Failed setting user authentication for SessionID {}",
-                                session_id
-                            ),
-                            Some(NaslValue::Number(-1)),
-                        ));
-                    }
-                };
-
-                debug!(
-                    name = info.name,
-                    instruction = info.instruction,
-                    "SSH keyboard-interactive"
-                );
-
-                let mut answers: Vec<String> = Vec::new();
-                for p in info.prompts.into_iter() {
-                    if !p.echo {
-                        answers.push(password.to_string());
-                    } else {
-                        answers.push(String::new());
-                    };
+        session.userauth_keyboard_interactive_set_answers(&answers)?;
+        loop {
+            let status = session.userauth_keyboard_interactive(None, None)?;
+            match status {
+                AuthStatus::Info => {
+                    session
+                        .session
+                        .userauth_keyboard_interactive_info()
+                        .unwrap();
+                    continue;
                 }
-                match session
-                    .session
-                    .userauth_keyboard_interactive_set_answers(&answers)
-                {
-                    Ok(_) => {
-                        // Once set the answers we need to get info again to finish the auth process
-                        loop {
-                            match session.session.userauth_keyboard_interactive(None, None) {
-                                Ok(AuthStatus::Info) => {
-                                    session
-                                        .session
-                                        .userauth_keyboard_interactive_info()
-                                        .unwrap();
-                                    continue;
-                                }
-                                Ok(AuthStatus::Success) => break,
-                                _ => {
-                                    return Err(FunctionErrorKind::Diagnostic(
-                                        format!("Session ID {} not found", session_id),
-                                        Some(NaslValue::Number(-1)),
-                                    ));
-                                }
-                            }
-                        }
-                        Ok(NaslValue::Number(0))
-                    }
-
-                    Err(e) => Err(FunctionErrorKind::Diagnostic(
-                        format!("Not possible to set answers during authentication: {}", e),
+                AuthStatus::Success => break,
+                status => {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!(
+                            "Unexpected authentication status for session_id {}: {:?}",
+                            session_id, status
+                        ),
                         Some(NaslValue::Number(-1)),
-                    )),
+                    ));
                 }
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Number(-1)),
-            )),
         }
+        Ok(())
     }
 
     /// Get the issue banner
@@ -1650,370 +1229,102 @@ impl Ssh {
     ///
     /// return A data block on success or NULL on error.
     ///
-    fn nasl_ssh_get_issue_banner(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
+    #[nasl_function]
+    fn nasl_ssh_get_issue_banner(&self, session_id: SessionId) -> Result<Option<String>> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        if !session.user_set {
+            //TODO: set the login with set_opt_user(). Get the user from the kb
+            return Ok(None);
         }
 
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                if !session.user_set {
-                    //TODO: set the login with set_opt_user(). Get the user from the kb
-                    return Ok(NaslValue::Null);
-                }
-
-                if !session.authmethods_valid {
-                    get_authmethods(session, session_id)?;
-                }
-
-                match session.session.get_issue_banner() {
-                    Ok(b) => Ok(NaslValue::String(b)),
-                    Err(_) => Ok(NaslValue::Null),
-                }
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
+        if !session.authmethods_valid {
+            get_authmethods(&mut session, session_id)?;
         }
+
+        Ok(session.get_issue_banner().ok())
     }
 
-    /// Get the server banner
-    ///
     /// The function returns a string with the server banner.  This is
     /// usually the first data sent by the server.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// return A data block on success or NULL on error.
-    fn nasl_ssh_get_server_banner(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            // TODO: Check with openvas-nasl why the outputs doesn't match
-            Some((_i, session)) => match session.session.get_server_banner() {
-                Ok(b) => Ok(NaslValue::String(b)),
-                Err(_) => Ok(NaslValue::Null),
-            },
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+    #[nasl_function]
+    fn nasl_ssh_get_server_banner(&self, session_id: SessionId) -> Result<Option<String>> {
+        let session = self.sess.get_by_id(session_id)?;
+        // TODO: Check with openvas-nasl why the outputs doesn't match
+        Ok(session.get_server_banner().ok())
     }
 
-    /// Get the list of authmethods
-    ///
-    /// The function returns a string with comma separated authentication
-    /// methods.  This is basically the same as returned by
+    /// Return a string with comma separated authentication
+    /// methods. This is basically the same as returned by
     /// SSH_MSG_USERAUTH_FAILURE protocol element; however, it has been
     /// screened and put into a definitive order.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// return A string on success or NULL on error.
-    fn nasl_ssh_get_auth_methods(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
+    #[nasl_function]
+    fn nasl_ssh_get_auth_methods(&self, session_id: SessionId) -> Result<Option<String>> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        if !session.user_set {
+            //TODO: set the login with set_opt_user(). Get the user from the kb
+            return Ok(None);
         }
 
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
+        if !session.authmethods_valid {
+            get_authmethods(&mut session, session_id)?;
         };
 
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                if !session.user_set {
-                    //TODO: set the login with set_opt_user(). Get the user from the kb
-                    return Ok(NaslValue::Null);
-                }
-
-                if !session.authmethods_valid {
-                    get_authmethods(session, session_id)?;
-                };
-
-                let mut methods = vec![];
-                if session.authmethods.contains(AuthMethods::NONE) {
-                    methods.push("none");
-                }
-                if session.authmethods.contains(AuthMethods::PASSWORD) {
-                    methods.push("password");
-                }
-                if session.authmethods.contains(AuthMethods::PUBLIC_KEY) {
-                    methods.push("publickey");
-                }
-                if session.authmethods.contains(AuthMethods::HOST_BASED) {
-                    methods.push("hostbased");
-                }
-                if session.authmethods.contains(AuthMethods::INTERACTIVE) {
-                    methods.push("keyboard-interactive");
-                }
-
-                if methods.is_empty() {
-                    return Ok(NaslValue::Null);
-                }
-                Ok(NaslValue::String(methods.join(",")))
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
+        let mut methods = vec![];
+        if session.authmethods.contains(AuthMethods::NONE) {
+            methods.push("none");
         }
+        if session.authmethods.contains(AuthMethods::PASSWORD) {
+            methods.push("password");
+        }
+        if session.authmethods.contains(AuthMethods::PUBLIC_KEY) {
+            methods.push("publickey");
+        }
+        if session.authmethods.contains(AuthMethods::HOST_BASED) {
+            methods.push("hostbased");
+        }
+        if session.authmethods.contains(AuthMethods::INTERACTIVE) {
+            methods.push("keyboard-interactive");
+        }
+
+        if methods.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(methods.join(",")))
     }
 
-    /// Get the host key
-    ///
-    /// The function returns a string with the MD5 host key.
-    ///
-    /// @nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// @naslret A data block on success or NULL on error.
-    fn nasl_ssh_get_host_key(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => match session.session.get_server_public_key() {
-                Ok(s) => match s.get_public_key_hash_hexa(libssh_rs::PublicKeyHashType::Md5) {
-                    Ok(hash) => Ok(NaslValue::String(hash)),
-                    Err(_) => Ok(NaslValue::Null),
-                },
-                Err(_) => Err(FunctionErrorKind::Diagnostic(
-                    "Not possible to get the public key".to_string(),
-                    Some(NaslValue::Null),
-                )),
-            },
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
+    /// Return the MD5 host key.
+    #[nasl_function]
+    fn nasl_ssh_get_host_key(&self, session_id: SessionId) -> Result<Option<String>> {
+        let session = self.sess.get_by_id(session_id)?;
+        let key = session.get_server_public_key()?;
+        match key.get_public_key_hash_hexa(libssh_rs::PublicKeyHashType::Md5) {
+            Ok(hash) => Ok(Some(hash)),
+            Err(_) => Ok(None),
         }
     }
 
     /// Check if the SFTP subsystem is enabled on the remote SSH server.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// return An integer: 0 on success, -1 (SSH_ERROR) on Channel request
-    /// subsystem failure. Greater than 0 means an error during SFTP init. NULL
-    /// indicates a failure during session id verification.
-    fn nasl_sftp_enabled_check(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
+    #[nasl_function]
+    fn nasl_sftp_enabled_check(&self, session_id: SessionId) -> Result<i32> {
+        let session = self.sess.get_by_id(session_id)?;
+        match session.session.sftp() {
+            Ok(_) => Ok(0),
+            Err(e) => {
+                debug!("SFTP enabled check error: {}", e);
+                Ok(1)
             }
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => match session.session.sftp() {
-                Ok(_) => Ok(NaslValue::Number(0)),
-                Err(e) => {
-                    debug!("SFTP enabled check error: {}", e);
-
-                    Ok(NaslValue::Number(1))
-                }
-            },
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
         }
     }
 
-    /// NASL NETCONF
-    ///
-
     /// Execute the NETCONF subsystem on the the ssh channel
-    ///
-    /// nasluparam
-    /// - An SSH session id.
-    /// naslret An int on success or NULL on error.
-    ///
-    /// param[in] lexic Lexical context of NASL interpreter.
-    /// return Session ID on success, NULL on failure.
-    fn nasl_ssh_execute_netconf_subsystem(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                // new channel
-                let channel = match session.session.new_channel() {
-                    Ok(c) => c,
-                    Err(e) => {
-                        return Err(FunctionErrorKind::Dirty(format!(
-                            "Failed to open a new channel for session ID {}: {}",
-                            session.session_id, e
-                        )));
-                    }
-                };
-
-                match channel.open_session() {
-                    Ok(_) => (),
-                    Err(e) => {
-                        return Err(FunctionErrorKind::Dirty(format!(
-                            "Channel failed to open session for session ID {}: {}",
-                            session.session_id, e
-                        )));
-                    }
-                };
-
-                match channel.request_subsystem("netconf") {
-                    Ok(_) => (),
-                    Err(e) => {
-                        return Err(FunctionErrorKind::Dirty(format!(
-                            "Channel failed to execyte NETCONF subsystem for session ID {}: {}",
-                            session.session_id, e
-                        )));
-                    }
-                };
-
-                session.channel = Some(channel);
-                Ok(NaslValue::Number(session_id as i64))
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+    #[nasl_function]
+    fn nasl_ssh_execute_netconf_subsystem(&self, session_id: SessionId) -> Result<SessionId> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        let channel = session.new_channel()?;
+        channel.open_session()?;
+        channel.request_subsystem("netconf")?;
+        session.channel = Some(channel);
+        Ok(session_id)
     }
 
     fn lookup(key: &str) -> Option<NaslSSHFunction> {

@@ -12,18 +12,17 @@ pub mod lookup_keys;
 use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
-pub use error::FunctionErrorKind;
+pub use error::{FunctionErrorKind, Result};
 
 /// The result of a function call.
-pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;
+pub type NaslResult = Result<nasl_syntax::NaslValue>;
 
 /// Is a type definition for built-in functions
 ///
 /// It is mostly used internally when building a NaslFunctionExecuter.
 /// The register as well as the context are given by the interpreter that wants either a result or
 /// an error back.
-pub type NaslFunction<'a> =
-    fn(&Register, &Context) -> Result<nasl_syntax::NaslValue, FunctionErrorKind>;
+pub type NaslFunction<'a> = fn(&Register, &Context) -> NaslResult;
 
 /// Looks up functions and executes them. Returns None when no function is found and a result
 /// otherwise.
@@ -79,7 +78,7 @@ pub fn get_named_parameter<'a>(
     registrat: &'a Register,
     key: &'a str,
     required: bool,
-) -> Result<&'a nasl_syntax::NaslValue, FunctionErrorKind> {
+) -> Result<&'a nasl_syntax::NaslValue> {
     match registrat.named(key) {
         None => {
             if required {

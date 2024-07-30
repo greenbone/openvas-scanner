@@ -7,33 +7,13 @@
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
-    function::{CheckedPositionals, FromNaslValue, Maybe},
+    function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
     Context, FunctionErrorKind, NaslFunction, Register,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
 
 use nasl_syntax::NaslValue;
-
-/// `Some(string)` if constructed from either a `NaslValue::String`
-/// or `NaslValue::Data`.
-struct StringOrData(String);
-
-fn bytes_to_str(bytes: &[u8]) -> String {
-    bytes.iter().map(|x| *x as char).collect::<String>()
-}
-
-impl<'a> FromNaslValue<'a> for StringOrData {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
-        match value {
-            NaslValue::String(string) => Ok(Self(string.clone())),
-            NaslValue::Data(buffer) => Ok(Self(bytes_to_str(buffer))),
-            _ => Err(FunctionErrorKind::WrongArgument(
-                "Expected string or byte buffer.".to_string(),
-            )),
-        }
-    }
-}
 
 /// Decodes given string as hex and returns the result as a byte array
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
