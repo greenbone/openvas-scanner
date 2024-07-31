@@ -7,272 +7,30 @@
 pub mod sessions;
 
 use core::str;
-use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
+use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption};
 use nasl_builtin_utils::function::{Maybe, StringOrData};
-use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register, Result};
+use nasl_builtin_utils::{Context, FunctionErrorKind, Register, Result};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 use sessions::SshSession;
 use std::io::Write;
 use std::net::UdpSocket;
 use std::os::fd::AsRawFd;
+use std::os::raw::c_int;
 use std::sync::MutexGuard;
 use std::{
     env,
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tracing::{debug, info};
+use tracing::debug;
 
 use self::sessions::{SessionId, Sessions};
-
-type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue>;
-
-/// Request and set a shell. It set the pty if necessary.
-fn request_ssh_shell(session_id: i32, channel: &mut Channel, pty: bool) -> Result<()> {
-    if pty {
-        match channel.request_pty("xterm", 80, 24) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Failed to requesting a new channel pty for session ID {}: {}",
-                        session_id, e
-                    ),
-                    Some(NaslValue::Number(-1)),
-                ));
-            }
-        }
-    }
-
-    match channel.request_shell() {
-        Ok(_) => Ok(()),
-        Err(e) => Err(FunctionErrorKind::Diagnostic(
-            format!(
-                "Failed to open a shell for session ID {}: {}",
-                session_id, e
-            ),
-            Some(NaslValue::Number(-1)),
-        )),
-    }
-}
-
-/// Return the next available session ID
-fn next_session_id(sessions: &MutexGuard<Vec<SshSession>>) -> i32 {
-    // Note that the first session ID we will
-    // hand out is an arbitrary high number, this is only to help
-    // debugging.
-    let mut new_val: i32 = 9000;
-    if sessions.is_empty() {
-        return new_val;
-    }
-
-    let mut list = sessions.iter().map(|x| x.session_id).collect::<Vec<i32>>();
-    list.sort();
-
-    for (i, v) in list.iter().enumerate() {
-        if i == list.len() - 1 {
-            new_val = v + 1;
-            break;
-        }
-        if new_val != list[i] {
-            break;
-        }
-
-        new_val += 1;
-    }
-    new_val
-}
 
 fn lock_sessions(sessions: &Arc<Mutex<Vec<SshSession>>>) -> Result<MutexGuard<Vec<SshSession>>> {
     // we actually need to panic as a lock error is fatal
     // alternatively we need to add a poison error on FunctionErrorKind
     Ok(Arc::as_ref(sessions).lock().unwrap())
-}
-
-fn set_opt_user(
-    ssh_session: &mut SshSession,
-    login: Option<String>,
-    session_id: i32,
-) -> Result<NaslValue> {
-    // TODO: get the username alternatively from the kb.
-    let opt_user = SshOption::User(login.clone());
-    match ssh_session.session.set_option(opt_user) {
-        Ok(()) => {
-            ssh_session.user_set = true;
-            Ok(NaslValue::Null)
-        }
-        Err(e) => Err(FunctionErrorKind::Diagnostic(
-            format!(
-                "Failed to set SSH username {} for SessionID {}: {}",
-                login.unwrap_or_default(),
-                session_id,
-                e
-            ),
-            Some(NaslValue::Null),
-        )),
-    }
-}
-
-fn get_authmethods(session: &mut SshSession, session_id: i32) -> Result<AuthMethods> {
-    match session.session.userauth_none(None) {
-        Ok(libssh_rs::AuthStatus::Success) => {
-            info!("SSH authentication succeeded using the none method - should not happen; very old server?");
-            session.authmethods = AuthMethods::NONE;
-            session.authmethods_valid = true;
-            Ok(AuthMethods::NONE)
-        }
-        Ok(libssh_rs::AuthStatus::Denied) => match session.session.userauth_list(None) {
-            Ok(list) => {
-                session.authmethods = list;
-                session.authmethods_valid = true;
-                Ok(list)
-            }
-            Err(_) => {
-                debug!("SSH server did not return a list of authentication methods - trying all");
-                let methods = AuthMethods::HOST_BASED
-                    | AuthMethods::INTERACTIVE
-                    | AuthMethods::NONE
-                    | AuthMethods::PASSWORD
-                    | AuthMethods::PUBLIC_KEY;
-                session.authmethods_valid = true;
-                Ok(methods)
-            }
-        },
-        _ => Err(FunctionErrorKind::Diagnostic(
-            format!("Invalid SSH session for SessionID {}", session_id),
-            Some(NaslValue::Null),
-        )),
-    }
-}
-
-fn channel_read(
-    channel: &Channel,
-    cmd: &str,
-    session_id: i32,
-    stderr: bool,
-    timeout: Option<Duration>,
-) -> Result<String> {
-    let mut buf: [u8; 4096] = [0; 4096];
-    let mut buf_as_str = String::new();
-    loop {
-        match channel.read_timeout(&mut buf, stderr, timeout) {
-            Ok(0) => break,
-            Ok(_) => {
-                buf_as_str = match std::str::from_utf8(&buf) {
-                    Ok(s) => s.to_string(),
-                    Err(_) => {
-                        return Err(FunctionErrorKind::Diagnostic(
-                            format!(
-                                "Channel failed getting response {} for session ID {}",
-                                cmd, session_id
-                            ),
-                            Some(NaslValue::Number(-1)),
-                        ));
-                    }
-                };
-            }
-            Err(_) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!(
-                        "Channel failed getting response {} for session ID {}",
-                        cmd, session_id
-                    ),
-                    Some(NaslValue::Number(-1)),
-                ));
-            }
-        }
-    }
-    Ok(buf_as_str)
-}
-
-fn exec_ssh_cmd(
-    session: &SshSession,
-    cmd: &str,
-    compat_mode: bool,
-    to_stdout: i32,
-    to_stderr: i32,
-) -> Result<(String, String)> {
-    let channel = match session.session.new_channel() {
-        Ok(c) => c,
-        Err(e) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!(
-                    "Failed to open a new channel for session ID {}: {}",
-                    session.session_id, e
-                ),
-                Some(NaslValue::Number(-1)),
-            ));
-        }
-    };
-
-    match channel.open_session() {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!(
-                    "Channel failed to open session for session ID {}: {}",
-                    session.session_id, e
-                ),
-                Some(NaslValue::Number(-1)),
-            ));
-        }
-    }
-
-    match channel.request_pty("xterm", 80, 24) {
-        Ok(_) => (),
-        Err(e) => {
-            debug!(
-                session_id=session.session_id, error=%e,
-                "Channel failed to request pty for session ID",
-            );
-        }
-    }
-
-    match channel.request_exec(cmd) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!(
-                    "Channel failed to exec command {} for session ID {}: {}",
-                    cmd, session.session_id, e
-                ),
-                Some(NaslValue::Number(-1)),
-            ));
-        }
-    }
-
-    let mut response = String::new();
-    let mut compat_buf = String::new();
-
-    //Read stderr
-    let stderr_read = channel_read(
-        &channel,
-        cmd,
-        session.session_id,
-        true,
-        Some(Duration::from_millis(15000)),
-    )?;
-    if to_stderr == 1 {
-        response.push_str(stderr_read.as_str());
-    }
-    if compat_mode {
-        compat_buf.push_str(stderr_read.as_str());
-    }
-
-    //Read stdout
-    let stdout_read = channel_read(
-        &channel,
-        cmd,
-        session.session_id,
-        false,
-        Some(Duration::from_millis(15000)),
-    )?;
-    if to_stdout == 1 {
-        response.push_str(stdout_read.as_str());
-    }
-
-    Ok((response, compat_buf))
 }
 
 pub struct Ssh {
@@ -313,43 +71,28 @@ impl Ssh {
     /// seconds (defined by libssh internally) if not given.
     ///
     /// nasl return An integer to identify the ssh session. Zero on error.
-    fn nasl_ssh_connect(&self, register: &Register, ctx: &Context) -> Result<NaslValue> {
-        let sock: i64 = register
-            .named("socket")
-            .unwrap_or(&ContextType::Value(NaslValue::Number(0)))
-            .into();
-
-        let port = if sock > 0 {
-            0u16 // ignore the port if there is a socket
-        } else {
-            match register.named("port") {
-                Some(ContextType::Value(NaslValue::Number(x))) => *x as u16,
-                _ => 0u16, // TODO: implement get_ssh_port()
-            }
-        };
+    #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
+    fn nasl_ssh_connect(
+        &self,
+        socket: Option<c_int>,
+        port: Option<u16>,
+        keytype: Option<&str>,
+        csciphers: Option<&str>,
+        scciphers: Option<&str>,
+        timeout: Option<u64>,
+        ctx: &Context,
+    ) -> Result<SessionId> {
+        let port = port.filter(|_| socket.is_none()).unwrap_or(0);
 
         let ip_str: String = match ctx.target() {
             x if !x.is_empty() => x.to_string(),
             _ => "127.0.0.1".to_string(),
         };
 
-        let timeout: i64 = register
-            .named("timeout")
-            .unwrap_or(&ContextType::Value(NaslValue::Number(0)))
-            .into();
-        let key_type: String = register
-            .named("keytype")
-            .unwrap_or(&ContextType::Value(NaslValue::String(String::default())))
-            .into();
-        let csciphers: String = register
-            .named("csciphers")
-            .unwrap_or(&ContextType::Value(NaslValue::String(String::default())))
-            .into();
-
-        let scciphers: String = register
-            .named("scciphers")
-            .unwrap_or(&ContextType::Value(NaslValue::String(String::default())))
-            .into();
+        let timeout = timeout.unwrap_or(0);
+        let keytype = keytype.unwrap_or("");
+        let csciphers = csciphers.unwrap_or("");
+        let scciphers = scciphers.unwrap_or("");
 
         let session = match Session::new() {
             Ok(s) => s,
@@ -407,12 +150,12 @@ impl Ssh {
             )));
         }
 
-        if !key_type.is_empty() {
-            let option = SshOption::HostKeys(key_type.to_owned());
+        if !keytype.is_empty() {
+            let option = SshOption::HostKeys(keytype.to_owned());
             if let Err(err) = session.set_option(option) {
                 return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", key_type, err)
+                    "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", keytype, err)
                 ));
             }
         }
@@ -449,7 +192,7 @@ impl Ssh {
         }
 
         let mut forced_sock = -1;
-        if sock > 0 {
+        if let Some(socket) = socket {
             // This is a fake raw socket.
             // TODO: implement openvas_get_socket_from_connection()
             let my_sock = UdpSocket::bind("127.0.0.1:0").unwrap();
@@ -458,33 +201,35 @@ impl Ssh {
             debug!(
                 ip_str = ip_str,
                 sock_fd = my_sock.as_raw_fd(),
-                nasl_sock = sock,
+                nasl_sock = socket,
                 "Setting SSH fd for socket",
             );
 
             if let Err(err) = session.set_option(option) {
                 return Err(FunctionErrorKind::Dirty(
                 format!(
-                    "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), sock, err)
+                    "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), socket, err)
             ));
             }
 
-            forced_sock = sock; // TODO: check and fix everything related to open socket
+            forced_sock = socket; // TODO: check and fix everything related to open socket
         }
 
         debug!(
             "Connecting to SSH server '{}' (port {}, sock {})",
-            ip_str, port, sock
+            ip_str,
+            port,
+            socket.unwrap_or(0)
         );
 
         match session.connect() {
             Ok(_) => {
                 let mut sessions = lock_sessions(&self.sessions)?;
 
-                let session_id = next_session_id(&sessions);
+                let session_id = self.sess.next_session_id()?;
 
                 let s = SshSession {
-                    session_id,
+                    id: session_id,
                     session,
                     authmethods: AuthMethods::NONE,
                     authmethods_valid: false,
@@ -494,87 +239,41 @@ impl Ssh {
 
                 sessions.push(s);
 
-                Ok(NaslValue::Number(session_id as i64))
+                Ok(session_id)
             }
             Err(e) => {
                 session.disconnect();
                 Err(FunctionErrorKind::Dirty(format!(
-                    "Failed to connect to SSH server '{}' (port {}, sock {}, f={}): {}",
-                    ip_str, port, sock, forced_sock, e
+                    "Failed to connect to SSH server '{}' (port {}, sock {:?}, f={}): {}",
+                    ip_str, port, socket, forced_sock, e
                 )))
             }
         }
     }
 
     /// Disconnect an ssh connection
-
     /// This function takes the ssh session id (as returned by ssh_connect)
     /// as its only unnamed argument.  Passing 0 as session id is
     /// explicitly allowed and does nothing.  If there are any open
     /// channels they are closed as well and their ids will be marked as
     /// invalid.
-    ///
-    /// nasl params
-    /// - An SSH session id.  A value of 0 is allowed and acts as a NOP.
-    fn nasl_ssh_disconnect(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        };
-
-        match &positional[0] {
-            NaslValue::Number(session_id) => {
-                let mut sessions = lock_sessions(&self.sessions)?;
-                match sessions
-                    .iter()
-                    .enumerate()
-                    .find(|(_i, s)| s.session_id == *session_id as i32)
-                {
-                    Some((i, s)) => {
-                        s.session.disconnect();
-                        sessions.remove(i);
-                        Ok(NaslValue::Null)
-                    }
-                    _ => Err(FunctionErrorKind::Diagnostic(
-                        format!("Session ID {} not found", session_id),
-                        Some(NaslValue::Null),
-                    )),
-                }
-            }
-            _ => Err(FunctionErrorKind::WrongArgument(
-                ("Invalid Session ID").to_string(),
-            )),
+    #[nasl_function]
+    fn nasl_ssh_disconnect(&self, session_id: SessionId) -> Result<()> {
+        if session_id != 0 {
+            let mut session = self.sess.get_by_id(session_id)?;
+            session.disconnect()?;
+            self.sess.remove(session_id)?;
         }
+        Ok(())
     }
 
-    /// Given a socket, return the corresponding session id.
-    /// nasl params
-    /// - A NASL socket value
-    ///
-    /// return An integer with the corresponding ssh session id or 0 if
-    ///          no session id is known for the given socket.
-    fn nasl_ssh_session_id_from_sock(
-        &self,
-        register: &Register,
-        _ctx: &Context,
-    ) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        match &positional[0] {
-            NaslValue::Number(_x) => Ok(NaslValue::Null),
-            _ => Err(FunctionErrorKind::WrongArgument(
-                ("Invalid socket FD").to_string(),
-            )),
-        }
+    /// Given a socket, return the corresponding session id if available.
+    #[nasl_function]
+    fn nasl_ssh_session_id_from_sock(&self, socket: c_int) -> Result<Option<SessionId>> {
+        Ok(self
+            .sess
+            .find(|session| session.get_socket() == socket)?
+            .map(|session| session.id()))
     }
 
     /// Given a session id, return the corresponding socket
@@ -586,76 +285,28 @@ impl Ssh {
     /// - An SSH session id.
     ///  
     /// return An integer representing the socket or -1 on error.
-    fn nasl_ssh_get_sock(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        match &positional[0] {
-            NaslValue::Number(_x) => Ok(NaslValue::Null),
-            _ => Err(FunctionErrorKind::WrongArgument(
-                ("Invalid session ID").to_string(),
-            )),
-        }
+    #[nasl_function]
+    fn nasl_ssh_get_sock(&self, session_id: SessionId) -> Result<c_int> {
+        let session = self.sess.get_by_id(session_id)?;
+        Ok(session.get_socket())
     }
     /// Set the login name for the authentication.
     ///  
-    /// This is an optional function and usuallay not required.  However,
+    /// This is an optional function and usually not required.  However,
     /// if you want to get the banner before starting the authentication,
     /// you need to tell libssh the user because it is often not possible
     /// to change the user after the first call to an authentication
     /// methods - getting the banner uses an authentication function.
     ///  
     /// The named argument "login" is used for the login name; it defaults
-    /// the KB entry "Secret/SSH/login".  It should contain the user name
+    /// to the KB entry "Secret/SSH/login".  It should contain the user name
     /// to login.  Given that many servers don't allow changing the login
     /// for an established connection, the "login" parameter is silently
     /// ignored on all further calls.
-    ///  
-    /// nasl params
-    /// - An SSH session id.
-    ///  
-    /// nasl named params
-    /// - login: A string with the login name (optional).
-    fn nasl_ssh_set_login(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let login = match register.named("login") {
-            Some(ContextType::Value(NaslValue::String(x))) => Some(x.to_owned()),
-            _ => return Err(FunctionErrorKind::missing_argument("login")),
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, s)) => set_opt_user(s, login, session_id),
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+    #[nasl_function(named(login))]
+    fn nasl_ssh_set_login(&self, session_id: SessionId, login: Option<&str>) -> Result<()> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        Ok(session.set_opt_user(login)?)
     }
 
     /// Authenticate a user on an ssh connection
@@ -706,146 +357,61 @@ impl Ssh {
     /// - passphrase: A string with the passphrase used to unprotect privatekey.
     ///  
     /// return An integer as status value; 0 indicates success.
-    fn nasl_ssh_userauth(&self, register: &Register, _: &Context) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let get_named_val = |name| match register.named(name) {
-            Some(ContextType::Value(NaslValue::String(x))) => Ok(Some(x.as_str())),
-            None => Ok(None),
-            _ => Err(FunctionErrorKind::WrongArgument(format!(
-                "Invalid value for {}",
-                name
-            ))),
-        };
-
-        // Login is optional. It must be later checked if the login was
-        // already set by another option.
-        let login = get_named_val("login")?.map(str::to_string);
-        let password = get_named_val("password")?;
-        let privatekey = get_named_val("privatekey")?;
-        let passphrase = get_named_val("passphrase")?;
-
+    #[nasl_function(named(login, password, privatekey, passphrase))]
+    fn nasl_ssh_userauth(
+        &self,
+        session_id: SessionId,
+        login: Option<&str>,
+        password: Option<&str>,
+        privatekey: Option<&str>,
+        passphrase: Option<&str>,
+    ) -> Result<()> {
         if password.is_none() && privatekey.is_none() && passphrase.is_none() {
             //TODO: Get values from KB
             return Err(FunctionErrorKind::Dirty(format!(
-                "Invalid SSH session for SessionID {}",
+                "No authentication data given for session ID: {}",
                 session_id
             )));
         }
+        let mut session = self.sess.get_by_id(session_id)?;
+        session.ensure_user_set(login)?;
 
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                if !session.user_set {
-                    set_opt_user(session, login, session_id)?;
+        let methods: AuthMethods = session.get_authmethods_cached()?;
+        debug!("Available methods:\n{:?}", methods);
+
+        if methods == AuthMethods::NONE {
+            return Ok(());
+        }
+
+        // Check whether a password has been given.  If so, try to
+        // authenticate using that password.  Note that the OpenSSH client
+        // uses a different order: it first tries the public key and then the
+        // password.  However, the old NASL SSH protocol implementation tries
+        // the password before the public key authentication.  Because we
+        // want to be compatible, we do it in that order.
+        if password.is_some() && methods.contains(AuthMethods::PASSWORD) {
+            let status = session.userauth_password(None, password)?;
+            match status {
+                AuthStatus::Success => {
+                    return Ok(());
                 }
-
-                // Get the authentication methods only once per session.
-                let methods: AuthMethods = {
-                    if !session.authmethods_valid {
-                        get_authmethods(session, session_id)?
-                    } else {
-                        session.authmethods
-                    }
-                };
-                debug!("Available methods:\n{:?}", methods);
-
-                if methods == AuthMethods::NONE {
-                    return Ok(NaslValue::Number(0));
+                _ => {
+                    debug!(
+                        session_id = session_id,
+                        "SSH password authentication failed.",
+                    );
                 }
+            };
+        }
 
-                /* Check whether a password has been given.  If so, try to
-                authenticate using that password.  Note that the OpenSSH client
-                uses a different order it first tries the public key and then the
-                password.  However, the old NASL SSH protocol implementation tries
-                the password before the public key authentication.  Because we
-                want to be compatible, we do it in that order. */
-                if password.is_some() && methods.contains(AuthMethods::PASSWORD) {
-                    match session.session.userauth_password(None, password) {
-                        Ok(AuthStatus::Success) => {
-                            return Ok(NaslValue::Number(0));
-                        }
-                        Ok(_) => {
-                            debug!(
-                                session_id = session_id,
-                                "SSH password authentication failed.",
-                            );
-                        }
-                        Err(_) => {
-                            return Err(FunctionErrorKind::Dirty(format!(
-                                "Failed setting user authentication for SessionID {}",
-                                session_id
-                            )));
-                        }
-                    };
-                }
-
-                /* Our strategy for kbint is to send the password to the first
-                prompt marked as non-echo.  */
-                if password.is_some() && methods.contains(AuthMethods::INTERACTIVE) {
-                    loop {
-                        match session.session.userauth_keyboard_interactive(None, None) {
-                            Ok(AuthStatus::Info) => {
-                                let info =
-                                    match session.session.userauth_keyboard_interactive_info() {
-                                        Ok(i) => i,
-                                        Err(_) => {
-                                            return Err(FunctionErrorKind::Dirty(format!(
-                                            "Failed setting user authentication for SessionID {}",
-                                            session_id
-                                        )));
-                                        }
-                                    };
-                                debug!(
-                                    name = info.name,
-                                    instruction = info.instruction,
-                                    "SSH keyboard-interactive"
-                                );
-
-                                let mut answers: Vec<String> = Vec::new();
-                                for p in info.prompts.into_iter() {
-                                    if !p.echo {
-                                        answers.push(password.unwrap_or_default().to_string());
-                                    } else {
-                                        answers.push(String::new());
-                                    };
-                                }
-                                match session
-                                    .session
-                                    .userauth_keyboard_interactive_set_answers(&answers)
-                                {
-                                    Ok(_) => {
-                                        return Ok(NaslValue::Number(0));
-                                    }
-                                    Err(_) => break,
-                                }
-                            }
-                            Ok(_) => {
-                                debug!(
-                                    session_id = session_id,
-                                    "SSH keyboard-interactive authentication failed.",
-                                );
-                                continue;
-                            }
+        // Our strategy for kbint is to send the password to the first
+        // prompt marked as non-echo.
+        if password.is_some() && methods.contains(AuthMethods::INTERACTIVE) {
+            loop {
+                match session.session().userauth_keyboard_interactive(None, None) {
+                    Ok(AuthStatus::Info) => {
+                        let info = match session.session().userauth_keyboard_interactive_info() {
+                            Ok(i) => i,
                             Err(_) => {
                                 return Err(FunctionErrorKind::Dirty(format!(
                                     "Failed setting user authentication for SessionID {}",
@@ -853,39 +419,76 @@ impl Ssh {
                                 )));
                             }
                         };
+                        debug!(
+                            name = info.name,
+                            instruction = info.instruction,
+                            "SSH keyboard-interactive"
+                        );
+
+                        let mut answers: Vec<String> = Vec::new();
+                        for p in info.prompts.into_iter() {
+                            if !p.echo {
+                                answers.push(password.unwrap_or_default().to_string());
+                            } else {
+                                answers.push(String::new());
+                            };
+                        }
+                        match session
+                            .session()
+                            .userauth_keyboard_interactive_set_answers(&answers)
+                        {
+                            Ok(_) => {
+                                return Ok(());
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                    Ok(_) => {
+                        debug!(
+                            session_id = session_id,
+                            "SSH keyboard-interactive authentication failed.",
+                        );
+                        continue;
+                    }
+                    Err(_) => {
+                        return Err(FunctionErrorKind::Dirty(format!(
+                            "Failed setting user authentication for SessionID {}",
+                            session_id
+                        )));
                     }
                 };
+            }
+        };
 
-                // If we have a private key, try public key authentication.
-                if privatekey.is_none() && methods.contains(AuthMethods::PUBLIC_KEY) {
-                    match SshKey::from_privkey_base64(privatekey.unwrap_or_default(), passphrase) {
-                        Ok(k) => match session.session.userauth_try_publickey(None, &k) {
-                            Ok(AuthStatus::Success) => {
-                                match session.session.userauth_publickey(None, &k) {
-                                    Ok(AuthStatus::Success) => {
-                                        return Ok(NaslValue::Number(0));
-                                    }
-                                    _ => {
-                                        debug!(session_id=session_id, "SSH authentication failed. No more authentication methods to try");
-                                    }
+        // If we have a private key, try public key authentication.
+        if privatekey.is_some() && methods.contains(AuthMethods::PUBLIC_KEY) {
+            match SshKey::from_privkey_base64(privatekey.unwrap_or_default(), passphrase) {
+                Ok(k) => {
+                    match session.session().userauth_try_publickey(None, &k) {
+                        Ok(AuthStatus::Success) => {
+                            match session.session().userauth_publickey(None, &k) {
+                                Ok(AuthStatus::Success) => {
+                                    return Ok(());
+                                }
+                                _ => {
+                                    debug!(session_id=session_id, "SSH authentication failed. No more authentication methods to try");
                                 }
                             }
-                            _ => {
-                                debug!(session_id=session_id, "SSH public key authentication failed.: Server does not want our key");
-                            }
-                        },
-                        Err(_) => {
-                            debug!(session_id=session.session_id, "SSH public key authentication failed: Error converting provided key");
                         }
-                    };
-                };
-                Ok(NaslValue::Number(0))
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+                        _ => {
+                            debug!(session_id=session_id, "SSH public key authentication failed.: Server does not want our key");
+                        }
+                    }
+                }
+                Err(_) => {
+                    debug!(
+                        session_id = session.id(),
+                        "SSH public key authentication failed: Error converting provided key"
+                    );
+                }
+            };
+        };
+        Ok(())
     }
 
     /// Run a command via ssh.
@@ -915,152 +518,38 @@ impl Ssh {
     ///
     /// If the named parameters @a stdout and @a stderr are not given, the
     /// function acts exactly as if only @a stdout has been set to 1.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// nasl named params
-    ///
-    /// - cmd: A string with the command to execute.
-    ///
-    /// - stdout: An integer with value 0 or 1; see above for a full
-    ///    description.
-    ///
-    /// - stderr: An integer with value 0 or 1; see above for a full
-    ///    description.
-    ///
-    /// return A data block on success or NULL on error.
-    fn nasl_ssh_request_exec(&self, register: &Register, _: &Context) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
+    #[nasl_function(named(cmd, stdout, stderr))]
+    fn nasl_ssh_request_exec(
+        &self,
+        session_id: SessionId,
+        cmd: &str,
+        stdout: Option<bool>,
+        stderr: Option<bool>,
+    ) -> Result<Option<String>> {
+        let session = self.sess.get_by_id(session_id)?;
+        if cmd.is_empty() {
+            return Ok(None);
         }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
+        let (stdout, stderr, compat_mode) = match (stdout, stderr) {
+            (None, None) => (true, false, false),
+            (Some(false), Some(false)) => (true, false, true),
+            (stdout, stderr) => (stdout.unwrap_or(false), stderr.unwrap_or(false), false),
         };
-
-        let cmd = match register.named("cmd") {
-            Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(FunctionErrorKind::missing_argument("No command passed")),
-        };
-
-        let stdout = match register.named("stdout") {
-            Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => -1,
-        };
-
-        let stderr = match register.named("stderr") {
-            Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => -1,
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                if cmd.is_empty() {
-                    return Ok(NaslValue::Null);
-                }
-                let (mut to_stdout, mut to_stderr, mut compat_mode): (i32, i32, bool) =
-                    (stdout, stderr, false);
-                if stdout == -1 && stderr == -1 {
-                    // None of the two named args are given.
-                    to_stdout = 1;
-                } else if stdout == 0 && stderr == 0 {
-                    // Comaptibility mode
-                    to_stdout = 1;
-                    compat_mode = true;
-                }
-
-                if to_stdout < 0 {
-                    to_stdout = 0;
-                }
-                if to_stderr < 0 {
-                    to_stderr = 0;
-                }
-
-                let (mut response, compat_buf) =
-                    exec_ssh_cmd(session, cmd, compat_mode, to_stdout, to_stderr)?;
-
-                if compat_mode {
-                    response.push_str(&compat_buf)
-                }
-                Ok(NaslValue::String(response))
-            }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Session ID {} not found", session_id),
-                Some(NaslValue::Number(-1)),
-            )),
-        }
+        Ok(Some(session.exec_ssh_cmd(
+            cmd,
+            compat_mode,
+            stdout,
+            stderr,
+        )?))
     }
 
-    /// Request an ssh shell.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// nasl named params
-    ///
-    /// - pty: To enable/disable the interactive shell. Default is 1 (interactive).
-    ///
-    /// @naslret An int on success or NULL on error.
-    fn nasl_ssh_shell_open(&self, register: &Register, _ctx: &Context) -> Result<NaslValue> {
-        let positional = register.positional();
-        if positional.is_empty() {
-            return Err(FunctionErrorKind::MissingPositionalArguments {
-                expected: 0,
-                got: 1,
-            });
-        }
-
-        let session_id = match &positional[0] {
-            NaslValue::Number(x) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    ("Invalid session ID").to_string(),
-                ))
-            }
-        };
-
-        let pty = match register.named("pty") {
-            Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
-            _ => false,
-        };
-
-        let mut sessions = lock_sessions(&self.sessions)?;
-        match sessions
-            .iter_mut()
-            .enumerate()
-            .find(|(_i, s)| s.session_id == session_id)
-        {
-            Some((_i, session)) => {
-                let mut channel = session.new_channel()?;
-                channel.open_session()?;
-
-                request_ssh_shell(session_id, channel.channel_mut(), pty)?;
-
-                session.channel = Some(channel);
-                Ok(NaslValue::Number(session_id as i64))
-            }
-            _ => Err(FunctionErrorKind::Dirty(format!(
-                "Session ID {} not found",
-                session_id
-            ))),
-        }
+    /// Open a new ssh shell.
+    #[nasl_function(named(pty))]
+    fn nasl_ssh_shell_open(&self, session_id: SessionId, pty: Option<bool>) -> Result<SessionId> {
+        let mut session = self.sess.get_by_id(session_id)?;
+        let pty = pty.unwrap_or(true);
+        session.open_shell(pty)?;
+        Ok(session.id())
     }
 
     /// Read the output of an ssh shell.
@@ -1118,21 +607,11 @@ impl Ssh {
     fn nasl_ssh_login_interactive(
         &self,
         session_id: SessionId,
-        login: Option<String>,
+        login: Option<&str>,
     ) -> Result<Option<String>> {
         let mut session = self.sess.get_by_id(session_id)?;
-        if !session.user_set {
-            set_opt_user(&mut session, login, session_id)?;
-        }
-
-        // Get the authentication methods only once per session.
-        let methods: AuthMethods = {
-            if !session.authmethods_valid {
-                get_authmethods(&mut session, session_id)?
-            } else {
-                session.authmethods
-            }
-        };
+        session.ensure_user_set(login)?;
+        let methods = session.get_authmethods_cached()?;
         debug!("Available methods:\n{:?}", methods);
 
         if methods.contains(AuthMethods::INTERACTIVE) {
@@ -1184,21 +663,19 @@ impl Ssh {
             "SSH keyboard-interactive"
         );
 
-        let mut answers: Vec<String> = Vec::new();
-        for p in info.prompts.into_iter() {
-            if !p.echo {
-                answers.push(password.to_string());
-            } else {
-                answers.push(String::new());
-            };
-        }
+        let answers: Vec<String> = info
+            .prompts
+            .into_iter()
+            .map(|prompt| if prompt.echo { password } else { "" })
+            .map(String::from)
+            .collect();
         session.userauth_keyboard_interactive_set_answers(&answers)?;
         loop {
             let status = session.userauth_keyboard_interactive(None, None)?;
             match status {
                 AuthStatus::Info => {
                     session
-                        .session
+                        .session()
                         .userauth_keyboard_interactive_info()
                         .unwrap();
                     continue;
@@ -1232,15 +709,8 @@ impl Ssh {
     #[nasl_function]
     fn nasl_ssh_get_issue_banner(&self, session_id: SessionId) -> Result<Option<String>> {
         let mut session = self.sess.get_by_id(session_id)?;
-        if !session.user_set {
-            //TODO: set the login with set_opt_user(). Get the user from the kb
-            return Ok(None);
-        }
-
-        if !session.authmethods_valid {
-            get_authmethods(&mut session, session_id)?;
-        }
-
+        session.ensure_user_set(None)?;
+        session.get_authmethods_cached()?;
         Ok(session.get_issue_banner().ok())
     }
 
@@ -1260,29 +730,23 @@ impl Ssh {
     #[nasl_function]
     fn nasl_ssh_get_auth_methods(&self, session_id: SessionId) -> Result<Option<String>> {
         let mut session = self.sess.get_by_id(session_id)?;
-        if !session.user_set {
-            //TODO: set the login with set_opt_user(). Get the user from the kb
-            return Ok(None);
-        }
-
-        if !session.authmethods_valid {
-            get_authmethods(&mut session, session_id)?;
-        };
+        session.ensure_user_set(None)?;
+        let authmethods = session.get_authmethods_cached()?;
 
         let mut methods = vec![];
-        if session.authmethods.contains(AuthMethods::NONE) {
+        if authmethods.contains(AuthMethods::NONE) {
             methods.push("none");
         }
-        if session.authmethods.contains(AuthMethods::PASSWORD) {
+        if authmethods.contains(AuthMethods::PASSWORD) {
             methods.push("password");
         }
-        if session.authmethods.contains(AuthMethods::PUBLIC_KEY) {
+        if authmethods.contains(AuthMethods::PUBLIC_KEY) {
             methods.push("publickey");
         }
-        if session.authmethods.contains(AuthMethods::HOST_BASED) {
+        if authmethods.contains(AuthMethods::HOST_BASED) {
             methods.push("hostbased");
         }
-        if session.authmethods.contains(AuthMethods::INTERACTIVE) {
+        if authmethods.contains(AuthMethods::INTERACTIVE) {
             methods.push("keyboard-interactive");
         }
 
@@ -1307,7 +771,7 @@ impl Ssh {
     #[nasl_function]
     fn nasl_sftp_enabled_check(&self, session_id: SessionId) -> Result<i32> {
         let session = self.sess.get_by_id(session_id)?;
-        match session.session.sftp() {
+        match session.session().sftp() {
             Ok(_) => Ok(0),
             Err(e) => {
                 debug!("SFTP enabled check error: {}", e);
@@ -1323,11 +787,11 @@ impl Ssh {
         let channel = session.new_channel()?;
         channel.open_session()?;
         channel.request_subsystem("netconf")?;
-        session.channel = Some(channel);
+        session.borrow_mut().channel = Some(channel);
         Ok(session_id)
     }
 
-    fn lookup(key: &str) -> Option<NaslSSHFunction> {
+    fn lookup(key: &str) -> Option<fn(&Ssh, &Register, &Context) -> Result<NaslValue>> {
         match key {
             "ssh_connect" => Some(Ssh::nasl_ssh_connect),
             "ssh_disconnect" => Some(Ssh::nasl_ssh_disconnect),
