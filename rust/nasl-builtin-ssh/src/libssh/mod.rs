@@ -12,33 +12,16 @@ use nasl_builtin_utils::function::{Maybe, StringOrData};
 use nasl_builtin_utils::{Context, FunctionErrorKind, Register, Result};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
-use sessions::SshSession;
 use std::io::Write;
 use std::net::UdpSocket;
 use std::os::fd::AsRawFd;
 use std::os::raw::c_int;
-use std::sync::MutexGuard;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{env, time::Duration};
 use tracing::debug;
 
 use self::sessions::{SessionId, Sessions};
 
-fn lock_sessions(sessions: &Arc<Mutex<Vec<SshSession>>>) -> Result<MutexGuard<Vec<SshSession>>> {
-    // we actually need to panic as a lock error is fatal
-    // alternatively we need to add a poison error on FunctionErrorKind
-    Ok(Arc::as_ref(sessions).lock().unwrap())
-}
-
-pub struct Ssh {
-    sess: Sessions,
-    sessions: Arc<Mutex<Vec<SshSession>>>,
-}
-
-impl Ssh {
+impl Sessions {
     /// Connect to the target host via TCP and setup an ssh
     ///        connection.
     ///
@@ -224,22 +207,8 @@ impl Ssh {
 
         match session.connect() {
             Ok(_) => {
-                let mut sessions = lock_sessions(&self.sessions)?;
-
-                let session_id = self.sess.next_session_id()?;
-
-                let s = SshSession {
-                    id: session_id,
-                    session,
-                    authmethods: AuthMethods::NONE,
-                    authmethods_valid: false,
-                    user_set: false,
-                    channel: None,
-                };
-
-                sessions.push(s);
-
-                Ok(session_id)
+                let id = self.add_new_session(session)?;
+                Ok(id)
             }
             Err(e) => {
                 session.disconnect();
@@ -260,9 +229,9 @@ impl Ssh {
     #[nasl_function]
     fn nasl_ssh_disconnect(&self, session_id: SessionId) -> Result<()> {
         if session_id != 0 {
-            let mut session = self.sess.get_by_id(session_id)?;
+            let mut session = self.get_by_id(session_id)?;
             session.disconnect()?;
-            self.sess.remove(session_id)?;
+            self.remove(session_id)?;
         }
         Ok(())
     }
@@ -271,7 +240,6 @@ impl Ssh {
     #[nasl_function]
     fn nasl_ssh_session_id_from_sock(&self, socket: c_int) -> Result<Option<SessionId>> {
         Ok(self
-            .sess
             .find(|session| session.get_socket() == socket)?
             .map(|session| session.id()))
     }
@@ -287,7 +255,7 @@ impl Ssh {
     /// return An integer representing the socket or -1 on error.
     #[nasl_function]
     fn nasl_ssh_get_sock(&self, session_id: SessionId) -> Result<c_int> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         Ok(session.get_socket())
     }
     /// Set the login name for the authentication.
@@ -305,7 +273,7 @@ impl Ssh {
     /// ignored on all further calls.
     #[nasl_function(named(login))]
     fn nasl_ssh_set_login(&self, session_id: SessionId, login: Option<&str>) -> Result<()> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         Ok(session.set_opt_user(login)?)
     }
 
@@ -373,7 +341,7 @@ impl Ssh {
                 session_id
             )));
         }
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         session.ensure_user_set(login)?;
 
         let methods: AuthMethods = session.get_authmethods_cached()?;
@@ -526,7 +494,7 @@ impl Ssh {
         stdout: Option<bool>,
         stderr: Option<bool>,
     ) -> Result<Option<String>> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         if cmd.is_empty() {
             return Ok(None);
         }
@@ -546,7 +514,7 @@ impl Ssh {
     /// Open a new ssh shell.
     #[nasl_function(named(pty))]
     fn nasl_ssh_shell_open(&self, session_id: SessionId, pty: Option<bool>) -> Result<SessionId> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         let pty = pty.unwrap_or(true);
         session.open_shell(pty)?;
         Ok(session.id())
@@ -562,7 +530,7 @@ impl Ssh {
         session_id: SessionId,
         timeout: Option<Maybe<u64>>,
     ) -> Result<String> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         let timeout = Duration::from_secs(timeout.and_then(Maybe::as_option).unwrap_or(0));
         let channel = session.get_channel()?;
         channel.ensure_open()?;
@@ -577,7 +545,7 @@ impl Ssh {
     /// Write the string `cmd` to an ssh shell.
     #[nasl_function]
     fn nasl_ssh_shell_write(&self, session_id: SessionId, cmd: StringOrData) -> Result<i32> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         let channel = session.get_channel()?;
         channel.ensure_open()?;
 
@@ -591,7 +559,7 @@ impl Ssh {
     /// Close an ssh shell.
     #[nasl_function]
     fn nasl_ssh_shell_close(&self, session_id: SessionId) -> Result<()> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         session.close();
         Ok(())
     }
@@ -609,7 +577,7 @@ impl Ssh {
         session_id: SessionId,
         login: Option<&str>,
     ) -> Result<Option<String>> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         session.ensure_user_set(login)?;
         let methods = session.get_authmethods_cached()?;
         debug!("Available methods:\n{:?}", methods);
@@ -655,7 +623,7 @@ impl Ssh {
     /// ssh_login_interactive.
     #[nasl_function(named(password))]
     fn nasl_ssh_login_interactive_pass(&self, session_id: SessionId, password: &str) -> Result<()> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         let info = session.userauth_keyboard_interactive_info()?;
         debug!(
             name = info.name,
@@ -708,7 +676,7 @@ impl Ssh {
     ///
     #[nasl_function]
     fn nasl_ssh_get_issue_banner(&self, session_id: SessionId) -> Result<Option<String>> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         session.ensure_user_set(None)?;
         session.get_authmethods_cached()?;
         Ok(session.get_issue_banner().ok())
@@ -718,7 +686,7 @@ impl Ssh {
     /// usually the first data sent by the server.
     #[nasl_function]
     fn nasl_ssh_get_server_banner(&self, session_id: SessionId) -> Result<Option<String>> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         // TODO: Check with openvas-nasl why the outputs doesn't match
         Ok(session.get_server_banner().ok())
     }
@@ -729,7 +697,7 @@ impl Ssh {
     /// screened and put into a definitive order.
     #[nasl_function]
     fn nasl_ssh_get_auth_methods(&self, session_id: SessionId) -> Result<Option<String>> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         session.ensure_user_set(None)?;
         let authmethods = session.get_authmethods_cached()?;
 
@@ -759,7 +727,7 @@ impl Ssh {
     /// Return the MD5 host key.
     #[nasl_function]
     fn nasl_ssh_get_host_key(&self, session_id: SessionId) -> Result<Option<String>> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         let key = session.get_server_public_key()?;
         match key.get_public_key_hash_hexa(libssh_rs::PublicKeyHashType::Md5) {
             Ok(hash) => Ok(Some(hash)),
@@ -770,7 +738,7 @@ impl Ssh {
     /// Check if the SFTP subsystem is enabled on the remote SSH server.
     #[nasl_function]
     fn nasl_sftp_enabled_check(&self, session_id: SessionId) -> Result<i32> {
-        let session = self.sess.get_by_id(session_id)?;
+        let session = self.get_by_id(session_id)?;
         match session.session().sftp() {
             Ok(_) => Ok(0),
             Err(e) => {
@@ -783,7 +751,7 @@ impl Ssh {
     /// Execute the NETCONF subsystem on the the ssh channel
     #[nasl_function]
     fn nasl_ssh_execute_netconf_subsystem(&self, session_id: SessionId) -> Result<SessionId> {
-        let mut session = self.sess.get_by_id(session_id)?;
+        let mut session = self.get_by_id(session_id)?;
         let channel = session.new_channel()?;
         channel.open_session()?;
         channel.request_subsystem("netconf")?;
@@ -791,42 +759,37 @@ impl Ssh {
         Ok(session_id)
     }
 
-    fn lookup(key: &str) -> Option<fn(&Ssh, &Register, &Context) -> Result<NaslValue>> {
+    fn lookup(key: &str) -> Option<fn(&Self, &Register, &Context) -> Result<NaslValue>> {
         match key {
-            "ssh_connect" => Some(Ssh::nasl_ssh_connect),
-            "ssh_disconnect" => Some(Ssh::nasl_ssh_disconnect),
-            "ssh_session_id_from_sock" => Some(Ssh::nasl_ssh_session_id_from_sock),
-            "ssh_get_sock" => Some(Ssh::nasl_ssh_get_sock),
-            "ssh_set_login" => Some(Ssh::nasl_ssh_set_login),
-            "ssh_userauth" => Some(Ssh::nasl_ssh_userauth),
-            "ssh_request_exec" => Some(Ssh::nasl_ssh_request_exec),
-            "ssh_shell_open" => Some(Ssh::nasl_ssh_shell_open),
-            "ssh_shell_read" => Some(Ssh::nasl_ssh_shell_read),
-            "ssh_shell_write" => Some(Ssh::nasl_ssh_shell_write),
-            "ssh_shell_close" => Some(Ssh::nasl_ssh_shell_close),
-            "ssh_login_interactive" => Some(Ssh::nasl_ssh_login_interactive),
-            "ssh_login_interactive_pass" => Some(Ssh::nasl_ssh_login_interactive_pass),
-            "ssh_get_issue_banner" => Some(Ssh::nasl_ssh_get_issue_banner),
-            "ssh_get_server_banner" => Some(Ssh::nasl_ssh_get_server_banner),
-            "ssh_get_auth_methods" => Some(Ssh::nasl_ssh_get_auth_methods),
-            "ssh_get_host_key" => Some(Ssh::nasl_ssh_get_host_key),
-            "sftp_enabled_check" => Some(Ssh::nasl_sftp_enabled_check),
-            "ssh_execute_netconf_subsystem" => Some(Ssh::nasl_ssh_execute_netconf_subsystem),
+            "ssh_connect" => Some(Sessions::nasl_ssh_connect),
+            "ssh_disconnect" => Some(Sessions::nasl_ssh_disconnect),
+            "ssh_session_id_from_sock" => Some(Sessions::nasl_ssh_session_id_from_sock),
+            "ssh_get_sock" => Some(Sessions::nasl_ssh_get_sock),
+            "ssh_set_login" => Some(Sessions::nasl_ssh_set_login),
+            "ssh_userauth" => Some(Sessions::nasl_ssh_userauth),
+            "ssh_request_exec" => Some(Sessions::nasl_ssh_request_exec),
+            "ssh_shell_open" => Some(Sessions::nasl_ssh_shell_open),
+            "ssh_shell_read" => Some(Sessions::nasl_ssh_shell_read),
+            "ssh_shell_write" => Some(Sessions::nasl_ssh_shell_write),
+            "ssh_shell_close" => Some(Sessions::nasl_ssh_shell_close),
+            "ssh_login_interactive" => Some(Sessions::nasl_ssh_login_interactive),
+            "ssh_login_interactive_pass" => Some(Sessions::nasl_ssh_login_interactive_pass),
+            "ssh_get_issue_banner" => Some(Sessions::nasl_ssh_get_issue_banner),
+            "ssh_get_server_banner" => Some(Sessions::nasl_ssh_get_server_banner),
+            "ssh_get_auth_methods" => Some(Sessions::nasl_ssh_get_auth_methods),
+            "ssh_get_host_key" => Some(Sessions::nasl_ssh_get_host_key),
+            "sftp_enabled_check" => Some(Sessions::nasl_sftp_enabled_check),
+            "ssh_execute_netconf_subsystem" => Some(Sessions::nasl_ssh_execute_netconf_subsystem),
             _ => None,
         }
     }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Ssh {
+impl nasl_builtin_utils::NaslFunctionExecuter for Sessions {
     fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        let mut data = Arc::as_ref(&self.sessions).lock().unwrap();
-        if data.is_empty() {
-            return None;
-        }
-        let result = data.len();
-        data.clear();
-        data.shrink_to_fit();
-        Some(result)
+        let len = self.len().ok()?;
+        self.clear().ok()?;
+        Some(len)
     }
 
     fn nasl_fn_execute(
@@ -835,10 +798,10 @@ impl nasl_builtin_utils::NaslFunctionExecuter for Ssh {
         register: &Register,
         context: &Context,
     ) -> Option<nasl_builtin_utils::NaslResult> {
-        Ssh::lookup(name).map(|f| f(self, register, context))
+        Self::lookup(name).map(|f| f(self, register, context))
     }
 
     fn nasl_fn_defined(&self, name: &str) -> bool {
-        Ssh::lookup(name).is_some()
+        Self::lookup(name).is_some()
     }
 }

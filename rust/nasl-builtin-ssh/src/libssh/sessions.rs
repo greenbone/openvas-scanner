@@ -208,6 +208,31 @@ impl Sessions {
         }
         Ok(None)
     }
+
+    pub fn len(&self) -> Result<usize> {
+        Ok(self.lock()?.len())
+    }
+
+    pub fn clear(&self) -> Result<()> {
+        let mut guard = self.lock()?;
+        guard.clear();
+        guard.shrink_to_fit();
+        Ok(())
+    }
+
+    pub fn add_new_session(&self, session: Session) -> Result<SessionId> {
+        let id = self.next_session_id()?;
+        let mut guard = self.lock()?;
+        guard.push(SshSession {
+            session,
+            id,
+            authmethods: AuthMethods::NONE,
+            authmethods_valid: false,
+            user_set: false,
+            channel: None,
+        });
+        Ok(id)
+    }
 }
 
 pub struct BorrowedSession<'a> {
