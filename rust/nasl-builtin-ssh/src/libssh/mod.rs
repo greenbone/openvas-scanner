@@ -4,6 +4,8 @@
 
 //! Defines NASL ssh and sftp functions
 
+mod channel;
+mod session;
 pub mod sessions;
 
 use core::str;
@@ -20,6 +22,8 @@ use std::{env, time::Duration};
 use tracing::debug;
 
 use self::sessions::{SessionId, Sessions};
+
+pub type Socket = c_int;
 
 fn get_log_level() -> LogLevel {
     let verbose = env::var("OPENVAS_LIBSSH_DEBUG")
@@ -71,7 +75,7 @@ impl Sessions {
     #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
     fn nasl_ssh_connect(
         &self,
-        socket: Option<c_int>,
+        socket: Option<Socket>,
         port: Option<u16>,
         keytype: Option<&str>,
         csciphers: Option<&str>,
@@ -145,7 +149,7 @@ impl Sessions {
 
     /// Given a socket, return the corresponding session id if available.
     #[nasl_function]
-    fn nasl_ssh_session_id_from_sock(&self, socket: c_int) -> Result<Option<SessionId>> {
+    fn nasl_ssh_session_id_from_sock(&self, socket: Socket) -> Result<Option<SessionId>> {
         Ok(self
             .find(|session| session.get_socket() == socket)?
             .map(|session| session.id()))
@@ -161,7 +165,7 @@ impl Sessions {
     ///  
     /// return An integer representing the socket or -1 on error.
     #[nasl_function]
-    fn nasl_ssh_get_sock(&self, session_id: SessionId) -> Result<c_int> {
+    fn nasl_ssh_get_sock(&self, session_id: SessionId) -> Result<Socket> {
         let session = self.get_by_id(session_id)?;
         Ok(session.get_socket())
     }
@@ -283,8 +287,8 @@ impl Sessions {
         // prompt marked as non-echo.
         if password.is_some() && methods.contains(AuthMethods::INTERACTIVE) {
             loop {
-                match session.session().userauth_keyboard_interactive(None, None) {
-                    Ok(AuthStatus::Info) => {
+                match session.userauth_keyboard_interactive(None, None)? {
+                    AuthStatus::Info => {
                         let info = match session.session().userauth_keyboard_interactive_info() {
                             Ok(i) => i,
                             Err(_) => {
@@ -318,18 +322,12 @@ impl Sessions {
                             Err(_) => break,
                         }
                     }
-                    Ok(_) => {
+                    _ => {
                         debug!(
                             session_id = session_id,
                             "SSH keyboard-interactive authentication failed.",
                         );
                         continue;
-                    }
-                    Err(_) => {
-                        return Err(FunctionErrorKind::Dirty(format!(
-                            "Failed setting user authentication for SessionID {}",
-                            session_id
-                        )));
                     }
                 };
             }
