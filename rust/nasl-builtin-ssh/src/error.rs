@@ -13,6 +13,8 @@ pub enum SshError {
     InvalidSessionId(SessionId),
     #[error("Poisoned lock")]
     PoisonedLock,
+    #[error("Failed to connect for session ID {0}: {1}")]
+    Connect(SessionId, libssh_rs::Error),
     #[error("Failed to open a new channel for session ID {0}: {1}")]
     OpenChannel(SessionId, libssh_rs::Error),
     #[error("No available channel for session ID {0}")]
@@ -51,8 +53,16 @@ pub enum SshError {
     UserAuthNone(SessionId, libssh_rs::Error),
     #[error("Failed to request list of authentication methods for session ID {0}: {1} ")]
     UserAuthList(SessionId, libssh_rs::Error),
+    #[error(
+        "Failed to check whether public key authentication is possible for session ID {0}: {1} "
+    )]
+    UserAuthTryPublicKey(SessionId, libssh_rs::Error),
+    #[error("Failed to authenticate with public key for session ID {0}: {1} ")]
+    UserAuthPublicKey(SessionId, libssh_rs::Error),
     #[error("Error while reading ssh for session ID {0}")]
     ReadSsh(SessionId),
+    #[error("Error while initiating sftp for session ID {0}: {1}")]
+    Sftp(SessionId, libssh_rs::Error),
 }
 
 impl From<SshError> for FunctionErrorKind {

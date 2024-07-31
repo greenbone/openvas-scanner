@@ -149,7 +149,7 @@ fn add_raw_ip_vars(
 fn add_ssh(
     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
 ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-    builder.push_register(nasl_builtin_ssh::Ssh::default())
+    builder.push_register(nasl_builtin_ssh::Sessions::default())
 }
 
 #[cfg(not(feature = "nasl-builtin-raw-ip"))]

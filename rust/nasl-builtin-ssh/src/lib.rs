@@ -2,4 +2,4 @@ mod error;
 mod libssh;
 mod russh;
 
-pub use error::SshError;
+pub use libssh::Sessions;

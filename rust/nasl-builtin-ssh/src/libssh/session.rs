@@ -1,4 +1,4 @@
-use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, SshKey, SshOption};
+use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, Sftp, SshKey, SshOption};
 use std::sync::MutexGuard;
 use std::{os::fd::AsRawFd, time::Duration};
 use tracing::{debug, info};
@@ -14,9 +14,7 @@ pub struct SshSession {
     /// Ssh Session
     pub session: Session,
     /// Hold the available authentication methods
-    pub authmethods: AuthMethods,
-    /// Indicating that methods is valid
-    pub authmethods_valid: bool,
+    pub authmethods: Option<AuthMethods>,
     /// Set if a user has been set for the session
     pub user_set: bool,
     /// Channel
@@ -30,8 +28,7 @@ impl SshSession {
             .map(|session| Self {
                 session,
                 id,
-                authmethods: AuthMethods::NONE,
-                authmethods_valid: false,
+                authmethods: None,
                 user_set: false,
                 channel: None,
             })
@@ -66,13 +63,11 @@ impl<'a> BorrowedSession<'a> {
         &self.guard[self.index]
     }
 
-    // TODO: Make this private
-    pub fn borrow_mut(&mut self) -> &mut SshSession {
+    fn borrow_mut(&mut self) -> &mut SshSession {
         &mut self.guard[self.index]
     }
 
-    // TODO: Make this private
-    pub fn session(&self) -> &Session {
+    fn session(&self) -> &Session {
         &self.borrow().session
     }
 
@@ -84,20 +79,18 @@ impl<'a> BorrowedSession<'a> {
         &self.borrow().channel
     }
 
-    fn authmethods_valid(&self) -> bool {
-        self.borrow().authmethods_valid
+    pub fn set_channel(&mut self, channel: Channel) {
+        self.borrow_mut().channel = Some(channel);
     }
 
-    fn authmethods(&self) -> AuthMethods {
+    fn authmethods(&self) -> Option<AuthMethods> {
         self.borrow().authmethods
     }
 
     fn user_set(&self) -> bool {
         self.borrow().user_set
     }
-}
 
-impl<'a> BorrowedSession<'a> {
     pub fn new_channel(&self) -> Result<Channel> {
         self.session()
             .new_channel()
@@ -111,66 +104,23 @@ impl<'a> BorrowedSession<'a> {
             .ok_or_else(|| SshError::NoAvailableChannel(self.id()))
     }
 
-    pub fn get_server_public_key(&self) -> Result<SshKey> {
-        self.session()
-            .get_server_public_key()
-            .map_err(|e| SshError::GetServerPublicKey(self.id(), e))
-    }
-
-    pub fn get_server_banner(&self) -> Result<String> {
-        self.session()
-            .get_server_banner()
-            .map_err(|e| SshError::GetServerBanner(self.id(), e))
-    }
-
-    pub fn get_issue_banner(&self) -> Result<String> {
-        self.session()
-            .get_issue_banner()
-            .map_err(|e| SshError::GetIssueBanner(self.id(), e))
-    }
-
     pub fn get_authmethods_cached(&mut self) -> Result<AuthMethods> {
-        if !self.authmethods_valid() {
-            self.get_authmethods()
+        if let Some(authmethods) = self.authmethods() {
+            Ok(authmethods)
         } else {
-            Ok(self.authmethods())
+            self.get_authmethods()
         }
+    }
+
+    pub fn set_option(&self, option: SshOption) -> Result<()> {
+        let formatted = format!("{:?}", option);
+        self.session()
+            .set_option(option)
+            .map_err(|e| SshError::SetOption(self.id(), formatted, e))
     }
 
     pub fn get_socket(&self) -> Socket {
         self.session().as_raw_fd()
-    }
-
-    pub fn userauth_keyboard_interactive(
-        &self,
-        name: Option<&str>,
-        sub_methods: Option<&str>,
-    ) -> Result<AuthStatus> {
-        self.session()
-            .userauth_keyboard_interactive(name, sub_methods)
-            .map_err(|e| SshError::UserAuthKeyboardInteractive(self.id(), e))
-    }
-
-    pub fn userauth_keyboard_interactive_info(&self) -> Result<InteractiveAuthInfo> {
-        self.session()
-            .userauth_keyboard_interactive_info()
-            .map_err(|e| SshError::UserAuthKeyboardInteractiveInfo(self.id(), e))
-    }
-
-    pub fn userauth_keyboard_interactive_set_answers(&self, answers: &[String]) -> Result<()> {
-        self.session()
-            .userauth_keyboard_interactive_set_answers(answers)
-            .map_err(|e| SshError::UserAuthKeyboardInteractiveSetAnswers(self.id(), e))
-    }
-
-    pub fn userauth_password(
-        &self,
-        username: Option<&str>,
-        password: Option<&str>,
-    ) -> Result<AuthStatus> {
-        self.session()
-            .userauth_password(username, password)
-            .map_err(|e| SshError::UserAuthPassword(self.id(), e))
     }
 
     pub fn close(&mut self) {
@@ -194,13 +144,6 @@ impl<'a> BorrowedSession<'a> {
         // TODO: get the username alternatively from the kb.
         let opt_user = SshOption::User(login.map(|x| x.to_string()));
         self.set_option(opt_user)
-    }
-
-    pub fn set_option(&mut self, option: SshOption) -> Result<()> {
-        let option_str = format!("{:?}", option);
-        self.session()
-            .set_option(option)
-            .map_err(|e| SshError::SetOption(self.id(), option_str, e))
     }
 
     pub fn open_shell(&mut self, pty: bool) -> Result<()> {
@@ -257,18 +200,6 @@ impl<'a> BorrowedSession<'a> {
         Ok(response)
     }
 
-    fn userauth_none(&self, username: Option<&str>) -> Result<AuthStatus> {
-        self.session()
-            .userauth_none(username)
-            .map_err(|e| SshError::UserAuthNone(self.id(), e))
-    }
-
-    fn userauth_list(&self, username: Option<&str>) -> Result<AuthMethods> {
-        self.session()
-            .userauth_list(username)
-            .map_err(|e| SshError::UserAuthList(self.id(), e))
-    }
-
     fn get_authmethods(&mut self) -> Result<AuthMethods> {
         let authmethods = match self.userauth_none(None)? {
             AuthStatus::Success => {
@@ -289,8 +220,41 @@ impl<'a> BorrowedSession<'a> {
                 }
             }
         };
-        self.borrow_mut().authmethods = authmethods;
-        self.borrow_mut().authmethods_valid = true;
+        self.borrow_mut().authmethods = Some(authmethods);
         Ok(authmethods)
     }
+}
+
+/// Conveniene macro to implement a method of the underlying
+/// libssh::Session by calling it with all given arguments and
+/// transforming the Err variant according to the given SshError
+/// variant, giving it the session id and the error message.
+macro_rules! inherit_method {
+    ($name: ident, $ret: ty, $err_variant: ident $(,)? $($arg: ident : $argtype: ty),*) => {
+        pub fn $name(&self, $($arg: $argtype),*) -> Result<$ret> {
+            self.session()
+                .$name($($arg),*)
+                .map_err(|e| SshError::$err_variant(self.id(), e))
+        }
+    }
+}
+
+impl<'a> BorrowedSession<'a> {
+    inherit_method!(connect, (), Connect);
+    inherit_method!(get_server_public_key, SshKey, GetServerPublicKey);
+    inherit_method!(get_server_banner, String, GetServerBanner);
+    inherit_method!(get_issue_banner, String, GetIssueBanner);
+    inherit_method!(sftp, Sftp, Sftp);
+    inherit_method!(userauth_keyboard_interactive, AuthStatus, UserAuthKeyboardInteractive, name: Option<&str>, sub_methods: Option<&str>);
+    inherit_method!(userauth_keyboard_interactive_set_answers, (), UserAuthKeyboardInteractiveSetAnswers, answers: &[String]);
+    inherit_method!(userauth_password, AuthStatus, UserAuthPassword, username: Option<&str>, password: Option<&str>);
+    inherit_method!(userauth_none, AuthStatus, UserAuthNone, username: Option<&str>);
+    inherit_method!(userauth_list, AuthMethods, UserAuthList, username: Option<&str>);
+    inherit_method!(userauth_try_publickey, AuthStatus, UserAuthTryPublicKey, username: Option<&str>, key: &SshKey);
+    inherit_method!(userauth_publickey, AuthStatus, UserAuthPublicKey, username: Option<&str>, key: &SshKey);
+    inherit_method!(
+        userauth_keyboard_interactive_info,
+        InteractiveAuthInfo,
+        UserAuthKeyboardInteractiveInfo
+    );
 }

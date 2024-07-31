@@ -13,12 +13,13 @@ use super::session::{BorrowedSession, SshSession};
 
 pub type SessionId = i32;
 
+#[derive(Default)]
 pub struct Sessions {
     sessions: Arc<Mutex<Vec<SshSession>>>,
 }
 
 impl Sessions {
-    pub fn lock(&self) -> Result<MutexGuard<Vec<SshSession>>> {
+    fn lock(&self) -> Result<MutexGuard<Vec<SshSession>>> {
         self.sessions.lock().map_err(|_| SshError::PoisonedLock)
     }
 
@@ -28,7 +29,7 @@ impl Sessions {
     }
 
     /// Return the next available session ID
-    pub fn next_session_id(&self) -> Result<SessionId> {
+    fn next_session_id(&self) -> Result<SessionId> {
         // Note that the first session ID we will
         // hand out is an arbitrary high number, this is only to help
         // debugging.

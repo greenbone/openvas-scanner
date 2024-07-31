@@ -21,7 +21,8 @@ use std::os::raw::c_int;
 use std::{env, time::Duration};
 use tracing::debug;
 
-use self::sessions::{SessionId, Sessions};
+use self::sessions::SessionId;
+pub use self::sessions::Sessions;
 
 pub type Socket = c_int;
 
@@ -88,13 +89,14 @@ impl Sessions {
             x if !x.is_empty() => x.to_string(),
             _ => "127.0.0.1".to_string(),
         };
-        let timeout = timeout.unwrap_or(0);
 
         let session_id = self.add_new_session(|session| {
-            session.set_option(SshOption::Timeout(Duration::from_secs(timeout as u64)))?;
             session.set_option(SshOption::LogLevel(get_log_level()))?;
             session.set_option(SshOption::Hostname(ip_str.to_owned()))?;
             session.set_option(SshOption::KnownHosts(Some("/dev/null".to_owned())))?;
+            if let Some(timeout) = timeout {
+                session.set_option(SshOption::Timeout(Duration::from_secs(timeout as u64)))?;
+            }
             if let Some(keytype) = keytype {
                 session.set_option(SshOption::HostKeys(keytype.to_owned()))?;
             }
@@ -121,11 +123,12 @@ impl Sessions {
                 session.set_option(SshOption::Socket(my_sock.as_raw_fd()))?;
             }
             debug!(
-                "Connecting to SSH server '{}' (port {}, sock {})",
-                ip_str,
-                port.unwrap_or(0),
-                socket.unwrap_or(0)
+                ip_str = ip_str,
+                port = port,
+                socket = socket,
+                "Connecting to SSH server",
             );
+            session.connect()?;
             Ok(())
         })?;
         Ok(session_id)
@@ -289,15 +292,7 @@ impl Sessions {
             loop {
                 match session.userauth_keyboard_interactive(None, None)? {
                     AuthStatus::Info => {
-                        let info = match session.session().userauth_keyboard_interactive_info() {
-                            Ok(i) => i,
-                            Err(_) => {
-                                return Err(FunctionErrorKind::Dirty(format!(
-                                    "Failed setting user authentication for SessionID {}",
-                                    session_id
-                                )));
-                            }
-                        };
+                        let info = session.userauth_keyboard_interactive_info()?;
                         debug!(
                             name = info.name,
                             instruction = info.instruction,
@@ -312,10 +307,7 @@ impl Sessions {
                                 answers.push(String::new());
                             };
                         }
-                        match session
-                            .session()
-                            .userauth_keyboard_interactive_set_answers(&answers)
-                        {
+                        match session.userauth_keyboard_interactive_set_answers(&answers) {
                             Ok(_) => {
                                 return Ok(());
                             }
@@ -337,17 +329,15 @@ impl Sessions {
         if privatekey.is_some() && methods.contains(AuthMethods::PUBLIC_KEY) {
             match SshKey::from_privkey_base64(privatekey.unwrap_or_default(), passphrase) {
                 Ok(k) => {
-                    match session.session().userauth_try_publickey(None, &k) {
-                        Ok(AuthStatus::Success) => {
-                            match session.session().userauth_publickey(None, &k) {
-                                Ok(AuthStatus::Success) => {
-                                    return Ok(());
-                                }
-                                _ => {
-                                    debug!(session_id=session_id, "SSH authentication failed. No more authentication methods to try");
-                                }
+                    match session.userauth_try_publickey(None, &k) {
+                        Ok(AuthStatus::Success) => match session.userauth_publickey(None, &k) {
+                            Ok(AuthStatus::Success) => {
+                                return Ok(());
                             }
-                        }
+                            _ => {
+                                debug!(session_id=session_id, "SSH authentication failed. No more authentication methods to try");
+                            }
+                        },
                         _ => {
                             debug!(session_id=session_id, "SSH public key authentication failed.: Server does not want our key");
                         }
@@ -547,10 +537,7 @@ impl Sessions {
             let status = session.userauth_keyboard_interactive(None, None)?;
             match status {
                 AuthStatus::Info => {
-                    session
-                        .session()
-                        .userauth_keyboard_interactive_info()
-                        .unwrap();
+                    session.userauth_keyboard_interactive_info().unwrap();
                     continue;
                 }
                 AuthStatus::Success => break,
@@ -572,13 +559,6 @@ impl Sessions {
     ///
     /// The function returns a string with the issue banner.  This is
     /// usually displayed before authentication.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// return A data block on success or NULL on error.
-    ///
     #[nasl_function]
     fn nasl_ssh_get_issue_banner(&self, session_id: SessionId) -> Result<Option<String>> {
         let mut session = self.get_by_id(session_id)?;
@@ -644,7 +624,7 @@ impl Sessions {
     #[nasl_function]
     fn nasl_sftp_enabled_check(&self, session_id: SessionId) -> Result<i32> {
         let session = self.get_by_id(session_id)?;
-        match session.session().sftp() {
+        match session.sftp() {
             Ok(_) => Ok(0),
             Err(e) => {
                 debug!("SFTP enabled check error: {}", e);
@@ -660,7 +640,7 @@ impl Sessions {
         let channel = session.new_channel()?;
         channel.open_session()?;
         channel.request_subsystem("netconf")?;
-        session.borrow_mut().channel = Some(channel);
+        session.set_channel(channel);
         Ok(session_id)
     }
 
