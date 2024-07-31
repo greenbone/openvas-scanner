@@ -11,6 +11,13 @@ use storage::Field;
 pub mod network;
 pub mod socket;
 
+// We restrict the MTU to 512 - 60 - 8 bytes, as this is the minimum
+pub const MTU: usize = 512 - 60 - 8;
+
+pub fn mtu() -> usize {
+    MTU
+}
+
 pub enum OpenvasEncaps {
     Auto = 0, /* Request auto detection.  */
     Ip,

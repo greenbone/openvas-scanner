@@ -6,6 +6,7 @@
 - send
 - recv
 - this_host_name
+- get_mtu
 
 ## Missing
 
@@ -14,7 +15,6 @@
 - ftp_log_in
 - get_host_ip
 - get_host_open_port
-- get_mtu
 - get_port_state
 - get_port_transport
 - get_source_port

@@ -20,9 +20,7 @@ use rustls::{
     RootCertStore,
 };
 
-use crate::{get_kb_item, get_pos_port, OpenvasEncaps};
-
-const MTU: usize = 512 - 60 - 8;
+use crate::{get_kb_item, get_pos_port, mtu, OpenvasEncaps};
 
 type NaslSocketFunction =
     fn(&NaslSockets, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
@@ -272,11 +270,10 @@ impl NaslSockets {
             NaslSocket::Udp(conn) => {
                 let fd = conn.socket.as_raw_fd();
 
-                // We restrict the MTU to 512 - 60 - 8 bytes, as this is the minimum
-                if len > MTU {
+                if len > mtu() {
                     return Err(FunctionErrorKind::Dirty(format!(
                         "udp data exceeds the maximum length of {}",
-                        MTU
+                        mtu()
                     )));
                 }
 
