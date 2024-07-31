@@ -7,7 +7,7 @@
 pub mod sessions;
 
 use core::str;
-use libssh_rs::{AuthMethods, AuthStatus, LogLevel, Session, SshKey, SshOption};
+use libssh_rs::{AuthMethods, AuthStatus, LogLevel, SshKey, SshOption};
 use nasl_builtin_utils::function::{Maybe, StringOrData};
 use nasl_builtin_utils::{Context, FunctionErrorKind, Register, Result};
 use nasl_function_proc_macro::nasl_function;
@@ -20,6 +20,20 @@ use std::{env, time::Duration};
 use tracing::debug;
 
 use self::sessions::{SessionId, Sessions};
+
+fn get_log_level() -> LogLevel {
+    let verbose = env::var("OPENVAS_LIBSSH_DEBUG")
+        .map(|x| x.parse::<i32>().unwrap_or_default())
+        .unwrap_or(0);
+
+    match verbose {
+        0 => LogLevel::NoLogging,
+        1 => LogLevel::Warning,
+        2 => LogLevel::Protocol,
+        3 => LogLevel::Packet,
+        _ => LogLevel::Functions,
+    }
+}
 
 impl Sessions {
     /// Connect to the target host via TCP and setup an ssh
@@ -65,159 +79,52 @@ impl Sessions {
         timeout: Option<u64>,
         ctx: &Context,
     ) -> Result<SessionId> {
-        let port = port.filter(|_| socket.is_none()).unwrap_or(0);
-
+        let port = port.filter(|_| socket.is_none());
         let ip_str: String = match ctx.target() {
             x if !x.is_empty() => x.to_string(),
             _ => "127.0.0.1".to_string(),
         };
-
         let timeout = timeout.unwrap_or(0);
-        let keytype = keytype.unwrap_or("");
-        let csciphers = csciphers.unwrap_or("");
-        let scciphers = scciphers.unwrap_or("");
 
-        let session = match Session::new() {
-            Ok(s) => s,
-            Err(e) => {
-                return Err(FunctionErrorKind::Dirty(format!(
-                    "Function called from ssh_connect: {}",
-                    e
-                )));
+        let session_id = self.add_new_session(|session| {
+            session.set_option(SshOption::Timeout(Duration::from_secs(timeout as u64)))?;
+            session.set_option(SshOption::LogLevel(get_log_level()))?;
+            session.set_option(SshOption::Hostname(ip_str.to_owned()))?;
+            session.set_option(SshOption::KnownHosts(Some("/dev/null".to_owned())))?;
+            if let Some(keytype) = keytype {
+                session.set_option(SshOption::HostKeys(keytype.to_owned()))?;
             }
-        };
-
-        let option = SshOption::Timeout(Duration::from_secs(timeout as u64));
-
-        if let Err(err) = session.set_option(option) {
-            return Err(FunctionErrorKind::Dirty(
-            format!(
-                "Function {} called from {}: Failed to set the SSH connection timeout to {} seconds: {}", "func", "key", timeout, err)));
-        }
-
-        let verbose = env::var("OPENVAS_LIBSSH_DEBUG")
-            .map(|x| x.parse::<i32>().unwrap_or_default())
-            .unwrap_or(0);
-
-        let log_level = match verbose {
-            0 => LogLevel::NoLogging,
-            1 => LogLevel::Warning,
-            2 => LogLevel::Protocol,
-            3 => LogLevel::Packet,
-            _ => LogLevel::Functions,
-        };
-        let option = SshOption::LogLevel(log_level);
-        if session.set_option(option).is_err() {
-            return Err(FunctionErrorKind::Dirty(format!(
-                "Function {} called from {}: Failed to set the SSH connection log level",
-                "func", "key"
-            )));
-        }
-
-        let option = SshOption::Hostname(ip_str.to_owned());
-        match session.set_option(option) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(FunctionErrorKind::Dirty(
-                format!(
-                    "Function {} (calling internal function {}): Failed to set SSH hostname '{}': {}", "func", "nasl_ssh_connect", ip_str, e)
-            ));
+            if let Some(csciphers) = csciphers {
+                session.set_option(SshOption::CiphersCS(csciphers.to_owned()))?;
             }
-        };
-
-        let option = SshOption::KnownHosts(Some("/dev/null".to_owned()));
-        if let Err(err) = session.set_option(option) {
-            return Err(FunctionErrorKind::Dirty(format!(
-                "Function {} (calling internal function {}): Failed to disable known_hosts: {}",
-                "func", "nasl_ssh_connect", err
-            )));
-        }
-
-        if !keytype.is_empty() {
-            let option = SshOption::HostKeys(keytype.to_owned());
-            if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Dirty(
-                format!(
-                    "Function {} (calling internal function {}): Failed to set SSH key type '{}': {}", "func", "nasl_ssh_connect", keytype, err)
-                ));
+            if let Some(scciphers) = scciphers {
+                session.set_option(SshOption::CiphersSC(scciphers.to_owned()))?;
             }
-        }
-
-        if !csciphers.is_empty() {
-            let option = SshOption::CiphersCS(csciphers.to_owned());
-            if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Dirty(
-                format!(
-                    "Function {} (calling internal function {}): Failed to set SSH client to server ciphers '{}': {}", "func", "nasl_ssh_connect", csciphers, err)
-            ));
+            if let Some(port) = port {
+                session.set_option(SshOption::Port(port))?;
             }
-        }
 
-        if !scciphers.is_empty() {
-            let option = SshOption::CiphersSC(scciphers.to_owned());
-            if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Dirty(
-                format!(
-                    "Function {} (calling internal function {}): Failed to set SSH server to client ciphers '{}': {}", "func", "nasl_ssh_connect", scciphers, err)
-            ));
+            if let Some(socket) = socket {
+                // This is a fake raw socket.
+                // TODO: implement openvas_get_socket_from_connection()
+                let my_sock = UdpSocket::bind("127.0.0.1:0").unwrap();
+                debug!(
+                    ip_str = ip_str,
+                    sock_fd = my_sock.as_raw_fd(),
+                    nasl_sock = socket,
+                    "Setting SSH fd for socket",
+                );
+                session.set_option(SshOption::Socket(my_sock.as_raw_fd()))?;
             }
-        }
-
-        let valid_ports = 1..65535;
-        if valid_ports.contains(&port) {
-            let option = SshOption::Port(port);
-            if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Dirty(
-                format!(
-                    "Function {} (calling internal function {}) called from {}: Failed to set SSH port '{}': {}", "func", "nasl_ssh_connect", "key", port, err)
-            ));
-            }
-        }
-
-        let mut forced_sock = -1;
-        if let Some(socket) = socket {
-            // This is a fake raw socket.
-            // TODO: implement openvas_get_socket_from_connection()
-            let my_sock = UdpSocket::bind("127.0.0.1:0").unwrap();
-            let option = SshOption::Socket(my_sock.as_raw_fd());
-
             debug!(
-                ip_str = ip_str,
-                sock_fd = my_sock.as_raw_fd(),
-                nasl_sock = socket,
-                "Setting SSH fd for socket",
+                "Connecting to SSH server '{}' (port {}, sock {})",
+                ip_str,
+                port.unwrap_or(0),
+                socket.unwrap_or(0)
             );
-
-            if let Err(err) = session.set_option(option) {
-                return Err(FunctionErrorKind::Dirty(
-                format!(
-                    "Function {} called from {}: Failed to set SSH fd for '{}' to {} (NASL sock={}): {}", "nasl_ssh_connect", "key", ip_str, my_sock.as_raw_fd(), socket, err)
-            ));
-            }
-
-            forced_sock = socket; // TODO: check and fix everything related to open socket
-        }
-
-        debug!(
-            "Connecting to SSH server '{}' (port {}, sock {})",
-            ip_str,
-            port,
-            socket.unwrap_or(0)
-        );
-
-        match session.connect() {
-            Ok(_) => {
-                let id = self.add_new_session(session)?;
-                Ok(id)
-            }
-            Err(e) => {
-                session.disconnect();
-                Err(FunctionErrorKind::Dirty(format!(
-                    "Failed to connect to SSH server '{}' (port {}, sock {:?}, f={}): {}",
-                    ip_str, port, socket, forced_sock, e
-                )))
-            }
-        }
+            Ok(())
+        })?;
+        Ok(session_id)
     }
 
     /// Disconnect an ssh connection

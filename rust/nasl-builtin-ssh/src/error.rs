@@ -7,6 +7,8 @@ pub type Result<T> = std::result::Result<T, SshError>;
 
 #[derive(Debug, Error)]
 pub enum SshError {
+    #[error("Failed to open new SSH session: {0}")]
+    NewSession(libssh_rs::Error),
     #[error("Invalid SSH session ID: {0}")]
     InvalidSessionId(SessionId),
     #[error("Poisoned lock")]

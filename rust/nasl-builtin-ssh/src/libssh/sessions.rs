@@ -34,6 +34,21 @@ pub struct SshSession {
     pub channel: Option<Channel>,
 }
 
+impl SshSession {
+    fn new(id: SessionId) -> Result<Self> {
+        Session::new()
+            .map_err(|e| SshError::NewSession(e))
+            .map(|session| Self {
+                session,
+                id,
+                authmethods: AuthMethods::NONE,
+                authmethods_valid: false,
+                user_set: false,
+                channel: None,
+            })
+    }
+}
+
 pub struct Channel {
     channel: libssh_rs::Channel,
     session_id: SessionId,
@@ -200,7 +215,7 @@ impl Sessions {
         let mut guard = self.lock()?;
         let len = guard.len();
         for i in 0..len {
-            let session = BorrowedSession::from_index(guard, i).unwrap();
+            let session = BorrowedSession::from_index(guard, i);
             if f(&session) {
                 return Ok(Some(session));
             }
@@ -220,18 +235,27 @@ impl Sessions {
         Ok(())
     }
 
-    pub fn add_new_session(&self, session: Session) -> Result<SessionId> {
+    /// Create a new session, but only add it to the list of active sessions
+    /// if the given closure which modifies the session returns Ok(...).
+    pub fn add_new_session(
+        &self,
+        f: impl Fn(&mut BorrowedSession) -> Result<()>,
+    ) -> Result<SessionId> {
         let id = self.next_session_id()?;
         let mut guard = self.lock()?;
-        guard.push(SshSession {
-            session,
-            id,
-            authmethods: AuthMethods::NONE,
-            authmethods_valid: false,
-            user_set: false,
-            channel: None,
-        });
-        Ok(id)
+        let index = guard.len();
+        let session = SshSession::new(id)?;
+        guard.push(session);
+        let mut session = BorrowedSession::from_index(guard, index);
+        let result = f(&mut session);
+        match result {
+            Ok(()) => Ok(id),
+            Err(e) => {
+                session.disconnect()?;
+                session.take_guard().pop();
+                Err(e)
+            }
+        }
     }
 }
 
@@ -251,8 +275,8 @@ impl<'a> BorrowedSession<'a> {
         Ok(Self { guard, index })
     }
 
-    fn from_index(guard: MutexGuard<'a, Vec<SshSession>>, index: usize) -> Result<Self> {
-        Ok(Self { guard, index })
+    fn from_index(guard: MutexGuard<'a, Vec<SshSession>>, index: usize) -> Self {
+        Self { guard, index }
     }
 
     fn take_guard(self) -> MutexGuard<'a, Vec<SshSession>> {
