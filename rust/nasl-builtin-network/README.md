@@ -7,6 +7,7 @@
 - recv
 - this_host_name
 - get_mtu
+- this_host
 
 ## Missing
 
@@ -32,4 +33,3 @@
 - start_denial
 - tcp_ping
 - telnet_init
-- this_host
