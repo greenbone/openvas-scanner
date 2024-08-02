@@ -117,7 +117,7 @@ NASL imported some operators from C:
   `s =~ "[ab]*x+"` is equivalent to `ereg(string:s, pattern:"[ab]*x+", icase:1)`
 - `!~` is the “regex don’t match” operator. It gives the opposite result of the previous one.
 
-Note: =~ and !~ supports the (standard extended POSIX) regex pattern. See Supported regex expression syntax for NASL Functions for more background info on the supported regex expression support.
+Note: `=~` and `!~` supports the (standard extended POSIX) regex pattern. See [Regular Expression Functions](../built-in-functions/regular-expressions/index.md) for more background info on the supported regex expression support.
 
 ### Compare Operators
 
@@ -199,7 +199,7 @@ In all shift operators, the count is on the right, i.e., `x>>2` is equivalent to
 
 ## Declarations
 
-###Variable Declarations
+### Variable Declarations
 
 NASL uses global and local variables. Local variables are created in a function and stop existing as soon as the function returns. When the interpreter looks for a variable, it first searches in the current function context, then in the calling context (if any) etc., until it reaches the top level context that contains the global variables.
 
@@ -277,5 +277,3 @@ function fact(prompt)
 }
 n = fact(3, prompt: ’> ’);
 ```
-
-
