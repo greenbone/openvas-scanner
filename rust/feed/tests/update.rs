@@ -4,27 +4,22 @@
 
 #[cfg(test)]
 mod test {
-    use std::env;
+    use std::{env, path::PathBuf};
 
     use feed::{HashSumNameLoader, Update};
     use nasl_interpreter::FSPluginLoader;
     use storage::DefaultDispatcher;
 
+    fn loader() -> FSPluginLoader<PathBuf> {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/")
+            .to_owned();
+        FSPluginLoader::new(root)
+    }
+
     #[test]
     fn verify_hashsums() {
-        let root = match env::current_exe() {
-            Ok(mut x) => {
-                // target/debug/deps/testname
-                for _ in 0..4 {
-                    x.pop();
-                }
-                x.push("feed");
-                x.push("tests");
-                x
-            }
-            Err(x) => panic!("expected to contain current_exe: {x:?}"),
-        };
-        let loader = FSPluginLoader::new(&root);
+        let loader = loader();
         let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
         let files = verifier
             .filter_map(|x| x.ok())
@@ -41,19 +36,7 @@ mod test {
     }
     #[test]
     fn verify_feed() {
-        let root = match env::current_exe() {
-            Ok(mut x) => {
-                // target/debug/deps/testname
-                for _ in 0..4 {
-                    x.pop();
-                }
-                x.push("feed");
-                x.push("tests");
-                x
-            }
-            Err(x) => panic!("expected to contain current_exe: {x:?}"),
-        };
-        let loader = FSPluginLoader::new(&root);
+        let loader = loader();
         let storage: DefaultDispatcher = DefaultDispatcher::new(true);
         let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
         let updater = Update::init("1", 1, &loader, &storage, verifier);
