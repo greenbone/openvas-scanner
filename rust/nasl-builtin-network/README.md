@@ -8,6 +8,7 @@
 - this_host_name
 - get_mtu
 - this_host
+- islocalhost
 
 ## Missing
 
@@ -21,7 +22,6 @@
 - get_source_port
 - get_tcp_port_state
 - get_udp_port_state
-- islocalhost
 - islocalnet
 - join_multicast_group
 - leave_multicast_group

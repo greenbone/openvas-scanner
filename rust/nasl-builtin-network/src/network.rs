@@ -5,7 +5,7 @@
 use std::process::Command;
 
 use nasl_builtin_utils::{
-    ip::{get_source_ip, ipstr2ipaddr},
+    ip::{get_source_ip, ipstr2ipaddr, islocalhost},
     Context, FunctionErrorKind, NaslFunction, Register,
 };
 use nasl_function_proc_macro::nasl_function;
@@ -38,9 +38,17 @@ fn get_mtu() -> i64 {
     mtu() as i64
 }
 
+/// check if the currently scanned host is the localhost
+#[nasl_function]
+fn nasl_islocalhost(context: &Context) -> Result<bool, FunctionErrorKind> {
+    let host_ip = ipstr2ipaddr(context.target())?;
+    Ok(islocalhost(host_ip))
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
+        "islocalhost" => Some(nasl_islocalhost),
         "this_host" => Some(this_host),
         "this_host_name" => Some(this_host_name),
         "get_mtu" => Some(get_mtu),
