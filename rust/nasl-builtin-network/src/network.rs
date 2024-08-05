@@ -2,43 +2,27 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{
-    net::{IpAddr, UdpSocket},
-    process::Command,
-    str::FromStr,
-};
+use std::process::Command;
 
-use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
+use nasl_builtin_utils::{
+    ip::{get_source_ip, ipstr2ipaddr},
+    Context, FunctionErrorKind, NaslFunction, Register,
+};
 use nasl_function_proc_macro::nasl_function;
 
 use crate::mtu;
 
+/// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
 fn this_host(context: &Context) -> Result<String, FunctionErrorKind> {
-    let host_ip = context.target();
-    if host_ip.is_empty() {
-        return Err(FunctionErrorKind::Diagnostic(
-            "No target host given".to_string(),
-            None,
-        ));
-    }
-    let host_ip = IpAddr::from_str(host_ip).map_err(|_| {
-        FunctionErrorKind::Diagnostic(format!("Invalid target IP: {host_ip}"), None)
-    })?;
+    let dst = ipstr2ipaddr(context.target())?;
 
     let port: u16 = 33435;
 
-    let sock = if host_ip.is_ipv4() {
-        UdpSocket::bind("0.0.0.0:0")?
-    } else {
-        UdpSocket::bind("[::]:0")?
-    };
-
-    sock.connect((host_ip, port))?;
-
-    Ok(sock.local_addr()?.ip().to_string())
+    get_source_ip(dst, port).map(|ip| ip.to_string())
 }
 
+/// Get the host name of the current (attacking) machine
 #[nasl_function]
 fn this_host_name() -> String {
     Command::new("uname")
@@ -48,6 +32,7 @@ fn this_host_name() -> String {
         .unwrap_or("".to_string())
 }
 
+/// get the maximum transition unit for the scanned host
 #[nasl_function]
 fn get_mtu() -> i64 {
     mtu() as i64
