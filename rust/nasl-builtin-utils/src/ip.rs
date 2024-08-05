@@ -31,7 +31,7 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKin
     ));
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
-        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
+        SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or(fe),
     }
 }
 
