@@ -17,7 +17,7 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
         Err(_) => Err(FunctionErrorKind::Diagnostic(
-            "Invalid IP address".to_string(),
+            format!("Invalid IP address ({})", ip_addr),
             Some(NaslValue::Null),
         )),
     }
