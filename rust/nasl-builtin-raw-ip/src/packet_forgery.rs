@@ -9,11 +9,10 @@ use std::{
     str::FromStr,
 };
 
-use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost};
-
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
 use nasl_builtin_utils::{
+    ip::{get_interface_by_local_ip, get_source_ip, islocalhost},
     Context, ContextType, FunctionErrorKind, NaslFunction, NaslVars, Register,
 };
 use nasl_syntax::NaslValue;

@@ -7,6 +7,7 @@
 pub mod context;
 pub mod error;
 pub mod function;
+pub mod ip;
 pub mod lookup_keys;
 
 use std::collections::HashMap;

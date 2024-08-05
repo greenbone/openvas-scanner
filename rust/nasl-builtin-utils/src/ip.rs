@@ -7,9 +7,10 @@ use std::{
     str::FromStr,
 };
 
-use nasl_builtin_utils::FunctionErrorKind;
 use nasl_syntax::NaslValue;
 use pcap::{Address, Device};
+
+use crate::FunctionErrorKind;
 
 /// Convert a string in a IpAddr
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
@@ -22,6 +23,44 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
     }
 }
 
+/// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
+pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
+    let fe = Err(FunctionErrorKind::Diagnostic(
+        "Error binding".to_string(),
+        None,
+    ));
+    match dst {
+        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
+        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
+    }
+}
+
+/// Return the source IP address given the destination IP address
+pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
+    let socket = SocketAddr::new(dst, port);
+    let sd = format!("{}:{}", dst, port);
+    let local_socket = bind_local_socket(&socket)?;
+    match local_socket.connect(sd) {
+        Ok(_) => match local_socket.local_addr() {
+            Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
+                Ok(x) => Ok(x),
+                Err(_) => Err(FunctionErrorKind::Diagnostic(
+                    "No route to destination".to_string(),
+                    None,
+                )),
+            },
+            Err(_) => Err(FunctionErrorKind::Diagnostic(
+                "No route to destination".to_string(),
+                None,
+            )),
+        },
+        Err(_) => Err(FunctionErrorKind::Diagnostic(
+            "No route to destination".to_string(),
+            None,
+        )),
+    }
+}
+
 /// Tests whether a packet sent to IP is LIKELY to route through the
 /// kernel localhost interface
 pub fn islocalhost(addr: IpAddr) -> bool {
@@ -30,12 +69,8 @@ pub fn islocalhost(addr: IpAddr) -> bool {
     if !addr.is_loopback() || !addr.is_unspecified() {
         return false;
     }
-    // It is not associated to a local interface.
-    if let Err(_e) = get_interface_by_local_ip(addr) {
-        return false;
-    }
-
-    true
+    // It is associated to a local interface.
+    get_interface_by_local_ip(addr).is_ok()
 }
 
 /// Get the interface from the local ip
@@ -72,43 +107,6 @@ pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, Functi
         Some(dev) => Ok(dev),
         _ => Err(FunctionErrorKind::Diagnostic(
             "Invalid ip address".to_string(),
-            None,
-        )),
-    }
-}
-
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
-    let fe = Err(FunctionErrorKind::Diagnostic(
-        "Error binding".to_string(),
-        None,
-    ));
-    match dst {
-        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
-        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
-    }
-}
-
-/// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
-    let socket = SocketAddr::new(dst, port);
-    let sd = format!("{}:{}", dst, port);
-    let local_socket = bind_local_socket(&socket)?;
-    match local_socket.connect(sd) {
-        Ok(_) => match local_socket.local_addr() {
-            Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
-                Ok(x) => Ok(x),
-                Err(_) => Err(FunctionErrorKind::Diagnostic(
-                    "No route to destination".to_string(),
-                    None,
-                )),
-            },
-            Err(_) => Err(FunctionErrorKind::Diagnostic(
-                "No route to destination".to_string(),
-                None,
-            )),
-        },
-        Err(_) => Err(FunctionErrorKind::Diagnostic(
-            "No route to destination".to_string(),
             None,
         )),
     }

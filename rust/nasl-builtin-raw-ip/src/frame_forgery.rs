@@ -4,19 +4,17 @@
 
 //! Defines NASL frame forgery and arp functions
 
+use nasl_builtin_utils::ip::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 use nasl_builtin_utils::NaslVars;
+use pcap::{Capture, Device};
 use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
 use std::{net::Ipv4Addr, str::FromStr};
 
-use pcap::{Capture, Device};
-
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, NaslFunction, Register};
 use nasl_syntax::NaslValue;
-
-use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 
 use tracing::info;
 

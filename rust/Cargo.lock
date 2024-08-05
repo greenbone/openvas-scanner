@@ -2036,7 +2036,7 @@ dependencies = [
  "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
- "pcap",
+ "pcap 1.3.0",
  "pkcs8",
  "rustls 0.23.12",
  "rustls-pemfile 2.1.2",
@@ -2053,7 +2053,7 @@ dependencies = [
  "nasl-builtin-utils",
  "nasl-interpreter",
  "nasl-syntax",
- "pcap",
+ "pcap 2.0.0",
  "pnet",
  "pnet_base",
  "pnet_macros",
@@ -2113,6 +2113,7 @@ name = "nasl-builtin-utils"
 version = "0.1.0"
 dependencies = [
  "nasl-syntax",
+ "pcap 2.0.0",
  "storage",
  "thiserror",
  "tracing",
@@ -2460,6 +2461,21 @@ dependencies = [
  "errno 0.2.8",
  "libc",
  "libloading 0.6.7",
+ "pkg-config",
+ "regex",
+ "windows-sys 0.36.1",
+]
+
+[[package]]
+name = "pcap"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45f1686828a29fd8002fbf9c01506b4b2dd575c2305e1b884da3731abae8b9e0"
+dependencies = [
+ "bitflags 1.3.2",
+ "errno 0.2.8",
+ "libc",
+ "libloading 0.8.5",
  "pkg-config",
  "regex",
  "windows-sys 0.36.1",
