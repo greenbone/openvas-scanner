@@ -5,7 +5,7 @@
 use std::process::Command;
 
 use nasl_builtin_utils::{
-    ip::{get_source_ip, ipstr2ipaddr, islocalhost},
+    ip::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
     Context, FunctionErrorKind, NaslFunction, Register,
 };
 use nasl_function_proc_macro::nasl_function;
@@ -45,9 +45,58 @@ fn nasl_islocalhost(context: &Context) -> Result<bool, FunctionErrorKind> {
     Ok(islocalhost(host_ip))
 }
 
+///Check if the target host is on the same network as the attacking host
+#[nasl_function]
+fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
+    let dst = ipstr2ipaddr(context.target())?;
+    let src = get_source_ip(dst, 33435)?;
+    let device = get_interface_by_local_ip(src)?;
+    let netmask_str = match device.addresses.iter().find(|x| x.addr == src) {
+        Some(addr) => match addr.netmask {
+            Some(netmask) => netmask.to_string(),
+            None => return Ok(false),
+        },
+        None => return Ok(false),
+    };
+
+    let dst_str = dst.to_string();
+    let src_str = src.to_string();
+
+    if dst.is_ipv4() {
+        let dst_parts: Vec<&str> = dst_str.split('.').collect();
+        let src_parts: Vec<&str> = src_str.split('.').collect();
+        let netmask_parts: Vec<&str> = netmask_str.split('.').collect();
+
+        for i in 0..4 {
+            if netmask_parts[i] == "0" {
+                return Ok(true);
+            }
+            if dst_parts[i] != src_parts[i] {
+                return Ok(false);
+            }
+        }
+    } else {
+        let dst_parts: Vec<&str> = dst_str.split(':').collect();
+        let src_parts: Vec<&str> = src_str.split(':').collect();
+        let netmask_parts: Vec<&str> = netmask_str.split(':').collect();
+
+        for i in 0..8 {
+            if netmask_parts[i] == "ffff" {
+                return Ok(true);
+            }
+            if dst_parts[i] != src_parts[i] {
+                return Ok(false);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
+        "islocalnet" => Some(islocalnet),
         "islocalhost" => Some(nasl_islocalhost),
         "this_host" => Some(this_host),
         "this_host_name" => Some(this_host_name),
