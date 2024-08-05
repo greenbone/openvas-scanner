@@ -67,8 +67,8 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind
 pub fn islocalhost(addr: IpAddr) -> bool {
     // If it is not 0.0.0.0 or doesn't start with 127.0.0.1 then it
     // probably isn't localhost
-    if !addr.is_loopback() || !addr.is_unspecified() {
-        return false;
+    if addr.is_loopback() || addr.is_unspecified() {
+        return true;
     }
     // It is associated to a local interface.
     get_interface_by_local_ip(addr).is_ok()
