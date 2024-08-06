@@ -4,6 +4,7 @@
 
 mod frame_forgery;
 mod packet_forgery;
+mod raw_ip_utils;
 use nasl_builtin_utils::{Context, NaslVars, Register};
 
 pub struct RawIp;

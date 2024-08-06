@@ -2112,8 +2112,8 @@ dependencies = [
 name = "nasl-builtin-utils"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nasl-syntax",
- "pcap 2.0.0",
  "storage",
  "thiserror",
  "tracing",

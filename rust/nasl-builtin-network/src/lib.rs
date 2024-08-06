@@ -9,6 +9,7 @@ use nasl_syntax::NaslValue;
 use storage::Field;
 
 pub mod network;
+mod network_utils;
 pub mod socket;
 
 // We restrict the MTU to 512 - 60 - 8 bytes, as this is the minimum

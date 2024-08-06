@@ -5,11 +5,11 @@
 //! This module provides utility functions for IP handling.
 use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket},
+    ptr,
     str::FromStr,
 };
 
 use nasl_syntax::NaslValue;
-use pcap::{Address, Device};
 
 use crate::FunctionErrorKind;
 
@@ -71,44 +71,79 @@ pub fn islocalhost(addr: IpAddr) -> bool {
         return true;
     }
     // It is associated to a local interface.
-    get_interface_by_local_ip(addr).is_ok()
+    get_netmask_by_local_ip(addr).is_ok()
 }
 
 /// Get the interface from the local ip
-pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionErrorKind> {
+pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, FunctionErrorKind> {
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
     // doesn't have an associated address.
 
-    let fake_ip = match local_address {
-        IpAddr::V4(_) => IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        IpAddr::V6(_) => IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+    let mut interfaces: *mut libc::ifaddrs = ptr::null_mut();
+
+    unsafe {
+        libc::getifaddrs(&mut interfaces);
     };
 
-    let fake_addr = Address {
-        addr: fake_ip,
-        broadcast_addr: None,
-        netmask: None,
-        dst_addr: None,
-    };
+    let mut interface_iter = interfaces;
 
-    let ip_match = |ip: &Address| ip.addr.eq(&local_address);
+    while !interface_iter.is_null() {
+        let interface = unsafe { &*interface_iter };
 
-    let dev = match Device::list() {
-        Ok(devices) => devices.into_iter().find(|x| {
-            local_address
-                == (x.addresses.clone().into_iter().find(ip_match))
-                    .unwrap_or_else(|| fake_addr.to_owned())
-                    .addr
-        }),
-        Err(_) => None,
-    };
+        if !interface.ifa_addr.is_null() {
+            let addr = unsafe { (*interface.ifa_addr).sa_family };
+            let (ip, net) = unsafe {
+                match addr as i32 {
+                    libc::AF_INET => {
+                        let addr = interface.ifa_addr as *const libc::sockaddr_in;
+                        let addr = &*addr;
+                        let ip = IpAddr::V4(Ipv4Addr::from(u32::from_be(addr.sin_addr.s_addr)));
+                        if !interface.ifa_netmask.is_null() {
+                            let addr = interface.ifa_netmask as *const libc::sockaddr_in;
+                            let addr = &*addr;
+                            let net =
+                                IpAddr::V4(Ipv4Addr::from(u32::from_be(addr.sin_addr.s_addr)));
+                            (ip, Some(net))
+                        } else {
+                            (ip, None)
+                        }
+                    }
+                    libc::AF_INET6 => {
+                        let addr = interface.ifa_addr as *const libc::sockaddr_in6;
+                        let addr = &*addr;
+                        let ip = IpAddr::V6(Ipv6Addr::from(addr.sin6_addr.s6_addr));
+                        if !interface.ifa_netmask.is_null() {
+                            let addr = interface.ifa_netmask as *const libc::sockaddr_in6;
+                            let addr = &*addr;
+                            let net = IpAddr::V6(Ipv6Addr::from(addr.sin6_addr.s6_addr));
+                            (ip, Some(net))
+                        } else {
+                            (ip, None)
+                        }
+                    }
+                    _ => {
+                        interface_iter = interface.ifa_next;
+                        continue;
+                    }
+                }
+            };
 
-    match dev {
-        Some(dev) => Ok(dev),
-        _ => Err(FunctionErrorKind::Diagnostic(
-            "Invalid ip address".to_string(),
-            None,
-        )),
+            if ip == local_address {
+                unsafe {
+                    libc::freeifaddrs(interfaces);
+                }
+                return Ok(net);
+            }
+        }
+        interface_iter = interface.ifa_next;
     }
+
+    unsafe {
+        libc::freeifaddrs(interfaces);
+    }
+    Err(FunctionErrorKind::Diagnostic(
+        "No route to destination".to_string(),
+        None,
+    ))
 }

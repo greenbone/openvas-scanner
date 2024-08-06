@@ -12,7 +12,6 @@ use std::{
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
 use nasl_builtin_utils::{
-    ip::{get_interface_by_local_ip, get_source_ip, islocalhost},
     Context, ContextType, FunctionErrorKind, NaslFunction, NaslVars, Register,
 };
 use nasl_syntax::NaslValue;
@@ -33,6 +32,8 @@ use pnet_macros_support::types::u9be;
 use socket2::{Domain, Protocol, Socket};
 
 use tracing::debug;
+
+use crate::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost};
 
 macro_rules! custom_error {
     ($a:expr, $b:expr) => {

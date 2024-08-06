@@ -4,10 +4,8 @@
 
 use std::process::Command;
 
-use nasl_builtin_utils::{
-    ip::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
-    Context, FunctionErrorKind, NaslFunction, Register,
-};
+use crate::network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost};
+use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
 use nasl_function_proc_macro::nasl_function;
 
 use crate::mtu;
@@ -50,12 +48,9 @@ fn nasl_islocalhost(context: &Context) -> Result<bool, FunctionErrorKind> {
 fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
     let dst = ipstr2ipaddr(context.target())?;
     let src = get_source_ip(dst, 33435)?;
-    let device = get_interface_by_local_ip(src)?;
-    let netmask_str = match device.addresses.iter().find(|x| x.addr == src) {
-        Some(addr) => match addr.netmask {
-            Some(netmask) => netmask.to_string(),
-            None => return Ok(false),
-        },
+
+    let netmask_str = match get_netmask_by_local_ip(src)? {
+        Some(netmask) => netmask.to_string(),
         None => return Ok(false),
     };
 
@@ -90,7 +85,7 @@ fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
         }
     }
 
-    Ok(false)
+    Ok(true)
 }
 
 /// Returns found function for key or None when not found
