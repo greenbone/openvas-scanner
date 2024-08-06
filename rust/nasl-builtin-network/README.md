@@ -11,6 +11,7 @@
 - islocalhost
 - islocalnet
 - get_host_ip
+- scanner_add_port
 
 ## Missing
 
@@ -28,7 +29,6 @@
 - open_priv_sock_tcp
 - open_priv_sock_udp
 - recv_line
-- scanner_add_port
 - scanner_get_port
 - start_denial
 - tcp_ping

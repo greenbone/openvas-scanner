@@ -4,9 +4,13 @@
 
 use std::process::Command;
 
-use crate::network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost};
+use crate::{
+    network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
+    verify_port,
+};
 use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
 use nasl_function_proc_macro::nasl_function;
+use storage::Kb;
 
 use crate::mtu;
 
@@ -94,9 +98,32 @@ fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
     Ok(true)
 }
 
+/// Declares an open port on the target host
+#[nasl_function(named(port, proto))]
+fn scanner_add_port(
+    port: i64,
+    protocol: Option<&str>,
+    context: &Context,
+) -> Result<(), FunctionErrorKind> {
+    let port = verify_port(port)?;
+    let protocol = protocol.unwrap_or("tcp");
+
+    context.dispatcher().dispatch(
+        context.key(),
+        storage::Field::KB(Kb {
+            key: format!("Port/{}/{}", protocol, port),
+            value: storage::types::Primitive::Number(1),
+            expire: None,
+        }),
+    )?;
+
+    Ok(())
+}
+
 /// Returns found function for key or None when not found
 pub fn lookup(key: &str) -> Option<NaslFunction> {
     match key {
+        "scanner_add_port" => Some(scanner_add_port),
         "islocalnet" => Some(islocalnet),
         "islocalhost" => Some(nasl_islocalhost),
         "this_host" => Some(this_host),
