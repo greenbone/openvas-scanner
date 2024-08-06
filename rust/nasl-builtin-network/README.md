@@ -10,13 +10,13 @@
 - this_host
 - islocalhost
 - islocalnet
+- get_host_ip
 
 ## Missing
 
 - end_denial
 - ftp_get_pasv_port
 - ftp_log_in
-- get_host_ip
 - get_host_open_port
 - get_port_state
 - get_port_transport

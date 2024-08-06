@@ -10,6 +10,12 @@ use nasl_function_proc_macro::nasl_function;
 
 use crate::mtu;
 
+/// Get the IP address of the currently scanned host
+#[nasl_function]
+fn get_host_ip(context: &Context) -> String {
+    context.target().to_string()
+}
+
 /// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
 fn this_host(context: &Context) -> Result<String, FunctionErrorKind> {
