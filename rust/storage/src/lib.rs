@@ -21,13 +21,24 @@ use std::{
 use item::NVTField;
 use types::Primitive;
 
+/// The identifier of a Scan
+///
+/// Either created when creating a new scan or given via models::Scan#scan_id.
+pub type ScanID = String;
+///  The target of a scan run
+///
+///  This is necessary for target specific data, e.g. KB items that should be deleted when the
+///  target is not scanned anymore.
+pub type Target = Option<String>;
+
 /// Is a key used by a Storage to find data within a certain scope.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ContextKey {
     /// The context is used within a scan.
     ///
-    /// This is used to limit kb items or results to a specific scan.
-    Scan(String),
+    /// This is used to limit kb items or results to a specific scan. The kb items are limited to
+    /// ScanID and Target while the results are limited to just the ScanID.
+    Scan(ScanID, Target),
     /// The context is used within a feed update.
     ///
     /// The filename is used to know that a given information belongs to certain nasl script.
@@ -37,7 +48,8 @@ pub enum ContextKey {
 impl Display for ContextKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContextKey::Scan(id) => write!(f, "scan_id={id}"),
+            ContextKey::Scan(id, None) => write!(f, "scan_id={id}"),
+            ContextKey::Scan(id, Some(target)) => write!(f, "scan_id={id} target={target}"),
             ContextKey::FileName(name) => write!(f, "file={name}"),
         }
     }
@@ -46,7 +58,7 @@ impl Display for ContextKey {
 impl AsRef<str> for ContextKey {
     fn as_ref(&self) -> &str {
         match self {
-            ContextKey::Scan(x) => x,
+            ContextKey::Scan(x, _) => x,
             ContextKey::FileName(x) => x,
         }
     }
@@ -68,7 +80,7 @@ impl ContextKey {
     /// Returns the owned inner value of ContextKey
     pub fn value(&self) -> String {
         match self {
-            ContextKey::Scan(x) => x.to_string(),
+            ContextKey::Scan(x, _) => x.to_string(),
             ContextKey::FileName(x) => x.to_string(),
         }
     }
@@ -382,7 +394,7 @@ where
 ///
 /// To make lookups easier KB items are fetched by a scan_id, followed by the kb key this should
 /// make required_key verifications relatively simple.
-type Kbs = HashMap<String, HashMap<String, Vec<Kb>>>;
+type Kbs = HashMap<ContextKey, HashMap<String, Vec<Kb>>>;
 
 /// Vts are using a relative file path as a key. This should make includes, script_dependency
 /// lookups relative simple.
@@ -433,9 +445,9 @@ impl DefaultDispatcher {
         Ok(())
     }
 
-    fn cache_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
+    fn cache_kb(&self, ck: ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut data = self.kbs.as_ref().write()?;
-        if let Some(scan_entry) = data.get_mut(scan_id) {
+        if let Some(scan_entry) = data.get_mut(&ck) {
             if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
                 kb_entry.push(kb);
             } else {
@@ -444,7 +456,7 @@ impl DefaultDispatcher {
         } else {
             let mut scan_entry = HashMap::new();
             scan_entry.insert(kb.key.clone(), vec![kb]);
-            data.insert(scan_id.to_string(), scan_entry);
+            data.insert(ck, scan_entry);
         }
         Ok(())
     }
@@ -502,10 +514,10 @@ impl Remover for DefaultDispatcher {
         let mut kbs = self.kbs.write().unwrap();
         Ok(match kb_key {
             None => kbs
-                .remove(key.as_ref())
+                .remove(key)
                 .map(|x| x.values().flat_map(|x| x.clone()).collect()),
             Some(x) => {
-                if let Some(kbs) = kbs.get_mut(key.as_ref()) {
+                if let Some(kbs) = kbs.get_mut(key) {
                     kbs.remove(&x)
                 } else {
                     None
@@ -537,7 +549,7 @@ impl Dispatcher for DefaultDispatcher {
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(x) => self.cache_nvt_field(key.as_ref(), x)?,
-            Field::KB(x) => self.cache_kb(key.as_ref(), x)?,
+            Field::KB(x) => self.cache_kb(key.clone(), x)?,
             Field::NotusAdvisory(x) => {
                 if let Some(x) = *x {
                     self.cache_notus_advisory(x)?
@@ -608,11 +620,11 @@ impl Retriever for DefaultDispatcher {
                 };
                 Ok(Box::new(data.into_iter()))
             }
-            Retrieve::KB(x) => {
+            Retrieve::KB(kb_id) => {
                 let kbs = self.kbs.as_ref().read()?;
                 // TODO: maybe return all when x is empty?
-                if let Some(kbs) = kbs.get(key.as_ref()) {
-                    if let Some(kbs) = kbs.get(&x) {
+                if let Some(kbs) = kbs.get(key) {
+                    if let Some(kbs) = kbs.get(&kb_id) {
                         let data = InMemoryDataWrapper {
                             inner: Box::new(kbs.clone().into_iter().map(|x| x.into())),
                         };

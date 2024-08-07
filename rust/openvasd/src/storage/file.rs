@@ -621,7 +621,7 @@ mod tests {
             .collect();
         assert_eq!(2, range.len());
         let deleted_results = storage
-            .remove_result::<Error>(&storage::ContextKey::Scan("42".to_string()), None)
+            .remove_result::<Error>(&storage::ContextKey::Scan("42".to_string(), None), None)
             .unwrap();
         assert_eq!(deleted_results.len(), range.len());
         let range: Vec<String> = storage

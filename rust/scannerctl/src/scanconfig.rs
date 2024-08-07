@@ -464,13 +464,13 @@ mod tests {
         let add_product_detection = |oid: &str| {
             shop.as_dispatcher()
                 .dispatch(
-                    &storage::ContextKey::Scan(oid.to_string()),
+                    &storage::ContextKey::FileName(oid.to_string()),
                     storage::Field::NVT(storage::item::NVTField::Oid(oid.to_owned().to_string())),
                 )
                 .unwrap();
             shop.as_dispatcher()
                 .dispatch(
-                    &storage::ContextKey::Scan(oid.to_string()),
+                    &storage::ContextKey::FileName(oid.to_string()),
                     storage::Field::NVT(storage::item::NVTField::Family(
                         "Product detection".to_string(),
                     )),
