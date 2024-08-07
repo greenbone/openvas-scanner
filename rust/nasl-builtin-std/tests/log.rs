@@ -20,7 +20,7 @@ mod tests {
         );
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
 
         let mut parser = CodeInterpreter::new(&code, register, &context);
         let no_error = parser.find_map(|x| x.err());

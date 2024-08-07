@@ -122,9 +122,6 @@ impl<S: ScannerStack> RunningScan<S> {
                 reason: e.to_string(),
             });
 
-        storage.scan_finished(&storage::ContextKey::Scan(self.scan.scan_id.clone())).map_err(|e|{
-            Error::Unexpected(e.to_string())
-        })?;
         let mut status = self.status.write().unwrap();
         status.status = end_phase;
         status.end_time = current_time_in_seconds("end_time").into();
@@ -299,7 +296,7 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
-        let ck = storage::ContextKey::Scan(id.as_ref().to_string());
+        let ck = storage::ContextKey::Scan(id.as_ref().to_string(), None);
         self.stop_scan(id).await?;
         let store = self.storage.read().unwrap();
         store

@@ -471,11 +471,34 @@ where
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use infisto::base::IndexedByteStorage;
     use models::Scan;
 
     use super::*;
+
+    /// Creates a Storage with a cached file storer based on the feed found `rust/examples/feed/`.
+    pub async fn example_feed_file_storage(
+        target: &str,
+    ) -> Storage<infisto::base::CachedIndexFileStorer> {
+        let storage = infisto::base::CachedIndexFileStorer::init(target).unwrap();
+        let base = std::env::current_dir().unwrap_or_default();
+
+        let mut tbase = base.parent().unwrap().join("examples");
+        if std::fs::metadata(&tbase).is_err() {
+            tbase = base.join("examples");
+        }
+        let base_dir = tbase.join("feed");
+
+        let nfp = base_dir.join("nasl");
+        let nofp = base_dir.join("notus").join("advisories");
+        tracing::debug!(nasl_feed=?nfp, notus_advisories_feed=?nofp);
+        crate::storage::file::Storage::new(
+            storage,
+            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
+        )
+    }
+
 
     #[tokio::test]
     async fn credentials() {
@@ -516,14 +539,7 @@ mod tests {
         "#;
         let mut scan: Scan = serde_json::from_str(jraw).unwrap();
         scan.scan_id = "aha".to_string();
-        let storage =
-            infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/credential").unwrap();
-        let nfp = "../../examples/feed/nasl";
-        let nofp = "../../examples/feed/notus/advisories";
-        let storage = crate::storage::file::Storage::new(
-            storage,
-            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
-        );
+        let storage = example_feed_file_storage("/tmp/openvasd/credential").await;
         storage.insert_scan(scan.clone()).await.unwrap();
         let (scan2, _) = storage.get_scan("aha").await.unwrap();
         assert_eq!(scan, scan2);
@@ -531,20 +547,8 @@ mod tests {
 
     #[tokio::test]
     async fn oids() {
-        let storage = infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/oids").unwrap();
-
-        let base = std::env::current_dir().unwrap_or_default();
-
-        let mut tbase = base.parent().unwrap().join("examples");
-        if std::fs::metadata(&tbase).is_err() {
-            tbase = base.join("examples");
-        }
-        let base_dir = tbase.join("feed");
-
-        let nfp = base_dir.join("nasl");
-        let nofp = base_dir.join("notus").join("advisories");
-        let feeds = vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)];
-        let file_storage = crate::storage::file::Storage::new(storage, feeds.clone());
+        let file_storage = example_feed_file_storage("/tmp/openvasd/oids").await;
+        let feeds = file_storage.feed_hash().await;
         file_storage.synchronize_feeds(feeds.clone()).await.unwrap();
         let amount_file_oids = file_storage.oids().await.unwrap().count();
 
@@ -569,14 +573,7 @@ mod tests {
             scans.push(scan);
         }
 
-        let storage =
-            infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/file_storage_test").unwrap();
-        let nfp = "../../examples/feed/nasl";
-        let nofp = "../../examples/feed/notus/advisories";
-        let storage = crate::storage::file::Storage::new(
-            storage,
-            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
-        );
+        let storage = example_feed_file_storage("/tmp/openvasd/file_storage_test").await;
         for s in scans.clone().into_iter() {
             storage.insert_scan(s).await.unwrap()
         }
@@ -621,7 +618,7 @@ mod tests {
             .collect();
         assert_eq!(2, range.len());
         let deleted_results = storage
-            .remove_result::<Error>(&storage::ContextKey::Scan("42".to_string()), None)
+            .remove_result::<Error>(&storage::ContextKey::Scan("42".to_string(), None), None)
             .unwrap();
         assert_eq!(deleted_results.len(), range.len());
         let range: Vec<String> = storage
@@ -643,16 +640,7 @@ mod tests {
 
     #[tokio::test]
     async fn id_mapper() {
-        let storage =
-            infisto::base::CachedIndexFileStorer::init("/tmp/openvasd/file_storage_id_mapper_test")
-                .unwrap();
-
-        let nfp = "../../examples/feed/nasl";
-        let nofp = "../../examples/feed/notus/advisories";
-        let storage = crate::storage::file::Storage::new(
-            storage,
-            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
-        );
+        let storage = example_feed_file_storage("/tmp/openvasd/file_storage_id_mapper_test").await;
         storage
             .add_scan_client_id("s1".to_owned(), "0".into())
             .await

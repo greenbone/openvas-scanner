@@ -11,7 +11,7 @@ mod tests {
     fn check_line_of_code(code: &str, f: impl Fn(Result<NaslValue, InterpretError>)) {
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         f(parser.next().unwrap())
     }
@@ -39,7 +39,7 @@ mod tests {
     fn check_multiple(code: &str, expected: Vec<NaslValue>) {
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let parser = CodeInterpreter::new(code, register, &context);
         for (val, expected) in parser.zip(expected.into_iter()) {
             assert_eq!(val, Ok(expected));

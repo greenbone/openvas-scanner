@@ -213,7 +213,12 @@ where
     }
 
     /// Creates a new Context with the shared loader, logger and function register
-    pub fn build(&self, key: ContextKey, target: String) -> Context {
+    pub fn build(&self, key: ContextKey) -> Context {
+        let target = match &key {
+            ContextKey::Scan(_, Some(target)) => target.clone(),
+            ContextKey::Scan(_, None) => String::default(),
+            ContextKey::FileName(target) => target.clone(),
+        };
         Context::new(
             key,
             target,

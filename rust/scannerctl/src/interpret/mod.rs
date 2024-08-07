@@ -95,7 +95,7 @@ where
                 )?;
                 let results: Option<String> = iter
                     .filter_map(|(k, _)| match k {
-                        ContextKey::Scan(_) => None,
+                        ContextKey::Scan(..) => None,
                         ContextKey::FileName(f) => Some(f.to_string()),
                     })
                     .next();
@@ -111,7 +111,8 @@ where
     fn run(&self, script: &str) -> Result<(), CliErrorKind> {
         let context = self
             .context_builder
-            .build(ContextKey::Scan(self.scan_id.clone()), self.target.clone());
+            // TODO: use proper  target
+            .build(ContextKey::Scan(self.scan_id.clone(), None));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
         let interpreter =

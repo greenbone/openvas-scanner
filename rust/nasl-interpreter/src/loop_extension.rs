@@ -178,7 +178,7 @@ mod tests {
         a;
         "###;
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let register = Register::default();
         let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
@@ -199,7 +199,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -221,7 +221,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -247,7 +247,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -274,7 +274,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
@@ -306,7 +306,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut interpreter = Interpreter::new(register, &context);
         let mut interpreter =
             parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));

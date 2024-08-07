@@ -116,7 +116,8 @@ struct SyncScriptExecutor<'a, T> {
     /// Is used to remember which host we currently are executing. The host name will get through
     /// the stored scan reference.
     current_host: usize,
-    /// this stores the current index of the current host within the stage
+    /// The first value is the stage and the second the vt idx and is used in combincation with
+    /// current_host
     ///
     /// This is necessary after the first host. Internally we use schedule and iterate over it,
     /// when there is no error then we store it within concurrent vts. After the first host is done
@@ -207,7 +208,7 @@ where
     }
 
     fn check_keys(&self, vt: &storage::item::Nvt) -> Result<(), ScriptResultKind> {
-        let key = ContextKey::Scan(self.scan.scan_id.clone());
+        let key = self.generate_key();
         let check_required_key = |k: &str| {
             self.check_key(
                 &key,
@@ -275,8 +276,10 @@ where
     }
 
     // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
-    fn generate_key(&self, target: &str) -> ContextKey {
-        ContextKey::Scan(format!("{}-{}", self.scan.scan_id, target))
+    fn generate_key(&self) -> ContextKey {
+        let target = &self.scan.target.hosts[self.current_host].to_string();
+        let scan_id = &self.scan.scan_id;
+        ContextKey::Scan(scan_id.clone(), Some(target.clone()))
     }
 
     fn execute(
@@ -311,7 +314,7 @@ where
                 Err(e) => e,
                 Ok(()) => {
                     let context = crate::Context::new(
-                        self.generate_key(&target),
+                        self.generate_key(),
                         target.clone(),
                         self.storage.as_dispatcher(),
                         self.storage.as_retriever(),
@@ -372,23 +375,19 @@ where
                 }
             }
         }
-        if si < self.concurrent_vts.len() {
-            if vi >= self.concurrent_vts[si].1.len() {
-                if si + 1 < self.concurrent_vts.len() {
-                    si += 1;
-                    vi = 0;
-                } else {
-                    // TODO: cleanup kb items of storage
-                    si = 0;
-                    vi = 0;
-                    hi += 1;
-                }
+        let new_host = si >= self.concurrent_vts.len()
+            || (vi >= self.concurrent_vts[si].1.len() && si + 1 >= self.concurrent_vts.len());
+        if new_host {
+            if let Err(e) = self.storage.scan_finished(&self.generate_key()) {
+                return Some(Err(e.into()));
             }
-        } else {
-            // TODO: cleanup kb items of storage
             si = 0;
             vi = 0;
             hi += 1;
+        } else if vi >= self.concurrent_vts[si].1.len() {
+            // new_stage
+            si += 1;
+            vi = 0;
         }
 
         if hi < self.scan.target.hosts.len() {
@@ -924,7 +923,7 @@ exit({rc});
         .for_each(|(p, port, enabled)| {
             dispatcher
                 .dispatch(
-                    &storage::ContextKey::Scan("sid".into()),
+                    &storage::ContextKey::Scan("sid".into(), Some("test.host".into())),
                     storage::Field::KB((&super::generate_port_kb_key(p, port), enabled).into()),
                 )
                 .expect("store kb");
@@ -957,7 +956,7 @@ exit({rc});
         let dispatcher = prepare_vt_storage(&only_success);
         dispatcher
             .dispatch(
-                &storage::ContextKey::Scan("sid".into()),
+                &storage::ContextKey::Scan("sid".into(), Some("test.host".into())),
                 storage::Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");
@@ -988,7 +987,7 @@ exit({rc});
         let dispatcher = prepare_vt_storage(&only_success);
         dispatcher
             .dispatch(
-                &storage::ContextKey::Scan("sid".into()),
+                &storage::ContextKey::Scan("sid".into(), Some("test.host".into())),
                 storage::Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");
@@ -1019,7 +1018,7 @@ exit({rc});
         let dispatcher = prepare_vt_storage(&only_success);
         dispatcher
             .dispatch(
-                &storage::ContextKey::Scan("sid".into()),
+                &storage::ContextKey::Scan("sid".into(), Some("test.host".to_string())),
                 storage::Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");

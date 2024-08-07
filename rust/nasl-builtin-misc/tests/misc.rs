@@ -19,7 +19,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let first = parser.next();
         let second = parser.next();
@@ -35,7 +35,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Boolean(_)))));
     }
@@ -47,7 +47,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok("23".into())));
     }
@@ -67,7 +67,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("string".into()))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("int".into()))));
@@ -88,7 +88,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(false))));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Boolean(true))));
@@ -101,7 +101,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Number(_)))));
     }
@@ -114,7 +114,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -145,7 +145,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::String("z".into()))));
@@ -165,7 +165,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
 
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
@@ -236,7 +236,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
         assert_eq!(
@@ -252,7 +252,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let now = Instant::now();
         parser.next();
@@ -266,7 +266,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         let now = Instant::now();
         parser.next();
@@ -285,7 +285,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null))); // defining function b
         assert_eq!(parser.next(), Some(Ok(true.into()))); // is b defined

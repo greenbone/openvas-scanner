@@ -556,7 +556,7 @@ mod tests {
             .unwrap()
             .collect();
         assert_eq!(results.len(), 5);
-        let ck = storage::ContextKey::Scan(id.clone());
+        let ck = storage::ContextKey::Scan(id.clone(), None);
         storage.remove_result::<Error>(&ck, Some(1)).unwrap();
         let results: Vec<_> = storage
             .get_results(&id, None, None)
