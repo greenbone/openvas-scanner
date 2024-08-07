@@ -109,7 +109,6 @@ where
 
     /// Check if the current feed is outdated.
     pub fn feed_is_outdated(&self, current_version: String) -> Result<bool, ErrorKind> {
-        self.verify_signature()?;
         // the version in file
         let v = self.feed_version()?;
         if !current_version.is_empty() {
