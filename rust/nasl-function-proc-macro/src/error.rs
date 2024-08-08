@@ -1,5 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote_spanned;
+use syn::Ident;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -10,6 +11,7 @@ pub struct Error {
 
 pub enum ErrorKind {
     TooManyAttributes,
+    UnknownIdent(Ident),
     OnlyNormalArgumentsAllowed,
 }
 
@@ -23,12 +25,15 @@ impl Error {
     }
 
     pub fn message(&self) -> String {
-        match self.kind {
+        match &self.kind {
             ErrorKind::OnlyNormalArgumentsAllowed => {
                 "Only normal identifier arguments are allowed on the function.".into()
             }
             ErrorKind::TooManyAttributes => {
                 "Argument is named more than once in attributes.".into()
+            }
+            ErrorKind::UnknownIdent(ident) => {
+                format!("Unknown identifier: {ident}")
             }
         }
     }

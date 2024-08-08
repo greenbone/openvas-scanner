@@ -66,7 +66,7 @@ impl Attrs {
         }
     }
 
-    pub fn verify(&self) -> Result<()> {
+    pub fn verify(&self, f: &ItemFn) -> Result<()> {
         let mut ids: HashSet<_> = HashSet::default();
         for attr in self.attrs.iter() {
             for ident in attr.idents.iter() {
@@ -74,6 +74,22 @@ impl Attrs {
                     return Err(Error {
                         span: ident.span(),
                         kind: ErrorKind::TooManyAttributes,
+                    });
+                }
+            }
+        }
+        for attr in self.attrs.iter() {
+            for ident in attr.idents.iter() {
+                if !f.sig.inputs.iter().any(|input| match input {
+                    FnArg::Typed(arg) => match &*arg.pat {
+                        syn::Pat::Ident(pat) => pat.ident == *ident,
+                        _ => false,
+                    },
+                    _ => false,
+                }) {
+                    return Err(Error {
+                        span: ident.span(),
+                        kind: ErrorKind::UnknownIdent(ident.clone()),
                     });
                 }
             }

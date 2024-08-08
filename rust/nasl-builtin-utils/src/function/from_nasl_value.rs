@@ -87,6 +87,7 @@ impl<'a> FromNaslValue<'a> for bool {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::Boolean(b) => Ok(*b),
+            NaslValue::Number(i) => Ok(*i > 0),
             _ => Err(FunctionErrorKind::WrongArgument(
                 "Expected bool.".to_string(),
             )),
@@ -112,8 +113,10 @@ macro_rules! impl_from_nasl_value_for_numeric_type {
 }
 
 impl_from_nasl_value_for_numeric_type!(u8);
+impl_from_nasl_value_for_numeric_type!(i16);
 impl_from_nasl_value_for_numeric_type!(i32);
 impl_from_nasl_value_for_numeric_type!(i64);
+impl_from_nasl_value_for_numeric_type!(u16);
 impl_from_nasl_value_for_numeric_type!(u32);
 impl_from_nasl_value_for_numeric_type!(u64);
 impl_from_nasl_value_for_numeric_type!(isize);

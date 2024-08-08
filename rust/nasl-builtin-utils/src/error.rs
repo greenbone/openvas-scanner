@@ -14,6 +14,10 @@ use crate::context::ContextType;
 /// Reuses the StorageError definitions as they should fit most cases.
 pub type GeneralErrorType = StorageError;
 
+/// A convenience wrapper for returning arbitrary values from NASL
+/// functions.
+pub type Result<T> = std::result::Result<T, FunctionErrorKind>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
