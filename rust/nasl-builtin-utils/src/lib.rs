@@ -9,6 +9,7 @@ pub mod error;
 pub mod function;
 pub mod lookup_keys;
 
+use async_trait::async_trait;
 use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
@@ -27,17 +28,18 @@ pub type NaslFunction<'a> =
 
 /// Looks up functions and executes them. Returns None when no function is found and a result
 /// otherwise.
-pub trait NaslFunctionExecuter {
+#[async_trait]
+pub trait NaslFunctionExecuter: Send + Sync + 'static {
     /// Executes function found by name if it registered.
     ///
     /// Usually it is called by the context and not directly from the interpreter. This way it is
     /// ensured that it is using the correct context. To not have to have a context ready on
     /// initialization the context is given via a parameter.
-    fn nasl_fn_execute(
+    async fn nasl_fn_execute(
         &self,
         name: &str,
         register: &Register,
-        context: &Context,
+        context: &Context<'_>,
     ) -> Option<NaslResult>;
 
     /// Returns true when the nasl function is defined otherwise false.
@@ -96,6 +98,7 @@ pub fn get_named_parameter<'a>(
         },
     }
 }
+
 /// Holds registered NaslFunctionExecuter and executes them in order of registration.
 #[derive(Default)]
 pub struct NaslFunctionRegister {
@@ -117,15 +120,16 @@ impl NaslFunctionRegister {
     }
 }
 
+#[async_trait]
 impl NaslFunctionExecuter for NaslFunctionRegister {
-    fn nasl_fn_execute(
+    async fn nasl_fn_execute(
         &self,
         name: &str,
         register: &context::Register,
-        context: &context::Context,
+        context: &context::Context<'_>,
     ) -> Option<NaslResult> {
         for executor in &self.executor {
-            if let Some(r) = executor.nasl_fn_execute(name, register, context) {
+            if let Some(r) = executor.nasl_fn_execute(name, register, context).await {
                 return Some(r);
             }
         }
@@ -159,7 +163,7 @@ impl NaslfunctionRegisterBuilder {
     /// Pushes a NaslFunctionExecuter to the register
     pub fn push_register<T>(mut self, executor: T) -> Self
     where
-        T: NaslFunctionExecuter + Send + 'static,
+        T: NaslFunctionExecuter,
     {
         self.executor.push(Box::new(executor));
         self
@@ -226,14 +230,17 @@ impl NaslVarRegisterBuilder {
 
 #[cfg(test)]
 mod test {
+    use async_trait::async_trait;
 
     struct Test;
+
+    #[async_trait]
     impl crate::NaslFunctionExecuter for Test {
-        fn nasl_fn_execute(
+        async fn nasl_fn_execute(
             &self,
             name: &str,
             register: &crate::Register,
-            _context: &crate::Context,
+            _context: &crate::Context<'_>,
         ) -> Option<crate::NaslResult> {
             match name {
                 "test" => {
@@ -253,8 +260,9 @@ mod test {
             name == "test"
         }
     }
-    #[test]
-    fn register_new_function() {
+
+    #[tokio::test]
+    async fn register_new_function() {
         let key = storage::ContextKey::FileName("test".to_owned());
         let target = "localhost";
         let storage = storage::DefaultDispatcher::default();
@@ -266,7 +274,11 @@ mod test {
 
         assert!(context.nasl_fn_defined("test"));
         assert_eq!(
-            context.nasl_fn_execute("test", &register).unwrap().unwrap(),
+            context
+                .nasl_fn_execute("test", &register)
+                .await
+                .unwrap()
+                .unwrap(),
             3.into()
         );
     }

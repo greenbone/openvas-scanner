@@ -719,7 +719,7 @@ where
 
 impl<S> storage::Retriever for CacheDispatcher<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     fn retrieve(
         &self,

@@ -363,8 +363,12 @@ impl<'a> Context<'a> {
     /// Executes a function by name
     ///
     /// Returns None when the function was not found.
-    pub fn nasl_fn_execute(&self, name: &str, register: &Register) -> Option<super::NaslResult> {
-        self.executor.nasl_fn_execute(name, register, self)
+    pub async fn nasl_fn_execute(
+        &self,
+        name: &str,
+        register: &Register,
+    ) -> Option<super::NaslResult> {
+        self.executor.nasl_fn_execute(name, register, self).await
     }
 
     /// Checks if a function is defined

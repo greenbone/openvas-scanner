@@ -313,11 +313,8 @@ impl NaslHttp {
         // The error is:
         // Cannot start a runtime from within a runtime. This happens because a function (like `block_on`)
         // attempted to block the current thread while the thread is being used to drive asynchronous tasks.
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(1)
-            .enable_all()
-            .build()
-            .unwrap();
+        
+        let runtime = tokio::runtime::Handle::current();
 
         match runtime.block_on(self.request(&ip_str, port, uri, data, method, handle)) {
             Ok((head, body)) => {
