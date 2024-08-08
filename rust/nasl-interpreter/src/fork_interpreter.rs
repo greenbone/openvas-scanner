@@ -80,14 +80,14 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         result
     }
 
-    fn next_statement(&mut self) -> Option<InterpretResult> {
+    async fn next_statement(&mut self) -> Option<InterpretResult> {
         self.statement = None;
         match self.lexer.next() {
             Some(Ok(nstmt)) => {
                 if let Some(cb) = &self.statement_cb {
                     cb(&nstmt);
                 }
-                let results = Some(self.interpreter.retry_resolve_next(&nstmt, 5));
+                let results = Some(self.interpreter.retry_resolve_next(&nstmt, 5).await);
                 self.statement = Some(nstmt);
                 results
             }
@@ -106,14 +106,15 @@ impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
     type Item = InterpretResult;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(stmt) = self.statement.as_ref() {
-            match self.interpreter.next_interpreter() {
-                Some(inter) => Some(inter.retry_resolve(stmt, 5)),
-                None => self.next_statement(),
-            }
-        } else {
-            self.next_statement()
-        }
+        todo!()
+        // if let Some(stmt) = self.statement.as_ref() {
+        //     match self.interpreter.next_interpreter() {
+        //         Some(inter) => Some(inter.retry_resolve(stmt, 5)),
+        //         None => self.next_statement(),
+        //     }
+        // } else {
+        //     self.next_statement()
+        // }
     }
 }
 
