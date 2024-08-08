@@ -19,26 +19,7 @@ pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (LIBBSD REQUIRED libbsd)
 
 message (STATUS "Looking for libgcrypt...")
-find_library (GCRYPT gcrypt)
-if (NOT GCRYPT)
-  message (SEND_ERROR "The libgcrypt library is required.")
-else (NOT GCRYPT)
-  message (STATUS "Looking for libgcrypt... ${GCRYPT}")
-  execute_process (COMMAND libgcrypt-config --libs
-    OUTPUT_VARIABLE GCRYPT_LDFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process (COMMAND libgcrypt-config --cflags
-    OUTPUT_VARIABLE GCRYPT_CFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process (COMMAND libgcrypt-config --version
-    OUTPUT_VARIABLE GCRYPT_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message (STATUS "  found libgcrypt, version ${GCRYPT_VERSION}")
-  if (GCRYPT_VERSION VERSION_LESS "1.6")
-    message (SEND_ERROR "libgcrypt 1.6 or greater is required")
-  endif (GCRYPT_VERSION VERSION_LESS "1.6")
-  string(REPLACE "-I" "" GCRYPT_INCLUDE_DIRS "${GCRYPT_CFLAGS}")
-endif (NOT GCRYPT)
+pkg_check_modules (GCRYPT REQUIRED libgcrypt)
 
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
