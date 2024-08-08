@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::fmt::Display;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use crate::storage::{Error as StorageError, FeedHash};
@@ -103,6 +104,8 @@ pub struct Scheduler<DB, Scanner> {
     /// Is used to start, stop, ... scan.
     scanner: Scanner,
     config: config::Scheduler,
+    /// Feed version shared with response.
+    feed_version: Arc<std::sync::RwLock<String>>,
 }
 
 impl<DB, Scanner> Scheduler<DB, Scanner> {
@@ -116,11 +119,16 @@ impl<DB, Scanner> Scheduler<DB, Scanner> {
             scanner,
             config,
             is_synchronizing_feed: RwLock::new(false),
+            feed_version: Arc::new(std::sync::RwLock::new(String::from("UNDEFINED"))),
         }
     }
 
     pub fn config(&self) -> &config::Scheduler {
         &self.config
+    }
+
+    pub fn feed_version(&self) -> Arc<std::sync::RwLock<String>> {
+        self.feed_version.clone()
     }
 }
 
@@ -475,6 +483,8 @@ where
             Ok(_) => Ok(()),
             Err(e) => Err(e),
         };
+        let fv = self.db.current_feed_version().await.unwrap();
+        *self.feed_version.write().unwrap() = fv;
         *sync_feed = false;
         tracing::debug!(?result, "feed update finished, scans can be started again");
         result
@@ -496,6 +506,10 @@ where
 
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.db.feed_hash().await.to_vec()
+    }
+
+    async fn current_feed_version(&self) -> Result<String, StorageError> {
+        self.db.current_feed_version().await
     }
 }
 

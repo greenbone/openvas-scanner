@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::sync::RwLock;
-
 use async_trait::async_trait;
+use std::sync::{Arc, RwLock};
 use storage::DefaultDispatcher;
 
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
@@ -205,6 +204,8 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             self.scanner.0,
             self.storage,
         );
+        let shared_feed = Arc::clone(&scheduler.feed_version());
+        self.response.add_feed_version(shared_feed);
         Context {
             response: self.response,
             scheduler,

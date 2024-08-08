@@ -2,7 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{convert::Infallible, error::Error, pin::Pin, sync::mpsc::Receiver, task::Poll, thread};
+use std::{
+    convert::Infallible,
+    error::Error,
+    pin::Pin,
+    sync::{mpsc::Receiver, Arc},
+    task::Poll,
+    thread,
+};
 
 use http_body::Body;
 use hyper::body::Bytes;
@@ -13,7 +20,7 @@ pub type Result = hyper::Response<BodyKind>;
 pub struct Response {
     authentication: String,
     version: String,
-    feed_version: String,
+    feed_version: Arc<std::sync::RwLock<String>>,
 }
 
 impl Default for Response {
@@ -21,7 +28,7 @@ impl Default for Response {
         Self {
             authentication: String::new(),
             version: "1".to_string(),
-            feed_version: String::new(),
+            feed_version: Arc::new(std::sync::RwLock::new(String::new())),
         }
     }
 }
@@ -133,7 +140,11 @@ impl Body for BodyKind {
 impl Response {
     /// Sets the version of the response header.
     pub fn set_feed_version(&mut self, feed_version: &str) {
-        self.feed_version = feed_version.to_string();
+        *self.feed_version.write().expect("Invalid feed version") = feed_version.to_string();
+    }
+
+    pub fn add_feed_version(&mut self, feed_version: Arc<std::sync::RwLock<String>>) {
+        self.feed_version = feed_version;
     }
 
     /// Appends authentication to the response header.
@@ -150,7 +161,13 @@ impl Response {
         hyper::Response::builder()
             .header("authentication", &self.authentication)
             .header("api-version", &self.version)
-            .header("feed-version", &self.feed_version)
+            .header(
+                "feed-version",
+                &*self
+                    .feed_version
+                    .read()
+                    .expect("Not possible to read feed version"),
+            )
     }
 
     #[inline]
