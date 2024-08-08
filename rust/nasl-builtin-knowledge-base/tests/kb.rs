@@ -15,7 +15,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert!(matches!(parser.next(), Some(Err(_))));
@@ -30,7 +30,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));

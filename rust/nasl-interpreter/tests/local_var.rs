@@ -21,7 +21,7 @@ a;
         "###;
         let dc = ContextFactory::default();
         let register = Register::default();
-        let ctx = dc.build(Default::default(), Default::default());
+        let ctx = dc.build(Default::default());
         let mut interpreter = Interpreter::new(register, &ctx);
         let results = parse(code)
             .map(|stmt| match stmt {

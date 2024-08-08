@@ -18,11 +18,11 @@ pub trait NotusScanner {
 
 #[derive(Debug)]
 pub struct NotusWrapper {
-    notus: RwLock<Notus<HashsumProductLoader<File, FSPluginLoader<String>>>>,
+    notus: RwLock<Notus<HashsumProductLoader<File, FSPluginLoader>>>,
 }
 
 impl NotusWrapper {
-    pub fn new(notus: Notus<HashsumProductLoader<File, FSPluginLoader<String>>>) -> Self {
+    pub fn new(notus: Notus<HashsumProductLoader<File, FSPluginLoader>>) -> Self {
         Self {
             notus: RwLock::new(notus),
         }

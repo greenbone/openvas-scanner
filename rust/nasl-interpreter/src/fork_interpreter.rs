@@ -25,7 +25,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     /// use nasl_interpreter::{Register, ContextFactory , CodeInterpreter};
     /// let register = Register::default();
     /// let context_builder = ContextFactory ::default();
-    /// let context = context_builder.build(Default::default(), Default::default());
+    /// let context = context_builder.build(Default::default());
     /// let code = r#"
     /// set_kb_item(name: "test", value: 1);
     /// set_kb_item(name: "test", value: 2);
@@ -59,7 +59,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     /// use nasl_interpreter::{Register, ContextFactory , CodeInterpreter};
     /// let register = Register::default();
     /// let context_builder = ContextFactory ::default();
-    /// let context = context_builder.build(Default::default(), Default::default());
+    /// let context = context_builder.build(Default::default());
     /// let code = r#"
     /// set_kb_item(name: "test", value: 1);
     /// set_kb_item(name: "test", value: 2);
@@ -125,7 +125,7 @@ mod rests {
         use nasl_syntax::NaslValue;
         let register = Register::default();
         let context_builder = ContextFactory::default();
-        let context = context_builder.build(Default::default(), Default::default());
+        let context = context_builder.build(Default::default());
         let code = r#"
             set_kb_item(name: "test", value: 1);
             set_kb_item(name: "test", value: 2);

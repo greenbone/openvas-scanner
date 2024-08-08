@@ -48,8 +48,9 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
 
     let feed = args
         .get_one::<PathBuf>("path")
-        .expect("A feed path is required to run a scan");
-    let storage = storage::DefaultDispatcher::new(true);
+        .expect("A feed path is required to run a scan")
+        .clone();
+    let storage = storage::DefaultDispatcher::new();
     tracing::info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(feed);
@@ -78,9 +79,8 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
             );
         }
     } else {
-        let interpreter = nasl_interpreter::SyncScanInterpreter::with_default_function_executor(
-            &storage, &loader,
-        );
+        let executor = nasl_interpreter::nasl_std_functions();
+        let interpreter = nasl_interpreter::SyncScanInterpreter::new(&storage, &loader, &executor);
         match interpreter
             .run_with_schedule(&scan, schedule) {
             Err(e) => {

@@ -99,19 +99,19 @@ pub fn get_named_parameter<'a>(
 /// Holds registered NaslFunctionExecuter and executes them in order of registration.
 #[derive(Default)]
 pub struct NaslFunctionRegister {
-    executor: Vec<Box<dyn NaslFunctionExecuter>>,
+    executor: Vec<Box<dyn NaslFunctionExecuter + Send>>,
 }
 
 impl NaslFunctionRegister {
     /// Creates a new NaslFunctionRegister
-    pub fn new(executor: Vec<Box<dyn NaslFunctionExecuter>>) -> Self {
+    pub fn new(executor: Vec<Box<dyn NaslFunctionExecuter + Send>>) -> Self {
         Self { executor }
     }
 
     /// Pushes a NaslFunctionExecuter to the register
     pub fn push_executer<T>(&mut self, executor: T)
     where
-        T: NaslFunctionExecuter + 'static,
+        T: NaslFunctionExecuter + Send + 'static,
     {
         self.executor.push(Box::new(executor));
     }
@@ -145,7 +145,7 @@ impl NaslFunctionExecuter for NaslFunctionRegister {
 #[derive(Default)]
 /// A builder for NaslFunctionRegister
 pub struct NaslfunctionRegisterBuilder {
-    executor: Vec<Box<dyn NaslFunctionExecuter>>,
+    executor: Vec<Box<dyn NaslFunctionExecuter + Send>>,
 }
 
 impl NaslfunctionRegisterBuilder {
@@ -159,7 +159,7 @@ impl NaslfunctionRegisterBuilder {
     /// Pushes a NaslFunctionExecuter to the register
     pub fn push_register<T>(mut self, executor: T) -> Self
     where
-        T: NaslFunctionExecuter + 'static,
+        T: NaslFunctionExecuter + Send + 'static,
     {
         self.executor.push(Box::new(executor));
         self

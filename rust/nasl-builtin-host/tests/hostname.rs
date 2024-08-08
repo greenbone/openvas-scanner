@@ -13,7 +13,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert!(matches!(parser.next(), Some(Ok(NaslValue::String(_)))));
         assert!(matches!(parser.next(), Some(Ok(NaslValue::Array(_)))));

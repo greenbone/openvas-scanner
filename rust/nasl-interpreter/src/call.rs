@@ -125,7 +125,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(parser.next(), Some(Ok(3.into())));

@@ -2104,6 +2104,7 @@ dependencies = [
 name = "nasl-interpreter"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "dep-graph",
  "models",
  "nasl-builtin-std",
@@ -2112,6 +2113,7 @@ dependencies = [
  "regex",
  "storage",
  "thiserror",
+ "tokio",
  "tracing",
  "tracing-test",
 ]

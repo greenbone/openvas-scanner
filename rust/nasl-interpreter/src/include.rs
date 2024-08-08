@@ -47,7 +47,7 @@ mod tests {
             functions: nasl_std_functions(),
             storage: storage::DefaultDispatcher::default(),
         };
-        let ctx = context.build(Default::default(), Default::default());
+        let ctx = context.build(Default::default());
         let mut interpreter = CodeInterpreter::new(code, register, &ctx);
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
         assert_eq!(interpreter.next(), Some(Ok(12.into())));

@@ -67,7 +67,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -107,7 +107,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(255))));
@@ -136,7 +136,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -176,7 +176,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -209,7 +209,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -251,7 +251,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(
@@ -287,7 +287,7 @@ mod tests {
         let mut binding = ContextFactory::default();
         binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
 
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(

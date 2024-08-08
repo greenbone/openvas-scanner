@@ -68,7 +68,7 @@ if(description)
   exit(rc);
 }
         "#;
-        let storage = DefaultDispatcher::new(true);
+        let storage = DefaultDispatcher::new();
         let loader = NoOpLoader::default();
         let initial = [(
             "description".to_owned(),

@@ -14,9 +14,9 @@ use super::host_info::HostInfo;
 )]
 pub struct Status {
     /// Timestamp for the start of a scan
-    pub start_time: Option<u32>,
+    pub start_time: Option<u64>,
     /// Timestamp for the end of a scan
-    pub end_time: Option<u32>,
+    pub end_time: Option<u64>,
     /// The phase, a scan is currently in
     pub status: Phase,
     /// Information about the hosts of a running scan

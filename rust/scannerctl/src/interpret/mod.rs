@@ -95,7 +95,7 @@ where
                 )?;
                 let results: Option<String> = iter
                     .filter_map(|(k, _)| match k {
-                        ContextKey::Scan(_) => None,
+                        ContextKey::Scan(..) => None,
                         ContextKey::FileName(f) => Some(f.to_string()),
                     })
                     .next();
@@ -111,7 +111,8 @@ where
     fn run(&self, script: &str) -> Result<(), CliErrorKind> {
         let context = self
             .context_builder
-            .build(ContextKey::Scan(self.scan_id.clone()), self.target.clone());
+            // TODO: use proper  target
+            .build(ContextKey::Scan(self.scan_id.clone(), None));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
         let interpreter =
@@ -153,7 +154,7 @@ fn create_redis_storage(
     redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
-fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader<PathBuf>, CliError>
+fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader, CliError>
 where
     S: storage::Dispatcher,
 {
@@ -192,7 +193,7 @@ pub fn run(
             builder.storage(storage).build().run(script)
         }
         (Db::InMemory, Some(path)) => {
-            let storage = DefaultDispatcher::new(true);
+            let storage = DefaultDispatcher::new();
             let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
             builder.storage(storage).build().run(script)
         }

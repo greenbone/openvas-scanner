@@ -12,17 +12,17 @@ use std::collections::HashMap;
 )]
 pub struct HostInfo {
     /// Number of all hosts, that are contained in a target
-    pub all: u32,
+    pub all: u64,
     /// Number of hosts, that are excluded from the target
-    pub excluded: u32,
+    pub excluded: u64,
     /// Number of hosts, that are not reachable (alive-test failed)
-    pub dead: u32,
+    pub dead: u64,
     /// Number of hosts, that are reachable (alive-test succeeded)
-    pub alive: u32,
+    pub alive: u64,
     /// Number of hosts, that are currently queued for scanning
-    pub queued: u32,
+    pub queued: u64,
     /// Number of hosts, that are already finished scanning
-    pub finished: u32,
+    pub finished: u64,
     #[cfg_attr(
         feature = "serde_support",
         serde(skip_serializing_if = "Option::is_none")

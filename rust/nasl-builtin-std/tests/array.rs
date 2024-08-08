@@ -36,7 +36,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
         assert_eq!(parser.next(), Some(Ok(make_dict!(1 => 0i64, 2 => 1i64))));
@@ -57,7 +57,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         assert_eq!(
             parser.next(),
@@ -110,7 +110,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -135,7 +135,7 @@ mod tests {
         "#;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         parser.next();
@@ -160,7 +160,7 @@ mod tests {
         "###;
         let register = Register::default();
         let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
+        let context = binding.build(Default::default());
         let mut parser = CodeInterpreter::new(code, register, &context);
         parser.next();
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(5))));

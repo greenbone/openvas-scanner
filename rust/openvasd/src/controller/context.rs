@@ -139,11 +139,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where
-        S: models::scanner::Scanner
-            + 'static
-            + std::marker::Send
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: models::scanner::Scanner + 'static + std::marker::Send + std::marker::Sync,
     {
         let Self {
             feed_config,
