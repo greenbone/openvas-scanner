@@ -337,7 +337,7 @@ type FieldIter = Box<dyn Iterator<Item = Field>>;
 
 impl<T> Retriever for Arc<T>
 where
-    T: Retriever,
+    T: Retriever + Sync,
 {
     fn retrieve(&self, key: &ContextKey, scope: Retrieve) -> Result<FieldIter, StorageError> {
         self.as_ref().retrieve(key, scope)

@@ -2079,9 +2079,11 @@ dependencies = [
 name = "nasl-builtin-utils"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "nasl-syntax",
  "storage",
  "thiserror",
+ "tokio",
  "tracing",
 ]
 
