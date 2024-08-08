@@ -69,7 +69,7 @@ impl<T> Storage<T> {
         .unwrap()
     }
 
-    async fn update_nasl(url: Arc<String>, p: PathBuf) -> Result<(), Error> {
+    async fn update_nasl(url: Arc<String>, p: PathBuf, current_feed: String) -> Result<(), Error> {
         let nasl_feed_path = p;
         tokio::task::spawn_blocking(move || {
             tracing::debug!("starting nasl feed update");
@@ -79,8 +79,13 @@ impl<T> Storage<T> {
 
             let redis_cache: CacheDispatcher<RedisCtx> =
                 redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
+
             let store = PerItemDispatcher::new(redis_cache);
             let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
+            if !fu.feed_is_outdated(current_feed).unwrap() {
+                return Ok(());
+            }
+
             if let Some(x) = fu.find_map(|x| x.err()) {
                 Err(Error::from(x))
             } else {
@@ -181,7 +186,12 @@ where
         for h in &hash {
             match h.typus {
                 FeedType::NASL => {
-                    _ = updates.spawn(Self::update_nasl(self.url.clone(), h.path.clone()))
+                    let current_feed = self.current_feed_version().await?;
+                    _ = updates.spawn(Self::update_nasl(
+                        self.url.clone(),
+                        h.path.clone(),
+                        current_feed,
+                    ))
                 }
                 FeedType::Advisories => {
                     _ = updates.spawn(Self::update_advisories(self.url.clone(), h.path.clone()))
@@ -283,6 +293,21 @@ where
 
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.hash.read().await.to_vec()
+    }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        let url = self.url.to_string();
+        let cache_version = tokio::task::spawn_blocking(move || {
+            let mut cache = RedisCtx::open(&url, FEEDUPDATE_SELECTOR)?;
+            let version = cache.lindex("nvticache", 0)?;
+            if version.clone().is_empty() {
+                let _ = cache.delete_namespace();
+            }
+            Ok::<_, Error>(version)
+        })
+        .await
+        .unwrap()?;
+        Ok(cache_version)
     }
 }
 
