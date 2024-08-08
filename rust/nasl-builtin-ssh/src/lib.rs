@@ -2043,7 +2043,7 @@ impl Ssh {
     }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Ssh {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Ssh {
     fn nasl_fn_cache_clear(&self) -> Option<usize> {
         let mut data = Arc::as_ref(&self.sessions).lock().unwrap();
         if data.is_empty() {

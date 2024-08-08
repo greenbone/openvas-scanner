@@ -19,7 +19,7 @@ mod report_functions;
 /// script. This is handled within the `nasl_interpreter::Interpreter`.
 pub struct Std;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Std {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Std {
     fn nasl_fn_execute(
         &self,
         name: &str,

@@ -112,7 +112,10 @@ where
         let context = self
             .context_builder
             // TODO: use proper  target
-            .build(ContextKey::Scan(self.scan_id.clone(), None));
+            .build(
+                ContextKey::Scan(self.scan_id.clone(), None),
+                self.target.clone(),
+            );
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
         let interpreter =

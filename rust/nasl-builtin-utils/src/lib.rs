@@ -54,6 +54,55 @@ pub trait NaslFunctionExecuter: Send + Sync + 'static {
     }
 }
 
+#[async_trait]
+impl<T> NaslFunctionExecuter for T
+where
+    T: SyncNaslFunctionExecuter + Send + Sync + 'static,
+{
+    async fn nasl_fn_execute(
+        &self,
+        name: &str,
+        register: &Register,
+        context: &Context<'_>,
+    ) -> Option<NaslResult> {
+        <T as SyncNaslFunctionExecuter>::nasl_fn_execute(self, name, register, context)
+    }
+
+    fn nasl_fn_defined(&self, name: &str) -> bool {
+        <T as SyncNaslFunctionExecuter>::nasl_fn_defined(self, name)
+    }
+
+    fn nasl_fn_cache_clear(&self) -> Option<usize> {
+        <T as SyncNaslFunctionExecuter>::nasl_fn_cache_clear(self)
+    }
+}
+
+/// Sync version of the AsyncNaslFunctionExecutor, for migration
+pub trait SyncNaslFunctionExecuter: Send + Sync + 'static {
+    /// Executes function found by name if it registered.
+    ///
+    /// Usually it is called by the context and not directly from the interpreter. This way it is
+    /// ensured that it is using the correct context. To not have to have a context ready on
+    /// initialization the context is given via a parameter.
+    fn nasl_fn_execute(
+        &self,
+        name: &str,
+        register: &Register,
+        context: &Context<'_>,
+    ) -> Option<NaslResult>;
+
+    /// Returns true when the nasl function is defined otherwise false.
+    fn nasl_fn_defined(&self, name: &str) -> bool;
+
+    /// Clears the cache of the nasl function. It will be called on exit of the interpreter.
+    ///
+    /// This is useful for functions that cache values and need to be cleared on exit.
+    /// As an example ssh functions store open sessions.
+    fn nasl_fn_cache_clear(&self) -> Option<usize> {
+        None
+    }
+}
+
 /// Resolves positional arguments from the register.
 pub fn resolve_positional_arguments(register: &Register) -> Vec<nasl_syntax::NaslValue> {
     match register.named(lookup_keys::FC_ANON_ARGS).cloned() {

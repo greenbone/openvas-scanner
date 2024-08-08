@@ -449,7 +449,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
 /// The description builtin function
 pub struct NaslString;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for NaslString {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for NaslString {
     fn nasl_fn_execute(
         &self,
         name: &str,

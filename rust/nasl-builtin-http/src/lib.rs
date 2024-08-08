@@ -313,7 +313,7 @@ impl NaslHttp {
         // The error is:
         // Cannot start a runtime from within a runtime. This happens because a function (like `block_on`)
         // attempted to block the current thread while the thread is being used to drive asynchronous tasks.
-        
+
         let runtime = tokio::runtime::Handle::current();
 
         match runtime.block_on(self.request(&ip_str, port, uri, data, method, handle)) {
@@ -502,7 +502,7 @@ impl NaslHttp {
     }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for NaslHttp {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for NaslHttp {
     fn nasl_fn_cache_clear(&self) -> Option<usize> {
         let mut data = Arc::as_ref(&self.handles).lock().unwrap();
         if data.is_empty() {

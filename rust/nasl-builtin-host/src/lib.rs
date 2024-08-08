@@ -88,7 +88,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
 /// The description builtin function
 pub struct Host;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Host {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Host {
     fn nasl_fn_execute(
         &self,
         name: &str,

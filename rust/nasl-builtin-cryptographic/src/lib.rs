@@ -37,7 +37,7 @@ pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
 
 pub struct Cryptographic;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Cryptographic {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Cryptographic {
     fn nasl_fn_execute(
         &self,
         name: &str,
