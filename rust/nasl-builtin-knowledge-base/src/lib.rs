@@ -79,7 +79,7 @@ pub fn lookup(key: &str) -> Option<NaslFunction> {
 
 pub struct KnowledgeBase;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for KnowledgeBase {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for KnowledgeBase {
     fn nasl_fn_execute(
         &self,
         name: &str,

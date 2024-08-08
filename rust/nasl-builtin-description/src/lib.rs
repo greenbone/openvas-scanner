@@ -264,7 +264,7 @@ make_storage_function! {
 /// The description builtin function
 pub struct Description;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Description {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Description {
     fn nasl_fn_execute(
         &self,
         name: &str,

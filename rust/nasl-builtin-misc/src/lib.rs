@@ -341,7 +341,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
 /// The description builtin function
 pub struct Misc;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Misc {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Misc {
     fn nasl_fn_execute(
         &self,
         name: &str,

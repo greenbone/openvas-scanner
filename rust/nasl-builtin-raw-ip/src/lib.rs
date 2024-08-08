@@ -9,7 +9,7 @@ use nasl_builtin_utils::{Context, NaslVars, Register};
 
 pub struct RawIp;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for RawIp {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for RawIp {
     fn nasl_fn_execute(
         &self,
         name: &str,

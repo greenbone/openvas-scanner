@@ -108,7 +108,7 @@ impl Reporting {
     }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Reporting {
+impl nasl_builtin_utils::SyncNaslFunctionExecuter for Reporting {
     fn nasl_fn_execute(
         &self,
         name: &str,
