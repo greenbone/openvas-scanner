@@ -3,53 +3,20 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 #[cfg(test)]
 mod tests {
-    use nasl_builtin_utils::function::ToNaslResult;
-    use nasl_interpreter::*;
+    use nasl_interpreter::{
+        test_utils::{check_multiple, check_ok},
+        *,
+    };
     use FunctionErrorKind::*;
     use NaslValue::*;
-
-    fn check_line_of_code(code: &str, f: impl Fn(Result<NaslValue, InterpretError>)) {
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        f(parser.next().unwrap())
-    }
-
-    fn check_err(code: &str, f: impl Fn(FunctionErrorKind) -> bool) {
-        check_line_of_code(code, |val| {
-            let val = val.unwrap_err();
-            match val.kind {
-                InterpretErrorKind::FunctionCallError(err) => {
-                    assert!(f(err.kind));
-                }
-                _ => panic!("Function did not return expected error."),
-            }
-        });
-    }
-
-    fn check_ok(code: &str, expected: impl ToNaslResult) {
-        let expected = expected.to_nasl_result().unwrap();
-        check_line_of_code(code, |val| {
-            let val = val.unwrap();
-            assert_eq!(val, expected);
-        });
-    }
-
-    fn check_multiple(code: &str, expected: Vec<NaslValue>) {
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let parser = CodeInterpreter::new(code, register, &context);
-        for (val, expected) in parser.zip(expected.into_iter()) {
-            assert_eq!(val, Ok(expected));
-        }
-    }
 
     #[test]
     fn hexstr() {
         check_ok("hexstr('foo');", "666f6f");
-        check_ok("hexstr('foo', 'I will be ignored');", "666f6f");
+        check_err_matches!(
+            "hexstr('foo', 'I will be ignored');",
+            TrailingPositionalArguments { .. }
+        );
         check_ok("hexstr(6);", Null);
         check_ok("hexstr();", Null);
         check_ok("hexstr(raw_string(10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121));", "0ad066a5d29f3f2a2a1c7c17dd082a79");
@@ -112,9 +79,7 @@ mod tests {
         check_ok("chomp('abc\n');", "abc");
         check_ok("chomp('abc  ');", "abc");
         check_ok("chomp('abc\n\t\r ');", "abc");
-        check_err("chomp();", |err| {
-            matches!(err, MissingPositionalArguments { .. })
-        });
+        check_err_matches!("chomp();", MissingPositionalArguments { .. });
     }
 
     #[test]
@@ -156,10 +121,8 @@ mod tests {
         check_ok(r#"ord("b");"#, 98);
         check_ok(r#"ord("c");"#, 99);
         check_ok(r#"ord("");"#, Null);
-        check_err("ord(1);", |err| matches!(err, WrongArgument { .. }));
-        check_err("ord();", |err| {
-            matches!(err, MissingPositionalArguments { .. })
-        });
+        check_err_matches!("ord(1);", WrongArgument { .. });
+        check_err_matches!("ord();", MissingPositionalArguments { .. });
     }
 
     #[test]
@@ -177,12 +140,8 @@ mod tests {
         // g_pattern_spec allows globs to match slashes, make sure we do too
         check_ok(r#"match(string: "a///", pattern: "a*");"#, true);
         check_ok(r#"match(string: "///a", pattern: "*a");"#, true);
-        check_err(r#"match(string: "abcd");"#, |err| {
-            matches!(err, MissingArguments { .. })
-        });
-        check_err(r#"match(pattern: "ab");"#, |err| {
-            matches!(err, MissingArguments { .. })
-        });
+        check_err_matches!(r#"match(string: "abcd");"#, MissingArguments { .. });
+        check_err_matches!(r#"match(pattern: "ab");"#, MissingArguments { .. });
     }
 
     #[test]
@@ -193,18 +152,14 @@ mod tests {
         check_ok(r#"hex(256);"#, "0x00");
         check_ok(r#"hex(257);"#, "0x01");
         check_ok(r#"hex(-2);"#, "0xfe");
-        check_err(r#"hex();"#, |err| {
-            matches!(err, MissingPositionalArguments { .. })
-        });
+        check_err_matches!(r#"hex();"#, MissingPositionalArguments { .. });
     }
 
     #[test]
     fn insstr() {
         check_ok(r#"insstr("foo bar", "rab", 4);"#, "foo rab");
         check_ok(r#"insstr("foo bar", "rab", 4, 100);"#, "foo rab");
-        check_err(r#"insstr("foo bar", "rab", 4, 0);"#, |err| {
-            matches!(err, WrongArgument { .. })
-        });
+        check_err_matches!(r#"insstr("foo bar", "rab", 4, 0);"#, WrongArgument { .. });
     }
 
     #[test]
@@ -230,9 +185,7 @@ mod tests {
             r#"split("a;b;c", sep: ";");"#,
             vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
         );
-        check_err(r#"split();"#, |err| {
-            matches!(err, MissingPositionalArguments { .. })
-        });
+        check_err_matches!(r#"split();"#, MissingPositionalArguments { .. });
     }
 
     #[test]
@@ -241,12 +194,8 @@ mod tests {
             r#"replace(string: "abc", find: "b", replace: "foo");"#,
             "afooc",
         );
-        check_err(r#"replace();"#, |err| {
-            matches!(err, MissingArguments { .. })
-        });
-        check_err(r#"replace(string: "abc");"#, |err| {
-            matches!(err, MissingArguments { .. })
-        });
+        check_err_matches!(r#"replace();"#, MissingArguments { .. });
+        check_err_matches!(r#"replace(string: "abc");"#, MissingArguments { .. });
         check_ok(r#"replace(string: "abc", find: "b");"#, "ac");
         check_ok(r#"replace(string: "abcbd", find: "b", count: 1);"#, "acbd");
     }
@@ -255,11 +204,7 @@ mod tests {
     fn strstr() {
         check_ok(r#"strstr("abc", "b");"#, "bc");
         check_ok(r#"strstr("abcbd", "b");"#, "bcbd");
-        check_err(r#"strstr();"#, |err| {
-            matches!(err, MissingPositionalArguments { .. })
-        });
-        check_err(r#"strstr("a");"#, |err| {
-            matches!(err, MissingPositionalArguments { .. })
-        });
+        check_err_matches!(r#"strstr();"#, MissingPositionalArguments { .. });
+        check_err_matches!(r#"strstr("a");"#, MissingPositionalArguments { .. });
     }
 }

@@ -9,34 +9,30 @@
 
 use std::collections::HashMap;
 
-use nasl_builtin_utils::error::FunctionErrorKind;
-
-use nasl_builtin_utils::{Context, NaslFunction, Register};
+use nasl_builtin_utils::function::{CheckedPositionals, Positionals};
+use nasl_builtin_utils::NaslFunction;
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
-
-use nasl_builtin_utils::resolve_positional_arguments;
 
 /// NASL function to create a dictionary out of an even number of arguments
 ///
 /// Each uneven arguments out of positional arguments are used as keys while each even even argument is used a value.
 /// When there is an uneven number of elements the last key will be dropped, as there is no corresponding value.
 /// So `make_array(1, 0, 1)` will return the same response as `make_array(1, 0)`.
-fn make_array(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
+#[nasl_function]
+fn make_array(positionals: CheckedPositionals<NaslValue>) -> HashMap<String, NaslValue> {
     let mut values = HashMap::new();
-    for (idx, val) in positional.iter().enumerate() {
+    for (idx, val) in positionals.iter().enumerate() {
         if idx % 2 == 1 {
-            values.insert(positional[idx - 1].to_string(), val.clone());
+            values.insert(positionals[idx - 1].to_string(), val.clone());
         }
     }
-    Ok(values.into())
+    values
 }
 
-/// NASL function to create a list out of a number of unnamed arguments
-fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionErrorKind> {
-    let arr = resolve_positional_arguments(register);
+fn create_list(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {
     let mut values = Vec::<NaslValue>::new();
-    for val in arr.iter() {
+    for val in positionals.iter() {
         match val {
             NaslValue::Dict(x) => values.extend(x.values().cloned().collect::<Vec<NaslValue>>()),
             NaslValue::Array(x) => values.extend(x.clone()),
@@ -44,47 +40,43 @@ fn nasl_make_list(register: &Register) -> Result<Vec<NaslValue>, FunctionErrorKi
             x => values.push(x.clone()),
         }
     }
-    Ok(values)
+    values
 }
 /// NASL function to create a list out of a number of unnamed arguments
-fn make_list(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let values = nasl_make_list(register)?;
-    Ok(NaslValue::Array(values))
+#[nasl_function]
+fn make_list(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {
+    create_list(positionals)
 }
 
 /// NASL function to sorts the values of a dict/array. WARNING: drops the keys of a dict and returns an array.
-fn nasl_sort(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let mut values = nasl_make_list(register)?;
+#[nasl_function]
+fn nasl_sort(positionals: CheckedPositionals<NaslValue>) -> Vec<NaslValue> {
+    let mut values = create_list(positionals);
     values.sort();
-    Ok(NaslValue::Array(values))
+    values
 }
 
 /// Returns an array with the keys of a dict
-fn keys(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-    let mut keys = Vec::<NaslValue>::new();
-    for val in positional.iter() {
-        match val {
+#[nasl_function]
+fn keys(positionals: Positionals<NaslValue>) -> Option<Vec<NaslValue>> {
+    let mut keys = vec![];
+    for val in positionals.iter() {
+        match val.unwrap() {
             NaslValue::Dict(x) => keys.extend(x.keys().map(|a| NaslValue::from(a.to_string()))),
             NaslValue::Array(x) => keys.extend((0..(x.len() as i64)).map(NaslValue::from)),
-            _ => return Ok(NaslValue::Null),
+            _ => return None,
         }
     }
-
-    Ok(NaslValue::Array(keys))
+    Some(keys)
 }
 
 /// NASL function to return the length of an array|dict.
-fn max_index(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = register.positional();
-    if positional.is_empty() {
-        return Ok(NaslValue::Null);
-    };
-
-    match &positional[0] {
-        NaslValue::Dict(x) => Ok(NaslValue::Number(x.len() as i64)),
-        NaslValue::Array(x) => Ok(NaslValue::Number(x.len() as i64)),
-        _ => Ok(NaslValue::Null),
+#[nasl_function]
+fn max_index(arr: &NaslValue) -> Option<usize> {
+    match arr {
+        NaslValue::Dict(x) => Some(x.len()),
+        NaslValue::Array(x) => Some(x.len()),
+        _ => None,
     }
 }
 

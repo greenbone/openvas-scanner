@@ -7,7 +7,7 @@
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
-    function::{FromNaslValue, Maybe},
+    function::{CheckedPositionals, FromNaslValue, Maybe},
     Context, FunctionErrorKind, NaslFunction, Register,
 };
 use nasl_function_proc_macro::nasl_function;
@@ -127,7 +127,7 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
 fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, FunctionErrorKind> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
-        write_nasl_string_value(&mut s, &p)?;
+        write_nasl_string_value(&mut s, p)?;
     }
     Ok(s.into())
 }
