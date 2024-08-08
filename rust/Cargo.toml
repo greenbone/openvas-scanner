@@ -9,6 +9,7 @@ members = [
   "nasl-builtin-host",
   "nasl-builtin-string",
   "nasl-builtin-misc",
+  "nasl-builtin-network",
   "nasl-builtin-description",
   "nasl-builtin-utils",
   "nasl-builtin-std",
