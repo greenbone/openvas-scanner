@@ -148,7 +148,7 @@ pub fn get_pos_port(r: &Register) -> Result<u16, FunctionErrorKind> {
 }
 
 pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {
-    if port < 0 || port > 65535 {
+    if !(0..=65535).contains(&port) {
         return Err(FunctionErrorKind::WrongArgument(format!(
             "{} is not a valid port number",
             port
