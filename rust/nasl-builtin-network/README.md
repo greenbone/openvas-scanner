@@ -31,5 +31,4 @@
 - recv_line
 - scanner_get_port
 - start_denial
-- tcp_ping
 - telnet_init
