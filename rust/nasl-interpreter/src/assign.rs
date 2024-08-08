@@ -11,18 +11,6 @@ use nasl_builtin_utils::ContextType;
 use nasl_syntax::NaslValue;
 use nasl_syntax::StatementKind::*;
 
-/// Is a trait to handle function assignments within nasl.
-pub(crate) trait AssignExtension {
-    /// Assigns a right value to a left value and returns either previous or new value based on the order
-    fn assign(
-        &mut self,
-        category: &TokenCategory,
-        order: &AssignOrder,
-        left: &Statement,
-        right: &Statement,
-    ) -> InterpretResult;
-}
-
 fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
     let idx = i64::from(idx) as usize;
     let mut arr: Vec<NaslValue> = match left {
@@ -183,8 +171,8 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-impl<'a> AssignExtension for Interpreter<'a> {
-    fn assign(
+impl<'a> Interpreter<'a> {
+    pub async fn assign(
         &mut self,
         category: &TokenCategory,
         order: &AssignOrder,
@@ -196,13 +184,13 @@ impl<'a> AssignExtension for Interpreter<'a> {
                 Variable => (Self::identifier(left.as_token())?, None),
                 Array(Some(stmt)) => (
                     Self::identifier(left.as_token())?,
-                    Some(self.resolve(stmt)?),
+                    Some(self.resolve(stmt).await?),
                 ),
                 Array(None) => (Self::identifier(left.as_token())?, None),
                 _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };
-        let val = self.resolve(right)?;
+        let val = self.resolve(right).await?;
         match category {
             TokenCategory::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
             TokenCategory::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {

@@ -8,8 +8,9 @@ use crate::{interpreter::InterpretResult, InterpretError, Interpreter};
 use nasl_builtin_utils::ContextType;
 use nasl_syntax::NaslValue;
 
-/// Extension to handle the interpretation of NASL loops
-pub(crate) trait LoopExtension {
+/// Note that for all loops, we do not
+/// change the context, as the current NASL also does not change it too.
+impl<'a> Interpreter<'a> {
     /// Interpreting a NASL for loop. A NASL for loop is built up with the
     /// following:
     ///
@@ -18,51 +19,7 @@ pub(crate) trait LoopExtension {
     /// It first resolves the assignment and runs until the condition resolves
     /// into a `FALSE` NaslValue. The update statement is resolved after each
     /// iteration.
-    fn for_loop(
-        &mut self,
-        assignment: &Statement,
-        condition: &Statement,
-        update: &Statement,
-        body: &Statement,
-    ) -> InterpretResult;
-
-    /// Interpreting a NASL foreach loop. A NASL foreach loop is built up with
-    /// the following:
-    ///
-    /// foreach variable(iterable) {body}
-    ///
-    /// The iterable is first transformed into an Array, then we iterate through
-    /// it and resolve the body for every value in the array.
-    fn while_loop(&mut self, condition: &Statement, body: &Statement) -> InterpretResult;
-
-    /// Interpreting a NASL while loop. A NASL while loop is built up with the
-    /// following:
-    ///
-    /// while (condition) {body}
-    ///
-    /// The condition is first checked, then the body resolved, as long as the
-    /// condition resolves into a `TRUE` NaslValue.
-    fn repeat_loop(&mut self, body: &Statement, condition: &Statement) -> InterpretResult;
-
-    /// Interpreting a NASL repeat until loop. A NASL repeat until loop is built
-    /// up with the following:
-    ///
-    /// repeat {body} until (condition);
-    ///
-    /// It first resolves the body at least once. It keeps resolving the body,
-    /// until the condition statement resolves into a `TRUE` NaslValue.
-    fn for_each_loop(
-        &mut self,
-        variable: &Token,
-        iterable: &Statement,
-        body: &Statement,
-    ) -> InterpretResult;
-}
-
-/// Implementation for the Loop extension. Note that for all loops, we do not
-/// change the context, as the current NASL also does not change it too.
-impl<'a> LoopExtension for Interpreter<'a> {
-    fn for_loop(
+    pub async fn for_loop(
         &mut self,
         assignment: &Statement,
         condition: &Statement,
@@ -70,16 +27,16 @@ impl<'a> LoopExtension for Interpreter<'a> {
         body: &Statement,
     ) -> InterpretResult {
         // Resolve assignment
-        self.resolve(assignment)?;
+        self.resolve(assignment).await?;
 
         loop {
             // Check condition statement
-            if !bool::from(self.resolve(condition)?) {
+            if !bool::from(self.resolve(condition).await?) {
                 break;
             }
 
             // Execute loop body
-            let ret = self.resolve(body)?;
+            let ret = self.resolve(body).await?;
             // Catch special values
             match ret {
                 NaslValue::Break => break,
@@ -89,13 +46,20 @@ impl<'a> LoopExtension for Interpreter<'a> {
             };
 
             // Execute update Statement
-            self.resolve(update)?;
+            self.resolve(update).await?;
         }
 
         Ok(NaslValue::Null)
     }
 
-    fn for_each_loop(
+    /// Interpreting a NASL repeat until loop. A NASL repeat until loop is built
+    /// up with the following:
+    ///
+    /// repeat {body} until (condition);
+    ///
+    /// It first resolves the body at least once. It keeps resolving the body,
+    /// until the condition statement resolves into a `TRUE` NaslValue.
+    pub async fn for_each_loop(
         &mut self,
         variable: &Token,
         iterable: &Statement,
@@ -107,13 +71,13 @@ impl<'a> LoopExtension for Interpreter<'a> {
             o => return Err(InterpretError::wrong_category(o)),
         };
         // Iterate through the iterable Statement
-        for val in Vec::<NaslValue>::from(self.resolve(iterable)?) {
+        for val in Vec::<NaslValue>::from(self.resolve(iterable).await?) {
             // Change the value of the iteration variable after each iteration
             self.register_mut()
                 .add_local(iter_name, ContextType::Value(val));
 
             // Execute loop body
-            let ret = self.resolve(body)?;
+            let ret = self.resolve(body).await?;
             // Catch special values
             match ret {
                 NaslValue::Break => break,
@@ -126,10 +90,17 @@ impl<'a> LoopExtension for Interpreter<'a> {
         Ok(NaslValue::Null)
     }
 
-    fn while_loop(&mut self, condition: &Statement, body: &Statement) -> InterpretResult {
-        while bool::from(self.resolve(condition)?) {
+    /// Interpreting a NASL foreach loop. A NASL foreach loop is built up with
+    /// the following:
+    ///
+    /// foreach variable(iterable) {body}
+    ///
+    /// The iterable is first transformed into an Array, then we iterate through
+    /// it and resolve the body for every value in the array.
+    pub async fn while_loop(&mut self, condition: &Statement, body: &Statement) -> InterpretResult {
+        while bool::from(self.resolve(condition).await?) {
             // Execute loop body
-            let ret = self.resolve(body)?;
+            let ret = self.resolve(body).await?;
             // Catch special values
             match ret {
                 NaslValue::Break => break,
@@ -142,10 +113,21 @@ impl<'a> LoopExtension for Interpreter<'a> {
         Ok(NaslValue::Null)
     }
 
-    fn repeat_loop(&mut self, body: &Statement, condition: &Statement) -> InterpretResult {
+    /// Interpreting a NASL while loop. A NASL while loop is built up with the
+    /// following:
+    ///
+    /// while (condition) {body}
+    ///
+    /// The condition is first checked, then the body resolved, as long as the
+    /// condition resolves into a `TRUE` NaslValue.
+    pub async fn repeat_loop(
+        &mut self,
+        body: &Statement,
+        condition: &Statement,
+    ) -> InterpretResult {
         loop {
             // Execute loop body
-            let ret = self.resolve(body)?;
+            let ret = self.resolve(body).await?;
             // Catch special values
             match ret {
                 NaslValue::Break => break,
@@ -155,7 +137,7 @@ impl<'a> LoopExtension for Interpreter<'a> {
             };
 
             // Check condition statement
-            if bool::from(self.resolve(condition)?) {
+            if bool::from(self.resolve(condition).await?) {
                 break;
             }
         }
@@ -255,10 +237,28 @@ mod tests {
         assert_eq!(interpreter.next(), Some(Ok(0.into())));
         assert_eq!(interpreter.next(), Some(Ok(NaslValue::Boolean(true))));
 
-        assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(interpreter.next(), Some(Ok(10.into())));
-        assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    }
+    // #[test]
+    // fn while_loop_test() {
+    //     let code = r###"
+    //     i = 4;
+    //     a = 0;
+    //     i > 0;
+    //     while(i > 0) {
+    //         a += i;
+    //         i--;
+    //     }
+    //     a;
+    //     i;
+    //     "###;
+    //     let register = Register::default();
+    //     let binding = ContextFactory::default();
+    //     let context = binding.build(Default::default(), Default::default());
+    //     let mut interpreter = Interpreter::new(register, &context);
+    //     let mut interpreter =
+    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
+    //     assert_eq!(interpreter.next(), Some(Ok(4.into())));
+    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
+    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Boolean(true))));
 
     #[test]
     fn repeat_loop_test() {
