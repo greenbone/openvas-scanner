@@ -29,7 +29,7 @@ impl Status {
     }
 
     pub fn is_done(&self) -> bool {
-        !self.is_running()
+        !self.is_running() && self.status != Phase::Stored
     }
 }
 

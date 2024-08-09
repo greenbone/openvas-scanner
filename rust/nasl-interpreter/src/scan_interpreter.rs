@@ -516,7 +516,7 @@ impl<'a, S: ScannerStack> SyncScanInterpreter<'a, S> {
             scan,
             self.storage,
             self.loader,
-            &self.function_executor,
+            self.function_executor,
             schedule,
         ))
     }

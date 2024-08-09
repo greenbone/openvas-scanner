@@ -170,6 +170,7 @@ where
                 running.swap_remove(idx);
             }
         }
+
         self.db.remove_scan(id).await?;
         // TODO change from I to &str so that we don't have to clone everywhere
         self.db.remove_scan_id(id.to_string()).await?;
@@ -544,6 +545,8 @@ where
             };
         }
         drop(running);
+
+        tracing::trace!("appending results");
         self.db.append_fetched_result(results).await
     }
 }

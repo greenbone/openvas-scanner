@@ -41,7 +41,7 @@ fn current_time_in_seconds(name: &'static str) -> u64 {
 }
 
 impl<S: ScannerStack> RunningScan<S> {
-    fn set_status_to_running(&self) -> () {
+    fn set_status_to_running(&self) {
         let mut status = self.status.write().unwrap();
         status.status = models::Phase::Running;
         status.start_time = current_time_in_seconds("start_time").into();

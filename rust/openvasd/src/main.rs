@@ -13,7 +13,7 @@ use nasl_interpreter::{FSPluginLoader, WithStorageScannerStack};
 use notus::NotusWrapper;
 use openvas::cmd;
 use storage::{FromConfigAndFeeds, Storage};
-use tracing::{debug, info, metadata::LevelFilter, warn};
+use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
 
 use crate::{
@@ -38,7 +38,6 @@ fn setup_log(config: &Config) {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
-    debug!("config: {:?}", config);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
@@ -110,6 +109,7 @@ where
         }
         Err(e) => warn!("Notus Scanner disabled: {e}"),
     }
+    tracing::warn!(enabe_get_scans=config.endpoints.enable_get_scans);
 
     ctx_builder
         .mode(config.mode.clone())
@@ -182,6 +182,7 @@ async fn run(config: &Config) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
+    tracing::debug!(key=config.storage.fs.key);
     setup_log(&config);
     run(&config).await
 }

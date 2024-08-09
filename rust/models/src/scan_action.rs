@@ -35,3 +35,9 @@ impl Display for Action {
         }
     }
 }
+
+impl From<Action> for ScanAction {
+    fn from(value: Action) -> Self {
+        Self { action: value }
+    }
+}

@@ -547,7 +547,7 @@ where
         key: &storage::ContextKey,
         result_id: Option<usize>,
     ) -> Result<Option<Vec<models::Result>>, storage::StorageError> {
-        todo!()
+        self.underlying_storage().remove_result(key, result_id)
     }
 }
 

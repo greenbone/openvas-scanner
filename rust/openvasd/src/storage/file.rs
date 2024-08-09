@@ -188,10 +188,15 @@ where
         for r in results {
             let id = &r.id;
             let status = r.status;
-            let key = format!("results_{}", id);
             self.update_status(id, status).await?;
+            if r.results.is_empty() {
+                continue;
+            }
 
+            let key = format!("results_{}", id);
             let storage = Arc::clone(&self.storage);
+            tracing::trace!(key, results_len = r.results.len());
+
             tokio::task::spawn_blocking(move || {
                 let storage = &mut storage.write().unwrap();
                 let results = r.results;
@@ -253,8 +258,11 @@ where
         tokio::task::spawn_blocking(move || {
             // we ignore results errors as there may or may not be results
             let mut storage = storage.write().unwrap();
+            tracing::debug!(results_key, "removing results");
             let _ = storage.remove(&results_key);
+            tracing::debug!(key, "removing scan");
             storage.remove(&key)?;
+            tracing::debug!(status_key, "removing status");
             storage.remove(&status_key)?;
             storage.remove("scans")?;
             storage.append_all("scans", &ids)?;
@@ -340,11 +348,9 @@ where
             use infisto::serde::Serialization;
             let storage = storage.read().unwrap();
 
-            let ids: Vec<Serialization<(ClientHash, String)>> =
-                match storage.by_range(key, infisto::base::Range::All) {
-                    Ok(x) => x,
-                    Err(_) => vec![],
-                };
+            let ids: Vec<Serialization<(ClientHash, String)>> = storage
+                .by_range(key, infisto::base::Range::All)
+                .unwrap_or_default();
             let new: Vec<String> = ids
                 .into_iter()
                 .map(|x| x.deserialize())
@@ -419,6 +425,7 @@ where
     where
         E: From<storage::StorageError>,
     {
+        tracing::trace!(?key, ?result);
         let store = &mut self.storage.write().unwrap();
         let key = format!("results_{}", key.value());
 
@@ -477,11 +484,7 @@ pub(crate) mod tests {
 
     use super::*;
 
-    /// Creates a Storage with a cached file storer based on the feed found `rust/examples/feed/`.
-    pub async fn example_feed_file_storage(
-        target: &str,
-    ) -> Storage<infisto::base::CachedIndexFileStorer> {
-        let storage = infisto::base::CachedIndexFileStorer::init(target).unwrap();
+    pub async fn nasl_root() -> PathBuf {
         let base = std::env::current_dir().unwrap_or_default();
 
         let mut tbase = base.parent().unwrap().join("examples");
@@ -489,16 +492,29 @@ pub(crate) mod tests {
             tbase = base.join("examples");
         }
         let base_dir = tbase.join("feed");
-
-        let nfp = base_dir.join("nasl");
-        let nofp = base_dir.join("notus").join("advisories");
-        tracing::debug!(nasl_feed=?nfp, notus_advisories_feed=?nofp);
-        crate::storage::file::Storage::new(
-            storage,
-            vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)],
-        )
+        
+        base_dir.join("nasl")
     }
 
+    pub async fn example_feeds() -> Vec<FeedHash> {
+        let nfp = nasl_root().await;
+        let nofp = nfp.parent().unwrap().join("notus").join("advisories");
+        tracing::debug!(nasl_feed=?nfp, notus_advisories_feed=?nofp);
+        vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)]
+    }
+
+    /// Creates a Storage with a cached file storer based on the feed found `rust/examples/feed/`.
+    pub async fn example_feed_file_storage(
+        target: &str,
+    ) -> Storage<infisto::base::CachedIndexFileStorer> {
+        let storage = infisto::base::CachedIndexFileStorer::init(target).unwrap();
+        let result = crate::storage::file::Storage::new(storage, example_feeds().await);
+        result
+            .synchronize_feeds(example_feeds().await)
+            .await
+            .unwrap();
+        result
+    }
 
     #[tokio::test]
     async fn credentials() {

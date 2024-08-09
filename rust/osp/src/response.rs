@@ -399,10 +399,7 @@ impl From<&ScanResult> for models::Result {
         };
         let detail = match r_type {
             models::ResultType::HostDetail => match urlencoding::decode(&result.description) {
-                Ok(decoded) => match quick_xml::de::from_str::<HostDetail>(&decoded) {
-                    Ok(details) => details,
-                    Err(_) => Default::default(),
-                },
+                Ok(decoded) => quick_xml::de::from_str::<HostDetail>(&decoded).unwrap_or_default(),
                 Err(_) => Default::default(),
             },
             _ => Default::default(),

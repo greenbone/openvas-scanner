@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Error, IoErrorKind};
 
 fn open_file<P: AsRef<Path>>(path: P, opts: &mut OpenOptions) -> Result<File, Error> {
+    tracing::trace!(path= ?path.as_ref(), "opening");
     opts.open(path.as_ref())
         .map_err(|e| Error::IoError(IoErrorKind::FileOpen, e.kind()))
 }
@@ -78,6 +79,7 @@ pub trait IndexedByteStorage {
     fn by_range<T>(&self, key: &str, range: Range) -> Result<Vec<T>, Error>
     where
         T: TryFrom<Vec<u8>>,
+        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     {
         let indices = self.indices(key)?;
         let filtered_indices = range.filter(&indices);
@@ -87,6 +89,7 @@ pub trait IndexedByteStorage {
     fn by_index<T>(&self, key: &str, index: &Index) -> Result<Option<T>, Error>
     where
         T: TryFrom<Vec<u8>>,
+        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     {
         let data = self.by_indices(key, &[index.clone()])?;
         Ok(data.into_iter().next())
@@ -95,7 +98,8 @@ pub trait IndexedByteStorage {
     /// Returns the data for given key and all indices.
     fn by_indices<T>(&self, key: &str, indices: &[Index]) -> Result<Vec<T>, Error>
     where
-        T: TryFrom<Vec<u8>>;
+        T: TryFrom<Vec<u8>>,
+        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug;
 
     /// Returns all the indices of the data for the given key.
     fn indices(&self, key: &str) -> Result<Vec<Index>, Error>;
@@ -144,7 +148,11 @@ impl IndexedFileStorer {
 
     fn store_index(&self, index: &[Index], id: &str) -> Result<(), Error> {
         let fn_name = format!("{}.idx", id);
-        let to_store = rmp_serde::to_vec(index).map_err(|_e| Error::Serialize)?;
+        //let to_store = serde_json::to_vec(index).map_err(|_e| Error::Serialize)?;
+        let to_store = serde_json::to_vec(index).map_err(|x| {
+            tracing::warn!(error=%x, "unable to serialize index for storage");
+            Error::Serialize
+        })?;
 
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(
@@ -177,13 +185,21 @@ impl IndexedFileStorer {
     /// The caller should rather cache the index.
     pub fn load_index(&self, key: &str) -> Result<Vec<Index>, Error> {
         let fn_name = format!("{}.idx", key);
-        let path = Path::new(&self.base).join(fn_name);
+        let path = Path::new(&self.base).join(&fn_name);
         let mut file = open_file(path, std::fs::OpenOptions::new().read(true))?;
         let mut buffer = vec![];
         file.read_to_end(&mut buffer)
             .map_err(|e| Error::IoError(IoErrorKind::Read, e.kind()))?;
 
-        let index = rmp_serde::from_slice(&buffer).map_err(|_e| Error::Serialize)?;
+        // let index = serde_json::from_slice(&buffer).map_err(|e| {
+        //     tracing::warn!(fn_name, error=%e);
+        //
+        //     Error::Serialize
+        // })?;
+        let index = serde_json::from_slice(&buffer).map_err(|e| {
+            tracing::warn!(key, error=%e, "unable to deserialize index");
+            Error::Serialize
+        })?;
         Ok(index)
     }
 
@@ -206,6 +222,7 @@ impl IndexedFileStorer {
         T: AsRef<[u8]>,
     {
         let fn_name = format!("{}.dat", key);
+        tracing::trace!(key, idx_len = index.len());
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(path, std::fs::OpenOptions::new().append(true))?;
         let mut index = index.to_vec();
@@ -475,6 +492,7 @@ impl IndexedByteStorage for CachedIndexFileStorer {
     fn by_indices<T>(&self, key: &str, indices: &[Index]) -> Result<Vec<T>, Error>
     where
         T: TryFrom<Vec<u8>>,
+        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     {
         self.base.by_indices(key, indices)
     }
@@ -531,6 +549,7 @@ impl<S, T> Iterator for IndexedByteStorageIterator<S, T>
 where
     S: IndexedByteStorage,
     T: TryFrom<Vec<u8>>,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
     type Item = Result<T, Error>;
 
@@ -572,6 +591,19 @@ mod iter {
         let mut iter: IndexedByteStorageIterator<_, Vec<u8>> =
             IndexedByteStorageIterator::new(key, store.clone()).unwrap();
         assert_eq!(iter.next(), Some(Ok("Hello World".as_bytes().to_vec())));
+        assert_eq!(iter.next(), None);
+        store.remove(key).unwrap();
+    }
+
+    #[test]
+    fn r#override() {
+        let key = "indexed_override";
+        let mut store = IndexedFileStorer::init(BASE).unwrap();
+        store.put(key, "Hello World".as_bytes()).unwrap();
+        store.put(key, "Hello ".as_bytes()).unwrap();
+        let mut iter: IndexedByteStorageIterator<_, Vec<u8>> =
+            IndexedByteStorageIterator::new(key, store.clone()).unwrap();
+        assert_eq!(iter.next(), Some(Ok("Hello ".as_bytes().to_vec())));
         assert_eq!(iter.next(), None);
         store.remove(key).unwrap();
     }
