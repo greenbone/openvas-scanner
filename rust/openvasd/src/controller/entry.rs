@@ -185,10 +185,6 @@ where
         let cid = self.cid.clone();
         Box::pin(async move {
             use KnownPaths::*;
-            // on head requests we just return an empty response without checking the api key
-            if req.method() == Method::HEAD {
-                return Ok(ctx.response.empty(hyper::StatusCode::OK));
-            }
             let kp = KnownPaths::from_path(req.uri().path(), &ctx.mode);
             let cid: Option<ClientHash> = {
                 match &*cid {
@@ -255,6 +251,10 @@ where
                 "process call",
             );
             match (req.method(), kp) {
+                (&Method::HEAD, Scans(None)) => {
+                    Ok(ctx.response.empty(hyper::StatusCode::NO_CONTENT))
+                }
+                (&Method::HEAD, _) => Ok(ctx.response.empty(hyper::StatusCode::NOT_FOUND)),
                 (&Method::GET, Health(HealthOpts::Alive))
                 | (&Method::GET, Health(HealthOpts::Started)) => {
                     Ok(ctx.response.empty(hyper::StatusCode::OK))
