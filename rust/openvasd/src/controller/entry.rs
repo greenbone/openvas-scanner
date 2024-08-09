@@ -22,6 +22,7 @@ use crate::{
 };
 use models::scanner::*;
 
+#[derive(PartialEq, Eq)]
 enum HealthOpts {
     /// Ready
     Ready,
@@ -31,6 +32,7 @@ enum HealthOpts {
     Alive,
 }
 /// The supported paths of openvasd
+#[derive(PartialEq, Eq)]
 enum KnownPaths {
     /// /scans/{id}
     Scans(Option<String>),
@@ -185,11 +187,11 @@ where
         let cid = self.cid.clone();
         Box::pin(async move {
             use KnownPaths::*;
-            // on head requests we just return an empty response without checking the api key
-            if req.method() == Method::HEAD {
+            let kp = KnownPaths::from_path(req.uri().path(), &ctx.mode);
+            // on head requests we just return an empty response, except for /scans
+            if req.method() == Method::HEAD && kp != KnownPaths::Scans(None) {
                 return Ok(ctx.response.empty(hyper::StatusCode::OK));
             }
-            let kp = KnownPaths::from_path(req.uri().path(), &ctx.mode);
             let cid: Option<ClientHash> = {
                 match &*cid {
                     ClientIdentifier::Disabled => {
@@ -255,6 +257,9 @@ where
                 "process call",
             );
             match (req.method(), kp) {
+                (&Method::HEAD, Scans(None)) => {
+                    Ok(ctx.response.empty(hyper::StatusCode::NO_CONTENT))
+                }
                 (&Method::GET, Health(HealthOpts::Alive))
                 | (&Method::GET, Health(HealthOpts::Started)) => {
                     Ok(ctx.response.empty(hyper::StatusCode::OK))
