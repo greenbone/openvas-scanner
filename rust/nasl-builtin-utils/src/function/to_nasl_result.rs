@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use nasl_syntax::NaslValue;
 
 use crate::{FunctionErrorKind, NaslResult};
@@ -77,6 +79,22 @@ impl ToNaslResult for Vec<String> {
             self.into_iter()
                 .map(|s| s.to_nasl_result())
                 .collect::<Result<Vec<_>, FunctionErrorKind>>()?,
+        ))
+    }
+}
+
+impl ToNaslResult for Vec<NaslValue> {
+    fn to_nasl_result(self) -> NaslResult {
+        Ok(NaslValue::Array(self))
+    }
+}
+
+impl<T: ToNaslResult> ToNaslResult for HashMap<String, T> {
+    fn to_nasl_result(self) -> NaslResult {
+        Ok(NaslValue::Dict(
+            self.into_iter()
+                .map(|(key, s)| s.to_nasl_result().map(|res| (key, res)))
+                .collect::<Result<HashMap<_, _>, FunctionErrorKind>>()?,
         ))
     }
 }

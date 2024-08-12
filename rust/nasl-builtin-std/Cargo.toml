@@ -14,6 +14,7 @@ nasl-builtin-host = {path = "../nasl-builtin-host"}
 nasl-builtin-http = { version = "0.1.0", path = "../nasl-builtin-http" }
 nasl-builtin-description = {path = "../nasl-builtin-description"}
 nasl-builtin-misc = {path = "../nasl-builtin-misc"}
+nasl-function-proc-macro = {path = "../nasl-function-proc-macro"}
 storage = {path = "../storage"}
 models = { path = "../models" }
 nasl-syntax = {path = "../nasl-syntax"}

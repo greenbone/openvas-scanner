@@ -79,7 +79,7 @@ impl Display for CliError {
             self.filename,
             self.kind
                 .as_token()
-                .map(|x| { format!(", line: {}, col: {}", x.position.0, x.position.1) })
+                .map(|x| { format!(", line: {}, col: {}", x.line_column.0, x.line_column.1) })
                 .unwrap_or_default(),
             self.kind
         )

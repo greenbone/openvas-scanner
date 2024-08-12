@@ -367,6 +367,12 @@ where
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.hash.read().unwrap().to_vec()
     }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        todo!()
+        // let v = self.feed_version.read().await.clone();
+        // Ok(v)
+    }
 }
 
 impl<C> super::ResultHandler for Storage<C>

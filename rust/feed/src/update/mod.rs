@@ -108,6 +108,17 @@ where
         feed_version(self.loader, self.dispatcher).await
     }
 
+    /// Check if the current feed is outdated.
+    pub async fn feed_is_outdated(&self, current_version: String) -> Result<bool, ErrorKind> {
+        // the version in file
+        let v = self.feed_version().await?;
+        if !current_version.is_empty() {
+            return Ok(v.as_str() != current_version.as_str());
+        };
+
+        Ok(true)
+    }
+
     /// plugin_feed_info must be handled differently.
     ///
     /// Usually a plugin_feed_info.inc is setup as a listing of keys.

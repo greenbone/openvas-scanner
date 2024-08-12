@@ -82,6 +82,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         result
     }
 
+    /// TODO Doc
     pub async fn next_statement(&mut self) -> Option<InterpretResult> {
         self.statement = None;
         match self.lexer.next() {
@@ -109,24 +110,24 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         }
     }
 
-    /// Returns the Register of the underlying Interpreter
-    pub fn register(&self) -> &crate::Register {
-        self.interpreter.register()
-    }
-
     /// TODO Doc
     pub fn stream(self) -> impl Stream<Item = InterpretResult> + 'b
     where
         'a: 'b,
     {
         stream::unfold(self, |mut s| async move {
-            let x = s.next_statement().await;
+            let x = s.next_().await;
             if let Some(x) = x {
                 Some((x, s))
             } else {
                 None
             }
         })
+    }
+
+    /// Returns the Register of the underlying Interpreter
+    pub fn register(&self) -> &crate::Register {
+        self.interpreter.register()
     }
 }
 

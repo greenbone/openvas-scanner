@@ -15,12 +15,13 @@ use std::{
 use chrono::{
     self, DateTime, Datelike, FixedOffset, Local, LocalResult, Offset, TimeZone, Timelike, Utc,
 };
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
-use nasl_builtin_utils::{error::FunctionErrorKind, resolve_positional_arguments, NaslFunction};
+use nasl_builtin_utils::{error::FunctionErrorKind, function::Maybe, NaslFunction};
 use nasl_builtin_utils::{Context, ContextType, Register};
 
 #[inline]
@@ -35,188 +36,121 @@ pub fn random_impl() -> Result<i64, FunctionErrorKind> {
 }
 
 /// NASL function to get random number
-fn rand(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    random_impl().map(NaslValue::Number)
+#[nasl_function]
+fn rand() -> Result<i64, FunctionErrorKind> {
+    random_impl()
 }
 
 /// NASL function to get host byte order
-fn get_byte_order(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    Ok(NaslValue::Boolean(cfg!(target_endian = "little")))
+#[nasl_function]
+fn get_byte_order() -> bool {
+    cfg!(target_endian = "little")
 }
 
 /// NASL function to convert given number to string
-fn dec2str(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    match register.named("num") {
-        Some(ContextType::Value(NaslValue::Number(x))) => Ok(NaslValue::String(x.to_string())),
-        x => Err(("0", "numeric", x).into()),
-    }
+#[nasl_function(named(num))]
+fn dec2str(num: i64) -> String {
+    num.to_string()
 }
 
 /// takes an integer and sleeps the amount of seconds
-fn sleep(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = register.positional();
-    match positional[0] {
-        NaslValue::Number(x) => {
-            thread::sleep(Duration::new(x as u64, 0));
-            Ok(NaslValue::Null)
-        }
-        _ => Ok(NaslValue::Null),
-    }
+#[nasl_function]
+fn sleep(secs: u64) {
+    thread::sleep(Duration::from_secs(secs))
 }
 
 /// takes an integer and sleeps the amount of microseconds
-fn usleep(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = register.positional();
-    match positional[0] {
-        NaslValue::Number(x) => {
-            thread::sleep(Duration::new(0, (1000 * x) as u32));
-            Ok(NaslValue::Null)
-        }
-        _ => Ok(NaslValue::Null),
-    }
+#[nasl_function]
+fn usleep(micros: u64) {
+    thread::sleep(Duration::from_micros(micros))
 }
 
 /// Returns the type of given unnamed argument.
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
-fn nasl_typeof(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = register.positional();
-    if positional.is_empty() {
-        return Ok(NaslValue::Null);
-    }
-    match positional[0] {
-        NaslValue::Null => Ok(NaslValue::String("undef".to_string())),
-        NaslValue::String(_) => Ok(NaslValue::String("string".to_string())),
-        NaslValue::Array(_) => Ok(NaslValue::String("array".to_string())),
-        NaslValue::Dict(_) => Ok(NaslValue::String("array".to_string())),
-        NaslValue::Boolean(_) => Ok(NaslValue::String("int".to_string())),
-        NaslValue::Number(_) => Ok(NaslValue::String("int".to_string())),
-        NaslValue::Data(_) => Ok(NaslValue::String("data".to_string())),
-        _ => Ok(NaslValue::String("unknown".to_string())),
+#[nasl_function]
+fn nasl_typeof(val: NaslValue) -> &str {
+    match val {
+        NaslValue::Null => "undef",
+        NaslValue::String(_) => "string",
+        NaslValue::Array(_) => "array",
+        NaslValue::Dict(_) => "array",
+        NaslValue::Boolean(_) => "int",
+        NaslValue::Number(_) => "int",
+        NaslValue::Data(_) => "data",
+        _ => "unknown",
     }
 }
 
 /// Returns true when the given unnamed argument is null.
-fn isnull(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = register.positional();
-    if positional.is_empty() {
-        return Err(FunctionErrorKind::MissingPositionalArguments {
-            expected: 1,
-            got: positional.len(),
-        });
-    }
-    match positional[0] {
-        NaslValue::Null => Ok(NaslValue::Boolean(true)),
-        _ => Ok(NaslValue::Boolean(false)),
-    }
+#[nasl_function]
+fn isnull(val: NaslValue) -> bool {
+    matches!(val, NaslValue::Null)
 }
 
 /// Returns the seconds counted from 1st January 1970 as an integer.
-fn unixtime(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    match std::time::SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(t) => Ok(NaslValue::Number(t.as_secs() as i64)),
-        Err(_) => Err(FunctionErrorKind::wrong_unnamed_argument("0", "numeric")),
-    }
+#[nasl_function]
+fn unixtime() -> Result<u64, FunctionErrorKind> {
+    std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|t| t.as_secs())
+        .map_err(|_| {
+            FunctionErrorKind::Dirty("System time set to time before 1st January 1960".into())
+        })
 }
 
 /// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
-fn gzip(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let data = match register.named("data") {
-        Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
-        Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(FunctionErrorKind::missing_argument("data")),
-    };
-    let headformat = match register.named("headformat") {
-        Some(ContextType::Value(NaslValue::String(x))) => x,
-        _ => "noheaderformat",
-    };
-
-    match headformat.to_string().eq_ignore_ascii_case("gzip") {
-        true => {
-            let mut e = GzEncoder::new(Vec::new(), Compression::default());
-            match e.write_all(&data) {
-                Ok(_) => match e.finish() {
-                    Ok(compress) => Ok(NaslValue::Data(compress)),
-                    Err(_) => Ok(NaslValue::Null),
-                },
-                Err(_) => Ok(NaslValue::Null),
-            }
-        }
-        false => {
-            let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
-            match e.write_all(&data) {
-                Ok(_) => match e.finish() {
-                    Ok(compress) => Ok(NaslValue::Data(compress)),
-                    Err(_) => Ok(NaslValue::Null),
-                },
-                Err(_) => Ok(NaslValue::Null),
-            }
-        }
+#[nasl_function(named(data, headformat))]
+fn gzip(data: NaslValue, headformat: Option<&str>) -> Option<Vec<u8>> {
+    let data = Vec::<u8>::from(data);
+    let headformat = headformat.unwrap_or("noheaderformat");
+    if headformat.eq_ignore_ascii_case("gzip") {
+        let mut e = GzEncoder::new(Vec::new(), Compression::default());
+        e.write_all(&data).and_then(|_| e.finish()).ok()
+    } else {
+        let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+        e.write_all(&data).and_then(|_| e.finish()).ok()
     }
 }
 
 /// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
-fn gunzip(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let data = match register.named("data") {
-        Some(ContextType::Value(NaslValue::Null)) => return Ok(NaslValue::Null),
-        Some(ContextType::Value(x)) => Vec::<u8>::from(x),
-        _ => return Err(FunctionErrorKind::missing_argument("data")),
-    };
-
+#[nasl_function(named(data))]
+fn gunzip(data: NaslValue) -> Option<String> {
+    let data = Vec::<u8>::from(data);
     let mut uncompress = ZlibDecoder::new(&data[..]);
     let mut uncompressed = String::new();
     match uncompress.read_to_string(&mut uncompressed) {
-        Ok(_) => Ok(NaslValue::String(uncompressed)),
+        Ok(_) => Some(uncompressed),
         Err(_) => {
             let mut uncompress = GzDecoder::new(&data[..]);
             let mut uncompressed = String::new();
             if uncompress.read_to_string(&mut uncompressed).is_ok() {
-                Ok(NaslValue::String(uncompressed))
+                Some(uncompressed)
             } else {
-                Ok(NaslValue::Null)
+                None
             }
         }
     }
 }
-/// Takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
-fn mktime(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let sec = match register.named("sec") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
-        _ => 0,
-    };
-    let min = match register.named("min") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
-        _ => 0,
-    };
-    let hour = match register.named("hour") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
-        _ => 0,
-    };
-    let mday = match register.named("mday") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
-        _ => 0,
-    };
-    let mon = match register.named("mon") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as u32,
-        _ => 1,
-    };
-    let year = match register.named("year") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-        _ => 0,
-    };
 
+/// Takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
+#[nasl_function(named(sec, min, hour, mday, mon, year, isdst))]
+fn mktime(
+    sec: u32,
+    min: u32,
+    hour: u32,
+    mday: u32,
+    mon: u32,
+    year: i32,
+    isdst: Option<i32>,
+) -> Option<i64> {
     // TODO: fix isdst
-    let _isdst = match register.named("isdst") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-        _ => -1,
-    };
+    let _isdst = isdst.unwrap_or(-1);
 
     let offset = chrono::Local::now().offset().fix().local_minus_utc();
     let r_dt = Utc.with_ymd_and_hms(year, mon, mday, hour, min, sec);
     match r_dt {
-        LocalResult::Single(x) => Ok(NaslValue::Number(
-            x.naive_local().and_utc().timestamp() - offset as i64,
-        )),
-        _ => Ok(NaslValue::Null),
+        LocalResult::Single(x) => Some(x.naive_local().and_utc().timestamp() - offset as i64),
+        _ => None,
     }
 }
 
@@ -242,26 +176,23 @@ where
 }
 
 /// Returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
-fn localtime(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let utc_flag = match register.named("utc") {
-        Some(ContextType::Value(NaslValue::Number(x))) => *x != 0,
-        Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
+#[nasl_function(named(utc))]
+fn localtime(secs: Option<i64>, utc: Option<NaslValue>) -> HashMap<String, NaslValue> {
+    let utc_flag = match utc {
+        Some(NaslValue::Number(x)) => x != 0,
+        Some(NaslValue::Boolean(x)) => x,
         _ => false,
     };
 
-    let secs = match register.positional() {
-        [] => 0,
-        [x0, ..] => i64::from(x0),
-    };
-    let date = match (utc_flag, secs) {
-        (true, 0) => create_localtime_map(Utc::now()),
-        (true, secs) => match Utc.timestamp_opt(secs, 0) {
+    match (utc_flag, secs) {
+        (true, None) => create_localtime_map(Utc::now()),
+        (false, None) => create_localtime_map(Local::now()),
+        (true, Some(secs)) => match Utc.timestamp_opt(secs, 0) {
             LocalResult::Single(x) => create_localtime_map(x),
             _ => create_localtime_map(Utc::now()),
         },
-        (false, 0) => create_localtime_map(Local::now()),
 
-        (false, secs) => match DateTime::from_timestamp(secs, 0) {
+        (false, Some(secs)) => match DateTime::from_timestamp(secs, 0) {
             Some(dt) => {
                 let offset = chrono::Local::now().offset().fix();
                 let dt: DateTime<FixedOffset> = (dt + offset).into();
@@ -269,9 +200,7 @@ fn localtime(register: &Register, _: &Context) -> Result<NaslValue, FunctionErro
             }
             _ => create_localtime_map(Local::now()),
         },
-    };
-
-    Ok(NaslValue::Dict(date))
+    }
 }
 
 /// NASL function to determine if a function is defined.
@@ -279,31 +208,27 @@ fn localtime(register: &Register, _: &Context) -> Result<NaslValue, FunctionErro
 /// Uses the first positional argument to verify if a function is defined.
 /// This argument must be a string everything else will return False per default.
 /// Returns NaslValue::Boolean(true) when defined NaslValue::Boolean(false) otherwise.
-fn defined_func(register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let positional = resolve_positional_arguments(register);
-
-    Ok(match positional.first() {
-        Some(NaslValue::String(x)) => match register.named(x) {
-            Some(ContextType::Function(_, _)) => true.into(),
-            _ => ctx.nasl_fn_defined(x).into(),
-        },
-        _ => false.into(),
-    })
+#[nasl_function]
+fn defined_func(fn_name: Option<Maybe<&str>>, ctx: &Context, register: &Register) -> bool {
+    fn_name
+        .and_then(Maybe::as_option)
+        .map(|fn_name| match register.named(fn_name) {
+            Some(ContextType::Function(_, _)) => true,
+            _ => ctx.nasl_fn_defined(fn_name),
+        })
+        .unwrap_or(false)
 }
 
 /// Returns the seconds and microseconds counted from 1st January 1970. It formats a string
 /// containing the seconds separated by a `.` followed by the microseconds.
 ///
 /// For example: “1067352015.030757” means 1067352015 seconds and 30757 microseconds.
-fn gettimeofday(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+#[nasl_function]
+fn gettimeofday() -> Result<String, FunctionErrorKind> {
     match time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH) {
         Ok(time) => {
             let time = time.as_micros();
-            Ok(NaslValue::String(format!(
-                "{}.{:06}",
-                time / 1000000,
-                time % 1000000
-            )))
+            Ok(format!("{}.{:06}", time / 1000000, time % 1000000))
         }
         Err(e) => Err(FunctionErrorKind::Dirty(format!("{e}"))),
     }
@@ -311,9 +236,9 @@ fn gettimeofday(_: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKin
 
 /// Is a debug function to print the keys available within the called context. It does not take any
 /// nor returns any arguments.
-fn dump_ctxt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+#[nasl_function]
+fn dump_ctxt(register: &Register) {
     register.dump(register.index() - 1);
-    Ok(NaslValue::Null)
 }
 
 /// Returns found function for key or None when not found

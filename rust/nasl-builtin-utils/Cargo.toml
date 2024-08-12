@@ -12,3 +12,7 @@ thiserror = "1.0.62"
 tracing = "0.1"
 async-trait = "0.1.77"
 tokio = "1.39.2"
+
+[features]
+default = ["enforce-no-trailing-arguments"]
+enforce-no-trailing-arguments = []

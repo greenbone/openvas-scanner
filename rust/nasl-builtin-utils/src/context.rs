@@ -182,6 +182,13 @@ impl Register {
         self.blocks.last().and_then(|x| x.named(self, name))
     }
 
+    /// Return an iterator over the names of the named arguments.
+    pub fn iter_named_args(&self) -> Option<impl Iterator<Item = &str>> {
+        self.blocks
+            .last()
+            .map(|x| x.defined.keys().map(|x| x.as_str()))
+    }
+
     /// Adds a named parameter to the root context
     pub fn add_global(&mut self, name: &str, value: ContextType) {
         let global = &mut self.blocks[0];

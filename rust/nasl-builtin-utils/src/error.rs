@@ -25,9 +25,20 @@ pub enum FunctionErrorKind {
         /// Actual amount of arguments
         got: usize,
     },
+    /// Function called with trailing positional arguments
+    #[error("Expected {expected} but got {got}")]
+    TrailingPositionalArguments {
+        /// Expected amount of arguments
+        expected: usize,
+        /// Actual amount of arguments
+        got: usize,
+    },
     /// Function called without required named arguments
     #[error("Missing arguments: {}", .0.join(", "))]
     MissingArguments(Vec<String>),
+    /// Function called with additional, unexpected named arguments
+    #[error("Unknown named argument given to function: {}", .0)]
+    UnexpectedArgument(String),
     /// Wraps formatting error
     #[error("Formatting error: {0}")]
     FMTError(#[from] std::fmt::Error),

@@ -387,6 +387,12 @@ where
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.underlying.feed_hash().await
     }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        todo!()
+        // let v = self.feed_version.read().unwrap().clone();
+        // Ok(v)
+    }
 }
 
 impl FromConfigAndFeeds for Storage<ChaCha20IndexFileStorer<IndexedFileStorer>> {
