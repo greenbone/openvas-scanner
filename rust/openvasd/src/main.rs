@@ -90,7 +90,7 @@ where
     nasl_interpreter::Scanner::with_storage(storage, &config.feed.path)
 }
 
-fn create_context<DB, ScanHandler>(
+async fn create_context<DB, ScanHandler>(
     db: DB,
     sh: ScanHandler,
     config: &Config,
@@ -114,7 +114,7 @@ where
     ctx_builder
         .mode(config.mode.clone())
         .scheduler_config(config.scheduler.clone())
-        .feed_config(config.feed.clone())
+        .feed_config(config.feed.clone()).await
         .scanner(sh)
         .api_key(config.endpoints.key.clone())
         .enable_get_scans(config.endpoints.enable_get_scans)
@@ -131,7 +131,7 @@ where
     St: Storage + Send + Sync + 'static,
     Sc: Scanner + Send + Sync + 'static,
 {
-    let ctx = create_context(storage, scanner, config);
+    let ctx = create_context(storage, scanner, config).await;
     controller::run(ctx, config).await
 }
 

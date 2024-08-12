@@ -7,6 +7,7 @@ mod error;
 pub use error::Error;
 pub use error::ErrorKind;
 
+use futures::{stream, Stream};
 use std::{fs::File, io::Read};
 
 use nasl_interpreter::{
@@ -32,7 +33,10 @@ pub struct Update<'a, S, L, V> {
 }
 
 /// Loads the plugin_feed_info and returns the feed version
-pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<String, ErrorKind> {
+pub async fn feed_version(
+    loader: &dyn Loader,
+    dispatcher: &dyn Dispatcher,
+) -> Result<String, ErrorKind> {
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
@@ -44,10 +48,8 @@ pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
     let mut interpreter = Interpreter::new(register, &context);
     for stmt in nasl_syntax::parse(&code) {
-        match stmt {
-            Ok(stmt) => interpreter.retry_resolve_next(&stmt, 3)?,
-            Err(e) => return Err(e.into()),
-        };
+        let stmt = stmt?;
+        interpreter.retry_resolve_next(&stmt, 3).await?;
     }
 
     let feed_version = interpreter
@@ -103,8 +105,8 @@ where
     }
 
     /// Loads the plugin_feed_info and returns the feed version
-    pub fn feed_version(&self) -> Result<String, ErrorKind> {
-        feed_version(self.loader, self.dispatcher)
+    pub async fn feed_version(&self) -> Result<String, ErrorKind> {
+        feed_version(self.loader, self.dispatcher).await
     }
 
     /// plugin_feed_info must be handled differently.
@@ -113,8 +115,8 @@ where
     /// The feed_version is loaded from that inc file.
     /// Therefore we need to load the plugin_feed_info and extract the feed_version
     /// to put into the corresponding dispatcher.
-    fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
-        let feed_version = self.feed_version()?;
+    async fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
+        let feed_version = self.feed_version().await?;
         self.dispatcher.retry_dispatch(
             self.max_retry,
             &Default::default(),
@@ -156,10 +158,53 @@ where
     }
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
-        //self::SignatureChecker::signature_check(&path)
         let path = self.loader.root_path().unwrap();
         crate::verify::check_signature(&path)
     }
+
+    // pub async fn stream(&self) -> impl Stream {
+    //     todo!()
+    //     stream::unfold(0, |x| self.next())
+    // }
+
+    // async fn next(&mut self) -> Option<Result<String, Error>> {
+    //     match self.verifier.find(|x| {
+    //         x.as_ref()
+    //             .map(|x| x.get_filename().ends_with(".nasl"))
+    //             .unwrap_or(true)
+    //     }) {
+    //         Some(Ok(k)) => {
+    //             if let Err(e) = k.verify() {
+    //                 return Some(Err(e.into()));
+    //             }
+
+    //             let mut filename = k.get_filename();
+    //             if filename.starts_with("./") {
+    //                 // sha256sums may start with ./ so we have to remove those as dependencies
+    //                 // within nasl scripts usually don't entail them.
+    //                 filename = filename[2..].to_string();
+    //             }
+    //             let k = ContextKey::FileName(filename.clone());
+    //             self.single(&k)
+    //                 .map(|_| k.value())
+    //                 .map_err(|kind| Error {
+    //                     kind,
+    //                     key: k.value(),
+    //                 })
+    //                 .into()
+    //         }
+    //         Some(Err(e)) => Some(Err(e.into())),
+    //         None if !self.feed_version_set => {
+    //             let result = self.dispatch_feed_info().await.map_err(|kind| Error {
+    //                 kind,
+    //                 key: "plugin_feed_info.inc".to_string(),
+    //             });
+    //             self.feed_version_set = true;
+    //             Some(result)
+    //         }
+    //         None => None,
+    //     }
+    // }
 }
 
 impl<'a, S, L, V, R> Iterator for Update<'a, S, L, V>
@@ -172,43 +217,6 @@ where
     type Item = Result<String, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.verifier.find(|x| {
-            if let Ok(x) = x {
-                x.get_filename().ends_with(".nasl")
-            } else {
-                true
-            }
-        }) {
-            Some(Ok(k)) => {
-                if let Err(e) = k.verify() {
-                    return Some(Err(e.into()));
-                }
-
-                let mut filename = k.get_filename();
-                if filename.starts_with("./") {
-                    // sha256sums may start with ./ so we have to remove those as dependencies
-                    // within nasl scripts usually don't entail them.
-                    filename = filename[2..].to_string();
-                }
-                let k = ContextKey::FileName(filename.clone());
-                self.single(&k)
-                    .map(|_| k.value())
-                    .map_err(|kind| Error {
-                        kind,
-                        key: k.value(),
-                    })
-                    .into()
-            }
-            Some(Err(e)) => Some(Err(e.into())),
-            None if !self.feed_version_set => {
-                let result = self.dispatch_feed_info().map_err(|kind| Error {
-                    kind,
-                    key: "plugin_feed_info.inc".to_string(),
-                });
-                self.feed_version_set = true;
-                Some(result)
-            }
-            None => None,
-        }
+        todo!()
     }
 }

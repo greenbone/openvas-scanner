@@ -884,6 +884,7 @@ name = "feed"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "futures",
  "glob",
  "hex",
  "nasl-interpreter",

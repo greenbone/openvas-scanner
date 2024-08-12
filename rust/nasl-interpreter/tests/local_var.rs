@@ -7,7 +7,6 @@
 #[cfg(test)]
 mod tests {
 
-    use nasl_interpreter::*;
 
     #[test]
     fn in_if() {
