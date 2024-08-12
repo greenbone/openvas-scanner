@@ -12,6 +12,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+use dns_lookup::lookup_host;
 use nasl_builtin_utils::{error::FunctionErrorKind, Context, Register};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
@@ -21,7 +22,11 @@ use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
 };
 
-use crate::{get_kb_item, mtu, network_utils::ipstr2ipaddr, verify_port, OpenvasEncaps};
+use crate::{
+    get_kb_item, mtu,
+    network_utils::{bind_local_socket, ipstr2ipaddr},
+    verify_port, OpenvasEncaps,
+};
 
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
@@ -135,11 +140,16 @@ pub struct NaslSockets {
 
 impl NaslSockets {
     fn open_udp(addr: IpAddr, port: u16) -> Result<NaslSocket, FunctionErrorKind> {
-        let socket = match addr {
-            std::net::IpAddr::V4(_) => UdpSocket::bind("0.0.0.0:0")?,
-            std::net::IpAddr::V6(_) => UdpSocket::bind("[::]:0")?,
-        };
-        socket.connect(format!("{addr}:{port}"))?;
+        let sock_addr = (addr, port).to_socket_addrs()?.next().ok_or_else(|| {
+            FunctionErrorKind::Diagnostic(
+                format!(
+                "the given address and port do not correspond to a valid address: {addr}:{port}",
+            ),
+                None,
+            )
+        })?;
+        let socket = bind_local_socket(&sock_addr)?;
+        socket.connect(sock_addr)?;
         socket.set_read_timeout(Some(Duration::from_secs(1)))?;
         Ok(NaslSocket::Udp(UDPConnection {
             socket,
@@ -445,7 +455,16 @@ impl NaslSockets {
             )),
         }?;
 
-        let hostname = ipstr2ipaddr(&hostname)?;
+        let ip = lookup_host(&hostname)
+            .map_err(|_| {
+                FunctionErrorKind::Diagnostic(format!("unable to lookup hostname {hostname}"), None)
+            })?
+            .into_iter()
+            .next()
+            .ok_or(FunctionErrorKind::Diagnostic(
+                format!("No IP found for hostname {hostname}"),
+                None,
+            ))?;
 
         let port = get_kb_item(context, "Secret/kdc_port")?;
 
@@ -475,8 +494,8 @@ impl NaslSockets {
             .unwrap_or(false);
 
         let socket = match use_tcp {
-            true => Self::open_tcp(hostname, port, None, Duration::from_secs(30), None),
-            false => Self::open_udp(hostname, port),
+            true => Self::open_tcp(ip, port, None, Duration::from_secs(30), None),
+            false => Self::open_udp(ip, port),
         }?;
 
         let ret = self.add(socket);
