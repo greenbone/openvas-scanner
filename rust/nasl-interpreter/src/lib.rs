@@ -19,6 +19,8 @@ mod scan_interpreter;
 mod scanner;
 pub mod scheduling;
 
+pub mod test_utils;
+
 pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;

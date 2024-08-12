@@ -191,6 +191,9 @@ pub trait NVTStorer {
 
     /// Returns the currently stored feed hash.
     async fn feed_hash(&self) -> Vec<FeedHash>;
+
+    /// Returns the current feed version, if any.
+    async fn current_feed_version(&self) -> Result<String, Error>;
 }
 
 #[async_trait]
@@ -298,6 +301,10 @@ where
 
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.as_ref().feed_hash().await
+    }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        self.as_ref().current_feed_version().await
     }
 }
 
@@ -629,7 +636,12 @@ where
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.0.feed_hash().await
     }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        self.0.current_feed_version().await
+    }
 }
+
 #[async_trait]
 impl<T> ScanIDClientMapper for UserNASLStorageForKBandVT<T>
 where

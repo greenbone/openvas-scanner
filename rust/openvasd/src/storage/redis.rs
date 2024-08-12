@@ -71,7 +71,11 @@ impl<T> Storage<T> {
         .unwrap()
     }
 
-    async fn update_nasl(url: Arc<String>, nasl_feed_path: PathBuf) -> Result<(), Error> {
+    async fn update_nasl(
+        url: Arc<String>,
+        nasl_feed_path: PathBuf,
+        current_feed: String,
+    ) -> Result<(), Error> {
         tracing::debug!("starting nasl feed update");
         let oversion = "0.1";
         let loader = FSPluginLoader::new(nasl_feed_path);
@@ -81,6 +85,9 @@ impl<T> Storage<T> {
             redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
         let store = PerItemDispatcher::new(redis_cache);
         let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
+        if !fu.feed_is_outdated(current_feed).await.unwrap() {
+            return Ok(());
+        }
         fu.perform_update(Level::TRACE).await?;
         tracing::debug!("finished nasl feed update");
         Ok(())
@@ -175,7 +182,12 @@ where
         for h in &hash {
             match h.typus {
                 FeedType::NASL => {
-                    _ = updates.spawn(Self::update_nasl(self.url.clone(), h.path.clone()))
+                    let current_feed = self.current_feed_version().await?;
+                    _ = updates.spawn(Self::update_nasl(
+                        self.url.clone(),
+                        h.path.clone(),
+                        current_feed,
+                    ))
                 }
                 FeedType::Advisories => {
                     _ = updates.spawn(Self::update_advisories(self.url.clone(), h.path.clone()))
@@ -277,6 +289,21 @@ where
 
     async fn feed_hash(&self) -> Vec<FeedHash> {
         self.hash.read().await.to_vec()
+    }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        let url = self.url.to_string();
+        let cache_version = tokio::task::spawn_blocking(move || {
+            let mut cache = RedisCtx::open(&url, FEEDUPDATE_SELECTOR)?;
+            let version = cache.lindex("nvticache", 0)?;
+            if version.clone().is_empty() {
+                let _ = cache.delete_namespace();
+            }
+            Ok::<_, Error>(version)
+        })
+        .await
+        .unwrap()?;
+        Ok(cache_version)
     }
 }
 

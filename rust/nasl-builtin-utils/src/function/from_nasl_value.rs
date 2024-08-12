@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::FunctionErrorKind;
 use nasl_syntax::NaslValue;
 
@@ -53,15 +55,29 @@ impl<'a> FromNaslValue<'a> for &'a [u8] {
     }
 }
 
-impl<'a> FromNaslValue<'a> for Vec<String> {
+impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for Vec<T> {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::Array(vals) => Ok(vals
                 .iter()
-                .map(String::from_nasl_value)
-                .collect::<Result<Vec<String>, FunctionErrorKind>>()?),
+                .map(T::from_nasl_value)
+                .collect::<Result<Vec<T>, FunctionErrorKind>>()?),
             _ => Err(FunctionErrorKind::WrongArgument(
-                "Expected an array of strings.".to_string(),
+                "Expected an array..".to_string(),
+            )),
+        }
+    }
+}
+
+impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for HashMap<String, T> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
+        match value {
+            NaslValue::Dict(map) => Ok(map
+                .iter()
+                .map(|(k, v)| T::from_nasl_value(v).map(|v| (k.clone(), v)))
+                .collect::<Result<HashMap<_, _>, _>>()?),
+            _ => Err(FunctionErrorKind::WrongArgument(
+                "Expected a dictionary.".to_string(),
             )),
         }
     }

@@ -14,6 +14,14 @@ pub fn ty_is_context(ty: &Type) -> bool {
     }
 }
 
+pub fn ty_is_register(ty: &Type) -> bool {
+    if let Type::Reference(TypeReference { elem, .. }) = ty {
+        ty_name_is(elem, "Register")
+    } else {
+        false
+    }
+}
+
 pub fn get_subty_if_name_is<'a>(ty: &'a Type, name: &str) -> Option<&'a Type> {
     get_last_segment(ty)
         .filter(|segment| segment.ident == name)

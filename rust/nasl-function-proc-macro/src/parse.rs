@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::types::*;
-use crate::utils::{get_subty_if_name_is, ty_is_context, ty_name_is};
+use crate::utils::{get_subty_if_name_is, ty_is_context, ty_is_register, ty_name_is};
 use syn::{
     parenthesized, parse::Parse, punctuated::Punctuated, spanned::Spanned, FnArg, Ident, ItemFn,
     Token, Type,
@@ -40,6 +40,9 @@ impl Attrs {
     fn get_arg_kind(&self, ident: &Ident, position: usize, ty: &Type) -> ArgKind {
         if ty_is_context(ty) {
             return ArgKind::Context;
+        }
+        if ty_is_register(ty) {
+            return ArgKind::Register;
         }
         if ty_name_is(ty, "Positionals") {
             return ArgKind::PositionalIterator;
@@ -90,19 +93,20 @@ impl Parse for Attrs {
 
 impl<'a> Arg<'a> {
     fn new(arg: &'a FnArg, attrs: &Attrs, position: usize) -> Result<Self> {
-        let (ident, ty, mutable, optional) = get_arg_info(arg)?;
+        let (ident, ty, inner_ty, mutable, optional) = get_arg_info(arg)?;
         let kind = attrs.get_arg_kind(ident, position, ty);
         Ok(Self {
             kind,
             ident,
             ty,
+            inner_ty,
             optional,
             mutable,
         })
     }
 }
 
-fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool, bool)> {
+fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, &Type, bool, bool)> {
     match arg {
         FnArg::Receiver(_) => unreachable!(),
         FnArg::Typed(typed) => {
@@ -116,12 +120,12 @@ fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, bool, bool)> {
                 }
             };
             let ty = &typed.ty;
-            let (optional, ty) = if let Some(ty) = get_subty_if_name_is(ty, "Option") {
+            let (optional, inner_ty) = if let Some(ty) = get_subty_if_name_is(ty, "Option") {
                 (true, ty)
             } else {
                 (false, ty.as_ref())
             };
-            Ok((ident, ty, mutable, optional))
+            Ok((ident, ty, inner_ty, mutable, optional))
         }
     }
 }
