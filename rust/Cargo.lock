@@ -2111,6 +2111,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "dep-graph",
+ "futures",
  "models",
  "nasl-builtin-std",
  "nasl-builtin-utils",
@@ -3070,6 +3071,7 @@ dependencies = [
  "serde",
  "serde_json",
  "storage",
+ "tokio",
  "toml 0.8.19",
  "tracing",
  "tracing-subscriber",

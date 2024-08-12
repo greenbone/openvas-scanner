@@ -5,7 +5,6 @@
 use std::sync::RwLock;
 
 use async_trait::async_trait;
-use futures_util::TryFutureExt;
 use storage::DefaultDispatcher;
 
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
@@ -68,8 +67,9 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
             let dispatcher: DefaultDispatcher = DefaultDispatcher::default();
-            let version =
-                feed::version(&loader, &dispatcher).await.unwrap_or_else(|_| String::from("UNDEFINED"));
+            let version = feed::version(&loader, &dispatcher)
+                .await
+                .unwrap_or_else(|_| String::from("UNDEFINED"));
             self.response.set_feed_version(&version);
         }
         self

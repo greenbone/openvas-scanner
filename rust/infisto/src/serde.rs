@@ -32,7 +32,7 @@ where
             Err(e) => {
                 tracing::warn!(error=%e);
                 Err(Error::Serialize)
-            },
+            }
         }
     }
 

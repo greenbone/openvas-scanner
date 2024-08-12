@@ -165,16 +165,12 @@ where
         Ok(encrypted
             .into_iter()
             .map(|e| Self::decrypt(&self.key, &e).try_into())
-            .filter_map(|x|{
-                match x {
-                    Err(e) => {
-                        tracing::warn!(file=key, error=?e, "unable to decrypt");
-                        None
-
-                    },
-                    Ok(x) => Some(x),
-
+            .filter_map(|x| match x {
+                Err(e) => {
+                    tracing::warn!(file=key, error=?e, "unable to decrypt");
+                    None
                 }
+                Ok(x) => Some(x),
             })
             .collect())
     }

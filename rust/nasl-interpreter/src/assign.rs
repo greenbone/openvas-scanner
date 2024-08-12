@@ -172,6 +172,8 @@ impl<'a> Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
+    /// Assign a right value to a left value. Return either the
+    /// previous or the new value, based on the order.
     pub async fn assign(
         &mut self,
         category: &TokenCategory,

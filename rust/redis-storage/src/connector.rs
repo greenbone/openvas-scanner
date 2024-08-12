@@ -745,7 +745,7 @@ where
         _field: storage::Field,
         _scope: storage::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
-        todo!()
+        unimplemented!()
     }
 
     fn retrieve_by_fields(
@@ -763,18 +763,18 @@ where
 {
     fn remove_kb(
         &self,
-        key: &ContextKey,
-        kb_key: Option<String>,
+        _key: &ContextKey,
+        _kb_key: Option<String>,
     ) -> Result<Option<Vec<Kb>>, StorageError> {
-        todo!()
+        unimplemented!()
     }
 
     fn remove_result(
         &self,
-        key: &ContextKey,
-        result_id: Option<usize>,
+        _key: &ContextKey,
+        _result_id: Option<usize>,
     ) -> Result<Option<Vec<models::Result>>, StorageError> {
-        todo!()
+        unimplemented!()
     }
 }
 

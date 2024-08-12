@@ -12,7 +12,7 @@ use redis_storage::{
 };
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::{sync::RwLock, task::JoinSet};
-use tracing::info;
+use tracing::{info, Level};
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
 use models::scanner::ScanResults;
@@ -71,27 +71,19 @@ impl<T> Storage<T> {
         .unwrap()
     }
 
-    async fn update_nasl(url: Arc<String>, p: PathBuf) -> Result<(), Error> {
-        let nasl_feed_path = p;
-        tokio::task::spawn_blocking(move || {
-            tracing::debug!("starting nasl feed update");
-            let oversion = "0.1";
-            let loader = FSPluginLoader::new(nasl_feed_path);
-            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+    async fn update_nasl(url: Arc<String>, nasl_feed_path: PathBuf) -> Result<(), Error> {
+        tracing::debug!("starting nasl feed update");
+        let oversion = "0.1";
+        let loader = FSPluginLoader::new(nasl_feed_path);
+        let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
-            let redis_cache: CacheDispatcher<RedisCtx> =
-                redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
-            let store = PerItemDispatcher::new(redis_cache);
-            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
-            if let Some(x) = fu.find_map(|x| x.err()) {
-                Err(Error::from(x))
-            } else {
-                tracing::debug!("finished nasl feed update");
-                Ok(())
-            }
-        })
-        .await
-        .unwrap()
+        let redis_cache: CacheDispatcher<RedisCtx> =
+            redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
+        let store = PerItemDispatcher::new(redis_cache);
+        let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
+        fu.perform_update(Level::TRACE).await?;
+        tracing::debug!("finished nasl feed update");
+        Ok(())
     }
 }
 

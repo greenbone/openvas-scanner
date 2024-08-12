@@ -109,12 +109,13 @@ where
         }
         Err(e) => warn!("Notus Scanner disabled: {e}"),
     }
-    tracing::warn!(enabe_get_scans=config.endpoints.enable_get_scans);
+    tracing::warn!(enabe_get_scans = config.endpoints.enable_get_scans);
 
     ctx_builder
         .mode(config.mode.clone())
         .scheduler_config(config.scheduler.clone())
-        .feed_config(config.feed.clone()).await
+        .feed_config(config.feed.clone())
+        .await
         .scanner(sh)
         .api_key(config.endpoints.key.clone())
         .enable_get_scans(config.endpoints.enable_get_scans)
@@ -182,7 +183,7 @@ async fn run(config: &Config) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
-    tracing::debug!(key=config.storage.fs.key);
+    tracing::debug!(key = config.storage.fs.key);
     setup_log(&config);
     run(&config).await
 }

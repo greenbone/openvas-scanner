@@ -45,7 +45,7 @@ where
 }
 
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
-pub trait Loader: Sync {
+pub trait Loader: Sync + Send {
     /// Resolves the given key to nasl code
     fn load(&self, key: &str) -> Result<String, LoadError>;
     /// Return the root plugins folder
@@ -158,7 +158,7 @@ impl Loader for FSPluginLoader {
 
 impl<S> Loader for S
 where
-    S: Fn(&str) -> String + Sync,
+    S: Fn(&str) -> String + Sync + Send,
 {
     fn load(&self, key: &str) -> Result<String, LoadError> {
         Ok((self)(key))
