@@ -492,7 +492,7 @@ pub(crate) mod tests {
             tbase = base.join("examples");
         }
         let base_dir = tbase.join("feed");
-        
+
         base_dir.join("nasl")
     }
 

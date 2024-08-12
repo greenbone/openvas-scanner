@@ -3,14 +3,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod update;
-use std::{io, path::PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
 
-use redis_storage::{FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR};
+use redis_storage::{
+    CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+};
 
-use storage::StorageError;
+use storage::{item::PerItemDispatcher, StorageError};
 
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
 
@@ -46,115 +51,115 @@ pub fn extend_args(cmd: Command) -> Command {
         ))
 }
 
-pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
-    fn get_vts_path(key: &str, args: &clap::ArgMatches) -> PathBuf {
-        args.get_one::<PathBuf>(key).cloned().unwrap_or_else(|| {
+fn get_dispatcher(
+    redis: &str,
+    path: &Path,
+    selector: &[NameSpaceSelector],
+) -> Result<PerItemDispatcher<CacheDispatcher<RedisCtx>>, CliError> {
+    redis_storage::CacheDispatcher::as_dispatcher(redis, selector)
+        .map_err(StorageError::from)
+        .map_err(|e| CliError {
+            kind: e.into(),
+            filename: format!("{path:?}"),
+        })
+}
+
+pub async fn update_vts(
+    redis: &str,
+    signature_check: bool,
+    args: &clap::ArgMatches,
+) -> Result<(), CliError> {
+    let path = get_vts_path("vts-path", args);
+    let dispatcher = get_dispatcher(redis, &path, FEEDUPDATE_SELECTOR)?;
+    update::run(dispatcher, path, signature_check).await
+}
+
+pub async fn update_notus(
+    redis: &str,
+    signature_check: bool,
+    args: &clap::ArgMatches,
+) -> Result<(), CliError> {
+    let path = match args.get_one::<PathBuf>("notus-path") {
+        Some(p) => p.to_path_buf(),
+        None => {
+            return Err(CliError {
+                filename: "".to_string(),
+                kind: CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
+                    "Path to the notus advisories is mandatory".to_string(),
+                )),
+            });
+        }
+    };
+
+    let dispatcher = get_dispatcher(redis, &path, NOTUSUPDATE_SELECTOR)?;
+    notusupdate::update::run(dispatcher, path, signature_check)
+}
+
+pub async fn update(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+    let redis = match args.get_one::<String>("redis").cloned() {
+        Some(x) => x,
+        None => {
             let config =
                 read_openvas_config().expect("openvas -s must be executable when path is not set");
-            get_path_from_openvas(config)
-        })
-    }
+            let dba = config
+                .get("default", "db_address")
+                .expect("openvas -s must contain db_address");
 
+            if dba.starts_with("redis://") || dba.starts_with("unix://") {
+                dba
+            } else if dba.starts_with("tcp://") {
+                dba.replace("tcp://", "redis://")
+            } else {
+                format!("unix://{dba}")
+            }
+        }
+    };
+    let signature_check = args
+        .get_one::<bool>("signature-check")
+        .cloned()
+        .unwrap_or(false);
+
+    let loadup_notus_only = args.get_one::<bool>("notus-only").cloned().unwrap_or(false);
+
+    let loadup_vts_only = args.get_one::<bool>("vts-only").cloned().unwrap_or(false);
+
+    if loadup_vts_only && loadup_notus_only {}
+
+    match (loadup_notus_only, loadup_vts_only) {
+        (true, true) => Some(Err(CliError {
+            filename: "".to_string(),
+            kind: CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
+                "Please do not use --notus-only and --vts-only together".to_string(),
+            )),
+        })),
+        (false, true) => Some(update_vts(&redis, signature_check, args).await),
+        (true, false) => Some(update_notus(&redis, signature_check, args).await),
+        (false, false) => {
+            let r1 = update_vts(&redis, signature_check, args).await;
+            let r2 = update_vts(&redis, signature_check, args).await;
+            Some(r1.and(r2))
+        }
+    }
+}
+
+fn get_vts_path(key: &str, args: &clap::ArgMatches) -> PathBuf {
+    args.get_one::<PathBuf>(key).cloned().unwrap_or_else(|| {
+        let config =
+            read_openvas_config().expect("openvas -s must be executable when path is not set");
+        get_path_from_openvas(config)
+    })
+}
+
+pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, verbose) = crate::get_args_set_logging(root, "feed")?;
     match args.subcommand() {
-        Some(("update", args)) => {
-            let redis = match args.get_one::<String>("redis").cloned() {
-                Some(x) => x,
-                None => {
-                    let config = read_openvas_config()
-                        .expect("openvas -s must be executable when path is not set");
-                    let dba = config
-                        .get("default", "db_address")
-                        .expect("openvas -s must contain db_address");
-
-                    if dba.starts_with("redis://") || dba.starts_with("unix://") {
-                        dba
-                    } else if dba.starts_with("tcp://") {
-                        dba.replace("tcp://", "redis://")
-                    } else {
-                        format!("unix://{dba}")
-                    }
-                }
-            };
-            let signature_check = args
-                .get_one::<bool>("signature-check")
-                .cloned()
-                .unwrap_or(false);
-
-            let loadup_notus_only = args.get_one::<bool>("notus-only").cloned().unwrap_or(false);
-
-            let loadup_vts_only = args.get_one::<bool>("vts-only").cloned().unwrap_or(false);
-
-            if loadup_vts_only && loadup_notus_only {
-                return Some(Err(CliError {
-                    filename: "".to_string(),
-                    kind: CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
-                        "Please do not use --notus-only and --vts-only together".to_string(),
-                    )),
-                }));
-            }
-
-            // if not notus only, load vts
-            let mut ret: Option<Result<(), CliError>> = None;
-            if !loadup_notus_only {
-                let path = get_vts_path("vts-path", args);
-
-                let dispatcher =
-                    redis_storage::CacheDispatcher::as_dispatcher(&redis, FEEDUPDATE_SELECTOR)
-                        .map_err(StorageError::from)
-                        .map_err(|e| CliError {
-                            kind: e.into(),
-                            filename: format!("{path:?}"),
-                        });
-                ret = match dispatcher
-                    .and_then(|dispatcher| update::run(dispatcher, path, signature_check))
-                {
-                    Err(err) => {
-                        return Some(Err(err));
-                    }
-                    Ok(()) => Some(Ok(())),
-                };
-            }
-
-            // if not vts only, load notus advisories
-            // TODO: get the path to the advisories reading some config file in the future
-            if !loadup_vts_only {
-                let path = match args.get_one::<PathBuf>("notus-path") {
-                    Some(p) => p.to_path_buf(),
-                    None => {
-                        return Some(Err(CliError {
-                            filename: "".to_string(),
-                            kind: CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
-                                "Path to the notus advisories is mandatory".to_string(),
-                            )),
-                        }));
-                    }
-                };
-
-                let dispatcher =
-                    redis_storage::CacheDispatcher::as_dispatcher(&redis, NOTUSUPDATE_SELECTOR)
-                        .map_err(StorageError::from)
-                        .map_err(|e| CliError {
-                            kind: e.into(),
-                            filename: format!("{path:?}"),
-                        });
-                ret = match dispatcher.and_then(|dispatcher| {
-                    notusupdate::update::run(dispatcher, path, signature_check)
-                }) {
-                    Err(err) => {
-                        return Some(Err(err));
-                    }
-                    Ok(()) => Some(Ok(())),
-                };
-            }
-            ret
-        }
+        Some(("update", args)) => update(args).await,
         Some(("transform", args)) => {
             let path = get_vts_path("path", args);
 
             let mut o = json_storage::ArrayWrapper::new(io::stdout());
             let dispatcher = json_storage::ItemDispatcher::as_dispatcher(&mut o);
-            Some(match update::run(dispatcher, path, false) {
+            Some(match update::run(dispatcher, path, false).await {
                 Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                     filename: "".to_string(),
                     kind: se.into(),

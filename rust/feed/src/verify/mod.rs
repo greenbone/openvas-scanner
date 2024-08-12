@@ -18,7 +18,7 @@ use std::{
 
 use hex::encode;
 use nasl_interpreter::{AsBufReader, LoadError};
-use nasl_syntax::Loader;
+use nasl_syntax::{FSPluginLoader, Loader};
 use sha2::{Digest, Sha256};
 
 use openpgp::{
@@ -258,15 +258,15 @@ impl Hasher {
 
 /// Loads a given hashsums file and lazily verifies the loaded filename key of the sums file and verifies
 /// the hash within the sums file with an calculated hash of the found content.
-pub struct HashSumNameLoader<'a, R> {
-    reader: &'a dyn AsBufReader<R>,
+pub struct HashSumNameLoader<'a> {
+    reader: &'a FSPluginLoader,
     hasher: Hasher,
-    buf: io::Lines<BufReader<R>>,
+    buf: io::Lines<BufReader<File>>,
 }
 
 /// Loads hashsum verified names of the feed based on a sum file.
-impl<'a, R: Read> HashSumNameLoader<'a, R> {
-    fn new(buf: io::Lines<BufReader<R>>, reader: &'a dyn AsBufReader<R>, hasher: Hasher) -> Self {
+impl<'a> HashSumNameLoader<'a> {
+    fn new(buf: io::Lines<BufReader<File>>, reader: &'a FSPluginLoader, hasher: Hasher) -> Self {
         Self {
             reader,
             hasher,
@@ -275,7 +275,7 @@ impl<'a, R: Read> HashSumNameLoader<'a, R> {
     }
 
     /// Returns a sha256 implementation of HashSumNameLoader
-    pub fn sha256(reader: &'a dyn AsBufReader<R>) -> Result<HashSumNameLoader<'a, R>, Error> {
+    pub fn sha256(reader: &'a FSPluginLoader) -> Result<HashSumNameLoader<'a>, Error> {
         let buf = reader
             .as_bufreader(Hasher::Sha256.sum_file())
             .map(|x| x.lines())
@@ -298,11 +298,8 @@ pub trait FileNameLoader {
     fn next_filename(&mut self) -> Option<Result<String, Error>>;
 }
 
-impl<'a, R> Iterator for HashSumNameLoader<'a, R>
-where
-    R: Read,
-{
-    type Item = Result<HashSumFileItem<'a, R>, Error>;
+impl<'a> Iterator for HashSumNameLoader<'a> {
+    type Item = Result<HashSumFileItem<'a>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.buf.next()? {
@@ -325,14 +322,14 @@ where
 }
 
 /// Contains all information  necessary to do a hash sum check
-pub struct HashSumFileItem<'a, R> {
+pub struct HashSumFileItem<'a> {
     file_name: String,
     hashsum: String,
     hasher: Hasher,
-    reader: &'a dyn AsBufReader<R>,
+    reader: &'a FSPluginLoader,
 }
 
-impl<'a, R: Read> HashSumFileItem<'a, R> {
+impl<'a> HashSumFileItem<'a> {
     /// Verifies Hashsum
     pub fn verify(&self) -> Result<(), Error> {
         let hashsum = self.hasher.hash(

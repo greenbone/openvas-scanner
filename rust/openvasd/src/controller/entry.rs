@@ -539,10 +539,7 @@ pub mod client {
         >,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
-        let storage_dir = format!(
-            "/tmp/openvasd/{prefix}_{}",
-            uuid::Uuid::new_v4()
-        );
+        let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
 
         let key = "testdontbother";
         let feeds = example_feeds().await;
@@ -578,10 +575,7 @@ pub mod client {
         >,
     > {
         use crate::file::tests::{example_feed_file_storage, nasl_root};
-        let storage_dir = format!(
-            "/tmp/openvasd/{prefix}_{}",
-            uuid::Uuid::new_v4()
-        );
+        let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
         let store = example_feed_file_storage(&storage_dir).await;
         let store = Arc::new(crate::storage::UserNASLStorageForKBandVT::new(store));
         let nasl_feed_path = nasl_root().await;

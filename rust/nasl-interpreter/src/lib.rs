@@ -23,7 +23,6 @@ pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use fork_interpreter::*;
-pub use interpreter::ContextLifeTimeCapture;
 pub use interpreter::Interpreter;
 pub use scan_interpreter::*;
 

@@ -1,6 +1,8 @@
 //! Contains implementations of Interpreter that handle the simulation of forking methods for the
 //! caller.
 
+use futures::{stream, Stream};
+
 use nasl_syntax::Statement;
 
 use crate::interpreter::InterpretResult;
@@ -80,7 +82,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         result
     }
 
-    async fn next_statement(&mut self) -> Option<InterpretResult> {
+    pub async fn next_statement(&mut self) -> Option<InterpretResult> {
         self.statement = None;
         match self.lexer.next() {
             Some(Ok(nstmt)) => {
@@ -96,9 +98,35 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         }
     }
 
+    async fn next_(&mut self) -> Option<InterpretResult> {
+        if let Some(stmt) = self.statement.as_ref() {
+            match self.interpreter.next_interpreter() {
+                Some(inter) => Some(inter.retry_resolve(stmt, 5).await),
+                None => self.next_statement().await,
+            }
+        } else {
+            self.next_statement().await
+        }
+    }
+
     /// Returns the Register of the underlying Interpreter
     pub fn register(&self) -> &crate::Register {
         self.interpreter.register()
+    }
+
+    /// TODO Doc
+    pub fn stream(self) -> impl Stream<Item = InterpretResult> + 'b
+    where
+        'a: 'b,
+    {
+        stream::unfold(self, |mut s| async move {
+            let x = s.next_statement().await;
+            if let Some(x) = x {
+                Some((x, s))
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -107,21 +135,15 @@ impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
-        // if let Some(stmt) = self.statement.as_ref() {
-        //     match self.interpreter.next_interpreter() {
-        //         Some(inter) => Some(inter.retry_resolve(stmt, 5)),
-        //         None => self.next_statement(),
-        //     }
-        // } else {
-        //     self.next_statement()
-        // }
     }
 }
 
 #[cfg(test)]
 mod rests {
-    #[test]
-    fn code_interpreter() {
+    use futures::StreamExt;
+
+    #[tokio::test]
+    async fn code_interpreter() {
         use crate::{CodeInterpreter, ContextFactory, Register};
         use nasl_syntax::NaslValue;
         let register = Register::default();
@@ -136,7 +158,11 @@ mod rests {
             CodeInterpreter::with_statement_callback(code, register, &context, &|x| {
                 println!("{x}")
             });
-        let results = interpreter.filter_map(|x| x.ok()).collect::<Vec<_>>();
+        let results = interpreter
+            .stream()
+            .filter_map(|x| async { x.ok() })
+            .collect::<Vec<_>>()
+            .await;
         assert_eq!(results, vec![NaslValue::Null; 4]);
     }
 }

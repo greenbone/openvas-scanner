@@ -6,23 +6,24 @@ use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use nasl_syntax::FSPluginLoader;
+use tracing::Level;
 
 use crate::{interpret, CliError, CliErrorKind, Db};
 
-pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, _) = crate::get_args_set_logging(root, "execute")?;
     match args.subcommand() {
-        Some(("script", args)) => script(args),
-        Some(("scan", args)) => Some(scan(args)),
+        Some(("script", args)) => script(args).await,
+        Some(("scan", args)) => Some(scan(args).await),
         Some((x, _)) => panic!("Unknown subcommand{}", x),
         None => {
             tracing::warn!("`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions");
-            script(args)
+            script(args).await
         }
     }
 }
 
-fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
+async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
     let scan: models::Scan = if stdin {
         tracing::debug!("reading scan config from stdin");
@@ -56,10 +57,7 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let loader = FSPluginLoader::new(feed);
     let verifier = feed::HashSumNameLoader::sha256(&loader)?;
     let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
-    for s in updater {
-        let s = s?;
-        tracing::trace!("updated {s}");
-    }
+    updater.perform_update(Level::TRACE).await?;
 
     use nasl_interpreter::scheduling::ExecutionPlaner;
     let schedule = storage
@@ -111,19 +109,22 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     Ok(())
 }
 
-fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+async fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = args.get_one::<PathBuf>("path").cloned();
     let script = match args.get_one::<String>("script").cloned() {
         Some(path) => path,
         _ => unreachable!("path is set to required"),
     };
     let target = args.get_one::<String>("target").cloned();
-    Some(interpret::run(
-        &Db::InMemory,
-        feed.clone(),
-        &script.to_string(),
-        target.clone(),
-    ))
+    Some(
+        interpret::run(
+            &Db::InMemory,
+            feed.clone(),
+            &script.to_string(),
+            target.clone(),
+        )
+        .await,
+    )
 }
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(crate::add_verbose(

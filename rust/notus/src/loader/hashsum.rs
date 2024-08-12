@@ -2,47 +2,28 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{io::Read, marker::PhantomData};
-
 use feed::{HashSumNameLoader, SignatureChecker};
 use models::ProductsAdivisories;
-use nasl_syntax::{AsBufReader, Loader};
+use nasl_syntax::{FSPluginLoader, Loader};
 
 use crate::error::Error;
 
 use super::{AdvisoryLoader, FeedStamp, ProductLoader};
 
 #[derive(Debug, Clone)]
-pub struct HashsumProductLoader<R, L> {
-    loader: L,
-    read_type: PhantomData<R>,
+pub struct HashsumProductLoader {
+    loader: FSPluginLoader,
 }
 
-impl<R, L> SignatureChecker for HashsumProductLoader<R, L>
-where
-    L: Loader + AsBufReader<R>,
-    R: Read,
-{
-}
+impl SignatureChecker for HashsumProductLoader {}
 
-impl<R, L> HashsumProductLoader<R, L>
-where
-    L: Loader + AsBufReader<R>,
-    R: Read,
-{
-    pub fn new(reader: L) -> Result<Self, Error> {
-        Ok(Self {
-            loader: reader,
-            read_type: PhantomData,
-        })
+impl HashsumProductLoader {
+    pub fn new(loader: FSPluginLoader) -> Result<Self, Error> {
+        Ok(Self { loader })
     }
 }
 
-impl<R, L> ProductLoader for HashsumProductLoader<R, L>
-where
-    L: Loader + AsBufReader<R>,
-    R: Read,
-{
+impl ProductLoader for HashsumProductLoader {
     fn get_products(&self) -> Result<Vec<String>, crate::error::Error> {
         let mut ret = vec![];
         let loader = HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
@@ -113,36 +94,19 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct HashsumAdvisoryLoader<R, L> {
-    loader: L,
-    read_type: PhantomData<R>,
+pub struct HashsumAdvisoryLoader {
+    loader: FSPluginLoader,
 }
 
-impl<R, L> SignatureChecker for HashsumAdvisoryLoader<R, L>
-where
-    L: Loader + AsBufReader<R>,
-    R: Read,
-{
-}
+impl SignatureChecker for HashsumAdvisoryLoader {}
 
-impl<R, L> HashsumAdvisoryLoader<R, L>
-where
-    L: Loader + AsBufReader<R>,
-    R: Read,
-{
-    pub fn new(reader: L) -> Result<Self, Error> {
-        Ok(Self {
-            loader: reader,
-            read_type: PhantomData,
-        })
+impl HashsumAdvisoryLoader {
+    pub fn new(loader: FSPluginLoader) -> Result<Self, Error> {
+        Ok(Self { loader })
     }
 }
 
-impl<R, L> AdvisoryLoader for HashsumAdvisoryLoader<R, L>
-where
-    L: Loader + AsBufReader<R>,
-    R: Read,
-{
+impl AdvisoryLoader for HashsumAdvisoryLoader {
     fn get_advisories(&self) -> Result<Vec<String>, Error> {
         let mut ret = vec![];
         let loader = HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;

@@ -7,8 +7,9 @@ mod error;
 pub use error::Error;
 pub use error::ErrorKind;
 
-use futures::{stream, Stream};
-use std::{fs::File, io::Read};
+use futures::{stream, Stream, StreamExt};
+use std::fs::File;
+use tracing::{debug, error, trace, warn, Level};
 
 use nasl_interpreter::{
     AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register,
@@ -60,21 +61,19 @@ pub async fn feed_version(
     Ok(feed_version)
 }
 
-impl<'a, R, S, L, V> SignatureChecker for Update<'a, S, L, V>
+impl<'a, S, L, V> SignatureChecker for Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
+    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
 {
 }
 
-impl<'a, S, L, V, R> Update<'a, S, L, V>
+impl<'a, S, L, V> Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
+    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>> + 'a,
 {
     /// Creates an updater. This updater is implemented as a iterator.
     ///
@@ -162,61 +161,70 @@ where
         crate::verify::check_signature(&path)
     }
 
-    // pub async fn stream(&self) -> impl Stream {
-    //     todo!()
-    //     stream::unfold(0, |x| self.next())
-    // }
+    /// Run the feed update and log each result with the
+    /// given log level. If an error occurs, return it.
+    pub async fn perform_update(self, log_level: Level) -> Result<(), Error> {
+        let results = self.stream().collect::<Vec<_>>().await;
+        for result in results.iter() {
+            match log_level {
+                Level::TRACE => trace!(?result),
+                Level::DEBUG => debug!(?result),
+                Level::WARN => warn!(?result),
+                Level::ERROR => error!(?result),
+                _ => todo!(),
+            }
+        }
+        results.into_iter().collect::<Result<Vec<_>, Error>>()?;
+        Ok(())
+    }
 
-    // async fn next(&mut self) -> Option<Result<String, Error>> {
-    //     match self.verifier.find(|x| {
-    //         x.as_ref()
-    //             .map(|x| x.get_filename().ends_with(".nasl"))
-    //             .unwrap_or(true)
-    //     }) {
-    //         Some(Ok(k)) => {
-    //             if let Err(e) = k.verify() {
-    //                 return Some(Err(e.into()));
-    //             }
+    fn stream(self) -> impl Stream<Item = Result<String, Error>> + 'a {
+        stream::unfold(self, |mut s| async move {
+            let x = s.next().await;
+            if let Some(x) = x {
+                Some((x, s))
+            } else {
+                None
+            }
+        })
+    }
 
-    //             let mut filename = k.get_filename();
-    //             if filename.starts_with("./") {
-    //                 // sha256sums may start with ./ so we have to remove those as dependencies
-    //                 // within nasl scripts usually don't entail them.
-    //                 filename = filename[2..].to_string();
-    //             }
-    //             let k = ContextKey::FileName(filename.clone());
-    //             self.single(&k)
-    //                 .map(|_| k.value())
-    //                 .map_err(|kind| Error {
-    //                     kind,
-    //                     key: k.value(),
-    //                 })
-    //                 .into()
-    //         }
-    //         Some(Err(e)) => Some(Err(e.into())),
-    //         None if !self.feed_version_set => {
-    //             let result = self.dispatch_feed_info().await.map_err(|kind| Error {
-    //                 kind,
-    //                 key: "plugin_feed_info.inc".to_string(),
-    //             });
-    //             self.feed_version_set = true;
-    //             Some(result)
-    //         }
-    //         None => None,
-    //     }
-    // }
-}
+    async fn next(&mut self) -> Option<Result<String, Error>> {
+        match self.verifier.find(|x| {
+            x.as_ref()
+                .map(|x| x.get_filename().ends_with(".nasl"))
+                .unwrap_or(true)
+        }) {
+            Some(Ok(k)) => {
+                if let Err(e) = k.verify() {
+                    return Some(Err(e.into()));
+                }
 
-impl<'a, S, L, V, R> Iterator for Update<'a, S, L, V>
-where
-    S: Sync + Send + Dispatcher,
-    L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
-{
-    type Item = Result<String, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+                let mut filename = k.get_filename();
+                if filename.starts_with("./") {
+                    // sha256sums may start with ./ so we have to remove those as dependencies
+                    // within nasl scripts usually don't entail them.
+                    filename = filename[2..].to_string();
+                }
+                let k = ContextKey::FileName(filename.clone());
+                self.single(&k)
+                    .map(|_| k.value())
+                    .map_err(|kind| Error {
+                        kind,
+                        key: k.value(),
+                    })
+                    .into()
+            }
+            Some(Err(e)) => Some(Err(e.into())),
+            None if !self.feed_version_set => {
+                let result = self.dispatch_feed_info().await.map_err(|kind| Error {
+                    kind,
+                    key: "plugin_feed_info.inc".to_string(),
+                });
+                self.feed_version_set = true;
+                Some(result)
+            }
+            None => None,
+        }
     }
 }

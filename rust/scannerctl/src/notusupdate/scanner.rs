@@ -34,7 +34,7 @@ pub fn extend_args(cmd: Command) -> Command {
     ))
 }
 
-pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, _) = crate::get_args_set_logging(root, "notus")?;
     let products_path = args.get_one::<PathBuf>("path").unwrap();
 
