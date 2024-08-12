@@ -13,6 +13,7 @@ use std::{
 };
 
 use nasl_builtin_utils::{error::FunctionErrorKind, Context, Register};
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 use pkcs8::der::Decode;
 use rustls::{
@@ -20,7 +21,7 @@ use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
 };
 
-use crate::{get_kb_item, get_pos_port, mtu, OpenvasEncaps};
+use crate::{get_kb_item, mtu, verify_port, OpenvasEncaps};
 
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
@@ -213,34 +214,27 @@ impl NaslSockets {
     }
 
     /// Close a given file descriptor taken as an unnamed argument.
-    fn close(&self, r: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        let args = r.positional();
-        let socket = match args.first() {
-            Some(x) => match x {
-                NaslValue::Number(x) => {
-                    if *x < 0 {
-                        return Err(FunctionErrorKind::WrongArgument(
-                            "Socket FD is smaller than 0".to_string(),
-                        ));
-                    }
-                    *x as usize
-                }
-                _ => {
-                    return Err(FunctionErrorKind::WrongArgument(
-                        "Argument has wrong type, expected a Number".to_string(),
-                    ))
-                }
-            },
-            None => {
-                return Err(FunctionErrorKind::MissingPositionalArguments {
-                    expected: 1,
-                    got: args.len(),
-                })
-            }
-        };
+    #[nasl_function]
+    fn close(&self, socket_fd: usize) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = self.handles.write().unwrap();
-        handles.handles[socket] = NaslSocket::Close;
-        handles.closed_fd.push(socket);
+        match handles.handles.get_mut(socket_fd) {
+            Some(NaslSocket::Close) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    "the given socket FD is already closed".to_string(),
+                    None,
+                ))
+            }
+            Some(socket) => {
+                *socket = NaslSocket::Close;
+                handles.closed_fd.push(socket_fd);
+            }
+            None => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    "the given socket FD does not exist".to_string(),
+                    None,
+                ))
+            }
+        }
         Ok(NaslValue::Null)
     }
 
@@ -259,15 +253,19 @@ impl NaslSockets {
     /// - option: is the flags for the send() system call. You should not use a raw numeric value here.
     ///
     /// On success the number of sent bytes is returned.
-    fn send(&self, r: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        let socket = super::get_usize(r, "socket")?;
-        let data = super::get_data(r)?;
-        let flags = super::get_opt_int(r, "option");
-        let len = if let Some(len) = super::get_opt_int(r, "length") {
+    #[nasl_function(named(socket, data, flags, len))]
+    fn send(
+        &self,
+        socket: usize,
+        data: &[u8],
+        flags: Option<i64>,
+        len: Option<usize>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let len = if let Some(len) = len {
             if len < 1 {
                 data.len()
             } else {
-                len as usize
+                len
             }
         } else {
             data.len()
@@ -336,14 +334,23 @@ impl NaslSockets {
     /// - length the number of bytes that you want to read at most. recv may return before length bytes have been read: as soon as at least one byte has been received, the timeout is lowered to 1 second. If no data is received during that time, the function returns the already read data; otherwise, if the full initial timeout has not been reached, a 1 second timeout is re-armed and the script tries to receive more data from the socket. This special feature was implemented to get a good compromise between reliability and speed when openvas-scanner talks to unknown or complex protocols. Two other optional named integer arguments can twist this behavior:
     /// - min is the minimum number of data that must be read in case the “magic read function” is activated and the timeout is lowered. By default this is 0. It works together with length. More info https://lists.archive.carbon60.com/nessus/devel/13796
     /// - timeout can be changed from the default.
-    fn recv(&self, r: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        let socket = super::get_usize(r, "socket")?;
-        let len = super::get_usize(r, "length")?;
-        // TODO: process min for magic read function
-        let min = super::get_opt_int(r, "min")
-            .map(|x| if x <= 0 { len } else { x as usize })
-            .unwrap_or(len);
-        let timeout = super::get_opt_int(r, "timeout");
+    #[nasl_function(named(socket, len, min, timeout))]
+    fn recv(
+        &self,
+        socket: usize,
+        len: usize,
+        min: Option<i64>,
+        timeout: Option<i64>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let min = if let Some(min) = min {
+            if min < 0 {
+                len
+            } else {
+                min as usize
+            }
+        } else {
+            len
+        };
         let mut data = vec![0; len];
 
         let mut ret = Ok(NaslValue::Null);
@@ -424,11 +431,8 @@ impl NaslSockets {
     /// - Secret/kdc_hostname
     /// - Secret/kdc_port
     /// - Secret/kdc_use_tcp
-    fn open_sock_kdc(
-        &self,
-        _: &Register,
-        context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    #[nasl_function]
+    fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
         let hostname = match get_kb_item(context, "Secret/kdc_hostname")? {
             Some(x) => Ok(x.to_string()),
             None => Err(FunctionErrorKind::Diagnostic(
@@ -490,21 +494,20 @@ impl NaslSockets {
     /// - priority A string value with priorities for an TLS encapsulation. For the syntax of the
     ///   priority string see the GNUTLS manual. This argument is only used in ENCAPS_TLScustom
     ///   encapsulation.
+    #[nasl_function(named(timeout, transport, bufsz))]
     fn open_sock_tcp(
         &self,
-        register: &Register,
         context: &Context,
+        port: i64,
+        timeout: Option<i64>,
+        transport: Option<i64>,
+        bufsz: Option<i64>,
+        // TODO: Extract information from custom priority string
+        // priority: Option<&str>,
     ) -> Result<NaslValue, FunctionErrorKind> {
         // Get port
-        let port = get_pos_port(register)?;
-        let timeout = super::get_opt_int(register, "timeout");
-        let transport = super::get_opt_int(register, "transport").unwrap_or(-1);
-        // TODO: Extract information from custom priority string
-        // let _priority = super::get_named_value(register, "priority")
-        // .ok()
-        // .map(|val| val.to_string());
-        let bufsz =
-            super::get_opt_int(register, "bufsz").and_then(|x| if x < 0 { None } else { Some(x) });
+        let port = verify_port(port)?;
+        let transport = transport.unwrap_or(-1);
 
         let addr = context.target();
         if addr.is_empty() {
@@ -735,12 +738,9 @@ impl NaslSockets {
     }
 
     /// Open a UDP socket to the target host
-    fn open_sock_udp(
-        &self,
-        register: &Register,
-        context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
-        let port = get_pos_port(register)?;
+    #[nasl_function]
+    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, FunctionErrorKind> {
+        let port = verify_port(port)?;
         let addr = context.target();
 
         if addr.is_empty() {
