@@ -16,7 +16,7 @@ use crate::{CliError, CliErrorKind, Db};
 
 struct Run<L, S> {
     context_builder: nasl_interpreter::ContextFactory<L, S>,
-    target: String,
+    _target: String,
     scan_id: String,
 }
 
@@ -75,7 +75,7 @@ where
         Run {
             context_builder: nasl_interpreter::ContextFactory::new(self.loader, self.storage),
             scan_id: self.scan_id,
-            target: self.target,
+            _target: self.target,
         }
     }
 }
