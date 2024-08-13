@@ -9,8 +9,8 @@ mod error;
 
 mod assign;
 mod call;
+mod code_interpreter;
 mod declare;
-mod fork_interpreter;
 mod include;
 mod interpreter;
 mod loop_extension;
@@ -21,10 +21,10 @@ pub mod scheduling;
 
 pub mod test_utils;
 
+pub use code_interpreter::*;
 pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
-pub use fork_interpreter::*;
 pub use interpreter::Interpreter;
 pub use scan_interpreter::*;
 

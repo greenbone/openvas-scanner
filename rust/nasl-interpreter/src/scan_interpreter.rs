@@ -790,7 +790,7 @@ exit({rc});
         let context =
             nasl_builtin_utils::Context::new(key, target, &storage, &storage, &loader, &functions);
         let interpreter = crate::CodeInterpreter::new(code, register, &context);
-        for stmt in interpreter {
+        for stmt in interpreter.iter_blocking() {
             if let nasl_syntax::NaslValue::Exit(_) = stmt.expect("stmt success") {
                 storage.on_exit(context.key()).expect("result");
                 let result = storage

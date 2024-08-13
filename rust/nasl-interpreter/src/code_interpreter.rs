@@ -8,13 +8,14 @@ use nasl_syntax::Statement;
 use crate::interpreter::InterpretResult;
 
 /// To allow closures we use a heap stored statement consumer
-pub type StatementConsumer = Box<dyn Fn(&Statement)>;
+type StatementConsumer = Box<dyn Fn(&Statement)>;
+
 /// Uses given code to return results based on that.
 pub struct CodeInterpreter<'a, 'b> {
     lexer: nasl_syntax::Lexer<'b>,
     interpreter: crate::interpreter::Interpreter<'a>,
     statement: Option<Statement>,
-    /// call back function for Statements before they get interpret
+    /// call back function for Statements before they get interpreted
     pub statement_cb: Option<StatementConsumer>,
 }
 
@@ -115,14 +116,25 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     where
         'a: 'b,
     {
-        stream::unfold(self, |mut s| async move {
+        Box::pin(stream::unfold(self, |mut s| async move {
             let x = s.next_().await;
             if let Some(x) = x {
                 Some((x, s))
             } else {
                 None
             }
-        })
+        }))
+    }
+
+    /// TODO Doc
+    #[cfg(test)]
+    pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> + 'b
+    where
+        'a: 'b,
+    {
+        use futures::StreamExt;
+
+        futures::executor::block_on(async { self.stream().collect::<Vec<_>>().await.into_iter() })
     }
 
     /// Returns the Register of the underlying Interpreter
@@ -140,30 +152,17 @@ impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
 }
 
 #[cfg(test)]
-mod rests {
-    use futures::StreamExt;
+mod tests {
+    use nasl_syntax::NaslValue;
 
-    #[tokio::test]
-    async fn code_interpreter() {
-        use crate::{CodeInterpreter, ContextFactory, Register};
-        use nasl_syntax::NaslValue;
-        let register = Register::default();
-        let context_builder = ContextFactory::default();
-        let context = context_builder.build(Default::default());
-        let code = r#"
-            set_kb_item(name: "test", value: 1);
-            set_kb_item(name: "test", value: 2);
-            display(get_kb_item("test"));
-        "#;
-        let interpreter =
-            CodeInterpreter::with_statement_callback(code, register, &context, &|x| {
-                println!("{x}")
-            });
-        let results = interpreter
-            .stream()
-            .filter_map(|x| async { x.ok() })
-            .collect::<Vec<_>>()
-            .await;
-        assert_eq!(results, vec![NaslValue::Null; 4]);
+    use crate::{nasl_test, nasl_test_internal_code, nasl_test_internal_expr};
+
+    #[test]
+    fn code_interpreter() {
+        nasl_test! {
+            r#"set_kb_item(name: "test", value: 1);"# == NaslValue::Null,
+            r#"set_kb_item(name: "test", value: 2);"# == NaslValue::Null,
+            r#"display(get_kb_item("test"));"# == NaslValue::Null,
+        }
     }
 }
