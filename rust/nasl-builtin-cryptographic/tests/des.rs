@@ -11,20 +11,11 @@ mod tests {
 
     #[test]
     fn des_encrypt() {
-        let code = r#"
-        key = hexstr_to_data("0101010101010101");
-        data = hexstr_to_data("95f8a5e5dd31d900");
-        DES(data,key);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        parser.next();
-        parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Data(decode_hex("8000000000000000").unwrap())))
-        );
+        nasl_test! {
+            r#"key = hexstr_to_data("0101010101010101");"#,
+            r#"data = hexstr_to_data("95f8a5e5dd31d900");"#,
+            r#"DES(data,key);"#
+                == decode_hex("8000000000000000").unwrap(),
+        }
     }
 }
