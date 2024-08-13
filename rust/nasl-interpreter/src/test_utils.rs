@@ -29,6 +29,7 @@ pub fn check_ok(code: &str, expected: impl ToNaslResult) {
         let val = val.unwrap();
         assert_eq!(val, expected);
     });
+    vec![1, 2, 3];
 }
 
 /// Check that the expected value of multiple lines of NASL code
@@ -79,4 +80,79 @@ macro_rules! check_ok_matches {
             assert!(matches!(res, Ok($pat)));
         });
     };
+}
+
+#[macro_export]
+/// TODO: Doc
+macro_rules! nasl_test_internal_code {
+    ($arr_name: ident, $code: literal == $expr:expr, $($tt: tt)*) => {
+        $arr_name.push($code);
+        nasl_test_internal_code!($arr_name, $($tt)*);
+    };
+    ($arr_name: ident, $code: literal throws $expr:expr, $($tt: tt)*) => {
+        $arr_name.push($code);
+        nasl_test_internal_code!($arr_name, $($tt)*);
+    };
+    ($arr_name: ident, $code: literal, $($tt: tt)*) => {
+        $arr_name.push($code);
+        nasl_test_internal_code!($arr_name, $($tt)*);
+    };
+    ($arr_name: ident,) => {};
+}
+
+#[macro_export]
+/// TODO: Doc
+macro_rules! nasl_test_internal_expr {
+    ($arr_name: ident, $count: ident, $code: literal == $expr:expr, $($tt: tt)*) => {
+        assert_eq!(
+            $arr_name.get($count).unwrap(),
+            &Ok($expr .into()),
+            "Mismatch in line {} with code \"{}\". Expected '{}', found '{:?}'",
+            $count,
+            $code,
+            stringify!($pat),
+            $arr_name.get($count).unwrap()
+        );
+        $count += 1;
+        nasl_test_internal_expr!($arr_name, $count, $($tt)*);
+    };
+    ($arr_name: ident, $count: ident, $code: literal throws $pat:pat, $($tt: tt)*) => {
+        assert!(matches!($arr_name.get($count).unwrap(), Err($pat)),
+            "Mismatch in line {} with code \"{}\". Expected '{}', found '{:?}'",
+            $count,
+            $code,
+            stringify!($pat),
+            $arr_name.get($count).unwrap()
+        );
+        $count += 1;
+        nasl_test_internal_expr!($arr_name, $count, $($tt)*);
+    };
+    ($arr_name: ident, $count: ident, $code: literal, $($tt: tt)*) => {
+        $count += 1;
+        nasl_test_internal_expr!($arr_name, $count, $($tt)*);
+    };
+    ($arr_name: ident, $count: ident,) => {};
+}
+
+/// Test a block of nasl code line by line.
+/// Optionally compare the results of each line
+/// against a pattern.
+/// Example usage:
+/// ```
+/// nasl_test! {
+///   "foo = 5;" == 5,
+///   "foo = 2;",
+///   "foo = bar();" throws MissingArguments { .. },
+/// }
+/// ```
+#[macro_export]
+macro_rules! nasl_test {
+    ($($tt: tt)*) => {
+        let mut code = vec![];
+        nasl_test_internal_code!(code, $($tt)*);
+        let code = code.join("\n");
+        let results = $crate::test_utils::run(&code);
+        let mut _count = 0;
+        nasl_test_internal_expr!(results, _count, $($tt)*);
+    }
 }
