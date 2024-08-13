@@ -4,28 +4,22 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use nasl_builtin_utils::{error::FunctionErrorKind, get_named_parameter, NaslFunction};
+use nasl_builtin_utils::{error::FunctionErrorKind, NaslFunction};
+use nasl_function_proc_macro::nasl_function;
 use storage::{Field, Kb, Retrieve};
 
 use nasl_builtin_utils::{Context, Register};
 use nasl_syntax::NaslValue;
 
 /// NASL function to set a knowledge base
-fn set_kb_item(register: &Register, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let name = get_named_parameter(register, "name", true)?;
-    let value = get_named_parameter(register, "value", true)?;
-    let expires = match get_named_parameter(register, "expires", false) {
-        Ok(NaslValue::Number(x)) => Some(*x),
-        Ok(NaslValue::Exit(0)) => None,
-        Ok(x) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!("expected expires to be a number but is {x}."),
-                None,
-            ))
-        }
-        Err(e) => return Err(e),
-    }
-    .map(|seconds| {
+#[nasl_function(named(name, value, expires))]
+fn set_kb_item(
+    c: &Context,
+    name: &str,
+    value: NaslValue,
+    expires: Option<u64>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    let expires = expires.map(|seconds| {
         let start = SystemTime::now();
         match start.duration_since(UNIX_EPOCH) {
             Ok(x) => x.as_secs() + seconds as u64,
@@ -46,26 +40,20 @@ fn set_kb_item(register: &Register, c: &Context) -> Result<NaslValue, FunctionEr
 }
 
 /// NASL function to get a knowledge base
-fn get_kb_item(register: &Register, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    match register.positional() {
-        [x] => c
-            .retriever()
-            .retrieve(c.key(), Retrieve::KB(x.to_string()))
-            .map(|r| {
-                r.into_iter()
-                    .filter_map(|x| match x {
-                        Field::NVT(_) | Field::NotusAdvisory(_) | Field::Result(_) => None,
-                        Field::KB(kb) => Some(kb.value.into()),
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .map(NaslValue::Fork)
-            .map_err(|e| e.into()),
-        x => Err(FunctionErrorKind::Diagnostic(
-            format!("expected one positional argument but got: {}", x.len()),
-            None,
-        )),
-    }
+#[nasl_function]
+fn get_kb_item(arg: &NaslValue, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
+    c.retriever()
+        .retrieve(c.key(), Retrieve::KB(arg.to_string()))
+        .map(|r| {
+            r.into_iter()
+                .filter_map(|x| match x {
+                    Field::NVT(_) | Field::NotusAdvisory(_) | Field::Result(_) => None,
+                    Field::KB(kb) => Some(kb.value.into()),
+                })
+                .collect::<Vec<_>>()
+        })
+        .map(NaslValue::Fork)
+        .map_err(|e| e.into())
 }
 
 /// Returns found function for key or None when not found

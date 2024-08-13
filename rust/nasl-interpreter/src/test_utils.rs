@@ -107,7 +107,7 @@ macro_rules! nasl_test_internal_expr {
         assert_eq!(
             $arr_name.get($count).unwrap(),
             &Ok($expr .into()),
-            "Mismatch in line {} with code \"{}\". Expected '{}', found '{:?}'",
+            "Mismatch in line {} with code \"{}\". Expected 'Ok({})', found '{:?}'",
             $count,
             $code,
             stringify!($pat),
@@ -118,7 +118,7 @@ macro_rules! nasl_test_internal_expr {
     };
     ($arr_name: ident, $count: ident, $code: literal throws $pat:pat, $($tt: tt)*) => {
         assert!(matches!($arr_name.get($count).unwrap(), Err($pat)),
-            "Mismatch in line {} with code \"{}\". Expected '{}', found '{:?}'",
+            "Mismatch in line {} with code \"{}\". Expected 'Err({})', found '{:?}'",
             $count,
             $code,
             stringify!($pat),

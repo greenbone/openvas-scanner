@@ -5,35 +5,24 @@
 #[cfg(test)]
 mod tests {
     use nasl_interpreter::*;
+    use FunctionErrorKind::*;
 
     #[test]
     fn set_kb_item() {
-        let code = r#"
-        set_kb_item(name: "test", value: 1);
-        set_kb_item(name: "test");
-        set_kb_item(value: 1);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert!(matches!(parser.next(), Some(Err(_))));
-        assert!(matches!(parser.next(), Some(Err(_))));
+        nasl_test! {
+            r#"set_kb_item(name: "test", value: 1);"# == NaslValue::Null,
+            r#"set_kb_item(name: "test");"# throws MissingArguments { .. },
+            r#"set_kb_item(value: 1);"# throws MissingArguments { .. },
+        }
     }
+
     #[test]
     fn get_kb_item() {
-        let code = r#"
-        set_kb_item(name: "test", value: 1);
-        get_kb_item("test");
-        get_kb_item("test", 1);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));
-        assert!(matches!(parser.next(), Some(Err(_))));
+        nasl_test! {
+            r#"set_kb_item(name: "test", value: 1);"# == NaslValue::Null,
+            r#"get_kb_item("test");"# == 1,
+            r#"get_kb_item("test", 1);"# throws FunctionErrorKind::TrailingPositionalArguments { .. },
+            r#"get_kb_item();"# throws FunctionErrorKind::MissingPositionalArguments { .. },
+        }
     }
 }
