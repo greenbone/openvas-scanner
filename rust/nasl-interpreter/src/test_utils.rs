@@ -113,13 +113,16 @@ macro_rules! _internal_nasl_test_code {
 /// TODO: Doc
 macro_rules! _internal_nasl_test_expr {
     ($arr_name: ident, $count: ident, $code: literal == $expr:expr, $($tt: tt)*) => {
+        #[allow(unused)]
+        use ::nasl_builtin_utils::function::ToNaslResult as _;
+        let converted = $expr.to_nasl_result().unwrap();
         assert_eq!(
             $arr_name.get($count).unwrap(),
-            &Ok($expr .into()),
+            &Ok(converted),
             "Mismatch in line {} with code \"{}\". Expected 'Ok({})', found '{:?}'",
             $count,
             $code,
-            stringify!($pat),
+            stringify!($expr),
             $arr_name.get($count).unwrap()
         );
         $count += 1;
