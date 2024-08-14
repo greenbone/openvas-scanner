@@ -155,7 +155,7 @@ impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
 mod tests {
     use nasl_syntax::NaslValue;
 
-    use crate::{nasl_test, nasl_test_internal_code, nasl_test_internal_expr};
+    use crate::nasl_test;
 
     #[test]
     fn code_interpreter() {
