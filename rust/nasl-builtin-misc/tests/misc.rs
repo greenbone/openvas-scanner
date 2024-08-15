@@ -8,7 +8,7 @@ mod tests {
 
     use nasl_interpreter::{
         check_err_matches, check_ok_matches,
-        test_utils::{check_ok, run, TestBuilder},
+        test_utils::{check_ok, TestBuilder},
         FunctionErrorKind,
     };
     use nasl_syntax::NaslValue;
@@ -75,7 +75,9 @@ mod tests {
 
     #[test]
     fn gunzip() {
-        let code = r#"
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
         z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);
         gunzip(data: z);
         # With Header Format and data is data
@@ -84,8 +86,9 @@ mod tests {
         # Without Header format and data is a string
         ngz = gzip(data: "ngz");
         gunzip(data: ngz);
-        "#;
-        let results = run(code);
+        "#,
+        );
+        let results = t.results();
         assert_eq!(results[1], Ok(NaslValue::String("z".into())));
         assert_eq!(results[3], Ok(NaslValue::String("gz".into())));
         assert_eq!(results[5], Ok(NaslValue::String("ngz".into())));
@@ -93,13 +96,16 @@ mod tests {
 
     #[test]
     fn localtime() {
-        let code = r###"
-        a = localtime(1676900372, utc: TRUE);
-        b = localtime(1676900372, utc: FALSE);
-        c = localtime(utc: TRUE);
-        d = localtime(utc: FALSE);
-        "###;
-        let results = run(code);
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            a = localtime(1676900372, utc: TRUE);
+            b = localtime(1676900372, utc: FALSE);
+            c = localtime(utc: TRUE);
+            d = localtime(utc: FALSE);
+        "#,
+        );
+        let results = t.results();
         let mut results = results.into_iter();
 
         let offset = chrono::Local::now().offset().fix().local_minus_utc();

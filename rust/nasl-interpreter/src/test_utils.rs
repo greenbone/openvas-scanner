@@ -5,9 +5,37 @@ use futures::StreamExt;
 use nasl_builtin_utils::{function::ToNaslResult, NaslResult};
 use storage::Storage;
 
+// The following exists to trick the trait solver into
+// believing me that everything is fine. Doing this naively
+// runs into some compiler errors
+trait CloneableFn: Fn(NaslResult) -> bool {
+    fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
+    where
+        Self: 'a;
+}
+
+impl<F> CloneableFn for F
+where
+    F: Fn(NaslResult) -> bool + Clone,
+{
+    fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
+    where
+        Self: 'a,
+    {
+        Box::new(self.clone())
+    }
+}
+
+impl<'a> Clone for Box<dyn 'a + CloneableFn> {
+    fn clone(&self) -> Self {
+        (**self).clone_box()
+    }
+}
+
+#[derive(Clone)]
 enum TestResult {
     Ok(NaslValue),
-    GenericCheck(Box<dyn Fn(NaslResult) -> bool>),
+    GenericCheck(Box<dyn CloneableFn>),
     None,
 }
 
@@ -16,6 +44,7 @@ pub struct TestBuilder<L: Loader, S: Storage> {
     lines: Vec<String>,
     results: Vec<TestResult>,
     context: ContextFactory<L, S>,
+    should_verify: bool,
 }
 
 impl Default for TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
@@ -24,6 +53,7 @@ impl Default for TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher
             lines: vec![],
             results: vec![],
             context: ContextFactory::default(),
+            should_verify: true,
         }
     }
 }
@@ -45,7 +75,11 @@ where
     }
 
     /// TODO doc
-    pub fn check(&mut self, line: &str, f: impl Fn(NaslResult) -> bool + 'static) -> &mut Self {
+    pub fn check(
+        &mut self,
+        line: &str,
+        f: impl Fn(NaslResult) -> bool + 'static + Clone,
+    ) -> &mut Self {
         self.add_line(line, TestResult::GenericCheck(Box::new(f)))
     }
 
@@ -54,13 +88,20 @@ where
         self.add_line(line, TestResult::None)
     }
 
-    fn verify(&mut self) {
+    /// TODO doc
+    pub fn run_all(&mut self, arg: &str) {
+        self.lines.push(arg.to_string());
+        self.should_verify = false;
+    }
+
+    /// TODO doc
+    pub fn results(&self) -> Vec<NaslResult> {
         let code = self.lines.join("\n");
         let register = Register::default();
         let context = self.context.build(Default::default());
 
         let parser = CodeInterpreter::new(&code, register, &context);
-        let results: Vec<_> = futures::executor::block_on(async {
+        futures::executor::block_on(async {
             parser
                 .stream()
                 .map(|res| {
@@ -71,12 +112,28 @@ where
                 })
                 .collect()
                 .await
-        });
-        assert_eq!(results.len(), self.results.len());
-        for (line_count, (result, reference)) in
-            (results.iter().zip(self.results.iter())).enumerate()
-        {
-            self.check_result(result, reference, line_count);
+        })
+    }
+
+    fn verify(&mut self) {
+        let results = self.results();
+        if self.should_verify {
+            assert_eq!(results.len(), self.results.len());
+            for (line_count, (result, reference)) in
+                (results.iter().zip(self.results.iter())).enumerate()
+            {
+                self.check_result(result, reference, line_count);
+            }
+        } else {
+            // Make sure the user did not add requirements to this test
+            // since we wont verify them. Panic if they did
+            if self
+                .results
+                .iter()
+                .any(|res| !matches!(res, TestResult::None))
+            {
+                panic!("Take care: Will not verify specified test result in this test, since run_all was called, which will mess with the line numbers.");
+            }
         }
     }
 
@@ -94,7 +151,12 @@ where
                         line_count, self.lines[line_count], reference, result,
                     );
                 }
-                TestResult::GenericCheck(_) => todo!(),
+                TestResult::GenericCheck(_) => {
+                    panic!(
+                        "Check failed in line {} with code \"{}\".",
+                        line_count, self.lines[line_count]
+                    );
+                }
                 TestResult::None => unreachable!(),
             }
         }
@@ -111,6 +173,19 @@ where
             TestResult::None => true,
         }
     }
+
+    /// TODO doc
+    pub fn with_context<L2: Loader, S2: Storage>(
+        self,
+        context: ContextFactory<L2, S2>,
+    ) -> TestBuilder<L2, S2> {
+        TestBuilder {
+            lines: self.lines.clone(),
+            results: self.results.clone(),
+            should_verify: self.should_verify,
+            context: context,
+        }
+    }
 }
 
 impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
@@ -125,35 +200,6 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
 pub fn check_ok(code: &str, expected: impl ToNaslResult) {
     let mut test_builder = TestBuilder::default();
     test_builder.ok(code, expected);
-}
-
-/// Todo DOC
-pub fn run_custom_context<L, S>(code: &str, binding: ContextFactory<L, S>) -> Vec<NaslResult>
-where
-    L: Loader,
-    S: Storage,
-{
-    let register = Register::default();
-    let context = binding.build(Default::default());
-    let parser = CodeInterpreter::new(code, register, &context);
-    futures::executor::block_on(async {
-        parser
-            .stream()
-            .map(|res| {
-                res.map_err(|e| match e.kind {
-                    InterpretErrorKind::FunctionCallError(f) => f.kind,
-                    e => panic!("Unkown error: {}", e),
-                })
-            })
-            .collect()
-            .await
-    })
-}
-
-/// Check that the expected value of multiple lines of NASL code
-/// matches the given values.
-pub fn run(code: &str) -> Vec<NaslResult> {
-    run_custom_context(code, ContextFactory::default())
 }
 
 /// Check that the line of NASL code returns an Err variant
@@ -177,102 +223,4 @@ macro_rules! check_ok_matches {
         let mut t = $crate::test_utils::TestBuilder::default();
         t.check($code, |val| matches!(val, Ok($pat)));
     };
-}
-
-#[macro_export]
-/// TODO: Doc
-macro_rules! _internal_nasl_test_code {
-    ($arr_name: ident, $code: literal == $expr:expr, $($tt: tt)*) => {
-        $arr_name.push($code);
-        $crate::_internal_nasl_test_code!($arr_name, $($tt)*);
-    };
-    ($arr_name: ident, $code: literal throws $expr:expr, $($tt: tt)*) => {
-        $arr_name.push($code);
-        $crate::_internal_nasl_test_code!($arr_name, $($tt)*);
-    };
-    ($arr_name: ident, $code: literal, $($tt: tt)*) => {
-        $arr_name.push($code);
-        $crate::_internal_nasl_test_code!($arr_name, $($tt)*);
-    };
-    ($arr_name: ident,) => {};
-}
-
-#[macro_export]
-/// TODO: Doc
-macro_rules! _internal_nasl_test_expr {
-    ($arr_name: ident, $count: ident, $code: literal == $expr:expr, $($tt: tt)*) => {
-        #[allow(unused)]
-        use ::nasl_builtin_utils::function::ToNaslResult as _;
-        let converted = $expr.to_nasl_result().unwrap();
-        assert_eq!(
-            $arr_name.get($count).unwrap(),
-            &Ok(converted),
-            "Mismatch in line {} with code \"{}\". Expected 'Ok({})', found '{:?}'",
-            $count,
-            $code,
-            stringify!($expr),
-            $arr_name.get($count).unwrap()
-        );
-        $count += 1;
-        $crate::_internal_nasl_test_expr!($arr_name, $count, $($tt)*);
-    };
-    ($arr_name: ident, $count: ident, $code: literal throws $pat:pat, $($tt: tt)*) => {
-        assert!(matches!($arr_name.get($count).unwrap(), Err($pat)),
-            "Mismatch in line {} with code \"{}\". Expected 'Err({})', found '{:?}'",
-            $count,
-            $code,
-            stringify!($pat),
-            $arr_name.get($count).unwrap()
-        );
-        $count += 1;
-        $crate::_internal_nasl_test_expr!($arr_name, $count, $($tt)*);
-    };
-    ($arr_name: ident, $count: ident, $code: literal, $($tt: tt)*) => {
-        $count += 1;
-        $crate::_internal_nasl_test_expr!($arr_name, $count, $($tt)*);
-    };
-    ($arr_name: ident, $count: ident,) => {};
-}
-
-/// Test a block of nasl code line by line.
-/// Optionally compare the results of each line
-/// against a pattern. This macro allows specifying
-/// a particular context to run the lines of code with.
-/// Example usage:
-/// ```
-/// nasl_test_custom! {
-///   context,
-///   "foo = 5;" == 5,
-///   "foo = 2;",
-///   "foo = bar();" throws MissingArguments { .. },
-/// }
-/// ```
-#[macro_export]
-macro_rules! nasl_test_custom_context {
-    ($context: expr, $($tt: tt)*) => {
-        let mut code = vec![];
-        $crate::_internal_nasl_test_code!(code, $($tt)*);
-        let code = code.join("\n");
-        let results = $crate::test_utils::run_custom_context(&code, $context);
-        let mut _count = 0;
-        $crate::_internal_nasl_test_expr!(results, _count, $($tt)*);
-    }
-}
-
-/// Test a block of nasl code line by line.
-/// Optionally compare the results of each line
-/// against a pattern.
-/// Example usage:
-/// ```
-/// nasl_test! {
-///   "foo = 5;" == 5,
-///   "foo = 2;",
-///   "foo = bar();" throws MissingArguments { .. },
-/// }
-/// ```
-#[macro_export]
-macro_rules! nasl_test {
-    ($($tt: tt)*) => {
-        $crate::nasl_test_custom_context!($crate::ContextFactory::default(), $($tt)*);
-    }
 }

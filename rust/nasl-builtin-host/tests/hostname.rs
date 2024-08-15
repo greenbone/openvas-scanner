@@ -4,14 +4,12 @@
 
 #[cfg(test)]
 mod tests {
-    use nasl_interpreter::{test_utils::run, *};
+    use nasl_interpreter::check_ok_matches;
+    use nasl_syntax::NaslValue;
+
     #[test]
     fn get_host_name() {
-        let results = run(r#"
-                get_host_name();
-                get_host_names();
-            "#);
-        matches!(results[0], Ok(NaslValue::String(_)));
-        matches!(results[1], Ok(NaslValue::Array(_)));
+        check_ok_matches!("get_host_name();", NaslValue::String(_));
+        check_ok_matches!("get_host_names();", NaslValue::Array(_));
     }
 }

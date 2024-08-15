@@ -153,16 +153,13 @@ impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
 
 #[cfg(test)]
 mod tests {
+    use crate::test_utils::check_ok;
     use nasl_syntax::NaslValue;
-
-    use crate::nasl_test;
 
     #[test]
     fn code_interpreter() {
-        nasl_test! {
-            r#"set_kb_item(name: "test", value: 1);"# == NaslValue::Null,
-            r#"set_kb_item(name: "test", value: 2);"# == NaslValue::Null,
-            r#"display(get_kb_item("test"));"# == NaslValue::Null,
-        }
+        check_ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        check_ok(r#"set_kb_item(name: "test", value: 2);"#, NaslValue::Null);
+        check_ok(r#"display(get_kb_item("test"));"#, NaslValue::Null);
     }
 }
