@@ -89,8 +89,8 @@ where
     }
 
     /// TODO doc
-    pub fn run_all(&mut self, arg: &str) {
-        self.lines.push(arg.to_string());
+    pub fn run_all(&mut self, arg: impl Into<String>) {
+        self.lines.push(arg.into());
         self.should_verify = false;
     }
 
@@ -98,7 +98,7 @@ where
     pub fn results(&self) -> Vec<NaslResult> {
         let code = self.lines.join("\n");
         let register = Register::default();
-        let context = self.context.build(Default::default());
+        let context = self.context();
 
         let parser = CodeInterpreter::new(&code, register, &context);
         futures::executor::block_on(async {
@@ -113,6 +113,20 @@ where
                 .collect()
                 .await
         })
+    }
+
+    /// TODO doc
+    pub fn context(&self) -> Context {
+        self.context.build(Default::default())
+    }
+
+    /// TODO doc
+    pub fn check_no_errors(&self) {
+        for result in self.results() {
+            if result.is_err() {
+                panic!("Expected no errors, found {:?}", result);
+            }
+        }
     }
 
     fn verify(&mut self) {
