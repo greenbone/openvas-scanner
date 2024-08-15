@@ -107,24 +107,18 @@ impl<'a> Interpreter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use crate::test_utils::TestBuilder;
 
     #[test]
     fn default_null_on_user_defined_functions() {
-        let code = r###"
-        function test(a, b) {
+        let mut t = TestBuilder::default();
+        t.run(
+            "function test(a, b) {
             return a + b;
-        }
-        test(a: 1, b: 2);
-        test(a: 1);
-        test();
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(3.into())));
-        assert_eq!(parser.next(), Some(Ok(1.into())));
+        }",
+        );
+        t.ok("test(a: 1, b: 2);", 3);
+        t.ok("test(a: 1);", 1);
+        t.ok("test();", 0);
     }
 }

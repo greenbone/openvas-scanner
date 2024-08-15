@@ -145,7 +145,6 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
 
 impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
     type Item = InterpretResult;
-
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
     }
