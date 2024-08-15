@@ -3,10 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 #[cfg(test)]
 mod tests {
-    use nasl_interpreter::{
-        test_utils::{check_multiple, check_ok},
-        *,
-    };
+    use nasl_interpreter::{test_utils::check_ok, *};
+    use test_utils::TestBuilder;
     use FunctionErrorKind::*;
     use NaslValue::*;
 
@@ -15,7 +13,7 @@ mod tests {
         check_ok("hexstr('foo');", "666f6f");
         check_err_matches!(
             "hexstr('foo', 'I will be ignored');",
-            TrailingPositionalArguments { .. }
+            TrailingPositionalArguments { .. },
         );
         check_ok("hexstr(6);", Null);
         check_ok("hexstr();", Null);
@@ -24,11 +22,11 @@ mod tests {
 
     #[test]
     fn raw_string() {
-        check_ok("raw_string(0x7B);", vec![123]);
-        check_ok("raw_string(0x7B, 1);", vec![123, 1]);
+        check_ok("raw_string(0x7B);", vec![123u8]);
+        check_ok("raw_string(0x7B, 1);", vec![123u8, 1]);
         check_ok(
             "raw_string(0x7B, 1, 'Hallo');",
-            vec![123, 1, 72, 97, 108, 108, 111],
+            vec![123u8, 1, 72, 97, 108, 108, 111],
         );
     }
 
@@ -100,19 +98,14 @@ mod tests {
 
     #[test]
     fn hexstr_to_data() {
-        let code = r#"
-        a = hexstr_to_data("4bb3c4a4f893ad8c9bdc833c325d62b3");
-        data_to_hexstr(a);
-        "#;
-        check_multiple(
-            code,
+        let mut t = TestBuilder::default();
+        t.ok(
+            r#"a = hexstr_to_data("4bb3c4a4f893ad8c9bdc833c325d62b3");"#,
             vec![
-                Data(vec![
-                    75, 179, 196, 164, 248, 147, 173, 140, 155, 220, 131, 60, 50, 93, 98, 179,
-                ]),
-                String("4bb3c4a4f893ad8c9bdc833c325d62b3".to_string()),
+                75u8, 179, 196, 164, 248, 147, 173, 140, 155, 220, 131, 60, 50, 93, 98, 179,
             ],
         );
+        t.ok(r#"data_to_hexstr(a);"#, "4bb3c4a4f893ad8c9bdc833c325d62b3");
     }
 
     #[test]

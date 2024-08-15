@@ -8,7 +8,7 @@ mod tests {
 
     use nasl_interpreter::{
         check_err_matches, check_ok_matches,
-        test_utils::{check_multiple, check_ok, run},
+        test_utils::{check_ok, run, TestBuilder},
         FunctionErrorKind,
     };
     use nasl_syntax::NaslValue;
@@ -32,20 +32,20 @@ mod tests {
 
     #[test]
     fn nasl_typeof() {
-        check_ok(r#"typeof("AA");"#, "string");
-        check_ok(r#"typeof(1);"#, "int");
-        check_ok(r#"typeof('AA');"#, "data");
-        check_ok(r#"typeof(make_array());"#, "array");
-        check_ok(r#"typeof(NULL);"#, "undef");
-        check_ok(r#"typeof(a);"#, "undef");
+        let mut t = TestBuilder::default();
+        t.ok(r#"typeof("AA");"#, "string");
+        t.ok(r#"typeof(1);"#, "int");
+        t.ok(r#"typeof('AA');"#, "data");
+        t.ok(r#"typeof(make_array());"#, "array");
+        t.ok(r#"typeof(NULL);"#, "undef");
+        t.ok(r#"typeof(a);"#, "undef");
         check_err_matches!(
+            t,
             r#"typeof(23,76);"#,
             FunctionErrorKind::TrailingPositionalArguments { .. }
         );
-        check_multiple(
-            "d['test'] = 2; typeof(d);",
-            vec![NaslValue::from(2), NaslValue::from("array")],
-        )
+        t.ok("d['test'] = 2;", 2);
+        t.ok("typeof(d);", "array");
     }
 
     #[test]
@@ -188,24 +188,12 @@ mod tests {
 
     #[test]
     fn defined_func() {
-        let code = r#"
-        function b() { return 2; }
-        defined_func("b");
-        defined_func("defined_func");
-        a = 12;
-        defined_func("a");
-        defined_func(a);
-        "#;
-        check_multiple(
-            code,
-            vec![
-                NaslValue::Null, // defining function b
-                true.into(),     // is b defined
-                true.into(),     // is defined_func defined
-                12i64.into(),    // defining variable a
-                false.into(),    // is a a function
-                false.into(),    // is the value of a a function
-            ],
-        )
+        let mut t = TestBuilder::default();
+        t.ok("function b() { return 2; }", NaslValue::Null);
+        t.ok(r#"defined_func("b");"#, true);
+        t.ok(r#"defined_func("defined_func");"#, true);
+        t.ok("a = 12;", 12i64);
+        t.ok(r#"defined_func("a");"#, false);
+        t.ok("defined_func(a);", false);
     }
 }
