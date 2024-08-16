@@ -3,17 +3,17 @@
 
 use futures::{stream, Stream};
 
-use nasl_syntax::Statement;
+use nasl_syntax::{Lexer, Statement, Tokenizer};
 
-use crate::interpreter::InterpretResult;
+use crate::interpreter::{InterpretResult, Interpreter};
 
 /// To allow closures we use a heap stored statement consumer
 type StatementConsumer = Box<dyn Fn(&Statement)>;
 
 /// Uses given code to return results based on that.
 pub struct CodeInterpreter<'a, 'b> {
-    lexer: nasl_syntax::Lexer<'b>,
-    interpreter: crate::interpreter::Interpreter<'a>,
+    lexer: Lexer<'b>,
+    interpreter: Interpreter<'a>,
     statement: Option<Statement>,
     /// call back function for Statements before they get interpreted
     pub statement_cb: Option<StatementConsumer>,
@@ -43,9 +43,9 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         register: crate::Register,
         context: &'a crate::Context<'a>,
     ) -> CodeInterpreter<'a, 'b> {
-        let token = nasl_syntax::Tokenizer::new(code);
-        let lexer = nasl_syntax::Lexer::new(token);
-        let interpreter = crate::interpreter::Interpreter::new(register, context);
+        let token = Tokenizer::new(code);
+        let lexer = Lexer::new(token);
+        let interpreter = Interpreter::new(register, context);
         Self {
             lexer,
             interpreter,
