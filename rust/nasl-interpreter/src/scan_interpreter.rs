@@ -9,7 +9,7 @@ use nasl_syntax::{Loader, NaslValue};
 use storage::types::Primitive;
 use storage::{ContextKey, Storage};
 
-use crate::scanner::ScannerStack;
+use crate::running_scan::ScannerStack;
 use crate::scheduling::{ConcurrentVT, ExecutionPlaner};
 use crate::InterpretError;
 

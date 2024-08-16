@@ -343,7 +343,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::{
-        scanner::Scanner,
+        running_scan::Scanner,
         tests::{setup_success, GenerateScript},
     };
 
