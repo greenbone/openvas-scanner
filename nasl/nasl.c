@@ -227,7 +227,7 @@ main (int argc, char **argv)
       else
         putchar ('\n');
       printf ("Copyright (C) 2002 - 2004 Tenable Network Security\n");
-      printf ("Copyright (C) 2022 Greenbone Networks GmbH\n\n");
+      printf ("Copyright (C) 2024 Greenbone AG\n\n");
       exit (0);
     }
   if (nasl_debug)

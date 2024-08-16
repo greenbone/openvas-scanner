@@ -551,7 +551,7 @@ openvas (int argc, char *argv[], char *env[])
       printf ("GIT revision %s\n", OPENVAS_GIT_REVISION);
 #endif
       printf ("gvm-libs %s\n", gvm_libs_version ());
-      printf ("Most new code since 2005: (C) 2022 Greenbone Networks GmbH\n");
+      printf ("Most new code since 2005: (C) 2024 Greenbone AG\n");
       printf (
         "Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");
