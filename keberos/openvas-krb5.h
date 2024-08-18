@@ -68,7 +68,7 @@ o_krb5_request (const OKrb5Element *element, const char *data,
 OKrb5ErrorCode
 o_krb5_free_data (const OKrb5Element *element, OKrb5Data *data);
 
-OKrb5ErrorCode
+void
 o_krb5_free_element (OKrb5Element *element);
 
 #if OPENVAS_KRB5_CACHED == 1
@@ -76,8 +76,9 @@ o_krb5_free_element (OKrb5Element *element);
 typedef struct
 {
   OKrb5Credential credentials;
-  OKrb5Element element;
+  OKrb5Element *element;
   OKrb5ErrorCode last_error_code;
+  unsigned long id;
 } OKrb5CacheElement;
 
 typedef struct
@@ -87,6 +88,13 @@ typedef struct
   OKrb5CacheElement **elements;
 } OKrb5CacheList;
 
+
+OKrb5ErrorCode o_krb5_cache_init(void);
+OKrb5ErrorCode o_krb5_cache_clear(void);
+
+OKrb5CacheElement *o_krb5_cache_find(const OKrb5Credential *cred);
+
+OKrb5ErrorCode o_krb5_cache_request(const OKrb5Credential credentials, const char *data, const size_t data_len, OKrb5Data **out);
 #endif
 
 #endif

@@ -28,7 +28,6 @@ main ()
   GUARD_ENV_SET (credentials.realm, "KRB5_REALM");
   GUARD_ENV_SET (credentials.user, "KRB5_USER");
   GUARD_ENV_SET (credentials.password, "KRB5_PASSWORD");
-
   if (o_krb5_find_kdc (&credentials, &kdc))
     {
       GUARD_ENV_SET (kdc, "KRB5_KDC");
@@ -43,6 +42,9 @@ main ()
       printf ("Using kdc: %s\n", kdc);
       free (kdc);
     }
+
+#if OPENVAS_KRB5_CACHED != 1
+
   if ((result = o_krb5_authenticate (credentials, &element)))
     {
       fprintf (stderr, "Error: %d: %s\n", result,
@@ -65,4 +67,24 @@ main ()
     }
 
   return 0;
+#else
+
+  if ((result = o_krb5_cache_request (credentials, "test", 5, &data)))
+    {
+      fprintf (stderr, "unable to create request: %d\n", result);
+      return 1;
+    }
+  element = o_krb5_cache_find(&credentials)->element;
+  if (element == NULL)
+    {
+      fprintf (stderr, "element not found: %d", result);
+      return 1;
+    }
+  printf ("Authentication Token:\n");
+  printf ("--------------------\n");
+  printf ("End time:     %d\n", element->creds.times.endtime);
+  printf ("start time:     %d\n", element->creds.times.starttime);
+  printf ("Renew till:     %d\n", element->creds.times.renew_till);
+  o_krb5_cache_clear();
+#endif
 }
