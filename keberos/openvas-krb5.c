@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define GUARD_NULL(var, return_var)          \
   do                                         \
@@ -261,11 +262,9 @@ result:
   return result;
 }
 
-OKrb5ErrorCode
+void
 o_krb5_free_element (OKrb5Element *element)
 {
-  OKrb5ErrorCode result = O_KRB5_SUCCESS;
-
   if (element != NULL)
     {
       krb5_free_cred_contents (element->ctx, &element->creds);
@@ -273,7 +272,6 @@ o_krb5_free_element (OKrb5Element *element)
       krb5_free_context (element->ctx);
       free (element);
     }
-  return result;
 }
 
 OKrb5ErrorCode
@@ -325,3 +323,169 @@ o_krb5_free_data (const OKrb5Element *element, OKrb5Data *data)
 result:
   return result;
 }
+
+#if OPENVAS_KRB5_CACHED == 1
+// we use FNV-1a to generate the id so that we don't need to introduce artifical
+// numbers but can just reuse credentials to find connections that way we can
+// simply reconnect when we either don't find an entry or when the ticket is
+// invalid witout having the caller to remember artifical identifier.
+unsigned long
+o_krb5_cach_credential_id (const OKrb5Credential *cred)
+{
+  unsigned long hash = 2166136261;
+  unsigned int prime = 16777219;
+
+  for (const char *str = cred->realm; *str; str++)
+    {
+      hash = (hash ^ *str) * prime;
+    }
+  for (const char *str = cred->user; *str; str++)
+    {
+      hash = (hash ^ *str) * prime;
+    }
+  for (const char *str = cred->password; *str; str++)
+    {
+      hash = (hash ^ *str) * prime;
+    }
+  return hash;
+}
+
+static OKrb5CacheList *element_cache = NULL;
+
+OKrb5ErrorCode
+o_krb5_init_cache (void)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  GUARD_NULL (element_cache, result);
+  ALLOCATE_AND_CHECK (element_cache, OKrb5CacheList, 1, result);
+  element_cache->cap = 2;
+  ALLOCATE_AND_CHECK (element_cache->elements, OKrb5CacheElement *,
+                      element_cache->cap, result);
+result:
+  return result;
+}
+
+OKrb5ErrorCode
+o_krb5_clear_cache (void)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  if (element_cache == NULL)
+    goto result;
+  int i;
+  for (i = 0; i < element_cache->len; i++)
+    {
+      o_krb5_free_element ((element_cache->elements[i])->element);
+      free (element_cache->elements[i]);
+    }
+  free (element_cache);
+  element_cache = NULL;
+
+result:
+  return result;
+}
+
+OKrb5CacheElement *
+o_krb5_find_element (const OKrb5Credential *cred)
+{
+  if (element_cache == NULL)
+    {
+      return NULL;
+    }
+  int i;
+  unsigned long id = o_krb5_cach_credential_id (cred);
+
+  for (i = 0; i < element_cache->len; i++)
+    {
+      if (element_cache->elements[i]->id == id)
+        {
+          return element_cache->elements[i];
+        }
+    }
+  return NULL;
+}
+
+
+OKrb5ErrorCode
+o_krb5_cache_add_element (const OKrb5Credential credentials,
+                           OKrb5CacheElement **out)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+
+  OKrb5CacheElement **new_elements;
+  if (element_cache->len == element_cache->cap)
+    {
+      if ((new_elements =
+             realloc (element_cache->elements,
+                      element_cache->cap * 2 * sizeof (OKrb5CacheElement *)))
+          == NULL)
+        {
+          result = O_KRB5_NOMEM;
+          goto result;
+        }
+      memset (new_elements + element_cache->cap, 0,
+              element_cache->cap * sizeof (OKrb5CacheElement *));
+      element_cache->cap = element_cache->cap * 2;
+      element_cache->elements = new_elements;
+    }
+
+  ALLOCATE_AND_CHECK (*out, OKrb5CacheElement, 1, result);
+  (*out)->credentials = credentials;
+  (*out)->id = o_krb5_cach_credential_id (&credentials);
+  element_cache->elements[element_cache->len] = *out;
+
+  if ((result = o_krb5_authenticate (credentials, &(*out)->element)))
+    {
+      (*out)->last_error_code = result;
+      goto result;
+    }
+  element_cache->len += 1;
+
+result:
+  return result;
+}
+
+OKrb5ErrorCode
+o_krb5_cached_request (const OKrb5Credential credentials, const char *data,
+                       const size_t data_len, OKrb5Data **out)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+
+  if (element_cache == NULL)
+    o_krb5_init_cache ();
+  OKrb5CacheElement *element = o_krb5_find_element (&credentials);
+
+  // TODO: check if ticket is valid, if not valid try to get new one without
+  // reauthenticate (till_new) or free and reauthenticate
+  if (element == NULL)
+    {
+      if ((result = o_krb5_cache_add_element (credentials, &element)))
+        {
+          goto result;
+        }
+    }
+  else
+    {
+      time_t systime;
+      systime = time (NULL);
+      if (systime >= element->element->creds.times.endtime)
+        {
+          // TODO: add renew when till is lower than systime
+          o_krb5_free_element (element->element);
+          element->element = NULL;
+          if ((result = o_krb5_authenticate (credentials, &element->element)))
+            {
+              element->last_error_code = result;
+              goto result;
+            }
+        }
+    }
+  if ((result = o_krb5_request (element->element, data, data_len, out)))
+    {
+      goto result;
+    }
+
+result:
+  return result;
+}
+
+#endif
