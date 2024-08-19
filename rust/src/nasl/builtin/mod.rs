@@ -5,6 +5,7 @@
 #![doc = include_str!("README.md")]
 
 mod array;
+mod cert;
 mod cryptographic;
 mod description;
 mod host;
@@ -52,7 +53,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(description::Description)
         .add_set(isotime::NaslIsotime)
         .add_set(cryptographic::rc4::CipherHandlers::default())
-        .add_set(ssh::Ssh::default());
+        .add_set(ssh::Ssh::default())
+        .add_set(cert::NaslCerts::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_set(raw_ip::RawIp);
