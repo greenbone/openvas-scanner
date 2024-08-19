@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex, RwLock,
@@ -8,19 +7,17 @@ use std::{
     time::SystemTime,
 };
 
-use async_trait::async_trait;
-use models::{
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
-    Scan,
-};
-use nasl_builtin_utils::{NaslFunctionExecuter, NaslFunctionRegister};
-use nasl_syntax::{FSPluginLoader, Loader};
-use storage::{DefaultDispatcher, Storage};
+use models::{scanner::Error, Scan, Status};
+use nasl_builtin_utils::NaslFunctionExecuter;
+use nasl_syntax::Loader;
+use storage::Storage;
 use tokio::task::JoinHandle;
 
-use crate::{scheduling::WaveExecutionPlan, SyncScanInterpreter};
+use crate::scanner::scan_interpreter::SyncScanInterpreter;
 
-struct RunningScan<S: ScannerStack> {
+use super::ScannerStack;
+
+pub struct RunningScan<S: ScannerStack> {
     scan: Scan,
     // Remove mutex to allow parallel usage of those
     storage: Arc<RwLock<S::Storage>>,
@@ -132,14 +129,15 @@ impl<S: ScannerStack> RunningScan<S> {
         results
     }
 }
-struct RunningScanHandle {
+
+pub struct RunningScanHandle {
     handle: JoinHandle<Result<(), Error>>,
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<models::Status>>,
 }
 
 impl RunningScanHandle {
-    fn start<S, L, N, T>(
+    pub fn start<S, L, N, T>(
         scan: Scan,
         storage: Arc<RwLock<S>>,
         loader: Arc<Mutex<L>>,
@@ -172,161 +170,14 @@ impl RunningScanHandle {
             status,
         }
     }
-}
 
-pub trait ScannerStack {
-    type Storage: Storage + Sync + Send + 'static;
-    type Loader: Loader + Send + 'static;
-    type Executor: NaslFunctionExecuter + Send + 'static;
-}
-
-impl<S, L, F> ScannerStack for (S, L, F)
-where
-    S: Storage + Send + 'static,
-    L: Loader + Send + 'static,
-    F: NaslFunctionExecuter + Send + 'static,
-{
-    type Storage = S;
-    type Loader = L;
-    type Executor = F;
-}
-
-/// The default scanner stack, consisting of `DefaultDispatcher`,
-/// `FSPluginLoader` and `NaslFunctionRegister`.
-pub type DefaultScannerStack = (DefaultDispatcher, FSPluginLoader, NaslFunctionRegister);
-
-/// The with storage scanner strack consisting of a statically living sendable Storage
-/// implementation,`FSPPluginLoader` nasl `NaslFunctionRegister`.
-pub type WithStorageScannerStack<S> = (S, FSPluginLoader, NaslFunctionRegister);
-
-/// Allows starting, stopping and managing the results of new scans.
-pub struct Scanner<S: ScannerStack> {
-    running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
-    storage: Arc<RwLock<S::Storage>>,
-    loader: Arc<Mutex<S::Loader>>,
-    function_executor: Arc<Mutex<S::Executor>>,
-}
-
-impl<St, L, F> Scanner<(St, L, F)>
-where
-    St: Storage + Send + 'static,
-    L: Loader + Send + 'static,
-    F: NaslFunctionExecuter + Send + 'static,
-{
-    fn new(storage: St, loader: L, executor: F) -> Self {
-        Self {
-            running: Arc::new(RwLock::new(HashMap::default())),
-            storage: Arc::new(RwLock::new(storage)),
-            loader: Arc::new(Mutex::new(loader)),
-            function_executor: Arc::new(Mutex::new(executor)),
-        }
-    }
-}
-
-impl Scanner<DefaultScannerStack> {
-    /// Create a new scanner with the default stack.
-    /// Requires the root path for the loader.
-    pub fn with_default_stack(root: &Path) -> Self {
-        let storage = DefaultDispatcher::new();
-        let loader = FSPluginLoader::new(root);
-        let executor = crate::nasl_std_functions();
-        Self::new(storage, loader, executor)
-    }
-}
-
-impl<S> Scanner<WithStorageScannerStack<S>>
-where
-    S: storage::Storage + Send + 'static,
-{
-    /// Creates a new scanner with a Storage and the rest based on the DefaultScannerStack.
-    ///
-    /// Requires the root path for the loader and the storage implementation.
-    pub fn with_storage(storage: S, root: &Path) -> Self {
-        let loader = FSPluginLoader::new(root);
-        let executor = crate::nasl_std_functions();
-        Self::new(storage, loader, executor)
-    }
-}
-
-#[async_trait]
-impl<S: ScannerStack> ScanStarter for Scanner<S> {
-    async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
-        let storage = self.storage.clone();
-        let loader = self.loader.clone();
-        let function_executor = self.function_executor.clone();
-        let id = scan.scan_id.clone();
-        let handle = RunningScanHandle::start::<_, _, _, WaveExecutionPlan>(
-            scan,
-            storage,
-            loader,
-            function_executor,
-        );
-        self.running.write().unwrap().insert(id, handle);
-        Ok(())
+    pub fn stop(&self) {
+        self.keep_running.store(false, Ordering::SeqCst);
+        self.handle.abort();
     }
 
-    async fn can_start_scan(&self, _: &Scan) -> bool {
-        // Todo: Implement this properly
-        true
-    }
-}
-
-#[async_trait]
-impl<S: ScannerStack> ScanStopper for Scanner<S> {
-    async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        let id = id.as_ref();
-        let handle = self
-            .running
-            .write()
-            .unwrap()
-            .remove(id)
-            .ok_or_else(|| Error::ScanNotFound(id.to_string()))?;
-        handle.keep_running.store(false, Ordering::SeqCst);
-        handle.handle.abort();
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<S: ScannerStack> ScanDeleter for Scanner<S> {
-    async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        let ck = storage::ContextKey::Scan(id.as_ref().to_string(), None);
-        self.stop_scan(id).await?;
-        let store = self.storage.read().unwrap();
-        store
-            .remove_scan(&ck)
-            .map_err(|_| Error::ScanNotFound(ck.as_ref().to_string()))?;
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<S: ScannerStack> ScanResultFetcher for Scanner<S> {
-    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        let running = self.running.read().unwrap();
-        match running.get(id.as_ref()) {
-            Some(r) => {
-                let status = r.status.read().unwrap().clone();
-                Ok(ScanResults {
-                    id: id.as_ref().to_string(),
-                    status,
-                    // The results are directly stored by the storage implementation:
-                    // inmemory.rs
-                    // file.rs
-                    results: vec![],
-                })
-            }
-            None => Err(Error::ScanNotFound(id.as_ref().to_string())),
-        }
+    pub fn status(&self) -> Status {
+        self.status.read().unwrap().clone()
     }
 }
 
@@ -342,9 +193,9 @@ mod tests {
     use storage::item::Nvt;
     use tracing_test::traced_test;
 
-    use crate::{
-        running_scan::Scanner,
-        tests::{setup_success, GenerateScript},
+    use crate::scanner::{
+        scan_interpreter::tests::{setup, setup_success, GenerateScript},
+        Scanner,
     };
 
     type TestStack = (
@@ -359,7 +210,7 @@ mod tests {
     }
 
     fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (Scanner<TestStack>, Scan) {
-        let ((storage, loader, executor), scan) = crate::tests::setup(scripts);
+        let ((storage, loader, executor), scan) = setup(scripts);
         (Scanner::new(storage, loader, executor), scan)
     }
 

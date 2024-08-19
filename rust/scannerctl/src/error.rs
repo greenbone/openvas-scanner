@@ -5,7 +5,7 @@
 use std::{fmt::Display, path::PathBuf};
 
 use feed::VerifyError;
-use nasl_interpreter::{InterpretError, LoadError};
+use nasl_interpreter::{ExecuteError, InterpretError, LoadError};
 use nasl_syntax::{SyntaxError, Token};
 use storage::StorageError;
 
@@ -19,7 +19,7 @@ pub enum CliErrorKind {
         err_msg: String,
     },
     InterpretError(InterpretError),
-    ExecuteError(nasl_interpreter::ExecuteError),
+    ExecuteError(ExecuteError),
     LoadError(LoadError),
     StorageError(StorageError),
     SyntaxError(SyntaxError),

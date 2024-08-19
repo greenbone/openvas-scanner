@@ -5,6 +5,7 @@
 use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
+use nasl_interpreter::{nasl_std_functions, SyncScanInterpreter};
 use nasl_syntax::FSPluginLoader;
 use tracing::Level;
 
@@ -77,8 +78,8 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
             );
         }
     } else {
-        let executor = nasl_interpreter::nasl_std_functions();
-        let interpreter = nasl_interpreter::SyncScanInterpreter::new(&storage, &loader, &executor);
+        let executor = nasl_std_functions();
+        let interpreter = SyncScanInterpreter::new(&storage, &loader, &executor);
         match interpreter
             .run_with_schedule(&scan, schedule) {
             Err(e) => {

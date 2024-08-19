@@ -15,8 +15,7 @@ mod include;
 mod interpreter;
 mod loop_extension;
 mod operator;
-mod running_scan;
-mod scan_interpreter;
+mod scanner;
 pub mod scheduling;
 
 pub mod test_utils;
@@ -26,12 +25,12 @@ pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
-pub use scan_interpreter::*;
+pub use scanner::ExecuteError;
 
-pub use running_scan::DefaultScannerStack;
-pub use running_scan::Scanner;
-pub use running_scan::WithStorageScannerStack;
-
+pub use scanner::DefaultScannerStack;
+pub use scanner::Scanner;
+pub use scanner::SyncScanInterpreter;
+pub use scanner::WithStorageScannerStack;
 // we expose the other libraries to allow users to use them without having to import them
 pub use nasl_builtin_std::{nasl_std_functions, ContextFactory, RegisterBuilder};
 pub use nasl_builtin_utils::{
