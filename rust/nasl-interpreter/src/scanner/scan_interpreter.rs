@@ -113,7 +113,7 @@ impl<'a, S: ScannerStack> SyncScanInterpreter<'a, S> {
         // - Ports/tcp/port/$port value 0 for closed or 1 for open
         // - Ports/udp/port/$port value 0 for closed or 1 for open
         // TODO: set kb item ports
-        Ok(ScanRunner::new::<S>(
+        Ok(ScanRunner::<T, S>::new(
             scan,
             self.storage,
             self.loader,

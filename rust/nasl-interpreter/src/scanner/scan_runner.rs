@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use nasl_builtin_utils::NaslFunctionExecuter;
 use nasl_syntax::{Loader, NaslValue};
 use storage::types::Primitive;
-use storage::{ContextKey, Storage};
+use storage::{ContextKey, Retriever, Storage};
 
 use crate::scanner::scan_interpreter::generate_port_kb_key;
 use crate::scanner::ScannerStack;
@@ -13,15 +12,15 @@ use crate::scheduling::ConcurrentVT;
 
 use super::error::{ExecuteError, ScriptResult, ScriptResultKind};
 
-pub struct ScanRunner<'a, T> {
+pub struct ScanRunner<'a, T, S: ScannerStack> {
     schedule: T,
     scan: &'a models::Scan,
 
     /// Default Retriever
-    storage: &'a dyn Storage,
+    storage: &'a S::Storage,
     /// Default Loader
-    loader: &'a dyn Loader,
-    executor: &'a dyn NaslFunctionExecuter,
+    loader: &'a S::Loader,
+    executor: &'a S::Executor,
     /// Is used to remember which host we currently are executing. The host name will get through
     /// the stored scan reference.
     current_host: usize,
@@ -37,35 +36,35 @@ pub struct ScanRunner<'a, T> {
     concurrent_vts: Vec<ConcurrentVT>,
 }
 
-impl<'a, T> ScanRunner<'a, T>
+impl<'a, T, S: ScannerStack> ScanRunner<'a, T, S>
 where
     T: Iterator<Item = crate::scheduling::ConcurrentVTResult> + 'a,
 {
-    pub fn new<S: ScannerStack>(
+    pub fn new(
         scan: &'a models::Scan,
         storage: &'a S::Storage,
         loader: &'a S::Loader,
         executor: &'a S::Executor,
         schedule: T,
     ) -> Self {
-        let current_host = 0;
         Self {
             schedule,
             scan,
             storage,
             loader,
             executor,
-            concurrent_vts: Vec::with_capacity(1000),
-            current_host,
+            concurrent_vts: vec![],
+            current_host: 0,
             current_host_concurrent_vt_idx: (0, 0),
         }
     }
-    // TODO: implement
+
     fn parameter(
         &mut self,
         parameter: &models::Parameter,
         _register: &mut crate::Register,
     ) -> Result<(), ExecuteError> {
+        // TODO: implement
         Err(ExecuteError::Parameter(parameter.clone()))
     }
 
@@ -309,7 +308,7 @@ where
     }
 }
 
-impl<'a, T> Iterator for ScanRunner<'a, T>
+impl<'a, T, S: ScannerStack> Iterator for ScanRunner<'a, T, S>
 where
     T: Iterator<Item = crate::scheduling::ConcurrentVTResult> + 'a,
 {
