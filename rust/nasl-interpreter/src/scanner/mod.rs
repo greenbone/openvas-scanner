@@ -24,8 +24,9 @@ mod scanner_stack;
 
 pub use error::ExecuteError;
 pub use scan_interpreter::SyncScanInterpreter;
+pub use scanner_stack::DefaultScannerStack;
 pub use scanner_stack::ScannerStack;
-pub use scanner_stack::{DefaultScannerStack, WithStorageScannerStack};
+pub use scanner_stack::ScannerStackWithStorage;
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
@@ -62,7 +63,7 @@ impl Scanner<DefaultScannerStack> {
     }
 }
 
-impl<S> Scanner<WithStorageScannerStack<S>>
+impl<S> Scanner<ScannerStackWithStorage<S>>
 where
     S: storage::Storage + Send + 'static,
 {

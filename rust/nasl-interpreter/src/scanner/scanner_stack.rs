@@ -23,6 +23,5 @@ where
 /// `FSPluginLoader` and `NaslFunctionRegister`.
 pub type DefaultScannerStack = (DefaultDispatcher, FSPluginLoader, NaslFunctionRegister);
 
-/// The with storage scanner strack consisting of a statically living sendable Storage
-/// implementation,`FSPPluginLoader` nasl `NaslFunctionRegister`.
-pub type WithStorageScannerStack<S> = (S, FSPluginLoader, NaslFunctionRegister);
+/// Like `DefaultScannerStack` but with a specific storage type.
+pub type ScannerStackWithStorage<S> = (S, FSPluginLoader, NaslFunctionRegister);

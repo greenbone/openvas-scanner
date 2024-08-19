@@ -9,7 +9,7 @@ use config::{Config, Mode, ScannerType};
 use controller::{Context, ContextBuilder};
 use infisto::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner};
-use nasl_interpreter::{FSPluginLoader, WithStorageScannerStack};
+use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
 use notus::NotusWrapper;
 use openvas::cmd;
 use storage::{FromConfigAndFeeds, Storage};
@@ -83,7 +83,7 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
 fn make_openvasd_scanner<S>(
     config: &Config,
     storage: S,
-) -> nasl_interpreter::Scanner<WithStorageScannerStack<S>>
+) -> nasl_interpreter::Scanner<ScannerStackWithStorage<S>>
 where
     S: storage::NaslStorage + Send + 'static,
 {
