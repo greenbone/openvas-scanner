@@ -13,7 +13,7 @@ use nasl_syntax::Loader;
 use storage::Storage;
 use tokio::task::JoinHandle;
 
-use crate::scanner::scan_interpreter::SyncScanInterpreter;
+use crate::{scanner::scan_runner::ScanRunner, scheduling::ExecutionPlaner};
 
 use super::ScannerStack;
 
@@ -59,65 +59,67 @@ impl<S: ScannerStack> RunningScan<S> {
         let storage: &S::Storage = &self.storage.read().unwrap();
         let loader: &S::Loader = &self.loader.lock().unwrap();
         let function_executor: &S::Executor = &self.function_executor.lock().unwrap();
-        let interpreter = SyncScanInterpreter::new(storage, loader, function_executor);
+
+        // TODO make this prettier.
+        let schedule =
+            storage
+                .execution_plan::<T>(&self.scan)
+                .map_err(|e| Error::SchedulingError {
+                    id: self.scan.scan_id.to_string(),
+                    reason: e.to_string(),
+                })?;
+        let interpreter: ScanRunner<_, (_, _, _)> =
+            ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
         let _span = tracing::error_span!("running", scan = self.scan.scan_id).entered();
         tracing::debug!(scan_id = self.scan.scan_id);
         self.set_status_to_running();
         let mut end_phase = models::Phase::Succeeded;
         let mut last_target = String::new();
 
-        let results = interpreter
-            .run::<T>(&self.scan)
-            .map(|it| {
-                // TODO: check for error and abort, we need to keep track of the state
+        // TODO: check for error and abort, we need to keep track of the state
 
-                for it in it {
-                    match it {
-                        Ok(x) => {
-                            tracing::trace!(last_target, target = x.target, targets=?self.scan.target.hosts);
-                            if x.target != last_target {
-                                let mut status = self.status.write().unwrap();
-                                if let Some(y) = status.host_info.as_mut() {
-                                    if y.queued > 0 {
-                                        y.queued -= 1;
-                                    }
-                                    y.finished += 1;
-                                    // TODO why is it a hashmap when we return a list of strings
-                                    // within the API?
-                                    if let Some(scanning) = y.scanning.as_mut() {
-                                        scanning.remove(&last_target);
-
-                                        scanning.insert(x.target.clone(), 1);
-                                    } else {
-                                        let mut current_scan = HashMap::new();
-                                        current_scan.insert(x.target.clone(), 1);
-                                        y.scanning = Some(current_scan);
-                                    }
-                                }
-
-                                last_target = x.target.clone();
+        for it in interpreter {
+            match it {
+                Ok(x) => {
+                    tracing::trace!(last_target, target = x.target, targets=?self.scan.target.hosts);
+                    if x.target != last_target {
+                        let mut status = self.status.write().unwrap();
+                        if let Some(y) = status.host_info.as_mut() {
+                            if y.queued > 0 {
+                                y.queued -= 1;
                             }
-                            tracing::debug!(result=?x, "script finished");
+                            y.finished += 1;
+                            // TODO why is it a hashmap when we return a list of strings
+                            // within the API?
+                            if let Some(scanning) = y.scanning.as_mut() {
+                                scanning.remove(&last_target);
 
-                            if x.has_failed() {
-                                end_phase = models::Phase::Failed;
+                                scanning.insert(x.target.clone(), 1);
+                            } else {
+                                let mut current_scan = HashMap::new();
+                                current_scan.insert(x.target.clone(), 1);
+                                y.scanning = Some(current_scan);
                             }
                         }
-                        Err(x) => {
-                            tracing::warn!(error=?x, "unrecoverable error, aborting whole run");
-                            end_phase = models::Phase::Failed;
-                        }
+
+                        last_target = x.target.clone();
                     }
-                    if !self.keep_running.load(Ordering::SeqCst) {
-                        end_phase = models::Phase::Stopped;
-                        break;
+                    tracing::debug!(result=?x, "script finished");
+
+                    if x.has_failed() {
+                        end_phase = models::Phase::Failed;
                     }
                 }
-            })
-            .map_err(|e| Error::SchedulingError {
-                id: self.scan.scan_id.to_string(),
-                reason: e.to_string(),
-            });
+                Err(x) => {
+                    tracing::warn!(error=?x, "unrecoverable error, aborting whole run");
+                    end_phase = models::Phase::Failed;
+                }
+            }
+            if !self.keep_running.load(Ordering::SeqCst) {
+                end_phase = models::Phase::Stopped;
+                break;
+            }
+        }
 
         let mut status = self.status.write().unwrap();
         status.status = end_phase;
@@ -126,7 +128,7 @@ impl<S: ScannerStack> RunningScan<S> {
         if let Some(hi) = status.host_info.as_mut() {
             hi.scanning = None;
         }
-        results
+        Ok(())
     }
 }
 
@@ -194,7 +196,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::scanner::{
-        scan_interpreter::tests::{setup, setup_success, GenerateScript},
+        scan_runner::tests::{setup, setup_success, GenerateScript},
         Scanner,
     };
 

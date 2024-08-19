@@ -23,10 +23,11 @@ mod scan_runner;
 mod scanner_stack;
 
 pub use error::ExecuteError;
-pub use scan_interpreter::SyncScanInterpreter;
 pub use scanner_stack::DefaultScannerStack;
 pub use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
+// I don't think this should be public.
+pub use scan_runner::ScanRunner;
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {

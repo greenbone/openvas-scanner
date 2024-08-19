@@ -2,6 +2,12 @@ use nasl_builtin_utils::{NaslFunctionExecuter, NaslFunctionRegister};
 use nasl_syntax::{FSPluginLoader, Loader};
 use storage::{DefaultDispatcher, Storage};
 
+use crate::scheduling::ConcurrentVTResult;
+
+pub trait Schedule: Iterator<Item = ConcurrentVTResult> {}
+
+impl<T> Schedule for T where T: Iterator<Item = ConcurrentVTResult> {}
+
 pub trait ScannerStack {
     type Storage: Storage + Sync + Send + 'static;
     type Loader: Loader + Send + 'static;
