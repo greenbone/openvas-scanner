@@ -1,7 +1,7 @@
 {
     "version": "1.2",
     "spdx-license-identifier": "GPL-2.0-only",
-    "copyright": "Copyright (C) 2008-2024 Greenbone Networks GmbH",
+    "copyright": "Copyright (C) 2008-2024 Greenbone AG",
     "family": "Windows Local Security Checks",
     "advisories": [
         {
