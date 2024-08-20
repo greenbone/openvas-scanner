@@ -5,6 +5,7 @@
 use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
+use futures::StreamExt;
 use nasl_interpreter::{nasl_std_functions, ScanRunner};
 use nasl_syntax::FSPluginLoader;
 use tracing::Level;
@@ -79,9 +80,11 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         }
     } else {
         let executor = nasl_std_functions();
-        let interpreter: ScanRunner<(_, _, _)> =
+        let runner: ScanRunner<(_, _, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
-        interpreter.filter_map(|x|{
+        // TODO: Do not collect here
+        let results: Vec<_> = runner.stream().collect().await;
+        results.into_iter().filter_map(|x|{
                     match x {
                         Ok(x) => Some(x),
                         Err(e) => {

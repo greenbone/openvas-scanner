@@ -29,6 +29,7 @@ serde = "1.0.190"
 notus = { version = "0.1.0", path = "../notus" }
 quick-xml = { version = "0.28.1", features = ["serialize"] }
 tokio = "1.39.2"
+futures = "0.3.30"
 
 
 [features]

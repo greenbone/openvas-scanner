@@ -3064,6 +3064,7 @@ dependencies = [
  "clap",
  "configparser",
  "feed",
+ "futures",
  "json-storage",
  "models",
  "nasl-interpreter",
