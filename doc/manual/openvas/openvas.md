@@ -389,4 +389,4 @@ are:
 
 openvas was forked from nessusd in 2005. Nessusd was written by Renaud
 Deraison \<deraison@cvs.nessus.org\>. Most new code since 2005 developed
-by Greenbone Networks GmbH.
+by Greenbone AG.
