@@ -17,12 +17,17 @@ use nasl_syntax::NaslValue;
 use pkcs8::der::Decode;
 use rustls::{
     pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
-    RootCertStore,
+    ClientConnection, RootCertStore,
 };
 
 use crate::{get_kb_item, get_pos_port, OpenvasEncaps};
 
+// the ip header maximum size is 60 and a UDP header contains 8 bytes
+// TODO: Calculate the MTU dynamically
 const MTU: usize = 512 - 60 - 8;
+
+// Number of times to resend a UDP packet, when no response is received
+const NUM_TIMES_TO_RESEND: usize = 5;
 
 type NaslSocketFunction =
     fn(&NaslSockets, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
@@ -129,16 +134,13 @@ impl NaslSockets {
         // Create TLS Connection if requested
         let tls_connection = match tls_config {
             Some(config) => Some(
-                rustls::ClientConnection::new(
-                    Arc::new(config.config.clone()),
-                    config.server.clone(),
-                )
-                .map_err(|e| {
-                    FunctionErrorKind::Diagnostic(
-                        format!("Unable to establish TLS connection: {e}"),
-                        None,
-                    )
-                })?,
+                ClientConnection::new(Arc::new(config.config.clone()), config.server.clone())
+                    .map_err(|e| {
+                        FunctionErrorKind::Diagnostic(
+                            format!("Unable to establish TLS connection: {e}"),
+                            None,
+                        )
+                    })?,
             ),
             None => None,
         };
@@ -202,6 +204,10 @@ impl NaslSockets {
         }
     }
 
+    fn socket_send(socket: i32, data: &[u8], len: usize, flags: i32) -> isize {
+        unsafe { libc::send(socket, data.as_ptr() as *const libc::c_void, len, flags) }
+    }
+
     /// Send data on a socket.
     /// Args:
     /// takes the following named arguments:
@@ -252,14 +258,7 @@ impl NaslSockets {
                     let fd = conn.socket.as_raw_fd();
                     let mut ret = 0;
                     while !data.is_empty() {
-                        let n = unsafe {
-                            libc::send(
-                                fd,
-                                data.as_ptr() as *const libc::c_void,
-                                len,
-                                flags.unwrap_or_default() as i32,
-                            )
-                        };
+                        let n = Self::socket_send(fd, data, len, flags.unwrap_or(0) as i32);
                         if n < 0 {
                             return Err(io::Error::last_os_error().into());
                         }
@@ -272,7 +271,6 @@ impl NaslSockets {
             NaslSocket::Udp(conn) => {
                 let fd = conn.socket.as_raw_fd();
 
-                // We restrict the MTU to 512 - 60 - 8 bytes, as this is the minimum
                 if len > MTU {
                     return Err(FunctionErrorKind::Dirty(format!(
                         "udp data exceeds the maximum length of {}",
@@ -280,14 +278,8 @@ impl NaslSockets {
                     )));
                 }
 
-                let n = unsafe {
-                    libc::send(
-                        fd,
-                        data.as_ptr() as *const libc::c_void,
-                        len,
-                        flags.unwrap_or_default() as i32,
-                    )
-                };
+                let n = Self::socket_send(fd, data, len, flags.unwrap_or(0) as i32);
+
                 conn.buffer = data.to_vec();
                 Ok(NaslValue::Number(n as i64))
             }
@@ -375,7 +367,7 @@ impl NaslSockets {
 
                 let mut result = conn.socket.recv_from(data.as_mut_slice());
 
-                for _ in 0..5 {
+                for _ in 0..NUM_TIMES_TO_RESEND {
                     match result {
                         Ok((size, origin)) => {
                             if conn.socket.peer_addr()? == origin {
@@ -558,12 +550,6 @@ impl NaslSockets {
                 // TLS/SSL
                 Some(tls_version) => match tls_version {
                     OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                        // if let Ok(fd) =
-                        //     self.open_sock_tcp_tls(context, addr, port, bufsz, timeout, vhost)
-                        // {
-                        //     fds.push(self.add(fd))
-                        //     // TODO: Set port transport
-                        // }
                         let fd =
                             self.open_sock_tcp_tls(context, addr, port, bufsz, timeout, vhost)?;
                         fds.push(self.add(fd))
@@ -593,7 +579,7 @@ impl NaslSockets {
         timeout: Duration,
         tls_config: Option<TLSConfig>,
     ) -> Result<NaslSocket, FunctionErrorKind> {
-        let mut retry = super::get_kb_item(context, "timeout_retry")?
+        let mut retry = get_kb_item(context, "timeout_retry")?
             .map(|val| match val {
                 NaslValue::String(val) => val.parse::<i64>().unwrap_or_default(),
                 NaslValue::Number(val) => val,
