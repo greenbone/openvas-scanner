@@ -4,6 +4,7 @@
 
 use std::path::PathBuf;
 
+use futures::StreamExt;
 use nasl_interpreter::{
     load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
     RegisterBuilder,
@@ -109,15 +110,18 @@ where
         }
     }
 
-    fn run(&self, script: &str) -> Result<(), CliErrorKind> {
+    async fn run(&self, script: &str) -> Result<(), CliErrorKind> {
         let context = self
             .context_builder
             // TODO: use proper  target
             .build(ContextKey::Scan(self.scan_id.clone(), None));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
-        let interpreter = CodeInterpreter::new(&code, register, &context);
-        for result in interpreter {
+        let results: Vec<_> = CodeInterpreter::new(&code, register, &context)
+            .stream()
+            .collect()
+            .await;
+        for result in results {
             let r = match result {
                 Ok(x) => x,
                 Err(e) => match &e.kind {
@@ -177,20 +181,23 @@ pub async fn run(
         .target(target.unwrap_or_default())
         .scan_id(format!("scannerctl-{script}"));
     let result = match (db, feed) {
-        (Db::Redis(url), None) => builder
-            .storage(create_redis_storage(url))
-            .build()
-            .run(script),
-        (Db::InMemory, None) => builder.build().run(script),
+        (Db::Redis(url), None) => {
+            builder
+                .storage(create_redis_storage(url))
+                .build()
+                .run(script)
+                .await
+        }
+        (Db::InMemory, None) => builder.build().run(script).await,
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
             let builder = RunBuilder::default().loader(create_fp_loader(&storage, path).await?);
-            builder.storage(storage).build().run(script)
+            builder.storage(storage).build().run(script).await
         }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new();
             let builder = RunBuilder::default().loader(create_fp_loader(&storage, path).await?);
-            builder.storage(storage).build().run(script)
+            builder.storage(storage).build().run(script).await
         }
     };
 

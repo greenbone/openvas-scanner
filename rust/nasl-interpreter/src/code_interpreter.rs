@@ -105,13 +105,6 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Iterator for CodeInterpreter<'a, 'b> {
-    type Item = InterpretResult;
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::test_utils::check_ok;

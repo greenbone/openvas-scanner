@@ -137,7 +137,7 @@ where
     }
 
     /// Runs a single plugin in description mode.
-    fn single(&self, key: &ContextKey) -> Result<i64, ErrorKind> {
+    async fn single(&self, key: &ContextKey) -> Result<i64, ErrorKind> {
         let code = self.loader.load(&key.value())?;
 
         let register = Register::root_initial(&self.initial);
@@ -153,8 +153,12 @@ where
             self.loader,
             &functions,
         );
-        let interpreter = CodeInterpreter::new(&code, register, &context);
-        for stmt in interpreter {
+        // TODO: Don't collect here
+        let results: Vec<_> = CodeInterpreter::new(&code, register, &context)
+            .stream()
+            .collect()
+            .await;
+        for stmt in results.into_iter() {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
                     self.dispatcher.on_exit(context.key())?;
@@ -219,6 +223,7 @@ where
                 }
                 let k = ContextKey::FileName(filename.clone());
                 self.single(&k)
+                    .await
                     .map(|_| k.value())
                     .map_err(|kind| Error {
                         kind,
