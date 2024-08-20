@@ -17,7 +17,7 @@ use nasl_syntax::NaslValue;
 use pkcs8::der::Decode;
 use rustls::{
     pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
-    ClientConnection, RootCertStore,
+    ClientConfig, ClientConnection, RootCertStore, Stream,
 };
 
 use crate::{get_kb_item, get_pos_port, OpenvasEncaps};
@@ -50,7 +50,7 @@ impl Interval {
 }
 
 struct TLSConfig {
-    config: rustls::ClientConfig,
+    config: ClientConfig,
     server: ServerName<'static>,
 }
 
@@ -58,7 +58,7 @@ struct TLSConfig {
 struct TCPConnection {
     socket: TcpStream,
     // Those values are currently unused, but needed for functions currently not implemented
-    tls_connection: Option<rustls::ClientConnection>,
+    tls_connection: Option<ClientConnection>,
     _buffer: Option<Vec<u8>>,
 }
 
@@ -295,7 +295,7 @@ impl NaslSockets {
 
                 if let Some(tls) = conn.tls_connection.as_mut() {
                     // TLS
-                    let mut stream = rustls::Stream::new(tls, &mut conn.socket);
+                    let mut stream = Stream::new(tls, &mut conn.socket);
                     let mut ret = 0;
                     while !data.is_empty() {
                         let n = stream.write(data)?;
@@ -370,7 +370,7 @@ impl NaslSockets {
                         .set_read_timeout(Some(Duration::from_secs(timeout as u64)))?;
                 }
                 if let Some(tls) = conn.tls_connection.as_mut() {
-                    let mut socket = rustls::Stream::new(tls, &mut conn.socket);
+                    let mut socket = Stream::new(tls, &mut conn.socket);
                     Self::socket_recv(&mut socket, &mut data, len, min)?;
                 } else {
                     Self::socket_recv(&mut conn.socket, &mut data, len, min)?;
@@ -724,7 +724,7 @@ impl NaslSockets {
                 decrypted_key.as_bytes().to_owned(),
             ));
         }
-        let config = rustls::ClientConfig::builder()
+        let config = ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_client_auth_cert(cert, key)
             .map_err(|_| FunctionErrorKind::WrongArgument("Invalid Key".to_string()))?;
