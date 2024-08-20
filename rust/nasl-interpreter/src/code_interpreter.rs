@@ -7,16 +7,11 @@ use nasl_syntax::{Lexer, Statement, Tokenizer};
 
 use crate::interpreter::{InterpretResult, Interpreter};
 
-/// To allow closures we use a heap stored statement consumer
-type StatementConsumer = Box<dyn Fn(&Statement)>;
-
 /// Uses given code to return results based on that.
 pub struct CodeInterpreter<'a, 'b> {
     lexer: Lexer<'b>,
     interpreter: Interpreter<'a>,
     statement: Option<Statement>,
-    /// call back function for Statements before they get interpreted
-    pub statement_cb: Option<StatementConsumer>,
 }
 
 impl<'a, 'b> CodeInterpreter<'a, 'b> {
@@ -50,37 +45,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
             lexer,
             interpreter,
             statement: None,
-            statement_cb: None,
         }
-    }
-
-    /// Creates a new code interpreter with a callback before a statement gets executed
-    ///
-    /// Example:
-    /// ```
-    /// use nasl_syntax::NaslValue;
-    /// use nasl_interpreter::{Register, ContextFactory , CodeInterpreter};
-    /// let register = Register::default();
-    /// let context_builder = ContextFactory ::default();
-    /// let context = context_builder.build(Default::default());
-    /// let code = r#"
-    /// set_kb_item(name: "test", value: 1);
-    /// set_kb_item(name: "test", value: 2);
-    /// display(get_kb_item("test"));
-    /// "#;
-    /// let interpreter = CodeInterpreter::with_statement_callback(code, register, &context, &|x|println!("{x}"));
-    /// let results = interpreter.filter_map(|x|x.ok()).collect::<Vec<_>>();
-    /// assert_eq!(results, vec![NaslValue::Null; 4]);
-    /// ```
-    pub fn with_statement_callback(
-        code: &'b str,
-        register: crate::Register,
-        context: &'a crate::Context<'a>,
-        cb: &'static dyn Fn(&Statement),
-    ) -> CodeInterpreter<'a, 'b> {
-        let mut result = Self::new(code, register, context);
-        result.statement_cb = Some(Box::new(cb));
-        result
     }
 
     /// TODO Doc
@@ -88,9 +53,6 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         self.statement = None;
         match self.lexer.next() {
             Some(Ok(nstmt)) => {
-                if let Some(cb) = &self.statement_cb {
-                    cb(&nstmt);
-                }
                 let results = Some(self.interpreter.retry_resolve_next(&nstmt, 5).await);
                 self.statement = Some(nstmt);
                 results

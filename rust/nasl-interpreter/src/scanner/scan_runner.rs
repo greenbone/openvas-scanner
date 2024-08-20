@@ -14,7 +14,7 @@ use super::error::{ExecuteError, ScriptResult};
 use super::scanner_stack::Schedule;
 use super::vt_runner::VTRunner;
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 struct Position {
     host: usize,
     stage: usize,
@@ -109,27 +109,6 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         })
     }
 }
-
-// impl<'a, S: ScannerStack> Iterator for ScanRunner<'a, S> {
-//     type Item = Result<ScriptResult, ExecuteError>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let pos = self.positions.remove(0);
-//         let (stage, vts) = &self.concurrent_vts[pos.stage];
-//         let (vt, param) = &vts[pos.vt];
-//         let host = &self.scan.target.hosts[pos.host];
-//         Some(VTRunner::<S>::run(
-//             self.storage,
-//             self.loader,
-//             self.executor,
-//             host,
-//             vt,
-//             *stage,
-//             param.as_ref(),
-//             &self.scan.scan_id,
-//         ))
-//     }
-// }
 
 #[cfg(test)]
 pub(super) mod tests {

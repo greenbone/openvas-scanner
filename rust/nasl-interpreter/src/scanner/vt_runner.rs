@@ -1,3 +1,4 @@
+use futures::StreamExt;
 use models::{Host, Parameter, ScanId};
 use nasl_builtin_utils::Register;
 use nasl_syntax::{Loader, NaslValue};
@@ -44,7 +45,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             param,
             scan_id,
         };
-        s.execute()
+        s.execute().await
     }
 
     fn parameter(
@@ -185,20 +186,10 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         ContextKey::Scan(self.scan_id.clone(), Some(self.target.clone()))
     }
 
-    fn execute(mut self) -> Result<ScriptResult, ExecuteError> {
+    async fn execute(mut self) -> Result<ScriptResult, ExecuteError> {
         let code = self.loader.load(&self.vt.filename)?;
         let mut register = crate::Register::default();
         self.set_parameters(&mut register)?;
-
-        let _span = tracing::span!(
-            tracing::Level::WARN,
-            "executing",
-            filename = &self.vt.filename,
-            oid = &self.vt.oid,
-            %self.stage,
-            self.target,
-        )
-        .entered();
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
@@ -214,9 +205,14 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
                         self.loader,
                         self.executor,
                     );
-                    let mut interpret = crate::CodeInterpreter::new(&code, register, &context);
+                    // Todo:  Do not collect here
+                    let results: Vec<_> = crate::CodeInterpreter::new(&code, register, &context)
+                        .stream()
+                        .collect()
+                        .await;
 
-                    interpret
+                    results
+                        .into_iter()
                         .find_map(|r| match r {
                             Ok(NaslValue::Exit(x)) => Some(ScriptResultKind::ReturnCode(x)),
                             Err(e) => Some(ScriptResultKind::Error(e.clone())),

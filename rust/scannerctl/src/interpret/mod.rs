@@ -116,10 +116,7 @@ where
             .build(ContextKey::Scan(self.scan_id.clone(), None));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
-        let interpreter =
-            CodeInterpreter::with_statement_callback(&code, register, &context, &|x| {
-                tracing::debug!("> {x}")
-            });
+        let interpreter = CodeInterpreter::new(&code, register, &context);
         for result in interpreter {
             let r = match result {
                 Ok(x) => x,
