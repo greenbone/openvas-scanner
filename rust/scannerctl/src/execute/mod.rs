@@ -79,7 +79,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         }
     } else {
         let executor = nasl_std_functions();
-        let interpreter: ScanRunner<_, (_, _, _)> =
+        let interpreter: ScanRunner<(_, _, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
         interpreter.filter_map(|x|{
                     match x {

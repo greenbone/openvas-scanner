@@ -68,7 +68,7 @@ impl<S: ScannerStack> RunningScan<S> {
                     id: self.scan.scan_id.to_string(),
                     reason: e.to_string(),
                 })?;
-        let interpreter: ScanRunner<_, (_, _, _)> =
+        let interpreter: ScanRunner<(_, _, _)> =
             ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
         let _span = tracing::error_span!("running", scan = self.scan.scan_id).entered();
         tracing::debug!(scan_id = self.scan.scan_id);

@@ -1,3 +1,10 @@
+mod error;
+mod running_scan;
+mod scan_interpreter;
+mod scan_runner;
+mod scanner_stack;
+mod vt_runner;
+
 use std::{
     collections::HashMap,
     path::Path,
@@ -15,12 +22,6 @@ use running_scan::RunningScanHandle;
 use storage::{DefaultDispatcher, Storage};
 
 use crate::scheduling::WaveExecutionPlan;
-
-mod error;
-mod running_scan;
-mod scan_interpreter;
-mod scan_runner;
-mod scanner_stack;
 
 pub use error::ExecuteError;
 pub use scanner_stack::DefaultScannerStack;

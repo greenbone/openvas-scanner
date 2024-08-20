@@ -31,7 +31,7 @@ pub enum VTError {
     NotFound(#[from] nasl_syntax::LoadError),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 /// The Stage to execute in
 ///
 /// Only scripts within the the same Stage are allowed to be run concurrently

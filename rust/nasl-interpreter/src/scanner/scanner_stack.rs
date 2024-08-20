@@ -2,9 +2,13 @@ use nasl_builtin_utils::{NaslFunctionExecuter, NaslFunctionRegister};
 use nasl_syntax::{FSPluginLoader, Loader};
 use storage::{DefaultDispatcher, Storage};
 
-use crate::scheduling::ConcurrentVTResult;
+use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 
-pub trait Schedule: Iterator<Item = ConcurrentVTResult> {}
+pub trait Schedule: Iterator<Item = ConcurrentVTResult> + Sized {
+    fn cache(self) -> Result<Vec<ConcurrentVT>, VTError> {
+        self.collect()
+    }
+}
 
 impl<T> Schedule for T where T: Iterator<Item = ConcurrentVTResult> {}
 
