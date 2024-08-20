@@ -1977,6 +1977,7 @@ dependencies = [
 name = "nasl-builtin-http"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "h2 0.4.5",
  "http 1.1.0",
  "nasl-builtin-utils",

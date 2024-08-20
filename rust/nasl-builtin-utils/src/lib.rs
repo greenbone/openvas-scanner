@@ -49,7 +49,7 @@ pub trait NaslFunctionExecuter: Send + Sync + 'static {
     ///
     /// This is useful for functions that cache values and need to be cleared on exit.
     /// As an example ssh functions store open sessions.
-    fn nasl_fn_cache_clear(&self) -> Option<usize> {
+    async fn nasl_fn_cache_clear(&self) -> Option<usize> {
         None
     }
 }
@@ -72,7 +72,7 @@ where
         <T as SyncNaslFunctionExecuter>::nasl_fn_defined(self, name)
     }
 
-    fn nasl_fn_cache_clear(&self) -> Option<usize> {
+    async fn nasl_fn_cache_clear(&self) -> Option<usize> {
         <T as SyncNaslFunctionExecuter>::nasl_fn_cache_clear(self)
     }
 }
