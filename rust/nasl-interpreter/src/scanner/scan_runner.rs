@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use models::Scan;
+use models::{Host, Scan};
 use nasl_syntax::{Loader, NaslValue};
 use storage::types::Primitive;
 use storage::{ContextKey, Retriever, Storage};
@@ -12,6 +12,13 @@ use crate::scheduling::{ConcurrentVT, ConcurrentVTResult};
 
 use super::error::{ExecuteError, ScriptResult, ScriptResultKind};
 use super::scanner_stack::Schedule;
+
+#[derive(Default, Clone, Copy)]
+struct Position {
+    host: usize,
+    stage: usize,
+    vt: usize,
+}
 
 /// TODO: doc
 pub struct ScanRunner<'a, T, S: ScannerStack> {
@@ -23,18 +30,8 @@ pub struct ScanRunner<'a, T, S: ScannerStack> {
     /// Default Loader
     loader: &'a S::Loader,
     executor: &'a S::Executor,
-    /// Is used to remember which host we currently are executing. The host name will get through
-    /// the stored scan reference.
-    current_host: usize,
-    /// The first value is the stage and the second the vt idx and is used in combincation with
-    /// current_host
-    ///
-    /// This is necessary after the first host. Internally we use schedule and iterate over it,
-    /// when there is no error then we store it within concurrent vts. After the first host is done
-    /// we cached all schedule results and switch to the next host. To not have to reschedule we
-    /// keep track of the position
-    current_host_concurrent_vt_idx: (usize, usize),
-    /// We cache the results of the scheduler
+    position: Position,
+    /// Cached results of the scheduler.
     concurrent_vts: Vec<ConcurrentVT>,
 }
 
@@ -42,6 +39,10 @@ impl<'a, Sched, Stack: ScannerStack> ScanRunner<'a, Sched, Stack>
 where
     Sched: Schedule + 'a,
 {
+    fn current_host(&self) -> &Host {
+        &self.scan.target.hosts[self.position.host]
+    }
+
     /// TODO doc
     pub fn new(
         storage: &'a Stack::Storage,
@@ -57,8 +58,7 @@ where
             loader,
             executor,
             concurrent_vts: vec![],
-            current_host: 0,
-            current_host_concurrent_vt_idx: (0, 0),
+            position: Position::default(),
         }
     }
 
@@ -188,7 +188,7 @@ where
 
     // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
     fn generate_key(&self) -> ContextKey {
-        let target = &self.scan.target.hosts[self.current_host].to_string();
+        let target = self.current_host().to_string();
         let scan_id = &self.scan.scan_id;
         ContextKey::Scan(scan_id.clone(), Some(target.clone()))
     }
@@ -200,7 +200,7 @@ where
         param: Option<Vec<models::Parameter>>,
     ) -> Result<ScriptResult, ExecuteError> {
         let code = self.loader.load(&vt.filename)?;
-        let target = self.scan.target.hosts[self.current_host].to_string();
+        let target = self.current_host().to_string();
         let mut register = crate::Register::default();
         if let Some(params) = param {
             for p in params.iter() {
@@ -259,10 +259,11 @@ where
 
     /// Checks if current current_host_concurrent_vt_idx as well as current_host are valid and may
     /// adapt them. Returns None when there are no hosts left.
-    fn sanitize_indeces(&mut self) -> Option<Result<(usize, (usize, usize)), ExecuteError>> {
-        let (mut si, mut vi) = self.current_host_concurrent_vt_idx;
-        let mut hi = self.current_host;
-        if self.current_host == 0 {
+    fn sanitize_indices(&mut self) -> Option<Result<(), ExecuteError>> {
+        let mut si = self.position.stage;
+        let mut vi = self.position.vt;
+        let mut hi = self.position.host;
+        if hi == 0 {
             // we cache all staging steps so that we can iterator through all vts per hosts.
             // this is easier to handle for the callter as they can
             match self.schedule.next() {
@@ -302,9 +303,12 @@ where
         }
 
         if hi < self.scan.target.hosts.len() {
-            self.current_host = hi;
-            self.current_host_concurrent_vt_idx = (si, vi);
-            Some(Ok((hi, (si, vi))))
+            self.position = Position {
+                host: hi,
+                stage: si,
+                vt: vi,
+            };
+            Some(Ok(()))
         } else {
             None
         }
@@ -318,21 +322,22 @@ where
     type Item = Result<ScriptResult, ExecuteError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (_, (si, vi)) = match self.sanitize_indeces()? {
+        match self.sanitize_indices()? {
             Ok(x) => x,
             Err(e) => {
-                self.current_host_concurrent_vt_idx = (
-                    self.current_host_concurrent_vt_idx.0,
-                    self.current_host_concurrent_vt_idx.1 + 1,
-                );
+                self.position.stage = self.position.stage;
+                self.position.vt = self.position.vt + 1;
                 return Some(Err(e));
             }
         };
 
+        let si = self.position.stage;
+        let vi = self.position.vt;
         let (stage, vts) = &self.concurrent_vts[si];
         let (vt, param) = &vts[vi];
 
-        self.current_host_concurrent_vt_idx = (si, vi + 1);
+        self.position.stage = si;
+        self.position.vt = vi;
 
         Some(self.execute(stage.clone(), vt.clone(), param.clone()))
     }

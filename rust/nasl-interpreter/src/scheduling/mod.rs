@@ -13,6 +13,7 @@ use storage::{
 };
 use thiserror::Error;
 pub use wave::WaveExecutionPlan;
+
 /// Error cases for VTFetcher
 #[derive(Error, Debug, Clone)]
 pub enum VTError {
