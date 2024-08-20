@@ -68,7 +68,7 @@ fn usleep(micros: u64) {
 /// Returns the type of given unnamed argument.
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
 #[nasl_function]
-fn nasl_typeof(val: NaslValue) -> &str {
+fn nasl_typeof(val: NaslValue) -> String {
     match val {
         NaslValue::Null => "undef",
         NaslValue::String(_) => "string",
@@ -79,6 +79,7 @@ fn nasl_typeof(val: NaslValue) -> &str {
         NaslValue::Data(_) => "data",
         _ => "unknown",
     }
+    .into()
 }
 
 /// Returns true when the given unnamed argument is null.

@@ -413,8 +413,8 @@ fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>
 ///
 /// 1st positional argument: string to search in.
 /// 2nd positional argument: substring to search for.
-fn strstr(string: &str, find: &str) -> Option<&str> {
-    string.find(find).map(|index| &string[index..])
+fn strstr(string: &str, find: &str) -> Option<String> {
+    string.find(find).map(|index| string[index..].to_owned())
 }
 
 /// Returns found function for key or None when not found
