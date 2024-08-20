@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::collections::VecDeque;
+
+use futures::{stream, Stream};
 use models::{Host, Scan};
 
 use crate::scanner::ScannerStack;
@@ -25,7 +28,7 @@ pub struct ScanRunner<'a, S: ScannerStack> {
     loader: &'a S::Loader,
     executor: &'a S::Executor,
     concurrent_vts: Vec<ConcurrentVT>,
-    positions: Vec<Position>,
+    positions: VecDeque<Position>,
 }
 
 fn all_positions<'a>(
@@ -65,31 +68,70 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
             positions,
         }
     }
-}
 
-impl<'a, S: ScannerStack> Iterator for ScanRunner<'a, S> {
-    type Item = Result<ScriptResult, ExecuteError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.positions.remove(0);
-        let (stage, vts) = &self.concurrent_vts[pos.stage];
-        let (vt, param) = &vts[pos.vt];
-        let host = &self.scan.target.hosts[pos.host];
-        Some(VTRunner::<S>::run(
-            self.storage,
-            self.loader,
-            self.executor,
-            host,
-            vt,
-            *stage,
-            param.as_ref(),
-            &self.scan.scan_id,
-        ))
+    pub fn stream(self) -> impl Stream<Item = Result<ScriptResult, ExecuteError>> + 'a {
+        let data: VecDeque<_> = self
+            .positions
+            .into_iter()
+            .map(|pos| {
+                let (stage, vts) = &self.concurrent_vts[pos.stage];
+                let (vt, param) = &vts[pos.vt];
+                let host = &self.scan.target.hosts[pos.host];
+                (
+                    stage.clone(),
+                    vt.clone(),
+                    param.clone(),
+                    host.clone(),
+                    self.scan.scan_id.clone(),
+                )
+            })
+            .collect();
+        stream::unfold(data, move |mut data| async move {
+            let d = data.pop_front();
+            if let Some((stage, vt, param, host, scan_id)) = d {
+                let result = VTRunner::<Stack>::run(
+                    self.storage,
+                    self.loader,
+                    self.executor,
+                    &host,
+                    &vt,
+                    stage,
+                    param.as_ref(),
+                    &scan_id,
+                )
+                .await;
+                Some((result, data))
+            } else {
+                None
+            }
+        })
     }
 }
 
+// impl<'a, S: ScannerStack> Iterator for ScanRunner<'a, S> {
+//     type Item = Result<ScriptResult, ExecuteError>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let pos = self.positions.remove(0);
+//         let (stage, vts) = &self.concurrent_vts[pos.stage];
+//         let (vt, param) = &vts[pos.vt];
+//         let host = &self.scan.target.hosts[pos.host];
+//         Some(VTRunner::<S>::run(
+//             self.storage,
+//             self.loader,
+//             self.executor,
+//             host,
+//             vt,
+//             *stage,
+//             param.as_ref(),
+//             &self.scan.scan_id,
+//         ))
+//     }
+// }
+
 #[cfg(test)]
 pub(super) mod tests {
+    use futures::StreamExt;
     use nasl_builtin_utils::NaslFunctionRegister;
     use storage::item::Nvt;
     use storage::Dispatcher;
@@ -340,7 +382,7 @@ exit({rc});
         dispatcher
     }
 
-    fn run(
+    async fn run(
         scripts: Vec<(String, storage::item::Nvt)>,
         storage: storage::DefaultDispatcher,
     ) -> Result<Vec<Result<ScriptResult, ExecuteError>>, ExecuteError> {
@@ -368,13 +410,13 @@ exit({rc});
         let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan)?;
         let interpreter: ScanRunner<(_, _, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
-        let results = interpreter.collect::<Vec<_>>();
+        let results = interpreter.stream().collect::<Vec<_>>().await;
         Ok(results)
     }
 
-    #[test]
+    #[tokio::test]
     #[tracing_test::traced_test]
-    fn required_ports() {
+    async fn required_ports() {
         let vts = [
             GenerateScript::with_required_ports(
                 "0",
@@ -433,7 +475,7 @@ exit({rc});
                 )
                 .expect("store kb");
         });
-        let result = run(vts.to_vec(), dispatcher).expect("success run");
+        let result = run(vts.to_vec(), dispatcher).await.expect("success run");
         let success = result
             .clone()
             .into_iter()
@@ -450,9 +492,9 @@ exit({rc});
         assert_eq!(failure.len(), 4);
     }
 
-    #[test]
+    #[tokio::test]
     #[tracing_test::traced_test]
-    fn exclude_keys() {
+    async fn exclude_keys() {
         let only_success = [
             GenerateScript::with_excluded_keys("0", &["key/not"]).generate(),
             GenerateScript::with_excluded_keys("1", &["key/not"]).generate(),
@@ -465,7 +507,9 @@ exit({rc});
                 storage::Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");
-        let result = run(only_success.to_vec(), dispatcher).expect("success run");
+        let result = run(only_success.to_vec(), dispatcher)
+            .await
+            .expect("success run");
         let success = result
             .clone()
             .into_iter()
@@ -482,9 +526,9 @@ exit({rc});
         assert_eq!(failure.len(), 1);
     }
 
-    #[test]
+    #[tokio::test]
     #[tracing_test::traced_test]
-    fn required_keys() {
+    async fn required_keys() {
         let only_success = [
             GenerateScript::with_required_keys("0", &["key/not"]).generate(),
             GenerateScript::with_required_keys("1", &["key/exists"]).generate(),
@@ -496,7 +540,9 @@ exit({rc});
                 storage::Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");
-        let result = run(only_success.to_vec(), dispatcher).expect("success run");
+        let result = run(only_success.to_vec(), dispatcher)
+            .await
+            .expect("success run");
         let success = result
             .clone()
             .into_iter()
@@ -513,9 +559,9 @@ exit({rc});
         assert_eq!(failure.len(), 1);
     }
 
-    #[test]
+    #[tokio::test]
     #[tracing_test::traced_test]
-    fn mandatory_keys() {
+    async fn mandatory_keys() {
         let only_success = [
             GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
             GenerateScript::with_mandatory_keys("1", &["key/exists"]).generate(),
@@ -527,7 +573,9 @@ exit({rc});
                 storage::Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");
-        let result = run(only_success.to_vec(), dispatcher).expect("success run");
+        let result = run(only_success.to_vec(), dispatcher)
+            .await
+            .expect("success run");
         let success = result
             .clone()
             .into_iter()

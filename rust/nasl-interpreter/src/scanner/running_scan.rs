@@ -7,6 +7,7 @@ use std::{
     time::SystemTime,
 };
 
+use futures::StreamExt;
 use models::{scanner::Error, Scan, Status};
 use nasl_builtin_utils::NaslFunctionExecuter;
 use nasl_syntax::Loader;
@@ -77,8 +78,9 @@ impl<S: ScannerStack> RunningScan<S> {
         let mut last_target = String::new();
 
         // TODO: check for error and abort, we need to keep track of the state
-
-        for it in interpreter {
+        let stream = interpreter.stream();
+        let items: Vec<_> = stream.collect().await;
+        for it in items {
             match it {
                 Ok(x) => {
                     tracing::trace!(last_target, target = x.target, targets=?self.scan.target.hosts);

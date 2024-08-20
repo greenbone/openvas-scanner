@@ -24,7 +24,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
 }
 
 impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
-    pub fn run(
+    pub async fn run(
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
         executor: &'a Stack::Executor,
