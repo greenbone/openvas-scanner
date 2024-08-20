@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, RwLock,
+        Arc, RwLock,
     },
     time::SystemTime,
 };
@@ -20,10 +20,9 @@ use super::ScannerStack;
 
 pub struct RunningScan<S: ScannerStack> {
     scan: Scan,
-    // Remove mutex to allow parallel usage of those
-    storage: Arc<RwLock<S::Storage>>,
-    loader: Arc<Mutex<S::Loader>>,
-    function_executor: Arc<Mutex<S::Executor>>,
+    storage: Arc<S::Storage>,
+    loader: Arc<S::Loader>,
+    function_executor: Arc<S::Executor>,
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<models::Status>>,
 }
@@ -55,11 +54,9 @@ impl<S: ScannerStack> RunningScan<S> {
     where
         T: crate::scheduling::ExecutionPlan,
     {
-        // FIXME: based on the lock which is based on a mutex we can just run one scan at a time,
-        // the other runs would wait until a lock is freed.
-        let storage: &S::Storage = &self.storage.read().unwrap();
-        let loader: &S::Loader = &self.loader.lock().unwrap();
-        let function_executor: &S::Executor = &self.function_executor.lock().unwrap();
+        let storage: &S::Storage = &self.storage;
+        let loader: &S::Loader = &self.loader;
+        let function_executor: &S::Executor = &self.function_executor;
 
         // TODO make this prettier.
         let schedule =
@@ -71,7 +68,6 @@ impl<S: ScannerStack> RunningScan<S> {
                 })?;
         let interpreter: ScanRunner<(_, _, _)> =
             ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
-        let _span = tracing::error_span!("running", scan = self.scan.scan_id).entered();
         tracing::debug!(scan_id = self.scan.scan_id);
         self.set_status_to_running();
         let mut end_phase = models::Phase::Succeeded;
@@ -143,9 +139,9 @@ pub struct RunningScanHandle {
 impl RunningScanHandle {
     pub fn start<S, L, N, T>(
         scan: Scan,
-        storage: Arc<RwLock<S>>,
-        loader: Arc<Mutex<L>>,
-        function_executor: Arc<Mutex<N>>,
+        storage: Arc<S>,
+        loader: Arc<L>,
+        function_executor: Arc<N>,
     ) -> Self
     where
         S: Storage + Send + 'static,

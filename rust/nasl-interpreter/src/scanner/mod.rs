@@ -8,7 +8,7 @@ mod vt_runner;
 use std::{
     collections::HashMap,
     path::Path,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
 };
 
 use async_trait::async_trait;
@@ -33,9 +33,9 @@ pub use scan_runner::ScanRunner;
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
-    storage: Arc<RwLock<S::Storage>>,
-    loader: Arc<Mutex<S::Loader>>,
-    function_executor: Arc<Mutex<S::Executor>>,
+    storage: Arc<S::Storage>,
+    loader: Arc<S::Loader>,
+    function_executor: Arc<S::Executor>,
 }
 
 impl<St, L, F> Scanner<(St, L, F)>
@@ -47,9 +47,9 @@ where
     fn new(storage: St, loader: L, executor: F) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
-            storage: Arc::new(RwLock::new(storage)),
-            loader: Arc::new(Mutex::new(loader)),
-            function_executor: Arc::new(Mutex::new(executor)),
+            storage: Arc::new(storage),
+            loader: Arc::new(loader),
+            function_executor: Arc::new(executor),
         }
     }
 }
@@ -128,8 +128,7 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     {
         let ck = storage::ContextKey::Scan(id.as_ref().to_string(), None);
         self.stop_scan(id).await?;
-        let store = self.storage.read().unwrap();
-        store
+        self.storage
             .remove_scan(&ck)
             .map_err(|_| Error::ScanNotFound(ck.as_ref().to_string()))?;
         Ok(())

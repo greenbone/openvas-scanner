@@ -69,7 +69,9 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         }
     }
 
+    /// Todo doc
     pub fn stream(self) -> impl Stream<Item = Result<ScriptResult, ExecuteError>> + 'a {
+        // TODO: Do not collect here
         let data: VecDeque<_> = self
             .positions
             .into_iter()
