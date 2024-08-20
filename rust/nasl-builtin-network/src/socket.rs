@@ -61,9 +61,59 @@ struct TCPConnection {
     _buffer: Option<Vec<u8>>,
 }
 
+impl TCPConnection {
+    /// Send data on a TCP connection using the libc send function. This function is unsafe, because
+    /// the provided length can be larger than the actual data length, which can lead to a
+    /// segmentation fault.
+    unsafe fn send(
+        &self,
+        mut data: &[u8],
+        len: usize,
+        flags: i32,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let fd = self.socket.as_raw_fd();
+        let mut ret = 0;
+        while !data.is_empty() {
+            let n = unsafe { libc::send(fd, data.as_ptr() as *const libc::c_void, len, flags) };
+            if n < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
+            ret += n;
+            data = &data[n as usize..];
+        }
+        Ok(NaslValue::Number(ret as i64))
+    }
+}
+
 struct UDPConnection {
     socket: UdpSocket,
     buffer: Vec<u8>,
+}
+
+impl UDPConnection {
+    /// Send data on a UDP connection using the libc send function. This function is unsafe, because
+    /// the provided length can be larger than the actual data length, which can lead to a
+    /// segmentation fault.
+    unsafe fn send(
+        &mut self,
+        data: &[u8],
+        len: usize,
+        flags: i32,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let fd = self.socket.as_raw_fd();
+
+        if len > MTU {
+            return Err(FunctionErrorKind::Dirty(format!(
+                "udp data exceeds the maximum length of {}",
+                MTU
+            )));
+        }
+
+        let n = libc::send(fd, data.as_ptr() as *const libc::c_void, len, flags);
+
+        self.buffer = data.to_vec();
+        Ok(NaslValue::Number(n as i64))
+    }
 }
 
 enum NaslSocket {
@@ -204,10 +254,6 @@ impl NaslSockets {
         }
     }
 
-    fn socket_send(socket: i32, data: &[u8], len: usize, flags: i32) -> isize {
-        unsafe { libc::send(socket, data.as_ptr() as *const libc::c_void, len, flags) }
-    }
-
     /// Send data on a socket.
     /// Args:
     /// takes the following named arguments:
@@ -243,9 +289,11 @@ impl NaslSockets {
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
+                // TCP
                 self.wait_before_next_probe();
 
                 if let Some(tls) = conn.tls_connection.as_mut() {
+                    // TLS
                     let mut stream = rustls::Stream::new(tls, &mut conn.socket);
                     let mut ret = 0;
                     while !data.is_empty() {
@@ -255,34 +303,10 @@ impl NaslSockets {
                     }
                     Ok(NaslValue::Number(ret as i64))
                 } else {
-                    let fd = conn.socket.as_raw_fd();
-                    let mut ret = 0;
-                    while !data.is_empty() {
-                        let n = Self::socket_send(fd, data, len, flags.unwrap_or(0) as i32);
-                        if n < 0 {
-                            return Err(io::Error::last_os_error().into());
-                        }
-                        ret += n;
-                        data = &data[n as usize..];
-                    }
-                    Ok(NaslValue::Number(ret as i64))
+                    unsafe { conn.send(data, len, flags.unwrap_or(0) as i32) }
                 }
             }
-            NaslSocket::Udp(conn) => {
-                let fd = conn.socket.as_raw_fd();
-
-                if len > MTU {
-                    return Err(FunctionErrorKind::Dirty(format!(
-                        "udp data exceeds the maximum length of {}",
-                        MTU
-                    )));
-                }
-
-                let n = Self::socket_send(fd, data, len, flags.unwrap_or(0) as i32);
-
-                conn.buffer = data.to_vec();
-                Ok(NaslValue::Number(n as i64))
-            }
+            NaslSocket::Udp(conn) => unsafe { conn.send(data, len, flags.unwrap_or(0) as i32) },
             NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
