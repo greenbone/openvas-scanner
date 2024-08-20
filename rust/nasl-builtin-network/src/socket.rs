@@ -22,7 +22,8 @@ use rustls::{
 
 use crate::{get_kb_item, get_pos_port, OpenvasEncaps};
 
-// the ip header maximum size is 60 and a UDP header contains 8 bytes
+// 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
+// header contains 8 bytes, which must be subtracted from the max size for UDP packages.
 // TODO: Calculate the MTU dynamically
 const MTU: usize = 512 - 60 - 8;
 
