@@ -20,12 +20,7 @@ use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
 };
 
-use crate::{get_kb_item, get_pos_port, OpenvasEncaps};
-
-// 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
-// header contains 8 bytes, which must be subtracted from the max size for UDP packages.
-// TODO: Calculate the MTU dynamically
-const MTU: usize = 512 - 60 - 8;
+use crate::{get_kb_item, get_pos_port, mtu, OpenvasEncaps};
 
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
@@ -103,10 +98,10 @@ impl UDPConnection {
     ) -> Result<NaslValue, FunctionErrorKind> {
         let fd = self.socket.as_raw_fd();
 
-        if len > MTU {
+        if len > mtu() {
             return Err(FunctionErrorKind::Dirty(format!(
                 "udp data exceeds the maximum length of {}",
-                MTU
+                mtu()
             )));
         }
 

@@ -8,7 +8,18 @@ use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 use storage::Field;
 
+pub mod network;
+pub mod network_utils;
 pub mod socket;
+
+// 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
+// header contains 8 bytes, which must be subtracted from the max size for UDP packages.
+// TODO: Calculate the MTU dynamically
+const MTU: usize = 512 - 60 - 8;
+
+pub fn mtu() -> usize {
+    MTU
+}
 
 pub enum OpenvasEncaps {
     Auto = 0, /* Request auto detection.  */
@@ -136,4 +147,14 @@ pub fn get_pos_port(r: &Register) -> Result<u16, FunctionErrorKind> {
             x
         ))),
     }
+}
+
+pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {
+    if !(0..=65535).contains(&port) {
+        return Err(FunctionErrorKind::WrongArgument(format!(
+            "{} is not a valid port number",
+            port
+        )));
+    }
+    Ok(port as u16)
 }
