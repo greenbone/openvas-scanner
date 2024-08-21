@@ -522,50 +522,50 @@ pub(crate) mod tests {
         result
     }
 
-//     #[tokio::test]
-//     async fn credentials() {
-//         let jraw = r#"
-// {
-//   "target": {
-//     "hosts": [
-//       "192.168.123.52"
-//     ],
-//     "ports": [
-//       {
-//         "protocol": "tcp",
-//         "range": [
-//           {
-//             "start": 22,
-//             "end": 22
-//           }
-//         ]
-//       }
-//     ],
-//     "credentials": [
-//       {
-//         "service": "ssh",
-//         "port": 22,
-//         "up": {
-//           "username": "msfadmin",
-//           "password": "msfadmin"
-//         }
-//       }
-//     ]
-//   },
-//   "vts": [
-//     {
-//       "oid": "1.3.6.1.4.1.25623.1.0.90022"
-//     }
-//   ]
-// }
-//         "#;
-//         let mut scan: Scan = serde_json::from_str(jraw).unwrap();
-//         scan.scan_id = "aha".to_string();
-//         let storage = example_feed_file_storage("/tmp/openvasd/credential").await;
-//         storage.insert_scan(scan.clone()).await.unwrap();
-//         let (scan2, _) = storage.get_scan("aha").await.unwrap();
-//         assert_eq!(scan, scan2);
-//     }
+    //     #[tokio::test]
+    //     async fn credentials() {
+    //         let jraw = r#"
+    // {
+    //   "target": {
+    //     "hosts": [
+    //       "192.168.123.52"
+    //     ],
+    //     "ports": [
+    //       {
+    //         "protocol": "tcp",
+    //         "range": [
+    //           {
+    //             "start": 22,
+    //             "end": 22
+    //           }
+    //         ]
+    //       }
+    //     ],
+    //     "credentials": [
+    //       {
+    //         "service": "ssh",
+    //         "port": 22,
+    //         "up": {
+    //           "username": "msfadmin",
+    //           "password": "msfadmin"
+    //         }
+    //       }
+    //     ]
+    //   },
+    //   "vts": [
+    //     {
+    //       "oid": "1.3.6.1.4.1.25623.1.0.90022"
+    //     }
+    //   ]
+    // }
+    //         "#;
+    //         let mut scan: Scan = serde_json::from_str(jraw).unwrap();
+    //         scan.scan_id = "aha".to_string();
+    //         let storage = example_feed_file_storage("/tmp/openvasd/credential").await;
+    //         storage.insert_scan(scan.clone()).await.unwrap();
+    //         let (scan2, _) = storage.get_scan("aha").await.unwrap();
+    //         assert_eq!(scan, scan2);
+    //     }
 
     #[tokio::test]
     async fn oids() {

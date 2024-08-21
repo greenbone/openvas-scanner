@@ -250,17 +250,6 @@ impl IndexedFileStorer {
         remove_file(format!("{}.idx", key))?;
         Ok(())
     }
-
-    /// Removes base dir and all its content.
-    ///
-    /// # Safety
-    /// Does remove the whole base dir and its content.
-    /// Do not use carelessly.
-    pub unsafe fn remove_base(self) -> Result<(), Error> {
-        fs::remove_dir_all(self.base)
-            .map_err(|e| Error::IoError(IoErrorKind::Remove, e.kind()))
-            .map(|_| ())
-    }
 }
 
 impl IndexedByteStorage for IndexedFileStorer {
