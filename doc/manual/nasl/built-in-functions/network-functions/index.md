@@ -33,7 +33,6 @@ In case of error, all those functions returns a value that can be interpreted as
 - **[scanner_get_port](scanner_get_port.md)** - walks through the list of open ports
 - **[send](send.md)** - sends data on a socket
 - **[start_denial](start_denial.md)** - initializes some internal data structure for end_denial
-- **[tcp_ping](tcp_ping.md)** - launches a “TCP ping” against the target host
 - **[telnet_init](telnet_init.md)** - performs a telnet negotiation on an open socket
 - **[this_host](this_host.md)** - get the IP address of the current (attacking) machine
 - **[this_host_name](this_host_name.md)** - get the host name of the current (attacking) machine
