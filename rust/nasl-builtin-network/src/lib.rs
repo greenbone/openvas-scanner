@@ -17,6 +17,10 @@ pub mod socket;
 // TODO: Calculate the MTU dynamically
 const MTU: usize = 512 - 60 - 8;
 
+/// Standard port for networking functions
+/// @return none
+const DEFAULT_PORT: u16 = 33435;
+
 pub fn mtu() -> usize {
     MTU
 }

@@ -2,17 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::process::Command;
+use std::{net::IpAddr, process::Command};
 
 use crate::{
-    network_utils::{
-        get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, ipv6_parts, islocalhost,
-    },
-    verify_port,
+    network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
+    verify_port, DEFAULT_PORT,
 };
 use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
 use nasl_function_proc_macro::nasl_function;
-use storage::Kb;
+use storage::{types::Primitive, Field, Kb};
 
 use crate::mtu;
 
@@ -27,7 +25,7 @@ fn get_host_ip(context: &Context) -> String {
 fn this_host(context: &Context) -> Result<String, FunctionErrorKind> {
     let dst = ipstr2ipaddr(context.target())?;
 
-    let port: u16 = 33435;
+    let port: u16 = DEFAULT_PORT;
 
     get_source_ip(dst, port).map(|ip| ip.to_string())
 }
@@ -55,85 +53,79 @@ fn nasl_islocalhost(context: &Context) -> Result<bool, FunctionErrorKind> {
     Ok(islocalhost(host_ip))
 }
 
-///Check if the target host is on the same network as the attacking host
+/// Check if the target host is on the same network as the attacking host
 #[nasl_function]
 fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
     let dst = ipstr2ipaddr(context.target())?;
-    let src = get_source_ip(dst, 33435)?;
-
-    let netmask_str = match get_netmask_by_local_ip(src)? {
-        Some(netmask) => netmask.to_string(),
+    let src = get_source_ip(dst, DEFAULT_PORT)?;
+    let netmask = match get_netmask_by_local_ip(src)? {
+        Some(netmask) => netmask,
         None => return Ok(false),
     };
 
-    let dst_str = dst.to_string();
-    let src_str = src.to_string();
+    match dst {
+        IpAddr::V4(dst) => {
+            let src = match src {
+                IpAddr::V4(src) => src,
+                IpAddr::V6(_) => unreachable!(),
+            };
+            let netmask = match netmask {
+                IpAddr::V4(netmask) => netmask,
+                IpAddr::V6(_) => unreachable!(),
+            };
+            let dst_parts = dst.octets();
+            let src_parts = src.octets();
+            let netmask_parts = netmask.octets();
 
-    if dst.is_ipv4() {
-        let dst_parts: Vec<&str> = dst_str.split('.').collect();
-        let src_parts: Vec<&str> = src_str.split('.').collect();
-        let netmask_parts: Vec<&str> = netmask_str.split('.').collect();
-
-        // Iterate over each octet
-        for i in 0..4 {
-            // get octet as u8
-            let netmask_part = netmask_parts[i].parse::<u8>().map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("Invalid netmask {}", netmask_str), None)
-            })?;
-            let dst_part = dst_parts[i].parse::<u8>().map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("Invalid IP address {}", dst_str), None)
-            })?;
-            let src_part = src_parts[i].parse::<u8>().map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("Invalid IP address {}", src_str), None)
-            })?;
-            // Iterate over each bit in the octet
-            let mut n = 128;
-            while n > 0 {
-                // If the bit is not set in the netmask, we are done
-                if netmask_part & n == 0 {
-                    return Ok(true);
+            // Iterate over each octet of the address
+            for i in 0..4 {
+                // Iterate over each bit in the octet
+                let mut n = 128;
+                while n > 0 {
+                    // If the bit is not set in the netmask, we are done
+                    if netmask_parts[i] & n == 0 {
+                        return Ok(true);
+                    }
+                    // If the bit is not the same in the source and destination, we are done
+                    if dst_parts[i] & n != src_parts[i] & n {
+                        return Ok(false);
+                    }
+                    n >>= 1;
                 }
-                // If the bit is not the same in the source and destination, we are done
-                if dst_part & n != src_part & n {
-                    return Ok(false);
-                }
-                n >>= 1;
             }
         }
-    } else {
-        let dst_parts: Vec<String> = ipv6_parts(&dst_str);
-        let src_parts: Vec<String> = ipv6_parts(&src_str);
-        let netmask_parts: Vec<String> = ipv6_parts(&netmask_str);
+        IpAddr::V6(dst) => {
+            let src = match src {
+                IpAddr::V4(_) => unreachable!(),
+                IpAddr::V6(src) => src,
+            };
+            let netmask = match netmask {
+                IpAddr::V4(_) => unreachable!(),
+                IpAddr::V6(netmask) => netmask,
+            };
+            let dst_parts = dst.segments();
+            let src_parts = src.segments();
+            let netmask_parts = netmask.segments();
 
-        // Iterate over each IPv6 part
-        for i in 0..8 {
-            // get part as u16
-            let netmask_part = u16::from_str_radix(&netmask_parts[i], 16).map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("Invalid netmask {}", netmask_str), None)
-            })?;
-            let dst_part = u16::from_str_radix(&dst_parts[i], 16).map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("Invalid IP address {}", dst_str), None)
-            })?;
-            let src_part = u16::from_str_radix(&src_parts[i], 16).map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("Invalid IP address {}", src_str), None)
-            })?;
-            // Iterate over each bit in the part
-            let mut n = 32768;
-            while n > 0 {
-                // If the bit is not set in the netmask, we are done
-                if netmask_part & n == 0 {
-                    return Ok(true);
+            // Iterate over each segment of the address
+            for i in 0..8 {
+                // Iterate over each bit in the segment
+                let mut n = 32768;
+                while n > 0 {
+                    // If the bit is not set in the netmask, we are done
+                    if netmask_parts[i] & n == 0 {
+                        return Ok(true);
+                    }
+                    // If the bit is not the same in the source and destination, we are done
+                    if dst_parts[i] & n != src_parts[i] & n {
+                        return Ok(false);
+                    }
+                    n >>= 1;
                 }
-                // If the bit is not the same in the source and destination, we are done
-                if dst_part & n != src_part & n {
-                    return Ok(false);
-                }
-                n >>= 1;
             }
         }
     }
-
-    Ok(true)
+    Ok(false)
 }
 
 /// Declares an open port on the target host
@@ -148,9 +140,9 @@ fn scanner_add_port(
 
     context.dispatcher().dispatch(
         context.key(),
-        storage::Field::KB(Kb {
+        Field::KB(Kb {
             key: format!("Port/{}/{}", protocol, port),
-            value: storage::types::Primitive::Number(1),
+            value: Primitive::Number(1),
             expire: None,
         }),
     )?;
