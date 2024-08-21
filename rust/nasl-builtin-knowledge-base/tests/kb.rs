@@ -36,4 +36,41 @@ mod tests {
         assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));
         assert!(matches!(parser.next(), Some(Err(_))));
     }
+    #[test]
+    fn get_kb_list() {
+        let code = r#"
+        set_kb_item(name: "test", value: 1);
+        set_kb_item(name: "test", value: 2);
+        get_kb_list("test");
+      
+        "#;
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::Number(1),
+                NaslValue::Number(2)
+            ])))
+        );
+    }
+    #[test]
+    fn replace_kb_item() {
+        let code = r#"
+        set_kb_item(name: "test", value: 1);
+        replace_kb_item(name: "test", value: 2);
+        get_kb_item("test");
+        "#;
+        let register = Register::default();
+        let binding = ContextFactory::default();
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
+    }
 }

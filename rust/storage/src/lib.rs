@@ -223,6 +223,10 @@ pub trait Dispatcher: Sync + Send {
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError>;
 
+    /// Replace all fields under a key with the new field
+    ///
+    fn dispatch_replace(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError>;
+
     /// On exit is called when a script exit
     ///
     /// Some database require a cleanup therefore this method is called when a script finishes.
@@ -254,6 +258,10 @@ where
 {
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         self.as_ref().dispatch(key, scope)
+    }
+
+    fn dispatch_replace(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
+        self.as_ref().dispatch_replace(key, scope)
     }
 
     fn on_exit(&self) -> Result<(), StorageError> {
@@ -366,6 +374,19 @@ impl DefaultDispatcher {
         Ok(())
     }
 
+    fn replace_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
+        let mut data = self.kbs.as_ref().write()?;
+        if let Some(scan_entry) = data.get_mut(scan_id) {
+            scan_entry.remove(&kb.key);
+            scan_entry.insert(kb.key.clone(), vec![kb]);
+        } else {
+            let mut scan_entry = HashMap::new();
+            scan_entry.insert(kb.key.clone(), vec![kb]);
+            data.insert(scan_id.to_string(), scan_entry);
+        }
+        Ok(())
+    }
+
     fn cache_result(&self, scan_id: &str, result: models::Result) -> Result<(), StorageError> {
         let mut data = self.results.as_ref().write()?;
         if let Some(entry) = data.get_mut(scan_id) {
@@ -399,6 +420,20 @@ impl Dispatcher for DefaultDispatcher {
         match scope {
             Field::NVT(x) => self.cache_nvt_field(key.as_ref(), x)?,
             Field::KB(x) => self.cache_kb(key.as_ref(), x)?,
+            Field::NotusAdvisory(x) => {
+                if let Some(x) = *x {
+                    self.cache_notus_advisory(x)?
+                }
+            }
+            Field::Result(x) => self.cache_result(key.as_ref(), *x)?,
+        }
+        Ok(())
+    }
+
+    fn dispatch_replace(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
+        match scope {
+            Field::NVT(x) => self.cache_nvt_field(key.as_ref(), x)?,
+            Field::KB(x) => self.replace_kb(key.as_ref(), x)?,
             Field::NotusAdvisory(x) => {
                 if let Some(x) = *x {
                     self.cache_notus_advisory(x)?
