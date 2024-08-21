@@ -97,7 +97,7 @@ fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
                 if dst_part & n != src_part & n {
                     return Ok(false);
                 }
-                n = n >> 1;
+                n >>= 1;
             }
         }
     } else {
@@ -128,7 +128,7 @@ fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
                 if dst_part & n != src_part & n {
                     return Ok(false);
                 }
-                n = n >> 1;
+                n >>= 1;
             }
         }
     }
