@@ -147,3 +147,31 @@ pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, 
         None,
     ))
 }
+
+pub fn expand_ipv6(ip: &str) -> String {
+    if let Some((left, right)) = ip.split_once("::") {
+        let left_parts = left.split(':').collect::<Vec<&str>>();
+        let right_parts = right.split(':').collect::<Vec<&str>>();
+        let mut expanded = String::new();
+        let missing = 8 - left_parts.len() - right_parts.len();
+        for part in left_parts {
+            expanded.push_str(part);
+            expanded.push(':');
+        }
+        for _ in 0..missing {
+            expanded.push_str("0000:");
+        }
+        for part in right_parts {
+            expanded.push_str(part);
+            expanded.push(':');
+        }
+        expanded.pop();
+        expanded
+    } else {
+        ip.to_string()
+    }
+}
+
+pub fn ipv6_parts(ip: &str) -> Vec<String> {
+    expand_ipv6(ip).split(':').map(|s| s.to_string()).collect()
+}
