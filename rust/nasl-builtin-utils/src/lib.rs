@@ -6,6 +6,7 @@
 #![warn(missing_docs)]
 pub mod context;
 pub mod error;
+mod executor;
 pub mod function;
 pub mod lookup_keys;
 
