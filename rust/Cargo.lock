@@ -2034,9 +2034,9 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
- "pcap",
  "pkcs8",
  "rustls 0.23.12",
  "rustls-pemfile 2.1.2",

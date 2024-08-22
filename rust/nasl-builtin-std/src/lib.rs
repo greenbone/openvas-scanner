@@ -78,6 +78,7 @@ pub fn nasl_std_functions() -> nasl_builtin_utils::NaslFunctionRegister {
         .push_register(nasl_builtin_host::Host)
         .push_register(nasl_builtin_http::NaslHttp::default())
         .push_register(nasl_builtin_network::socket::NaslSockets::default())
+        .push_register(nasl_builtin_network::network::Network)
         .push_register(nasl_builtin_cryptographic::Cryptographic)
         .push_register(nasl_builtin_description::Description);
 
