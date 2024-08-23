@@ -3,7 +3,7 @@
 use crate::*;
 use futures::StreamExt;
 use nasl_builtin_utils::{function::ToNaslResult, NaslResult};
-use storage::Storage;
+use storage::{ContextKey, Storage};
 
 // The following exists to trick the trait solver into
 // believing me that everything is fine. Doing this naively
@@ -44,6 +44,8 @@ pub struct TestBuilder<L: Loader, S: Storage> {
     lines: Vec<String>,
     results: Vec<TestResult>,
     context: ContextFactory<L, S>,
+    context_key: ContextKey,
+    variables: Vec<(String, NaslValue)>,
     should_verify: bool,
 }
 
@@ -53,6 +55,8 @@ impl Default for TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher
             lines: vec![],
             results: vec![],
             context: ContextFactory::default(),
+            context_key: ContextKey::default(),
+            variables: vec![],
             should_verify: true,
         }
     }
@@ -97,7 +101,12 @@ where
     /// TODO doc
     pub fn results(&self) -> Vec<NaslResult> {
         let code = self.lines.join("\n");
-        let register = Register::default();
+        let variables: Vec<_> = self
+            .variables
+            .iter()
+            .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
+            .collect();
+        let register = Register::root_initial(&variables);
         let context = self.context();
 
         let parser = CodeInterpreter::new(&code, register, &context);
@@ -117,7 +126,7 @@ where
 
     /// TODO doc
     pub fn context(&self) -> Context {
-        self.context.build(Default::default())
+        self.context.build(self.context_key.clone())
     }
 
     /// TODO doc
@@ -197,8 +206,21 @@ where
             lines: self.lines.clone(),
             results: self.results.clone(),
             should_verify: self.should_verify,
+            variables: self.variables.clone(),
             context: context,
+            context_key: self.context_key.clone(),
         }
+    }
+
+    /// TODO doc
+    pub fn with_context_key(mut self, key: ContextKey) -> Self {
+        self.context_key = key;
+        self
+    }
+
+    /// TODO doc
+    pub fn set_variable(&mut self, arg: &str, number: NaslValue) {
+        self.variables.push((arg.to_string(), number));
     }
 }
 
