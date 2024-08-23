@@ -5,7 +5,10 @@ use futures::{stream, Stream};
 
 use nasl_syntax::{Lexer, Statement, Tokenizer};
 
-use crate::interpreter::{InterpretResult, Interpreter};
+use crate::{
+    interpreter::{InterpretResult, Interpreter},
+    Register,
+};
 
 /// Uses given code to return results based on that.
 pub struct CodeInterpreter<'a, 'b> {
@@ -16,26 +19,9 @@ pub struct CodeInterpreter<'a, 'b> {
 
 impl<'a, 'b> CodeInterpreter<'a, 'b> {
     /// Creates a new code interpreter
-    ///
-    /// Example:
-    /// ```
-    /// use nasl_syntax::NaslValue;
-    /// use nasl_interpreter::{Register, ContextFactory , CodeInterpreter};
-    /// let register = Register::default();
-    /// let context_builder = ContextFactory ::default();
-    /// let context = context_builder.build(Default::default());
-    /// let code = r#"
-    /// set_kb_item(name: "test", value: 1);
-    /// set_kb_item(name: "test", value: 2);
-    /// display(get_kb_item("test"));
-    /// "#;
-    /// let interpreter = CodeInterpreter::new(code, register, &context);
-    /// let results = interpreter.filter_map(|x|x.ok()).collect::<Vec<_>>();
-    /// assert_eq!(results, vec![NaslValue::Null; 4]);
-    /// ```
     pub fn new(
         code: &'b str,
-        register: crate::Register,
+        register: Register,
         context: &'a crate::Context<'a>,
     ) -> CodeInterpreter<'a, 'b> {
         let token = Tokenizer::new(code);
@@ -48,7 +34,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         }
     }
 
-    /// TODO Doc
+    /// Evaluates the next statement
     pub async fn next_statement(&mut self) -> Option<InterpretResult> {
         self.statement = None;
         match self.lexer.next() {
@@ -73,7 +59,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         }
     }
 
-    /// TODO Doc
+    /// Creates a stream over the results of the statements
     pub fn stream(self) -> impl Stream<Item = InterpretResult> + 'b
     where
         'a: 'b,
@@ -88,7 +74,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         }))
     }
 
-    /// TODO Doc
+    /// Blocks on the results of the stream.
     #[cfg(test)]
     pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> + 'b
     where
@@ -100,7 +86,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
     }
 
     /// Returns the Register of the underlying Interpreter
-    pub fn register(&self) -> &crate::Register {
+    pub fn register(&self) -> &Register {
         self.interpreter.register()
     }
 }
