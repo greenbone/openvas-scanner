@@ -6,8 +6,10 @@
 mod test {
     use std::{env, path::PathBuf};
 
-    use feed::HashSumNameLoader;
+    use feed::{HashSumNameLoader, Update};
+    use futures::StreamExt;
     use nasl_interpreter::FSPluginLoader;
+    use storage::DefaultDispatcher;
 
     fn loader() -> FSPluginLoader {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -34,18 +36,21 @@ mod test {
         );
     }
 
-    // TODO!
-    // #[test]
-    // fn verify_feed() {
-    //     let loader = loader();
-    //     let storage: DefaultDispatcher = DefaultDispatcher::new();
-    //     let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
-    //     let updater = Update::init("1", 1, &loader, &storage, verifier);
-    //     let files = updater.filter_map(|x| x.ok()).collect::<Vec<String>>();
-    //     // feed version and filename of script
-    //     assert_eq!(
-    //         &files,
-    //         &["test.nasl".to_owned(), "plugin_feed_info.inc".to_owned()]
-    //     );
-    // }
+    #[tokio::test]
+    async fn verify_feed() {
+        let loader = loader();
+        let storage: DefaultDispatcher = DefaultDispatcher::new();
+        let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
+        let updater = Update::init("1", 1, &loader, &storage, verifier);
+        let files = updater
+            .stream()
+            .filter_map(|x| async { x.ok() })
+            .collect::<Vec<String>>()
+            .await;
+        // feed version and filename of script
+        assert_eq!(
+            &files,
+            &["test.nasl".to_owned(), "plugin_feed_info.inc".to_owned()]
+        );
+    }
 }

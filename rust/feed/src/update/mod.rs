@@ -193,7 +193,8 @@ where
         Ok(())
     }
 
-    fn stream(self) -> impl Stream<Item = Result<String, Error>> + 'a {
+    /// TODO doc
+    pub fn stream(self) -> impl Stream<Item = Result<String, Error>> + 'a {
         stream::unfold(self, |mut s| async move {
             let x = s.next().await;
             if let Some(x) = x {
