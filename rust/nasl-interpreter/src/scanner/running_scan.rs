@@ -66,7 +66,7 @@ impl<S: ScannerStack> RunningScan<S> {
                     id: self.scan.scan_id.to_string(),
                     reason: e.to_string(),
                 })?;
-        let interpreter: ScanRunner<(_, _)> =
+        let runner: ScanRunner<(_, _)> =
             ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
         tracing::debug!(scan_id = self.scan.scan_id);
         self.set_status_to_running();
@@ -74,7 +74,7 @@ impl<S: ScannerStack> RunningScan<S> {
         let mut last_target = String::new();
 
         // TODO: check for error and abort, we need to keep track of the state
-        let stream = interpreter.stream();
+        let stream = runner.stream();
         let items: Vec<_> = stream.collect().await;
         for it in items {
             match it {
