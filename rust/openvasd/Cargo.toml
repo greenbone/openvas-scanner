@@ -17,7 +17,7 @@ notus = { path = "../notus" }
 openvas = { path = "../openvas" }
 hyper = { version = "1", features = ["full"] }
 hyper-rustls = "0"
-tokio = { version = "1.28.1", features = ["full"] }
+tokio = { workspace = true }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 serde_json = "1.0.96"

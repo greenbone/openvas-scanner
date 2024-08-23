@@ -19,8 +19,8 @@ tracing = "0.1.37"
 glob = "0.3.1"
 serde = { version = "1.0", features = ["derive"]}
 thiserror = "1.0.62"
-futures = "0.3.30"
-tokio = { version = "1.39.3", features = ["full"] }
+futures = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 toml = "0.8.8"
