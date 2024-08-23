@@ -12,11 +12,12 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use tracing::{trace, warn};
 
 use crate::error::{Error, IoErrorKind};
 
 fn open_file<P: AsRef<Path>>(path: P, opts: &mut OpenOptions) -> Result<File, Error> {
-    tracing::trace!(path= ?path.as_ref(), "opening");
+    trace!(path= ?path.as_ref(), "opening");
     opts.open(path.as_ref())
         .map_err(|e| Error::IoError(IoErrorKind::FileOpen, e.kind()))
 }
@@ -113,7 +114,7 @@ impl IndexedFileStorer {
     {
         let path = path.as_ref();
         if !path.exists() {
-            std::fs::create_dir_all(path)
+            fs::create_dir_all(path)
                 .map_err(|e| Error::IoError(IoErrorKind::CreateBaseDir, e.kind()))?
         }
         Ok(IndexedFileStorer {
@@ -136,10 +137,7 @@ impl IndexedFileStorer {
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(
             path,
-            std::fs::OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true),
+            OpenOptions::new().write(true).create(true).truncate(true),
         )?;
         write_file(&mut file, element)?;
 
@@ -150,17 +148,14 @@ impl IndexedFileStorer {
         let fn_name = format!("{}.idx", id);
         //let to_store = serde_json::to_vec(index).map_err(|_e| Error::Serialize)?;
         let to_store = serde_json::to_vec(index).map_err(|x| {
-            tracing::warn!(error=%x, "unable to serialize index for storage");
+            warn!(error=%x, "unable to serialize index for storage");
             Error::Serialize
         })?;
 
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(
             path,
-            std::fs::OpenOptions::new()
-                .truncate(true)
-                .create(true)
-                .write(true),
+            OpenOptions::new().truncate(true).create(true).write(true),
         )?;
         write_file(&mut file, &to_store)?;
         Ok(())
@@ -170,7 +165,7 @@ impl IndexedFileStorer {
     pub fn data_by_index(&self, key: &str, idx: &Index) -> Result<Vec<u8>, Error> {
         let fn_name = format!("{}.dat", key);
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = open_file(path, std::fs::OpenOptions::new().read(true))?;
+        let mut file = open_file(path, OpenOptions::new().read(true))?;
         let mut buffer = vec![0; idx.end - idx.start];
         file.seek(std::io::SeekFrom::Start(idx.start as u64))
             .map_err(|e| Error::IoError(IoErrorKind::Seek, e.kind()))?;
@@ -186,18 +181,13 @@ impl IndexedFileStorer {
     pub fn load_index(&self, key: &str) -> Result<Vec<Index>, Error> {
         let fn_name = format!("{}.idx", key);
         let path = Path::new(&self.base).join(&fn_name);
-        let mut file = open_file(path, std::fs::OpenOptions::new().read(true))?;
+        let mut file = open_file(path, OpenOptions::new().read(true))?;
         let mut buffer = vec![];
         file.read_to_end(&mut buffer)
             .map_err(|e| Error::IoError(IoErrorKind::Read, e.kind()))?;
 
-        // let index = serde_json::from_slice(&buffer).map_err(|e| {
-        //     tracing::warn!(fn_name, error=%e);
-        //
-        //     Error::Serialize
-        // })?;
         let index = serde_json::from_slice(&buffer).map_err(|e| {
-            tracing::warn!(key, error=%e, "unable to deserialize index");
+            warn!(key, error=%e, "unable to deserialize index");
             Error::Serialize
         })?;
         Ok(index)
@@ -222,9 +212,9 @@ impl IndexedFileStorer {
         T: AsRef<[u8]>,
     {
         let fn_name = format!("{}.dat", key);
-        tracing::trace!(key, idx_len = index.len());
+        trace!(key, idx_len = index.len());
         let path = Path::new(&self.base).join(fn_name);
-        let mut file = open_file(path, std::fs::OpenOptions::new().append(true))?;
+        let mut file = open_file(path, OpenOptions::new().append(true))?;
         let mut index = index.to_vec();
         index.reserve(data.len());
         let mut start = index.last().map(|e| e.end).unwrap_or(0);
