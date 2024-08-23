@@ -12,8 +12,7 @@ use aes::{
 };
 use cbc::{Decryptor, Encryptor};
 
-use crate::NaslFunction;
-use nasl_builtin_utils::error::FunctionErrorKind;
+use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
 use nasl_builtin_utils::{Context, Register};
 use nasl_syntax::NaslValue;
 
@@ -135,14 +134,17 @@ fn aes256_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Fun
     cbc::<Aes256>(register, Crypt::Decrypt)
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "aes128_cbc_encrypt" => Some(aes128_cbc_encrypt),
-        "aes128_cbc_decrypt" => Some(aes128_cbc_decrypt),
-        "aes192_cbc_encrypt" => Some(aes192_cbc_encrypt),
-        "aes192_cbc_decrypt" => Some(aes192_cbc_decrypt),
-        "aes256_cbc_encrypt" => Some(aes256_cbc_encrypt),
-        "aes256_cbc_decrypt" => Some(aes256_cbc_decrypt),
-        _ => None,
-    }
+pub struct AesCbc;
+
+stateless_function_set! {
+    AesCbc,
+    add_sync,
+    (
+        aes128_cbc_encrypt,
+        aes128_cbc_decrypt,
+        aes192_cbc_encrypt,
+        aes192_cbc_decrypt,
+        aes256_cbc_encrypt,
+        aes256_cbc_decrypt,
+    )
 }

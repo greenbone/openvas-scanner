@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{net::IpAddr, str, str::FromStr};
+use std::{net::IpAddr, str::FromStr};
 
 use nasl_builtin_utils::{error::FunctionErrorKind, lookup_keys::TARGET};
 
-use nasl_builtin_utils::{Context, ContextType, NaslFunction, Register};
+use nasl_builtin_utils::{stateless_function_set, Context, ContextType, Register};
 use nasl_syntax::NaslValue;
 
 /// Resolves IP address of target to hostname
@@ -75,30 +75,12 @@ fn nasl_get_host_ip(
     Ok(NaslValue::String(ip.to_string()))
 }
 
-/// Returns found function for key or None when not found
-fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "get_host_name" => Some(get_host_name),
-        "get_host_names" => Some(get_host_names),
-        "get_host_ip" => Some(nasl_get_host_ip),
-        _ => None,
-    }
-}
-
 /// The description builtin function
 pub struct Host;
 
-impl nasl_builtin_utils::SyncNaslFunctionExecuter for Host {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+stateless_function_set! {
+    Host,
+    add_sync,
+    // TODO fix name of nasl_get_host_ip
+    (get_host_name, get_host_names, nasl_get_host_ip)
 }

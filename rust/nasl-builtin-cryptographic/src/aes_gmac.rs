@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::NaslFunction;
+use nasl_builtin_utils::stateless_function_set;
 
 /// NASL function to calculate GMAC with AES128.
 ///
@@ -30,16 +30,23 @@ fn aes_gmac(
     }
 }
 
+pub struct AesGmac;
+
 #[cfg(feature = "nasl-c-lib")]
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "aes_mac_gcm" => Some(aes_gmac),
-        "aes_gmac" => Some(aes_gmac),
-        _ => None,
-    }
+stateless_function_set! {
+    AesGmac,
+        sync_stateless,
+    (
+        aes_gmac,
+        // TODO add this syntax
+        ("aes_mac_gcm", aes_gmac),
+    )
 }
 
 #[cfg(not(feature = "nasl-c-lib"))]
-pub fn lookup(_: &str) -> Option<NaslFunction> {
-    None
+stateless_function_set! {
+    AesGmac,
+    sync_stateless,
+    (
+    )
 }

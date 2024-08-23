@@ -1,7 +1,9 @@
 use std::sync::{Arc, RwLock};
 
 use models::{Protocol, ResultType};
-use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
+use nasl_builtin_utils::{
+    stateful_function_set, Context, ContextType, FunctionErrorKind, Register,
+};
 use nasl_syntax::NaslValue;
 
 #[derive(Debug, Clone, Default)]
@@ -108,22 +110,12 @@ impl Reporting {
     }
 }
 
-impl nasl_builtin_utils::SyncNaslFunctionExecuter for Reporting {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        match name {
-            "log_message" => Some(self.log_message(register, context)),
-            "security_message" => Some(self.security_message(register, context)),
-            "error_message" => Some(self.error_message(register, context)),
-            _ => None,
-        }
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        matches!(name, "log_message" | "security_message" | "error_message")
-    }
+stateful_function_set! {
+    Reporting,
+    add_sync,
+    (
+        Reporting::log_message,
+        Reporting::security_message,
+        Reporting::error_message,
+    )
 }

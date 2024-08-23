@@ -5,10 +5,10 @@
 use aes::Aes128;
 use cmac::{Cmac, Mac};
 use nasl_builtin_utils::error::GeneralErrorType;
-use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{stateless_function_set, Context, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 
-use crate::{get_data, get_key, NaslFunction};
+use crate::{get_data, get_key};
 
 /// NASL function to calculate CMAC wit AES128.
 ///
@@ -26,10 +26,13 @@ fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, FunctionError
     Ok(mac.finalize().into_bytes().to_vec().into())
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "aes_mac_cbc" => Some(aes_cmac),
-        "aes_cmac" => Some(aes_cmac),
-        _ => None,
-    }
+pub struct AesCmac;
+
+stateless_function_set! {
+    AesCmac,
+    add_sync,
+    (
+        aes_cmac,
+        aes_cmac,
+    )
 }

@@ -8,7 +8,7 @@ use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
     function::{CheckedPositionals, FromNaslValue, Maybe},
-    Context, FunctionErrorKind, NaslFunction, Register,
+    stateless_function_set, Context, FunctionErrorKind, Register,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
@@ -417,49 +417,34 @@ fn strstr(string: &str, find: &str) -> Option<String> {
     string.find(find).map(|index| string[index..].to_owned())
 }
 
-/// Returns found function for key or None when not found
-fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "hexstr" => Some(hexstr),
-        "hex" => Some(hex),
-        "raw_string" => Some(raw_string),
-        "strcat" => Some(raw_string),
-        "tolower" => Some(tolower),
-        "toupper" => Some(toupper),
-        "strlen" => Some(strlen),
-        "string" => Some(string),
-        "substr" => Some(substr),
-        "crap" => Some(crap),
-        "chomp" => Some(chomp),
-        "stridx" => Some(stridx),
-        "display" => Some(display),
-        "hexstr_to_data" => Some(hexstr_to_data),
-        "data_to_hexstr" => Some(data_to_hexstr),
-        "ord" => Some(ord),
-        "match" => Some(match_),
-        "insstr" => Some(insstr),
-        "int" => Some(int),
-        "split" => Some(split),
-        "replace" => Some(replace),
-        "strstr" => Some(strstr),
-        _ => None,
-    }
-}
-
 /// The description builtin function
 pub struct NaslString;
 
-impl nasl_builtin_utils::SyncNaslFunctionExecuter for NaslString {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+stateless_function_set! {
+    NaslString,
+    add_sync,
+    (
+        hexstr,
+        hex,
+        raw_string,
+        raw_string,
+        tolower,
+        toupper,
+        strlen,
+        string,
+        substr,
+        crap,
+        chomp,
+        stridx,
+        display,
+        hexstr_to_data,
+        data_to_hexstr,
+        ord,
+        match_,
+        insstr,
+        int,
+        split,
+        replace,
+        strstr
+    )
 }

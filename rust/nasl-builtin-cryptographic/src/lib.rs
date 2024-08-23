@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use nasl_builtin_utils::combine_function_sets;
 use nasl_builtin_utils::error::FunctionErrorKind;
-use nasl_builtin_utils::{Context, NaslFunction};
 
 use nasl_builtin_utils::{ContextType, Register};
 use nasl_syntax::NaslValue;
@@ -23,34 +23,6 @@ enum Crypt {
     Decrypt,
 }
 
-pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
-    aes_ccm::lookup(function_name)
-        .or_else(|| hmac::lookup(function_name))
-        .or_else(|| aes_cbc::lookup(function_name))
-        .or_else(|| aes_ctr::lookup(function_name))
-        .or_else(|| aes_gcm::lookup(function_name))
-        .or_else(|| aes_cmac::lookup(function_name))
-        .or_else(|| aes_gmac::lookup(function_name))
-        .or_else(|| hash::lookup(function_name))
-        .or_else(|| des::lookup(function_name))
-}
-
-pub struct Cryptographic;
-
-impl nasl_builtin_utils::SyncNaslFunctionExecuter for Cryptographic {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
-}
 /// Get named argument of Type Data or String from the register with appropriate error handling.
 /// In case the argument is required, the returned value is either an Error or the Option is always
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some
@@ -125,4 +97,21 @@ fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
             ))),
         },
     }
+}
+
+pub struct Cryptographic;
+
+combine_function_sets! {
+    Cryptographic,
+    (
+        aes_ccm::AesCcm,
+        hmac::HmacFns,
+        aes_cbc::AesCbc,
+        aes_ctr::AesCtr,
+        aes_gcm::AesGcmFns,
+        aes_cmac::AesCmac,
+        aes_gmac::AesGmac,
+        hash::Hash,
+        des::Des,
+    )
 }

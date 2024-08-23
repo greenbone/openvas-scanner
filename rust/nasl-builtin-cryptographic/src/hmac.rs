@@ -13,12 +13,11 @@ use hex::encode;
 use hmac::{Hmac, Mac};
 use md2::Md2;
 use md5::Md5;
-use nasl_builtin_utils::error::FunctionErrorKind;
+use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
 use ripemd::Ripemd160;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::NaslFunction;
 use nasl_builtin_utils::{Context, ContextType, Register};
 use nasl_syntax::NaslValue;
 
@@ -94,16 +93,18 @@ pub fn hmac_sha512(register: &Register, _: &Context) -> Result<NaslValue, Functi
     hmac::<Sha512>(register)
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "HMAC_MD2" => Some(hmac_md2),
-        "HMAC_MD5" => Some(hmac_md5),
-        "HMAC_RIPEMD160" => Some(hmac_ripemd160),
-        "HMAC_SHA1" => Some(hmac_sha1),
-        "HMAC_SHA256" => Some(hmac_sha256),
-        "HMAC_SHA384" => Some(hmac_sha384),
-        "HMAC_SHA512" => Some(hmac_sha512),
-        _ => None,
-    }
+pub struct HmacFns;
+
+stateless_function_set! {
+    HmacFns,
+    add_sync,
+    (
+        hmac_md2,
+        hmac_md5,
+        hmac_ripemd160,
+        hmac_sha1,
+        hmac_sha256,
+        hmac_sha384,
+        hmac_sha512,
+    )
 }

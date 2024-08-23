@@ -16,7 +16,6 @@ use models::{
     scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
     Scan,
 };
-use nasl_builtin_utils::NaslFunctionExecuter;
 use nasl_syntax::{FSPluginLoader, Loader};
 use running_scan::RunningScanHandle;
 use storage::{DefaultDispatcher, Storage};

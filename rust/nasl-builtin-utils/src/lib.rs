@@ -10,11 +10,12 @@ mod executor;
 pub mod function;
 pub mod lookup_keys;
 
-use async_trait::async_trait;
 use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
 pub use error::FunctionErrorKind;
+
+pub use executor::{Executor, IntoFunctionSet, StatefulFunctionSet, StatelessFunctionSet};
 
 /// The result of a function call.
 pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;
@@ -26,83 +27,6 @@ pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;
 /// an error back.
 pub type NaslFunction<'a> =
     fn(&Register, &Context) -> Result<nasl_syntax::NaslValue, FunctionErrorKind>;
-
-/// Looks up functions and executes them. Returns None when no function is found and a result
-/// otherwise.
-#[async_trait]
-pub trait NaslFunctionExecuter: Send + Sync + 'static {
-    /// Executes function found by name if it registered.
-    ///
-    /// Usually it is called by the context and not directly from the interpreter. This way it is
-    /// ensured that it is using the correct context. To not have to have a context ready on
-    /// initialization the context is given via a parameter.
-    async fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context<'_>,
-    ) -> Option<NaslResult>;
-
-    /// Returns true when the nasl function is defined otherwise false.
-    fn nasl_fn_defined(&self, name: &str) -> bool;
-
-    /// Clears the cache of the nasl function. It will be called on exit of the interpreter.
-    ///
-    /// This is useful for functions that cache values and need to be cleared on exit.
-    /// As an example ssh functions store open sessions.
-    async fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        None
-    }
-}
-
-#[async_trait]
-impl<T> NaslFunctionExecuter for T
-where
-    T: SyncNaslFunctionExecuter + Send + Sync + 'static,
-{
-    async fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context<'_>,
-    ) -> Option<NaslResult> {
-        <T as SyncNaslFunctionExecuter>::nasl_fn_execute(self, name, register, context)
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        <T as SyncNaslFunctionExecuter>::nasl_fn_defined(self, name)
-    }
-
-    async fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        <T as SyncNaslFunctionExecuter>::nasl_fn_cache_clear(self)
-    }
-}
-
-/// Sync version of the AsyncNaslFunctionExecutor, for migration
-pub trait SyncNaslFunctionExecuter: Send + Sync + 'static {
-    /// Executes function found by name if it registered.
-    ///
-    /// Usually it is called by the context and not directly from the interpreter. This way it is
-    /// ensured that it is using the correct context. To not have to have a context ready on
-    /// initialization the context is given via a parameter.
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context<'_>,
-    ) -> Option<NaslResult>;
-
-    /// Returns true when the nasl function is defined otherwise false.
-    fn nasl_fn_defined(&self, name: &str) -> bool;
-
-    /// Clears the cache of the nasl function. It will be called on exit of the interpreter.
-    ///
-    /// This is useful for functions that cache values and need to be cleared on exit.
-    /// As an example ssh functions store open sessions.
-    fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        None
-    }
-}
 
 /// Resolves positional arguments from the register.
 pub fn resolve_positional_arguments(register: &Register) -> Vec<nasl_syntax::NaslValue> {
@@ -146,82 +70,6 @@ pub fn get_named_parameter<'a>(
             ContextType::Value(value) => Ok(value),
             _ => Err(FunctionErrorKind::wrong_argument(key, "value", "function")),
         },
-    }
-}
-
-/// Holds registered NaslFunctionExecuter and executes them in order of registration.
-#[derive(Default)]
-pub struct NaslFunctionRegister {
-    executor: Vec<Box<dyn NaslFunctionExecuter + Send>>,
-}
-
-impl NaslFunctionRegister {
-    /// Creates a new NaslFunctionRegister
-    pub fn new(executor: Vec<Box<dyn NaslFunctionExecuter + Send>>) -> Self {
-        Self { executor }
-    }
-
-    /// Pushes a NaslFunctionExecuter to the register
-    pub fn push_executer<T>(&mut self, executor: T)
-    where
-        T: NaslFunctionExecuter + Send + 'static,
-    {
-        self.executor.push(Box::new(executor));
-    }
-}
-
-#[async_trait]
-impl NaslFunctionExecuter for NaslFunctionRegister {
-    async fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &context::Register,
-        context: &context::Context<'_>,
-    ) -> Option<NaslResult> {
-        for executor in &self.executor {
-            if let Some(r) = executor.nasl_fn_execute(name, register, context).await {
-                return Some(r);
-            }
-        }
-        None
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        for executor in &self.executor {
-            if executor.nasl_fn_defined(name) {
-                return true;
-            }
-        }
-        false
-    }
-}
-
-#[derive(Default)]
-/// A builder for NaslFunctionRegister
-pub struct NaslfunctionRegisterBuilder {
-    executor: Vec<Box<dyn NaslFunctionExecuter + Send>>,
-}
-
-impl NaslfunctionRegisterBuilder {
-    /// New NaslFunctionRegisterBuilder
-    pub fn new() -> Self {
-        Self {
-            executor: Vec::new(),
-        }
-    }
-
-    /// Pushes a NaslFunctionExecuter to the register
-    pub fn push_register<T>(mut self, executor: T) -> Self
-    where
-        T: NaslFunctionExecuter,
-    {
-        self.executor.push(Box::new(executor));
-        self
-    }
-
-    /// Builds the NaslFunctionRegister
-    pub fn build(self) -> NaslFunctionRegister {
-        NaslFunctionRegister::new(self.executor)
     }
 }
 
@@ -275,61 +123,5 @@ impl NaslVarRegisterBuilder {
     /// Build a NaslVarRegister with a vector of NaslVarsDefiner
     pub fn build(self) -> NaslVarRegister {
         NaslVarRegister::new(self.definer)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use async_trait::async_trait;
-
-    struct Test;
-
-    #[async_trait]
-    impl crate::NaslFunctionExecuter for Test {
-        async fn nasl_fn_execute(
-            &self,
-            name: &str,
-            register: &crate::Register,
-            _context: &crate::Context<'_>,
-        ) -> Option<crate::NaslResult> {
-            match name {
-                "test" => {
-                    let a: i64 = crate::get_named_parameter(register, "a", true)
-                        .unwrap()
-                        .into();
-                    let b: i64 = crate::get_named_parameter(register, "b", true)
-                        .unwrap()
-                        .into();
-                    Some(Ok((a + b).into()))
-                }
-                _ => None,
-            }
-        }
-
-        fn nasl_fn_defined(&self, name: &str) -> bool {
-            name == "test"
-        }
-    }
-
-    #[tokio::test]
-    async fn register_new_function() {
-        let key = storage::ContextKey::FileName("test".to_owned());
-        let target = "localhost";
-        let storage = storage::DefaultDispatcher::default();
-        let loader = nasl_syntax::NoOpLoader::default();
-        let context = crate::Context::new(key, target.into(), &storage, &storage, &loader, &Test);
-        let mut register = crate::Register::default();
-        register.add_local("a", 1.into());
-        register.add_local("b", 2.into());
-
-        assert!(context.nasl_fn_defined("test"));
-        assert_eq!(
-            context
-                .nasl_fn_execute("test", &register)
-                .await
-                .unwrap()
-                .unwrap(),
-            3.into()
-        );
     }
 }

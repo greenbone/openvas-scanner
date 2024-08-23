@@ -113,7 +113,6 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 #[cfg(test)]
 pub(super) mod tests {
     use futures::StreamExt;
-    use nasl_builtin_utils::NaslFunctionRegister;
     use storage::item::Nvt;
     use storage::Dispatcher;
     use storage::Retriever;

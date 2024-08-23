@@ -4,7 +4,7 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use nasl_builtin_utils::NaslVars;
+use nasl_builtin_utils::{stateless_function_set, NaslVars};
 use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
@@ -547,18 +547,6 @@ fn nasl_dump_frame(register: &Register, _: &Context) -> Result<NaslValue, Functi
     Ok(NaslValue::Null)
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "send_frame" => Some(nasl_send_frame),
-        "dump_frame" => Some(nasl_dump_frame),
-        "forge_frame" => Some(nasl_forge_frame),
-        "get_local_mac_address_from_ip" => Some(nasl_get_local_mac_address_from_ip),
-        "send_arp_request" => Some(nasl_send_arp_request),
-        _ => None,
-    }
-}
-
 /// Returns a NaslVars with all predefined variables which must be expose to nasl script
 pub fn expose_vars() -> NaslVars<'static> {
     let builtin_vars: NaslVars = [
@@ -579,6 +567,21 @@ pub fn expose_vars() -> NaslVars<'static> {
     .cloned()
     .collect();
     builtin_vars
+}
+
+pub struct FrameForgery;
+
+stateless_function_set! {
+    FrameForgery,
+    add_sync,
+    (
+        // TODO add named
+        nasl_send_frame,
+        nasl_dump_frame,
+        nasl_forge_frame,
+        nasl_get_local_mac_address_from_ip,
+        nasl_send_arp_request,
+    )
 }
 
 #[cfg(test)]

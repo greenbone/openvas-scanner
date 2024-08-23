@@ -5,9 +5,8 @@
 //! Defines NASL functions to perform HTTP/2 request.
 // TODO: implement http functions once socket handling is available
 
-use async_trait::async_trait;
 use nasl_builtin_utils::{
-    Context, ContextType, FunctionErrorKind, NaslFunctionExecuter, NaslResult, Register,
+    stateful_function_set, Context, ContextType, FunctionErrorKind, Register,
 };
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
@@ -500,68 +499,20 @@ impl NaslHttp {
             )),
         }
     }
-
-    /// Returns found function for key or None when not found
-    async fn run(
-        &self,
-        key: &str,
-        register: &Register,
-        context: &Context<'_>,
-    ) -> Option<NaslResult> {
-        match key {
-            "http2_handle" => Some(self.handle(register, context).await),
-            "http2_close_handle" => Some(self.close_handle(register, context).await),
-            "http2_get_response_code" => Some(self.get_response_code(register, context).await),
-            "http2_set_custom_header" => Some(self.set_custom_header(register, context).await),
-            "http2_get" => Some(self.get(register, context).await),
-            "http2_head" => Some(self.head(register, context).await),
-            "http2_post" => Some(self.post(register, context).await),
-            "http2_delete" => Some(self.delete(register, context).await),
-            "http2_put" => Some(self.put(register, context).await),
-            _ => None,
-        }
-    }
-
-    /// Returns found function for key or None when not found
-    fn lookup(key: &str) -> bool {
-        match key {
-            "http2_handle" => true,
-            "http2_close_handle" => true,
-            "http2_get_response_code" => true,
-            "http2_set_custom_header" => true,
-            "http2_get" => true,
-            "http2_head" => true,
-            "http2_post" => true,
-            "http2_delete" => true,
-            "http2_put" => true,
-            _ => false,
-        }
-    }
 }
 
-#[async_trait]
-impl NaslFunctionExecuter for NaslHttp {
-    async fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        let mut data = Arc::as_ref(&self.handles).lock().await;
-        if data.is_empty() {
-            return None;
-        }
-        let result = data.len();
-        data.clear();
-        data.shrink_to_fit();
-        Some(result)
-    }
-
-    async fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context<'_>,
-    ) -> Option<NaslResult> {
-        self.run(name, register, context).await
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        NaslHttp::lookup(name)
-    }
+stateful_function_set! {
+    NaslHttp,
+    add_async,
+    (
+        NaslHttp::handle,
+        NaslHttp::close_handle,
+        NaslHttp::get_response_code,
+        NaslHttp::set_custom_header,
+        NaslHttp::get,
+        NaslHttp::head,
+        NaslHttp::post,
+        NaslHttp::delete,
+        NaslHttp::put
+    )
 }

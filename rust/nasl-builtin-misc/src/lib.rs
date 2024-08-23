@@ -21,7 +21,9 @@ use nasl_syntax::NaslValue;
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
-use nasl_builtin_utils::{error::FunctionErrorKind, function::Maybe, NaslFunction};
+use nasl_builtin_utils::{
+    error::FunctionErrorKind, function::Maybe, stateless_function_set, NaslFunction,
+};
 use nasl_builtin_utils::{Context, ContextType, Register};
 
 #[inline]
@@ -242,42 +244,26 @@ fn dump_ctxt(register: &Register) {
     register.dump(register.index() - 1);
 }
 
-/// Returns found function for key or None when not found
-fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "rand" => Some(rand),
-        "get_byte_order" => Some(get_byte_order),
-        "dec2str" => Some(dec2str),
-        "typeof" => Some(nasl_typeof),
-        "isnull" => Some(isnull),
-        "unixtime" => Some(unixtime),
-        "localtime" => Some(localtime),
-        "mktime" => Some(mktime),
-        "usleep" => Some(usleep),
-        "sleep" => Some(sleep),
-        "gzip" => Some(gzip),
-        "gunzip" => Some(gunzip),
-        "defined_func" => Some(defined_func),
-        "gettimeofday" => Some(gettimeofday),
-        "dump_ctxt" => Some(dump_ctxt),
-        _ => None,
-    }
-}
-
-/// The description builtin function
 pub struct Misc;
 
-impl nasl_builtin_utils::SyncNaslFunctionExecuter for Misc {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+stateless_function_set! {
+    Misc,
+    add_sync,
+    (
+        rand,
+        get_byte_order,
+        dec2str,
+        nasl_typeof,
+        isnull,
+        unixtime,
+        localtime,
+        mktime,
+        usleep,
+        sleep,
+        gzip,
+        gunzip,
+        defined_func,
+        gettimeofday,
+        dump_ctxt,
+    )
 }

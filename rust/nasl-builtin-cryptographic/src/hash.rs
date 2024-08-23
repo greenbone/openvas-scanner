@@ -6,12 +6,11 @@ use digest::Digest;
 use md2::Md2;
 use md4::Md4;
 use md5::Md5;
-use nasl_builtin_utils::error::FunctionErrorKind;
+use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
 use ripemd::Ripemd160;
 use sha1::Sha1;
 use sha2::{Sha256, Sha512};
 
-use crate::NaslFunction;
 use nasl_builtin_utils::{Context, Register};
 use nasl_syntax::NaslValue;
 
@@ -71,16 +70,18 @@ pub fn hash_ripemd160(register: &Register, _: &Context) -> Result<NaslValue, Fun
     nasl_hash::<Ripemd160>(register)
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "MD2" => Some(hash_md2),
-        "MD4" => Some(hash_md4),
-        "MD5" => Some(hash_md5),
-        "RIPEMD160" => Some(hash_ripemd160),
-        "SHA1" => Some(hash_sha1),
-        "SHA256" => Some(hash_sha256),
-        "SHA512" => Some(hash_sha512),
-        _ => None,
-    }
+pub struct Hash;
+
+stateless_function_set! {
+    Hash,
+    add_sync,
+    (
+        hash_md2,
+        hash_md4,
+        hash_md5,
+        hash_ripemd160,
+        hash_sha1,
+        hash_sha256,
+        hash_sha512,
+    )
 }
