@@ -14,8 +14,7 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost}
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
 use nasl_builtin_utils::{
-    stateless_function_set, Context, ContextType, FunctionErrorKind, NaslFunction, NaslVars,
-    Register,
+    stateless_function_set, Context, ContextType, FunctionErrorKind, NaslVars, Register,
 };
 use nasl_syntax::NaslValue;
 
@@ -2386,10 +2385,9 @@ stateless_function_set! {
         get_icmp_element,
         dump_icmp_packet,
         forge_igmp_packet,
-        // TODO add named
-        nasl_tcp_ping,
-        nasl_send_packet,
-        nasl_pcap_next,
-        nasl_send_capture,
+        (nasl_tcp_ping, "tcp_ping"),
+        (nasl_send_packet, "send_packet"),
+        (nasl_pcap_next, "pcap_next"),
+        (nasl_send_capture, "send_capture"),
     )
 }

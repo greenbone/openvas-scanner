@@ -76,12 +76,12 @@ stateless_function_set! {
     Hash,
     add_sync,
     (
-        hash_md2,
-        hash_md4,
-        hash_md5,
-        hash_ripemd160,
-        hash_sha1,
-        hash_sha256,
-        hash_sha512,
+        (hash_md2, "MD2"),
+        (hash_md4, "MD4"),
+        (hash_md5, "MD5"),
+        (hash_ripemd160, "RIPEMD160"),
+        (hash_sha1, "SHA1"),
+        (hash_sha256, "SHA256"),
+        (hash_sha512, "SHA512"),
     )
 }

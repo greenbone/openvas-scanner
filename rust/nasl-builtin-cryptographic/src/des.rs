@@ -5,9 +5,7 @@
 use aes::cipher::BlockEncrypt;
 use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
-use nasl_builtin_utils::{
-    stateless_function_set, Context, FunctionErrorKind, NaslFunction, Register,
-};
+use nasl_builtin_utils::{stateless_function_set, Context, FunctionErrorKind, Register};
 
 fn encrypt_des(
     register: &Register,
@@ -52,6 +50,6 @@ stateless_function_set! {
     Des,
     add_sync,
     (
-        encrypt_des,
+        (encrypt_des, "DES"),
     )
 }

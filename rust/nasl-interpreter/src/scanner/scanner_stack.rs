@@ -1,4 +1,3 @@
-use nasl_builtin_utils::{NaslFunctionExecuter, NaslFunctionRegister};
 use nasl_syntax::{FSPluginLoader, Loader};
 use storage::{DefaultDispatcher, Storage};
 
@@ -15,23 +14,20 @@ impl<T> Schedule for T where T: Iterator<Item = ConcurrentVTResult> {}
 pub trait ScannerStack {
     type Storage: Storage + Sync + Send + 'static;
     type Loader: Loader + Send + 'static;
-    type Executor: NaslFunctionExecuter + Send + 'static;
 }
 
-impl<S, L, F> ScannerStack for (S, L, F)
+impl<S, L> ScannerStack for (S, L)
 where
     S: Storage + Send + 'static,
     L: Loader + Send + 'static,
-    F: NaslFunctionExecuter + Send + 'static,
 {
     type Storage = S;
     type Loader = L;
-    type Executor = F;
 }
 
 /// The default scanner stack, consisting of `DefaultDispatcher`,
 /// `FSPluginLoader` and `NaslFunctionRegister`.
-pub type DefaultScannerStack = (DefaultDispatcher, FSPluginLoader, NaslFunctionRegister);
+pub type DefaultScannerStack = (DefaultDispatcher, FSPluginLoader);
 
 /// Like `DefaultScannerStack` but with a specific storage type.
-pub type ScannerStackWithStorage<S> = (S, FSPluginLoader, NaslFunctionRegister);
+pub type ScannerStackWithStorage<S> = (S, FSPluginLoader);

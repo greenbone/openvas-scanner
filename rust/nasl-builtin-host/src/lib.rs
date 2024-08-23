@@ -81,6 +81,9 @@ pub struct Host;
 stateless_function_set! {
     Host,
     add_sync,
-    // TODO fix name of nasl_get_host_ip
-    (get_host_name, get_host_names, nasl_get_host_ip)
+    (
+        get_host_name,
+        get_host_names,
+        (nasl_get_host_ip, "get_host_ip")
+    )
 }

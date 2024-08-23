@@ -7,6 +7,7 @@ mod packet_forgery;
 mod raw_ip_utils;
 use frame_forgery::FrameForgery;
 use nasl_builtin_utils::{combine_function_sets, NaslVars};
+use packet_forgery::PacketForgery;
 
 pub struct RawIp;
 

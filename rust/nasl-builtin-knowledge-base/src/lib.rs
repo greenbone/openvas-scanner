@@ -4,11 +4,11 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set, NaslFunction};
+use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
 use nasl_function_proc_macro::nasl_function;
 use storage::{Field, Kb, Retrieve};
 
-use nasl_builtin_utils::{Context, Register};
+use nasl_builtin_utils::Context;
 use nasl_syntax::NaslValue;
 
 /// NASL function to set a knowledge base

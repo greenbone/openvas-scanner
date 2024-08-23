@@ -38,7 +38,6 @@ stateless_function_set! {
         sync_stateless,
     (
         aes_gmac,
-        // TODO add this syntax
         ("aes_mac_gcm", aes_gmac),
     )
 }

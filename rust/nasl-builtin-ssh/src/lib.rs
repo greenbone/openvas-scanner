@@ -26,8 +26,6 @@ use std::{
 };
 use tracing::{debug, info};
 
-type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
-
 fn read_ssh_blocking(channel: &Channel, timeout: Duration, response: &mut String) -> i32 {
     let mut buf: [u8; 4096] = [0; 4096];
 

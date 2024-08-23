@@ -13,7 +13,7 @@ use std::{net::Ipv4Addr, str::FromStr};
 use pcap::{Capture, Device};
 
 use nasl_builtin_host::get_host_ip;
-use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, NaslFunction, Register};
+use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, Register};
 use nasl_syntax::NaslValue;
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
@@ -575,12 +575,11 @@ stateless_function_set! {
     FrameForgery,
     add_sync,
     (
-        // TODO add named
-        nasl_send_frame,
-        nasl_dump_frame,
-        nasl_forge_frame,
-        nasl_get_local_mac_address_from_ip,
-        nasl_send_arp_request,
+        (nasl_send_frame, "send_frame"),
+        (nasl_dump_frame, "dump_frame"),
+        (nasl_forge_frame, "forge_frame"),
+        (nasl_get_local_mac_address_from_ip, "get_local_mac_address_from_ip"),
+        (nasl_send_arp_request, "send_arp_request"),
     )
 }
 

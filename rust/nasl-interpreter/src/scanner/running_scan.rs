@@ -9,7 +9,7 @@ use std::{
 
 use futures::StreamExt;
 use models::{scanner::Error, Scan, Status};
-use nasl_builtin_utils::NaslFunctionExecuter;
+use nasl_builtin_utils::Executor;
 use nasl_syntax::Loader;
 use storage::Storage;
 use tokio::task::JoinHandle;
@@ -22,7 +22,7 @@ pub struct RunningScan<S: ScannerStack> {
     scan: Scan,
     storage: Arc<S::Storage>,
     loader: Arc<S::Loader>,
-    function_executor: Arc<S::Executor>,
+    function_executor: Arc<Executor>,
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<models::Status>>,
 }
@@ -56,7 +56,7 @@ impl<S: ScannerStack> RunningScan<S> {
     {
         let storage: &S::Storage = &self.storage;
         let loader: &S::Loader = &self.loader;
-        let function_executor: &S::Executor = &self.function_executor;
+        let function_executor: &Executor = &self.function_executor;
 
         // TODO make this prettier.
         let schedule =
@@ -66,7 +66,7 @@ impl<S: ScannerStack> RunningScan<S> {
                     id: self.scan.scan_id.to_string(),
                     reason: e.to_string(),
                 })?;
-        let interpreter: ScanRunner<(_, _, _)> =
+        let interpreter: ScanRunner<(_, _)> =
             ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
         tracing::debug!(scan_id = self.scan.scan_id);
         self.set_status_to_running();
@@ -137,16 +137,15 @@ pub struct RunningScanHandle {
 }
 
 impl RunningScanHandle {
-    pub fn start<S, L, N, T>(
+    pub fn start<S, L, T>(
         scan: Scan,
         storage: Arc<S>,
         loader: Arc<L>,
-        function_executor: Arc<N>,
+        function_executor: Arc<Executor>,
     ) -> Self
     where
         S: Storage + Send + 'static,
         L: Loader + Send + 'static,
-        N: NaslFunctionExecuter + Send + 'static,
         T: crate::scheduling::ExecutionPlan + 'static,
     {
         let keep_running: Arc<AtomicBool> = Arc::new(true.into());
@@ -155,7 +154,7 @@ impl RunningScanHandle {
         }));
         Self {
             handle: tokio::spawn(
-                RunningScan::<(S, L, N)> {
+                RunningScan::<(S, L)> {
                     scan,
                     storage,
                     loader,
@@ -189,7 +188,6 @@ mod tests {
         scanner::{ScanResultFetcher, ScanResults, ScanStarter},
         Scan,
     };
-    use nasl_builtin_utils::NaslFunctionRegister;
     use storage::item::Nvt;
     use tracing_test::traced_test;
 
@@ -198,11 +196,7 @@ mod tests {
         Scanner,
     };
 
-    type TestStack = (
-        storage::DefaultDispatcher,
-        fn(&str) -> String,
-        NaslFunctionRegister,
-    );
+    type TestStack = (storage::DefaultDispatcher, fn(&str) -> String);
 
     fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
         let ((storage, loader, executor), scan) = setup_success();

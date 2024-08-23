@@ -114,8 +114,8 @@ stateful_function_set! {
     Reporting,
     add_sync,
     (
-        Reporting::log_message,
-        Reporting::security_message,
-        Reporting::error_message,
+        (Reporting::log_message, "log_message"),
+        (Reporting::security_message, "security_message"),
+        (Reporting::error_message, "error_message"),
     )
 }

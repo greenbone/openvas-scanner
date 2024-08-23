@@ -80,7 +80,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         }
     } else {
         let executor = nasl_std_functions();
-        let runner: ScanRunner<(_, _, _)> =
+        let runner: ScanRunner<(_, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
         // TODO: Do not collect here
         let results: Vec<_> = runner.stream().collect().await;

@@ -99,12 +99,12 @@ stateless_function_set! {
     HmacFns,
     add_sync,
     (
-        hmac_md2,
-        hmac_md5,
-        hmac_ripemd160,
-        hmac_sha1,
-        hmac_sha256,
-        hmac_sha384,
-        hmac_sha512,
+        (hmac_md2, "HMAC_MD2"),
+        (hmac_md5, "HMAC_MD5"),
+        (hmac_ripemd160, "HMAC_RIPEMD160"),
+        (hmac_sha1, "HMAC_SHA1"),
+        (hmac_sha256, "HMAC_SHA256"),
+        (hmac_sha384, "HMAC_SHA384"),
+        (hmac_sha512, "HMAC_SHA512"),
     )
 }

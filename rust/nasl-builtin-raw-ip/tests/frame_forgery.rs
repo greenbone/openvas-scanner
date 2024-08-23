@@ -5,14 +5,16 @@
 //! Defines NASL frame forgery and arp functions
 #[cfg(test)]
 mod tests {
-    use nasl_builtin_std::ContextFactory;
+    use nasl_builtin_raw_ip::RawIp;
+    use nasl_builtin_std::{nasl_std_functions, ContextFactory};
     use nasl_interpreter::test_utils::TestBuilder;
     use nasl_syntax::NaslValue;
 
     fn setup() -> TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
         let t = TestBuilder::default();
         let mut context = ContextFactory::default();
-        context.functions.push_executer(nasl_builtin_raw_ip::RawIp);
+        context.functions = nasl_std_functions();
+        context.functions.add_set(RawIp);
         t.with_context(context)
     }
 

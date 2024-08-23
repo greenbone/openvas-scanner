@@ -16,6 +16,7 @@ use models::{
     scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
     Scan,
 };
+use nasl_builtin_utils::Executor;
 use nasl_syntax::{FSPluginLoader, Loader};
 use running_scan::RunningScanHandle;
 use storage::{DefaultDispatcher, Storage};
@@ -34,16 +35,15 @@ pub struct Scanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
     storage: Arc<S::Storage>,
     loader: Arc<S::Loader>,
-    function_executor: Arc<S::Executor>,
+    function_executor: Arc<Executor>,
 }
 
-impl<St, L, F> Scanner<(St, L, F)>
+impl<St, L> Scanner<(St, L)>
 where
     St: Storage + Send + 'static,
     L: Loader + Send + 'static,
-    F: NaslFunctionExecuter + Send + 'static,
 {
-    fn new(storage: St, loader: L, executor: F) -> Self {
+    fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
@@ -85,7 +85,7 @@ impl<S: ScannerStack> ScanStarter for Scanner<S> {
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
-        let handle = RunningScanHandle::start::<_, _, _, WaveExecutionPlan>(
+        let handle = RunningScanHandle::start::<_, _, WaveExecutionPlan>(
             scan,
             storage,
             loader,

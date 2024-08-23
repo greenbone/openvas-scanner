@@ -6,8 +6,9 @@
 #[cfg(test)]
 mod tests {
 
+    use nasl_builtin_raw_ip::RawIp;
     use nasl_builtin_std::ContextFactory;
-    use nasl_builtin_utils::error::FunctionErrorKind;
+    use nasl_builtin_utils::{error::FunctionErrorKind, Executor};
     use nasl_interpreter::test_utils::TestBuilder;
     use nasl_syntax::NaslValue;
 
@@ -40,7 +41,7 @@ mod tests {
     pub fn setup() -> TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
         let t = TestBuilder::default();
         let mut context = ContextFactory::default();
-        context.functions.push_executer(nasl_builtin_raw_ip::RawIp);
+        context.functions = Executor::single(RawIp);
         t.with_context(context)
     }
 

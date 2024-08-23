@@ -21,9 +21,7 @@ use nasl_syntax::NaslValue;
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
-use nasl_builtin_utils::{
-    error::FunctionErrorKind, function::Maybe, stateless_function_set, NaslFunction,
-};
+use nasl_builtin_utils::{error::FunctionErrorKind, function::Maybe, stateless_function_set};
 use nasl_builtin_utils::{Context, ContextType, Register};
 
 #[inline]
@@ -253,7 +251,7 @@ stateless_function_set! {
         rand,
         get_byte_order,
         dec2str,
-        nasl_typeof,
+        (nasl_typeof, "typeof"),
         isnull,
         unixtime,
         localtime,

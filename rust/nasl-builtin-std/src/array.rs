@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 
 use nasl_builtin_utils::function::{CheckedPositionals, Positionals};
-use nasl_builtin_utils::{stateless_function_set, NaslFunction};
+use nasl_builtin_utils::stateless_function_set;
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
@@ -88,7 +88,7 @@ stateless_function_set! {
     (
         make_array,
         make_list,
-        nasl_sort,
+        (nasl_sort, "sort"),
         keys,
         max_index,
     )

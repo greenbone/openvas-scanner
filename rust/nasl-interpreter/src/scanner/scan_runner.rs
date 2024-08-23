@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 
 use futures::{stream, Stream};
 use models::{Host, Scan};
+use nasl_builtin_utils::Executor;
 
 use crate::scanner::ScannerStack;
 use crate::scheduling::ConcurrentVT;
@@ -26,7 +27,7 @@ pub struct ScanRunner<'a, S: ScannerStack> {
     scan: &'a models::Scan,
     storage: &'a S::Storage,
     loader: &'a S::Loader,
-    executor: &'a S::Executor,
+    executor: &'a Executor,
     concurrent_vts: Vec<ConcurrentVT>,
     positions: VecDeque<Position>,
 }
@@ -49,7 +50,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
     pub fn new<Sched>(
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
-        executor: &'a Stack::Executor,
+        executor: &'a Executor,
         schedule: Sched,
         scan: &'a Scan,
     ) -> Self
@@ -113,6 +114,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 #[cfg(test)]
 pub(super) mod tests {
     use futures::StreamExt;
+    use nasl_builtin_utils::Executor;
     use storage::item::Nvt;
     use storage::Dispatcher;
     use storage::Retriever;
@@ -142,11 +144,7 @@ pub(super) mod tests {
     pub fn setup(
         scripts: &[(String, storage::item::Nvt)],
     ) -> (
-        (
-            storage::DefaultDispatcher,
-            fn(&str) -> String,
-            NaslFunctionRegister,
-        ),
+        (storage::DefaultDispatcher, fn(&str) -> String, Executor),
         models::Scan,
     ) {
         use storage::Dispatcher;
@@ -179,11 +177,7 @@ pub(super) mod tests {
     }
 
     pub fn setup_success() -> (
-        (
-            storage::DefaultDispatcher,
-            fn(&str) -> String,
-            NaslFunctionRegister,
-        ),
+        (storage::DefaultDispatcher, fn(&str) -> String, Executor),
         models::Scan,
     ) {
         setup(&only_success())
@@ -388,7 +382,7 @@ exit({rc});
         let executor = nasl_std_functions();
 
         let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan)?;
-        let interpreter: ScanRunner<(_, _, _)> =
+        let interpreter: ScanRunner<(_, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
         let results = interpreter.stream().collect::<Vec<_>>().await;
         Ok(results)

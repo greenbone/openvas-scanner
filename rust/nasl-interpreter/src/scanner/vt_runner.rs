@@ -1,10 +1,10 @@
 use futures::StreamExt;
 use models::{Host, Parameter, ScanId};
-use nasl_builtin_utils::Register;
+use nasl_builtin_utils::{Executor, Register};
 use nasl_syntax::{Loader, NaslValue};
 use storage::{item::Nvt, types::Primitive, ContextKey, Retriever, Storage};
 
-use crate::{scheduling::Stage, ExecuteError};
+use crate::{scheduling::Stage, Context, ExecuteError};
 
 use super::{
     error::{ScriptResult, ScriptResultKind},
@@ -15,7 +15,7 @@ use super::{
 pub struct VTRunner<'a, S: ScannerStack> {
     storage: &'a S::Storage,
     loader: &'a S::Loader,
-    executor: &'a S::Executor,
+    executor: &'a Executor,
 
     target: &'a Host,
     vt: &'a Nvt,
@@ -28,7 +28,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
     pub async fn run(
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
-        executor: &'a Stack::Executor,
+        executor: &'a Executor,
         target: &'a Host,
         vt: &'a Nvt,
         stage: Stage,
@@ -197,7 +197,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             match self.check_keys(&self.vt) {
                 Err(e) => e,
                 Ok(()) => {
-                    let context = crate::Context::new(
+                    let context = Context::new(
                         self.generate_key(),
                         self.target.clone(),
                         self.storage.as_dispatcher(),

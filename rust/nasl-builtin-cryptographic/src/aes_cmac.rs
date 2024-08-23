@@ -32,7 +32,7 @@ stateless_function_set! {
     AesCmac,
     add_sync,
     (
-        aes_cmac,
+        (aes_cmac, "aes_mac_cbc"),
         aes_cmac,
     )
 }

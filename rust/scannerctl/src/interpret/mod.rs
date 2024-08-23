@@ -145,7 +145,6 @@ where
             }
         }
 
-        context.executor().nasl_fn_cache_clear().await;
         Ok(())
     }
 }

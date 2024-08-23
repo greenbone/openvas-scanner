@@ -33,9 +33,7 @@ pub use scanner::Scanner;
 pub use scanner::ScannerStackWithStorage;
 // we expose the other libraries to allow users to use them without having to import them
 pub use nasl_builtin_std::{nasl_std_functions, ContextFactory, RegisterBuilder};
-pub use nasl_builtin_utils::{
-    Context, ContextType, FunctionErrorKind, NaslFunctionRegister, NaslVarRegister, Register,
-};
+pub use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, NaslVarRegister, Register};
 pub use nasl_syntax::{
     load_non_utf8_path, parse, AsBufReader, FSPluginLoader, LoadError, Loader, NaslValue,
     NoOpLoader,

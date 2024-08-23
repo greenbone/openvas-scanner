@@ -9,14 +9,14 @@ use crate::{Context, NaslResult, Register};
 pub trait AsyncDoubleArgFn<Arg1, Arg2>:
     Fn(Arg1, Arg2) -> <Self as AsyncDoubleArgFn<Arg1, Arg2>>::Fut
 {
-    type Fut: Future<Output = <Self as AsyncDoubleArgFn<Arg1, Arg2>>::Output>;
+    type Fut: Future<Output = <Self as AsyncDoubleArgFn<Arg1, Arg2>>::Output> + Send;
     type Output;
 }
 
 impl<Arg1, Arg2, F, Fut> AsyncDoubleArgFn<Arg1, Arg2> for F
 where
     F: Fn(Arg1, Arg2) -> Fut,
-    Fut: Future,
+    Fut: Future + Send,
 {
     type Fut = Fut;
     type Output = Fut::Output;
@@ -27,28 +27,28 @@ where
 /// lifetime to something. For more info, see
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
 pub trait AsyncTripleArgFn<Arg1, Arg2, Arg3>:
-    Fn(Arg1, Arg2, Arg3) -> <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Fut
+    Fn(Arg1, Arg2, Arg3) -> <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Fut + Send
 {
-    type Fut: Future<Output = <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Output>;
+    type Fut: Future<Output = <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Output> + Send;
     type Output;
 }
 
 impl<Arg1, Arg2, Arg3, F, Fut> AsyncTripleArgFn<Arg1, Arg2, Arg3> for F
 where
-    F: Fn(Arg1, Arg2, Arg3) -> Fut,
-    Fut: Future,
+    F: Fn(Arg1, Arg2, Arg3) -> Fut + Send,
+    Fut: Future + Send,
 {
     type Fut = Fut;
     type Output = Fut::Output;
 }
 
 enum StatefulNaslFunction<State> {
-    Async(Box<dyn StatefulCallable<State>>),
+    Async(Box<dyn StatefulCallable<State> + Send + Sync>),
     Sync(fn(&State, &Register, &Context) -> NaslResult),
 }
 
 enum StatelessNaslFunction {
-    Async(Box<dyn StatelessCallable>),
+    Async(Box<dyn StatelessCallable + Send + Sync>),
     Sync(fn(&Register, &Context) -> NaslResult),
 }
 
@@ -58,7 +58,7 @@ trait StatefulCallable<State> {
         state: &'b State,
         register: &'b Register,
         context: &'b Context,
-    ) -> Pin<Box<dyn Future<Output = NaslResult> + 'b>>;
+    ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F, State> StatefulCallable<State> for F
@@ -71,7 +71,7 @@ where
         state: &'b State,
         register: &'b Register,
         context: &'b Context,
-    ) -> Pin<Box<dyn Future<Output = NaslResult> + 'b>> {
+    ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
         Box::pin((*self)(state, register, context))
     }
 }
@@ -81,7 +81,7 @@ trait StatelessCallable {
         &self,
         register: &'b Register,
         context: &'b Context,
-    ) -> Pin<Box<dyn Future<Output = NaslResult> + 'b>>;
+    ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F> StatelessCallable for F
@@ -92,7 +92,7 @@ where
         &self,
         register: &'b Register,
         context: &'b Context,
-    ) -> Pin<Box<dyn Future<Output = NaslResult> + 'b>> {
+    ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
         Box::pin((*self)(register, context))
     }
 }
@@ -116,6 +116,8 @@ impl<State> StatefulFunctionSet<State> {
     pub fn add_async<F>(&mut self, k: &str, v: F)
     where
         F: for<'a> AsyncTripleArgFn<&'a State, &'a Register, &'a Context<'a>, Output = NaslResult>
+            + Send
+            + Sync
             + 'static,
     {
         self.fns
@@ -145,7 +147,10 @@ impl StatelessFunctionSet {
     /// TODO doc
     pub fn add_async<F>(&mut self, k: &str, v: F)
     where
-        F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult> + 'static,
+        F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult>
+            + Send
+            + Sync
+            + 'static,
     {
         self.fns
             .insert(k.to_string(), StatelessNaslFunction::Async(Box::new(v)));
@@ -164,24 +169,24 @@ impl StatelessFunctionSet {
     }
 }
 
-trait FunctionSet {
+pub trait FunctionSet {
     fn exec<'a>(
         &'a self,
         k: &'a str,
         register: &'a Register,
         context: &'a Context<'_>,
-    ) -> Option<Box<dyn Future<Output = NaslResult> + Unpin + 'a>>;
+    ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>>;
 
     fn contains(&self, k: &str) -> bool;
 }
 
-impl<State> FunctionSet for StatefulFunctionSet<State> {
+impl<State: Sync> FunctionSet for StatefulFunctionSet<State> {
     fn exec<'a>(
         &'a self,
         k: &'a str,
         register: &'a Register,
         context: &'a Context<'_>,
-    ) -> Option<Box<dyn Future<Output = NaslResult> + Unpin + 'a>> {
+    ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>> {
         let f = self.fns.get(k)?;
         Some(match f {
             StatefulNaslFunction::Async(f) => {
@@ -204,7 +209,7 @@ impl FunctionSet for StatelessFunctionSet {
         k: &'a str,
         register: &'a Register,
         context: &'a Context<'_>,
-    ) -> Option<Box<dyn Future<Output = NaslResult> + Unpin + 'a>> {
+    ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>> {
         let f = self.fns.get(k)?;
         Some(match f {
             StatelessNaslFunction::Async(f) => Box::new(f.call_stateless(register, context)),
@@ -220,7 +225,7 @@ impl FunctionSet for StatelessFunctionSet {
 /// Todo doc
 pub trait IntoFunctionSet {
     /// TODO doc
-    type Set: FunctionSet;
+    type Set: FunctionSet + Send + Sync;
     /// TODO doc
     fn into_function_set(self) -> Self::Set;
 }
@@ -228,16 +233,24 @@ pub trait IntoFunctionSet {
 #[derive(Default)]
 /// TODO doc
 pub struct Executor {
-    sets: Vec<Box<dyn FunctionSet>>,
+    sets: Vec<Box<dyn FunctionSet + Send + Sync>>,
 }
 
 impl Executor {
+    /// Todo doc
+    pub fn single<S: IntoFunctionSet + 'static>(s: S) -> Self {
+        let mut exec = Self::default();
+        exec.add_set(s);
+        exec
+    }
+
     /// Todo doc
     pub fn add_set<S: IntoFunctionSet + 'static>(&mut self, s: S) -> &mut Self {
         self.sets.push(Box::new(S::into_function_set(s)));
         self
     }
 
+    /// Todo doc
     pub async fn exec(
         &self,
         k: &str,
@@ -253,6 +266,7 @@ impl Executor {
         Some(entry.await)
     }
 
+    /// TODO doc
     pub fn contains(&self, k: &str) -> bool {
         self.sets.iter().any(|set| set.contains(k))
     }
@@ -260,16 +274,33 @@ impl Executor {
 
 #[macro_export]
 /// TODO: doc
+macro_rules! internal_call_expr {
+    ($method_name: ident, $set_name: ident $(,)?) => {
+    };
+    ($method_name: ident, $set_name: ident, ($fn_name: path, $name: literal) $(, $($tt: tt)*)?) => {
+        $set_name.$method_name($name, $fn_name);
+        $(
+            $crate::internal_call_expr!($method_name, $set_name, $($tt)*);
+        )?
+    };
+    ($method_name: ident, $set_name: ident, $fn_name: path $(, $($tt: tt)*)?) => {
+        $set_name.$method_name(stringify!($fn_name), $fn_name);
+        $(
+            $crate::internal_call_expr!($method_name, $set_name, $($tt)*);
+        )?
+    };
+}
+
+#[macro_export]
+/// TODO: doc
 macro_rules! stateful_function_set {
-    ($ty: ty, $method_name: ident, ($($fn_name: path),*$(,)?)) => {
+    ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
         impl $crate::IntoFunctionSet for $ty {
             type Set = $crate::StatefulFunctionSet<$ty>;
 
             fn into_function_set(self) -> Self::Set {
                 let mut set = $crate::StatefulFunctionSet::new(self);
-                $(
-                    set.$method_name(stringify!($fn_name), $fn_name);
-                )*
+                $crate::internal_call_expr!($method_name, set, $($tt)*);
                 set
             }
         }
@@ -279,15 +310,13 @@ macro_rules! stateful_function_set {
 #[macro_export]
 /// TODO: doc
 macro_rules! stateless_function_set {
-    ($ty: ty, $method_name: ident, ($($fn_name: path),*$(,)?)) => {
+    ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
         impl $crate::IntoFunctionSet for $ty {
             type Set = $crate::StatelessFunctionSet;
 
             fn into_function_set(self) -> Self::Set {
                 let mut set = $crate::StatelessFunctionSet::new();
-                $(
-                    set.$method_name(stringify!($fn_name), $fn_name);
-                )*
+                $crate::internal_call_expr!($method_name, set, $($tt)*);
                 set
             }
         }

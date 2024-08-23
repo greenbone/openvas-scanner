@@ -469,12 +469,14 @@ pub mod client {
     use hyper::{
         body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
     };
+    use infisto::base::CachedIndexFileStorer;
     use models::scanner::Scanner;
+    use nasl_interpreter::FSPluginLoader;
     use serde::Deserialize;
 
     use crate::{
         controller::{ClientIdentifier, Context},
-        storage::NVTStorer,
+        storage::{file::Storage, NVTStorer, UserNASLStorageForKBandVT},
     };
 
     use super::KnownPaths;
@@ -490,15 +492,14 @@ pub mod client {
     pub async fn in_memory_example_feed() -> Client<
         nasl_interpreter::Scanner<(
             Arc<
-                crate::storage::UserNASLStorageForKBandVT<
+                UserNASLStorageForKBandVT<
                     crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
                 >,
             >,
-            nasl_interpreter::FSPluginLoader,
-            nasl_interpreter::NaslFunctionRegister,
+            FSPluginLoader,
         )>,
         Arc<
-            crate::storage::UserNASLStorageForKBandVT<
+            UserNASLStorageForKBandVT<
                 crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
             >,
         >,
@@ -506,7 +507,7 @@ pub mod client {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage = crate::storage::inmemory::Storage::default();
 
-        let storage = Arc::new(crate::storage::UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
@@ -521,20 +522,17 @@ pub mod client {
     ) -> Client<
         nasl_interpreter::Scanner<(
             Arc<
-                crate::storage::UserNASLStorageForKBandVT<
-                    crate::storage::file::Storage<
+                UserNASLStorageForKBandVT<
+                    Storage<
                         infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>,
                     >,
                 >,
             >,
-            nasl_interpreter::FSPluginLoader,
-            nasl_interpreter::NaslFunctionRegister,
+            FSPluginLoader,
         )>,
         Arc<
-            crate::storage::UserNASLStorageForKBandVT<
-                crate::storage::file::Storage<
-                    infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>,
-                >,
+            UserNASLStorageForKBandVT<
+                Storage<infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>>,
             >,
         >,
     > {
@@ -545,7 +543,7 @@ pub mod client {
         let feeds = example_feeds().await;
         let storage = crate::storage::file::encrypted(&storage_dir, key, feeds).unwrap();
 
-        let storage = Arc::new(crate::storage::UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
@@ -560,24 +558,15 @@ pub mod client {
         prefix: &str,
     ) -> Client<
         nasl_interpreter::Scanner<(
-            Arc<
-                crate::storage::UserNASLStorageForKBandVT<
-                    crate::storage::file::Storage<infisto::base::CachedIndexFileStorer>,
-                >,
-            >,
-            nasl_interpreter::FSPluginLoader,
-            nasl_interpreter::NaslFunctionRegister,
+            Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+            FSPluginLoader,
         )>,
-        Arc<
-            crate::storage::UserNASLStorageForKBandVT<
-                crate::storage::file::Storage<infisto::base::CachedIndexFileStorer>,
-            >,
-        >,
+        Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
     > {
         use crate::file::tests::{example_feed_file_storage, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
         let store = example_feed_file_storage(&storage_dir).await;
-        let store = Arc::new(crate::storage::UserNASLStorageForKBandVT::new(store));
+        let store = Arc::new(UserNASLStorageForKBandVT::new(store));
         let nasl_feed_path = nasl_root().await;
         let scanner = nasl_interpreter::Scanner::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)
