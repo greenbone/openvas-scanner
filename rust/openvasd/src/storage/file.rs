@@ -2,18 +2,32 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{ops::Deref, path::Path};
+use std::{
+    io,
+    marker::{Send, Sync},
+    ops::Deref,
+    path::Path,
+    sync::RwLock,
+};
 
-use infisto::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
+use infisto::{
+    base::{IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
+    crypto::ChaCha20IndexFileStorer,
+    serde::Serialization,
+};
+use models::{Scan, Status};
+use tokio::task::spawn_blocking;
 use tracing::{info, warn};
 
-use super::*;
+use crate::crypt::ChaCha20Crypt;
+
+use super::{inmemory, *};
 
 pub struct Storage<S> {
-    storage: Arc<std::sync::RwLock<S>>,
+    storage: Arc<RwLock<S>>,
     // we use inmemory for NVT and KB items as we need to continously when starting or running a
     // scan. KB items should be deleted when a scan is finished.
-    underlying: super::inmemory::Storage<crypt::ChaCha20Crypt>,
+    underlying: inmemory::Storage<crypt::ChaCha20Crypt>,
 }
 pub fn unencrypted<P>(path: P, feeds: Vec<FeedHash>) -> Result<Storage<IndexedFileStorer>, Error>
 where
@@ -47,17 +61,14 @@ impl<S> Storage<S> {
     pub fn new(s: S, feeds: Vec<FeedHash>) -> Self {
         Storage {
             storage: Arc::new(s.into()),
-            underlying: super::inmemory::Storage::new(
-                crate::crypt::ChaCha20Crypt::default(),
-                feeds,
-            ),
+            underlying: inmemory::Storage::new(ChaCha20Crypt::default(), feeds),
         }
     }
 }
 
 impl<S> Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
     fn get_results_sync(
         &self,
@@ -77,9 +88,7 @@ where
         let key = format!("results_{id}");
         let storage = &self.storage.read().unwrap();
         let storage: S = storage.deref().clone();
-        let iter = infisto::base::IndexedByteStorageIterator::<_, Vec<u8>>::by_range(
-            &key, storage, range,
-        )?;
+        let iter = IndexedByteStorageIterator::<_, Vec<u8>>::by_range(&key, storage, range)?;
         let parsed = iter.filter_map(|x| x.ok());
         Ok(Box::new(parsed))
     }
@@ -88,12 +97,13 @@ where
 #[async_trait]
 impl<S> ProgressGetter for Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         // the encryption is done in whole, unlike when in memory
         self.get_scan(id).await
     }
+
     async fn get_results(
         &self,
         id: &str,
@@ -102,19 +112,17 @@ where
     ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
         self.get_results_sync(id, from, to)
     }
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+
+    async fn get_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         let key = format!("scan_{id}");
         let status_key = format!("status_{id}");
 
         let storage = Arc::clone(&self.storage);
 
-        use infisto::base::Range;
-        use infisto::serde::Serialization;
-        tokio::task::spawn_blocking(move || {
+        spawn_blocking(move || {
             let storage = storage.read().unwrap();
-            let scans: Vec<Serialization<models::Scan>> = storage.by_range(&key, Range::All)?;
-            let status: Vec<Serialization<models::Status>> =
-                storage.by_range(&status_key, Range::All)?;
+            let scans: Vec<Serialization<Scan>> = storage.by_range(&key, Range::All)?;
+            let status: Vec<Serialization<Status>> = storage.by_range(&status_key, Range::All)?;
 
             match scans.first() {
                 Some(Serialization::Deserialized(scan)) => match status.first() {
@@ -129,17 +137,16 @@ where
         .await
         .unwrap()
     }
+
     async fn get_scan_ids(&self) -> Result<Vec<String>, Error> {
         let storage = Arc::clone(&self.storage);
-        use infisto::base::Range;
-        use infisto::serde::Serialization;
-        tokio::task::spawn_blocking(move || {
+        spawn_blocking(move || {
             let storage = &storage.read().unwrap();
             let scans: Vec<Serialization<String>> = match storage.by_range("scans", Range::All) {
                 Ok(s) => s,
                 Err(infisto::Error::IoError(
                     infisto::IoErrorKind::FileOpen,
-                    std::io::ErrorKind::NotFound,
+                    io::ErrorKind::NotFound,
                 )) => {
                     vec![]
                 }
@@ -159,15 +166,14 @@ where
         .await
         .unwrap()
     }
-    async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
+
+    async fn get_status(&self, id: &str) -> Result<Status, Error> {
         let key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
 
-        use infisto::base::Range;
-        use infisto::serde::Serialization;
-        tokio::task::spawn_blocking(move || {
+        spawn_blocking(move || {
             let storage = &storage.read().unwrap();
-            let status: Vec<Serialization<models::Status>> = storage.by_range(&key, Range::All)?;
+            let status: Vec<Serialization<Status>> = storage.by_range(&key, Range::All)?;
             match status.first() {
                 Some(Serialization::Deserialized(status)) => Ok(status.clone()),
                 Some(_) => Err(Error::Serialization),
@@ -182,7 +188,7 @@ where
 #[async_trait]
 impl<S> AppendFetchResult for Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
     async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
         for r in results {
@@ -197,7 +203,7 @@ where
             let storage = Arc::clone(&self.storage);
             tracing::trace!(key, results_len = r.results.len());
 
-            tokio::task::spawn_blocking(move || {
+            spawn_blocking(move || {
                 let storage = &mut storage.write().unwrap();
                 let results = r.results;
                 let mut serialized_results = Vec::with_capacity(results.len());
@@ -219,30 +225,32 @@ where
         Ok(())
     }
 }
+
 #[async_trait]
 impl<S> ScanStorer for Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    async fn insert_scan(&self, scan: models::Scan) -> Result<(), Error> {
+    async fn insert_scan(&self, scan: Scan) -> Result<(), Error> {
         let id = scan.scan_id.clone();
         let key = format!("scan_{id}");
         let status_key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
-        tokio::task::spawn_blocking(move || {
-            let scan = infisto::serde::Serialization::serialize(scan)?;
-            let status = infisto::serde::Serialization::serialize(models::Status::default())?;
+        spawn_blocking(move || {
+            let scan = Serialization::serialize(scan)?;
+            let status = Serialization::serialize(Status::default())?;
             let mut storage = storage.write().unwrap();
             storage.put(&key, scan)?;
             storage.put(&status_key, status)?;
 
-            let stored_key = infisto::serde::Serialization::serialize(&id)?;
+            let stored_key = Serialization::serialize(&id)?;
             storage.append("scans", stored_key)?;
             Ok(())
         })
         .await
         .unwrap()
     }
+
     async fn remove_scan(&self, id: &str) -> Result<(), Error> {
         let key = format!("scan_{}", id);
         let status_key = format!("status_{}", id);
@@ -252,10 +260,10 @@ where
         let ids: Vec<_> = ids
             .into_iter()
             .filter(|x| x != id)
-            .filter_map(|x| infisto::serde::Serialization::serialize(x).ok())
+            .filter_map(|x| Serialization::serialize(x).ok())
             .collect();
 
-        tokio::task::spawn_blocking(move || {
+        spawn_blocking(move || {
             // we ignore results errors as there may or may not be results
             let mut storage = storage.write().unwrap();
             tracing::debug!(results_key, "removing results");
@@ -271,12 +279,13 @@ where
         .await
         .unwrap()
     }
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
+
+    async fn update_status(&self, id: &str, status: Status) -> Result<(), Error> {
         let key = format!("status_{}", id);
         let storage = Arc::clone(&self.storage);
 
-        tokio::task::spawn_blocking(move || {
-            let status = infisto::serde::Serialization::serialize(status)?;
+        spawn_blocking(move || {
+            let status = Serialization::serialize(status)?;
             let mut storage = storage.write().unwrap();
             storage.put(&key, status)?;
             Ok(())
@@ -289,7 +298,7 @@ where
 #[async_trait]
 impl<S> ScanIDClientMapper for Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
     async fn add_scan_client_id(
         &self,
@@ -299,8 +308,8 @@ where
         let key = "idmap";
         let storage = Arc::clone(&self.storage);
 
-        tokio::task::spawn_blocking(move || {
-            let idt = infisto::serde::Serialization::serialize((client_id, scan_id))?;
+        spawn_blocking(move || {
+            let idt = Serialization::serialize((client_id, scan_id))?;
             let mut storage = storage.write().unwrap();
             storage.append(key, idt)?;
             Ok(())
@@ -308,6 +317,7 @@ where
         .await
         .unwrap()
     }
+
     async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -315,7 +325,7 @@ where
         let key = "idmap";
         let storage = Arc::clone(&self.storage);
 
-        tokio::task::spawn_blocking(move || {
+        spawn_blocking(move || {
             use infisto::serde::Serialization;
             let mut storage = storage.write().unwrap();
             let sid = scan_id.as_ref();
@@ -344,7 +354,7 @@ where
         let storage = Arc::clone(&self.storage);
         let client_id = client_id.clone();
 
-        tokio::task::spawn_blocking(move || {
+        spawn_blocking(move || {
             use infisto::serde::Serialization;
             let storage = storage.read().unwrap();
 
@@ -368,7 +378,7 @@ where
 #[async_trait]
 impl<S> NVTStorer for Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
     async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error> {
         self.underlying.synchronize_feeds(hash).await
@@ -390,8 +400,6 @@ where
 
     async fn current_feed_version(&self) -> Result<String, Error> {
         todo!()
-        // let v = self.feed_version.read().unwrap().clone();
-        // Ok(v)
     }
 }
 
@@ -421,7 +429,7 @@ impl FromConfigAndFeeds for Storage<IndexedFileStorer> {
 
 impl<S> super::ResultHandler for Storage<S>
 where
-    S: infisto::base::IndexedByteStorage + std::marker::Sync + std::marker::Send + Clone + 'static,
+    S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
     fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
         self.underlying.underlying_storage()
@@ -485,16 +493,24 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use infisto::base::IndexedByteStorage;
-    use models::Scan;
+    use std::{env::current_dir, fs};
+
+    use infisto::base::{CachedIndexFileStorer, IndexedByteStorage};
+    use models::{Phase, Scan, Status};
+    use tracing::debug;
+
+    use crate::{
+        crypt::ChaCha20Crypt,
+        storage::{file, inmemory},
+    };
 
     use super::*;
 
     pub async fn nasl_root() -> PathBuf {
-        let base = std::env::current_dir().unwrap_or_default();
+        let base = current_dir().unwrap_or_default();
 
         let mut tbase = base.parent().unwrap().join("examples");
-        if std::fs::metadata(&tbase).is_err() {
+        if fs::metadata(&tbase).is_err() {
             tbase = base.join("examples");
         }
         let base_dir = tbase.join("feed");
@@ -505,16 +521,14 @@ pub(crate) mod tests {
     pub async fn example_feeds() -> Vec<FeedHash> {
         let nfp = nasl_root().await;
         let nofp = nfp.parent().unwrap().join("notus").join("advisories");
-        tracing::debug!(nasl_feed=?nfp, notus_advisories_feed=?nofp);
+        debug!(nasl_feed=?nfp, notus_advisories_feed=?nofp);
         vec![FeedHash::nasl(nfp), FeedHash::advisories(nofp)]
     }
 
     /// Creates a Storage with a cached file storer based on the feed found `rust/examples/feed/`.
-    pub async fn example_feed_file_storage(
-        target: &str,
-    ) -> Storage<infisto::base::CachedIndexFileStorer> {
-        let storage = infisto::base::CachedIndexFileStorer::init(target).unwrap();
-        let result = crate::storage::file::Storage::new(storage, example_feeds().await);
+    pub async fn example_feed_file_storage(target: &str) -> Storage<CachedIndexFileStorer> {
+        let storage = CachedIndexFileStorer::init(target).unwrap();
+        let result = file::Storage::new(storage, example_feeds().await);
         result
             .synchronize_feeds(example_feeds().await)
             .await
@@ -574,10 +588,7 @@ pub(crate) mod tests {
         file_storage.synchronize_feeds(feeds.clone()).await.unwrap();
         let amount_file_oids = file_storage.oids().await.unwrap().count();
 
-        let memory_storage = crate::storage::inmemory::Storage::new(
-            crate::crypt::ChaCha20Crypt::default(),
-            feeds.clone(),
-        );
+        let memory_storage = inmemory::Storage::new(ChaCha20Crypt::default(), feeds.clone());
         memory_storage.synchronize_feeds(feeds).await.unwrap();
         let amount_memory_oids = memory_storage.oids().await.unwrap().count();
         assert_eq!(amount_memory_oids, 9);
@@ -608,7 +619,7 @@ pub(crate) mod tests {
         storage.insert_scan(scans[5].clone()).await.unwrap();
         let ids = storage.get_scan_ids().await.unwrap();
         assert_eq!(scans.len(), ids.len());
-        let status = models::Status::default();
+        let status = Status::default();
         let results = vec![models::Result::default()];
         let results = vec![ScanResults {
             id: "42".to_string(),
@@ -617,8 +628,8 @@ pub(crate) mod tests {
         }];
         storage.append_fetched_result(results).await.unwrap();
 
-        let status = models::Status {
-            status: models::Phase::Running,
+        let status = Status {
+            status: Phase::Running,
             ..Default::default()
         };
 
