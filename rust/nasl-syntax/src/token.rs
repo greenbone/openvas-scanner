@@ -571,7 +571,8 @@ impl<'a> Tokenizer<'a> {
                 end: self.cursor.len_consumed(),
             }]
             .to_owned();
-            result = result.replace(r"\n", "\n");
+            // shoudl it be replaced?
+            //result = result.replace(r"\n", "\n");
             result = result.replace(r"\\", "\\");
             result = result.replace(r#"\""#, "\"");
             result = result.replace(r"\'", "'");
@@ -605,6 +606,7 @@ impl<'a> Tokenizer<'a> {
             }]
             .to_owned();
             raw_str = raw_str.replace(r#"\""#, "\"");
+            raw_str = raw_str.replace(r#"\n"#, "\n");
             self.cursor.advance();
             Category::Data(raw_str.as_bytes().to_vec())
         }
