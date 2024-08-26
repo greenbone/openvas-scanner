@@ -64,9 +64,9 @@ struct TCPConnection {
 }
 
 impl TCPConnection {
-    /// Send data on a TCP connection using the libc send function. This function is unsafe, because
-    /// the provided length can be larger than the actual data length, which can lead to a
-    /// segmentation fault.
+    /// Send data on a TCP connection using the libc send function.
+    /// To ensure safety of the function, the caller must ensure, that the given length does not
+    /// exceed the length of the given data data.
     unsafe fn send(
         &self,
         mut data: &[u8],
@@ -76,11 +76,12 @@ impl TCPConnection {
         let fd = self.socket.as_raw_fd();
         let mut ret = 0;
         while !data.is_empty() {
-            let n = unsafe { libc::send(fd, data.as_ptr() as *const libc::c_void, len, flags) };
+            let n =
+                unsafe { libc::send(fd, data.as_ptr() as *const libc::c_void, len - ret, flags) };
             if n < 0 {
                 return Err(io::Error::last_os_error().into());
             }
-            ret += n;
+            ret += n as usize;
             data = &data[n as usize..];
         }
         Ok(NaslValue::Number(ret as i64))
@@ -93,9 +94,9 @@ struct UDPConnection {
 }
 
 impl UDPConnection {
-    /// Send data on a UDP connection using the libc send function. This function is unsafe, because
-    /// the provided length can be larger than the actual data length, which can lead to a
-    /// segmentation fault.
+    /// Send data on a UDP connection using the libc send function.
+    /// To ensure safety of the function, the caller must ensure, that the given length does not
+    /// exceed the length of the given data data.
     unsafe fn send(
         &mut self,
         data: &[u8],
@@ -104,11 +105,18 @@ impl UDPConnection {
     ) -> Result<NaslValue, FunctionErrorKind> {
         let fd = self.socket.as_raw_fd();
 
-        if len > mtu() {
-            return Err(FunctionErrorKind::Dirty(format!(
-                "udp data exceeds the maximum length of {}",
-                mtu()
-            )));
+        let ip = self.socket.peer_addr()?.ip();
+
+        let mtu = mtu(ip);
+
+        if len > mtu {
+            return Err(FunctionErrorKind::Diagnostic(
+                format!(
+                    "udp data of size {} exceeds the maximum length of {}",
+                    len, mtu
+                ),
+                None,
+            ));
         }
 
         let n = libc::send(fd, data.as_ptr() as *const libc::c_void, len, flags);
@@ -276,7 +284,7 @@ impl NaslSockets {
         len: Option<usize>,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let len = if let Some(len) = len {
-            if len < 1 {
+            if len < 1 || len > data.len() {
                 data.len()
             } else {
                 len

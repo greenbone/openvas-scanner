@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::fmt::Display;
+use std::{fmt::Display, net::IpAddr};
 
 use nasl_builtin_utils::{Context, FunctionErrorKind};
 use nasl_syntax::NaslValue;
@@ -14,14 +14,14 @@ pub mod socket;
 
 // 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
 // header contains 8 bytes, which must be subtracted from the max size for UDP packages.
-// TODO: Calculate the MTU dynamically
 const MTU: usize = 512 - 60 - 8;
 
 /// Standard port for networking functions
-/// @return none
 const DEFAULT_PORT: u16 = 33435;
 
-pub fn mtu() -> usize {
+// Get the max MTU possible for network communication
+// TODO: Calculate the MTU dynamically
+pub fn mtu(_: IpAddr) -> usize {
     MTU
 }
 
