@@ -1,3 +1,37 @@
+# Table of Contents
+- [Table of Contents](#table-of-contents)
+- [scannerctl](#scannerctl)
+  - [Build](#build)
+  - [Install](#install)
+  - [Commands](#commands)
+    - [execute](#execute)
+      - [script](#script)
+      - [scan](#scan)
+    - [syntax](#syntax)
+    - [scan-config](#scan-config)
+      - [Usage](#usage)
+    - [notus](#notus)
+      - [Usage](#usage-1)
+    - [feed](#feed)
+      - [update](#update)
+      - [transform](#transform)
+      - [transpile](#transpile)
+        - [NVT](#nvt)
+          - [oid](#oid)
+          - [name](#name)
+          - [filename](#filename)
+          - [tag](#tag)
+          - [dependencies](#dependencies)
+          - [required\_keys](#required_keys)
+          - [mandatory\_keys](#mandatory_keys)
+          - [excluded\_keys](#excluded_keys)
+          - [required\_ports](#required_ports)
+          - [required\_udp\_ports](#required_udp_ports)
+          - [references](#references)
+          - [preferences](#preferences)
+          - [category](#category)
+          - [family](#family)
+
 # scannerctl
 
 Is CLI frontend to use rust scanner utilities.
@@ -9,6 +43,14 @@ Options:
 - `-v`, `--verbose`: Prints more details while running
 - `-h`, `--help`:    Print help
 - `-V`, `--version`: Print version
+
+## Build
+
+Run `cargo test` to test and `cargo build --release` to build it.
+
+## Install
+
+`cargo install --path .`
 
 ## Commands
 
@@ -62,6 +104,81 @@ Options:
 
 Usage: `scannerctl execute scan [OPTIONS] --path <FILE> [json]`
 
+### syntax
+
+```text
+Verifies syntax of NASL files in given dir or file.
+
+Usage: scannerctl syntax [OPTIONS] <path>
+
+Arguments:
+  <path>
+
+Options:
+  -q, --quiet  Prints only error output and no progress.
+  -h, --help   Print help
+```
+
+### scan-config
+
+Transforms a scan-config from gvmds data-objects to scan json of [openvasd](https://greenbone.github.io/scanner-api/#/scan/create_scanl).
+
+To set the target and credentials you can pipe a partial scan json into `scannerctl scan-config` by providing `-i` flag.
+
+As an example we assume that the data-objects feed is in `~/src/greenbone/data-objects/content/22.04` while the vulnerability feed is in `~/src/greenbone/vulnerability-tests/nasl/common` and we want to create a scan to verify localhost with a discovery and full and fast policy on the openvas default portlist.
+
+For that we need to execute:
+
+```text
+echo '{ "target": { "hosts": ["localhost"], "ports": [] }, "vts": [] }'| \
+scannerctl scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common \
+  -l ~/src/greenbone/data-objects/content/22.04/port-lists/openvas-default-c7e03b6c-3bbe-11e1-a057-406186ea4fc5.xml \
+  ~/src/greenbone/data-objects/content/22.04/scan-configs/discovery-8715c877-47a0-438d-98a3-27c7a6ab2196.xml \
+  ~/src/greenbone/data-objects/content/22.04/scan-configs/full-and-fast-daba56c8-73ec-11df-a475-002264764cea.xml
+```
+
+Be aware that each call does a description run of the defined feed to gather the meta data, depending on your system and the size of the feed it requires may some time.
+
+#### Usage
+
+```text
+Transforms a scan-config xml to a scan json for openvasd.
+When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.
+
+Usage: scannerctl scan-config [OPTIONS] <scan-config>
+
+Arguments:
+  <scan-config>
+
+Options:
+  -p, --path <FILE>      Path to the feed.
+  -i, --input            Parses scan json from stdin.
+  -l, --portlist <FILE>  Path to the port list xml
+  -h, --help             Print help
+```
+
+### notus
+
+Does use notus products to compare packages against known vulnerabilities. It can be used to do a single notus scan by providing a list of packages and an operating system. A notus scan will then lookup the provided packages and compares it version to known vulnerabilities. The results will be printed on the command line.
+
+#### Usage
+
+```text
+does use notus products to compare packages against known vulnerabilities.
+
+Usage: scannerctl notus [OPTIONS] --path <FILE> <os>...
+
+Arguments:
+  <os>...
+
+Options:
+  -p, --path <FILE>   Path to the product feed.
+  -i, --input         comma separated pkg list from stdin.
+  -l, --pkg <STRING>  Comma separated list of packages.
+  -v, --verbose...    Prints more details while running
+  -h, --help          Print help
+```
+
 ### feed
 
 Handles feed related tasks.
@@ -97,14 +214,12 @@ Notus advisories and VTs can be uploaded independtently using the options `--vts
 
 Runs nasl scripts in description mode and returns it as a json array into stdout.
 
-
 When path is not set it will get the defaults by calling `openvas -s`.
 
 Usage `scannerctl feed transform [OPTIONS]`
 
 Options:
 - `-p`, `--path <FILE>`:   Path to the feed.
-
 
 On `feed transform` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
 Optionally, it is possible to perform a signature verification of the sha256sums file before the transformation. To enable the signature check, the environment variable `GNUPGHOME` must be set with the gnupg home directory, where the `pubring.kbx` file is stored.
@@ -241,86 +356,3 @@ The script category; can either be:
 ###### family
 
 The family a script belongs to. Is a freely choosable string.
-
-### syntax
-
-```text
-Verifies syntax of NASL files in given dir or file.
-
-Usage: scannerctl syntax [OPTIONS] <path>
-
-Arguments:
-  <path>
-
-Options:
-  -q, --quiet  Prints only error output and no progress.
-  -h, --help   Print help
-```
-
-### scan-config
-
-Transforms a scan-config from gvmds data-objects to scan json of [openvasd](https://greenbone.github.io/scanner-api/#/scan/create_scanl).
-
-To set the target and credentials you can pipe a partial scan json into `scannerctl scan-config` by providing `-i` flag.
-
-As an example we assume that the data-objects feed is in `~/src/greenbone/data-objects/content/22.04` while the vulnerability feed is in `~/src/greenbone/vulnerability-tests/nasl/common` and we want to create a scan to verify localhost with a discovery and full and fast policy on the openvas default portlist.
-
-For that we need to execute:
-
-```text
-echo '{ "target": { "hosts": ["localhost"], "ports": [] }, "vts": [] }'| \
-scannerctl scan-config -i -p ~/src/greenbone/vulnerability-tests/nasl/common \
-  -l ~/src/greenbone/data-objects/content/22.04/port-lists/openvas-default-c7e03b6c-3bbe-11e1-a057-406186ea4fc5.xml \
-  ~/src/greenbone/data-objects/content/22.04/scan-configs/discovery-8715c877-47a0-438d-98a3-27c7a6ab2196.xml \
-  ~/src/greenbone/data-objects/content/22.04/scan-configs/full-and-fast-daba56c8-73ec-11df-a475-002264764cea.xml
-```
-
-Be aware that each call does a description run of the defined feed to gather the meta data, depending on your system and the size of the feed it requires may some time.
-
-#### Usage
-
-```text
-Transforms a scan-config xml to a scan json for openvasd.
-When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.
-
-Usage: scannerctl scan-config [OPTIONS] <scan-config>
-
-Arguments:
-  <scan-config>  
-
-Options:
-  -p, --path <FILE>      Path to the feed.
-  -i, --input            Parses scan json from stdin.
-  -l, --portlist <FILE>  Path to the port list xml
-  -h, --help             Print help
-```
-
-### notus
-
-Does use notus products to compare packages against known vulnerabilities. It can be used to do a single notus scan by providing a list of packages and an operating system. A notus scan will then lookup the provided packages and compares it version to known vulnerabilities. The results will be printed on the command line.
-
-#### Usage
-
-```text
-does use notus products to compare packages against known vulnerabilities.
-
-Usage: scannerctl notus [OPTIONS] --path <FILE> <os>...
-
-Arguments:
-  <os>...  
-
-Options:
-  -p, --path <FILE>   Path to the product feed.
-  -i, --input         comma separated pkg list from stdin.
-  -l, --pkg <STRING>  Comma separated list of packages.
-  -v, --verbose...    Prints more details while running
-  -h, --help          Print help
-```
-
-## Build
-
-Run `cargo test` to test and `cargo build --release` to build it.
-
-## Install
-
-`cargo install --path .`
