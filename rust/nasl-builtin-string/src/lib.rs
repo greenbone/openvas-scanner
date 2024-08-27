@@ -330,11 +330,16 @@ fn str_to_int(s: &str) -> i64 {
 /// 4rd positional argument (optional): end index in the original string at which to perform the replacement.
 #[nasl_function]
 fn insstr(
-    mut s: String,
-    to_insert: &str,
+    mut s: NaslValue,
+    to_insert: NaslValue,
     start: usize,
     end: Option<usize>,
 ) -> Result<String, FunctionErrorKind> {
+    let mut s = s.to_string();
+
+    let insb = to_insert.to_string();
+    let ins = insb.as_str();
+
     let end = end.unwrap_or(s.len()).min(s.len());
     if start > end {
         return Err(FunctionErrorKind::WrongArgument(format!(
@@ -342,7 +347,13 @@ fn insstr(
             start, end
         )));
     }
-    s.replace_range(start..end, to_insert);
+
+    if s.len() >= (end + 1) {
+        s.replace_range(start..(end + 1), ins);
+    } else {
+        s.replace_range(start..(end), ins);
+    }
+
     Ok(s)
 }
 
@@ -368,11 +379,11 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
         .matches_with(string, options))
 }
 
-/// This function splits a given string into parts, puts them into an array and returns it.
+/// This function splits a given NaslValue into parts, puts them into an array and returns it.
 ///
 /// The first positional argument is the *string* to split.
 ///
-/// The optional named argument *sep* is a *string* containing the
+/// The optional named argument *sep* is a NaslValue containing the
 /// separator for splitting the string. The string is split after the
 /// separator. By default the string is split at every line break.
 ///
@@ -381,12 +392,23 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
 /// string. By default *keep* is set to *TRUE*. *TRUE* means the
 /// separator is kept, *FALSE* means the separator is discarded.
 #[nasl_function(named(sep, keep))]
-fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
-    let sep = sep.unwrap_or("\n");
-    if keep.unwrap_or(true) {
-        string.split_inclusive(sep).map(String::from).collect()
+fn split(string: NaslValue, sep: Option<NaslValue>, keep: Option<bool>) -> Vec<String> {
+    let strb = string.to_string();
+    let str = strb.as_str();
+
+    let separator: String;
+    if let Some(s) = sep {
+        separator = s.to_string();
     } else {
-        string.split(sep).map(String::from).collect()
+        separator = "\n".to_string();
+    }
+
+    let sep_aux = separator.as_str();
+
+    if keep.unwrap_or(true) {
+        str.split_inclusive(sep_aux).map(String::from).collect()
+    } else {
+        str.split(sep_aux).map(String::from).collect()
     }
 }
 
@@ -399,10 +421,28 @@ fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
 /// limits the number of replacements made to count. If left out
 /// or set to 0, there is no limit on the number of replacements.
 #[nasl_function(named(string, find, replace, count))]
-fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>) -> String {
+fn str_replace(
+    string: NaslValue,
+    find: NaslValue,
+    replace: Option<NaslValue>,
+    count: Option<usize>,
+) -> String {
+    let strb = string.to_string();
+    let string = strb.as_str();
+
+    let findb = find.to_string();
+    let find = findb.as_str();
+
+    let rep: String;
+    if let Some(r) = replace {
+        rep = r.to_string();
+    } else {
+        rep = "".to_string();
+    }
+
     match count {
-        Some(count) if count > 0 => string.replacen(find, replace.unwrap_or(""), count),
-        _ => string.replace(find, replace.unwrap_or("")),
+        Some(count) if count > 0 => string.replacen(find, rep.as_str(), count),
+        _ => string.replace(find, rep.as_str()),
     }
 }
 
@@ -413,8 +453,17 @@ fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>
 ///
 /// 1st positional argument: string to search in.
 /// 2nd positional argument: substring to search for.
-fn strstr(string: &str, find: &str) -> Option<&str> {
-    string.find(find).map(|index| &string[index..])
+fn strstr(string: NaslValue, find: NaslValue) -> NaslValue {
+    let strb = string.to_string();
+    let string = strb.as_str();
+
+    let findb = find.to_string();
+    let find = findb.as_str();
+
+    if let Some(i) = string.find(find) {
+        return NaslValue::String(string[i..].to_string());
+    }
+    NaslValue::Null
 }
 
 /// Returns found function for key or None when not found
@@ -440,7 +489,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
         "insstr" => Some(insstr),
         "int" => Some(int),
         "split" => Some(split),
-        "replace" => Some(replace),
+        "str_replace" => Some(str_replace),
         "strstr" => Some(strstr),
         _ => None,
     }

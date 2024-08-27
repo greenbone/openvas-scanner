@@ -159,7 +159,46 @@ mod tests {
     fn insstr() {
         check_ok(r#"insstr("foo bar", "rab", 4);"#, "foo rab");
         check_ok(r#"insstr("foo bar", "rab", 4, 100);"#, "foo rab");
+        check_ok(r#"insstr("foo bar", "rab", 4, 5);"#, "foo rabr");
         check_err_matches!(r#"insstr("foo bar", "rab", 4, 0);"#, WrongArgument { .. });
+    }
+
+    #[test]
+    fn insstr_data_new_line() {
+        let code = r#"
+        insstr('foo\nbar', "123456", 4 ,5);
+        "#;
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
+        binding
+            .functions
+            .push_executer(nasl_builtin_string::NaslString);
+
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("foo\n123456r".to_string())))
+        );
+    }
+
+    #[test]
+    fn insstr_string_new_line() {
+        let code = r#"
+        insstr("foo\nbar", "123456", 4 ,5);
+        "#;
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
+        binding
+            .functions
+            .push_executer(nasl_builtin_string::NaslString);
+
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::String("foo\\123456ar".to_string())))
+        );
     }
 
     #[test]
@@ -172,15 +211,74 @@ mod tests {
     }
 
     #[test]
+    fn split_string_default_new_line() {
+        let code = r#"
+        split("a\nb\nc");
+        "#;
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
+        binding
+            .functions
+            .push_executer(nasl_builtin_string::NaslString);
+
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![NaslValue::String(
+                "a\\nb\\nc".to_string()
+            )])))
+        );
+    }
+
+    #[test]
+    fn split_data_default_new_line() {
+        let code = r#"
+        split('a\nb\nc');
+        "#;
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
+        binding
+            .functions
+            .push_executer(nasl_builtin_string::NaslString);
+
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::String("a\n".to_string()),
+                NaslValue::String("b\n".to_string()),
+                NaslValue::String("c".to_string()),
+            ])))
+        );
+    }
+
+    #[test]
+    fn split_data_default_new_line_no_keep() {
+        let code = r#"
+        split('a\nb\nc', keep: FALSE);
+        "#;
+        let register = Register::default();
+        let mut binding = ContextFactory::default();
+        binding
+            .functions
+            .push_executer(nasl_builtin_string::NaslString);
+
+        let context = binding.build(Default::default(), Default::default());
+        let mut parser = CodeInterpreter::new(code, register, &context);
+        assert_eq!(
+            parser.next(),
+            Some(Ok(NaslValue::Array(vec![
+                NaslValue::String("a".to_string()),
+                NaslValue::String("b".to_string()),
+                NaslValue::String("c".to_string()),
+            ])))
+        );
+    }
+
+    #[test]
     fn split() {
-        check_ok(
-            r#"split("a\nb\nc");"#,
-            vec!["a\n".to_string(), "b\n".to_string(), "c".to_string()],
-        );
-        check_ok(
-            r#"split("a\nb\nc", keep: FALSE);"#,
-            vec!["a".to_string(), "b".to_string(), "c".to_string()],
-        );
         check_ok(
             r#"split("a;b;c", sep: ";");"#,
             vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
@@ -191,19 +289,26 @@ mod tests {
     #[test]
     fn replace() {
         check_ok(
-            r#"replace(string: "abc", find: "b", replace: "foo");"#,
+            r#"str_replace(string: "abc", find: "b", replace: "foo");"#,
             "afooc",
         );
-        check_err_matches!(r#"replace();"#, MissingArguments { .. });
-        check_err_matches!(r#"replace(string: "abc");"#, MissingArguments { .. });
-        check_ok(r#"replace(string: "abc", find: "b");"#, "ac");
-        check_ok(r#"replace(string: "abcbd", find: "b", count: 1);"#, "acbd");
+        check_err_matches!(r#"str_replace();"#, MissingArguments { .. });
+        check_err_matches!(r#"str_replace(string: "abc");"#, MissingArguments { .. });
+        check_ok(r#"str_replace(string: "abc", find: "b");"#, "ac");
+        check_ok(
+            r#"str_replace(string: "abcbd", find: "b", count: 1);"#,
+            "acbd",
+        );
+        check_ok(r#"str_replace(string: "ab\nc", find: "\n");"#, "abc");
+        check_ok(r#"str_replace(string: 'ab\nc', find: '\n');"#, "abc");
+        check_ok(r#"str_replace(string: 'ab\nc', find: "\n");"#, "ab\nc");
     }
 
     #[test]
     fn strstr() {
         check_ok(r#"strstr("abc", "b");"#, "bc");
         check_ok(r#"strstr("abcbd", "b");"#, "bcbd");
+        check_ok(r#"strstr('a\rbcbd', '\rb');"#, "\rbcbd");
         check_err_matches!(r#"strstr();"#, MissingPositionalArguments { .. });
         check_err_matches!(r#"strstr("a");"#, MissingPositionalArguments { .. });
     }
