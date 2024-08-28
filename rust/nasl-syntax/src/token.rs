@@ -570,7 +570,7 @@ impl<'a> Tokenizer<'a> {
                 start,
                 end: self.cursor.len_consumed(),
             }]
-                .to_owned();
+            .to_owned();
             self.cursor.advance();
             Category::String(result)
         }
@@ -596,7 +596,7 @@ impl<'a> Tokenizer<'a> {
                 start,
                 end: self.cursor.len_consumed(),
             }]
-                .to_owned();
+            .to_owned();
             raw_str = raw_str.replace(r#"\""#, "\"");
             raw_str = raw_str.replace(r#"\n"#, "\n");
             raw_str = raw_str.replace(r"\\", "\\");

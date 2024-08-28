@@ -49,6 +49,8 @@ mod tests {
     fn strlen() {
         check_ok("strlen(0x7B);", 0i64);
         check_ok("strlen('hallo');", 5i64);
+        check_ok("strlen('hallo\n');", 6i64);
+        check_ok(r#"strlen("hallo\n");"#, 7i64);
     }
 
     #[test]
@@ -69,8 +71,12 @@ mod tests {
     #[test]
     fn crap() {
         check_ok("crap(5);", "XXXXX");
+        check_ok("crap(5);", "XXXXX");
         check_ok("crap(length: 5);", "XXXXX");
         check_ok(r#"crap(data: "ab", length: 5);"#, "ababababab");
+        check_ok(r#"crap(data: 'ab', length: 5);"#, "ababababab");
+        check_ok(r#"crap(data: 'a\n', length: 2);"#, "a\na\n");
+        check_ok(r#"crap(data: "a\n", length: 2);"#, "a\\na\\n");
     }
 
     #[test]
@@ -120,8 +126,11 @@ mod tests {
         check_ok(r#"ord("a");"#, 97);
         check_ok(r#"ord("b");"#, 98);
         check_ok(r#"ord("c");"#, 99);
+        check_ok(r#"ord("\n");"#, 92);
+        check_ok(r#"ord('\n');"#, 10);
+        check_ok(r#"ord("c");"#, 99);
         check_ok(r#"ord("");"#, Null);
-        check_err_matches!("ord(1);", WrongArgument { .. });
+        check_ok("ord(1);", 49);
         check_err_matches!("ord();", MissingPositionalArguments { .. });
     }
 

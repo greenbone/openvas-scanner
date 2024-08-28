@@ -235,7 +235,9 @@ fn hex(s: i64) -> String {
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
 #[nasl_function]
-fn hexstr_to_data(s: &str) -> Result<Vec<u8>, FunctionErrorKind> {
+fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, FunctionErrorKind> {
+    let s = s.to_string();
+    let s = s.as_str();
     decode_hex(s).map_err(|_| {
         FunctionErrorKind::WrongArgument(format!(
             "Expected an even-length string containing only 0-9a-fA-F, found '{}'",
@@ -257,9 +259,13 @@ fn data_to_hexstr(bytes: Maybe<&[u8]>) -> Option<String> {
 /// Length argument is required and can be a named argument or a positional argument.
 /// Data argument is an optional named argument and is taken to be "X" if not provided.
 #[nasl_function(maybe_named(length), named(data))]
-fn crap(length: usize, data: Option<&str>) -> String {
-    let data = data.unwrap_or("X");
-    data.repeat(length)
+fn crap(length: usize, data: Option<NaslValue>) -> String {
+    let data = match data {
+        Some(x) => x.to_string(),
+        None => "X".to_string(),
+    };
+
+    data.as_str().repeat(length)
 }
 
 /// NASL function to remove trailing whitespaces from a string
@@ -276,9 +282,14 @@ fn chomp(s: StringOrData) -> String {
 /// The second positional argument is the *string* to search for.
 /// The optional third positional argument is an *int* containing an offset from where to start the search.
 #[nasl_function]
-fn stridx(haystack: String, needle: String, offset: Option<usize>) -> i64 {
+fn stridx(haystack: NaslValue, needle: NaslValue, offset: Option<usize>) -> i64 {
+    let h = haystack.to_string();
+    let haystack = h.as_str();
+    let n = needle.to_string();
+    let needle = n.as_str();
+
     let offset = offset.unwrap_or(0);
-    match &haystack[offset..].find(&needle) {
+    match &haystack[offset..].find(needle) {
         Some(index) => *index as i64,
         None => -1,
     }
@@ -296,7 +307,9 @@ fn display(register: &Register, configs: &Context) -> Result<NaslValue, Function
 ///
 /// Takes a single positional argument.
 #[nasl_function]
-fn ord(s: &str) -> Option<u8> {
+fn ord(s: NaslValue) -> Option<u8> {
+    let s = s.to_string();
+    let s = s.as_str();
     s.chars().next().map(|c| c as u8)
 }
 
@@ -363,12 +376,21 @@ fn insstr(
 /// `pattern` contains the pattern to search for.
 /// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
 #[nasl_function(named(string, pattern, icase))]
-fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, FunctionErrorKind> {
+fn match_(
+    string: NaslValue,
+    pattern: NaslValue,
+    icase: Option<bool>,
+) -> Result<bool, FunctionErrorKind> {
     let options = MatchOptions {
         case_sensitive: !icase.unwrap_or(false),
         require_literal_separator: false,
         require_literal_leading_dot: false,
     };
+    let strb = string.to_string();
+    let string = strb.as_str();
+    let pattb = pattern.to_string();
+    let pattern = pattb.as_str();
+
     Ok(Pattern::new(pattern)
         .map_err(|err| {
             FunctionErrorKind::WrongArgument(format!(
