@@ -20,6 +20,7 @@ typedef enum
   O_KRB5_REALM_NOT_FOUND,
   O_KRB5_EXPECTED_NULL,
   O_KRB5_EXPECTED_NOT_NULL,
+  O_KRB5_UNABLE_TO_WRITE,
   // can only happen when GFP_ATOMIC is set on the kernel.
   O_KRB5_NOMEM,
 
@@ -52,12 +53,18 @@ typedef struct
 } OKrb5Data;
 
 // Finds the kdc defined for the given realm.
+// 
+// It returns the found kdc into `kdc` when `kdc` is not NULL.
+// If kdc is not NULL it requires that the value pointer is NULL otherwise an error code is returned.
 OKrb5ErrorCode
 o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc);
-// Adds realm with the given kdc into krb5.conf
+// Adds realm with the given kdc into krb5.conf if the krc5.conf is not found it will create a new one
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc);
 
+// Is used to get a ticket based on the given credentials.
+//
+// It will store the ticket into element, it requires that elemenet is not NULL but that the value of element is NULL. Otherwise an error code is returned.
 OKrb5ErrorCode
 o_krb5_authenticate (const OKrb5Credential credentials, OKrb5Element **element);
 
