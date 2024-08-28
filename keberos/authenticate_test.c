@@ -1,6 +1,5 @@
 #include "openvas-krb5.h"
 
-#include <krb5/krb5.h>
 #include <stdio.h>
 #include <stdlib.h>
 
