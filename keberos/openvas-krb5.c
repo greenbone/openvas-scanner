@@ -155,6 +155,17 @@ result:
     }
   return result;
 }
+
+#define CHECK_FPRINTF(result, writer, fmt, ...)   \
+  do                                              \
+    {                                             \
+      if (fprintf (writer, fmt, __VA_ARGS__) < 0) \
+        {                                         \
+          result = O_KRB5_UNABLE_TO_WRITE;        \
+          goto result;                            \
+        }                                         \
+    }                                             \
+  while (0)
 // Adds realm with the given kdc into krb5.conf
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
@@ -164,8 +175,6 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
   char line[MAX_LINE_LENGTH] = {0};
   char tmpfn[MAX_LINE_LENGTH] = {0};
   int state, i;
-  // TODO: validate output of fprintf when writing and abort
-
   if ((file = fopen (creds->config_path, "r")) == NULL)
     {
       if ((file = fopen (creds->config_path, "w")) == NULL)
@@ -173,14 +182,15 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
           result = O_KRB5_CONF_NOT_CREATED;
           goto result;
         }
-      fprintf (file, "[realms]\n%s = {\n  kdc = %s\n}\n", creds->realm, kdc);
-      goto close_config;
+      CHECK_FPRINTF (result, file, "[realms]\n%s = {\n  kdc = %s\n}\n",
+                     creds->realm, kdc);
+      goto result;
     }
   snprintf (tmpfn, MAX_LINE_LENGTH, "%s.tmp", creds->config_path);
   if ((tmp = fopen (tmpfn, "w")) == NULL)
     {
       result = O_KRB5_TMP_CONF_NOT_CREATED;
-      goto close_config;
+      goto result;
     }
   state = 0;
   while (fgets (line, MAX_LINE_LENGTH, file))
@@ -191,7 +201,8 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
           SKIP_WS (line, MAX_LINE_LENGTH, 0, i);
           if (IS_STR_EQUAL (line, MAX_LINE_LENGTH, i, "[realms]", 8) == 1)
             {
-              fprintf (tmp, "%s = {\n  kdc = %s\n}\n", creds->realm, kdc);
+              CHECK_FPRINTF (result, tmp, "%s = {\n  kdc = %s\n}\n",
+                             creds->realm, kdc);
               state = 1;
             }
         }
@@ -202,11 +213,11 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
       result = O_KRB5_TMP_CONF_NOT_MOVED;
     }
 
-close_tmp:
-  fclose (tmp);
-close_config:
-  fclose (file);
 result:
+  if (tmp != NULL)
+    fclose (tmp);
+  if (file != NULL)
+    fclose (file);
   return result;
 }
 
@@ -330,7 +341,7 @@ result:
 // simply reconnect when we either don't find an entry or when the ticket is
 // invalid witout having the caller to remember artifical identifier.
 unsigned long
-o_krb5_cach_credential_id (const OKrb5Credential *cred)
+o_krb5_cache_credential_id (const OKrb5Credential *cred)
 {
   unsigned long hash = 2166136261;
   unsigned int prime = 16777219;
@@ -353,7 +364,7 @@ o_krb5_cach_credential_id (const OKrb5Credential *cred)
 static OKrb5CacheList *element_cache = NULL;
 
 OKrb5ErrorCode
-o_krb5_init_cache (void)
+o_krb5_cache_init (void)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
   GUARD_NULL (element_cache, result);
@@ -366,7 +377,7 @@ result:
 }
 
 OKrb5ErrorCode
-o_krb5_clear_cache (void)
+o_krb5_cache_clear (void)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
   if (element_cache == NULL)
@@ -385,14 +396,14 @@ result:
 }
 
 OKrb5CacheElement *
-o_krb5_find_element (const OKrb5Credential *cred)
+o_krb5_cache_find(const OKrb5Credential *cred)
 {
   if (element_cache == NULL)
     {
       return NULL;
     }
   int i;
-  unsigned long id = o_krb5_cach_credential_id (cred);
+  unsigned long id = o_krb5_cache_credential_id (cred);
 
   for (i = 0; i < element_cache->len; i++)
     {
@@ -404,10 +415,9 @@ o_krb5_find_element (const OKrb5Credential *cred)
   return NULL;
 }
 
-
 OKrb5ErrorCode
 o_krb5_cache_add_element (const OKrb5Credential credentials,
-                           OKrb5CacheElement **out)
+                          OKrb5CacheElement **out)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
 
@@ -430,7 +440,7 @@ o_krb5_cache_add_element (const OKrb5Credential credentials,
 
   ALLOCATE_AND_CHECK (*out, OKrb5CacheElement, 1, result);
   (*out)->credentials = credentials;
-  (*out)->id = o_krb5_cach_credential_id (&credentials);
+  (*out)->id = o_krb5_cache_credential_id (&credentials);
   element_cache->elements[element_cache->len] = *out;
 
   if ((result = o_krb5_authenticate (credentials, &(*out)->element)))
@@ -445,14 +455,14 @@ result:
 }
 
 OKrb5ErrorCode
-o_krb5_cached_request (const OKrb5Credential credentials, const char *data,
+o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
                        const size_t data_len, OKrb5Data **out)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
 
   if (element_cache == NULL)
-    o_krb5_init_cache ();
-  OKrb5CacheElement *element = o_krb5_find_element (&credentials);
+    o_krb5_cache_init ();
+  OKrb5CacheElement *element = o_krb5_cache_find(&credentials);
 
   // TODO: check if ticket is valid, if not valid try to get new one without
   // reauthenticate (till_new) or free and reauthenticate
