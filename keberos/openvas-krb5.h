@@ -53,18 +53,21 @@ typedef struct
 } OKrb5Data;
 
 // Finds the kdc defined for the given realm.
-// 
+//
 // It returns the found kdc into `kdc` when `kdc` is not NULL.
-// If kdc is not NULL it requires that the value pointer is NULL otherwise an error code is returned.
+// If kdc is not NULL it requires that the value pointer is NULL otherwise an
+// error code is returned.
 OKrb5ErrorCode
 o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc);
-// Adds realm with the given kdc into krb5.conf if the krc5.conf is not found it will create a new one
+// Adds realm with the given kdc into krb5.conf if the krc5.conf is not found it
+// will create a new one
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc);
 
 // Is used to get a ticket based on the given credentials.
 //
-// It will store the ticket into element, it requires that elemenet is not NULL but that the value of element is NULL. Otherwise an error code is returned.
+// It will store the ticket into element, it requires that elemenet is not NULL
+// but that the value of element is NULL. Otherwise an error code is returned.
 OKrb5ErrorCode
 o_krb5_authenticate (const OKrb5Credential credentials, OKrb5Element **element);
 
@@ -95,13 +98,20 @@ typedef struct
   OKrb5CacheElement **elements;
 } OKrb5CacheList;
 
+OKrb5ErrorCode
+o_krb5_cache_init (void);
+OKrb5ErrorCode
+o_krb5_cache_clear (void);
 
-OKrb5ErrorCode o_krb5_cache_init(void);
-OKrb5ErrorCode o_krb5_cache_clear(void);
+OKrb5CacheElement *
+o_krb5_cache_find (const OKrb5Credential *cred);
+OKrb5ErrorCode
+o_krb5_cache_authenticate (const OKrb5Credential credentials,
+                           OKrb5CacheElement **out);
 
-OKrb5CacheElement *o_krb5_cache_find(const OKrb5Credential *cred);
-
-OKrb5ErrorCode o_krb5_cache_request(const OKrb5Credential credentials, const char *data, const size_t data_len, OKrb5Data **out);
+OKrb5ErrorCode
+o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
+                      const size_t data_len, OKrb5Data **out);
 #endif
 
 #endif

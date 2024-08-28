@@ -395,7 +395,7 @@ result:
 }
 
 OKrb5CacheElement *
-o_krb5_cache_find(const OKrb5Credential *cred)
+o_krb5_cache_find (const OKrb5Credential *cred)
 {
   if (element_cache == NULL)
     {
@@ -454,17 +454,17 @@ result:
 }
 
 OKrb5ErrorCode
-o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
-                       const size_t data_len, OKrb5Data **out)
+o_krb5_cache_authenticate (const OKrb5Credential credentials,
+                           OKrb5CacheElement **out)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  GUARD_NOT_NULL (out, result);
+  GUARD_NULL (*out, result);
 
   if (element_cache == NULL)
     o_krb5_cache_init ();
-  OKrb5CacheElement *element = o_krb5_cache_find(&credentials);
+  OKrb5CacheElement *element = o_krb5_cache_find (&credentials);
 
-  // TODO: check if ticket is valid, if not valid try to get new one without
-  // reauthenticate (till_new) or free and reauthenticate
   if (element == NULL)
     {
       if ((result = o_krb5_cache_add_element (credentials, &element)))
@@ -488,6 +488,25 @@ o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
             }
         }
     }
+  *out = element;
+result:
+  return result;
+}
+
+OKrb5ErrorCode
+o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
+                      const size_t data_len, OKrb5Data **out)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+
+  if (element_cache == NULL)
+    o_krb5_cache_init ();
+  OKrb5CacheElement *element = NULL;
+  if ((result = o_krb5_cache_authenticate (credentials, &element)))
+    {
+      goto result;
+    }
+
   if ((result = o_krb5_request (element->element, data, data_len, out)))
     {
       goto result;
