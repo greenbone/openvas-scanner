@@ -260,7 +260,6 @@ o_krb5_authenticate (const OKrb5Credential credentials, OKrb5Element **element)
 result:
   if (result != O_KRB5_SUCCESS)
     {
-      krb5_free_cred_contents (ctx, &creds);
       krb5_free_principal (ctx, me);
       krb5_free_context (ctx);
       if (*element != NULL)
