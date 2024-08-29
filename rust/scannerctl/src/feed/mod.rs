@@ -99,13 +99,16 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             if !loadup_notus_only {
                 let path = get_vts_path("vts-path", args);
 
-                let dispatcher =
-                    redis_storage::CacheDispatcher::as_dispatcher(&redis, FEEDUPDATE_SELECTOR)
-                        .map_err(StorageError::from)
-                        .map_err(|e| CliError {
-                            kind: e.into(),
-                            filename: format!("{path:?}"),
-                        });
+                let dispatcher = redis_storage::CacheDispatcher::as_dispatcher(
+                    &redis,
+                    FEEDUPDATE_SELECTOR,
+                    true,
+                )
+                .map_err(StorageError::from)
+                .map_err(|e| CliError {
+                    kind: e.into(),
+                    filename: format!("{path:?}"),
+                });
                 ret = match dispatcher
                     .and_then(|dispatcher| update::run(dispatcher, path, signature_check))
                 {
@@ -131,13 +134,16 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
                     }
                 };
 
-                let dispatcher =
-                    redis_storage::CacheDispatcher::as_dispatcher(&redis, NOTUSUPDATE_SELECTOR)
-                        .map_err(StorageError::from)
-                        .map_err(|e| CliError {
-                            kind: e.into(),
-                            filename: format!("{path:?}"),
-                        });
+                let dispatcher = redis_storage::CacheDispatcher::as_dispatcher(
+                    &redis,
+                    NOTUSUPDATE_SELECTOR,
+                    true,
+                )
+                .map_err(StorageError::from)
+                .map_err(|e| CliError {
+                    kind: e.into(),
+                    filename: format!("{path:?}"),
+                });
                 ret = match dispatcher.and_then(|dispatcher| {
                     notusupdate::update::run(dispatcher, path, signature_check)
                 }) {

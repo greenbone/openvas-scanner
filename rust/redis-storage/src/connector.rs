@@ -707,9 +707,12 @@ impl CacheDispatcher<RedisCtx> {
     pub fn as_dispatcher(
         redis_url: &str,
         selector: &[NameSpaceSelector],
+        force_flush: bool,
     ) -> RedisStorageResult<PerItemDispatcher<CacheDispatcher<RedisCtx>>> {
         let cache = Self::init(redis_url, selector)?;
-        cache.flushdb()?;
+        if force_flush {
+            cache.flushdb()?
+        };
         Ok(PerItemDispatcher::new(cache))
     }
 

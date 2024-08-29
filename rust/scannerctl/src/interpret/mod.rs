@@ -8,7 +8,7 @@ use nasl_interpreter::{
     load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
     RegisterBuilder,
 };
-use redis_storage::FEEDUPDATE_SELECTOR;
+use redis_storage::{RedisWrapper, FEEDUPDATE_SELECTOR};
 use storage::{ContextKey, DefaultDispatcher};
 
 use crate::{CliError, CliErrorKind, Db};
@@ -150,10 +150,19 @@ where
 fn create_redis_storage(
     url: &str,
 ) -> storage::item::PerItemDispatcher<redis_storage::CacheDispatcher<redis_storage::RedisCtx>> {
-    redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
+    redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR, false).unwrap()
 }
 
-fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader<PathBuf>, CliError>
+fn get_current_feed_in_cache(url: &str) -> String {
+    let mut cache = redis_storage::RedisCtx::open(url, FEEDUPDATE_SELECTOR).unwrap();
+    cache.lindex("nvticache", 0).unwrap()
+}
+
+fn create_fp_loader<S>(
+    storage: &S,
+    path: PathBuf,
+    url: Option<&str>,
+) -> Result<FSPluginLoader<PathBuf>, CliError>
 where
     S: storage::Dispatcher,
 {
@@ -163,10 +172,21 @@ where
     let result = FSPluginLoader::new(path);
     let verifier = feed::HashSumNameLoader::sha256(&result)?;
     let updater = feed::Update::init("scannerctl", 5, &result, storage, verifier);
-    for u in updater {
-        tracing::warn!(updated=?u);
-        u?;
+
+    let mut outdated = false;
+    if let Some(url) = url {
+        let current = get_current_feed_in_cache(url);
+        println!("current: {}", current);
+        outdated = updater.feed_is_outdated(current).unwrap();
     }
+
+    if outdated {
+        for u in updater {
+            tracing::warn!(updated=?u);
+            u?;
+        }
+    }
+
     tracing::info!("loaded feed.");
     Ok(result)
 }
@@ -188,12 +208,13 @@ pub fn run(
         (Db::InMemory, None) => builder.build().run(script),
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
-            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
+            let builder =
+                RunBuilder::default().loader(create_fp_loader(&storage, path, Some(url))?);
             builder.storage(storage).build().run(script)
         }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new(true);
-            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
+            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path, None)?);
             builder.storage(storage).build().run(script)
         }
     };

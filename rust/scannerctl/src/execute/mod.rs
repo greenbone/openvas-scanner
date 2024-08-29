@@ -113,13 +113,17 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
 
 fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = args.get_one::<PathBuf>("path").cloned();
+    let storage = match args.get_one::<String>("redis").cloned() {
+        Some(path) => Db::Redis(path),
+        _ => Db::InMemory,
+    };
     let script = match args.get_one::<String>("script").cloned() {
         Some(path) => path,
         _ => unreachable!("path is set to required"),
     };
     let target = args.get_one::<String>("target").cloned();
     Some(interpret::run(
-        &Db::InMemory,
+        &storage,
         feed.clone(),
         &script.to_string(),
         target.clone(),
@@ -142,7 +146,12 @@ When ID is used than a valid feed path must be given within the path parameter."
                             .value_parser(value_parser!(PathBuf)),
                     )
                     .arg(Arg::new("script").required(true))
-                    .arg(arg!(-t --target <HOST> "Target to scan").required(false)),
+                    .arg(arg!(-t --target <HOST> "Target to scan").required(false))
+                    .arg(
+                        arg!(-r --redis <FILE> "Path to the Redis socket")
+                            .required(false)
+                            .value_parser(value_parser!(String)),
+                    ),
             )
             .subcommand(
                 Command::new("scan")
