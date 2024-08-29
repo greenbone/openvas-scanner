@@ -10,7 +10,7 @@ use regex::RegexBuilder;
 
 /// Matches a string against a regular expression.
 /// - string  String to search the pattern in
-/// - pattern the patern that should be matched
+/// - pattern the pattern that should be matched
 /// - icase   case insensitive flag
 /// - rnul    replace the null char in the string. Default TRUE.
 /// - multiline Is FALSE by default (string is truncated at the first
@@ -66,7 +66,7 @@ fn ereg(
 
 /// Search for a pattern in a string and replace it.
 /// - string  String to search the pattern in
-/// - pattern patern to search in the string for
+/// - pattern pattern to search in the string for
 /// - replace string to replace the pattern with
 /// - icase   case insensitive flag
 /// - rnul    replace the null char in the string. Default TRUE.
@@ -116,7 +116,7 @@ fn ereg_replace(
 /// Looks for a pattern in a string, line by line.
 ///
 /// - string  String to search the pattern in
-/// - pattern the patern that should be matched
+/// - pattern the pattern that should be matched
 /// - icase   case insensitive flag
 /// - rnul    replace the null char in the string. Default TRUE.
 ///
@@ -168,7 +168,7 @@ fn egrep(
 ///
 /// - pattern An regex pattern
 /// - string A string
-/// - icase Boolean, for case sensitve
+/// - icase Boolean, for case sensitive
 /// - find_all Boolean, to find all matches
 /// - rnul replace the null char in the string. Default TRUE.
 ///
