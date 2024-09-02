@@ -4,6 +4,7 @@ members = [
   "nasl-builtin-knowledge-base",
   "nasl-builtin-raw-ip",
   "nasl-builtin-cryptographic",
+  "nasl-builtin-isotime",
   "nasl-builtin-ssh",
   "nasl-builtin-http",
   "nasl-builtin-host",
