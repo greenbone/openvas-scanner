@@ -98,9 +98,8 @@ impl<S: ScannerStack> RunningScan<S> {
         self.set_status_to_running(runner.host_info());
         let mut end_phase = Phase::Succeeded;
 
-        let stream = runner.stream();
-        let items: Vec<_> = stream.collect().await;
-        for it in items {
+        let mut stream = Box::pin(runner.stream());
+        while let Some(it) = stream.next().await {
             // TODO: check for error and abort, we need to keep track of the state
             match it {
                 Ok(result) => {

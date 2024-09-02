@@ -4,7 +4,7 @@ use nasl_builtin_utils::{Executor, Register};
 use nasl_syntax::{Loader, NaslValue};
 use storage::{item::Nvt, types::Primitive, ContextKey, Retriever, Storage};
 
-use crate::{scheduling::Stage, Context, ExecuteError};
+use crate::{scheduling::Stage, CodeInterpreter, Context, ExecuteError};
 
 use super::{
     error::{ScriptResult, ScriptResultKind},
@@ -186,6 +186,32 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         ContextKey::Scan(self.scan_id.clone(), Some(self.target.clone()))
     }
 
+    async fn get_result_kind(&self, code: &str, register: Register) -> ScriptResultKind {
+        if let Err(e) = self.check_keys(&self.vt) {
+            return e;
+        }
+
+        let context = Context::new(
+            self.generate_key(),
+            self.target.clone(),
+            self.storage.as_dispatcher(),
+            self.storage.as_retriever(),
+            self.loader,
+            self.executor,
+        );
+        let mut results = Box::pin(CodeInterpreter::new(&code, register, &context).stream());
+        while let Some(r) = results.next().await {
+            match r {
+                Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
+                Err(e) => return ScriptResultKind::Error(e.clone()),
+                Ok(x) => {
+                    tracing::trace!(statement_result=?x);
+                }
+            }
+        }
+        return ScriptResultKind::ReturnCode(0);
+    }
+
     async fn execute(mut self) -> Result<ScriptResult, ExecuteError> {
         let code = self.loader.load(&self.vt.filename)?;
         let mut register = crate::Register::default();
@@ -193,38 +219,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = {
-            match self.check_keys(&self.vt) {
-                Err(e) => e,
-                Ok(()) => {
-                    let context = Context::new(
-                        self.generate_key(),
-                        self.target.clone(),
-                        self.storage.as_dispatcher(),
-                        self.storage.as_retriever(),
-                        self.loader,
-                        self.executor,
-                    );
-                    // Todo:  Do not collect here
-                    let results: Vec<_> = crate::CodeInterpreter::new(&code, register, &context)
-                        .stream()
-                        .collect()
-                        .await;
-
-                    results
-                        .into_iter()
-                        .find_map(|r| match r {
-                            Ok(NaslValue::Exit(x)) => Some(ScriptResultKind::ReturnCode(x)),
-                            Err(e) => Some(ScriptResultKind::Error(e.clone())),
-                            Ok(x) => {
-                                tracing::trace!(statement_result=?x);
-                                None
-                            }
-                        })
-                        .unwrap_or_else(|| ScriptResultKind::ReturnCode(0))
-                }
-            }
-        };
+        let kind = self.get_result_kind(&code, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),
