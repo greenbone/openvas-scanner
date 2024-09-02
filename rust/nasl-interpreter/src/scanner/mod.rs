@@ -18,7 +18,7 @@ use models::{
 };
 use nasl_builtin_utils::Executor;
 use nasl_syntax::{FSPluginLoader, Loader};
-use running_scan::RunningScanHandle;
+use running_scan::{RunningScan, RunningScanHandle};
 use storage::{DefaultDispatcher, Storage};
 
 use crate::scheduling::WaveExecutionPlan;
@@ -79,18 +79,14 @@ where
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanStarter for Scanner<S> {
+impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         let storage = self.storage.clone();
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
-        let handle = RunningScanHandle::start::<_, _, WaveExecutionPlan>(
-            scan,
-            storage,
-            loader,
-            function_executor,
-        );
+        let handle =
+            RunningScan::<S>::start::<WaveExecutionPlan>(scan, storage, loader, function_executor);
         self.running.write().unwrap().insert(id, handle);
         Ok(())
     }

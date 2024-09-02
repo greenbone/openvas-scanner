@@ -10,11 +10,12 @@ use std::{
 use futures::StreamExt;
 use models::{scanner::Error, Scan, Status};
 use nasl_builtin_utils::Executor;
-use nasl_syntax::Loader;
-use storage::Storage;
 use tokio::task::JoinHandle;
 
-use crate::{scanner::scan_runner::ScanRunner, scheduling::ExecutionPlaner};
+use crate::{
+    scanner::scan_runner::ScanRunner,
+    scheduling::{ExecutionPlan, ExecutionPlaner},
+};
 
 use super::ScannerStack;
 
@@ -24,7 +25,7 @@ pub struct RunningScan<S: ScannerStack> {
     loader: Arc<S::Loader>,
     function_executor: Arc<Executor>,
     keep_running: Arc<AtomicBool>,
-    status: Arc<RwLock<models::Status>>,
+    status: Arc<RwLock<Status>>,
 }
 
 fn current_time_in_seconds(name: &'static str) -> u64 {
@@ -38,6 +39,37 @@ fn current_time_in_seconds(name: &'static str) -> u64 {
 }
 
 impl<S: ScannerStack> RunningScan<S> {
+    pub fn start<Sch: ExecutionPlan + 'static>(
+        scan: Scan,
+        storage: Arc<S::Storage>,
+        loader: Arc<S::Loader>,
+        function_executor: Arc<Executor>,
+    ) -> RunningScanHandle
+    where
+        S: 'static,
+    {
+        let keep_running: Arc<AtomicBool> = Arc::new(true.into());
+        let status = Arc::new(RwLock::new(Status {
+            ..Default::default()
+        }));
+        RunningScanHandle {
+            handle: tokio::spawn(
+                Self {
+                    scan,
+                    storage,
+                    loader,
+                    function_executor,
+                    keep_running: keep_running.clone(),
+                    status: status.clone(),
+                }
+                // TODO run per target
+                .run::<Sch>(),
+            ),
+            keep_running,
+            status,
+        }
+    }
+
     fn set_status_to_running(&self) {
         let mut status = self.status.write().unwrap();
         status.status = models::Phase::Running;
@@ -52,7 +84,7 @@ impl<S: ScannerStack> RunningScan<S> {
 
     async fn run<T>(self) -> Result<(), Error>
     where
-        T: crate::scheduling::ExecutionPlan,
+        T: ExecutionPlan,
     {
         let storage: &S::Storage = &self.storage;
         let loader: &S::Loader = &self.loader;
@@ -133,43 +165,10 @@ impl<S: ScannerStack> RunningScan<S> {
 pub struct RunningScanHandle {
     handle: JoinHandle<Result<(), Error>>,
     keep_running: Arc<AtomicBool>,
-    status: Arc<RwLock<models::Status>>,
+    status: Arc<RwLock<Status>>,
 }
 
 impl RunningScanHandle {
-    pub fn start<S, L, T>(
-        scan: Scan,
-        storage: Arc<S>,
-        loader: Arc<L>,
-        function_executor: Arc<Executor>,
-    ) -> Self
-    where
-        S: Storage + Send + 'static,
-        L: Loader + Send + 'static,
-        T: crate::scheduling::ExecutionPlan + 'static,
-    {
-        let keep_running: Arc<AtomicBool> = Arc::new(true.into());
-        let status = Arc::new(RwLock::new(models::Status {
-            ..Default::default()
-        }));
-        Self {
-            handle: tokio::spawn(
-                RunningScan::<(S, L)> {
-                    scan,
-                    storage,
-                    loader,
-                    function_executor,
-                    keep_running: keep_running.clone(),
-                    status: status.clone(),
-                }
-                // TODO run per target
-                .run::<T>(),
-            ),
-            keep_running,
-            status,
-        }
-    }
-
     pub fn stop(&self) {
         self.keep_running.store(false, Ordering::SeqCst);
         self.handle.abort();
