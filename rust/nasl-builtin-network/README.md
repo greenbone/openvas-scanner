@@ -1,0 +1,34 @@
+## Implements
+- open_sock_kdc
+- open_sock_tcp
+- open_sock_udp
+- close
+- send
+- recv
+- this_host_name
+- get_mtu
+- this_host
+- islocalhost
+- islocalnet
+- get_host_ip
+- scanner_add_port
+
+## Missing
+
+- end_denial
+- ftp_get_pasv_port
+- ftp_log_in
+- get_host_open_port
+- get_port_state
+- get_port_transport
+- get_source_port
+- get_tcp_port_state
+- get_udp_port_state
+- join_multicast_group
+- leave_multicast_group
+- open_priv_sock_tcp
+- open_priv_sock_udp
+- recv_line
+- scanner_get_port
+- start_denial
+- telnet_init

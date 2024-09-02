@@ -58,7 +58,7 @@ fn get(con: &mut redis::Connection) -> RedisResult<HashMap<String, Vec<String>>>
         redis::Cmd::new()
             .arg("SELECT")
             .arg(i.to_string())
-            .query(con)?;
+            .query::<()>(con)?;
         let result = get_all(con)?;
         if result.len() > 1 {
             return Ok(result);

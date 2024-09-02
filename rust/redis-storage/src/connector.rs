@@ -621,7 +621,7 @@ impl RedisCtx {
             .cmd("SELECT")
             .arg(self.db)
             .ignore()
-            .query(&mut self.kb.as_mut().expect("Valid redis connection"))?;
+            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         Ok(())
     }
 
@@ -629,7 +629,7 @@ impl RedisCtx {
     pub fn delete_namespace(&mut self) -> RedisStorageResult<()> {
         Cmd::new()
             .arg("FLUSHDB")
-            .query(&mut self.kb.as_mut().expect("Valid redis connection"))?;
+            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         self.release_namespace()?;
         Ok(())
     }
@@ -638,13 +638,14 @@ impl RedisCtx {
     pub fn flush_namespace(&mut self) -> RedisStorageResult<()> {
         Cmd::new()
             .arg("FLUSHDB")
-            .query(&mut self.kb.as_mut().expect("Valid redis connection"))?;
+            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         Ok(())
     }
 
     //Wrapper function to avoid accessing kb member directly.
     pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
-        self.kb
+        () = self
+            .kb
             .as_mut()
             .expect("Valid redis connection")
             .set(key, val)?;
