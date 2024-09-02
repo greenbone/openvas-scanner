@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
+use std::{
+    fs::{self},
+    path::PathBuf,
+};
 
 use nasl_interpreter::{
     load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
@@ -171,6 +174,23 @@ where
     Ok(result)
 }
 
+fn create_loader_from_feed_json(
+    store: &DefaultDispatcher,
+    path: PathBuf,
+) -> Result<FSPluginLoader<PathBuf>, CliError> {
+    let result = FSPluginLoader::new(path.clone());
+    let buf = fs::read_to_string(&path).map_err(|e| CliError::load_error(e, &path))?;
+    let vts: Vec<storage::item::Nvt> = serde_json::from_str(&buf)?;
+    let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
+
+    store.set_vts(all_vts).map_err(|e| CliError {
+        filename: path.to_owned().to_string_lossy().to_string(),
+        kind: e.into(),
+    })?;
+
+    Ok(result)
+}
+
 pub fn run(
     db: &Db,
     feed: Option<PathBuf>,
@@ -193,7 +213,15 @@ pub fn run(
         }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new(true);
-            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
+
+            let is_json = path.extension().map(|ext| ext == "json").unwrap_or(false);
+            let loader = if is_json {
+                create_loader_from_feed_json(&storage, path)?
+            } else {
+                create_fp_loader(&storage, path)?
+            };
+
+            let builder = RunBuilder::default().loader(loader);
             builder.storage(storage).build().run(script)
         }
     };
