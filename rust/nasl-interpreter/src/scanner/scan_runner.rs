@@ -86,6 +86,10 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                 )
             },
         );
+        // The usage of unfold here will prevent any real asynchronous running of VTs
+        // and automatically guarantee that we stick to the scheduling requirements.
+        // If this is changed, make sure to uphold the scheduling requirements in the
+        // new implementation.
         stream::unfold(data, move |mut data| async move {
             if let Some((stage, vt, param, host, scan_id)) = data.next() {
                 let result = VTRunner::<Stack>::run(
