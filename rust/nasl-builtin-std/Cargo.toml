@@ -16,6 +16,7 @@ nasl-builtin-description = { path = "../nasl-builtin-description" }
 nasl-builtin-network = { path = "../nasl-builtin-network" }
 nasl-builtin-misc = { path = "../nasl-builtin-misc" }
 nasl-builtin-regex = { path = "../nasl-builtin-regex" }
+nasl-builtin-isotime = { path = "../nasl-builtin-isotime" }
 nasl-function-proc-macro = { path = "../nasl-function-proc-macro" }
 storage = { path = "../storage" }
 models = { path = "../models" }

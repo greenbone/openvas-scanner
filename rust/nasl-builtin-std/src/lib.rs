@@ -30,7 +30,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(nasl_builtin_network::network::Network)
         .add_set(nasl_builtin_regex::RegularExpressions)
         .add_set(nasl_builtin_cryptographic::Cryptographic)
-        .add_set(nasl_builtin_description::Description);
+        .add_set(nasl_builtin_description::Description)
+        .add_set(nasl_builtin_isotime::NaslIsotime);
 
     #[cfg(feature = "nasl-builtin-ssh")]
     executor.add_set(nasl_builtin_ssh::Ssh::default());

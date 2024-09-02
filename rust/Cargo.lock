@@ -2106,6 +2106,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nasl-builtin-isotime"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "nasl-builtin-utils",
+ "nasl-function-proc-macro",
+ "nasl-interpreter",
+ "nasl-syntax",
+]
+
+[[package]]
 name = "nasl-builtin-knowledge-base"
 version = "0.1.0"
 dependencies = [
@@ -2199,6 +2210,7 @@ dependencies = [
  "nasl-builtin-description",
  "nasl-builtin-host",
  "nasl-builtin-http",
+ "nasl-builtin-isotime",
  "nasl-builtin-knowledge-base",
  "nasl-builtin-misc",
  "nasl-builtin-network",
