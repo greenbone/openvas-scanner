@@ -19,9 +19,9 @@ use models::{
 use nasl_builtin_utils::Executor;
 use nasl_syntax::{FSPluginLoader, Loader};
 use running_scan::{RunningScan, RunningScanHandle};
-use storage::{DefaultDispatcher, Storage};
+use storage::{ContextKey, DefaultDispatcher, Storage};
 
-use crate::scheduling::WaveExecutionPlan;
+use crate::{nasl_std_functions, scheduling::WaveExecutionPlan};
 
 pub use error::ExecuteError;
 pub use scanner_stack::DefaultScannerStack;
@@ -59,7 +59,7 @@ impl Scanner<DefaultScannerStack> {
     pub fn with_default_stack(root: &Path) -> Self {
         let storage = DefaultDispatcher::new();
         let loader = FSPluginLoader::new(root);
-        let executor = crate::nasl_std_functions();
+        let executor = nasl_std_functions();
         Self::new(storage, loader, executor)
     }
 }
@@ -73,7 +73,7 @@ where
     /// Requires the root path for the loader and the storage implementation.
     pub fn with_storage(storage: S, root: &Path) -> Self {
         let loader = FSPluginLoader::new(root);
-        let executor = crate::nasl_std_functions();
+        let executor = nasl_std_functions();
         Self::new(storage, loader, executor)
     }
 }
@@ -121,7 +121,7 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
-        let ck = storage::ContextKey::Scan(id.as_ref().to_string(), None);
+        let ck = ContextKey::Scan(id.as_ref().to_string(), None);
         self.stop_scan(id).await?;
         self.storage
             .remove_scan(&ck)

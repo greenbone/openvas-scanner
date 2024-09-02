@@ -1,8 +1,9 @@
 use futures::StreamExt;
-use models::{Host, Parameter, ScanId};
+use models::{Host, Parameter, Protocol, ScanId};
 use nasl_builtin_utils::{Executor, Register};
 use nasl_syntax::{Loader, NaslValue};
 use storage::{item::Nvt, types::Primitive, ContextKey, Retriever, Storage};
+use tracing::{error_span, trace, warn};
 
 use crate::{scheduling::Stage, CodeInterpreter, Context, ExecuteError};
 
@@ -79,7 +80,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         B: Fn(Primitive) -> Option<ScriptResultKind>,
         C: Fn(storage::StorageError) -> Option<ScriptResultKind>,
     {
-        let _span = tracing::error_span!("kb_item", %key, kb_key).entered();
+        let _span = error_span!("kb_item", %key, kb_key).entered();
         let result = match self
             .storage
             .retrieve(key, storage::Retrieve::KB(kb_key.to_string()))
@@ -89,21 +90,21 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
                 if let Some(x) = x {
                     match x {
                         storage::Field::KB(kb) => {
-                            tracing::trace!(value=?kb.value, "found");
+                            trace!(value=?kb.value, "found");
                             result_some(kb.value)
                         }
                         x => {
-                            tracing::trace!(field=?x, "found but it is not a KB item");
+                            trace!(field=?x, "found but it is not a KB item");
                             result_none()
                         }
                     }
                 } else {
-                    tracing::trace!("not found");
+                    trace!("not found");
                     result_none()
                 }
             }
             Err(e) => {
-                tracing::warn!(error=%e, "storage error");
+                warn!(error=%e, "storage error");
                 result_err(e)
             }
         };
@@ -154,7 +155,6 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             check_exclude_key(k)?
         }
 
-        use models::Protocol;
         let check_port = |pt: Protocol, port: &str| {
             let kbk = generate_port_kb_key(pt, port);
             self.check_key(
@@ -205,7 +205,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
                 Err(e) => return ScriptResultKind::Error(e.clone()),
                 Ok(x) => {
-                    tracing::trace!(statement_result=?x);
+                    trace!(statement_result=?x);
                 }
             }
         }

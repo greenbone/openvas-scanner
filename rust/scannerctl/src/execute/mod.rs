@@ -5,8 +5,13 @@
 use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
+use feed::{HashSumNameLoader, Update};
 use futures::StreamExt;
-use nasl_interpreter::{nasl_std_functions, ScanRunner};
+use nasl_interpreter::{
+    nasl_std_functions,
+    scheduling::{ExecutionPlaner, WaveExecutionPlan},
+    ScanRunner,
+};
 use nasl_syntax::FSPluginLoader;
 use tracing::Level;
 
@@ -57,13 +62,12 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     tracing::info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(feed);
-    let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
+    let verifier = HashSumNameLoader::sha256(&loader)?;
+    let updater = Update::init("1", 5, &loader, &storage, verifier);
     updater.perform_update(Level::TRACE).await?;
 
-    use nasl_interpreter::scheduling::ExecutionPlaner;
     let schedule = storage
-        .execution_plan::<nasl_interpreter::scheduling::WaveExecutionPlan>(&scan)
+        .execution_plan::<WaveExecutionPlan>(&scan)
         .expect("expected to be schedulable");
     tracing::info!("creating scheduling plan");
     if schedule_only {
