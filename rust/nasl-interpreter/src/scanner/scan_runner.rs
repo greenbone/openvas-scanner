@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::collections::VecDeque;
-
 use futures::{stream, Stream};
 use models::{Host, HostInfo, Scan};
 use nasl_builtin_utils::Executor;
@@ -22,6 +20,19 @@ struct Position {
     vt: usize,
 }
 
+fn all_positions(hosts: Vec<Host>, vts: Vec<ConcurrentVT>) -> impl Iterator<Item = Position> {
+    hosts.into_iter().enumerate().flat_map(move |(host, _)| {
+        let vts = vts.clone();
+        vts.into_iter()
+            .enumerate()
+            .flat_map(move |(stage, (_, vts))| {
+                vts.into_iter()
+                    .enumerate()
+                    .map(move |(vt, _)| Position { host, stage, vt })
+            })
+    })
+}
+
 /// TODO: doc
 pub struct ScanRunner<'a, S: ScannerStack> {
     scan: &'a models::Scan,
@@ -29,20 +40,6 @@ pub struct ScanRunner<'a, S: ScannerStack> {
     loader: &'a S::Loader,
     executor: &'a Executor,
     concurrent_vts: Vec<ConcurrentVT>,
-    positions: VecDeque<Position>,
-}
-
-fn all_positions<'a>(
-    hosts: &'a [Host],
-    vts: &'a [ConcurrentVT],
-) -> impl Iterator<Item = Position> + 'a {
-    hosts.iter().enumerate().flat_map(|(host, _)| {
-        vts.iter().enumerate().flat_map(move |(stage, (_, vts))| {
-            vts.iter()
-                .enumerate()
-                .map(move |(vt, _)| Position { host, stage, vt })
-        })
-    })
 }
 
 impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
@@ -59,14 +56,12 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
     {
         // TODO dont unwrap here
         let concurrent_vts = schedule.cache().unwrap();
-        let positions = all_positions(&scan.target.hosts, &concurrent_vts).collect();
         Self {
             scan,
             storage,
             loader,
             executor,
             concurrent_vts,
-            positions,
         }
     }
 
@@ -77,11 +72,8 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 
     /// Todo doc
     pub fn stream(self) -> impl Stream<Item = Result<ScriptResult, ExecuteError>> + 'a {
-        // TODO: Do not collect here
-        let data: VecDeque<_> = self
-            .positions
-            .into_iter()
-            .map(|pos| {
+        let data = all_positions(self.scan.target.hosts.clone(), self.concurrent_vts.clone()).map(
+            move |pos| {
                 let (stage, vts) = &self.concurrent_vts[pos.stage];
                 let (vt, param) = &vts[pos.vt];
                 let host = &self.scan.target.hosts[pos.host];
@@ -92,11 +84,10 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                     host.clone(),
                     self.scan.scan_id.clone(),
                 )
-            })
-            .collect();
+            },
+        );
         stream::unfold(data, move |mut data| async move {
-            let d = data.pop_front();
-            if let Some((stage, vt, param, host, scan_id)) = d {
+            if let Some((stage, vt, param, host, scan_id)) = data.next() {
                 let result = VTRunner::<Stack>::run(
                     self.storage,
                     self.loader,
