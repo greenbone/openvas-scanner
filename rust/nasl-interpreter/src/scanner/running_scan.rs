@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock,
@@ -8,7 +7,7 @@ use std::{
 };
 
 use futures::StreamExt;
-use models::{scanner::Error, Scan, Status};
+use models::{scanner::Error, HostInfo, Phase, Scan, Status};
 use nasl_builtin_utils::Executor;
 use tokio::task::JoinHandle;
 
@@ -70,16 +69,11 @@ impl<S: ScannerStack> RunningScan<S> {
         }
     }
 
-    fn set_status_to_running(&self) {
+    fn set_status_to_running(&self, host_info: HostInfo) {
         let mut status = self.status.write().unwrap();
-        status.status = models::Phase::Running;
+        status.status = Phase::Running;
         status.start_time = current_time_in_seconds("start_time").into();
-        status.host_info = Some(models::HostInfo {
-            all: self.scan.target.hosts.len() as u64,
-            // TODO: remove alive and excluded?
-            queued: self.scan.target.hosts.len() as u64,
-            ..Default::default()
-        });
+        status.host_info = Some(host_info);
     }
 
     async fn run<T>(self) -> Result<(), Error>
@@ -101,52 +95,33 @@ impl<S: ScannerStack> RunningScan<S> {
         let runner: ScanRunner<(_, _)> =
             ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
         tracing::debug!(scan_id = self.scan.scan_id);
-        self.set_status_to_running();
-        let mut end_phase = models::Phase::Succeeded;
-        let mut last_target = String::new();
+        self.set_status_to_running(runner.host_info());
+        let mut end_phase = Phase::Succeeded;
 
-        // TODO: check for error and abort, we need to keep track of the state
         let stream = runner.stream();
         let items: Vec<_> = stream.collect().await;
         for it in items {
+            // TODO: check for error and abort, we need to keep track of the state
             match it {
-                Ok(x) => {
-                    tracing::trace!(last_target, target = x.target, targets=?self.scan.target.hosts);
-                    if x.target != last_target {
-                        let mut status = self.status.write().unwrap();
-                        if let Some(y) = status.host_info.as_mut() {
-                            if y.queued > 0 {
-                                y.queued -= 1;
-                            }
-                            y.finished += 1;
-                            // TODO why is it a hashmap when we return a list of strings
-                            // within the API?
-                            if let Some(scanning) = y.scanning.as_mut() {
-                                scanning.remove(&last_target);
-
-                                scanning.insert(x.target.clone(), 1);
-                            } else {
-                                let mut current_scan = HashMap::new();
-                                current_scan.insert(x.target.clone(), 1);
-                                y.scanning = Some(current_scan);
-                            }
-                        }
-
-                        last_target = x.target.clone();
+                Ok(result) => {
+                    tracing::trace!(target = result.target, targets=?self.scan.target.hosts);
+                    let mut status = self.status.write().unwrap();
+                    if let Some(host_info) = status.host_info.as_mut() {
+                        host_info.register_finished_script(&result.target);
                     }
-                    tracing::debug!(result=?x, "script finished");
+                    tracing::debug!(result=?result, "script finished");
 
-                    if x.has_failed() {
-                        end_phase = models::Phase::Failed;
+                    if result.has_failed() {
+                        end_phase = Phase::Failed;
                     }
                 }
                 Err(x) => {
                     tracing::warn!(error=?x, "unrecoverable error, aborting whole run");
-                    end_phase = models::Phase::Failed;
+                    end_phase = Phase::Failed;
                 }
             }
             if !self.keep_running.load(Ordering::SeqCst) {
-                end_phase = models::Phase::Stopped;
+                end_phase = Phase::Stopped;
                 break;
             }
         }
@@ -155,8 +130,8 @@ impl<S: ScannerStack> RunningScan<S> {
         status.status = end_phase;
         status.end_time = current_time_in_seconds("end_time").into();
 
-        if let Some(hi) = status.host_info.as_mut() {
-            hi.scanning = None;
+        if let Some(host_info) = status.host_info.as_mut() {
+            host_info.finish();
         }
         Ok(())
     }
@@ -265,8 +240,8 @@ mod tests {
             "host_info should be set"
         );
         let host_info = scan_results.status.host_info.unwrap();
-        assert_eq!(host_info.finished, 1);
-        assert_eq!(host_info.queued, 0);
+        assert_eq!(host_info.finished(), 1);
+        assert_eq!(host_info.queued(), 0);
     }
 
     #[tokio::test]
@@ -293,7 +268,7 @@ mod tests {
             "host_info should be set"
         );
         let host_info = scan_results.status.host_info.unwrap();
-        assert_eq!(host_info.finished, 2);
-        assert_eq!(host_info.queued, 0);
+        assert_eq!(host_info.finished(), 2);
+        assert_eq!(host_info.queued(), 0);
     }
 }

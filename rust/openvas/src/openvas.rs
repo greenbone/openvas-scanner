@@ -314,16 +314,14 @@ impl ScanResultFetcher for Scanner {
 
         match Arc::as_ref(&ov_results.results).lock() {
             Ok(all_results) => {
-                //let all_results = all_r.clone();
-                let hosts_info = HostInfo {
-                    all: all_results.count_total as u64,
-                    excluded: all_results.count_excluded as u64,
-                    dead: all_results.count_dead as u64,
-                    alive: all_results.count_alive as u64,
-                    queued: 0,
-                    finished: all_results.count_alive as u64,
-                    scanning: Some(all_results.host_status.clone()),
-                };
+                let hosts_info = HostInfo::new(
+                    all_results.count_total as u64,
+                    all_results.count_excluded as u64,
+                    all_results.count_dead as u64,
+                    all_results.count_alive as u64,
+                    0,
+                    all_results.count_alive as u64,
+                );
 
                 let status: Phase = OpenvasPhase::from_str(&all_results.scan_status)
                     .map_err(|_| {

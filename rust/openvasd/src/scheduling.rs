@@ -252,65 +252,16 @@ where
                 Ok(mut results) => {
                     if self.scanner.do_addition() {
                         let scan_status = self.db.get_status(&scan_id).await?;
-                        let current_hosts_status = scan_status.host_info.unwrap_or_default();
-                        let mut new_status = results.status.host_info.unwrap_or_default();
-                        // total hosts value is sent once and only once must be updated
-                        if current_hosts_status.all != 0 {
-                            new_status.all = current_hosts_status.all;
-                        }
-                        // excluded hosts value is sent once and only once must be updated
-                        if new_status.excluded == 0 {
-                            new_status.excluded = current_hosts_status.excluded;
-                        }
-                        // new dead/alive/finished hosts are found during the scan.
-                        // the new count must be added to the previous one
-                        new_status.dead += current_hosts_status.dead;
-                        new_status.alive += current_hosts_status.alive;
-                        new_status.finished += current_hosts_status.finished;
-
-                        //Update each single host status. Remove it if finished.
-                        let mut hs = current_hosts_status.scanning.unwrap_or_default().clone();
-                        for (host, progress) in
-                            new_status.scanning.clone().unwrap_or_default().iter()
-                        {
-                            if *progress == 100 || *progress == -1 {
-                                hs.remove(host);
-                            } else {
-                                hs.insert(host.to_string(), *progress);
-                            }
-                        }
-                        new_status.scanning = Some(hs);
-
-                        // update the hosts status into the result before storing
-                        results.status.host_info = Some(new_status);
-
-                        // Update start and end time if set from openvas
-                        if scan_status.start_time.is_some() {
-                            results.status.start_time = scan_status.start_time;
-                        }
-
-                        if scan_status.end_time.is_some() {
-                            results.status.end_time = scan_status.end_time;
-                        }
-
-                        match self.append_fetched_result(vec![results]).await {
-                            Ok(()) => {
-                                tracing::trace!(%scan_id, "fetched and append results");
-                            }
-                            Err(e) => {
-                                tracing::warn!(%scan_id, %e, "unable to append results");
-                            }
-                        };
-                    } else {
-                        match self.append_fetched_result(vec![results]).await {
-                            Ok(()) => {
-                                tracing::trace!(%scan_id, "fetched and append results");
-                            }
-                            Err(e) => {
-                                tracing::warn!(%scan_id, %e, "unable to append results");
-                            }
-                        }
+                        results.status.update_with(&scan_status);
                     }
+                    match self.append_fetched_result(vec![results]).await {
+                        Ok(()) => {
+                            tracing::trace!(%scan_id, "fetched and append results");
+                        }
+                        Err(e) => {
+                            tracing::warn!(%scan_id, %e, "unable to append results");
+                        }
+                    };
                 }
                 Err(e) => {
                     tracing::warn!(%scan_id, %e, "unable to fetch results");

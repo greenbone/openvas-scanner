@@ -31,6 +31,26 @@ impl Status {
     pub fn is_done(&self) -> bool {
         !self.is_running() && self.status != Phase::Stored
     }
+
+    pub fn update_with(&mut self, status: &Status) {
+        if let Some(ref host_info) = status.host_info {
+            self.host_info = Some(
+                self.host_info
+                    .clone()
+                    .unwrap_or_default()
+                    .update_with(&host_info),
+            );
+        }
+
+        // Update start and end time if set from openvas
+        if status.start_time.is_some() {
+            self.start_time = status.start_time;
+        }
+
+        if status.end_time.is_some() {
+            self.end_time = status.end_time;
+        }
+    }
 }
 
 /// Enum of the possible phases of a scan

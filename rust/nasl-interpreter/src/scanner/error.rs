@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use models::Host;
+
 use crate::InterpretError;
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -55,7 +57,7 @@ pub struct ScriptResult {
     /// the result
     pub kind: ScriptResultKind,
     /// The target of the result
-    pub target: String,
+    pub target: Host,
 }
 
 impl ScriptResult {

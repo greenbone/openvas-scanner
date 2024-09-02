@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! # Responses of OSPD commands
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 use serde::{de::Visitor, Deserialize};
 
@@ -588,28 +588,22 @@ impl From<Scan> for models::Status {
             ScanStatus::Interrupted => models::Phase::Failed,
         };
 
-        let mut scanning: HashMap<String, i32> = HashMap::new();
-        if let Some(i) = &value.host_info {
-            for host in &i.host {
-                scanning.insert(host.name.clone(), 0);
-            }
-        }
-
         models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
-            host_info: value.host_info.map(|i| models::HostInfo {
-                all: i.count_total.content.0,
-                excluded: i.count_excluded.content.0,
-                dead: i.count_dead.content.0,
-                alive: i.count_alive.content.0,
-                queued: i.count_total.content.0
-                    - i.count_excluded.content.0
-                    - i.count_alive.content.0
-                    - i.host.len() as u64,
-                finished: i.count_alive.content.0,
-                scanning: Some(scanning),
+            host_info: value.host_info.map(|host_info| {
+                models::HostInfo::new(
+                    host_info.count_total.content.0,
+                    host_info.count_excluded.content.0,
+                    host_info.count_dead.content.0,
+                    host_info.count_alive.content.0,
+                    host_info.count_total.content.0
+                        - host_info.count_excluded.content.0
+                        - host_info.count_alive.content.0
+                        - host_info.host.len() as u64,
+                    host_info.count_alive.content.0,
+                )
             }),
         }
     }

@@ -4,6 +4,8 @@
 
 use std::collections::HashMap;
 
+use crate::Host;
+
 /// Information about hosts of a running scan
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(
@@ -11,22 +13,78 @@ use std::collections::HashMap;
     derive(serde::Serialize, serde::Deserialize)
 )]
 pub struct HostInfo {
-    /// Number of all hosts, that are contained in a target
-    pub all: u64,
-    /// Number of hosts, that are excluded from the target
-    pub excluded: u64,
-    /// Number of hosts, that are not reachable (alive-test failed)
-    pub dead: u64,
-    /// Number of hosts, that are reachable (alive-test succeeded)
-    pub alive: u64,
-    /// Number of hosts, that are currently queued for scanning
-    pub queued: u64,
-    /// Number of hosts, that are already finished scanning
-    pub finished: u64,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
-    /// IPs of hosts, that are currently scanned.
-    pub scanning: Option<HashMap<String, i32>>,
+    all: u64,
+    excluded: u64,
+    dead: u64,
+    alive: u64,
+    queued: u64,
+    finished: u64,
+    // Hosts that are currently being scanned. The second entry is the number of
+    // remaining VTs for this host.
+    scanning: HashMap<String, usize>,
+}
+
+impl HostInfo {
+    pub fn new(all: u64, excluded: u64, dead: u64, alive: u64, queued: u64, finished: u64) -> Self {
+        Self {
+            all,
+            excluded,
+            dead,
+            alive,
+            queued,
+            finished,
+            scanning: HashMap::new(),
+        }
+    }
+
+    pub fn from_hosts_and_num_vts(hosts: &[Host], num_vts: usize) -> Self {
+        Self {
+            all: hosts.len() as u64,
+            queued: hosts.len() as u64,
+            scanning: hosts.iter().map(|host| (host.clone(), num_vts)).collect(),
+            ..Default::default()
+        }
+    }
+
+    pub fn register_finished_script(&mut self, target: &Host) {
+        if let Some(num_vts) = self.scanning.get_mut(target) {
+            *num_vts -= 1;
+            if *num_vts == 0 {
+                self.finished += 1;
+                self.queued -= 1;
+                self.scanning.remove(target);
+            }
+        }
+    }
+
+    pub fn finish(&mut self) {
+        self.scanning.clear();
+        assert_eq!(self.queued, 0);
+    }
+
+    pub fn queued(&self) -> u64 {
+        self.queued
+    }
+
+    pub fn finished(&self) -> u64 {
+        self.finished
+    }
+
+    pub fn update_with(mut self, other: &HostInfo) -> Self {
+        // total hosts value is sent once
+        if other.all != 0 {
+            self.all = other.all;
+        }
+        // excluded hosts value is sent once
+        if self.excluded == 0 {
+            self.excluded = other.excluded;
+        }
+        // if new dead/alive/finished hosts are found during the scan,
+        // the new count must be added to the previous one
+        self.dead += other.dead;
+        self.alive += other.alive;
+        self.finished += other.finished;
+        self.scanning = other.scanning.clone();
+        self
+    }
 }

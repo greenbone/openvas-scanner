@@ -5,7 +5,7 @@
 use std::collections::VecDeque;
 
 use futures::{stream, Stream};
-use models::{Host, Scan};
+use models::{Host, HostInfo, Scan};
 use nasl_builtin_utils::Executor;
 
 use crate::scanner::ScannerStack;
@@ -68,6 +68,11 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
             concurrent_vts,
             positions,
         }
+    }
+
+    /// TODO doc
+    pub fn host_info(&self) -> HostInfo {
+        HostInfo::from_hosts_and_num_vts(&self.scan.target.hosts, self.concurrent_vts.len())
     }
 
     /// Todo doc
