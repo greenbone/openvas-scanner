@@ -153,12 +153,8 @@ where
             self.loader,
             &functions,
         );
-        // TODO: Don't collect here
-        let results: Vec<_> = CodeInterpreter::new(&code, register, &context)
-            .stream()
-            .collect()
-            .await;
-        for stmt in results.into_iter() {
+        let mut results = Box::pin(CodeInterpreter::new(&code, register, &context).stream());
+        while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
                     self.dispatcher.on_exit(context.key())?;
@@ -170,6 +166,7 @@ where
         }
         Err(ErrorKind::MissingExit(key.value()))
     }
+
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
         let path = self.loader.root_path().unwrap();

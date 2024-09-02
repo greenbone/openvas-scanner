@@ -13,7 +13,7 @@ use nasl_interpreter::{
     ScanRunner,
 };
 use nasl_syntax::FSPluginLoader;
-use tracing::Level;
+use tracing::{info, warn, warn_span, Level};
 
 use crate::{interpret, CliError, CliErrorKind, Db};
 
@@ -24,7 +24,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         Some(("scan", args)) => Some(scan(args).await),
         Some((x, _)) => panic!("Unknown subcommand{}", x),
         None => {
-            tracing::warn!("`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions");
+            warn!("`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions");
             script(args).await
         }
     }
@@ -59,7 +59,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         .expect("A feed path is required to run a scan")
         .clone();
     let storage = storage::DefaultDispatcher::new();
-    tracing::info!("loading feed. This may take a while.");
+    info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(feed);
     let verifier = HashSumNameLoader::sha256(&loader)?;
@@ -69,7 +69,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let schedule = storage
         .execution_plan::<WaveExecutionPlan>(&scan)
         .expect("expected to be schedulable");
-    tracing::info!("creating scheduling plan");
+    info!("creating scheduling plan");
     if schedule_only {
         for (i, r) in schedule.enumerate() {
             let (stage, vts) = r.expect("should be resolvable");
@@ -86,25 +86,24 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         let executor = nasl_std_functions();
         let runner: ScanRunner<(_, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
-        // TODO: Do not collect here
-        let results: Vec<_> = runner.stream().collect().await;
-        results.into_iter().filter_map(|x|{
-                    match x {
-                        Ok(x) => Some(x),
-                        Err(e) => {
-                            tracing::warn!(error=?e, "failed to execute script.");
-                            None
-                        }
-                    }
-                }).for_each(|x|{
-                    let _span = tracing::warn_span!("script_result", ilename=x.filename, oid=x.oid, stage=%x.stage).entered();
+        let mut results = Box::pin(runner.stream());
+        while let Some(x) = results.next().await {
+            match x {
+                Ok(x) => {
+                    let _span =
+                        warn_span!("script_result", filename=x.filename, oid=x.oid, stage=%x.stage)
+                            .entered();
                     if x.has_succeeded() {
-                            tracing::info!("success")
-                        } else {
-                            tracing::warn!(kind=?x.kind,"failed")
-
-                        }
-                })
+                        info!("success")
+                    } else {
+                        warn!(kind=?x.kind, "failed")
+                    }
+                }
+                Err(e) => {
+                    warn!(error=?e, "failed to execute script.");
+                }
+            }
+        }
     }
 
     Ok(())
