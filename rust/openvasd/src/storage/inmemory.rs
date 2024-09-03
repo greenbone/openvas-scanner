@@ -244,6 +244,7 @@ where
         let progress = scans.get(id).ok_or(Error::NotFound)?;
         Ok((progress.scan.clone(), progress.status.clone()))
     }
+
     async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
         let (mut scan, status) = self.get_scan(id).await?;
         let mut decrypted_credentials = Vec::with_capacity(scan.target.credentials.len());
@@ -259,11 +260,13 @@ where
 
         Ok((scan, status))
     }
+
     async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
         let scans = self.scans.read().unwrap();
         let progress = scans.get(id).ok_or(Error::NotFound)?;
         Ok(progress.status.clone())
     }
+
     // TODO: figure out a way to get rid of send so that we can use await
     async fn get_results(
         &self,

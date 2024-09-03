@@ -15,7 +15,6 @@ pub enum Retrieve {
     /// Metadata of the NASL script.
     NVT(Option<NVTKey>),
     /// Knowledge Base item
-    // TODO: change to KB<Option to have the possibility to get all
     KB(String),
     /// Metadata of the Notus advisory
     NotusAdvisory(Option<String>),
