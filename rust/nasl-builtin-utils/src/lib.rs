@@ -19,14 +19,6 @@ pub use executor::{Executor, IntoFunctionSet, StatefulFunctionSet, StatelessFunc
 /// The result of a function call.
 pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;
 
-/// Is a type definition for built-in functions
-///
-/// It is mostly used internally when building a NaslFunctionExecuter.
-/// The register as well as the context are given by the interpreter that wants either a result or
-/// an error back.
-pub type NaslFunction<'a> =
-    fn(&Register, &Context) -> Result<nasl_syntax::NaslValue, FunctionErrorKind>;
-
 /// Resolves positional arguments from the register.
 pub fn resolve_positional_arguments(register: &Register) -> Vec<nasl_syntax::NaslValue> {
     match register.named(lookup_keys::FC_ANON_ARGS).cloned() {
