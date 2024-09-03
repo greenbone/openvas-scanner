@@ -9,6 +9,7 @@ pub use error::ErrorKind;
 
 use futures::{stream, Stream, StreamExt};
 use std::fs::File;
+use tracing::info;
 use tracing::{debug, error, trace, warn, Level};
 
 use nasl_interpreter::{
@@ -181,9 +182,9 @@ where
             match log_level {
                 Level::TRACE => trace!(?result),
                 Level::DEBUG => debug!(?result),
+                Level::INFO => info!(?result),
                 Level::WARN => warn!(?result),
                 Level::ERROR => error!(?result),
-                _ => todo!(),
             }
         }
         results.into_iter().collect::<Result<Vec<_>, Error>>()?;
