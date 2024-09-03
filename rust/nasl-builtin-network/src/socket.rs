@@ -5,7 +5,7 @@
 use std::{
     fs,
     io::{self, BufReader, Read, Write},
-    net::{IpAddr, TcpStream, ToSocketAddrs, UdpSocket},
+    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     os::fd::AsRawFd,
     sync::{Arc, RwLock},
     thread::sleep,
@@ -147,15 +147,20 @@ pub struct NaslSockets {
 }
 
 impl NaslSockets {
-    fn open_udp(addr: IpAddr, port: u16) -> Result<NaslSocket, FunctionErrorKind> {
-        let sock_addr = (addr, port).to_socket_addrs()?.next().ok_or_else(|| {
-            FunctionErrorKind::Diagnostic(
+    fn resolve_socket_addr(addr: IpAddr, port: u16) -> Result<SocketAddr, FunctionErrorKind> {
+        (addr, port)
+            .to_socket_addrs()?
+            .next()
+            .ok_or(FunctionErrorKind::Diagnostic(
                 format!(
-                "the given address and port do not correspond to a valid address: {addr}:{port}",
-            ),
+                    "the given address and port do not correspond to a valid address: {addr}:{port}"
+                ),
                 None,
-            )
-        })?;
+            ))
+    }
+
+    fn open_udp(addr: IpAddr, port: u16) -> Result<NaslSocket, FunctionErrorKind> {
+        let sock_addr = Self::resolve_socket_addr(addr, port)?;
         let socket = bind_local_socket(&sock_addr)?;
         socket.connect(sock_addr)?;
         socket.set_read_timeout(Some(Duration::from_secs(1)))?;
@@ -166,19 +171,14 @@ impl NaslSockets {
     }
 
     fn open_tcp(
-        ip: IpAddr,
+        addr: IpAddr,
         port: u16,
         bufsz: Option<i64>,
         timeout: Duration,
         tls_config: Option<&TLSConfig>,
     ) -> Result<NaslSocket, FunctionErrorKind> {
         // Resolve Address and Port to SocketAddr
-        let sock = (ip, port)
-            .to_socket_addrs()?
-            .next()
-            .ok_or(FunctionErrorKind::WrongArgument(format!(
-                "the given address and port do not correspond to a valid address: {ip}:{port}"
-            )))?;
+        let sock_addr = Self::resolve_socket_addr(addr, port)?;
         // Create Vec depending of buffer size
         let buffer = if let Some(bufsz) = bufsz {
             if bufsz > 0 {
@@ -190,7 +190,7 @@ impl NaslSockets {
             None
         };
 
-        let socket = TcpStream::connect_timeout(&sock, timeout)?;
+        let socket = TcpStream::connect_timeout(&sock_addr, timeout)?;
 
         // Unwrap, because it cannot fail
         socket
@@ -364,15 +364,9 @@ impl NaslSockets {
         min: Option<i64>,
         timeout: Option<i64>,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        let min = if let Some(min) = min {
-            if min < 0 {
-                len
-            } else {
-                min as usize
-            }
-        } else {
-            len
-        };
+        let min = min
+            .map(|min| if min < 0 { len } else { min as usize })
+            .unwrap_or(len);
         let mut data = vec![0; len];
 
         let mut ret = Ok(NaslValue::Null);
