@@ -33,7 +33,10 @@ fn all_positions(hosts: Vec<Host>, vts: Vec<ConcurrentVT>) -> impl Iterator<Item
     })
 }
 
-/// TODO: doc
+/// Runs a single scan by executing all the VTs within a given schedule.
+/// This does not provide any control over the scan but merely executes the
+/// necessary instructions. In order to have control over the scan (such as
+/// starting and stopping it), use `RunningScan` instead.
 pub struct ScanRunner<'a, S: ScannerStack> {
     scan: &'a models::Scan,
     storage: &'a S::Storage,
