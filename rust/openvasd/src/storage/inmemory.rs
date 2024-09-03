@@ -441,6 +441,11 @@ where
         }
         Ok(result.collect())
     }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        let v = self.feed_version.read().await.clone();
+        Ok(v)
+    }
 }
 
 #[cfg(test)]

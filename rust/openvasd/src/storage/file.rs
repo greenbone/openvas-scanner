@@ -489,6 +489,11 @@ where
         }
         Ok(deleted_results)
     }
+
+    async fn current_feed_version(&self) -> Result<String, Error> {
+        let v = self.feed_version.read().unwrap().clone();
+        Ok(v)
+    }
 }
 
 #[cfg(test)]
