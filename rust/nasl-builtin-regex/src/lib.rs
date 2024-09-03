@@ -6,7 +6,32 @@ use nasl_builtin_utils::{error::FunctionErrorKind, NaslFunction};
 use nasl_builtin_utils::{Context, Register};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
-use regex::RegexBuilder;
+use regex::{Regex, RegexBuilder};
+
+fn parse_search_string(mut s: &str, rnul: bool, multiline: bool) -> &str {
+    if !rnul {
+        s = s.split('\0').next().unwrap();
+    }
+    if !multiline {
+        s = s.split('\n').next().unwrap();
+    }
+
+    s
+}
+
+fn make_regex(pattern: &str, icase: bool, multiline: bool) -> Result<Regex, FunctionErrorKind> {
+    match RegexBuilder::new(pattern.to_string().as_str())
+        .case_insensitive(icase)
+        .multi_line(multiline)
+        .build()
+    {
+        Ok(re) => Ok(re),
+        Err(e) => Err(FunctionErrorKind::Dirty(format!(
+            " Error building regular expression pattern: {}",
+            e
+        ))),
+    }
+}
 
 /// Matches a string against a regular expression.
 /// - string  String to search the pattern in
@@ -23,45 +48,16 @@ fn ereg(
     icase: Option<bool>,
     rnul: Option<bool>,
     multiline: Option<bool>,
-) -> Result<NaslValue, FunctionErrorKind> {
-    let icase = icase.unwrap_or_default();
+) -> Result<bool, FunctionErrorKind> {
+    let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
-    let multiline = multiline.unwrap_or_default();
+    let multiline = multiline.unwrap_or(false);
 
-    let str_bind = string.to_string();
-    let mut str_aux = str_bind.as_str();
+    let string = string.to_string();
+    let string = parse_search_string(&string, rnul, multiline);
 
-    if !rnul {
-        let s = match str_aux.chars().position(|c| c == '\0') {
-            Some(i) => i,
-            None => str_aux.len(),
-        };
-        (str_aux, _) = str_aux.split_at(s);
-    }
-
-    if !multiline {
-        let s = match str_aux.chars().position(|c| c == '\n') {
-            Some(i) => i,
-            None => str_aux.len(),
-        };
-        (str_aux, _) = str_aux.split_at(s);
-    }
-
-    let re = match RegexBuilder::new(pattern.to_string().as_str())
-        .case_insensitive(icase)
-        .multi_line(multiline)
-        .build()
-    {
-        Ok(re) => re,
-        Err(e) => {
-            return Err(FunctionErrorKind::Dirty(format!(
-                " Error building regular expression pattern: {}",
-                e
-            )));
-        }
-    };
-
-    Ok(NaslValue::Boolean(re.is_match(str_aux)))
+    let re = make_regex(&pattern.to_string(), icase, multiline)?;
+    Ok(re.is_match(string))
 }
 
 /// Search for a pattern in a string and replace it.
@@ -79,38 +75,18 @@ fn ereg_replace(
     replace: NaslValue,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<NaslValue, FunctionErrorKind> {
-    let icase = icase.unwrap_or_default();
+) -> Result<String, FunctionErrorKind> {
+    let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
 
-    let str_bind = string.to_string();
-    let mut str_aux = str_bind.as_str();
-
-    if !rnul {
-        let s = match str_aux.chars().position(|c| c == '\0') {
-            Some(i) => i,
-            None => str_aux.len(),
-        };
-        (str_aux, _) = str_aux.split_at(s);
-    }
-
-    let re = match RegexBuilder::new(pattern.to_string().as_str())
-        .case_insensitive(icase)
-        .build()
-    {
-        Ok(re) => re,
-        Err(e) => {
-            return Err(FunctionErrorKind::Dirty(format!(
-                " Error building regular expression pattern: {}",
-                e
-            )));
-        }
-    };
+    let string = string.to_string();
+    let string = parse_search_string(&string, rnul, true);
+    let re = make_regex(&pattern.to_string(), icase, false)?;
 
     let out = re
-        .replace_all(str_aux, replace.to_string().as_str())
+        .replace_all(string, replace.to_string().as_str())
         .to_string();
-    Ok(NaslValue::String(out))
+    Ok(out)
 }
 
 /// Looks for a pattern in a string, line by line.
@@ -127,41 +103,20 @@ fn egrep(
     pattern: NaslValue,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<NaslValue, FunctionErrorKind> {
-    let icase = icase.unwrap_or_default();
+) -> Result<String, FunctionErrorKind> {
+    let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
 
-    let str_bind = string.to_string();
-    let mut str_aux = str_bind.as_str();
+    let string = string.to_string();
+    let string = parse_search_string(&string, rnul, true);
+    let re = make_regex(&pattern.to_string(), icase, true)?;
 
-    if !rnul {
-        let s = match str_aux.chars().position(|c| c == '\0') {
-            Some(i) => i,
-            None => str_aux.len(),
-        };
-        (str_aux, _) = str_aux.split_at(s);
-    }
-
-    let re = match RegexBuilder::new(pattern.to_string().as_str())
-        .case_insensitive(icase)
-        .multi_line(true)
-        .build()
-    {
-        Ok(re) => re,
-        Err(e) => {
-            return Err(FunctionErrorKind::Dirty(format!(
-                " Error building regular expression pattern: {}",
-                e
-            )));
-        }
-    };
-
-    let lines: Vec<&str> = str_aux
+    let lines: Vec<&str> = string
         .split_inclusive('\n')
         .filter(|l| re.is_match(l))
         .collect();
 
-    Ok(NaslValue::String(lines.concat()))
+    Ok(lines.concat())
 }
 
 /// Does extended regular expression pattern matching.
@@ -183,42 +138,20 @@ fn eregmatch(
     icase: Option<bool>,
     rnul: Option<bool>,
 ) -> Result<NaslValue, FunctionErrorKind> {
-    let icase = icase.unwrap_or_default();
+    let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
+    let find_all = find_all.unwrap_or(false);
 
-    let find_all = find_all.unwrap_or_default();
-    let str_bind = string.to_string();
-
-    let mut str_aux = str_bind.as_str();
-
-    if !rnul {
-        let s = match str_aux.chars().position(|c| c == '\0') {
-            Some(i) => i,
-            None => str_aux.len(),
-        };
-        (str_aux, _) = str_aux.split_at(s);
-    }
-
-    let re = match RegexBuilder::new(pattern.to_string().as_str())
-        .case_insensitive(icase)
-        .multi_line(true)
-        .build()
-    {
-        Ok(re) => re,
-        Err(e) => {
-            return Err(FunctionErrorKind::Dirty(format!(
-                " Error building regular expression pattern: {}",
-                e
-            )));
-        }
-    };
+    let string = string.to_string();
+    let string = parse_search_string(&string, rnul, true);
+    let re = make_regex(&pattern.to_string(), icase, true)?;
 
     let matches = match find_all {
         true => re
-            .find_iter(str_aux)
+            .find_iter(string)
             .map(|m| NaslValue::String(m.as_str().to_string()))
             .collect(),
-        false => match re.find(str_aux) {
+        false => match re.find(string) {
             Some(s) => vec![NaslValue::String(s.as_str().to_string())],
             None => vec![],
         },

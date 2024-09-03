@@ -2067,7 +2067,6 @@ dependencies = [
 name = "nasl-builtin-regex"
 version = "0.1.0"
 dependencies = [
- "lazy-regex",
  "nasl-builtin-std",
  "nasl-builtin-utils",
  "nasl-function-proc-macro",

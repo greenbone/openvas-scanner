@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests {
     use nasl_builtin_std::ContextFactory;
-    use nasl_builtin_utils::{error::FunctionErrorKind, Register};
+    use nasl_builtin_utils::Register;
     use nasl_interpreter::CodeInterpreter;
     use nasl_syntax::NaslValue;
 
