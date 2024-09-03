@@ -16,3 +16,6 @@ tokio = "1.39.2"
 [features]
 default = ["enforce-no-trailing-arguments"]
 enforce-no-trailing-arguments = []
+
+[dev-dependencies]
+nasl-function-proc-macro = {path = "../nasl-function-proc-macro"}

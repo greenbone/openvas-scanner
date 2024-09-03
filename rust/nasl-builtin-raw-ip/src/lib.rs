@@ -20,9 +20,9 @@ impl nasl_builtin_utils::NaslVarDefiner for RawIp {
 }
 
 impl IntoFunctionSet for RawIp {
-    type Set = StoredFunctionSet<RawIp>;
+    type State = RawIp;
 
-    fn into_function_set(self) -> Self::Set {
+    fn into_function_set(self) -> StoredFunctionSet<Self::State> {
         let mut set = StoredFunctionSet::new(self);
         set.add_set(PacketForgery);
         set.add_set(FrameForgery);

@@ -102,9 +102,9 @@ fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
 pub struct Cryptographic;
 
 impl IntoFunctionSet for Cryptographic {
-    type Set = StoredFunctionSet<Cryptographic>;
+    type State = Cryptographic;
 
-    fn into_function_set(self) -> Self::Set {
+    fn into_function_set(self) -> StoredFunctionSet<Cryptographic> {
         let mut set = StoredFunctionSet::new(self);
         set.add_set(aes_ccm::AesCcm);
         set.add_set(hmac::HmacFns);
