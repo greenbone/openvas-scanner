@@ -4,7 +4,7 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use nasl_builtin_utils::{stateless_function_set, NaslVars};
+use nasl_builtin_utils::{function_set, NaslVars};
 use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
@@ -571,9 +571,9 @@ pub fn expose_vars() -> NaslVars<'static> {
 
 pub struct FrameForgery;
 
-stateless_function_set! {
+function_set! {
     FrameForgery,
-    add_sync,
+    sync_stateless,
     (
         (nasl_send_frame, "send_frame"),
         (nasl_dump_frame, "dump_frame"),

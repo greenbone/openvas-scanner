@@ -4,7 +4,7 @@
 
 use std::str::FromStr;
 
-use nasl_builtin_utils::{stateless_function_set, Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind, Register};
 
 use storage::{
     item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
@@ -95,9 +95,9 @@ macro_rules! make_storage_function {
         }
         )*
 
-        stateless_function_set! {
+        function_set! {
             Description,
-            add_sync,
+            sync_stateless,
             (
                 $(
                     $name,

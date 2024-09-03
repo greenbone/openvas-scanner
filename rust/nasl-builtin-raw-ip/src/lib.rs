@@ -6,7 +6,7 @@ mod frame_forgery;
 mod packet_forgery;
 mod raw_ip_utils;
 use frame_forgery::FrameForgery;
-use nasl_builtin_utils::{combine_function_sets, NaslVars};
+use nasl_builtin_utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};
 use packet_forgery::PacketForgery;
 
 pub struct RawIp;
@@ -19,10 +19,13 @@ impl nasl_builtin_utils::NaslVarDefiner for RawIp {
     }
 }
 
-combine_function_sets! {
-    RawIp,
-    (
-        PacketForgery,
-        FrameForgery,
-    )
+impl IntoFunctionSet for RawIp {
+    type Set = StoredFunctionSet<RawIp>;
+
+    fn into_function_set(self) -> Self::Set {
+        let mut set = StoredFunctionSet::new(self);
+        set.add_set(PacketForgery);
+        set.add_set(FrameForgery);
+        set
+    }
 }

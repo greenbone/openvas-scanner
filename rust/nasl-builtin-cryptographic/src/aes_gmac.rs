@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use nasl_builtin_utils::stateless_function_set;
+use nasl_builtin_utils::function_set;
 
 /// NASL function to calculate GMAC with AES128.
 ///
@@ -43,7 +43,7 @@ stateless_function_set! {
 }
 
 #[cfg(not(feature = "nasl-c-lib"))]
-stateless_function_set! {
+function_set! {
     AesGmac,
     sync_stateless,
     (

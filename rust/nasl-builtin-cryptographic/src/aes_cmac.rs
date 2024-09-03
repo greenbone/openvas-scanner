@@ -5,7 +5,7 @@
 use aes::Aes128;
 use cmac::{Cmac, Mac};
 use nasl_builtin_utils::error::GeneralErrorType;
-use nasl_builtin_utils::{stateless_function_set, Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 
 use crate::{get_data, get_key};
@@ -28,9 +28,9 @@ fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, FunctionError
 
 pub struct AesCmac;
 
-stateless_function_set! {
+function_set! {
     AesCmac,
-    add_sync,
+    sync_stateless,
     (
         (aes_cmac, "aes_mac_cbc"),
         aes_cmac,

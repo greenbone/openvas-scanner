@@ -10,9 +10,7 @@ mod sessions;
 
 use core::str;
 use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
-use nasl_builtin_utils::{
-    stateful_function_set, Context, ContextType, FunctionErrorKind, Register,
-};
+use nasl_builtin_utils::{function_set, Context, ContextType, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 use sessions::SshSession;
 use std::io::Write;
@@ -2018,9 +2016,9 @@ impl Ssh {
     }
 }
 
-stateful_function_set! {
+function_set! {
     Ssh,
-    add_sync,
+    sync_stateful,
     (
         Ssh::nasl_ssh_connect,
         Ssh::nasl_ssh_disconnect,

@@ -6,7 +6,7 @@ use digest::Digest;
 use md2::Md2;
 use md4::Md4;
 use md5::Md5;
-use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set};
 use ripemd::Ripemd160;
 use sha1::Sha1;
 use sha2::{Sha256, Sha512};
@@ -72,9 +72,9 @@ pub fn hash_ripemd160(register: &Register, _: &Context) -> Result<NaslValue, Fun
 
 pub struct Hash;
 
-stateless_function_set! {
+function_set! {
     Hash,
-    add_sync,
+    sync_stateless,
     (
         (hash_md2, "MD2"),
         (hash_md4, "MD4"),

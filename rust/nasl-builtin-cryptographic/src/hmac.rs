@@ -13,7 +13,7 @@ use hex::encode;
 use hmac::{Hmac, Mac};
 use md2::Md2;
 use md5::Md5;
-use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set};
 use ripemd::Ripemd160;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
@@ -95,9 +95,9 @@ pub fn hmac_sha512(register: &Register, _: &Context) -> Result<NaslValue, Functi
 
 pub struct HmacFns;
 
-stateless_function_set! {
+function_set! {
     HmacFns,
-    add_sync,
+    sync_stateless,
     (
         (hmac_md2, "HMAC_MD2"),
         (hmac_md5, "HMAC_MD5"),

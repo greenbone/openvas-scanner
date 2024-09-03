@@ -12,7 +12,7 @@ use ccm::{
 use digest::generic_array::ArrayLength;
 use nasl_builtin_utils::error::{FunctionErrorKind, GeneralErrorType};
 
-use nasl_builtin_utils::{stateless_function_set, Context, Register};
+use nasl_builtin_utils::{function_set, Context, Register};
 use nasl_syntax::NaslValue;
 
 use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt};
@@ -250,9 +250,9 @@ ccm_call_typed!(
 
 pub struct AesCcm;
 
-stateless_function_set! {
+function_set! {
     AesCcm,
-    add_sync,
+    sync_stateless,
     (
         aes128_ccm_encrypt,
         aes128_ccm_encrypt_auth,

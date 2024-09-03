@@ -8,7 +8,7 @@ use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
     function::{CheckedPositionals, FromNaslValue, Maybe},
-    stateless_function_set, Context, FunctionErrorKind, Register,
+    function_set, Context, FunctionErrorKind, Register,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
@@ -420,9 +420,9 @@ fn strstr(string: &str, find: &str) -> Option<String> {
 /// The description builtin function
 pub struct NaslString;
 
-stateless_function_set! {
+function_set! {
     NaslString,
-    add_sync,
+    sync_stateless,
     (
         hexstr,
         hex,

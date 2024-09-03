@@ -10,7 +10,7 @@ use aes::{
     Aes128, Aes192, Aes256,
 };
 use digest::typenum::U16;
-use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set};
 
 use nasl_builtin_utils::{Context, Register};
 use nasl_syntax::NaslValue;
@@ -122,9 +122,9 @@ fn aes256_ctr_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Fun
 
 pub struct AesCtr;
 
-stateless_function_set! {
+function_set! {
     AesCtr,
-    add_sync,
+    sync_stateless,
     (
         aes128_ctr_encrypt,
         aes128_ctr_decrypt,

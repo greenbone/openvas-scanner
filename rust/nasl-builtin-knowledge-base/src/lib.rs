@@ -4,7 +4,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set};
 use nasl_function_proc_macro::nasl_function;
 use storage::{Field, Kb, Retrieve};
 
@@ -58,8 +58,8 @@ fn get_kb_item(arg: &NaslValue, c: &Context) -> Result<NaslValue, FunctionErrorK
 
 pub struct KnowledgeBase;
 
-stateless_function_set! {
+function_set! {
     KnowledgeBase,
-    add_sync,
+    sync_stateless,
     (set_kb_item, get_kb_item)
 }

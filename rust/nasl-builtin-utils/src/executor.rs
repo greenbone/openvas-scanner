@@ -6,6 +6,8 @@ use crate::{Context, NaslResult, Register};
 /// This trait exists to allow attaching the lifetime of the HRTB
 /// lifetime to something. For more info, see
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
+/// Unfortunately, this trait needs to be public, but it should
+/// not be implemented on any struct other than two-argument functions.
 pub trait AsyncDoubleArgFn<Arg1, Arg2>:
     Fn(Arg1, Arg2) -> <Self as AsyncDoubleArgFn<Arg1, Arg2>>::Fut
 {
@@ -26,6 +28,8 @@ where
 /// This trait exists to allow attaching the lifetime of the HRTB
 /// lifetime to something. For more info, see
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
+/// Unfortunately, this trait needs to be public, but it should
+/// not be implemented on any struct other than three-argument functions.
 pub trait AsyncTripleArgFn<Arg1, Arg2, Arg3>:
     Fn(Arg1, Arg2, Arg3) -> <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Fut + Send
 {
@@ -42,14 +46,11 @@ where
     type Output = Fut::Output;
 }
 
-enum StatefulNaslFunction<State> {
+enum NaslFunction<State> {
     Async(Box<dyn StatefulCallable<State> + Send + Sync>),
     Sync(fn(&State, &Register, &Context) -> NaslResult),
-}
-
-enum StatelessNaslFunction {
-    Async(Box<dyn StatelessCallable + Send + Sync>),
-    Sync(fn(&Register, &Context) -> NaslResult),
+    AsyncStateless(Box<dyn StatelessCallable + Send + Sync>),
+    SyncStateless(fn(&Register, &Context) -> NaslResult),
 }
 
 trait StatefulCallable<State> {
@@ -97,12 +98,12 @@ where
     }
 }
 
-pub struct StatefulFunctionSet<State> {
+pub struct StoredFunctionSet<State> {
     state: State,
-    fns: HashMap<String, StatefulNaslFunction<State>>,
+    fns: HashMap<String, NaslFunction<State>>,
 }
 
-impl<State> StatefulFunctionSet<State> {
+impl<State> StoredFunctionSet<State> {
     pub fn new(state: State) -> Self {
         Self {
             state,
@@ -110,7 +111,7 @@ impl<State> StatefulFunctionSet<State> {
         }
     }
 
-    pub fn add_async<F>(&mut self, k: &str, v: F)
+    pub fn async_stateful<F>(&mut self, k: &str, v: F)
     where
         F: for<'a> AsyncTripleArgFn<&'a State, &'a Register, &'a Context<'a>, Output = NaslResult>
             + Send
@@ -118,27 +119,14 @@ impl<State> StatefulFunctionSet<State> {
             + 'static,
     {
         self.fns
-            .insert(k.to_string(), StatefulNaslFunction::Async(Box::new(v)));
+            .insert(k.to_string(), NaslFunction::Async(Box::new(v)));
     }
 
-    pub fn add_sync(&mut self, k: &str, v: fn(&State, &Register, &Context) -> NaslResult) {
-        self.fns
-            .insert(k.to_string(), StatefulNaslFunction::Sync(v));
-    }
-}
-
-pub struct StatelessFunctionSet {
-    fns: HashMap<String, StatelessNaslFunction>,
-}
-
-impl StatelessFunctionSet {
-    pub fn new() -> Self {
-        Self {
-            fns: HashMap::new(),
-        }
+    pub fn sync_stateful(&mut self, k: &str, v: fn(&State, &Register, &Context) -> NaslResult) {
+        self.fns.insert(k.to_string(), NaslFunction::Sync(v));
     }
 
-    pub fn add_async<F>(&mut self, k: &str, v: F)
+    pub fn async_stateless<F>(&mut self, k: &str, v: F)
     where
         F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult>
             + Send
@@ -146,17 +134,28 @@ impl StatelessFunctionSet {
             + 'static,
     {
         self.fns
-            .insert(k.to_string(), StatelessNaslFunction::Async(Box::new(v)));
+            .insert(k.to_string(), NaslFunction::AsyncStateless(Box::new(v)));
     }
 
-    pub fn add_sync(&mut self, k: &str, v: fn(&Register, &Context) -> NaslResult) {
+    pub fn sync_stateless(&mut self, k: &str, v: fn(&Register, &Context) -> NaslResult) {
         self.fns
-            .insert(k.to_string(), StatelessNaslFunction::Sync(v));
+            .insert(k.to_string(), NaslFunction::SyncStateless(v));
     }
 
-    pub fn set<F: IntoFunctionSet<Set = Self>>(&mut self, f: F) {
-        let set = F::into_function_set(f);
-        self.fns.extend(set.fns.into_iter())
+    pub fn add_set<State2>(
+        &mut self,
+        other: impl IntoFunctionSet<Set = StoredFunctionSet<State2>>,
+    ) {
+        let set = other.into_function_set();
+        self.fns.extend(set.fns.into_iter().map(|(name, f)| {
+            let f: NaslFunction<State> = match f {
+                NaslFunction::Async(_) => unimplemented!(),
+                NaslFunction::Sync(_) => unimplemented!(),
+                NaslFunction::AsyncStateless(f) => NaslFunction::AsyncStateless(f),
+                NaslFunction::SyncStateless(f) => NaslFunction::SyncStateless(f),
+            };
+            (name, f)
+        }));
     }
 }
 
@@ -171,7 +170,7 @@ pub trait FunctionSet {
     fn contains(&self, k: &str) -> bool;
 }
 
-impl<State: Sync> FunctionSet for StatefulFunctionSet<State> {
+impl<State: Sync> FunctionSet for StoredFunctionSet<State> {
     fn exec<'a>(
         &'a self,
         k: &'a str,
@@ -180,31 +179,12 @@ impl<State: Sync> FunctionSet for StatefulFunctionSet<State> {
     ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>> {
         let f = self.fns.get(k)?;
         Some(match f {
-            StatefulNaslFunction::Async(f) => {
-                Box::new(f.call_stateful(&self.state, register, context))
-            }
-            StatefulNaslFunction::Sync(f) => {
+            NaslFunction::Async(f) => Box::new(f.call_stateful(&self.state, register, context)),
+            NaslFunction::Sync(f) => {
                 Box::new(Box::pin(async { f(&self.state, register, context) }))
             }
-        })
-    }
-
-    fn contains(&self, k: &str) -> bool {
-        self.fns.get(k).is_some()
-    }
-}
-
-impl FunctionSet for StatelessFunctionSet {
-    fn exec<'a>(
-        &'a self,
-        k: &'a str,
-        register: &'a Register,
-        context: &'a Context<'_>,
-    ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>> {
-        let f = self.fns.get(k)?;
-        Some(match f {
-            StatelessNaslFunction::Async(f) => Box::new(f.call_stateless(register, context)),
-            StatelessNaslFunction::Sync(f) => Box::new(Box::pin(async { f(register, context) })),
+            NaslFunction::AsyncStateless(f) => Box::new(f.call_stateless(register, context)),
+            NaslFunction::SyncStateless(f) => Box::new(Box::pin(async { f(register, context) })),
         })
     }
 
@@ -274,48 +254,16 @@ macro_rules! internal_call_expr {
 }
 
 #[macro_export]
-macro_rules! stateful_function_set {
+macro_rules! function_set {
     ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
         impl $crate::IntoFunctionSet for $ty {
-            type Set = $crate::StatefulFunctionSet<$ty>;
+            type Set = $crate::StoredFunctionSet<$ty>;
 
             fn into_function_set(self) -> Self::Set {
-                let mut set = $crate::StatefulFunctionSet::new(self);
+                let mut set = $crate::StoredFunctionSet::new(self);
                 $crate::internal_call_expr!($method_name, set, $($tt)*);
                 set
             }
         }
     };
-}
-
-#[macro_export]
-macro_rules! stateless_function_set {
-    ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
-        impl $crate::IntoFunctionSet for $ty {
-            type Set = $crate::StatelessFunctionSet;
-
-            fn into_function_set(self) -> Self::Set {
-                let mut set = $crate::StatelessFunctionSet::new();
-                $crate::internal_call_expr!($method_name, set, $($tt)*);
-                set
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! combine_function_sets {
-    ($ty: ty, ($($set_name: path),*$(,)?)) => {
-        impl $crate::IntoFunctionSet for $ty {
-            type Set = $crate::StatelessFunctionSet;
-
-            fn into_function_set(self) -> Self::Set {
-                let mut set = $crate::StatelessFunctionSet::new();
-                $(
-                    set.set($set_name);
-                )*
-                set
-            }
-        }
-    }
 }

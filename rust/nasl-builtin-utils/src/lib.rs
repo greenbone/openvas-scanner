@@ -14,7 +14,7 @@ use std::collections::HashMap;
 pub use context::{Context, ContextType, Register};
 pub use error::FunctionErrorKind;
 
-pub use executor::{Executor, IntoFunctionSet, StatefulFunctionSet, StatelessFunctionSet};
+pub use executor::{Executor, IntoFunctionSet, StoredFunctionSet};
 
 /// The result of a function call.
 pub type NaslResult = Result<nasl_syntax::NaslValue, FunctionErrorKind>;

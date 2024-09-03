@@ -12,7 +12,7 @@ use aes::{
 };
 use cbc::{Decryptor, Encryptor};
 
-use nasl_builtin_utils::{error::FunctionErrorKind, stateless_function_set};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set};
 use nasl_builtin_utils::{Context, Register};
 use nasl_syntax::NaslValue;
 
@@ -136,9 +136,9 @@ fn aes256_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Fun
 
 pub struct AesCbc;
 
-stateless_function_set! {
+function_set! {
     AesCbc,
-    add_sync,
+    sync_stateless,
     (
         aes128_cbc_encrypt,
         aes128_cbc_decrypt,

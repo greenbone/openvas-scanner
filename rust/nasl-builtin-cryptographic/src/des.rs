@@ -5,7 +5,7 @@
 use aes::cipher::BlockEncrypt;
 use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
-use nasl_builtin_utils::{stateless_function_set, Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind, Register};
 
 fn encrypt_des(
     register: &Register,
@@ -46,9 +46,9 @@ fn encrypt_des(
 
 pub struct Des;
 
-stateless_function_set! {
+function_set! {
     Des,
-    add_sync,
+    sync_stateless,
     (
         (encrypt_des, "DES"),
     )

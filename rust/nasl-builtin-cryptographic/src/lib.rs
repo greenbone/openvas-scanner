@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use nasl_builtin_utils::combine_function_sets;
+// use nasl_builtin_utils::combine_function_sets;
 use nasl_builtin_utils::error::FunctionErrorKind;
 
-use nasl_builtin_utils::{ContextType, Register};
+use nasl_builtin_utils::{ContextType, IntoFunctionSet, Register, StoredFunctionSet};
 use nasl_syntax::NaslValue;
 
 pub mod aes_cbc;
@@ -101,17 +101,20 @@ fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
 
 pub struct Cryptographic;
 
-combine_function_sets! {
-    Cryptographic,
-    (
-        aes_ccm::AesCcm,
-        hmac::HmacFns,
-        aes_cbc::AesCbc,
-        aes_ctr::AesCtr,
-        aes_gcm::AesGcmFns,
-        aes_cmac::AesCmac,
-        aes_gmac::AesGmac,
-        hash::Hash,
-        des::Des,
-    )
+impl IntoFunctionSet for Cryptographic {
+    type Set = StoredFunctionSet<Cryptographic>;
+
+    fn into_function_set(self) -> Self::Set {
+        let mut set = StoredFunctionSet::new(self);
+        set.add_set(aes_ccm::AesCcm);
+        set.add_set(hmac::HmacFns);
+        set.add_set(aes_cbc::AesCbc);
+        set.add_set(aes_ctr::AesCtr);
+        set.add_set(aes_gcm::AesGcmFns);
+        set.add_set(aes_cmac::AesCmac);
+        set.add_set(aes_gmac::AesGmac);
+        set.add_set(hash::Hash);
+        set.add_set(des::Des);
+        set
+    }
 }

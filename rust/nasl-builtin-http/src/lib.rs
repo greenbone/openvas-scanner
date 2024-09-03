@@ -5,9 +5,7 @@
 //! Defines NASL functions to perform HTTP/2 request.
 // TODO: implement http functions once socket handling is available
 
-use nasl_builtin_utils::{
-    stateful_function_set, Context, ContextType, FunctionErrorKind, Register,
-};
+use nasl_builtin_utils::{function_set, Context, ContextType, FunctionErrorKind, Register};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
@@ -501,9 +499,9 @@ impl NaslHttp {
     }
 }
 
-stateful_function_set! {
+function_set! {
     NaslHttp,
-    add_async,
+    async_stateful,
     (
         (NaslHttp::handle, "handle"),
         (NaslHttp::close_handle, "close_handle"),

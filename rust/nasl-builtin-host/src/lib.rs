@@ -6,7 +6,7 @@ use std::{net::IpAddr, str::FromStr};
 
 use nasl_builtin_utils::{error::FunctionErrorKind, lookup_keys::TARGET};
 
-use nasl_builtin_utils::{stateless_function_set, Context, ContextType, Register};
+use nasl_builtin_utils::{function_set, Context, ContextType, Register};
 use nasl_syntax::NaslValue;
 
 /// Resolves IP address of target to hostname
@@ -75,12 +75,11 @@ fn nasl_get_host_ip(
     Ok(NaslValue::String(ip.to_string()))
 }
 
-/// The description builtin function
 pub struct Host;
 
-stateless_function_set! {
+function_set! {
     Host,
-    add_sync,
+    sync_stateless,
     (
         get_host_name,
         get_host_names,

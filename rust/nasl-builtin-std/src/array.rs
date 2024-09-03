@@ -9,8 +9,10 @@
 
 use std::collections::HashMap;
 
-use nasl_builtin_utils::function::{CheckedPositionals, Positionals};
-use nasl_builtin_utils::stateless_function_set;
+use nasl_builtin_utils::{
+    function::{CheckedPositionals, Positionals},
+    function_set,
+};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
@@ -82,9 +84,9 @@ fn max_index(arr: &NaslValue) -> Option<usize> {
 
 pub struct Array;
 
-stateless_function_set! {
+function_set! {
     Array,
-    add_sync,
+    sync_stateless,
     (
         make_array,
         make_list,

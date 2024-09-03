@@ -14,7 +14,7 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost}
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
 use nasl_builtin_utils::{
-    stateless_function_set, Context, ContextType, FunctionErrorKind, NaslVars, Register,
+    function_set, Context, ContextType, FunctionErrorKind, NaslVars, Register,
 };
 use nasl_syntax::NaslValue;
 
@@ -2362,9 +2362,9 @@ pub fn expose_vars() -> NaslVars<'static> {
 
 pub struct PacketForgery;
 
-stateless_function_set! {
+function_set! {
     PacketForgery,
-    add_sync,
+    sync_stateless,
     (
         forge_ip_packet,
         set_ip_elements,

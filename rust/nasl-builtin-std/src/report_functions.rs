@@ -1,9 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use models::{Protocol, ResultType};
-use nasl_builtin_utils::{
-    stateful_function_set, Context, ContextType, FunctionErrorKind, Register,
-};
+use nasl_builtin_utils::{function_set, Context, ContextType, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 
 #[derive(Debug, Clone, Default)]
@@ -110,9 +108,9 @@ impl Reporting {
     }
 }
 
-stateful_function_set! {
+function_set! {
     Reporting,
-    add_sync,
+    sync_stateful,
     (
         (Reporting::log_message, "log_message"),
         (Reporting::security_message, "security_message"),
