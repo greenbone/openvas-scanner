@@ -20,6 +20,7 @@ struct Position {
     vt: usize,
 }
 
+/// Provides an iterator over all hosts, stages and vts within the stage
 fn all_positions(hosts: Vec<Host>, vts: Vec<ConcurrentVT>) -> impl Iterator<Item = Position> {
     hosts.into_iter().enumerate().flat_map(move |(host, _)| {
         let vts = vts.clone();

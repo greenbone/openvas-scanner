@@ -18,6 +18,9 @@ use crate::{
 
 use super::ScannerStack;
 
+/// Takes care of running a single scan to completion.
+/// Also provides methods for stopping the scan and
+/// reading its status.
 pub struct RunningScan<S: ScannerStack> {
     scan: Scan,
     storage: Arc<S::Storage>,
@@ -136,6 +139,8 @@ impl<S: ScannerStack> RunningScan<S> {
     }
 }
 
+/// A handle to a `RunningScan`. Can be used to obtain the status of
+/// the scan and to stop it.
 pub struct RunningScanHandle {
     handle: JoinHandle<Result<(), Error>>,
     keep_running: Arc<AtomicBool>,

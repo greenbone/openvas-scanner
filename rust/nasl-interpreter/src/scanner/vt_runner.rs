@@ -12,7 +12,7 @@ use super::{
     ScannerStack,
 };
 
-/// TODO: doc
+/// Runs a single VT to completion on a single host.
 pub struct VTRunner<'a, S: ScannerStack> {
     storage: &'a S::Storage,
     loader: &'a S::Loader,
