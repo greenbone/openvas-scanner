@@ -107,4 +107,4 @@ Networks.
 
 Most of the engine is (C) 2003 Michel Arboi, most of the built-in
 functions are (C) 2003 Renaud Deraison. Most new code since 2005
-developed by Greenbone Networks GmbH.
+developed by Greenbone AG.

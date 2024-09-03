@@ -7,6 +7,7 @@ use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use serde::Deserialize;
+use storage::ContextKey;
 
 use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
 use std::collections::HashMap;
@@ -315,11 +316,13 @@ where
         .flat_map(|s| {
             if s.nvt_type == 2 {
                 if is_not_already_present(&s.family_or_nvt) {
+                    tracing::debug!("el oid: {}", &s.family_or_nvt);
+
                     vec![oid_to_vt(&s.family_or_nvt)]
                 } else {
                     vec![]
                 }
-            } else {
+            } else if s.nvt_type == 1 {
                 // lookup oids via family
                 use storage::item::NVTField;
                 use storage::item::NVTKey;
@@ -346,6 +349,29 @@ where
                             s.family_or_nvt
                         );
                         result
+                    }
+                    Err(e) => vec![Err(e.into())],
+                }
+            } else {
+                use storage::item::NVTField;
+                use storage::Field;
+                use storage::Retrieve;
+                match retriever.retrieve(
+                    &ContextKey::default(),
+                    Retrieve::NVT(Some(storage::item::NVTKey::Oid)),
+                ) {
+                    Ok(fields) => {
+                        let oids: Vec<_> = fields
+                            .flat_map(|f| match &f {
+                                Field::NVT(NVTField::Oid(oid)) if is_not_already_present(oid) => {
+                                    Some(oid_to_vt(oid))
+                                }
+                                _ => None,
+                            })
+                            .collect();
+
+                        tracing::debug!("found {} nvt entries", oids.len(),);
+                        oids
                     }
                     Err(e) => vec![Err(e.into())],
                 }

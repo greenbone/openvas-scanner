@@ -27,6 +27,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(nasl_builtin_host::Host)
         .add_set(nasl_builtin_http::NaslHttp::default())
         .add_set(nasl_builtin_cryptographic::Cryptographic)
+        .add_set(nasl_builtin_network::socket::NaslSockets::default())
+        .add_set(nasl_builtin_network::network::Network)
         .add_set(nasl_builtin_description::Description);
 
     #[cfg(feature = "nasl-builtin-ssh")]

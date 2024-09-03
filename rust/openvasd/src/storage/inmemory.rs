@@ -27,6 +27,7 @@ pub struct Storage<E> {
     client_id: Arc<RwLock<Vec<(ClientHash, String)>>>,
     underlying: Arc<storage::DefaultDispatcher>,
     crypter: Arc<E>,
+    feed_version: Arc<RwLock<String>>,
 }
 
 impl<E> Storage<E>
@@ -40,6 +41,7 @@ where
             client_id: RwLock::new(vec![]).into(),
             crypter: crypter.into(),
             underlying: storage::DefaultDispatcher::default().into(),
+            feed_version: Arc::new(RwLock::new(String::new())),
         }
     }
 
@@ -372,9 +374,8 @@ where
     }
 
     async fn current_feed_version(&self) -> Result<String, Error> {
-        todo!()
-        // let v = self.feed_version.read().await.clone();
-        // Ok(v)
+        let v = self.feed_version.read().unwrap();
+        Ok(v.clone())
     }
 }
 
@@ -440,11 +441,6 @@ where
             progress.results.shrink_to_fit();
         }
         Ok(result.collect())
-    }
-
-    async fn current_feed_version(&self) -> Result<String, Error> {
-        let v = self.feed_version.read().await.clone();
-        Ok(v)
     }
 }
 

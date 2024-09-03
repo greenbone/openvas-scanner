@@ -1,0 +1,20 @@
+[package]
+name = "nasl-builtin-network"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nasl-builtin-utils = { path = "../nasl-builtin-utils" }
+nasl-function-proc-macro = { path = "../nasl-function-proc-macro" }
+nasl-syntax = { path = "../nasl-syntax" }
+storage = { path = "../storage" }
+
+libc = "0.2"
+rustls = "0.23.5"
+rustls-pemfile = "2.1"
+pkcs8 = { version = "0.10", features = ["encryption", "pem", "std"] }
+
+[dev-dependencies]
+nasl-interpreter = { path = "../nasl-interpreter" }
