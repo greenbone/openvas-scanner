@@ -47,7 +47,6 @@ pub struct ScanRunner<'a, S: ScannerStack> {
 }
 
 impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
-    /// TODO doc
     pub fn new<Sched>(
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
@@ -69,12 +68,10 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         }
     }
 
-    /// TODO doc
     pub fn host_info(&self) -> HostInfo {
         HostInfo::from_hosts_and_num_vts(&self.scan.target.hosts, self.concurrent_vts.len())
     }
 
-    /// Todo doc
     pub fn stream(self) -> impl Stream<Item = Result<ScriptResult, ExecuteError>> + 'a {
         let data = all_positions(self.scan.target.hosts.clone(), self.concurrent_vts.clone()).map(
             move |pos| {

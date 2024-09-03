@@ -16,7 +16,6 @@ use nasl_syntax::NaslValue;
 use std::collections::HashMap;
 
 impl<'a> Interpreter<'a> {
-    /// TODO: Doc
     pub async fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context

@@ -97,14 +97,12 @@ where
     }
 }
 
-/// Todo doc
 pub struct StatefulFunctionSet<State> {
     state: State,
     fns: HashMap<String, StatefulNaslFunction<State>>,
 }
 
 impl<State> StatefulFunctionSet<State> {
-    /// TODO doc
     pub fn new(state: State) -> Self {
         Self {
             state,
@@ -112,7 +110,6 @@ impl<State> StatefulFunctionSet<State> {
         }
     }
 
-    /// TODO doc
     pub fn add_async<F>(&mut self, k: &str, v: F)
     where
         F: for<'a> AsyncTripleArgFn<&'a State, &'a Register, &'a Context<'a>, Output = NaslResult>
@@ -124,27 +121,23 @@ impl<State> StatefulFunctionSet<State> {
             .insert(k.to_string(), StatefulNaslFunction::Async(Box::new(v)));
     }
 
-    /// TODO doc
     pub fn add_sync(&mut self, k: &str, v: fn(&State, &Register, &Context) -> NaslResult) {
         self.fns
             .insert(k.to_string(), StatefulNaslFunction::Sync(v));
     }
 }
 
-/// Todo doc
 pub struct StatelessFunctionSet {
     fns: HashMap<String, StatelessNaslFunction>,
 }
 
 impl StatelessFunctionSet {
-    /// TODO doc
     pub fn new() -> Self {
         Self {
             fns: HashMap::new(),
         }
     }
 
-    /// TODO doc
     pub fn add_async<F>(&mut self, k: &str, v: F)
     where
         F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult>
@@ -156,13 +149,11 @@ impl StatelessFunctionSet {
             .insert(k.to_string(), StatelessNaslFunction::Async(Box::new(v)));
     }
 
-    /// TODO doc
     pub fn add_sync(&mut self, k: &str, v: fn(&Register, &Context) -> NaslResult) {
         self.fns
             .insert(k.to_string(), StatelessNaslFunction::Sync(v));
     }
 
-    /// TODO doc
     pub fn set<F: IntoFunctionSet<Set = Self>>(&mut self, f: F) {
         let set = F::into_function_set(f);
         self.fns.extend(set.fns.into_iter())
@@ -222,35 +213,28 @@ impl FunctionSet for StatelessFunctionSet {
     }
 }
 
-/// Todo doc
 pub trait IntoFunctionSet {
-    /// TODO doc
     type Set: FunctionSet + Send + Sync;
-    /// TODO doc
     fn into_function_set(self) -> Self::Set;
 }
 
 #[derive(Default)]
-/// TODO doc
 pub struct Executor {
     sets: Vec<Box<dyn FunctionSet + Send + Sync>>,
 }
 
 impl Executor {
-    /// Todo doc
     pub fn single<S: IntoFunctionSet + 'static>(s: S) -> Self {
         let mut exec = Self::default();
         exec.add_set(s);
         exec
     }
 
-    /// Todo doc
     pub fn add_set<S: IntoFunctionSet + 'static>(&mut self, s: S) -> &mut Self {
         self.sets.push(Box::new(S::into_function_set(s)));
         self
     }
 
-    /// Todo doc
     pub async fn exec(
         &self,
         k: &str,
@@ -266,14 +250,12 @@ impl Executor {
         Some(entry.await)
     }
 
-    /// TODO doc
     pub fn contains(&self, k: &str) -> bool {
         self.sets.iter().any(|set| set.contains(k))
     }
 }
 
 #[macro_export]
-/// TODO: doc
 macro_rules! internal_call_expr {
     ($method_name: ident, $set_name: ident $(,)?) => {
     };
@@ -292,7 +274,6 @@ macro_rules! internal_call_expr {
 }
 
 #[macro_export]
-/// TODO: doc
 macro_rules! stateful_function_set {
     ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
         impl $crate::IntoFunctionSet for $ty {
@@ -308,7 +289,6 @@ macro_rules! stateful_function_set {
 }
 
 #[macro_export]
-/// TODO: doc
 macro_rules! stateless_function_set {
     ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
         impl $crate::IntoFunctionSet for $ty {
@@ -324,7 +304,6 @@ macro_rules! stateless_function_set {
 }
 
 #[macro_export]
-/// TODO: doc
 macro_rules! combine_function_sets {
     ($ty: ty, ($($set_name: path),*$(,)?)) => {
         impl $crate::IntoFunctionSet for $ty {

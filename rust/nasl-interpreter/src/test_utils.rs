@@ -7,7 +7,7 @@ use storage::{ContextKey, Storage};
 
 // The following exists to trick the trait solver into
 // believing me that everything is fine. Doing this naively
-// runs into some compiler errors
+// runs into some compiler errors.
 trait CloneableFn: Fn(NaslResult) -> bool {
     fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
     where
@@ -39,7 +39,13 @@ enum TestResult {
     None,
 }
 
-/// TODO doc
+/// A helper struct for quickly building tests of NASL functions.
+/// Lines of NASL code can be added to the `TestBuilder` one by one,
+/// and the context with which the code should be executed
+/// can be set up as needed.
+/// If the `TestBuilder` is dropped, it will automatically verify that
+/// the given code fulfill the requirements (such as producing the right
+/// values or the right errors).
 pub struct TestBuilder<L: Loader, S: Storage> {
     lines: Vec<String>,
     results: Vec<TestResult>,
@@ -73,12 +79,26 @@ where
         self
     }
 
-    /// TODO doc
+    /// Check that a `line` of NASL code results in `val`.
+    /// ```rust
+    /// # use nasl_interpreter::test_utils::TestBuilder;
+    /// let mut t = TestBuilder::default();
+    /// t.ok("x = 3;", 3);
+    /// ```
     pub fn ok(&mut self, line: &str, val: impl ToNaslResult) -> &mut Self {
         self.add_line(line, TestResult::Ok(val.to_nasl_result().unwrap()))
     }
 
-    /// TODO doc
+    /// Perform an arbitrary check on a `line` of NASL code. The check
+    /// is given by a closure that takes the result of the line of code
+    /// and returns a bool. If the return value of the predicate is false,
+    /// the test will panic.
+    /// ```rust
+    /// # use nasl_interpreter::test_utils::TestBuilder;
+    /// # use nasl_interpreter::NaslValue;
+    /// let mut t = TestBuilder::default();
+    /// t.check("x = 3;", |x| matches!(x, Ok(NaslValue::Number(3))));
+    /// ```
     pub fn check(
         &mut self,
         line: &str,
@@ -87,18 +107,24 @@ where
         self.add_line(line, TestResult::GenericCheck(Box::new(f)))
     }
 
-    /// TODO doc
+    /// Run a `line` of NASL code without checking its result.
     pub fn run(&mut self, line: &str) -> &mut Self {
         self.add_line(line, TestResult::None)
     }
 
-    /// TODO doc
+    /// Run multiple lines of NASL code. If this method is called
+    /// the test builder will not perform any checks on the given
+    /// lines of code anymore (and will panic if any checks are
+    /// added). This is mostly useful in combination with `results`
+    /// if one wants to perform custom checks on the results returned
+    /// by the code.
     pub fn run_all(&mut self, arg: impl Into<String>) {
         self.lines.push(arg.into());
         self.should_verify = false;
     }
 
-    /// TODO doc
+    /// Return the list of results returned by all the lines of
+    /// code.
     pub fn results(&self) -> Vec<NaslResult> {
         let code = self.lines.join("\n");
         let variables: Vec<_> = self
@@ -124,12 +150,13 @@ where
         })
     }
 
-    /// TODO doc
+    /// Get the currently set `Context`.
     pub fn context(&self) -> Context {
         self.context.build(self.context_key.clone())
     }
 
-    /// TODO doc
+    /// Check that no errors were returned by any
+    /// of the lines of code added to the `TestBuilder`.
     pub fn check_no_errors(&self) {
         for result in self.results() {
             if result.is_err() {
@@ -197,7 +224,7 @@ where
         }
     }
 
-    /// TODO doc
+    /// Return a new `TestBuilder` with the given `Context`.
     pub fn with_context<L2: Loader, S2: Storage>(
         self,
         context: ContextFactory<L2, S2>,
@@ -212,15 +239,15 @@ where
         }
     }
 
-    /// TODO doc
+    /// Return a new `TestBuilder` with the given `ContextKey`.
     pub fn with_context_key(mut self, key: ContextKey) -> Self {
         self.context_key = key;
         self
     }
 
-    /// TODO doc
-    pub fn set_variable(&mut self, arg: &str, number: NaslValue) {
-        self.variables.push((arg.to_string(), number));
+    /// Set the variable with name `arg` to the given `value`
+    pub fn set_variable(&mut self, arg: &str, value: NaslValue) {
+        self.variables.push((arg.to_string(), value));
     }
 }
 
@@ -232,7 +259,8 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
 
 /// Check that the value returned from a line of NASL code is
 /// Ok(...) and that the inner value is equal to the expected
-/// value.
+/// value. This is a convenience function to check single lines
+/// of code that require no state.
 pub fn check_ok(code: &str, expected: impl ToNaslResult) {
     let mut test_builder = TestBuilder::default();
     test_builder.ok(code, expected);
@@ -240,6 +268,10 @@ pub fn check_ok(code: &str, expected: impl ToNaslResult) {
 
 /// Check that the line of NASL code returns an Err variant
 /// and that the inner error matches a pattern.
+/// If the first argument is a `TestBuilder`
+/// the line is executed in the given builder.
+/// Otherwise (that is, if only two arguments are given),
+/// perform a check on the line of code using a new `TestBuilder`.
 #[macro_export]
 macro_rules! check_err_matches {
     ($t: ident, $code: literal, $pat: pat $(,)?) => {

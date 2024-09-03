@@ -34,7 +34,6 @@ where
     St: Storage + Send + 'static,
     L: Loader + Send + 'static,
 {
-    /// TODO doc
     pub fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
