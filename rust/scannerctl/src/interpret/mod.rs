@@ -156,30 +156,26 @@ fn create_redis_storage(
     redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
-fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader<PathBuf>, CliError>
+fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader<PathBuf>) -> Result<(), CliError>
 where
     S: storage::Dispatcher,
 {
     // update feed with storage
 
     tracing::info!("loading feed. This may take a while.");
-    let result = FSPluginLoader::new(path);
-    let verifier = feed::HashSumNameLoader::sha256(&result)?;
-    let updater = feed::Update::init("scannerctl", 5, &result, storage, verifier);
+    let verifier = feed::HashSumNameLoader::sha256(pl)?;
+    let updater = feed::Update::init("scannerctl", 5, pl, storage, verifier);
     for u in updater {
-        tracing::warn!(updated=?u);
+        tracing::trace!(updated=?u);
         u?;
     }
     tracing::info!("loaded feed.");
-    Ok(result)
+    Ok(())
 }
 
-fn create_loader_from_feed_json(
-    store: &DefaultDispatcher,
-    path: PathBuf,
-) -> Result<FSPluginLoader<PathBuf>, CliError> {
-    let result = FSPluginLoader::new(path.clone());
-    let buf = fs::read_to_string(&path).map_err(|e| CliError::load_error(e, &path))?;
+fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), CliError> {
+    tracing::info!(path=?path, "loading feed via json. This may take a while.");
+    let buf = fs::read_to_string(path).map_err(|e| CliError::load_error(e, path))?;
     let vts: Vec<storage::item::Nvt> = serde_json::from_str(&buf)?;
     let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
 
@@ -187,8 +183,8 @@ fn create_loader_from_feed_json(
         filename: path.to_owned().to_string_lossy().to_string(),
         kind: e.into(),
     })?;
-
-    Ok(result)
+    tracing::info!("loaded feed.");
+    Ok(())
 }
 
 pub fn run(
@@ -208,18 +204,20 @@ pub fn run(
         (Db::InMemory, None) => builder.build().run(script),
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
-            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path)?);
+            let loader = FSPluginLoader::new(path);
+            load_feed_by_exec(&storage, &loader)?;
+            let builder = RunBuilder::default().loader(loader);
             builder.storage(storage).build().run(script)
         }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new(true);
-
-            let is_json = path.extension().map(|ext| ext == "json").unwrap_or(false);
-            let loader = if is_json {
-                create_loader_from_feed_json(&storage, path)?
+            let guessed_feed_json = path.join("feed.json");
+            let loader = FSPluginLoader::new(path.clone());
+            if guessed_feed_json.exists() {
+                load_feed_by_json(&storage, &guessed_feed_json)?
             } else {
-                create_fp_loader(&storage, path)?
-            };
+                load_feed_by_exec(&storage, &loader)?
+            }
 
             let builder = RunBuilder::default().loader(loader);
             builder.storage(storage).build().run(script)
