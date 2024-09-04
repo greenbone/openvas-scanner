@@ -178,7 +178,8 @@ where
     /// given log level. If an error occurs, return it.
     pub async fn perform_update(self, log_level: Level) -> Result<(), Error> {
         let results = self.stream().collect::<Vec<_>>().await;
-        for result in results.iter() {
+        for result in results.into_iter() {
+            let result = result?;
             match log_level {
                 Level::TRACE => trace!(?result),
                 Level::DEBUG => debug!(?result),
@@ -187,7 +188,6 @@ where
                 Level::ERROR => error!(?result),
             }
         }
-        results.into_iter().collect::<Result<Vec<_>, Error>>()?;
         Ok(())
     }
 
