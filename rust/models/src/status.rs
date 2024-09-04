@@ -38,7 +38,7 @@ impl Status {
                 self.host_info
                     .clone()
                     .unwrap_or_default()
-                    .update_with(&host_info),
+                    .update_with(host_info),
             );
         }
 

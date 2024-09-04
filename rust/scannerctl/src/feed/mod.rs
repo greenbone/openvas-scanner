@@ -123,8 +123,6 @@ pub async fn update(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 
     let loadup_vts_only = args.get_one::<bool>("vts-only").cloned().unwrap_or(false);
 
-    if loadup_vts_only && loadup_notus_only {}
-
     match (loadup_notus_only, loadup_vts_only) {
         (true, true) => Some(Err(CliError {
             filename: "".to_string(),

@@ -42,7 +42,7 @@ fn current_time_in_seconds(name: &'static str) -> u64 {
 }
 
 impl<S: ScannerStack> RunningScan<S> {
-    pub fn new<Sch: ExecutionPlan + 'static>(
+    pub fn start<Sch: ExecutionPlan + 'static>(
         scan: Scan,
         storage: Arc<S::Storage>,
         loader: Arc<S::Loader>,

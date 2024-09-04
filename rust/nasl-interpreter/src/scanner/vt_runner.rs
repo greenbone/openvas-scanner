@@ -26,6 +26,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
 }
 
 impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
+    #[allow(clippy::too_many_arguments)]
     pub async fn run(
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
@@ -187,7 +188,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
     }
 
     async fn get_result_kind(&self, code: &str, register: Register) -> ScriptResultKind {
-        if let Err(e) = self.check_keys(&self.vt) {
+        if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
 
@@ -199,7 +200,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             self.loader,
             self.executor,
         );
-        let mut results = Box::pin(CodeInterpreter::new(&code, register, &context).stream());
+        let mut results = Box::pin(CodeInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
@@ -209,7 +210,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
                 }
             }
         }
-        return ScriptResultKind::ReturnCode(0);
+        ScriptResultKind::ReturnCode(0)
     }
 
     async fn execute(mut self) -> Result<ScriptResult, ExecuteError> {

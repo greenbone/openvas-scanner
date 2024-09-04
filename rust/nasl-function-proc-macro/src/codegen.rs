@@ -186,7 +186,7 @@ impl<'a> ArgsStruct<'a> {
         };
         let asyncness = sig.asyncness;
         let checks = self.gen_checks();
-        let mangled_name = format!("_internal_{}", ident.to_string());
+        let mangled_name = format!("_internal_{}", ident);
         let mangled_ident = Ident::new(&mangled_name, ident.span());
         let inner_call = self.get_inner_call_expr(&mangled_ident, asyncness);
         quote! {

@@ -185,14 +185,7 @@ where
     }
 
     pub fn stream(self) -> impl Stream<Item = Result<String, Error>> + 'a {
-        stream::unfold(self, |mut s| async move {
-            let x = s.next().await;
-            if let Some(x) = x {
-                Some((x, s))
-            } else {
-                None
-            }
-        })
+        stream::unfold(self, |mut s| async move { s.next().await.map(|x| (x, s)) })
     }
 
     async fn next(&mut self) -> Option<Result<String, Error>> {

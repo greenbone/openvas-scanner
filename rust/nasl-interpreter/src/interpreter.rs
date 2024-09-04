@@ -122,7 +122,7 @@ impl<'a> Interpreter<'a> {
     ) -> InterpretResult {
         match stmt {
             Ok(stmt) => inter.resolve(&stmt).await,
-            Err(err) => Err(InterpretError::include_syntax_error(&key, err)),
+            Err(err) => Err(InterpretError::include_syntax_error(key, err)),
         }
     }
 
@@ -232,7 +232,7 @@ impl<'a> Interpreter<'a> {
         let results = {
             match statement.kind() {
                 Include(inc) => Box::pin(self.include(inc)).await,
-                Array(position) => self.resolve_array(statement, position.as_ref()).await,
+                Array(position) => self.resolve_array(statement, position.clone()).await,
                 Exit(stmt) => self.resolve_exit(stmt).await,
                 Return(stmt) => self.resolve_return(stmt).await,
                 NamedParameter(..) => {
@@ -261,7 +261,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Operator(sign, stmts) => Box::pin(self.operator(sign, stmts)).await,
                 If(condition, if_block, _, else_block) => {
-                    self.resolve_if(condition, if_block, else_block.as_ref())
+                    self.resolve_if(condition, if_block, else_block.clone())
                         .await
                 }
                 Block(blocks) => self.resolve_block(blocks).await,
@@ -286,7 +286,7 @@ impl<'a> Interpreter<'a> {
     async fn resolve_array(
         &mut self,
         statement: &Statement,
-        position: Option<&Box<Statement>>,
+        position: Option<Box<Statement>>,
     ) -> Result<NaslValue, InterpretError> {
         let name = Self::identifier(statement.start())?;
         let val = self
@@ -298,19 +298,18 @@ impl<'a> Interpreter<'a> {
         match (position, val) {
             (None, ContextType::Value(v)) => Ok(v),
             (Some(p), ContextType::Value(NaslValue::Array(x))) => {
-                let p: &Statement = p;
-                let position = Box::pin(self.resolve(p)).await?;
+                let position = Box::pin(self.resolve(&p)).await?;
                 let position = i64::from(&position) as usize;
                 let result = x.get(position).unwrap_or(&NaslValue::Null);
                 Ok(result.clone())
             }
             (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
-                let position = Box::pin(self.resolve(p)).await?.to_string();
+                let position = Box::pin(self.resolve(&p)).await?.to_string();
                 let result = x.get(&position).unwrap_or(&NaslValue::Null);
                 Ok(result.clone())
             }
             (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
-            (Some(p), _) => Err(InterpretError::unsupported(p, "array")),
+            (Some(p), _) => Err(InterpretError::unsupported(&p, "array")),
             (None, ContextType::Function(_, _)) => {
                 Err(InterpretError::unsupported(statement, "variable"))
             }
@@ -390,7 +389,7 @@ impl<'a> Interpreter<'a> {
         &mut self,
         condition: &Statement,
         if_block: &Statement,
-        else_block: Option<&Box<Statement>>,
+        else_block: Option<Box<Statement>>,
     ) -> Result<NaslValue, InterpretError> {
         match Box::pin(self.resolve(condition)).await {
             Ok(value) => {

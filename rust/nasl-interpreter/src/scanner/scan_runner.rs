@@ -78,7 +78,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                 let (vt, param) = &vts[pos.vt];
                 let host = &self.scan.target.hosts[pos.host];
                 (
-                    stage.clone(),
+                    *stage,
                     vt.clone(),
                     param.clone(),
                     host.clone(),

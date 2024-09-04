@@ -234,7 +234,7 @@ where
             results: self.results.clone(),
             should_verify: self.should_verify,
             variables: self.variables.clone(),
-            context: context,
+            context,
             context_key: self.context_key.clone(),
         }
     }

@@ -175,7 +175,7 @@ impl<State: Sync> FunctionSet for StoredFunctionSet<State> {
     }
 
     fn contains(&self, k: &str) -> bool {
-        self.fns.get(k).is_some()
+        self.fns.contains_key(k)
     }
 }
 

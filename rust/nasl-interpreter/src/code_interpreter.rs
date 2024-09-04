@@ -65,12 +65,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         'a: 'b,
     {
         Box::pin(stream::unfold(self, |mut s| async move {
-            let x = s.next_().await;
-            if let Some(x) = x {
-                Some((x, s))
-            } else {
-                None
-            }
+            s.next_().await.map(|x| (x, s))
         }))
     }
 
