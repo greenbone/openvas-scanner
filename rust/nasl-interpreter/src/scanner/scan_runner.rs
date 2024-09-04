@@ -7,7 +7,7 @@ use models::{Host, HostInfo, Scan};
 use nasl_builtin_utils::Executor;
 
 use crate::scanner::ScannerStack;
-use crate::scheduling::ConcurrentVT;
+use crate::scheduling::{ConcurrentVT, VTError};
 
 use super::error::{ExecuteError, ScriptResult};
 use super::scanner_stack::Schedule;
@@ -53,19 +53,18 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         executor: &'a Executor,
         schedule: Sched,
         scan: &'a Scan,
-    ) -> Self
+    ) -> Result<Self, VTError>
     where
         Sched: Schedule + 'a,
     {
-        // TODO dont unwrap here
-        let concurrent_vts = schedule.cache().unwrap();
-        Self {
+        let concurrent_vts = schedule.cache()?;
+        Ok(Self {
             scan,
             storage,
             loader,
             executor,
             concurrent_vts,
-        }
+        })
     }
 
     pub fn host_info(&self) -> HostInfo {
@@ -384,7 +383,7 @@ exit({rc});
 
         let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan)?;
         let interpreter: ScanRunner<(_, _)> =
-            ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
+            ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
         let results = interpreter.stream().collect::<Vec<_>>().await;
         Ok(results)
     }

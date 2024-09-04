@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     scanner::scan_runner::ScanRunner,
-    scheduling::{ExecutionPlan, ExecutionPlaner},
+    scheduling::{ExecutionPlan, ExecutionPlaner, VTError},
 };
 
 use super::ScannerStack;
@@ -87,16 +87,19 @@ impl<S: ScannerStack> RunningScan<S> {
         let loader: &S::Loader = &self.loader;
         let function_executor: &Executor = &self.function_executor;
 
+        // TODO: This will become unnecessary once we merge crates
+        // and can simply implement From<VTError> on scanner::Error;
+        let make_scheduling_error = |e: VTError| Error::SchedulingError {
+            id: self.scan.scan_id.to_string(),
+            reason: e.to_string(),
+        };
         // TODO make this prettier.
-        let schedule =
-            storage
-                .execution_plan::<T>(&self.scan)
-                .map_err(|e| Error::SchedulingError {
-                    id: self.scan.scan_id.to_string(),
-                    reason: e.to_string(),
-                })?;
+        let schedule = storage
+            .execution_plan::<T>(&self.scan)
+            .map_err(make_scheduling_error)?;
         let runner: ScanRunner<(_, _)> =
-            ScanRunner::new(storage, loader, function_executor, schedule, &self.scan);
+            ScanRunner::new(storage, loader, function_executor, schedule, &self.scan)
+                .map_err(make_scheduling_error)?;
         tracing::debug!(scan_id = self.scan.scan_id);
         self.set_status_to_running(runner.host_info());
         let mut end_phase = Phase::Succeeded;

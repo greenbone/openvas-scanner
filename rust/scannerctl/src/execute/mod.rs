@@ -85,7 +85,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     } else {
         let executor = nasl_std_functions();
         let runner: ScanRunner<(_, _)> =
-            ScanRunner::new(&storage, &loader, &executor, schedule, &scan);
+            ScanRunner::new(&storage, &loader, &executor, schedule, &scan).unwrap();
         let mut results = Box::pin(runner.stream());
         while let Some(x) = results.next().await {
             match x {
