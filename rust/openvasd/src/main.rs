@@ -109,7 +109,7 @@ where
         }
         Err(e) => warn!("Notus Scanner disabled: {e}"),
     }
-    tracing::warn!(enabe_get_scans = config.endpoints.enable_get_scans);
+    tracing::warn!(enable_get_scans = config.endpoints.enable_get_scans);
 
     ctx_builder
         .mode(config.mode.clone())

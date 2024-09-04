@@ -712,8 +712,6 @@ pub mod client {
 
         // TODO: deal with that static stuff that prevents deserializiation based on Bytes
         pub async fn scans_preferences(&self) -> TypeResult<String> {
-            //pub async fn scans_preferences(&self) -> TypeResult<Vec<ScanPreferenceInformation>> {
-
             let result = self
                 .request_empty(Method::GET, KnownPaths::ScanPreferences)
                 .await;
@@ -725,7 +723,7 @@ pub mod client {
                 )));
             }
 
-            // infallable
+            // infallible
             let resp = resp.into_body().collect().await.unwrap().to_bytes();
             String::from_utf8(resp.to_vec())
                 .map_err(|x| models::scanner::Error::Unexpected(format!("lol: {x}")))
@@ -789,7 +787,7 @@ pub mod client {
                 )));
             }
 
-            // infallable
+            // infallible
             let resp = resp.into_body().collect().await.unwrap().to_bytes();
             serde_json::from_slice::<T>(&resp).map_err(|e| {
                 models::scanner::Error::Unexpected(format!("Unable to serialize: {e}"))

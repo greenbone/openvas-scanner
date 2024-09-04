@@ -25,7 +25,7 @@ use super::{inmemory, *};
 
 pub struct Storage<S> {
     storage: Arc<RwLock<S>>,
-    // we use inmemory for NVT and KB items as we need to continously when starting or running a
+    // we use inmemory for NVT and KB items as we need to continuously when starting or running a
     // scan. KB items should be deleted when a scan is finished.
     underlying: inmemory::Storage<crypt::ChaCha20Crypt>,
 }

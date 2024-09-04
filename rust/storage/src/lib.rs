@@ -369,7 +369,7 @@ pub trait Storage: Dispatcher + Retriever + Remover {
 
     /// Is called to remove the whole scan and returns its results.
     ///
-    /// It has to remove all kb items as welL as results of that scan.
+    /// It has to remove all kb items as well as results of that scan.
     fn remove_scan(&self, key: &ContextKey) -> Result<Vec<models::Result>, StorageError> {
         self.remove_kb(key, None)?;
         let results = self.remove_result(key, None)?;

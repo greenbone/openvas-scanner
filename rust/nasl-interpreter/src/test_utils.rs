@@ -142,7 +142,7 @@ where
                 .map(|res| {
                     res.map_err(|e| match e.kind {
                         InterpretErrorKind::FunctionCallError(f) => f.kind,
-                        e => panic!("Unkown error: {}", e),
+                        e => panic!("Unknown error: {}", e),
                     })
                 })
                 .collect()

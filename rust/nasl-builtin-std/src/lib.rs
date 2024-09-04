@@ -34,7 +34,7 @@ pub fn nasl_std_functions() -> Executor {
     #[cfg(feature = "nasl-builtin-ssh")]
     executor.add_set(nasl_builtin_ssh::Ssh);
     #[cfg(feature = "nasl-builtin-ssh")]
-    executor.add_set(nasl_buitlin_raw_ip::RawIp);
+    executor.add_set(nasl_builtin_raw_ip::RawIp);
 
     executor
 }

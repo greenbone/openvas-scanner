@@ -474,14 +474,14 @@ where
         key: &storage::ContextKey,
         scope: storage::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = storage::Field>>, storage::StorageError> {
-        // Although somebody may try to get a result through the storage::Stoage trait it is very
+        // Although somebody may try to get a result through the storage::Storage trait it is very
         // unlikely as this is a openvasd specific implementation and the results are fetched though
         // `get_results`. If that changes we need to:
         // - create a tokio thread,
         // - get scan progressa
         // - check for id or return all
         // - decrypt all results or the specific id and return it as a Field.
-        // relatively similiar to `dispatch`.
+        // relatively similar to `dispatch`.
         self.underlying_storage().retrieve(key, scope)
     }
 

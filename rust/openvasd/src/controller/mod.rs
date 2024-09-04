@@ -167,7 +167,7 @@ mod tests {
         client.set_client(ClientIdentifier::Unknown);
         assert!(
             client.scan(&id).await.is_err(),
-            "expected to not be allowed to get that scan withoud cid"
+            "expected to not be allowed to get that scan without cid"
         );
     }
 }
