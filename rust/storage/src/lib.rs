@@ -379,8 +379,11 @@ impl DefaultDispatcher {
     fn replace_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
         let mut data = self.kbs.as_ref().write()?;
         if let Some(scan_entry) = data.get_mut(scan_id) {
-            scan_entry.remove(&kb.key);
-            scan_entry.insert(kb.key.clone(), vec![kb]);
+            if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
+                *kb_entry = vec![kb];
+            } else {
+                scan_entry.insert(kb.key.clone(), vec![kb]);
+            }
         } else {
             let mut scan_entry = HashMap::new();
             scan_entry.insert(kb.key.clone(), vec![kb]);
