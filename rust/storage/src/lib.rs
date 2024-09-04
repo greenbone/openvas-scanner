@@ -362,7 +362,9 @@ impl DefaultDispatcher {
         let mut data = self.kbs.as_ref().write()?;
         if let Some(scan_entry) = data.get_mut(scan_id) {
             if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
-                kb_entry.push(kb);
+                if kb_entry.iter().position(|x| x.value == kb.value).is_none() {
+                    kb_entry.push(kb);
+                };
             } else {
                 scan_entry.insert(kb.key.clone(), vec![kb]);
             }

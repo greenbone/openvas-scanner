@@ -11,8 +11,8 @@ use nasl_builtin_utils::{Context, Register};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
-/// NASL function to set a value under item in a knowledge base
-/// If the already exists, it will be remove first to avoid duplications.
+/// NASL function to set a value under name in a knowledge base
+/// Only pushes unique values for the given name.
 #[nasl_function(named(name, value, expires))]
 fn set_kb_item(
     name: NaslValue,
@@ -68,7 +68,7 @@ fn get_kb_item(key: &str, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
         .map_err(|e| e.into())
 }
 
-/// NASL function to replace an item in a KB.
+/// NASL function to replace a kb list
 #[nasl_function(named(name, value, expires))]
 fn replace_kb_item(
     name: NaslValue,
@@ -88,7 +88,7 @@ fn replace_kb_item(
         .map_err(|e| e.into())
 }
 
-/// NASL function to replace an item in a KB.
+/// NASL function to retrieve an item in a KB.
 #[nasl_function(named(name, value, expires))]
 fn get_kb_list(key: NaslValue, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
     c.retriever()
