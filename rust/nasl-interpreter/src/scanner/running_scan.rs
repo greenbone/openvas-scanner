@@ -10,6 +10,7 @@ use futures::StreamExt;
 use models::{scanner::Error, HostInfo, Phase, Scan, Status};
 use nasl_builtin_utils::Executor;
 use tokio::task::JoinHandle;
+use tracing::{debug, trace, warn};
 
 use crate::{
     scanner::scan_runner::ScanRunner,
@@ -34,14 +35,14 @@ fn current_time_in_seconds(name: &'static str) -> u64 {
     match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(x) => x.as_secs(),
         Err(e) => {
-            tracing::warn!(error=?e, name, "unable to get system time, setting defaulting to 0");
+            warn!(error=?e, name, "unable to get system time, setting defaulting to 0");
             0
         }
     }
 }
 
 impl<S: ScannerStack> RunningScan<S> {
-    pub fn start<Sch: ExecutionPlan + 'static>(
+    pub fn new<Sch: ExecutionPlan + 'static>(
         scan: Scan,
         storage: Arc<S::Storage>,
         loader: Arc<S::Loader>,
@@ -72,56 +73,62 @@ impl<S: ScannerStack> RunningScan<S> {
         }
     }
 
-    fn set_status_to_running(&self, host_info: HostInfo) {
-        let mut status = self.status.write().unwrap();
-        status.status = Phase::Running;
-        status.start_time = current_time_in_seconds("start_time").into();
-        status.host_info = Some(host_info);
-    }
-
     async fn run<T>(self) -> Result<(), Error>
     where
         T: ExecutionPlan,
     {
-        let storage: &S::Storage = &self.storage;
-        let loader: &S::Loader = &self.loader;
-        let function_executor: &Executor = &self.function_executor;
+        let runner = self.make_runner::<T>()?;
+        self.update_status_at_beginning_of_run(runner.host_info());
+        let end_phase = self.run_to_completion(runner).await;
 
+        self.update_status_at_end_of_run(end_phase);
+        Ok(())
+    }
+
+    fn make_runner<'a, T>(&'a self) -> Result<ScanRunner<'a, S>, Error>
+    where
+        T: ExecutionPlan + 'a,
+    {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
             id: self.scan.scan_id.to_string(),
             reason: e.to_string(),
         };
-        // TODO make this prettier.
-        let schedule = storage
+        let schedule = self
+            .storage
             .execution_plan::<T>(&self.scan)
             .map_err(make_scheduling_error)?;
-        let runner: ScanRunner<(_, _)> =
-            ScanRunner::new(storage, loader, function_executor, schedule, &self.scan)
-                .map_err(make_scheduling_error)?;
-        tracing::debug!(scan_id = self.scan.scan_id);
-        self.set_status_to_running(runner.host_info());
-        let mut end_phase = Phase::Succeeded;
+        ScanRunner::new(
+            &*self.storage,
+            &*self.loader,
+            &self.function_executor,
+            schedule,
+            &self.scan,
+        )
+        .map_err(make_scheduling_error)
+    }
 
+    async fn run_to_completion<'a>(&self, runner: ScanRunner<'a, S>) -> Phase {
+        let mut end_phase = Phase::Succeeded;
         let mut stream = Box::pin(runner.stream());
         while let Some(it) = stream.next().await {
             // TODO: check for error and abort, we need to keep track of the state
             match it {
                 Ok(result) => {
-                    tracing::trace!(target = result.target, targets=?self.scan.target.hosts);
+                    trace!(target = result.target, targets=?self.scan.target.hosts);
                     let mut status = self.status.write().unwrap();
                     if let Some(host_info) = status.host_info.as_mut() {
                         host_info.register_finished_script(&result.target);
                     }
-                    tracing::debug!(result=?result, "script finished");
+                    debug!(result=?result, "script finished");
 
                     if result.has_failed() {
                         end_phase = Phase::Failed;
                     }
                 }
                 Err(x) => {
-                    tracing::warn!(error=?x, "unrecoverable error, aborting whole run");
+                    warn!(error=?x, "unrecoverable error, aborting whole run");
                     end_phase = Phase::Failed;
                 }
             }
@@ -130,7 +137,17 @@ impl<S: ScannerStack> RunningScan<S> {
                 break;
             }
         }
+        end_phase
+    }
 
+    fn update_status_at_beginning_of_run(&self, host_info: HostInfo) {
+        let mut status = self.status.write().unwrap();
+        status.status = Phase::Running;
+        status.start_time = current_time_in_seconds("start_time").into();
+        status.host_info = Some(host_info);
+    }
+
+    fn update_status_at_end_of_run(&self, end_phase: Phase) {
         let mut status = self.status.write().unwrap();
         status.status = end_phase;
         status.end_time = current_time_in_seconds("end_time").into();
@@ -138,7 +155,6 @@ impl<S: ScannerStack> RunningScan<S> {
         if let Some(host_info) = status.host_info.as_mut() {
             host_info.finish();
         }
-        Ok(())
     }
 }
 

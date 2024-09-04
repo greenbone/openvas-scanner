@@ -77,7 +77,7 @@ impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
         let handle =
-            RunningScan::<S>::start::<WaveExecutionPlan>(scan, storage, loader, function_executor);
+            RunningScan::<S>::new::<WaveExecutionPlan>(scan, storage, loader, function_executor);
         self.running.write().unwrap().insert(id, handle);
         Ok(())
     }
