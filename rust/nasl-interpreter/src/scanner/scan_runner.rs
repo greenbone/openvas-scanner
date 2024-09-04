@@ -114,9 +114,22 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 #[cfg(test)]
 pub(super) mod tests {
     use futures::StreamExt;
+    use models::Protocol;
+    use models::Scan;
+    use models::Target;
+    use models::VT;
+    use nasl_builtin_utils::Context;
     use nasl_builtin_utils::Executor;
+    use nasl_builtin_utils::Register;
+    use nasl_syntax::NaslValue;
+    use storage::item::NVTField;
     use storage::item::Nvt;
+    use storage::ContextKey;
+    use storage::DefaultDispatcher;
     use storage::Dispatcher;
+    use storage::Field;
+    use storage::Field::NVT;
+    use storage::Retrieve;
     use storage::Retriever;
 
     use crate::nasl_std_functions;
@@ -126,6 +139,7 @@ pub(super) mod tests {
     use crate::scanner::vt_runner::generate_port_kb_key;
     use crate::scheduling::ExecutionPlaner;
     use crate::scheduling::WaveExecutionPlan;
+    use crate::CodeInterpreter;
 
     pub fn only_success() -> [(String, Nvt); 3] {
         [
@@ -142,31 +156,27 @@ pub(super) mod tests {
     }
 
     pub fn setup(
-        scripts: &[(String, storage::item::Nvt)],
-    ) -> (
-        (storage::DefaultDispatcher, fn(&str) -> String, Executor),
-        models::Scan,
-    ) {
-        use storage::Dispatcher;
-        let storage = storage::DefaultDispatcher::new();
+        scripts: &[(String, Nvt)],
+    ) -> ((DefaultDispatcher, fn(&str) -> String, Executor), Scan) {
+        let storage = DefaultDispatcher::new();
         scripts.iter().map(|(_, v)| v).for_each(|n| {
             storage
                 .dispatch(
-                    &storage::ContextKey::FileName(n.filename.clone()),
-                    storage::Field::NVT(storage::item::NVTField::Nvt(n.clone())),
+                    &ContextKey::FileName(n.filename.clone()),
+                    NVT(NVTField::Nvt(n.clone())),
                 )
                 .expect("sending")
         });
-        let scan = models::Scan {
+        let scan = Scan {
             scan_id: "sid".to_string(),
-            target: models::Target {
+            target: Target {
                 hosts: vec!["test.host".to_string()],
                 ..Default::default()
             },
             scan_preferences: vec![],
             vts: scripts
                 .iter()
-                .map(|(_, v)| models::VT {
+                .map(|(_, v)| VT {
                     oid: v.oid.clone(),
                     parameters: vec![],
                 })
@@ -176,10 +186,7 @@ pub(super) mod tests {
         ((storage, loader, executor), scan)
     }
 
-    pub fn setup_success() -> (
-        (storage::DefaultDispatcher, fn(&str) -> String, Executor),
-        models::Scan,
-    ) {
+    pub fn setup_success() -> ((DefaultDispatcher, fn(&str) -> String, Executor), Scan) {
         setup(&only_success())
     }
 
@@ -233,15 +240,15 @@ pub(super) mod tests {
             }
         }
 
-        pub fn with_required_ports(id: &str, ports: &[(models::Protocol, &str)]) -> GenerateScript {
+        pub fn with_required_ports(id: &str, ports: &[(Protocol, &str)]) -> GenerateScript {
             let required_tcp_ports = ports
                 .iter()
-                .filter(|(p, _)| matches!(p, models::Protocol::TCP))
+                .filter(|(p, _)| matches!(p, Protocol::TCP))
                 .map(|(_, p)| p.to_string())
                 .collect();
             let required_udp_ports = ports
                 .iter()
-                .filter(|(p, _)| matches!(p, models::Protocol::UDP))
+                .filter(|(p, _)| matches!(p, Protocol::UDP))
                 .map(|(_, p)| p.to_string())
                 .collect();
 
@@ -254,7 +261,7 @@ pub(super) mod tests {
             }
         }
 
-        pub fn generate(&self) -> (String, storage::item::Nvt) {
+        pub fn generate(&self) -> (String, Nvt) {
             let keys = |x: &[String]| -> String {
                 x.iter().fold(String::default(), |acc, e| {
                     let acc = if acc.is_empty() {
@@ -307,33 +314,29 @@ exit({rc});
         }
     }
 
-    fn parse_meta_data(id: &str, code: &str) -> Option<storage::item::Nvt> {
+    fn parse_meta_data(id: &str, code: &str) -> Option<Nvt> {
         let initial = vec![
             ("description".to_owned(), true.into()),
             ("OPENVAS_VERSION".to_owned(), "testus".into()),
         ];
-        let storage = storage::DefaultDispatcher::new();
+        let storage = DefaultDispatcher::new();
 
-        let register = nasl_builtin_utils::Register::root_initial(&initial);
+        let register = Register::root_initial(&initial);
         let target = String::default();
         let functions = nasl_std_functions();
         let loader = |_: &str| code.to_string();
-        let key = storage::ContextKey::FileName(id.to_string());
+        let key = ContextKey::FileName(id.to_string());
 
-        let context =
-            nasl_builtin_utils::Context::new(key, target, &storage, &storage, &loader, &functions);
-        let interpreter = crate::CodeInterpreter::new(code, register, &context);
+        let context = Context::new(key, target, &storage, &storage, &loader, &functions);
+        let interpreter = CodeInterpreter::new(code, register, &context);
         for stmt in interpreter.iter_blocking() {
-            if let nasl_syntax::NaslValue::Exit(_) = stmt.expect("stmt success") {
+            if let NaslValue::Exit(_) = stmt.expect("stmt success") {
                 storage.on_exit(context.key()).expect("result");
                 let result = storage
-                    .retrieve(
-                        &storage::ContextKey::FileName(id.to_string()),
-                        storage::Retrieve::NVT(None),
-                    )
+                    .retrieve(&ContextKey::FileName(id.to_string()), Retrieve::NVT(None))
                     .expect("nvt for id")
                     .next();
-                if let Some(storage::Field::NVT(storage::item::NVTField::Nvt(nvt))) = result {
+                if let Some(NVT(NVTField::Nvt(nvt))) = result {
                     return Some(nvt);
                 } else {
                     return None;
@@ -343,13 +346,13 @@ exit({rc});
         None
     }
 
-    fn prepare_vt_storage(scripts: &[(String, storage::item::Nvt)]) -> storage::DefaultDispatcher {
-        let dispatcher = storage::DefaultDispatcher::new();
+    fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> DefaultDispatcher {
+        let dispatcher = DefaultDispatcher::new();
         scripts.iter().map(|(_, v)| v).for_each(|n| {
             dispatcher
                 .dispatch(
-                    &storage::ContextKey::FileName(n.filename.clone()),
-                    storage::Field::NVT(storage::item::NVTField::Nvt(n.clone())),
+                    &ContextKey::FileName(n.filename.clone()),
+                    NVT(NVTField::Nvt(n.clone())),
                 )
                 .expect("sending")
         });
@@ -357,22 +360,22 @@ exit({rc});
     }
 
     async fn run(
-        scripts: Vec<(String, storage::item::Nvt)>,
-        storage: storage::DefaultDispatcher,
+        scripts: Vec<(String, Nvt)>,
+        storage: DefaultDispatcher,
     ) -> Result<Vec<Result<ScriptResult, ExecuteError>>, ExecuteError> {
         let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
         let loader_scripts = scripts.clone();
         let loader = move |s: &str| loader_scripts[stou(s)].0.clone();
-        let scan = models::Scan {
+        let scan = Scan {
             scan_id: "sid".to_string(),
-            target: models::Target {
+            target: Target {
                 hosts: vec!["test.host".to_string()],
                 ..Default::default()
             },
             scan_preferences: vec![],
             vts: scripts
                 .iter()
-                .map(|(_, v)| models::VT {
+                .map(|(_, v)| VT {
                     oid: v.oid.clone(),
                     parameters: vec![],
                 })
@@ -388,67 +391,10 @@ exit({rc});
         Ok(results)
     }
 
-    #[tokio::test]
-    #[tracing_test::traced_test]
-    async fn required_ports() {
-        let vts = [
-            GenerateScript::with_required_ports(
-                "0",
-                &[
-                    (models::Protocol::UDP, "2000"),
-                    (models::Protocol::TCP, "20"),
-                ],
-            )
-            .generate(),
-            GenerateScript::with_required_ports(
-                "1",
-                &[
-                    (models::Protocol::UDP, "2000"),
-                    (models::Protocol::TCP, "2"),
-                ],
-            )
-            .generate(),
-            GenerateScript::with_required_ports(
-                "2",
-                &[
-                    (models::Protocol::UDP, "200"),
-                    (models::Protocol::TCP, "20"),
-                ],
-            )
-            .generate(),
-            GenerateScript::with_required_ports(
-                "3",
-                &[
-                    (models::Protocol::UDP, "2000"),
-                    (models::Protocol::TCP, "22"),
-                ],
-            )
-            .generate(),
-            GenerateScript::with_required_ports(
-                "4",
-                &[
-                    (models::Protocol::UDP, "2002"),
-                    (models::Protocol::TCP, "20"),
-                ],
-            )
-            .generate(),
-        ];
-        let dispatcher = prepare_vt_storage(&vts);
-        [
-            (models::Protocol::TCP, "20", 1),   // TCP 20 is considered enabled
-            (models::Protocol::TCP, "22", 0),   // TCP 22 is considered disabled
-            (models::Protocol::UDP, "2000", 1), // UDP 2000 is considered enabled
-            (models::Protocol::UDP, "2002", 0), // UDP 2002 is considered disabled
-        ]
-        .into_iter()
-        .for_each(|(p, port, enabled)| {
-            dispatcher
-                .dispatch(
-                    &storage::ContextKey::Scan("sid".into(), Some("test.host".into())),
-                    storage::Field::KB((&generate_port_kb_key(p, port), enabled).into()),
-                )
-                .expect("store kb");
-        });
+    async fn get_all_results(
+        vts: &[(String, Nvt)],
+        dispatcher: DefaultDispatcher,
+    ) -> (Vec<ScriptResult>, Vec<ScriptResult>) {
         let result = run(vts.to_vec(), dispatcher).await.expect("success run");
         let success = result
             .clone()
@@ -462,8 +408,69 @@ exit({rc});
             .filter(|x| x.has_failed())
             .filter(|x| x.has_not_run())
             .collect::<Vec<_>>();
+        (success, failure)
+    }
+
+    #[tokio::test]
+    #[tracing_test::traced_test]
+    async fn required_ports() {
+        let vts = [
+            GenerateScript::with_required_ports(
+                "0",
+                &[(Protocol::UDP, "2000"), (Protocol::TCP, "20")],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "1",
+                &[(Protocol::UDP, "2000"), (Protocol::TCP, "2")],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "2",
+                &[(Protocol::UDP, "200"), (Protocol::TCP, "20")],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "3",
+                &[(Protocol::UDP, "2000"), (Protocol::TCP, "22")],
+            )
+            .generate(),
+            GenerateScript::with_required_ports(
+                "4",
+                &[(Protocol::UDP, "2002"), (Protocol::TCP, "20")],
+            )
+            .generate(),
+        ];
+        let dispatcher = prepare_vt_storage(&vts);
+        [
+            (Protocol::TCP, "20", 1),   // TCP 20 is considered enabled
+            (Protocol::TCP, "22", 0),   // TCP 22 is considered disabled
+            (Protocol::UDP, "2000", 1), // UDP 2000 is considered enabled
+            (Protocol::UDP, "2002", 0), // UDP 2002 is considered disabled
+        ]
+        .into_iter()
+        .for_each(|(p, port, enabled)| {
+            dispatcher
+                .dispatch(
+                    &ContextKey::Scan("sid".into(), Some("test.host".into())),
+                    Field::KB((&generate_port_kb_key(p, port), enabled).into()),
+                )
+                .expect("store kb");
+        });
+        let (success, failure) = get_all_results(&vts, dispatcher).await;
         assert_eq!(success.len(), 1);
         assert_eq!(failure.len(), 4);
+    }
+
+    fn make_test_dispatcher(vts: &[(String, Nvt)]) -> DefaultDispatcher {
+        let dispatcher = prepare_vt_storage(&vts);
+        dispatcher
+            .dispatch(
+                &ContextKey::Scan("sid".into(), Some("test.host".into())),
+                Field::KB(("key/exists", 1).into()),
+            )
+            .expect("store kb");
+        dispatcher
     }
 
     #[tokio::test]
@@ -474,28 +481,8 @@ exit({rc});
             GenerateScript::with_excluded_keys("1", &["key/not"]).generate(),
             GenerateScript::with_excluded_keys("2", &["key/exists"]).generate(),
         ];
-        let dispatcher = prepare_vt_storage(&only_success);
-        dispatcher
-            .dispatch(
-                &storage::ContextKey::Scan("sid".into(), Some("test.host".into())),
-                storage::Field::KB(("key/exists", 1).into()),
-            )
-            .expect("store kb");
-        let result = run(only_success.to_vec(), dispatcher)
-            .await
-            .expect("success run");
-        let success = result
-            .clone()
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .filter(|x| x.has_succeeded())
-            .collect::<Vec<_>>();
-        let failure = result
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .filter(|x| x.has_failed())
-            .filter(|x| x.has_not_run())
-            .collect::<Vec<_>>();
+        let dispatcher = make_test_dispatcher(&only_success);
+        let (success, failure) = get_all_results(&only_success, dispatcher).await;
         assert_eq!(success.len(), 2);
         assert_eq!(failure.len(), 1);
     }
@@ -507,28 +494,8 @@ exit({rc});
             GenerateScript::with_required_keys("0", &["key/not"]).generate(),
             GenerateScript::with_required_keys("1", &["key/exists"]).generate(),
         ];
-        let dispatcher = prepare_vt_storage(&only_success);
-        dispatcher
-            .dispatch(
-                &storage::ContextKey::Scan("sid".into(), Some("test.host".into())),
-                storage::Field::KB(("key/exists", 1).into()),
-            )
-            .expect("store kb");
-        let result = run(only_success.to_vec(), dispatcher)
-            .await
-            .expect("success run");
-        let success = result
-            .clone()
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .filter(|x| x.has_succeeded())
-            .collect::<Vec<_>>();
-        let failure = result
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .filter(|x| x.has_failed())
-            .filter(|x| x.has_not_run())
-            .collect::<Vec<_>>();
+        let dispatcher = make_test_dispatcher(&only_success);
+        let (success, failure) = get_all_results(&only_success, dispatcher).await;
         assert_eq!(success.len(), 1);
         assert_eq!(failure.len(), 1);
     }
@@ -540,28 +507,8 @@ exit({rc});
             GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
             GenerateScript::with_mandatory_keys("1", &["key/exists"]).generate(),
         ];
-        let dispatcher = prepare_vt_storage(&only_success);
-        dispatcher
-            .dispatch(
-                &storage::ContextKey::Scan("sid".into(), Some("test.host".to_string())),
-                storage::Field::KB(("key/exists", 1).into()),
-            )
-            .expect("store kb");
-        let result = run(only_success.to_vec(), dispatcher)
-            .await
-            .expect("success run");
-        let success = result
-            .clone()
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .filter(|x| x.has_succeeded())
-            .collect::<Vec<_>>();
-        let failure = result
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .filter(|x| x.has_failed())
-            .filter(|x| x.has_not_run())
-            .collect::<Vec<_>>();
+        let dispatcher = make_test_dispatcher(&only_success);
+        let (success, failure) = get_all_results(&only_success, dispatcher).await;
         assert_eq!(success.len(), 1);
         assert_eq!(failure.len(), 1);
     }
