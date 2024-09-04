@@ -6,7 +6,6 @@ pub mod file;
 pub mod inmemory;
 pub mod redis;
 pub use storage::Storage as NaslStorage;
-use tracing::Level;
 
 use std::{
     collections::HashMap,
@@ -404,7 +403,7 @@ async fn update_nasl_feed(p: PathBuf, store: Arc<storage::DefaultDispatcher>) ->
     let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
     let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
-    fu.perform_update(Level::TRACE).await?;
+    fu.perform_update().await?;
     tracing::debug!("finished nasl feed update");
     Ok(())
 }

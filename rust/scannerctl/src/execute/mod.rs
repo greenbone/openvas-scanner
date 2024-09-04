@@ -13,7 +13,7 @@ use nasl_interpreter::{
     ScanRunner,
 };
 use nasl_syntax::FSPluginLoader;
-use tracing::{info, warn, warn_span, Level};
+use tracing::{info, warn, warn_span};
 
 use crate::{interpret, CliError, CliErrorKind, Db};
 
@@ -64,7 +64,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let loader = FSPluginLoader::new(feed);
     let verifier = HashSumNameLoader::sha256(&loader)?;
     let updater = Update::init("1", 5, &loader, &storage, verifier);
-    updater.perform_update(Level::TRACE).await?;
+    updater.perform_update().await?;
 
     let schedule = storage
         .execution_plan::<WaveExecutionPlan>(&scan)

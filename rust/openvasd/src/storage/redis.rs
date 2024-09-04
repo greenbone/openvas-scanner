@@ -12,7 +12,7 @@ use redis_storage::{
 };
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::{sync::RwLock, task::JoinSet};
-use tracing::{info, Level};
+use tracing::info;
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
 use models::scanner::ScanResults;
@@ -88,7 +88,7 @@ impl<T> Storage<T> {
         if !fu.feed_is_outdated(current_feed).await.unwrap() {
             return Ok(());
         }
-        fu.perform_update(Level::TRACE).await?;
+        fu.perform_update().await?;
         tracing::debug!("finished nasl feed update");
         Ok(())
     }

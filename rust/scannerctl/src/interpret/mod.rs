@@ -11,7 +11,6 @@ use nasl_interpreter::{
 };
 use redis_storage::FEEDUPDATE_SELECTOR;
 use storage::{ContextKey, DefaultDispatcher};
-use tracing::Level;
 
 use crate::{CliError, CliErrorKind, Db};
 
@@ -165,7 +164,7 @@ where
     let result = FSPluginLoader::new(path);
     let verifier = feed::HashSumNameLoader::sha256(&result)?;
     let updater = feed::Update::init("scannerctl", 5, &result, storage, verifier);
-    updater.perform_update(Level::WARN).await?;
+    updater.perform_update().await?;
     tracing::info!("loaded feed.");
     Ok(result)
 }

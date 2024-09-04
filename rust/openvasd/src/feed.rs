@@ -8,7 +8,7 @@ use std::{
 };
 
 use storage::{ContextKey, StorageError};
-use tracing::Level;
+
 #[derive(Debug, Default, Clone)]
 pub struct FeedIdentifier {
     oids: Arc<RwLock<Vec<String>>>,
@@ -63,7 +63,7 @@ impl FeedIdentifier {
             tracing::warn!("Signature check disabled");
         }
 
-        updater.perform_update(Level::TRACE).await?;
+        updater.perform_update().await?;
 
         let oids = oids.read().map_err(|e| feed::UpdateError {
             kind: feed::UpdateErrorKind::StorageError(StorageError::from(e)),

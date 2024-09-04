@@ -9,8 +9,7 @@ pub use error::ErrorKind;
 
 use futures::{stream, Stream, StreamExt};
 use std::fs::File;
-use tracing::info;
-use tracing::{debug, error, trace, warn, Level};
+use tracing::trace;
 
 use nasl_interpreter::{
     AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register,
@@ -176,17 +175,11 @@ where
 
     /// Run the feed update and log each result with the
     /// given log level. If an error occurs, return it.
-    pub async fn perform_update(self, log_level: Level) -> Result<(), Error> {
+    pub async fn perform_update(self) -> Result<(), Error> {
         let results = self.stream().collect::<Vec<_>>().await;
         for result in results.into_iter() {
             let result = result?;
-            match log_level {
-                Level::TRACE => trace!(?result),
-                Level::DEBUG => debug!(?result),
-                Level::INFO => info!(?result),
-                Level::WARN => warn!(?result),
-                Level::ERROR => error!(?result),
-            }
+            trace!(?result);
         }
         Ok(())
     }

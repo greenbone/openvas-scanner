@@ -6,7 +6,6 @@ use std::path::PathBuf;
 
 use nasl_interpreter::FSPluginLoader;
 use storage::Dispatcher;
-use tracing::Level;
 
 use crate::CliError;
 
@@ -49,7 +48,7 @@ where
         tracing::warn!("Signature check disabled");
     }
 
-    updater.perform_update(Level::TRACE).await?;
+    updater.perform_update().await?;
 
     Ok(())
 }
