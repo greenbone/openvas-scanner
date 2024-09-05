@@ -12,7 +12,10 @@
 //! In order to create new sets of NASL functions, the `function_set!` macro is provided.
 mod nasl_function;
 
-use std::{collections::HashMap, future::Future};
+use std::{
+    collections::{HashMap},
+    future::Future,
+};
 
 use nasl_function::{AsyncDoubleArgFn, AsyncTripleArgFn, NaslFunction};
 
@@ -64,6 +67,12 @@ impl Executor {
 
     pub fn contains(&self, k: &str) -> bool {
         self.sets.iter().any(|set| set.contains(k))
+    }
+
+    pub fn iter_defined_functions(&self) -> impl Iterator<Item = String> + '_ {
+        self.sets
+            .iter()
+            .flat_map(|set| set.get_defined().into_iter())
     }
 }
 
@@ -152,6 +161,8 @@ pub trait FunctionSet {
     ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>>;
 
     fn contains(&self, k: &str) -> bool;
+
+    fn get_defined(&self) -> Vec<String>;
 }
 
 impl<State: Sync> FunctionSet for StoredFunctionSet<State> {
@@ -176,6 +187,10 @@ impl<State: Sync> FunctionSet for StoredFunctionSet<State> {
 
     fn contains(&self, k: &str) -> bool {
         self.fns.contains_key(k)
+    }
+
+    fn get_defined(&self) -> Vec<String> {
+        self.fns.keys().map(|name| name.to_string()).collect()
     }
 }
 

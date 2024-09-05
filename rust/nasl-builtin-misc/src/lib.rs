@@ -220,6 +220,14 @@ fn defined_func(fn_name: Option<Maybe<&str>>, ctx: &Context, register: &Register
         .unwrap_or(false)
 }
 
+#[nasl_function]
+fn list_defined_builtin_funcs(ctx: &Context) -> Vec<String> {
+    ctx.executor()
+        .iter_defined_functions()
+        .map(|name| name.into())
+        .collect()
+}
+
 /// Returns the seconds and microseconds counted from 1st January 1970. It formats a string
 /// containing the seconds separated by a `.` followed by the microseconds.
 ///
@@ -263,5 +271,22 @@ function_set! {
         defined_func,
         gettimeofday,
         dump_ctxt,
+        list_defined_builtin_funcs,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use nasl_interpreter::test_utils::TestBuilder;
+
+    #[test]
+    fn print_defined() {
+        let t = TestBuilder::default();
+        let mut defined: Vec<_> = t.context().executor().iter_defined_functions().collect();
+        defined.sort();
+        for v in defined.iter() {
+            println!("{}", v);
+        }
+        panic!();
+    }
 }

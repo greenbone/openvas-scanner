@@ -177,6 +177,10 @@ impl Register {
             .map(|(_, val)| val)
     }
 
+    pub fn iter_named(&self) -> impl Iterator<Item = (&String, &ContextType)> {
+        self.blocks.last().into_iter().flat_map(|x| x.iter())
+    }
+
     /// Finds a named ContextType with index
     pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &ContextType)> {
         self.blocks.last().and_then(|x| x.named(self, name))
@@ -325,6 +329,10 @@ impl NaslContext {
                 None => None,
             },
         }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (&String, &ContextType)> {
+        self.defined.iter()
     }
 }
 
