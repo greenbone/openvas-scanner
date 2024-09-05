@@ -12,6 +12,7 @@ members = [
   "nasl-builtin-network",
   "nasl-builtin-description",
   "nasl-builtin-utils",
+  "nasl-builtin-regex",
   "nasl-builtin-std",
   "nasl-syntax",
   "nasl-interpreter",

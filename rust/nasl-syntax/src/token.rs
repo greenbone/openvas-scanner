@@ -566,18 +566,11 @@ impl<'a> Tokenizer<'a> {
         if self.cursor.is_eof() {
             Category::Unclosed(UnclosedCategory::String)
         } else {
-            let mut result = self.code[Range {
+            let result = self.code[Range {
                 start,
                 end: self.cursor.len_consumed(),
             }]
             .to_owned();
-            result = result.replace(r"\n", "\n");
-            result = result.replace(r"\\", "\\");
-            result = result.replace(r#"\""#, "\"");
-            result = result.replace(r"\'", "'");
-            result = result.replace(r"\r", "\r");
-            result = result.replace(r"\t", "\t");
-            // skip ""
             self.cursor.advance();
             Category::String(result)
         }
@@ -605,6 +598,11 @@ impl<'a> Tokenizer<'a> {
             }]
             .to_owned();
             raw_str = raw_str.replace(r#"\""#, "\"");
+            raw_str = raw_str.replace(r#"\n"#, "\n");
+            raw_str = raw_str.replace(r"\\", "\\");
+            raw_str = raw_str.replace(r"\'", "'");
+            raw_str = raw_str.replace(r"\r", "\r");
+            raw_str = raw_str.replace(r"\t", "\t");
             self.cursor.advance();
             Category::Data(raw_str.as_bytes().to_vec())
         }
@@ -897,7 +895,7 @@ mod tests {
     #[test]
     fn quotable_string() {
         verify_tokens!(
-            "'Hello \\'you\\'!'",
+            r#"'Hello \\\'you\\\'!'"#,
             ["[72, 101, 108, 108, 111, 32, 92, 39, 121, 111, 117, 92, 39, 33]"]
         );
         verify_tokens!("'Hello \\'you\\'!\\'", ["UnclosedData"]);
@@ -951,7 +949,7 @@ mod tests {
     #[test]
     fn string_quoting() {
         verify_tokens!(
-            r"'webapps\\appliance\\'",
+            r"'webapps\\\\appliance\\\\'",
             [
                 r"[119, 101, 98, 97, 112, 112, 115, 92, 92, 97, 112, 112, 108, 105, 97, 110, 99, 101, 92, 92]",
             ]

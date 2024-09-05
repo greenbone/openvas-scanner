@@ -235,7 +235,9 @@ fn hex(s: i64) -> String {
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
 #[nasl_function]
-fn hexstr_to_data(s: &str) -> Result<Vec<u8>, FunctionErrorKind> {
+fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, FunctionErrorKind> {
+    let s = s.to_string();
+    let s = s.as_str();
     decode_hex(s).map_err(|_| {
         FunctionErrorKind::WrongArgument(format!(
             "Expected an even-length string containing only 0-9a-fA-F, found '{}'",
@@ -257,9 +259,13 @@ fn data_to_hexstr(bytes: Maybe<&[u8]>) -> Option<String> {
 /// Length argument is required and can be a named argument or a positional argument.
 /// Data argument is an optional named argument and is taken to be "X" if not provided.
 #[nasl_function(maybe_named(length), named(data))]
-fn crap(length: usize, data: Option<&str>) -> String {
-    let data = data.unwrap_or("X");
-    data.repeat(length)
+fn crap(length: usize, data: Option<NaslValue>) -> String {
+    let data = match data {
+        Some(x) => x.to_string(),
+        None => "X".to_string(),
+    };
+
+    data.as_str().repeat(length)
 }
 
 /// NASL function to remove trailing whitespaces from a string
@@ -276,9 +282,14 @@ fn chomp(s: StringOrData) -> String {
 /// The second positional argument is the *string* to search for.
 /// The optional third positional argument is an *int* containing an offset from where to start the search.
 #[nasl_function]
-fn stridx(haystack: String, needle: String, offset: Option<usize>) -> i64 {
+fn stridx(haystack: NaslValue, needle: NaslValue, offset: Option<usize>) -> i64 {
+    let h = haystack.to_string();
+    let haystack = h.as_str();
+    let n = needle.to_string();
+    let needle = n.as_str();
+
     let offset = offset.unwrap_or(0);
-    match &haystack[offset..].find(&needle) {
+    match &haystack[offset..].find(needle) {
         Some(index) => *index as i64,
         None => -1,
     }
@@ -296,7 +307,9 @@ fn display(register: &Register, configs: &Context) -> Result<NaslValue, Function
 ///
 /// Takes a single positional argument.
 #[nasl_function]
-fn ord(s: &str) -> Option<u8> {
+fn ord(s: NaslValue) -> Option<u8> {
+    let s = s.to_string();
+    let s = s.as_str();
     s.chars().next().map(|c| c as u8)
 }
 
@@ -330,11 +343,16 @@ fn str_to_int(s: &str) -> i64 {
 /// 4rd positional argument (optional): end index in the original string at which to perform the replacement.
 #[nasl_function]
 fn insstr(
-    mut s: String,
-    to_insert: &str,
+    mut s: NaslValue,
+    to_insert: NaslValue,
     start: usize,
     end: Option<usize>,
 ) -> Result<String, FunctionErrorKind> {
+    let mut s = s.to_string();
+
+    let insb = to_insert.to_string();
+    let ins = insb.as_str();
+
     let end = end.unwrap_or(s.len()).min(s.len());
     if start > end {
         return Err(FunctionErrorKind::WrongArgument(format!(
@@ -342,7 +360,13 @@ fn insstr(
             start, end
         )));
     }
-    s.replace_range(start..end, to_insert);
+
+    if s.len() >= (end + 1) {
+        s.replace_range(start..(end + 1), ins);
+    } else {
+        s.replace_range(start..(end), ins);
+    }
+
     Ok(s)
 }
 
@@ -352,12 +376,21 @@ fn insstr(
 /// `pattern` contains the pattern to search for.
 /// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
 #[nasl_function(named(string, pattern, icase))]
-fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, FunctionErrorKind> {
+fn match_(
+    string: NaslValue,
+    pattern: NaslValue,
+    icase: Option<bool>,
+) -> Result<bool, FunctionErrorKind> {
     let options = MatchOptions {
         case_sensitive: !icase.unwrap_or(false),
         require_literal_separator: false,
         require_literal_leading_dot: false,
     };
+    let strb = string.to_string();
+    let string = strb.as_str();
+    let pattb = pattern.to_string();
+    let pattern = pattb.as_str();
+
     Ok(Pattern::new(pattern)
         .map_err(|err| {
             FunctionErrorKind::WrongArgument(format!(
@@ -368,11 +401,11 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
         .matches_with(string, options))
 }
 
-/// This function splits a given string into parts, puts them into an array and returns it.
+/// This function splits a given NaslValue into parts, puts them into an array and returns it.
 ///
 /// The first positional argument is the *string* to split.
 ///
-/// The optional named argument *sep* is a *string* containing the
+/// The optional named argument *sep* is a NaslValue containing the
 /// separator for splitting the string. The string is split after the
 /// separator. By default the string is split at every line break.
 ///
@@ -381,12 +414,23 @@ fn match_(string: &str, pattern: &str, icase: Option<bool>) -> Result<bool, Func
 /// string. By default *keep* is set to *TRUE*. *TRUE* means the
 /// separator is kept, *FALSE* means the separator is discarded.
 #[nasl_function(named(sep, keep))]
-fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
-    let sep = sep.unwrap_or("\n");
-    if keep.unwrap_or(true) {
-        string.split_inclusive(sep).map(String::from).collect()
+fn split(string: NaslValue, sep: Option<NaslValue>, keep: Option<bool>) -> Vec<String> {
+    let strb = string.to_string();
+    let str = strb.as_str();
+
+    let separator: String;
+    if let Some(s) = sep {
+        separator = s.to_string();
     } else {
-        string.split(sep).map(String::from).collect()
+        separator = "\n".to_string();
+    }
+
+    let sep_aux = separator.as_str();
+
+    if keep.unwrap_or(true) {
+        str.split_inclusive(sep_aux).map(String::from).collect()
+    } else {
+        str.split(sep_aux).map(String::from).collect()
     }
 }
 
@@ -399,10 +443,28 @@ fn split(string: &str, sep: Option<&str>, keep: Option<bool>) -> Vec<String> {
 /// limits the number of replacements made to count. If left out
 /// or set to 0, there is no limit on the number of replacements.
 #[nasl_function(named(string, find, replace, count))]
-fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>) -> String {
+fn str_replace(
+    string: NaslValue,
+    find: NaslValue,
+    replace: Option<NaslValue>,
+    count: Option<usize>,
+) -> String {
+    let strb = string.to_string();
+    let string = strb.as_str();
+
+    let findb = find.to_string();
+    let find = findb.as_str();
+
+    let rep: String;
+    if let Some(r) = replace {
+        rep = r.to_string();
+    } else {
+        rep = "".to_string();
+    }
+
     match count {
-        Some(count) if count > 0 => string.replacen(find, replace.unwrap_or(""), count),
-        _ => string.replace(find, replace.unwrap_or("")),
+        Some(count) if count > 0 => string.replacen(find, rep.as_str(), count),
+        _ => string.replace(find, rep.as_str()),
     }
 }
 
@@ -413,8 +475,17 @@ fn replace(string: &str, find: &str, replace: Option<&str>, count: Option<usize>
 ///
 /// 1st positional argument: string to search in.
 /// 2nd positional argument: substring to search for.
-fn strstr(string: &str, find: &str) -> Option<&str> {
-    string.find(find).map(|index| &string[index..])
+fn strstr(string: NaslValue, find: NaslValue) -> NaslValue {
+    let strb = string.to_string();
+    let string = strb.as_str();
+
+    let findb = find.to_string();
+    let find = findb.as_str();
+
+    if let Some(i) = string.find(find) {
+        return NaslValue::String(string[i..].to_string());
+    }
+    NaslValue::Null
 }
 
 /// Returns found function for key or None when not found
@@ -440,7 +511,7 @@ fn lookup(key: &str) -> Option<NaslFunction> {
         "insstr" => Some(insstr),
         "int" => Some(int),
         "split" => Some(split),
-        "replace" => Some(replace),
+        "str_replace" => Some(str_replace),
         "strstr" => Some(strstr),
         _ => None,
     }
