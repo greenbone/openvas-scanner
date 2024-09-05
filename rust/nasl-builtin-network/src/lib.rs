@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::fmt::Display;
+use std::{fmt::Display, net::IpAddr};
 
-use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{Context, FunctionErrorKind};
 use nasl_syntax::NaslValue;
 use storage::Field;
 
@@ -14,14 +14,14 @@ pub mod socket;
 
 // 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
 // header contains 8 bytes, which must be subtracted from the max size for UDP packages.
-// TODO: Calculate the MTU dynamically
 const MTU: usize = 512 - 60 - 8;
 
 /// Standard port for networking functions
-/// @return none
 const DEFAULT_PORT: u16 = 33435;
 
-pub fn mtu() -> usize {
+// Get the max MTU possible for network communication
+// TODO: Calculate the MTU dynamically
+pub fn mtu(_: IpAddr) -> usize {
     MTU
 }
 
@@ -74,47 +74,6 @@ impl Display for OpenvasEncaps {
     }
 }
 
-fn get_named_value(r: &Register, name: &str) -> Result<NaslValue, FunctionErrorKind> {
-    match r.named(name) {
-        Some(x) => match x {
-            nasl_builtin_utils::ContextType::Function(_, _) => Err(
-                FunctionErrorKind::WrongArgument(format!("{name} is a function")),
-            ),
-            nasl_builtin_utils::ContextType::Value(val) => Ok(val.to_owned()),
-        },
-        None => Err(FunctionErrorKind::MissingArguments(vec![name.to_string()])),
-    }
-}
-
-fn get_usize(r: &Register, name: &str) -> Result<usize, FunctionErrorKind> {
-    match get_named_value(r, name)? {
-        NaslValue::Number(num) => {
-            if num < 0 {
-                return Err(FunctionErrorKind::WrongArgument(format!(
-                    "Argument {name} must be >= 0"
-                )));
-            }
-            Ok(num as usize)
-        }
-        _ => Err(FunctionErrorKind::WrongArgument(
-            "Wrong type for argument, expected a number".to_string(),
-        )),
-    }
-}
-
-fn get_data(r: &Register) -> Result<Vec<u8>, FunctionErrorKind> {
-    Ok((get_named_value(r, "data")?).into())
-}
-
-fn get_opt_int(r: &Register, name: &str) -> Option<i64> {
-    get_named_value(r, name)
-        .map(|val| match val {
-            NaslValue::Number(len) => Some(len),
-            _ => None,
-        })
-        .unwrap_or_default()
-}
-
 pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
     context
         .retriever()
@@ -127,30 +86,6 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, F
         })
         .map(|x| x.map(|x| x.into()))
         .map_err(|e| e.into())
-}
-
-pub fn get_pos_port(r: &Register) -> Result<u16, FunctionErrorKind> {
-    match r
-        .positional()
-        .first()
-        .ok_or(FunctionErrorKind::MissingPositionalArguments {
-            expected: 1,
-            got: 0,
-        })? {
-        NaslValue::Number(port) => {
-            if *port < 0 || *port > 65535 {
-                return Err(FunctionErrorKind::WrongArgument(format!(
-                    "{} is not a valid port number",
-                    *port
-                )));
-            }
-            Ok(*port as u16)
-        }
-        x => Err(FunctionErrorKind::WrongArgument(format!(
-            "{} is not a valid port number",
-            x
-        ))),
-    }
 }
 
 pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {

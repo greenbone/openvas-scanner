@@ -68,6 +68,16 @@ impl Default for TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher
     }
 }
 
+impl TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
+    /// Construct a `TestBuilder`, immediately run the
+    /// given code on it and return it.
+    pub fn from_code(code: impl AsRef<str>) -> Self {
+        let mut t = Self::default();
+        t.run_all(code.as_ref());
+        t
+    }
+}
+
 impl<L, S> TestBuilder<L, S>
 where
     L: nasl_syntax::Loader,

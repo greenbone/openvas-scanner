@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
+use std::{
+    fs::{self},
+    path::PathBuf,
+};
 
 use futures::StreamExt;
 use nasl_interpreter::{
@@ -154,19 +157,32 @@ fn create_redis_storage(
     redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
-async fn create_fp_loader<S>(storage: &S, path: PathBuf) -> Result<FSPluginLoader, CliError>
+async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
 where
     S: storage::Dispatcher,
 {
     // update feed with storage
 
     tracing::info!("loading feed. This may take a while.");
-    let result = FSPluginLoader::new(path);
-    let verifier = feed::HashSumNameLoader::sha256(&result)?;
-    let updater = feed::Update::init("scannerctl", 5, &result, storage, verifier);
+    let verifier = feed::HashSumNameLoader::sha256(pl)?;
+    let updater = feed::Update::init("scannerctl", 5, pl, storage, verifier);
     updater.perform_update().await?;
     tracing::info!("loaded feed.");
-    Ok(result)
+    Ok(())
+}
+
+fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), CliError> {
+    tracing::info!(path=?path, "loading feed via json. This may take a while.");
+    let buf = fs::read_to_string(path).map_err(|e| CliError::load_error(e, path))?;
+    let vts: Vec<storage::item::Nvt> = serde_json::from_str(&buf)?;
+    let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
+
+    store.set_vts(all_vts).map_err(|e| CliError {
+        filename: path.to_owned().to_string_lossy().to_string(),
+        kind: e.into(),
+    })?;
+    tracing::info!("loaded feed.");
+    Ok(())
 }
 
 pub async fn run(
@@ -189,12 +205,22 @@ pub async fn run(
         (Db::InMemory, None) => builder.build().run(script).await,
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
-            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path).await?);
+            let loader = FSPluginLoader::new(path);
+            load_feed_by_exec(&storage, &loader).await?;
+            let builder = RunBuilder::default().loader(loader);
             builder.storage(storage).build().run(script).await
         }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new();
-            let builder = RunBuilder::default().loader(create_fp_loader(&storage, path).await?);
+            let guessed_feed_json = path.join("feed.json");
+            let loader = FSPluginLoader::new(path.clone());
+            if guessed_feed_json.exists() {
+                load_feed_by_json(&storage, &guessed_feed_json)?
+            } else {
+                load_feed_by_exec(&storage, &loader).await?
+            }
+
+            let builder = RunBuilder::default().loader(loader);
             builder.storage(storage).build().run(script).await
         }
     };

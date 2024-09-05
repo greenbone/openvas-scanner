@@ -97,6 +97,14 @@ impl storage::Dispatcher for FeedIdentifier {
         Ok(())
     }
 
+    fn dispatch_replace(
+        &self,
+        _: &ContextKey,
+        _scope: storage::Field,
+    ) -> Result<(), storage::StorageError> {
+        Ok(())
+    }
+
     fn on_exit(&self, _: &ContextKey) -> Result<(), storage::StorageError> {
         Ok(())
     }

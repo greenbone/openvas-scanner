@@ -42,8 +42,9 @@ fn this_host_name() -> String {
 
 /// get the maximum transition unit for the scanned host
 #[nasl_function]
-fn get_mtu() -> i64 {
-    mtu() as i64
+fn get_mtu(context: &Context) -> Result<i64, FunctionErrorKind> {
+    let target = ipstr2ipaddr(context.target())?;
+    Ok(mtu(target) as i64)
 }
 
 /// check if the currently scanned host is the localhost

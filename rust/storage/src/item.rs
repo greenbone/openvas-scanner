@@ -922,6 +922,15 @@ where
         }
     }
 
+    fn dispatch_replace(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
+        match scope {
+            Field::NVT(nvt) => self.store_nvt_field(nvt),
+            Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
+            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), *adv),
+            Field::Result(result) => self.dispatch(key, Field::Result(result)),
+        }
+    }
+
     fn on_exit(&self, _: &ContextKey) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.nvt)
             .lock()

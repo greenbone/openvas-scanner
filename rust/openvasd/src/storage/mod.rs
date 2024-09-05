@@ -6,6 +6,7 @@ pub mod file;
 pub mod inmemory;
 pub mod redis;
 pub use storage::Storage as NaslStorage;
+use storage::{ContextKey, Field, StorageError};
 
 use std::{
     collections::HashMap,
@@ -382,7 +383,7 @@ async fn update_notus_feed(
 
                 store.as_dispatcher().dispatch(
                     &storage::ContextKey::FileName(filename.to_owned()),
-                    storage::Field::NotusAdvisory(Some(data).into()),
+                    Field::NotusAdvisory(Some(data).into()),
                 )?;
             }
         }
@@ -412,14 +413,14 @@ pub trait ResultHandler {
     fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher>;
     fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
     where
-        E: From<storage::StorageError>;
+        E: From<StorageError>;
     fn remove_result<E>(
         &self,
         key: &storage::ContextKey,
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
-        E: From<storage::StorageError>;
+        E: From<StorageError>;
 }
 
 /// Uses a storage::Storage device to handle KB and VT elements when used within a
@@ -448,7 +449,7 @@ where
     }
     fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         self.0.handle_result(key, result)
     }
@@ -459,7 +460,7 @@ where
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         self.0.remove_result(key, idx)
     }
@@ -473,7 +474,7 @@ where
         &self,
         key: &storage::ContextKey,
         scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, storage::StorageError> {
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         // Although somebody may try to get a result through the storage::Storage trait it is very
         // unlikely as this is a openvasd specific implementation and the results are fetched though
         // `get_results`. If that changes we need to:
@@ -485,18 +486,14 @@ where
         self.underlying_storage().retrieve(key, scope)
     }
 
-    fn retrieve_by_field(
-        &self,
-        field: storage::Field,
-        scope: storage::Retrieve,
-    ) -> storage::FieldKeyResult {
+    fn retrieve_by_field(&self, field: Field, scope: storage::Retrieve) -> storage::FieldKeyResult {
         // We should never try to return results without an ID
         self.underlying_storage().retrieve_by_field(field, scope)
     }
 
     fn retrieve_by_fields(
         &self,
-        field: Vec<storage::Field>,
+        field: Vec<Field>,
         scope: storage::Retrieve,
     ) -> storage::FieldKeyResult {
         // We should never try to return results without an ID
@@ -508,13 +505,9 @@ impl<T> storage::Dispatcher for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
-    fn dispatch(
-        &self,
-        key: &storage::ContextKey,
-        scope: storage::Field,
-    ) -> Result<(), storage::StorageError> {
+    fn dispatch(&self, key: &storage::ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
-            storage::Field::Result(result) => {
+            Field::Result(result) => {
                 // we may already run in an specialized thread therefore we use current thread.
                 self.handle_result(key, *result)
             }
@@ -525,8 +518,12 @@ where
         }
     }
 
-    fn on_exit(&self, key: &storage::ContextKey) -> Result<(), storage::StorageError> {
+    fn on_exit(&self, key: &storage::ContextKey) -> Result<(), StorageError> {
         self.underlying_storage().on_exit(key)
+    }
+
+    fn dispatch_replace(&self, _: &ContextKey, _scope: Field) -> Result<(), StorageError> {
+        Ok(())
     }
 }
 
@@ -538,7 +535,7 @@ where
         &self,
         key: &storage::ContextKey,
         kb_key: Option<String>,
-    ) -> Result<Option<Vec<storage::Kb>>, storage::StorageError> {
+    ) -> Result<Option<Vec<storage::Kb>>, StorageError> {
         self.underlying_storage().remove_kb(key, kb_key)
     }
 
@@ -546,7 +543,7 @@ where
         &self,
         key: &storage::ContextKey,
         result_id: Option<usize>,
-    ) -> Result<Option<Vec<models::Result>>, storage::StorageError> {
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
         self.underlying_storage().remove_result(key, result_id)
     }
 }

@@ -47,6 +47,8 @@ mod tests {
     fn strlen() {
         check_ok("strlen(0x7B);", 0i64);
         check_ok("strlen('hallo');", 5i64);
+        check_ok("strlen('hallo\n');", 6i64);
+        check_ok(r#"strlen("hallo\n");"#, 7i64);
     }
 
     #[test]
@@ -67,8 +69,12 @@ mod tests {
     #[test]
     fn crap() {
         check_ok("crap(5);", "XXXXX");
+        check_ok("crap(5);", "XXXXX");
         check_ok("crap(length: 5);", "XXXXX");
         check_ok(r#"crap(data: "ab", length: 5);"#, "ababababab");
+        check_ok(r#"crap(data: 'ab', length: 5);"#, "ababababab");
+        check_ok(r#"crap(data: 'a\n', length: 2);"#, "a\na\n");
+        check_ok(r#"crap(data: "a\n", length: 2);"#, "a\\na\\n");
     }
 
     #[test]
@@ -113,8 +119,11 @@ mod tests {
         check_ok(r#"ord("a");"#, 97);
         check_ok(r#"ord("b");"#, 98);
         check_ok(r#"ord("c");"#, 99);
+        check_ok(r#"ord("\n");"#, 92);
+        check_ok(r#"ord('\n');"#, 10);
+        check_ok(r#"ord("c");"#, 99);
         check_ok(r#"ord("");"#, Null);
-        check_err_matches!("ord(1);", WrongArgument { .. });
+        check_ok("ord(1);", 49);
         check_err_matches!("ord();", MissingPositionalArguments { .. });
     }
 
@@ -152,7 +161,18 @@ mod tests {
     fn insstr() {
         check_ok(r#"insstr("foo bar", "rab", 4);"#, "foo rab");
         check_ok(r#"insstr("foo bar", "rab", 4, 100);"#, "foo rab");
+        check_ok(r#"insstr("foo bar", "rab", 4, 5);"#, "foo rabr");
         check_err_matches!(r#"insstr("foo bar", "rab", 4, 0);"#, WrongArgument { .. });
+    }
+
+    #[test]
+    fn insstr_data_new_line() {
+        check_ok(r#"insstr('foo\nbar', "123456", 4 ,5);"#, "foo\n123456r");
+    }
+
+    #[test]
+    fn insstr_string_new_line() {
+        check_ok(r#"insstr("foo\nbar", "123456", 4 ,5);"#, "foo\\123456ar");
     }
 
     #[test]
@@ -165,15 +185,28 @@ mod tests {
     }
 
     #[test]
-    fn split() {
+    fn split_string_default_new_line() {
+        check_ok(r#"split("a\nb\nc");"#, vec!["a\\nb\\nc".to_string()]);
+    }
+
+    #[test]
+    fn split_data_default_new_line() {
         check_ok(
-            r#"split("a\nb\nc");"#,
+            "split('a\nb\nc');",
             vec!["a\n".to_string(), "b\n".to_string(), "c".to_string()],
         );
+    }
+
+    #[test]
+    fn split_data_default_new_line_no_keep() {
         check_ok(
-            r#"split("a\nb\nc", keep: FALSE);"#,
+            "split('a\nb\nc', keep: FALSE);",
             vec!["a".to_string(), "b".to_string(), "c".to_string()],
         );
+    }
+
+    #[test]
+    fn split() {
         check_ok(
             r#"split("a;b;c", sep: ";");"#,
             vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
@@ -184,19 +217,26 @@ mod tests {
     #[test]
     fn replace() {
         check_ok(
-            r#"replace(string: "abc", find: "b", replace: "foo");"#,
+            r#"str_replace(string: "abc", find: "b", replace: "foo");"#,
             "afooc",
         );
-        check_err_matches!(r#"replace();"#, MissingArguments { .. });
-        check_err_matches!(r#"replace(string: "abc");"#, MissingArguments { .. });
-        check_ok(r#"replace(string: "abc", find: "b");"#, "ac");
-        check_ok(r#"replace(string: "abcbd", find: "b", count: 1);"#, "acbd");
+        check_err_matches!(r#"str_replace();"#, MissingArguments { .. });
+        check_err_matches!(r#"str_replace(string: "abc");"#, MissingArguments { .. });
+        check_ok(r#"str_replace(string: "abc", find: "b");"#, "ac");
+        check_ok(
+            r#"str_replace(string: "abcbd", find: "b", count: 1);"#,
+            "acbd",
+        );
+        check_ok(r#"str_replace(string: "ab\nc", find: "\n");"#, "abc");
+        check_ok(r#"str_replace(string: 'ab\nc', find: '\n');"#, "abc");
+        check_ok(r#"str_replace(string: 'ab\nc', find: "\n");"#, "ab\nc");
     }
 
     #[test]
     fn strstr() {
         check_ok(r#"strstr("abc", "b");"#, "bc");
         check_ok(r#"strstr("abcbd", "b");"#, "bcbd");
+        check_ok(r#"strstr('a\rbcbd', '\rb');"#, "\rbcbd");
         check_err_matches!(r#"strstr();"#, MissingPositionalArguments { .. });
         check_err_matches!(r#"strstr("a");"#, MissingPositionalArguments { .. });
     }

@@ -31,4 +31,23 @@ mod tests {
             FunctionErrorKind::MissingPositionalArguments { .. }
         );
     }
+
+    #[test]
+    fn get_kb_list() {
+        let mut t = TestBuilder::default();
+        t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        t.ok(r#"set_kb_item(name: "test", value: 2);"#, NaslValue::Null);
+        t.ok(r#"get_kb_list("test");"#, vec![1, 2]);
+    }
+
+    #[test]
+    fn replace_kb_item() {
+        let mut t = TestBuilder::default();
+        t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        t.ok(
+            r#"replace_kb_item(name: "test", value: 2);"#,
+            NaslValue::Null,
+        );
+        t.ok(r#"get_kb_item("test");"#, 2);
+    }
 }
