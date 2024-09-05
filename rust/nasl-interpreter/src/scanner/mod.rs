@@ -22,12 +22,9 @@ pub use scan_runner::ScanRunner;
 pub use scanner_stack::DefaultScannerStack;
 pub use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
+use tokio::sync::RwLock;
 
-use std::{
-    collections::HashMap,
-    path::Path,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use crate::{nasl_std_functions, scheduling::WaveExecutionPlan};
 use async_trait::async_trait;
@@ -97,7 +94,7 @@ impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
         let id = scan.scan_id.clone();
         let handle =
             RunningScan::<S>::start::<WaveExecutionPlan>(scan, storage, loader, function_executor);
-        self.running.write().unwrap().insert(id, handle);
+        self.running.write().await.insert(id, handle);
         Ok(())
     }
 
@@ -117,7 +114,7 @@ impl<S: ScannerStack> ScanStopper for Scanner<S> {
         let handle = self
             .running
             .write()
-            .unwrap()
+            .await
             .remove(id)
             .ok_or_else(|| Error::ScanNotFound(id.to_string()))?;
         handle.stop();
@@ -146,20 +143,19 @@ impl<S: ScannerStack> ScanResultFetcher for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
-        let running = self.running.read().unwrap();
-        match running.get(id.as_ref()) {
-            Some(r) => {
-                let status = r.status();
-                Ok(ScanResults {
-                    id: id.as_ref().to_string(),
-                    status,
-                    // The results are directly stored by the storage implementation:
-                    // inmemory.rs
-                    // file.rs
-                    results: vec![],
-                })
-            }
-            None => Err(Error::ScanNotFound(id.as_ref().to_string())),
-        }
+        let id = id.as_ref();
+        let running = self.running.read().await;
+        let r = running
+            .get(id)
+            .ok_or_else(|| Error::ScanNotFound(id.to_string()))?;
+        let status = r.status().await;
+        Ok(ScanResults {
+            id: id.to_string(),
+            status,
+            // The results are directly stored by the storage implementation:
+            // inmemory.rs
+            // file.rs
+            results: vec![],
+        })
     }
 }

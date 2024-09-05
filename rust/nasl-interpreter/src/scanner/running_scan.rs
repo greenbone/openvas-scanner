@@ -1,7 +1,7 @@
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, RwLock,
+        Arc,
     },
     time::SystemTime,
 };
@@ -9,7 +9,7 @@ use std::{
 use futures::StreamExt;
 use models::{scanner::Error, HostInfo, Phase, Scan, Status};
 use nasl_builtin_utils::Executor;
-use tokio::task::JoinHandle;
+use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
 use crate::{
@@ -78,10 +78,11 @@ impl<S: ScannerStack> RunningScan<S> {
         T: ExecutionPlan,
     {
         let runner = self.make_runner::<T>()?;
-        self.update_status_at_beginning_of_run(runner.host_info());
+        self.update_status_at_beginning_of_run(runner.host_info())
+            .await;
         let end_phase = self.run_to_completion(runner).await;
 
-        self.update_status_at_end_of_run(end_phase);
+        self.update_status_at_end_of_run(end_phase).await;
         Ok(())
     }
 
@@ -116,7 +117,7 @@ impl<S: ScannerStack> RunningScan<S> {
             match it {
                 Ok(result) => {
                     trace!(target = result.target, targets=?self.scan.target.hosts);
-                    let mut status = self.status.write().unwrap();
+                    let mut status = self.status.write().await;
                     if let Some(host_info) = status.host_info.as_mut() {
                         host_info.register_finished_script(&result.target);
                     }
@@ -139,15 +140,15 @@ impl<S: ScannerStack> RunningScan<S> {
         end_phase
     }
 
-    fn update_status_at_beginning_of_run(&self, host_info: HostInfo) {
-        let mut status = self.status.write().unwrap();
+    async fn update_status_at_beginning_of_run(&self, host_info: HostInfo) {
+        let mut status = self.status.write().await;
         status.status = Phase::Running;
         status.start_time = current_time_in_seconds("start_time").into();
         status.host_info = Some(host_info);
     }
 
-    fn update_status_at_end_of_run(&self, end_phase: Phase) {
-        let mut status = self.status.write().unwrap();
+    async fn update_status_at_end_of_run(&self, end_phase: Phase) {
+        let mut status = self.status.write().await;
         status.status = end_phase;
         status.end_time = current_time_in_seconds("end_time").into();
 
@@ -171,8 +172,8 @@ impl RunningScanHandle {
         self.handle.abort();
     }
 
-    pub fn status(&self) -> Status {
-        self.status.read().unwrap().clone()
+    pub async fn status(&self) -> Status {
+        self.status.read().await.clone()
     }
 }
 
