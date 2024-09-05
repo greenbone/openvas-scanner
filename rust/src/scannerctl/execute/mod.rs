@@ -5,7 +5,6 @@
 use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
-use feed::{HashSumNameLoader, Update};
 use futures::StreamExt;
 use nasl_interpreter::{
     nasl_std_functions,
@@ -13,6 +12,7 @@ use nasl_interpreter::{
     ScanRunner,
 };
 use nasl_syntax::FSPluginLoader;
+use scannerlib::feed::{HashSumNameLoader, Update};
 use tracing::{info, warn, warn_span};
 
 use crate::{interpret, CliError, CliErrorKind, Db};

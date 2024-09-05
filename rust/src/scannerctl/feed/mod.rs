@@ -15,6 +15,7 @@ use redis_storage::{
     CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
 };
 
+use scannerlib::feed::transpile::{self, FeedReplacer};
 use storage::{item::PerItemDispatcher, StorageError};
 
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
@@ -175,14 +176,14 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 
             #[derive(serde::Deserialize, serde::Serialize)]
             struct Wrapper {
-                cmds: Vec<feed::transpile::ReplaceCommand>,
+                cmds: Vec<transpile::ReplaceCommand>,
             }
 
             let rules = std::fs::read_to_string(rules).unwrap();
             let rules: Wrapper = toml::from_str(&rules).unwrap();
             let rules = rules.cmds;
             let base = path.to_str().unwrap_or_default();
-            for r in feed::transpile::FeedReplacer::new(base, &rules) {
+            for r in FeedReplacer::new(base, &rules) {
                 let name = r.unwrap();
                 if let Some((name, content)) = name {
                     use std::io::Write;

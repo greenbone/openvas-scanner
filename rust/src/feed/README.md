@@ -27,7 +27,7 @@ use nasl_interpreter::FSPluginLoader;
 // it will throw an exception.
 let path = "/var/lib/openvas/plugins/";
 let loader = FSPluginLoader::new(path);
-let verifier = feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
+let verifier = scannerlib::feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
 ```
 
 ## Current status

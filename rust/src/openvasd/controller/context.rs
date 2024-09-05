@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
+use scannerlib::feed;
 use std::sync::{Arc, RwLock};
 use storage::DefaultDispatcher;
 

@@ -11,8 +11,11 @@ use std::{
 
 use models::Product;
 
-use crate::notus::error::{Error, LoadProductErrorKind};
-use feed::SignatureChecker;
+use crate::feed::SignatureChecker;
+use crate::{
+    feed::{verify::check_signature, VerifyError},
+    notus::error::{Error, LoadProductErrorKind},
+};
 
 use super::{FeedStamp, ProductLoader};
 
@@ -126,9 +129,9 @@ where
     }
 
     /// Perform a signature check of the sha256sums file
-    fn verify_signature(&self) -> Result<(), feed::VerifyError> {
+    fn verify_signature(&self) -> Result<(), VerifyError> {
         let p = self.root.as_ref().to_str().unwrap_or_default();
-        feed::verify::check_signature(p)
+        check_signature(p)
     }
     /// Get the notus products root directory
     fn get_root_dir(&self) -> Result<String, Error> {

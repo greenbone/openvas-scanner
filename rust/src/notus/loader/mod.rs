@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 use models::{Product, ProductsAdivisories};
 
-use crate::notus::error::Error;
+use crate::{feed::VerifyError, notus::error::Error};
 
 pub mod fs;
 pub mod hashsum;
@@ -30,7 +30,7 @@ pub trait ProductLoader {
     /// Useful for checking if a requested product has changed.
     fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool;
     /// Verify the signature of the Hashsum file
-    fn verify_signature(&self) -> Result<(), feed::VerifyError>;
+    fn verify_signature(&self) -> Result<(), VerifyError>;
     /// Get the root directory of the notus products
     fn get_root_dir(&self) -> Result<String, Error>;
 }
@@ -43,7 +43,7 @@ pub trait AdvisoryLoader {
     /// Load advisories files present in the path.
     fn load_advisory(&self, os: &str) -> Result<ProductsAdivisories, Error>;
     /// Verify the signature of the Hashsum file
-    fn verify_signature(&self) -> Result<(), feed::VerifyError>;
+    fn verify_signature(&self) -> Result<(), VerifyError>;
     /// Get the root directory of the notus products
     fn get_root_dir(&self) -> Result<String, Error>;
 }

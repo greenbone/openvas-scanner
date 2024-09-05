@@ -8,6 +8,8 @@ use models::FixedPackage;
 use nasl_syntax::LoadError;
 use thiserror::Error;
 
+use crate::feed::VerifyError;
+
 /// Error types that can occur when unable to load a products file.
 #[derive(Debug, Error)]
 pub enum LoadProductErrorKind {
@@ -49,8 +51,8 @@ pub enum Error {
     VulnerabilityTestParseError(String, FixedPackage),
     /// Some issues caused by a HashsumLoader
     #[error("Hashsum verification failed: {0}")]
-    HashsumLoadError(feed::VerifyError),
+    HashsumLoadError(VerifyError),
     /// Signature check error
     #[error("Signature check failed: {0}")]
-    SignatureCheckError(feed::VerifyError),
+    SignatureCheckError(VerifyError),
 }

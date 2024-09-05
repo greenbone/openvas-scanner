@@ -2,11 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("README.md")]
 mod oid;
 pub mod transpile;
 mod update;
 pub mod verify;
+
+#[cfg(test)]
+mod update_tests;
 
 pub use oid::Oid;
 pub use update::feed_version as version;

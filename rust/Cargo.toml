@@ -5,6 +5,7 @@ edition = "2021"
 license = "GPL-2.0-or-later"
 
 [dependencies]
+anyhow = "1.0.75"
 async-trait = "0.1.68"
 base64 = "0.21.2"
 chacha20 = "0.9.1"
@@ -13,29 +14,34 @@ configparser = "3"
 futures = "0.3.30"
 futures-util = "0.3.28"
 generic-array = "0.14.7"
+glob = "0.3.1"
+hex = "0.4.3"
 http-body = "1"
 http-body-util = "0.1.0"
 hyper = { version = "1", features = ["full"] }
 hyper-rustls = "0"
 hyper-util = { version = "0", features = ["tokio"] }
+lazy-regex = "3.3.0"
 lazy_static = "1.4.0"
 pbkdf2 = { version = "0.12.2", features = ["password-hash"] }
 quick-xml = { version = "0.28.1", features = ["serialize"] }
 rand = "0.8.5"
 rustls = { version = "0.22" }
 rustls-pemfile = "1.0.2"
-serde = { version = "1.0.163", features = ["derive"] }
+sequoia-ipc = "0.30.1"
+sequoia-openpgp = { version ="1.16.1", default-features = false, features = ["crypto-openssl"] }
+serde = { version = "1.0", features = ["derive"]}
 serde_json = "1.0.96"
 sha2 = "0.10.7"
+thiserror = "1.0.62"
 tokio = { version = "1.39.3", features = ["full"] }
 tokio-rustls = "0.25"
-toml = "0.7.4"
+toml = "0.8.4"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 walkdir = "2"
 
-feed = { path = "feed" }
 infisto = { path = "infisto" }
 json-storage = { path = "json-storage" }
 models = { path = "models" }
@@ -45,8 +51,6 @@ openvas = { path = "openvas" }
 osp = { path = "osp" }
 redis-storage = { path = "redis-storage" }
 storage = { path = "storage" }
-lazy-regex = "3.3.0"
-thiserror = "1.0.63"
 
 [workspace]
 resolver = "2"
@@ -71,7 +75,6 @@ members = [
   "storage",
   "redis-storage",
   "json-storage",
-  "feed",
   "feed-verifier",
   "models",
   "osp",

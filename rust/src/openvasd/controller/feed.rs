@@ -17,7 +17,7 @@ async fn changed_hash(signature_check: bool, feeds: &[FeedHash]) -> Result<Vec<F
     let mut result = Vec::with_capacity(feeds.len());
     for h in feeds {
         if signature_check {
-            if let Err(err) = feed::verify::check_signature(&h.path) {
+            if let Err(err) = scannerlib::feed::verify::check_signature(&h.path) {
                 tracing::warn!(
                     sumsfile=%h.path.display(),
                     error=%err,

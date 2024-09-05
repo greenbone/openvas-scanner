@@ -5,6 +5,7 @@
 use std::path::PathBuf;
 
 use nasl_interpreter::FSPluginLoader;
+use scannerlib::feed;
 use storage::Dispatcher;
 
 use crate::CliError;

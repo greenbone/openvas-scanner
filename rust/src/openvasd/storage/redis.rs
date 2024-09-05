@@ -9,7 +9,10 @@ use nasl_interpreter::FSPluginLoader;
 use redis_storage::{
     CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
 };
-use scannerlib::notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
+use scannerlib::{
+    feed,
+    notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
+};
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::{sync::RwLock, task::JoinSet};
 use tracing::info;

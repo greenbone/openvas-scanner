@@ -13,6 +13,7 @@ use nasl_interpreter::{
     RegisterBuilder,
 };
 use redis_storage::FEEDUPDATE_SELECTOR;
+use scannerlib::feed;
 use storage::{ContextKey, DefaultDispatcher};
 
 use crate::{CliError, CliErrorKind, Db};

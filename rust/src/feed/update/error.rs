@@ -7,7 +7,7 @@ use nasl_syntax::{LoadError, SyntaxError};
 use storage::StorageError;
 use thiserror::Error;
 
-use crate::verify;
+use crate::feed::{verify, VerifyError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Errors within feed handling
@@ -46,15 +46,15 @@ pub struct Error {
 impl From<verify::Error> for Error {
     fn from(value: verify::Error) -> Self {
         let key = match &value {
-            crate::VerifyError::SumsFileCorrupt(x) => x.sum_file(),
-            crate::VerifyError::LoadError(_) => "",
-            crate::VerifyError::HashInvalid {
+            VerifyError::SumsFileCorrupt(x) => x.sum_file(),
+            VerifyError::LoadError(_) => "",
+            VerifyError::HashInvalid {
                 expected: _,
                 actual: _,
                 key,
             } => key,
-            crate::VerifyError::BadSignature(e) => e,
-            crate::VerifyError::MissingKeyring => "",
+            VerifyError::BadSignature(e) => e,
+            VerifyError::MissingKeyring => "",
         };
         Self {
             key: key.to_string(),

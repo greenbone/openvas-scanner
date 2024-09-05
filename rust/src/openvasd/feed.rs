@@ -7,6 +7,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use scannerlib::feed;
 use storage::{ContextKey, StorageError};
 
 #[derive(Debug, Default, Clone)]

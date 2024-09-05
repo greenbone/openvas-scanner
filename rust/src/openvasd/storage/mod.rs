@@ -19,7 +19,10 @@ use models::scanner::ScanResults;
 
 use crate::{config::Config, controller::ClientHash, crypt};
 use nasl_interpreter::FSPluginLoader;
-use scannerlib::notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
+use scannerlib::{
+    feed::{self, HashSumNameLoader, Update},
+    notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -401,9 +404,9 @@ async fn update_nasl_feed(p: PathBuf, store: Arc<storage::DefaultDispatcher>) ->
     tracing::debug!("starting nasl feed update");
     let oversion = "0.1";
     let loader = FSPluginLoader::new(nasl_feed_path);
-    let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+    let verifier = HashSumNameLoader::sha256(&loader)?;
 
-    let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
+    let fu = Update::init(oversion, 5, &loader, &store, verifier);
     fu.perform_update().await?;
     tracing::debug!("finished nasl feed update");
     Ok(())

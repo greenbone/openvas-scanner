@@ -7,7 +7,10 @@ use std::path::PathBuf;
 use crate::{CliError, CliErrorKind};
 
 use nasl_syntax::{FSPluginLoader, LoadError};
-use scannerlib::notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
+use scannerlib::{
+    feed,
+    notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
+};
 use storage::{ContextKey, Dispatcher};
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>

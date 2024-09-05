@@ -16,7 +16,10 @@ use nasl_interpreter::{
 };
 use storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
-use crate::verify::{self, HashSumFileItem, SignatureChecker};
+use crate::feed::verify::check_signature;
+use crate::feed::verify::{HashSumFileItem, SignatureChecker};
+
+use super::verify;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
@@ -170,7 +173,7 @@ where
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
         let path = self.loader.root_path().unwrap();
-        crate::verify::check_signature(&path)
+        check_signature(&path)
     }
 
     /// Run the feed update and log each result with the

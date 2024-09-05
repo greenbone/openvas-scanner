@@ -2,8 +2,7 @@ use thiserror::Error;
 
 use nasl_syntax::{LoadError, Statement};
 
-use crate::verify;
-
+use super::verify;
 use super::Replace;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]

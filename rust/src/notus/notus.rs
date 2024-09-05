@@ -6,6 +6,8 @@ use std::collections::HashMap;
 
 use models::{NotusResults, VulnerablePackage};
 
+use crate::feed::VerifyError;
+
 use super::{
     error::Error,
     loader::{FeedStamp, ProductLoader},
@@ -118,17 +120,13 @@ where
         if self.signature_check {
             match self.loader.verify_signature() {
                 Ok(_) => tracing::debug!("Signature check succsessful"),
-                Err(feed::VerifyError::MissingKeyring) => {
+                Err(VerifyError::MissingKeyring) => {
                     tracing::warn!("Signature check enabled but missing keyring");
-                    return Err(Error::SignatureCheckError(
-                        feed::VerifyError::MissingKeyring,
-                    ));
+                    return Err(Error::SignatureCheckError(VerifyError::MissingKeyring));
                 }
-                Err(feed::VerifyError::BadSignature(e)) => {
+                Err(VerifyError::BadSignature(e)) => {
                     tracing::warn!("{}", e);
-                    return Err(Error::SignatureCheckError(feed::VerifyError::BadSignature(
-                        e,
-                    )));
+                    return Err(Error::SignatureCheckError(VerifyError::BadSignature(e)));
                 }
                 Err(e) => {
                     tracing::warn!("Unexpected error during signature verification: {e}");

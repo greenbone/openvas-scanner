@@ -8,7 +8,7 @@ mod error;
 
 use nasl_syntax::{Statement, StatementKind};
 
-use crate::{verify, NaslFileFinder};
+use crate::feed::{verify, NaslFileFinder};
 
 use self::error::{ReplaceError, TranspileError};
 
@@ -647,7 +647,7 @@ impl<'a> FeedReplacer<'a> {
     where
         S: AsRef<str>,
     {
-        let finder = crate::NaslFileFinder::new(&root, false);
+        let finder = NaslFileFinder::new(&root, false);
         FeedReplacer { finder, replace }
     }
 
@@ -678,7 +678,7 @@ impl<'a> Iterator for FeedReplacer<'a> {
 
 #[cfg(test)]
 mod parsing {
-    use crate::transpile::FindParameter;
+    use crate::feed::transpile::{Find, FindParameter, Parameter, ParameterOperation, Replace};
 
     use super::ReplaceCommand;
 
@@ -687,7 +687,7 @@ mod parsing {
         // register_product(location:"/", port:port, service:"world-wide-web")
         vec![
             ReplaceCommand {
-                find: crate::transpile::Find::FunctionByNameAndParameter(
+                find: Find::FunctionByNameAndParameter(
                     "register_product".into(),
                     vec![
                         FindParameter::Name("cpe".into()),
@@ -696,15 +696,13 @@ mod parsing {
                         FindParameter::NameValue("service".into(), "\"www\"".into()),
                     ],
                 ),
-                with: crate::transpile::Replace::Parameter(
-                    crate::transpile::ParameterOperation::Push(crate::transpile::Parameter::Named(
-                        "service_to_be".into(),
-                        "\"world-wide-shop\"".into(),
-                    )),
-                ),
+                with: Replace::Parameter(ParameterOperation::Push(Parameter::Named(
+                    "service_to_be".into(),
+                    "\"world-wide-shop\"".into(),
+                ))),
             },
             ReplaceCommand {
-                find: crate::transpile::Find::FunctionByNameAndParameter(
+                find: Find::FunctionByNameAndParameter(
                     "register_product".into(),
                     vec![
                         FindParameter::Name("cpe".into()),
@@ -714,35 +712,29 @@ mod parsing {
                         FindParameter::Name("service_to_be".into()),
                     ],
                 ),
-                with: crate::transpile::Replace::Parameter(
-                    crate::transpile::ParameterOperation::RemoveNamed("service".into()),
-                ),
+                with: Replace::Parameter(ParameterOperation::RemoveNamed("service".into())),
             },
             ReplaceCommand {
-                find: crate::transpile::Find::FunctionByName("register_product".into()),
-                with: crate::transpile::Replace::Parameter(
-                    crate::transpile::ParameterOperation::Rename {
-                        previous: "service_to_be".to_string(),
-                        new: "service".to_string(),
-                    },
-                ),
+                find: Find::FunctionByName("register_product".into()),
+                with: Replace::Parameter(ParameterOperation::Rename {
+                    previous: "service_to_be".to_string(),
+                    new: "service".to_string(),
+                }),
             },
             ReplaceCommand {
-                find: crate::transpile::Find::FunctionByName("register_product".into()),
-                with: crate::transpile::Replace::Parameter(
-                    crate::transpile::ParameterOperation::Rename {
-                        previous: "cpe".into(),
-                        new: "runtime_information".into(),
-                    },
-                ),
+                find: Find::FunctionByName("register_product".into()),
+                with: Replace::Parameter(ParameterOperation::Rename {
+                    previous: "cpe".into(),
+                    new: "runtime_information".into(),
+                }),
             },
             ReplaceCommand {
-                find: crate::transpile::Find::FunctionByName("register_host_detail".into()),
-                with: crate::transpile::Replace::Name("hokus_pokus".into()),
+                find: Find::FunctionByName("register_host_detail".into()),
+                with: Replace::Name("hokus_pokus".into()),
             },
             ReplaceCommand {
-                find: crate::transpile::Find::FunctionByName("script_xref".into()),
-                with: crate::transpile::Replace::Remove,
+                find: Find::FunctionByName("script_xref".into()),
+                with: Replace::Remove,
             },
         ]
     }
@@ -750,7 +742,7 @@ mod parsing {
     fn to_toml() {
         #[derive(serde::Deserialize, serde::Serialize)]
         struct Wrapper {
-            cmds: Vec<crate::transpile::ReplaceCommand>,
+            cmds: Vec<ReplaceCommand>,
         }
         let options = generate_replace_commands();
         let w = Wrapper { cmds: options };
@@ -763,6 +755,7 @@ mod parsing {
         // .unwrap();
     }
 }
+
 #[cfg(test)]
 mod functions {
     use super::*;

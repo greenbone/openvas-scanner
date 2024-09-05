@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use feed::{HashSumNameLoader, SignatureChecker};
 use models::ProductsAdivisories;
 use nasl_syntax::{FSPluginLoader, Loader};
 
+use crate::feed::verify::check_signature;
+use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError};
 use crate::notus::error::{Error, LoadProductErrorKind};
 
 use super::{AdvisoryLoader, FeedStamp, ProductLoader};
@@ -80,9 +81,9 @@ impl ProductLoader for HashsumProductLoader {
     }
 
     /// Perform a signature check of the sha256sums file
-    fn verify_signature(&self) -> Result<(), feed::VerifyError> {
+    fn verify_signature(&self) -> Result<(), VerifyError> {
         let path = self.loader.root_path().unwrap();
-        feed::verify::check_signature(&path)
+        check_signature(&path)
     }
     fn get_root_dir(&self) -> Result<String, Error> {
         let p = self.loader.root_path().unwrap();
@@ -144,9 +145,9 @@ impl AdvisoryLoader for HashsumAdvisoryLoader {
     }
 
     /// Perform a signature check of the sha256sums file
-    fn verify_signature(&self) -> Result<(), feed::VerifyError> {
+    fn verify_signature(&self) -> Result<(), VerifyError> {
         let path = self.loader.root_path().unwrap();
-        feed::verify::check_signature(&path)
+        check_signature(&path)
     }
     fn get_root_dir(&self) -> Result<String, Error> {
         let p = self.loader.root_path().unwrap();

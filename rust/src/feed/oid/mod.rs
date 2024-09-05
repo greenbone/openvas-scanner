@@ -9,7 +9,7 @@ use std::fs::File;
 use nasl_interpreter::{AsBufReader, Loader};
 use nasl_syntax::{IdentifierType, Statement, StatementKind, TokenCategory};
 
-use crate::{
+use crate::feed::{
     update,
     verify::{self, HashSumFileItem},
 };
