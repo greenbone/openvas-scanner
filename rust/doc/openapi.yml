@@ -70,6 +70,43 @@ paths:
               schema:
                 type: "string"
           description: "Header"
+  /scans:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available authentication methods."
+      operationId: "get_info"
+      tags:
+        - "general"
+      responses:
+        "204":
+          headers:
+            api-version:
+              description: "Comma separated list of available API versions"
+              schema:
+                type: "string"
+            feed-version:
+              description: "The version of the VT feed"
+              schema:
+                type: "string"
+            authentication:
+              description: "Supported authentication methods"
+              schema:
+                type: "string"
+          description: "Authenticated and authorized"
+        "401":
+          headers:
+            api-version:
+              description: "Comma separated list of available API versions"
+              schema:
+                type: "string"
+            feed-version:
+              description: "The version of the VT feed"
+              schema:
+                type: "string"
+            authentication:
+              description: "Supported authentication methods"
+              schema:
+                type: "string"
+          description: "Unauthorized. Required or invalid client certificates"
 
   /health/alive:
     get:
