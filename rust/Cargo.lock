@@ -2448,6 +2448,7 @@ dependencies = [
  "base64 0.21.7",
  "chacha20",
  "clap",
+ "configparser",
  "feed",
  "futures",
  "futures-util",
@@ -2458,13 +2459,16 @@ dependencies = [
  "hyper-rustls",
  "hyper-util",
  "infisto",
+ "json-storage",
  "lazy_static",
  "models",
  "nasl-interpreter",
+ "nasl-syntax",
  "notus",
  "openvas",
  "osp",
  "pbkdf2",
+ "quick-xml",
  "rand",
  "redis-storage",
  "rustls 0.22.4",
@@ -2480,6 +2484,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "uuid",
+ "walkdir",
 ]
 
 [[package]]
@@ -3205,31 +3210,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "scannerctl"
-version = "0.1.0"
-dependencies = [
- "clap",
- "configparser",
- "feed",
- "futures",
- "json-storage",
- "models",
- "nasl-interpreter",
- "nasl-syntax",
- "notus",
- "quick-xml",
- "redis-storage",
- "serde",
- "serde_json",
- "storage",
- "tokio",
- "toml 0.8.19",
- "tracing",
- "tracing-subscriber",
- "walkdir",
 ]
 
 [[package]]
