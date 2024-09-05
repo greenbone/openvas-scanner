@@ -537,7 +537,9 @@ pub(crate) mod tests {
     }
 
     fn clear_tmp_files(tmp_path: &Path) {
-        let remove = |filename| fs::remove_file(tmp_path.join(filename)).unwrap();
+        let remove = |filename| {
+            let _ = fs::remove_file(tmp_path.join(filename));
+        };
         remove("scan_aha.dat");
         remove("scan_aha.idx");
         remove("status_aha.dat");
