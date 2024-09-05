@@ -113,7 +113,6 @@ impl<S: ScannerStack> RunningScan<S> {
         let mut end_phase = Phase::Succeeded;
         let mut stream = Box::pin(runner.stream());
         while let Some(it) = stream.next().await {
-            // TODO: check for error and abort, we need to keep track of the state
             match it {
                 Ok(result) => {
                     trace!(target = result.target, targets=?self.scan.target.hosts);
