@@ -10,6 +10,7 @@ use std::{
 use feed::VerifyError;
 use nasl_interpreter::{ExecuteError, InterpretError, LoadError};
 use nasl_syntax::{SyntaxError, Token};
+use scannerlib::notus;
 use storage::StorageError;
 
 #[derive(Debug, Clone)]

@@ -5,6 +5,7 @@
 use std::{collections::HashSet, sync::RwLock};
 
 use super::*;
+use scannerlib::notus;
 use tokio::task::JoinSet;
 use tracing::info;
 

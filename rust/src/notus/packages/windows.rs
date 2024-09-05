@@ -80,8 +80,8 @@ impl Package for Windows {
 #[cfg(test)]
 mod slack_tests {
     use super::Package;
+    use super::PackageVersion;
     use super::Windows;
-    use crate::packages::PackageVersion;
 
     #[test]
     pub fn test_compare_gt() {

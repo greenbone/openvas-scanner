@@ -7,8 +7,10 @@ use std::collections::HashMap;
 use models::{FixedPackage, FixedVersion, Specifier};
 
 use crate::{
-    error::Error,
-    packages::{deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, windows::Windows, Package},
+    notus::error::Error,
+    notus::packages::{
+        deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, windows::Windows, Package,
+    },
 };
 
 /// VulnerabilityTests is a collection of Tests to detect vulnerabilities, in case of notus these

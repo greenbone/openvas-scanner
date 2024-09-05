@@ -90,8 +90,9 @@ mod ebuild_tests {
     use std::{
         fs::File,
         io::{self, BufRead},
-        path::PathBuf,
     };
+
+    use crate::notus::tests::make_test_path;
 
     use super::EBuild;
     use super::Package;
@@ -107,9 +108,8 @@ mod ebuild_tests {
 
     #[test]
     pub fn test_parse_fullname() {
-        let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        p.push("data/gentoo_examples.txt");
-        let file = File::open(p).unwrap();
+        let path = make_test_path(&["data", "notus", "gentoo_examples.txt"]);
+        let file = File::open(path).unwrap();
         for line in io::BufReader::new(file).lines() {
             assert!(EBuild::from_full_name(line.unwrap().as_str()).is_some());
         }

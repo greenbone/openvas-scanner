@@ -12,6 +12,7 @@ use super::{context::Context, ClientIdentifier};
 
 use hyper::{Method, Request};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
+use scannerlib::notus;
 
 use crate::{
     config,

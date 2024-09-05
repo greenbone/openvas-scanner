@@ -167,7 +167,7 @@ impl Package for Deb {
 
 #[cfg(test)]
 mod deb_tests {
-    use crate::packages::{self, PackageVersion};
+    use super::PackageVersion;
 
     use super::{Deb, Package};
 
@@ -177,15 +177,15 @@ mod deb_tests {
             name: "foo-bar".to_string(),
             epoch: 1,
             upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.3-4".to_string(),
             full_version: "1:1.2.3-4".to_string(),
         };
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.4".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.4".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.4-4".to_string(),
             full_version: "1:1.2.4-4".to_string(),
         };
@@ -194,8 +194,8 @@ mod deb_tests {
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("5".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("5".to_string()),
             full_name: "foo-bar-1:1.2.3-5".to_string(),
             full_version: "1:1.2.3-5".to_string(),
         };
@@ -207,16 +207,16 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-1:1.2.3-4".to_string(),
             full_version: "1:1.2.3-4".to_string(),
         };
         let package2 = Deb {
             name: "bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "bar-1:1.2.3-4".to_string(),
             full_version: "1:1.2.3-4".to_string(),
         };
@@ -228,16 +228,16 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.3-4".to_string(),
             full_version: "1:1.2.3-4".to_string(),
         };
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.4".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.4".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.4-4".to_string(),
             full_version: "1:1.2.4-4".to_string(),
         };
@@ -246,8 +246,8 @@ mod deb_tests {
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("5".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("5".to_string()),
             full_name: "foo-bar-1.2.3-5:1".to_string(),
             full_version: "1:1.2.3-5".to_string(),
         };
@@ -256,8 +256,8 @@ mod deb_tests {
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3~rc".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.3~rc".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.3~rc-4".to_string(),
             full_version: "1:1.2.3~rc-4".to_string(),
         };
@@ -269,16 +269,16 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.3-4".to_string(),
             full_version: "1:1.2.3-4".to_string(),
         };
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: packages::PackageVersion("1.2.3".to_string()),
-            debian_revision: packages::PackageVersion("4".to_string()),
+            upstream_version: PackageVersion("1.2.3".to_string()),
+            debian_revision: PackageVersion("4".to_string()),
             full_name: "foo-bar-1:1.2.3-4".to_string(),
             full_version: "1:1.2.3-4".to_string(),
         };

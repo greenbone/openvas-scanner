@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use models::{NotusResults, VulnerablePackage};
 
-use crate::{
+use super::{
     error::Error,
     loader::{FeedStamp, ProductLoader},
     packages::Package,

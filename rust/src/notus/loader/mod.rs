@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 use models::{Product, ProductsAdivisories};
 
-use crate::error::Error;
+use crate::notus::error::Error;
 
 pub mod fs;
 pub mod hashsum;

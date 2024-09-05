@@ -152,9 +152,8 @@ impl Package for Rpm {
 
 #[cfg(test)]
 mod rpm_tests {
-    use crate::packages::PackageVersion;
-
     use super::Package;
+    use super::PackageVersion;
     use super::Rpm;
 
     #[test]

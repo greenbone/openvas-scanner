@@ -141,9 +141,8 @@ impl Package for Slack {
 
 #[cfg(test)]
 mod slack_tests {
-    use crate::packages::PackageVersion;
-
     use super::Package;
+    use super::PackageVersion;
     use super::Slack;
 
     #[test]

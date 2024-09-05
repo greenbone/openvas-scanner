@@ -6,7 +6,6 @@
 
 use std::marker::{Send, Sync};
 
-use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use config::{Config, Mode, ScannerType};
 use controller::{Context, ContextBuilder};
 use infisto::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
@@ -14,6 +13,7 @@ use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, 
 use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
 use notus::NotusWrapper;
 use openvas::cmd;
+use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use storage::{FromConfigAndFeeds, Storage};
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;

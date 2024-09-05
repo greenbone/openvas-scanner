@@ -11,7 +11,7 @@ use std::{
 
 use models::Product;
 
-use crate::error::Error;
+use crate::notus::error::{Error, LoadProductErrorKind};
 use feed::SignatureChecker;
 
 use super::{FeedStamp, ProductLoader};
@@ -62,7 +62,7 @@ where
                 }
                 return Err(Error::LoadProductError(
                     notus_file_str,
-                    crate::error::LoadProductErrorKind::IOError(err),
+                    LoadProductErrorKind::IOError(err),
                 ));
             }
         };
@@ -70,7 +70,7 @@ where
         if let Err(err) = file.read_to_string(&mut buf) {
             return Err(Error::LoadProductError(
                 notus_file_str,
-                crate::error::LoadProductErrorKind::IOError(err),
+                LoadProductErrorKind::IOError(err),
             ));
         }
         let mod_time = match file.metadata() {
@@ -140,22 +140,24 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::{error::Error, loader::ProductLoader};
+    use crate::notus::{
+        error::Error,
+        loader::ProductLoader,
+        tests::{make_test_path, setup_loader},
+    };
 
     use super::FSProductLoader;
 
     #[test]
     fn test_load_vts() {
-        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
-        path.push_str("/data");
-        let loader = FSProductLoader::new(path).unwrap();
+        let loader = setup_loader();
         let _ = loader.load_product("debian_10").unwrap();
     }
 
     #[test]
     fn test_err_missing_products_dir() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
-        path.push_str("/data_foo");
+        path.push_str("/notus/data_foo");
         assert!(
             matches!(FSProductLoader::new(path.clone()).expect_err("Should fail"), Error::MissingProductsDir(p) if p == path)
         );
@@ -163,19 +165,15 @@ mod tests {
 
     #[test]
     fn test_err_products_dir_is_file() {
-        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
-        path.push_str("/data/debian_10.notus");
+        let path = make_test_path(&["data", "notus", "debian_10.notus"]);
         assert!(
-            matches!(FSProductLoader::new(path.clone()).expect_err("Should fail"), Error::ProductsDirIsFile(p) if p == path)
+            matches!(FSProductLoader::new(path.clone()).expect_err("Should fail"), Error::ProductsDirIsFile(p) if p == path.to_string_lossy())
         );
     }
 
     #[test]
     fn test_err_unknown_os() {
-        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
-        path.push_str("/data");
-        let loader = FSProductLoader::new(path).unwrap();
-
+        let loader = setup_loader();
         let os = "foo";
         assert!(
             matches!(loader.load_product(os).expect_err("Should fail"), Error::UnknownProduct(o) if o == os)
@@ -184,10 +182,9 @@ mod tests {
 
     #[test]
     fn test_err_json_parse() {
-        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
-        path.push_str("/data");
+        let path = make_test_path(&["data", "notus"]);
         let loader = FSProductLoader::new(path.clone()).unwrap();
-
+        let path = path.to_str().unwrap();
         let os = "debian_10_json_parse_err";
         assert!(
             matches!(loader.load_product(os).expect_err("Should fail"), Error::JSONParseError(p, _) if p == format!("{path}/{os}.notus"))
@@ -196,10 +193,7 @@ mod tests {
 
     #[test]
     fn test_available_os() {
-        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
-        path.push_str("/data");
-        let loader = FSProductLoader::new(path.clone()).unwrap();
-
+        let loader = setup_loader();
         let available_os = loader.get_products().unwrap();
 
         assert_eq!(available_os.len(), 3);

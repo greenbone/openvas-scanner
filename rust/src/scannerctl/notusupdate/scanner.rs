@@ -8,7 +8,7 @@ use std::{
 };
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
-use notus::{loader::fs::FSProductLoader, notus::Notus};
+use scannerlib::notus::{loader::fs::FSProductLoader, notus::Notus};
 
 use crate::CliError;
 

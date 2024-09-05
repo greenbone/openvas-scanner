@@ -19,7 +19,7 @@ use models::scanner::ScanResults;
 
 use crate::{config::Config, controller::ClientHash, crypt};
 use nasl_interpreter::FSPluginLoader;
-use notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
+use scannerlib::notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader};
 
 #[derive(Debug)]
 pub enum Error {

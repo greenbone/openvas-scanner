@@ -6,7 +6,7 @@ use feed::{HashSumNameLoader, SignatureChecker};
 use models::ProductsAdivisories;
 use nasl_syntax::{FSPluginLoader, Loader};
 
-use crate::error::Error;
+use crate::notus::error::{Error, LoadProductErrorKind};
 
 use super::{AdvisoryLoader, FeedStamp, ProductLoader};
 
@@ -24,7 +24,7 @@ impl HashsumProductLoader {
 }
 
 impl ProductLoader for HashsumProductLoader {
-    fn get_products(&self) -> Result<Vec<String>, crate::error::Error> {
+    fn get_products(&self) -> Result<Vec<String>, Error> {
         let mut ret = vec![];
         let loader = HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
 
@@ -56,10 +56,7 @@ impl ProductLoader for HashsumProductLoader {
             .loader
             .load(file_item.get_filename().as_str())
             .map_err(|e| {
-                Error::LoadProductError(
-                    os.to_string(),
-                    crate::error::LoadProductErrorKind::LoadError(e),
-                )
+                Error::LoadProductError(os.to_string(), LoadProductErrorKind::LoadError(e))
             })?;
 
         match serde_json::from_str(&file) {
@@ -137,10 +134,7 @@ impl AdvisoryLoader for HashsumAdvisoryLoader {
             .loader
             .load(file_item.get_filename().as_str())
             .map_err(|e| {
-                Error::LoadProductError(
-                    os.to_string(),
-                    crate::error::LoadProductErrorKind::LoadError(e),
-                )
+                Error::LoadProductError(os.to_string(), LoadProductErrorKind::LoadError(e))
             })?;
 
         match serde_json::from_str(&file) {

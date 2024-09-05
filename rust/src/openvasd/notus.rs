@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 use models::NotusResults;
-use notus::{error::Error, loader::hashsum::HashsumProductLoader, notus::Notus};
+use scannerlib::notus::{error::Error, loader::hashsum::HashsumProductLoader, notus::Notus};
 use tokio::sync::RwLock;
 
 #[async_trait]

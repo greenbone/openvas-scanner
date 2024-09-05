@@ -145,7 +145,7 @@ pub trait Package<Rhs = Self>: PartialOrd<Rhs> {
 
 #[cfg(test)]
 mod tests {
-    use crate::packages::PackageVersion;
+    use super::PackageVersion;
 
     #[test]
     fn test_version_1() {
