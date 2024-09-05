@@ -2022,6 +2022,7 @@ name = "nasl-builtin-knowledge-base"
 version = "0.1.0"
 dependencies = [
  "nasl-builtin-utils",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "storage",
