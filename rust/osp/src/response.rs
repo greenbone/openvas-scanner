@@ -593,17 +593,18 @@ impl From<Scan> for models::Status {
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
             host_info: value.host_info.map(|host_info| {
-                models::HostInfo::new(
-                    host_info.count_total.content.0,
-                    host_info.count_excluded.content.0,
-                    host_info.count_dead.content.0,
-                    host_info.count_alive.content.0,
-                    host_info.count_total.content.0
+                models::HostInfoBuilder {
+                    all: host_info.count_total.content.0,
+                    excluded: host_info.count_excluded.content.0,
+                    dead: host_info.count_dead.content.0,
+                    alive: host_info.count_alive.content.0,
+                    queued: host_info.count_total.content.0
                         - host_info.count_excluded.content.0
                         - host_info.count_alive.content.0
                         - host_info.host.len() as u64,
-                    host_info.count_alive.content.0,
-                )
+                    finished: host_info.count_alive.content.0,
+                }
+                .build()
             }),
         }
     }
