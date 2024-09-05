@@ -45,7 +45,7 @@ struct CodeLocation {
 }
 
 impl CodeLocation {
-    fn new<'a>(location: &Location<'a>) -> Self {
+    fn new(location: &Location) -> Self {
         Self {
             file: location.file().to_string(),
             line: location.line(),
