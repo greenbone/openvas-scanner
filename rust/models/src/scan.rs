@@ -4,6 +4,8 @@
 
 use super::{scanner_preference::ScanPreference, target::Target, vt::VT};
 
+pub type ScanId = String;
+
 /// Struct for creating and getting a scan
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
@@ -14,7 +16,7 @@ use super::{scanner_preference::ScanPreference, target::Target, vt::VT};
 pub struct Scan {
     #[cfg_attr(feature = "serde_support", serde(default))]
     /// Unique ID of a scan
-    pub scan_id: String,
+    pub scan_id: ScanId,
     /// Information about the target to scan
     pub target: Target,
     #[cfg_attr(

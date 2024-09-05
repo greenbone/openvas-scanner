@@ -13,8 +13,8 @@ use std::{
 use models::{Vulnerability, VulnerabilityData};
 
 use crate::{
-    time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Retriever,
-    StorageError,
+    time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Remover,
+    Retriever, StorageError,
 };
 
 /// Attack Category either set by script_category
@@ -931,7 +931,7 @@ where
         }
     }
 
-    fn on_exit(&self) -> Result<(), StorageError> {
+    fn on_exit(&self, _: &ContextKey) -> Result<(), StorageError> {
         let mut data = Arc::as_ref(&self.nvt)
             .lock()
             .map_err(|x| StorageError::Dirty(format!("{x}")))?;
@@ -968,6 +968,27 @@ where
         scope: crate::Retrieve,
     ) -> crate::FieldKeyResult {
         self.dispatcher.retrieve_by_fields(field, scope)
+    }
+}
+
+impl<S> Remover for PerItemDispatcher<S>
+where
+    S: ItemDispatcher + Remover,
+{
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
+        self.dispatcher.remove_kb(key, kb_key)
+    }
+
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
+        self.dispatcher.remove_result(key, result_id)
     }
 }
 

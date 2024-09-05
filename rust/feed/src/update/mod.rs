@@ -7,7 +7,9 @@ mod error;
 pub use error::Error;
 pub use error::ErrorKind;
 
-use std::{fs::File, io::Read};
+use futures::{stream, Stream, StreamExt};
+use std::fs::File;
+use tracing::trace;
 
 use nasl_interpreter::{
     AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register,
@@ -32,7 +34,10 @@ pub struct Update<'a, S, L, V> {
 }
 
 /// Loads the plugin_feed_info and returns the feed version
-pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<String, ErrorKind> {
+pub async fn feed_version(
+    loader: &dyn Loader,
+    dispatcher: &dyn Dispatcher,
+) -> Result<String, ErrorKind> {
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
@@ -44,10 +49,8 @@ pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
     let mut interpreter = Interpreter::new(register, &context);
     for stmt in nasl_syntax::parse(&code) {
-        match stmt {
-            Ok(stmt) => interpreter.retry_resolve_next(&stmt, 3)?,
-            Err(e) => return Err(e.into()),
-        };
+        let stmt = stmt?;
+        interpreter.retry_resolve_next(&stmt, 3).await?;
     }
 
     let feed_version = interpreter
@@ -58,21 +61,19 @@ pub fn feed_version(loader: &dyn Loader, dispatcher: &dyn Dispatcher) -> Result<
     Ok(feed_version)
 }
 
-impl<'a, R, S, L, V> SignatureChecker for Update<'a, S, L, V>
+impl<'a, S, L, V> SignatureChecker for Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
+    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
 {
 }
 
-impl<'a, S, L, V, R> Update<'a, S, L, V>
+impl<'a, S, L, V> Update<'a, S, L, V>
 where
     S: Sync + Send + Dispatcher,
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
+    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>> + 'a,
 {
     /// Creates an updater. This updater is implemented as a iterator.
     ///
@@ -103,14 +104,14 @@ where
     }
 
     /// Loads the plugin_feed_info and returns the feed version
-    pub fn feed_version(&self) -> Result<String, ErrorKind> {
-        feed_version(self.loader, self.dispatcher)
+    pub async fn feed_version(&self) -> Result<String, ErrorKind> {
+        feed_version(self.loader, self.dispatcher).await
     }
 
     /// Check if the current feed is outdated.
-    pub fn feed_is_outdated(&self, current_version: String) -> Result<bool, ErrorKind> {
+    pub async fn feed_is_outdated(&self, current_version: String) -> Result<bool, ErrorKind> {
         // the version in file
-        let v = self.feed_version()?;
+        let v = self.feed_version().await?;
         if !current_version.is_empty() {
             return Ok(v.as_str() != current_version.as_str());
         };
@@ -124,8 +125,8 @@ where
     /// The feed_version is loaded from that inc file.
     /// Therefore we need to load the plugin_feed_info and extract the feed_version
     /// to put into the corresponding dispatcher.
-    fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
-        let feed_version = self.feed_version()?;
+    async fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
+        let feed_version = self.feed_version().await?;
         self.dispatcher.retry_dispatch(
             self.max_retry,
             &Default::default(),
@@ -136,7 +137,7 @@ where
     }
 
     /// Runs a single plugin in description mode.
-    fn single(&self, key: &ContextKey) -> Result<i64, ErrorKind> {
+    async fn single(&self, key: &ContextKey) -> Result<i64, ErrorKind> {
         let code = self.loader.load(&key.value())?;
 
         let register = Register::root_initial(&self.initial);
@@ -152,11 +153,11 @@ where
             self.loader,
             &functions,
         );
-        let interpreter = CodeInterpreter::new(&code, register, &context);
-        for stmt in interpreter {
+        let mut results = Box::pin(CodeInterpreter::new(&code, register, &context).stream());
+        while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
-                    self.dispatcher.on_exit()?;
+                    self.dispatcher.on_exit(context.key())?;
                     return Ok(i);
                 }
                 Ok(_) => {}
@@ -165,30 +166,33 @@ where
         }
         Err(ErrorKind::MissingExit(key.value()))
     }
+
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
-        //self::SignatureChecker::signature_check(&path)
         let path = self.loader.root_path().unwrap();
         crate::verify::check_signature(&path)
     }
-}
 
-impl<'a, S, L, V, R> Iterator for Update<'a, S, L, V>
-where
-    S: Sync + Send + Dispatcher,
-    L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
-{
-    type Item = Result<String, Error>;
+    /// Run the feed update and log each result with the
+    /// given log level. If an error occurs, return it.
+    pub async fn perform_update(self) -> Result<(), Error> {
+        let results = self.stream().collect::<Vec<_>>().await;
+        for result in results.into_iter() {
+            let result = result?;
+            trace!(?result);
+        }
+        Ok(())
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn stream(self) -> impl Stream<Item = Result<String, Error>> + 'a {
+        stream::unfold(self, |mut s| async move { s.next().await.map(|x| (x, s)) })
+    }
+
+    async fn next(&mut self) -> Option<Result<String, Error>> {
         match self.verifier.find(|x| {
-            if let Ok(x) = x {
-                x.get_filename().ends_with(".nasl")
-            } else {
-                true
-            }
+            x.as_ref()
+                .map(|x| x.get_filename().ends_with(".nasl"))
+                .unwrap_or(true)
         }) {
             Some(Ok(k)) => {
                 if let Err(e) = k.verify() {
@@ -203,6 +207,7 @@ where
                 }
                 let k = ContextKey::FileName(filename.clone());
                 self.single(&k)
+                    .await
                     .map(|_| k.value())
                     .map_err(|kind| Error {
                         kind,
@@ -212,7 +217,7 @@ where
             }
             Some(Err(e)) => Some(Err(e.into())),
             None if !self.feed_version_set => {
-                let result = self.dispatch_feed_info().map_err(|kind| Error {
+                let result = self.dispatch_feed_info().await.map_err(|kind| Error {
                     kind,
                     key: "plugin_feed_info.inc".to_string(),
                 });

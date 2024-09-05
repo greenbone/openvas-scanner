@@ -5,72 +5,49 @@
 #[cfg(test)]
 mod tests {
     use nasl_interpreter::*;
+    use test_utils::{check_code_result, TestBuilder};
+    use FunctionErrorKind::*;
 
     #[test]
     fn set_kb_item() {
-        let code = r#"
-        set_kb_item(name: "test", value: 1);
-        set_kb_item(name: "test");
-        set_kb_item(value: 1);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert!(matches!(parser.next(), Some(Err(_))));
-        assert!(matches!(parser.next(), Some(Err(_))));
+        check_code_result(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        check_err_matches!(r#"set_kb_item(name: "test");"#, MissingArguments { .. });
+        check_err_matches!(r#"set_kb_item(value: 1);"#, MissingArguments { .. });
     }
+
     #[test]
     fn get_kb_item() {
-        let code = r#"
-        set_kb_item(name: "test", value: 1);
-        get_kb_item("test");
-        get_kb_item("test", 1);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(1))));
-        assert!(matches!(parser.next(), Some(Err(_))));
-    }
-    #[test]
-    fn get_kb_list() {
-        let code = r#"
-        set_kb_item(name: "test", value: 1);
-        set_kb_item(name: "test", value: 2);
-        get_kb_list("test");
-      
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Array(vec![
-                NaslValue::Number(1),
-                NaslValue::Number(2)
-            ])))
+        let mut t = TestBuilder::default();
+        t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        t.ok(r#"get_kb_item("test");"#, 1);
+        check_err_matches!(
+            t,
+            r#"get_kb_item("test", 1);"#,
+            FunctionErrorKind::TrailingPositionalArguments { .. }
+        );
+        check_err_matches!(
+            t,
+            r#"get_kb_item();"#,
+            FunctionErrorKind::MissingPositionalArguments { .. }
         );
     }
+
+    #[test]
+    fn get_kb_list() {
+        let mut t = TestBuilder::default();
+        t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        t.ok(r#"set_kb_item(name: "test", value: 2);"#, NaslValue::Null);
+        t.ok(r#"get_kb_list("test");"#, vec![1, 2]);
+    }
+
     #[test]
     fn replace_kb_item() {
-        let code = r#"
-        set_kb_item(name: "test", value: 1);
-        replace_kb_item(name: "test", value: 2);
-        get_kb_item("test");
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Number(2))));
+        let mut t = TestBuilder::default();
+        t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        t.ok(
+            r#"replace_kb_item(name: "test", value: 2);"#,
+            NaslValue::Null,
+        );
+        t.ok(r#"get_kb_item("test");"#, 2);
     }
 }

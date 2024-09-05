@@ -77,41 +77,35 @@ impl<'a> DeclareVariableExtension for Interpreter<'a> {
 
 #[cfg(test)]
 mod tests {
+    use test_utils::TestBuilder;
+
     use crate::*;
 
     #[test]
     fn declare_local() {
-        let code = r###"
+        let mut t = TestBuilder::default();
+        t.ok(
+            "
         function test(a, b) {
             local_var c;
             c =  a + b;
             return c;
-        }
-        test(a: 1, b: 2);
-        c;
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(3.into())));
-        assert!(matches!(parser.next(), Some(Ok(NaslValue::Null)))); // not found
+        }",
+            NaslValue::Null,
+        );
+        t.ok("test(a: 1, b: 2);", 3);
+        t.ok("c;", NaslValue::Null);
     }
 
     #[test]
     fn declare_function() {
-        let code = r###"
-        function test(a, b) {
+        let mut t = TestBuilder::default();
+        t.ok(
+            "function test(a, b) {
             return a + b;
-        }
-        test(a: 1, b: 2);
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(3.into())));
+        }",
+            NaslValue::Null,
+        );
+        t.ok("test(a: 1, b: 2);", 3);
     }
 }

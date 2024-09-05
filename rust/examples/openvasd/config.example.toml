@@ -38,7 +38,7 @@ key = "/var/lib/openvasd/tls/server.rsa"
 client_certs = "/etc/openvasd/tls/client"
 
 [scanner]
-# currently only ospd is supported, that may change.
+# Supported types: ospd, openvas, openvasd
 type = "ospd"
 
 [scanner.ospd]

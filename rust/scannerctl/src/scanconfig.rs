@@ -27,7 +27,7 @@ When piping a scan json it is enriched with the scan-config xml and may the port
     )
 }
 
-pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, _) = crate::get_args_set_logging(root, "scan-config")?;
 
     let feed = args.get_one::<PathBuf>("path").cloned();
@@ -39,10 +39,10 @@ pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let port_list = args.get_one::<String>("portlist").cloned();
     tracing::debug!("port_list: {port_list:?}");
     let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
-    Some(execute(feed.as_ref(), &config, port_list.as_ref(), stdin))
+    Some(execute(feed.as_ref(), &config, port_list.as_ref(), stdin).await)
 }
 
-fn execute(
+async fn execute(
     feed: Option<&PathBuf>,
     config: &[String],
     port_list: Option<&String>,
@@ -60,7 +60,7 @@ fn execute(
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
-    let storage = Arc::new(storage::DefaultDispatcher::new(true));
+    let storage = Arc::new(storage::DefaultDispatcher::new());
     let mut scan = {
         if stdin {
             tracing::debug!("reading scan config from stdin");
@@ -83,7 +83,7 @@ fn execute(
     };
 
     tracing::info!("loading feed. This may take a while.");
-    crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false)?;
+    crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false).await?;
     tracing::info!("feed loaded.");
     let ports = match port_list {
         Some(ports) => {
@@ -490,13 +490,13 @@ mod tests {
         let add_product_detection = |oid: &str| {
             shop.as_dispatcher()
                 .dispatch(
-                    &storage::ContextKey::Scan(oid.to_string()),
+                    &storage::ContextKey::FileName(oid.to_string()),
                     storage::Field::NVT(storage::item::NVTField::Oid(oid.to_owned().to_string())),
                 )
                 .unwrap();
             shop.as_dispatcher()
                 .dispatch(
-                    &storage::ContextKey::Scan(oid.to_string()),
+                    &storage::ContextKey::FileName(oid.to_string()),
                     storage::Field::NVT(storage::item::NVTField::Family(
                         "Product detection".to_string(),
                     )),

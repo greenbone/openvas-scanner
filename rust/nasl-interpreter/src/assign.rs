@@ -11,18 +11,6 @@ use nasl_builtin_utils::ContextType;
 use nasl_syntax::NaslValue;
 use nasl_syntax::StatementKind::*;
 
-/// Is a trait to handle function assignments within nasl.
-pub(crate) trait AssignExtension {
-    /// Assigns a right value to a left value and returns either previous or new value based on the order
-    fn assign(
-        &mut self,
-        category: &TokenCategory,
-        order: &AssignOrder,
-        left: &Statement,
-        right: &Statement,
-    ) -> InterpretResult;
-}
-
 fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
     let idx = i64::from(idx) as usize;
     let mut arr: Vec<NaslValue> = match left {
@@ -183,8 +171,10 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-impl<'a> AssignExtension for Interpreter<'a> {
-    fn assign(
+impl<'a> Interpreter<'a> {
+    /// Assign a right value to a left value. Return either the
+    /// previous or the new value, based on the order.
+    pub async fn assign(
         &mut self,
         category: &TokenCategory,
         order: &AssignOrder,
@@ -196,13 +186,13 @@ impl<'a> AssignExtension for Interpreter<'a> {
                 Variable => (Self::identifier(left.as_token())?, None),
                 Array(Some(stmt)) => (
                     Self::identifier(left.as_token())?,
-                    Some(self.resolve(stmt)?),
+                    Some(self.resolve(stmt).await?),
                 ),
                 Array(None) => (Self::identifier(left.as_token())?, None),
                 _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };
-        let val = self.resolve(right)?;
+        let val = self.resolve(right).await?;
         match category {
             TokenCategory::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
             TokenCategory::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {
@@ -251,154 +241,63 @@ impl<'a> AssignExtension for Interpreter<'a> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use test_utils::{check_code_result, TestBuilder};
 
     use crate::*;
+
     #[test]
     fn variables() {
-        let code = r###"
-        a = 12;
-        a += 13;
-        a -= 2;
-        a /= 2;
-        a *= 2;
-        a >>= 2;
-        a <<= 2;
-        a >>>= 2;
-        a %= 2;
-        a++;
-        ++a;
-        a--;
-        --a;
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(parser.next(), Some(Ok(25.into())));
-        assert_eq!(parser.next(), Some(Ok(23.into())));
-        assert_eq!(parser.next(), Some(Ok(11.into())));
-        assert_eq!(parser.next(), Some(Ok(22.into())));
-        assert_eq!(parser.next(), Some(Ok(5.into())));
-        assert_eq!(parser.next(), Some(Ok(20.into())));
-        assert_eq!(parser.next(), Some(Ok(80.into())));
-        assert_eq!(parser.next(), Some(Ok(0.into())));
-        assert_eq!(parser.next(), Some(Ok(0.into())));
-        assert_eq!(parser.next(), Some(Ok(2.into())));
-        assert_eq!(parser.next(), Some(Ok(2.into())));
-        assert_eq!(parser.next(), Some(Ok(0.into())));
+        let mut t = TestBuilder::default();
+        t.ok("a = 12;", 12);
+        t.ok("a += 13;", 25);
+        t.ok("a -= 2;", 23);
+        t.ok("a /= 2;", 11);
+        t.ok("a *= 2;", 22);
+        t.ok("a >>= 2;", 5);
+        t.ok("a <<= 2;", 20);
+        t.ok("a >>>= 2;", 80);
+        t.ok("a %= 2;", 0);
+        t.ok("a++;", 0);
+        t.ok("++a;", 2);
+        t.ok("a--;", 2);
+        t.ok("--a;", 0);
     }
-    #[test]
-    fn arrays() {
-        let code = r###"
-        a[0] = 12;
-        a[0] += 13;
-        a[0] -= 2;
-        a[0] /= 2;
-        a[0] *= 2;
-        a[0] >>= 2;
-        a[0] <<= 2;
-        a[0] >>>= 2;
-        a[0] %= 2;
-        a[0]++;
-        ++a[0];
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(parser.next(), Some(Ok(25.into())));
-        assert_eq!(parser.next(), Some(Ok(23.into())));
-        assert_eq!(parser.next(), Some(Ok(11.into())));
-        assert_eq!(parser.next(), Some(Ok(22.into())));
-        assert_eq!(parser.next(), Some(Ok(5.into())));
-        assert_eq!(parser.next(), Some(Ok(20.into())));
-        assert_eq!(parser.next(), Some(Ok(80.into())));
-        assert_eq!(parser.next(), Some(Ok(0.into())));
-        assert_eq!(parser.next(), Some(Ok(0.into())));
-        assert_eq!(parser.next(), Some(Ok(2.into())));
-    }
+
     #[test]
     fn implicit_extend() {
-        let code = r###"
-        a[2] = 12;
-        a;
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Array(vec![
-                NaslValue::Null,
-                NaslValue::Null,
-                12.into()
-            ])))
+        let mut t = TestBuilder::default();
+        t.ok("a[2] = 12;", 12);
+        t.ok(
+            "a;",
+            NaslValue::Array(vec![NaslValue::Null, NaslValue::Null, 12.into()]),
         );
     }
 
     #[test]
     fn implicit_transformation() {
-        let code = r###"
-        a = 12;
-        a;
-        a[2] = 12;
-        a;
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Array(vec![
-                12.into(),
-                NaslValue::Null,
-                12.into()
-            ])))
+        let mut t = TestBuilder::default();
+        t.ok("a = 12;", 12);
+        t.ok("a;", 12);
+        t.ok("a[2] = 12;", 12);
+        t.ok(
+            "a;",
+            NaslValue::Array(vec![12.into(), NaslValue::Null, 12.into()]),
         );
     }
 
     #[test]
     fn dict() {
-        let code = r###"
-        a['hi'] = 12;
-        a;
-        a['hi'];
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(12.into())));
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Dict(HashMap::from([(
-                "hi".to_owned(),
-                12.into()
-            )]))))
+        let mut t = TestBuilder::default();
+        t.ok("a['hi'] = 12;", 12);
+        t.ok(
+            "a;",
+            NaslValue::Dict(HashMap::from([("hi".to_string(), 12.into())])),
         );
-        assert_eq!(parser.next(), Some(Ok(12.into())));
+        t.ok("a['hi'];", 12);
     }
 
     #[test]
     fn array_creation() {
-        let code = r###"
-        a = [1, 2, 3];
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Array(vec![1.into(), 2.into(), 3.into()])))
-        );
+        check_code_result("a = [1, 2, 3];", vec![1, 2, 3]);
     }
 }

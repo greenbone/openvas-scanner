@@ -5,16 +5,13 @@
 use std::{collections::HashMap, io};
 
 use nasl_syntax::{
-    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, Token, TokenCategory,
+    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, SyntaxError, Token,
+    TokenCategory,
 };
 use storage::StorageError;
 
 use crate::{
-    assign::AssignExtension,
-    call::CallExtension,
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    loop_extension::LoopExtension,
-    operator::OperatorExtension,
     InterpretError, InterpretErrorKind,
 };
 
@@ -63,35 +60,6 @@ pub(crate) struct RunSpecific {
     pub(crate) skip_until_return: Option<(Position, NaslValue)>,
 }
 
-/// Workaround for Context 'a Captures and impl Iterator
-///
-/// This is used for function that returns StatementIter as a impl Iterator (e.g. resolve_all).
-pub trait ContextLifeTimeCapture<'a> {}
-impl<'a, T: ?Sized> ContextLifeTimeCapture<'a> for T {}
-
-struct StatementIter<'a, 'b> {
-    interpreter: &'b mut Interpreter<'a>,
-    statement: Statement,
-}
-
-impl<'a, 'b> Iterator for StatementIter<'a, 'b> {
-    type Item = InterpretResult;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.interpreter.index == self.interpreter.run_specific.len() {
-            self.interpreter.index = 0;
-            return None;
-        }
-        let results = if self.interpreter.index == 0 {
-            Some(self.interpreter.retry_resolve_next(&self.statement, 5))
-        } else {
-            Some(self.interpreter.retry_resolve(&self.statement, 5))
-        };
-        self.interpreter.index += 1;
-        results
-    }
-}
-
 /// Used to interpret a Statement
 pub struct Interpreter<'a> {
     pub(crate) run_specific: Vec<RunSpecific>,
@@ -126,17 +94,6 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    /// Returns an iterator over all possible interpretations of a Statement
-    pub fn resolve_all<'b>(
-        &'b mut self,
-        statement: Statement,
-    ) -> impl Iterator<Item = InterpretResult> + ContextLifeTimeCapture<'a> + 'b {
-        StatementIter {
-            interpreter: self,
-            statement,
-        }
-    }
-
     /// May return the next interpreter to run against that statement
     ///
     /// When the interpreter are done a None will be returned. Afterwards it will begin at at 0
@@ -157,6 +114,18 @@ impl<'a> Interpreter<'a> {
         Some(self)
     }
 
+    async fn execute_statements<'b>(
+        &self,
+        key: &str,
+        inter: &mut Interpreter<'b>,
+        stmt: Result<Statement, SyntaxError>,
+    ) -> InterpretResult {
+        match stmt {
+            Ok(stmt) => inter.resolve(&stmt).await,
+            Err(err) => Err(InterpretError::include_syntax_error(key, err)),
+        }
+    }
+
     /// Includes a script into to the current runtime by executing it and share the register as
     /// well as DB of the current runtime.
     ///
@@ -165,26 +134,17 @@ impl<'a> Interpreter<'a> {
     // would be necessary to include the statements within a statement list of a script prior of
     // execution. In the current usage (2024-04-02) it would be overkill, but I'm writing a note as
     // I think this can be easily overlooked.
-    fn include(&mut self, name: &Statement) -> InterpretResult {
-        match self.resolve(name)? {
+    async fn include(&mut self, name: &Statement) -> InterpretResult {
+        match self.resolve(name).await? {
             NaslValue::String(key) => {
                 let code = self.ctxconfigs.loader().load(&key)?;
 
                 let mut inter = Interpreter::new(self.register().clone(), self.ctxconfigs);
-                let result = nasl_syntax::parse(&code)
-                    .map(|parsed| match parsed {
-                        Ok(stmt) => inter.resolve(&stmt),
-                        Err(err) => Err(InterpretError::include_syntax_error(&key, err)),
-                    })
-                    .find(|e| e.is_err());
-                match result {
-                    Some(e) => e,
-                    None => {
-                        self.set_register(inter.register().clone());
-
-                        Ok(NaslValue::Null)
-                    }
+                for stmt in nasl_syntax::parse(&code) {
+                    self.execute_statements(&key, &mut inter, stmt).await?;
                 }
+                self.set_register(inter.register().clone());
+                Ok(NaslValue::Null)
             }
             _ => Err(InterpretError::unsupported(name, "string")),
         }
@@ -200,12 +160,16 @@ impl<'a> Interpreter<'a> {
     /// then it retries the statement for a given max_attempts times.
     ///
     /// When max_attempts is set to 0 it will it execute it once.
-    pub fn retry_resolve_next(&mut self, stmt: &Statement, max_attempts: usize) -> InterpretResult {
+    pub async fn retry_resolve_next(
+        &mut self,
+        stmt: &Statement,
+        max_attempts: usize,
+    ) -> InterpretResult {
         if let Some(last) = self.position_mut().index.last_mut() {
             *last += 1;
         }
         self.index = 0;
-        self.retry_resolve(stmt, max_attempts)
+        self.retry_resolve(stmt, max_attempts).await
     }
 
     /// Tries to interpret a statement and retries n times on a retry error
@@ -218,8 +182,12 @@ impl<'a> Interpreter<'a> {
     /// then it retries the statement for a given max_attempts times.
     ///
     /// When max_attempts is set to 0 it will it execute it once.
-    pub fn retry_resolve(&mut self, stmt: &Statement, max_attempts: usize) -> InterpretResult {
-        match self.resolve(stmt) {
+    pub async fn retry_resolve(
+        &mut self,
+        stmt: &Statement,
+        max_attempts: usize,
+    ) -> InterpretResult {
+        match self.resolve(stmt).await {
             Ok(x) => Ok(x),
             Err(e) => {
                 if max_attempts > 0 {
@@ -227,7 +195,7 @@ impl<'a> Interpreter<'a> {
                         InterpretErrorKind::LoadError(LoadError::Retry(_))
                         | InterpretErrorKind::IOError(io::ErrorKind::Interrupted)
                         | InterpretErrorKind::StorageError(StorageError::Retry(_)) => {
-                            self.retry_resolve_next(stmt, max_attempts - 1)
+                            Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
                         }
                         _ => Err(e),
                     }
@@ -239,7 +207,7 @@ impl<'a> Interpreter<'a> {
     }
 
     /// Interprets a Statement
-    pub(crate) fn resolve(&mut self, statement: &Statement) -> InterpretResult {
+    pub(crate) async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         self.position_mut().up();
         tracing::trace!(position=?self.position(), statement=statement.to_string(), "executing");
         // On a fork statement run we skip until the root index is reached. Between the root index
@@ -262,138 +230,90 @@ impl<'a> Interpreter<'a> {
         }
 
         let results = {
-            match statement.kind(){
-            Array(position) => {
-                let name = Self::identifier(statement.start())?;
-                let val = self
-                    .register()
-                    .named(&name)
-                    .unwrap_or(&ContextType::Value(NaslValue::Null));
-                let val = val.clone();
-
-                match (position, val) {
-                    (None, ContextType::Value(v)) => Ok(v),
-                    (Some(p), ContextType::Value(NaslValue::Array(x))) => {
-                        let p: &Statement = p;
-                        let position = self.resolve(p)?;
-                        let position = i64::from(&position) as usize;
-                        let result = x.get(position).unwrap_or(&NaslValue::Null);
-                        Ok(result.clone())
-                    }
-                    (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
-                        let position = self.resolve(p)?.to_string();
-                        let result = x.get(&position).unwrap_or(&NaslValue::Null);
-                        Ok(result.clone())
-                    }
-                    (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
-                    (Some(p), _) => Err(InterpretError::unsupported(p, "array")),
-                    (None, ContextType::Function(_, _)) => {
-                        Err(InterpretError::unsupported(statement, "variable"))
-                    }
+            match statement.kind() {
+                Include(inc) => Box::pin(self.include(inc)).await,
+                Array(position) => self.resolve_array(statement, position.clone()).await,
+                Exit(stmt) => self.resolve_exit(stmt).await,
+                Return(stmt) => self.resolve_return(stmt).await,
+                NamedParameter(..) => {
+                    unreachable!("named parameter should not be an executable statement.")
                 }
-            }
-            Exit(stmt) => {
-                let rc = self.resolve(stmt)?;
-                match rc {
-                    NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
-                    _ => Err(InterpretError::unsupported(stmt, "numeric")),
+                For(assignment, condition, update, body) => {
+                    Box::pin(self.for_loop(assignment, condition, update, body)).await
                 }
-            }
-            Return(stmt) => {
-                let rc = self.resolve(stmt)?;
-                Ok(NaslValue::Return(Box::new(rc)))
-            }
-            Include(inc ) => self.include(inc),
-            NamedParameter(..) => {
-                unreachable!("named parameter should not be an executable statement.")
-            }
-            For(assignment, condition, update, body) => {
-                self.for_loop(assignment, condition, update, body)
-            }
-            While(condition, body) => self.while_loop(condition, body),
-            Repeat(body, condition) => self.repeat_loop(body, condition),
-            ForEach(variable, iterable, body) => self.for_each_loop(variable, iterable, body),
-            FunctionDeclaration(name, args, exec) => self.declare_function(name, args.children(), exec),
-            Primitive => TryFrom::try_from(statement.as_token()).map_err(|e: TokenCategory| e.into()),
-            Variable => {
-                let name: NaslValue = TryFrom::try_from(statement.as_token())?;
-                match self.register().named(&name.to_string()) {
-                    Some(ContextType::Value(result)) => Ok(result.clone()),
-                    None => Ok(NaslValue::Null),
-                    Some(ContextType::Function(_, _)) => {
-                        Err(InterpretError::unsupported(statement, "variable"))
-                    }
+                While(condition, body) => Box::pin(self.while_loop(condition, body)).await,
+                Repeat(body, condition) => Box::pin(self.repeat_loop(body, condition)).await,
+                ForEach(variable, iterable, body) => {
+                    Box::pin(self.for_each_loop(variable, iterable, body)).await
                 }
-            }
-            Call(arguments) => self.call(statement.as_token(), arguments.children()),
-            Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
-            // array creation
-            Parameter(x) => {
-                let mut result = vec![];
-                for stmt in x {
-                    let val = self.resolve(stmt)?;
-                    result.push(val);
+                FunctionDeclaration(name, args, exec) => {
+                    self.declare_function(name, args.children(), exec)
                 }
-                Ok(NaslValue::Array(result))
-            }
-            Assign(cat, order, left, right) => self.assign(cat, order, left, right),
-            Operator(sign, stmts) => self.operator(sign, stmts),
-            If(condition, if_block, _, else_block) => match self.resolve(condition) {
-                Ok(value) => {
-                    if bool::from(value) {
-                        return self.resolve(if_block);
-                    } else if let Some(else_block) = else_block {
-                        return self.resolve(else_block.as_ref());
-                    }
-                    Ok(NaslValue::Null)
+                Primitive => self.resolve_primitive(statement),
+                Variable => self.resolve_variable(statement),
+                Call(arguments) => {
+                    Box::pin(self.call(statement.as_token(), arguments.children())).await
                 }
-                Err(err) => Err(err),
-            },
-            Block(blocks) => {
-                self.register_mut().create_child(HashMap::default());
-                for stmt in blocks {
-                    match self.resolve(stmt) {
-                        Ok(x) => {
-                            if matches!(
-                                x,
-                                NaslValue::Exit(_)
-                                    | NaslValue::Return(_)
-                                    | NaslValue::Break
-                                    | NaslValue::Continue
-                            ) {
-                                self.register_mut().drop_last();
-                                return Ok(x);
-                            }
-                        }
-                        Err(e) => return Err(e),
-                    }
+                Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
+                Parameter(x) => self.resolve_parameter(x).await,
+                Assign(cat, order, left, right) => {
+                    Box::pin(self.assign(cat, order, left, right)).await
                 }
-                self.register_mut().drop_last();
-                // currently blocks don't return something
-                Ok(NaslValue::Null)
-            }
-            NoOp => Ok(NaslValue::Null),
-            EoF => Ok(NaslValue::Null),
-            AttackCategory => {
-                match statement.as_token().category() {
-                    TokenCategory::Identifier(IdentifierType::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
-                    _ => unreachable!("AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.", statement.as_token())
-
+                Operator(sign, stmts) => Box::pin(self.operator(sign, stmts)).await,
+                If(condition, if_block, _, else_block) => {
+                    self.resolve_if(condition, if_block, else_block.clone())
+                        .await
                 }
-            },
-            Continue => Ok(NaslValue::Continue),
-            Break => Ok(NaslValue::Break),
-        }
-        .map_err(|e| {
-            if e.origin.is_none() {
-                InterpretError::from_statement(statement, e.kind)
-            } else {
-                e
+                Block(blocks) => self.resolve_block(blocks).await,
+                NoOp => Ok(NaslValue::Null),
+                EoF => Ok(NaslValue::Null),
+                AttackCategory => self.resolve_attack_category(statement),
+                Continue => Ok(NaslValue::Continue),
+                Break => Ok(NaslValue::Break),
             }
-        })
+            .map_err(|e| {
+                if e.origin.is_none() {
+                    InterpretError::from_statement(statement, e.kind)
+                } else {
+                    e
+                }
+            })
         };
         self.position_mut().down();
         results
+    }
+
+    async fn resolve_array(
+        &mut self,
+        statement: &Statement,
+        position: Option<Box<Statement>>,
+    ) -> Result<NaslValue, InterpretError> {
+        let name = Self::identifier(statement.start())?;
+        let val = self
+            .register()
+            .named(&name)
+            .unwrap_or(&ContextType::Value(NaslValue::Null));
+        let val = val.clone();
+
+        match (position, val) {
+            (None, ContextType::Value(v)) => Ok(v),
+            (Some(p), ContextType::Value(NaslValue::Array(x))) => {
+                let position = Box::pin(self.resolve(&p)).await?;
+                let position = i64::from(&position) as usize;
+                let result = x.get(position).unwrap_or(&NaslValue::Null);
+                Ok(result.clone())
+            }
+            (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
+                let position = Box::pin(self.resolve(&p)).await?.to_string();
+                let result = x.get(&position).unwrap_or(&NaslValue::Null);
+                Ok(result.clone())
+            }
+            (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
+            (Some(p), _) => Err(InterpretError::unsupported(&p, "array")),
+            (None, ContextType::Function(_, _)) => {
+                Err(InterpretError::unsupported(statement, "variable"))
+            }
+        }
     }
 
     /// Returns used register
@@ -426,5 +346,97 @@ impl<'a> Interpreter<'a> {
 
     pub(crate) fn skip_until_return(&self) -> Option<&(Position, NaslValue)> {
         self.run_specific[self.index].skip_until_return.as_ref()
+    }
+
+    async fn resolve_exit(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
+        let rc = Box::pin(self.resolve(statement)).await?;
+        match rc {
+            NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
+            _ => Err(InterpretError::unsupported(statement, "numeric")),
+        }
+    }
+
+    async fn resolve_return(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
+        let rc = Box::pin(self.resolve(statement)).await?;
+        Ok(NaslValue::Return(Box::new(rc)))
+    }
+
+    fn resolve_primitive(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
+        TryFrom::try_from(statement.as_token()).map_err(|e: TokenCategory| e.into())
+    }
+
+    fn resolve_variable(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
+        let name: NaslValue = TryFrom::try_from(statement.as_token())?;
+        match self.register().named(&name.to_string()) {
+            Some(ContextType::Value(result)) => Ok(result.clone()),
+            None => Ok(NaslValue::Null),
+            Some(ContextType::Function(_, _)) => {
+                Err(InterpretError::unsupported(statement, "variable"))
+            }
+        }
+    }
+
+    async fn resolve_parameter(&mut self, x: &[Statement]) -> Result<NaslValue, InterpretError> {
+        let mut result = vec![];
+        for stmt in x {
+            let val = Box::pin(self.resolve(stmt)).await?;
+            result.push(val);
+        }
+        Ok(NaslValue::Array(result))
+    }
+
+    async fn resolve_if(
+        &mut self,
+        condition: &Statement,
+        if_block: &Statement,
+        else_block: Option<Box<Statement>>,
+    ) -> Result<NaslValue, InterpretError> {
+        match Box::pin(self.resolve(condition)).await {
+            Ok(value) => {
+                if bool::from(value) {
+                    return Box::pin(self.resolve(if_block)).await;
+                } else if let Some(else_block) = else_block {
+                    return Box::pin(self.resolve(else_block.as_ref())).await;
+                }
+                Ok(NaslValue::Null)
+            }
+            Err(err) => Err(err),
+        }
+    }
+
+    async fn resolve_block(&mut self, blocks: &[Statement]) -> Result<NaslValue, InterpretError> {
+        self.register_mut().create_child(HashMap::default());
+        for stmt in blocks {
+            match Box::pin(self.resolve(stmt)).await {
+                Ok(x) => {
+                    if matches!(
+                        x,
+                        NaslValue::Exit(_)
+                            | NaslValue::Return(_)
+                            | NaslValue::Break
+                            | NaslValue::Continue
+                    ) {
+                        self.register_mut().drop_last();
+                        return Ok(x);
+                    }
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        self.register_mut().drop_last();
+        // currently blocks don't return something
+        Ok(NaslValue::Null)
+    }
+
+    fn resolve_attack_category(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
+        match statement.as_token().category() {
+            TokenCategory::Identifier(IdentifierType::ACT(cat)) => {
+                Ok(NaslValue::AttackCategory(*cat))
+            }
+            _ => unreachable!(
+                "AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.",
+                statement.as_token()
+            ),
+        }
     }
 }

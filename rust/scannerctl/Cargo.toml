@@ -21,13 +21,15 @@ nasl-interpreter = { path = "../nasl-interpreter", default-features = false }
 storage = { path = "../storage" }
 redis-storage = { path = "../redis-storage" }
 json-storage = { path = "../json-storage" }
+notus = { version = "0.1.0", path = "../notus" }
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17" }
+tracing-subscriber = "0.3.17"
 serde_json = "1.0.96"
 toml = "0.8.6"
 serde = "1.0.190"
-notus = { version = "0.1.0", path = "../notus" }
 quick-xml = { version = "0.28.1", features = ["serialize"] }
+tokio = { workspace = true }
+futures = { workspace = true }
 
 
 [features]

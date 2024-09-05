@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 nasl-builtin-utils = {path = "../nasl-builtin-utils"}
-nasl-syntax = {path = "../nasl-syntax"}
 nasl-function-proc-macro = {path = "../nasl-function-proc-macro"}
+nasl-syntax = {path = "../nasl-syntax"}
 storage = {path = "../storage"}
 
 [dev-dependencies]

@@ -4,7 +4,7 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use nasl_builtin_utils::NaslVars;
+use nasl_builtin_utils::{function_set, NaslVars};
 use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
@@ -13,7 +13,7 @@ use std::{net::Ipv4Addr, str::FromStr};
 use pcap::{Capture, Device};
 
 use nasl_builtin_host::get_host_ip;
-use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, NaslFunction, Register};
+use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, Register};
 use nasl_syntax::NaslValue;
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
@@ -547,18 +547,6 @@ fn nasl_dump_frame(register: &Register, _: &Context) -> Result<NaslValue, Functi
     Ok(NaslValue::Null)
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "send_frame" => Some(nasl_send_frame),
-        "dump_frame" => Some(nasl_dump_frame),
-        "forge_frame" => Some(nasl_forge_frame),
-        "get_local_mac_address_from_ip" => Some(nasl_get_local_mac_address_from_ip),
-        "send_arp_request" => Some(nasl_send_arp_request),
-        _ => None,
-    }
-}
-
 /// Returns a NaslVars with all predefined variables which must be expose to nasl script
 pub fn expose_vars() -> NaslVars<'static> {
     let builtin_vars: NaslVars = [
@@ -579,6 +567,20 @@ pub fn expose_vars() -> NaslVars<'static> {
     .cloned()
     .collect();
     builtin_vars
+}
+
+pub struct FrameForgery;
+
+function_set! {
+    FrameForgery,
+    sync_stateless,
+    (
+        (nasl_send_frame, "send_frame"),
+        (nasl_dump_frame, "dump_frame"),
+        (nasl_forge_frame, "forge_frame"),
+        (nasl_get_local_mac_address_from_ip, "get_local_mac_address_from_ip"),
+        (nasl_send_arp_request, "send_arp_request"),
+    )
 }
 
 #[cfg(test)]

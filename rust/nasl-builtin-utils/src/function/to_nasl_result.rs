@@ -106,16 +106,26 @@ impl ToNaslResult for bool {
 }
 
 macro_rules! impl_to_nasl_result_for_numeric_type {
-    ($ty: ty) => {
+    ($ty: ty, skip_vec_impl) => {
         impl ToNaslResult for $ty {
             fn to_nasl_result(self) -> NaslResult {
                 Ok(NaslValue::Number(self as i64))
             }
         }
     };
+    ($ty: ty) => {
+        impl_to_nasl_result_for_numeric_type!($ty, skip_vec_impl);
+        impl ToNaslResult for Vec<$ty> {
+            fn to_nasl_result(self) -> NaslResult {
+                let collected: Result<Vec<_>, FunctionErrorKind> =
+                    self.into_iter().map(|x| x.to_nasl_result()).collect();
+                Ok(NaslValue::Array(collected?))
+            }
+        }
+    };
 }
 
-impl_to_nasl_result_for_numeric_type!(u8);
+impl_to_nasl_result_for_numeric_type!(u8, skip_vec_impl);
 impl_to_nasl_result_for_numeric_type!(i32);
 impl_to_nasl_result_for_numeric_type!(i64);
 impl_to_nasl_result_for_numeric_type!(u32);

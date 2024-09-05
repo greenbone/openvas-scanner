@@ -9,8 +9,10 @@
 
 use std::collections::HashMap;
 
-use nasl_builtin_utils::function::{CheckedPositionals, Positionals};
-use nasl_builtin_utils::NaslFunction;
+use nasl_builtin_utils::{
+    function::{CheckedPositionals, Positionals},
+    function_set,
+};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
@@ -80,14 +82,16 @@ fn max_index(arr: &NaslValue) -> Option<usize> {
     }
 }
 
-/// Returns found function for key or None when not found
-pub(crate) fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "make_array" => Some(make_array),
-        "make_list" => Some(make_list),
-        "sort" => Some(nasl_sort),
-        "keys" => Some(keys),
-        "max_index" => Some(max_index),
-        _ => None,
-    }
+pub struct Array;
+
+function_set! {
+    Array,
+    sync_stateless,
+    (
+        make_array,
+        make_list,
+        (nasl_sort, "sort"),
+        keys,
+        max_index,
+    )
 }

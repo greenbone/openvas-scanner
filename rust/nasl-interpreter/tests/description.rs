@@ -20,22 +20,17 @@ impl Loader for NoOpLoader {
 
 #[cfg(test)]
 mod tests {
-
     use std::collections::BTreeMap;
+    use std::sync::Arc;
 
-    use nasl_builtin_utils::Context;
-    use nasl_builtin_utils::ContextType;
-    use nasl_builtin_utils::Register;
-    use nasl_interpreter::InterpretError;
-    use nasl_interpreter::Interpreter;
-
-    use nasl_syntax::parse;
+    use nasl_builtin_std::ContextFactory;
+    use nasl_interpreter::test_utils::TestBuilder;
     use nasl_syntax::NaslValue;
-
     use storage::item;
     use storage::item::NvtPreference;
     use storage::item::NvtRef;
     use storage::item::PreferenceType::*;
+    use storage::item::TagKey;
     use storage::item::ACT::Denial;
     use storage::DefaultDispatcher;
     use storage::Retriever;
@@ -45,53 +40,42 @@ mod tests {
     #[test]
     fn description() {
         let code = r#"
-rc = 23;
-if(description)
-{
-  script_oid("0.0.0.0.0.0.0.0.0.1");
-  script_version("2022-11-14T13:47:12+0000");
-  script_tag(name:"creation_date", value:"2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)");
-  script_name("that is a very long and descriptive name");
-  script_category(ACT_DENIAL);
-  script_copyright("Copyright (C) 2022 Greenbone AG");
-  script_family("Denial of Service");
-  script_dependencies("ssh_detect.nasl", "ssh2.nasl");
-  script_require_ports("Services/ssh", 22);
-  script_mandatory_keys("ssh/blubb/detected");
-  script_xref(name:"URL", value:"http://freshmeat.sourceforge.net/projects/eventh/");
-  script_exclude_keys("Settings/disable_cgi_scanning", "bla/bla");
-  script_require_udp_ports("Services/udp/unknown", 17);
-  script_cve_id("CVE-1999-0524");
-  script_require_keys("WMI/Apache/RootPath");
-  script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
-  script_add_preference(name:"Without ID", type:"password", value:"");
-  exit(rc);
-}
-        "#;
-        let storage = DefaultDispatcher::new(true);
-        let loader = NoOpLoader::default();
-        let initial = [(
-            "description".to_owned(),
-            ContextType::Value(NaslValue::Number(1)),
-        )];
-        let register = Register::root_initial(&initial);
+    rc = 23;
+    if(description)
+    {
+      script_oid("0.0.0.0.0.0.0.0.0.1");
+      script_version("2022-11-14T13:47:12+0000");
+      script_tag(name:"creation_date", value:"2013-04-16 11:21:21 +0530 (Tue, 16 Apr 2013)");
+      script_name("that is a very long and descriptive name");
+      script_category(ACT_DENIAL);
+      script_copyright("Copyright (C) 2022 Greenbone Networks GmbH");
+      script_family("Denial of Service");
+      script_dependencies("ssh_detect.nasl", "ssh2.nasl");
+      script_require_ports("Services/ssh", 22);
+      script_mandatory_keys("ssh/blubb/detected");
+      script_xref(name:"URL", value:"http://freshmeat.sourceforge.net/projects/eventh/");
+      script_exclude_keys("Settings/disable_cgi_scanning", "bla/bla");
+      script_require_udp_ports("Services/udp/unknown", 17);
+      script_cve_id("CVE-1999-0524");
+      script_require_keys("WMI/Apache/RootPath");
+      script_add_preference(name:"Enable Password", type:"password", value:"", id:2);
+      script_add_preference(name:"Without ID", type:"password", value:"");
+      exit(rc);
+    }
+            "#;
+        let storage = Arc::new(DefaultDispatcher::new());
         let key: storage::ContextKey = "test.nasl".into();
-        let target = String::new();
-        let functions = nasl_builtin_std::nasl_std_functions();
-        let ctxconfigs = Context::new(key.clone(), target, &storage, &storage, &loader, &functions);
-        let mut interpreter = Interpreter::new(register, &ctxconfigs);
-        let results = parse(code)
-            .map(|stmt| match stmt {
-                Ok(stmt) => interpreter.retry_resolve_next(&stmt, 1),
-                Err(r) => Err(InterpretError::from(r)),
-            })
-            .last()
-            // for the case of NaslValue that returns nothing
-            .unwrap_or(Ok(NaslValue::Exit(0)));
-        assert_eq!(results, Ok(NaslValue::Exit(23)));
+        let context = ContextFactory::new(NoOpLoader::default(), storage.clone());
+        let mut t = TestBuilder::default()
+            .with_context(context)
+            .with_context_key(key.clone());
+        t.set_variable("description", NaslValue::Number(1));
+        t.run_all(code);
+        let results = t.results();
+        assert_eq!(*results.last().unwrap(), Ok(NaslValue::Exit(23)));
 
         let mut tag = BTreeMap::new();
-        tag.insert(storage::item::TagKey::CreationDate, 1366091481.into());
+        tag.insert(TagKey::CreationDate, 1366091481.into());
         assert_eq!(
             storage
                 .retrieve(&key, storage::Retrieve::NVT(None))

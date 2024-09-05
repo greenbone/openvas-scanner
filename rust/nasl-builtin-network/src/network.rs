@@ -8,7 +8,7 @@ use crate::{
     network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
     verify_port, DEFAULT_PORT,
 };
-use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind};
 use nasl_function_proc_macro::nasl_function;
 use storage::{types::Primitive, Field, Kb};
 
@@ -151,33 +151,18 @@ fn scanner_add_port(
     Ok(())
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "scanner_add_port" => Some(scanner_add_port),
-        "islocalnet" => Some(islocalnet),
-        "islocalhost" => Some(nasl_islocalhost),
-        "this_host" => Some(this_host),
-        "this_host_name" => Some(this_host_name),
-        "get_mtu" => Some(get_mtu),
-        "get_host_ip" => Some(get_host_ip),
-        _ => None,
-    }
-}
-
 pub struct Network;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Network {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+function_set! {
+    Network,
+    sync_stateless,
+    (
+        scanner_add_port,
+        islocalnet,
+        (nasl_islocalhost, "islocalhost"),
+        this_host,
+        this_host_name,
+        get_mtu,
+        get_host_ip,
+    )
 }

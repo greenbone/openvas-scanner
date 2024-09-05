@@ -10,7 +10,7 @@ use crate::{add_verbose, CliError};
 
 pub mod check;
 
-pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, verbose) = crate::get_args_set_logging(root, "syntax")?;
     let path = match args.get_one::<PathBuf>("path").cloned() {
         Some(path) => path,

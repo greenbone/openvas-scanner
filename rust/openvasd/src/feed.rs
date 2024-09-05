@@ -8,6 +8,7 @@ use std::{
 };
 
 use storage::{ContextKey, StorageError};
+
 #[derive(Debug, Default, Clone)]
 pub struct FeedIdentifier {
     oids: Arc<RwLock<Vec<String>>>,
@@ -15,7 +16,10 @@ pub struct FeedIdentifier {
 
 impl FeedIdentifier {
     /// Get the oids from a feed
-    pub fn from_feed<S>(path: S, signature_check: bool) -> Result<Vec<String>, feed::UpdateError>
+    pub async fn from_feed<S>(
+        path: S,
+        signature_check: bool,
+    ) -> Result<Vec<String>, feed::UpdateError>
     where
         S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
     {
@@ -59,9 +63,7 @@ impl FeedIdentifier {
             tracing::warn!("Signature check disabled");
         }
 
-        for s in updater {
-            s?;
-        }
+        updater.perform_update().await?;
 
         let oids = oids.read().map_err(|e| feed::UpdateError {
             kind: feed::UpdateErrorKind::StorageError(StorageError::from(e)),
@@ -103,7 +105,7 @@ impl storage::Dispatcher for FeedIdentifier {
         Ok(())
     }
 
-    fn on_exit(&self) -> Result<(), storage::StorageError> {
+    fn on_exit(&self, _: &ContextKey) -> Result<(), storage::StorageError> {
         Ok(())
     }
 }

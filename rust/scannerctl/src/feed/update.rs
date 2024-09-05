@@ -9,7 +9,7 @@ use storage::Dispatcher;
 
 use crate::CliError;
 
-pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
+pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
     S: Sync + Send + Dispatcher,
 {
@@ -48,10 +48,7 @@ where
         tracing::warn!("Signature check disabled");
     }
 
-    for s in updater {
-        let s = s?;
-        tracing::trace!("updated {s}");
-    }
+    updater.perform_update().await?;
 
     Ok(())
 }

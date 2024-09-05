@@ -30,28 +30,6 @@ let loader = FSPluginLoader::new(path);
 let verifier = feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
 ```
 
-## Update
-
-Is [implemented](./src/update/mod.rs) as a Iterator over String and [UpdateError](./src/update/error.rs) and utilizes an iterator over filenames as String and [VerifyError](./src/verify/mod.rs).
-
-### Example
-
-```no_run
-use nasl_interpreter::{Interpreter, FSPluginLoader, Register};
-use storage::DefaultDispatcher;
-let storage: DefaultDispatcher = DefaultDispatcher::new(false);
-let path = "/var/lib/openvas/plugins/";
-let loader = FSPluginLoader::new(path);
-let verifier = feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
-let max_retries = 5;
-let openvas_version = "1";
-let updater = feed::Update::init(openvas_version, max_retries, &loader, &storage, verifier);
-
-for s in updater {
-    println!("updated {s:?}");
-}
-```
-
 ## Current status
 
 Only feed update is implemented.

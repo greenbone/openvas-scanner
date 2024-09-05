@@ -5,24 +5,32 @@
 use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
+use feed::{HashSumNameLoader, Update};
+use futures::StreamExt;
+use nasl_interpreter::{
+    nasl_std_functions,
+    scheduling::{ExecutionPlaner, WaveExecutionPlan},
+    ScanRunner,
+};
 use nasl_syntax::FSPluginLoader;
+use tracing::{info, warn, warn_span};
 
 use crate::{interpret, CliError, CliErrorKind, Db};
 
-pub fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, _) = crate::get_args_set_logging(root, "execute")?;
     match args.subcommand() {
-        Some(("script", args)) => script(args),
-        Some(("scan", args)) => Some(scan(args)),
+        Some(("script", args)) => script(args).await,
+        Some(("scan", args)) => Some(scan(args).await),
         Some((x, _)) => panic!("Unknown subcommand{}", x),
         None => {
-            tracing::warn!("`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions");
-            script(args)
+            warn!("`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions");
+            script(args).await
         }
     }
 }
 
-fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
+async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
     let scan: models::Scan = if stdin {
         tracing::debug!("reading scan config from stdin");
@@ -48,23 +56,20 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
 
     let feed = args
         .get_one::<PathBuf>("path")
-        .expect("A feed path is required to run a scan");
-    let storage = storage::DefaultDispatcher::new(true);
-    tracing::info!("loading feed. This may take a while.");
+        .expect("A feed path is required to run a scan")
+        .clone();
+    let storage = storage::DefaultDispatcher::new();
+    info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(feed);
-    let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
-    for s in updater {
-        let s = s?;
-        tracing::trace!("updated {s}");
-    }
+    let verifier = HashSumNameLoader::sha256(&loader)?;
+    let updater = Update::init("1", 5, &loader, &storage, verifier);
+    updater.perform_update().await?;
 
-    use nasl_interpreter::scheduling::ExecutionPlaner;
     let schedule = storage
-        .execution_plan::<nasl_interpreter::scheduling::WaveExecutionPlan>(&scan)
+        .execution_plan::<WaveExecutionPlan>(&scan)
         .expect("expected to be schedulable");
-    tracing::info!("creating scheduling plan");
+    info!("creating scheduling plan");
     if schedule_only {
         for (i, r) in schedule.enumerate() {
             let (stage, vts) = r.expect("should be resolvable");
@@ -78,52 +83,48 @@ fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
             );
         }
     } else {
-        let interpreter = nasl_interpreter::SyncScanInterpreter::with_default_function_executor(
-            &storage, &loader,
-        );
-        match interpreter
-            .run_with_schedule(&scan, schedule) {
-            Err(e) => {
-                return Err(CliError { filename: Default::default(), kind: e.into() })
-            }
-            Ok(x) => {
-                x.filter_map(|x|{
-                    match x {
-                        Ok(x) => Some(x),
-                        Err(e) => {
-                            tracing::warn!(error=?e, "failed to execute script.");
-                            None
-                        }
-                    }
-                }).for_each(|x|{
-                    let _span = tracing::warn_span!("script_result", ilename=x.filename, oid=x.oid, stage=%x.stage).entered();
+        let executor = nasl_std_functions();
+        let runner: ScanRunner<(_, _)> =
+            ScanRunner::new(&storage, &loader, &executor, schedule, &scan).unwrap();
+        let mut results = Box::pin(runner.stream());
+        while let Some(x) = results.next().await {
+            match x {
+                Ok(x) => {
+                    let _span =
+                        warn_span!("script_result", filename=x.filename, oid=x.oid, stage=%x.stage)
+                            .entered();
                     if x.has_succeeded() {
-                            tracing::info!("success")
-                        } else {
-                            tracing::warn!(kind=?x.kind,"failed")
-
-                        }
-                })
-            },
-        };
+                        info!("success")
+                    } else {
+                        warn!(kind=?x.kind, "failed")
+                    }
+                }
+                Err(e) => {
+                    warn!(error=?e, "failed to execute script.");
+                }
+            }
+        }
     }
 
     Ok(())
 }
 
-fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
+async fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = args.get_one::<PathBuf>("path").cloned();
     let script = match args.get_one::<String>("script").cloned() {
         Some(path) => path,
         _ => unreachable!("path is set to required"),
     };
     let target = args.get_one::<String>("target").cloned();
-    Some(interpret::run(
-        &Db::InMemory,
-        feed.clone(),
-        &script.to_string(),
-        target.clone(),
-    ))
+    Some(
+        interpret::run(
+            &Db::InMemory,
+            feed.clone(),
+            &script.to_string(),
+            target.clone(),
+        )
+        .await,
+    )
 }
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(crate::add_verbose(

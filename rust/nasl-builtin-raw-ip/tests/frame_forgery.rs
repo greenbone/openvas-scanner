@@ -5,96 +5,70 @@
 //! Defines NASL frame forgery and arp functions
 #[cfg(test)]
 mod tests {
-
-    //use super::convert_vec_into_mac_address;
-
-    use nasl_builtin_std::ContextFactory;
-    use nasl_builtin_utils::Register;
-    use nasl_interpreter::CodeInterpreter;
+    use nasl_builtin_raw_ip::RawIp;
+    use nasl_builtin_std::{nasl_std_functions, ContextFactory};
+    use nasl_interpreter::test_utils::TestBuilder;
     use nasl_syntax::NaslValue;
+
+    fn setup() -> TestBuilder<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
+        let t = TestBuilder::default();
+        let mut context = ContextFactory::default();
+        context.functions = nasl_std_functions();
+        context.functions.add_set(RawIp);
+        t.with_context(context)
+    }
 
     #[test]
     fn get_local_mac_address_from_ip() {
-        let code = r#"
-        get_local_mac_address_from_ip(127.0.0.1);
-        get_local_mac_address_from_ip("127.0.0.1");
-        get_local_mac_address_from_ip("::1");
-        "#;
-        let register = Register::default();
-        let mut binding = ContextFactory::default();
-        binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
+        let mut t = setup();
+        t.ok(
+            "get_local_mac_address_from_ip(127.0.0.1);",
+            "00:00:00:00:00:00",
         );
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
+        t.ok(
+            r#"get_local_mac_address_from_ip("127.0.0.1");"#,
+            "00:00:00:00:00:00",
         );
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::String("00:00:00:00:00:00".to_string())))
+        t.ok(
+            r#"get_local_mac_address_from_ip("::1");"#,
+            "00:00:00:00:00:00",
         );
     }
 
     #[test]
     fn forge_frame() {
-        let code = r#"
-        src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
-        dst = "0a:0b:0c:0d:0e:0f";
-        a = forge_frame(src_haddr: src , dst_haddr: dst,
-        ether_proto: 0x0806, payload: "abcd" );
-        dump_frame(frame:a);
-        "#;
-        let register = Register::default();
-        let mut binding = ContextFactory::default();
-        binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        parser.next();
-        parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Data(vec![
-                0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
-                0x61, 0x62, 0x63, 0x64
-            ])))
-        );
-        // This dumps the forged frame. To see it in the tests output, run the tests with
-        // `cargo test -- --nocapture`
-        parser.next();
+        let mut t = setup();
+        t.run(r#"src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);"#);
+        t.run(r#"dst = "0a:0b:0c:0d:0e:0f";"#);
+        t.ok(r#"a = forge_frame(src_haddr: src , dst_haddr: dst,ether_proto: 0x0806, payload: "abcd" );"#
+                , vec![
+                    0x0au8, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
+                    0x61, 0x62, 0x63, 0x64
+                ]);
+        t.run(r#"dump_frame(frame:a);"#);
     }
+
     #[test]
     fn send_frame() {
-        let code = r#"
-        src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);
-        dst = "0a:0b:0c:0d:0e:0f";
-        a = forge_frame(src_haddr: src , dst_haddr: dst,
-        ether_proto: 0x0806, payload: "abcd" );
-        send_frame(frame: a, pcap_active: FALSE);
-        send_frame(frame: a, pcap_active: TRUE);
-        send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);
-        "#;
-        let mut binding = ContextFactory::default();
-        binding.functions.push_executer(nasl_builtin_raw_ip::RawIp);
-        let context = binding.build(Default::default(), Default::default());
-        let register = Register::default();
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        parser.next();
-        parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Data(vec![
-                0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
-                0x61, 0x62, 0x63, 0x64
-            ])))
+        let mut t = setup();
+        t.run(r#"src = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06);"#);
+        t.run(r#"dst = "0a:0b:0c:0d:0e:0f";"#);
+        t.ok(r#"a = forge_frame(src_haddr: src , dst_haddr: dst, ether_proto: 0x0806, payload: "abcd");"#
+                , vec![
+                    0x0au8, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x06,
+                    0x61, 0x62, 0x63, 0x64
+                ]);
+        t.ok(
+            r#"send_frame(frame: a, pcap_active: FALSE);"#,
+            NaslValue::Null,
         );
-
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
+        t.ok(
+            r#"send_frame(frame: a, pcap_active: TRUE);"#,
+            NaslValue::Null,
+        );
+        t.ok(
+            r#"send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);"#,
+            NaslValue::Null,
+        );
     }
 }

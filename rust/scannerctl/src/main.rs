@@ -51,7 +51,8 @@ fn get_path_from_openvas(config: Ini) -> PathBuf {
     )
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let matches = add_verbose(
         Command::new("scannerctl")
             .version("1.0")
@@ -63,7 +64,7 @@ fn main() {
     let matches = execute::extend_args(matches);
     let matches = notusupdate::scanner::extend_args(matches);
     let matches = feed::extend_args(matches).get_matches();
-    let result = run(&matches);
+    let result = run(&matches).await;
 
     match result {
         Ok(_) => {}
@@ -81,18 +82,21 @@ fn main() {
     }
 }
 
-fn run(matches: &ArgMatches) -> Result<(), CliError> {
-    let functions = [
-        feed::run,
-        syntax::run,
-        execute::run,
-        scanconfig::run,
-        notusupdate::scanner::run,
-    ];
-    for f in functions.iter() {
-        if let Some(result) = f(matches) {
-            return result;
-        }
+async fn run(matches: &ArgMatches) -> Result<(), CliError> {
+    if let Some(result) = feed::run(matches).await {
+        return result;
+    }
+    if let Some(result) = syntax::run(matches).await {
+        return result;
+    }
+    if let Some(result) = execute::run(matches).await {
+        return result;
+    }
+    if let Some(result) = scanconfig::run(matches).await {
+        return result;
+    }
+    if let Some(result) = notusupdate::scanner::run(matches).await {
+        return result;
     }
     Err(CliError {
         filename: "".to_string(),

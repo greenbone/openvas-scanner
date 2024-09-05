@@ -8,7 +8,7 @@ use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use nasl_builtin_utils::{
     function::{CheckedPositionals, FromNaslValue, Maybe},
-    Context, FunctionErrorKind, NaslFunction, Register,
+    function_set, Context, FunctionErrorKind, Register,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
@@ -343,7 +343,7 @@ fn str_to_int(s: &str) -> i64 {
 /// 4rd positional argument (optional): end index in the original string at which to perform the replacement.
 #[nasl_function]
 fn insstr(
-    mut s: NaslValue,
+    s: NaslValue,
     to_insert: NaslValue,
     start: usize,
     end: Option<usize>,
@@ -487,50 +487,34 @@ fn strstr(string: NaslValue, find: NaslValue) -> NaslValue {
     }
     NaslValue::Null
 }
-
-/// Returns found function for key or None when not found
-fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "hexstr" => Some(hexstr),
-        "hex" => Some(hex),
-        "raw_string" => Some(raw_string),
-        "strcat" => Some(raw_string),
-        "tolower" => Some(tolower),
-        "toupper" => Some(toupper),
-        "strlen" => Some(strlen),
-        "string" => Some(string),
-        "substr" => Some(substr),
-        "crap" => Some(crap),
-        "chomp" => Some(chomp),
-        "stridx" => Some(stridx),
-        "display" => Some(display),
-        "hexstr_to_data" => Some(hexstr_to_data),
-        "data_to_hexstr" => Some(data_to_hexstr),
-        "ord" => Some(ord),
-        "match" => Some(match_),
-        "insstr" => Some(insstr),
-        "int" => Some(int),
-        "split" => Some(split),
-        "str_replace" => Some(str_replace),
-        "strstr" => Some(strstr),
-        _ => None,
-    }
-}
-
 /// The description builtin function
 pub struct NaslString;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for NaslString {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+function_set! {
+    NaslString,
+    sync_stateless,
+    (
+        hexstr,
+        hex,
+        (raw_string, "raw_string"),
+        (raw_string, "strcat"),
+        tolower,
+        toupper,
+        strlen,
+        string,
+        substr,
+        crap,
+        chomp,
+        stridx,
+        display,
+        hexstr_to_data,
+        data_to_hexstr,
+        ord,
+        (match_, "match"),
+        insstr,
+        int,
+        split,
+        str_replace,
+        strstr
+    )
 }

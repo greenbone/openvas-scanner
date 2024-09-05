@@ -15,13 +15,8 @@ use nasl_builtin_utils::ContextType;
 use nasl_syntax::NaslValue;
 use std::collections::HashMap;
 
-/// Is a trait to handle function calls within nasl.
-pub(crate) trait CallExtension {
-    fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult;
-}
-
-impl<'a> CallExtension for Interpreter<'a> {
-    fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
+impl<'a> Interpreter<'a> {
+    pub async fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context
         let mut named = HashMap::new();
@@ -30,12 +25,12 @@ impl<'a> CallExtension for Interpreter<'a> {
         for p in arguments {
             match p.kind() {
                 NamedParameter(val) => {
-                    let val = self.resolve(val)?;
+                    let val = self.resolve(val).await?;
                     let name = Self::identifier(p.as_token())?;
                     named.insert(name, ContextType::Value(val));
                 }
                 _ => {
-                    let val = self.resolve(p)?;
+                    let val = self.resolve(p).await?;
                     position.push(val);
                 }
             }
@@ -45,7 +40,7 @@ impl<'a> CallExtension for Interpreter<'a> {
             ContextType::Value(NaslValue::Array(position)),
         );
         self.register_mut().create_root_child(named);
-        let result = match self.ctxconfigs.nasl_fn_execute(name, self.register()) {
+        let result = match self.ctxconfigs.nasl_fn_execute(name, self.register()).await {
             Some(r) => {
                 if let Ok(NaslValue::Fork(mut x)) = r {
                     Ok(if let Some(r) = x.pop() {
@@ -95,7 +90,7 @@ impl<'a> CallExtension for Interpreter<'a> {
                                 Some(_) => {}
                             }
                         }
-                        match self.resolve(&stmt)? {
+                        match self.resolve(&stmt).await? {
                             NaslValue::Return(x) => Ok(*x),
                             a => Ok(a),
                         }
@@ -111,24 +106,18 @@ impl<'a> CallExtension for Interpreter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use crate::test_utils::TestBuilder;
 
     #[test]
     fn default_null_on_user_defined_functions() {
-        let code = r###"
-        function test(a, b) {
+        let mut t = TestBuilder::default();
+        t.run(
+            "function test(a, b) {
             return a + b;
-        }
-        test(a: 1, b: 2);
-        test(a: 1);
-        test();
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert_eq!(parser.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(parser.next(), Some(Ok(3.into())));
-        assert_eq!(parser.next(), Some(Ok(1.into())));
+        }",
+        );
+        t.ok("test(a: 1, b: 2);", 3);
+        t.ok("test(a: 1);", 1);
+        t.ok("test();", 0);
     }
 }

@@ -4,7 +4,7 @@
 
 //! Is a module to get oids within a feed
 
-use std::{fs::File, io::Read};
+use std::fs::File;
 
 use nasl_interpreter::{AsBufReader, Loader};
 use nasl_syntax::{IdentifierType, Statement, StatementKind, TokenCategory};
@@ -20,11 +20,10 @@ pub struct Oid<L, V> {
     loader: L,
     verifier: V,
 }
-impl<'a, L, V, R> Oid<L, V>
+impl<'a, L, V> Oid<L, V>
 where
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
+    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
 {
     /// Creates an oid finder. Returns a tuple of (filename, oid).
     ///
@@ -71,11 +70,10 @@ where
     }
 }
 
-impl<'a, L, V, R> Iterator for Oid<L, V>
+impl<'a, L, V> Iterator for Oid<L, V>
 where
     L: Sync + Send + Loader + AsBufReader<File>,
-    V: Iterator<Item = Result<HashSumFileItem<'a, R>, verify::Error>>,
-    R: Read + 'a,
+    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
 {
     type Item = Result<(String, String), update::Error>;
 

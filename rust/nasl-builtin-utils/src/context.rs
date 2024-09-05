@@ -7,7 +7,7 @@
 use nasl_syntax::{Loader, NaslValue, Statement};
 use storage::{ContextKey, Dispatcher, Retriever};
 
-use crate::lookup_keys::FC_ANON_ARGS;
+use crate::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 
@@ -344,7 +344,7 @@ pub struct Context<'a> {
     /// Default Loader
     loader: &'a dyn Loader,
     /// Default function executor.
-    executor: &'a dyn super::NaslFunctionExecuter,
+    executor: &'a Executor,
 }
 
 impl<'a> Context<'a> {
@@ -355,7 +355,7 @@ impl<'a> Context<'a> {
         dispatcher: &'a dyn Dispatcher,
         retriever: &'a dyn Retriever,
         loader: &'a dyn Loader,
-        executor: &'a dyn super::NaslFunctionExecuter,
+        executor: &'a Executor,
     ) -> Self {
         Self {
             key,
@@ -370,17 +370,21 @@ impl<'a> Context<'a> {
     /// Executes a function by name
     ///
     /// Returns None when the function was not found.
-    pub fn nasl_fn_execute(&self, name: &str, register: &Register) -> Option<super::NaslResult> {
-        self.executor.nasl_fn_execute(name, register, self)
+    pub async fn nasl_fn_execute(
+        &self,
+        name: &str,
+        register: &Register,
+    ) -> Option<super::NaslResult> {
+        self.executor.exec(name, self, register).await
     }
 
     /// Checks if a function is defined
     pub fn nasl_fn_defined(&self, name: &str) -> bool {
-        self.executor.nasl_fn_defined(name)
+        self.executor.contains(name)
     }
 
     /// Get the executor
-    pub fn executor(&self) -> &'a dyn super::NaslFunctionExecuter {
+    pub fn executor(&self) -> &'a Executor {
         self.executor
     }
 
@@ -388,18 +392,22 @@ impl<'a> Context<'a> {
     pub fn key(&self) -> &ContextKey {
         &self.key
     }
+
     /// Get the target host
     pub fn target(&self) -> &str {
         &self.target
     }
+
     /// Get the storage
     pub fn dispatcher(&self) -> &dyn Dispatcher {
         self.dispatcher
     }
+
     /// Get the storage
     pub fn retriever(&self) -> &dyn Retriever {
         self.retriever
     }
+
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader

@@ -129,7 +129,7 @@ where
 
 impl<S> storage::Retriever for ItemDispatcher<S>
 where
-    S: Write,
+    S: Write + Send,
 {
     fn retrieve(
         &self,

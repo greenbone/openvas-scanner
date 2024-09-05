@@ -81,24 +81,6 @@ impl Debug for RedisCtx {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct RedisVectorHandler {
-    v: Vec<String>,
-}
-
-impl FromRedisValue for RedisVectorHandler {
-    fn from_redis_value(v: &Value) -> redis::RedisResult<RedisVectorHandler> {
-        match v {
-            Value::Nil => Ok(RedisVectorHandler { v: Vec::new() }),
-            _ => {
-                let new_var: String = from_redis_value(v).unwrap_or_default();
-                let nv = vec![new_var];
-                Ok(RedisVectorHandler { v: nv })
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
 struct RedisValueHandler {
     v: String,
 }
@@ -752,7 +734,7 @@ where
 
 impl<S> storage::Retriever for CacheDispatcher<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     fn retrieve(
         &self,
@@ -778,7 +760,7 @@ where
         _field: storage::Field,
         _scope: storage::Retrieve,
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
-        todo!()
+        unimplemented!()
     }
 
     fn retrieve_by_fields(
@@ -787,6 +769,27 @@ where
         _: storage::Retrieve,
     ) -> storage::FieldKeyResult {
         todo!()
+    }
+}
+
+impl<S> storage::Remover for CacheDispatcher<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
+{
+    fn remove_kb(
+        &self,
+        _key: &ContextKey,
+        _kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
+        unimplemented!()
+    }
+
+    fn remove_result(
+        &self,
+        _key: &ContextKey,
+        _result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
+        unimplemented!()
     }
 }
 
@@ -909,12 +912,11 @@ mod tests {
         let kbs = Arc::new(Mutex::new(Vec::new()));
         let rcache = CacheDispatcher { cache, kbs };
         let dispatcher = PerItemDispatcher::new(rcache);
+        let key = storage::ContextKey::FileName("test.nasl".to_string());
         for c in commands {
-            dispatcher
-                .dispatch(&storage::ContextKey::FileName("test.nasl".to_string()), c)
-                .unwrap();
+            dispatcher.dispatch(&key, c).unwrap();
         }
-        dispatcher.on_exit().unwrap();
+        dispatcher.on_exit(&key).unwrap();
         let mut results = 0;
         loop {
             match rx.try_recv() {

@@ -7,8 +7,8 @@ mod tests {
     use chrono::Offset;
 
     use nasl_interpreter::{
-        check_err_matches, check_ok_matches,
-        test_utils::{check_multiple, check_ok, run},
+        check_code_result_matches, check_err_matches,
+        test_utils::{check_code_result, TestBuilder},
         FunctionErrorKind,
     };
     use nasl_syntax::NaslValue;
@@ -16,66 +16,68 @@ mod tests {
 
     #[test]
     fn rand() {
-        check_ok_matches!("rand();", NaslValue::Number(_));
-        check_ok_matches!("rand();", NaslValue::Number(_));
+        check_code_result_matches!("rand();", NaslValue::Number(_));
+        check_code_result_matches!("rand();", NaslValue::Number(_));
     }
 
     #[test]
     fn get_byte_order() {
-        check_ok_matches!("get_byte_order();", NaslValue::Boolean(_));
+        check_code_result_matches!("get_byte_order();", NaslValue::Boolean(_));
     }
 
     #[test]
     fn dec2str() {
-        check_ok("dec2str(num: 23);", "23");
+        check_code_result("dec2str(num: 23);", "23");
     }
 
     #[test]
     fn nasl_typeof() {
-        check_ok(r#"typeof("AA");"#, "string");
-        check_ok(r#"typeof(1);"#, "int");
-        check_ok(r#"typeof('AA');"#, "data");
-        check_ok(r#"typeof(make_array());"#, "array");
-        check_ok(r#"typeof(NULL);"#, "undef");
-        check_ok(r#"typeof(a);"#, "undef");
+        let mut t = TestBuilder::default();
+        t.ok(r#"typeof("AA");"#, "string");
+        t.ok(r#"typeof(1);"#, "int");
+        t.ok(r#"typeof('AA');"#, "data");
+        t.ok(r#"typeof(make_array());"#, "array");
+        t.ok(r#"typeof(NULL);"#, "undef");
+        t.ok(r#"typeof(a);"#, "undef");
         check_err_matches!(
+            t,
             r#"typeof(23,76);"#,
             FunctionErrorKind::TrailingPositionalArguments { .. }
         );
-        check_multiple(
-            "d['test'] = 2; typeof(d);",
-            vec![NaslValue::from(2), NaslValue::from("array")],
-        )
+        t.ok("d['test'] = 2;", 2);
+        t.ok("typeof(d);", "array");
     }
 
     #[test]
     fn isnull() {
-        check_ok(r#"isnull(42);"#, false);
-        check_ok(r#"isnull(Null);"#, true);
+        check_code_result(r#"isnull(42);"#, false);
+        check_code_result(r#"isnull(Null);"#, true);
     }
 
     #[test]
     fn unixtime() {
-        check_ok_matches!(r#"unixtime();"#, NaslValue::Number(_));
+        check_code_result_matches!(r#"unixtime();"#, NaslValue::Number(_));
     }
 
     #[test]
     fn gzip() {
-        check_ok(
+        check_code_result(
             r#"gzip(data: 'z', headformat: "gzip");"#,
             vec![
-                31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0,
+                31u8, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0,
             ],
         );
-        check_ok(
+        check_code_result(
             r#"gzip(data: 'z');"#,
-            vec![120, 156, 171, 2, 0, 0, 123, 0, 123],
+            vec![120u8, 156, 171, 2, 0, 0, 123, 0, 123],
         );
     }
 
     #[test]
     fn gunzip() {
-        let code = r#"
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
         z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);
         gunzip(data: z);
         # With Header Format and data is data
@@ -84,8 +86,9 @@ mod tests {
         # Without Header format and data is a string
         ngz = gzip(data: "ngz");
         gunzip(data: ngz);
-        "#;
-        let results = run(code);
+        "#,
+        );
+        let results = t.results();
         assert_eq!(results[1], Ok(NaslValue::String("z".into())));
         assert_eq!(results[3], Ok(NaslValue::String("gz".into())));
         assert_eq!(results[5], Ok(NaslValue::String("ngz".into())));
@@ -93,13 +96,16 @@ mod tests {
 
     #[test]
     fn localtime() {
-        let code = r###"
-        a = localtime(1676900372, utc: TRUE);
-        b = localtime(1676900372, utc: FALSE);
-        c = localtime(utc: TRUE);
-        d = localtime(utc: FALSE);
-        "###;
-        let results = run(code);
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            a = localtime(1676900372, utc: TRUE);
+            b = localtime(1676900372, utc: FALSE);
+            c = localtime(utc: TRUE);
+            d = localtime(utc: FALSE);
+        "#,
+        );
+        let results = t.results();
         let mut results = results.into_iter();
 
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
@@ -166,7 +172,7 @@ mod tests {
     #[test]
     fn mktime() {
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
-        check_ok(
+        check_code_result(
             r#"mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);"#,
             10921 - offset,
         );
@@ -175,37 +181,25 @@ mod tests {
     #[test]
     fn sleep() {
         let now = Instant::now();
-        check_ok(r#"sleep(1);"#, NaslValue::Null);
+        check_code_result(r#"sleep(1);"#, NaslValue::Null);
         assert!(now.elapsed().as_secs() >= 1);
     }
 
     #[test]
     fn usleep() {
         let now = Instant::now();
-        check_ok(r#"usleep(1000);"#, NaslValue::Null);
+        check_code_result(r#"usleep(1000);"#, NaslValue::Null);
         assert!(now.elapsed().as_micros() >= 1000);
     }
 
     #[test]
     fn defined_func() {
-        let code = r#"
-        function b() { return 2; }
-        defined_func("b");
-        defined_func("defined_func");
-        a = 12;
-        defined_func("a");
-        defined_func(a);
-        "#;
-        check_multiple(
-            code,
-            vec![
-                NaslValue::Null, // defining function b
-                true.into(),     // is b defined
-                true.into(),     // is defined_func defined
-                12i64.into(),    // defining variable a
-                false.into(),    // is a a function
-                false.into(),    // is the value of a a function
-            ],
-        )
+        let mut t = TestBuilder::default();
+        t.ok("function b() { return 2; }", NaslValue::Null);
+        t.ok(r#"defined_func("b");"#, true);
+        t.ok(r#"defined_func("defined_func");"#, true);
+        t.ok("a = 12;", 12i64);
+        t.ok(r#"defined_func("a");"#, false);
+        t.ok("defined_func(a);", false);
     }
 }

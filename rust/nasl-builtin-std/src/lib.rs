@@ -5,87 +5,39 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-use nasl_builtin_utils::{Context, NaslFunctionRegister, NaslVarRegister, Register};
+use nasl_builtin_utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
 use storage::{ContextKey, DefaultDispatcher};
 mod array;
 mod report_functions;
 
-/// The description builtin function
-///
-/// Because it implements the NaslFunctionExecuter it can be added to the Context.
-/// It contains all functions that are defined as a standard library function within NASL.
-///
-/// It does not contain user defined functions, as they created on runtime while executing a nasl
-/// script. This is handled within the `nasl_interpreter::Interpreter`.
-pub struct Std;
-
-impl nasl_builtin_utils::NaslFunctionExecuter for Std {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        array::lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        array::lookup(name).is_some()
-    }
-}
-
-/// Creates a new NaslFunctionRegister and adds all the functions to it.
-///
-/// To add a new function to the register, add it to the builder by calling `push_register`.
-/// This way the function will be added to the std and can be utilized by the nasl interpreter.
+/// Creates a new Executor and adds all the functions to it.
 ///
 /// When you have a function that is considered experimental due to either dependencies on
 /// c-library or other reasons, you have to add the library as optional and put it into the
 /// `experimental` feature flag. Additionally you have to create two new functions one with the
 /// library toggle enabled and one when it is disabled.
-///
-/// This way the user can decide on compile if the functionality is enabled or not.
-///
-/// # Example
-///
-/// ```
-/// #[cfg(not(feature = "nasl-builtin-ssh"))]
-/// fn add_ssh(
-///     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-/// ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-///     builder
-/// }
-///
-/// #[cfg(feature = "nasl-builtin-ssh")]
-/// fn add_ssh(
-///     builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-/// ) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-///     builder.push_register(nasl_builtin_ssh::Ssh::default())
-/// }
-///
-/// ```
-///
-/// ```text
-/// builder = add_ssh(builder);
-/// ```
-pub fn nasl_std_functions() -> nasl_builtin_utils::NaslFunctionRegister {
-    let mut builder = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
-        .push_register(Std)
-        .push_register(report_functions::Reporting::default())
-        .push_register(nasl_builtin_knowledge_base::KnowledgeBase)
-        .push_register(nasl_builtin_misc::Misc)
-        .push_register(nasl_builtin_string::NaslString)
-        .push_register(nasl_builtin_host::Host)
-        .push_register(nasl_builtin_http::NaslHttp::default())
-        .push_register(nasl_builtin_network::socket::NaslSockets::default())
-        .push_register(nasl_builtin_network::network::Network)
-        .push_register(nasl_builtin_regex::RegularExpressions)
-        .push_register(nasl_builtin_cryptographic::Cryptographic)
-        .push_register(nasl_builtin_description::Description);
+pub fn nasl_std_functions() -> Executor {
+    let mut executor = Executor::default();
+    executor
+        .add_set(array::Array)
+        .add_set(report_functions::Reporting::default())
+        .add_set(nasl_builtin_knowledge_base::KnowledgeBase)
+        .add_set(nasl_builtin_misc::Misc)
+        .add_set(nasl_builtin_string::NaslString)
+        .add_set(nasl_builtin_host::Host)
+        .add_set(nasl_builtin_http::NaslHttp::default())
+        .add_set(nasl_builtin_network::socket::NaslSockets::default())
+        .add_set(nasl_builtin_network::network::Network)
+        .add_set(nasl_builtin_regex::RegularExpressions)
+        .add_set(nasl_builtin_cryptographic::Cryptographic)
+        .add_set(nasl_builtin_description::Description);
 
-    builder = add_ssh(builder);
-    builder = add_raw_ip(builder);
-    builder.build()
+    #[cfg(feature = "nasl-builtin-ssh")]
+    executor.add_set(nasl_builtin_ssh::Ssh);
+    #[cfg(feature = "nasl-builtin-ssh")]
+    executor.add_set(nasl_builtin_raw_ip::RawIp);
+
+    executor
 }
 
 /// Creates a new NaslVarRegister and adds all the predefined nasl variables.
@@ -99,73 +51,19 @@ pub fn nasl_std_functions() -> nasl_builtin_utils::NaslFunctionRegister {
 /// one with the library toggle enabled and one when it is disabled.
 ///
 /// This way the user can decide on compile if the functionality, and therefore the variables, are enabled or not.
-///
-/// # Example
-///
-/// ```
-/// #[cfg(feature = "nasl-builtin-raw-ip")]
-/// fn add_raw_ip_vars(
-///     builder: nasl_builtin_utils::NaslVarRegisterBuilder,
-/// ) -> nasl_builtin_utils::NaslVarRegisterBuilder {
-///     builder.push_register(nasl_builtin_raw_ip::RawIpVars)
-/// }
-///
-/// #[cfg(not(feature = "nasl-builtin-raw-ip"))]
-/// fn add_raw_ip_vars(
-///     builder: nasl_builtin_utils::NaslVarRegisterBuilder,
-/// ) -> nasl_builtin_utils::NaslVarRegisterBuilder {
-///     builder
-/// }
-/// ```
-///
-/// ```text
-/// builder = add_raw_ip_vars(builder);
-/// ```
 pub fn nasl_std_variables() -> NaslVarRegister {
-    let mut builder = nasl_builtin_utils::NaslVarRegisterBuilder::new();
+    let mut builder = NaslVarRegisterBuilder::new();
     builder = add_raw_ip_vars(builder);
     builder.build()
 }
 
-#[cfg(not(feature = "nasl-builtin-ssh"))]
-fn add_ssh(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-    builder
-}
-
 #[cfg(feature = "nasl-builtin-raw-ip")]
-fn add_raw_ip(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
+fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
     builder.push_register(nasl_builtin_raw_ip::RawIp)
 }
 
-#[cfg(feature = "nasl-builtin-raw-ip")]
-fn add_raw_ip_vars(
-    builder: nasl_builtin_utils::NaslVarRegisterBuilder,
-) -> nasl_builtin_utils::NaslVarRegisterBuilder {
-    builder.push_register(nasl_builtin_raw_ip::RawIp)
-}
-
-#[cfg(feature = "nasl-builtin-ssh")]
-fn add_ssh(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-    builder.push_register(nasl_builtin_ssh::Ssh::default())
-}
-
 #[cfg(not(feature = "nasl-builtin-raw-ip"))]
-fn add_raw_ip(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-    builder
-}
-
-#[cfg(not(feature = "nasl-builtin-raw-ip"))]
-fn add_raw_ip_vars(
-    builder: nasl_builtin_utils::NaslVarRegisterBuilder,
-) -> nasl_builtin_utils::NaslVarRegisterBuilder {
+fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
     builder
 }
 
@@ -180,7 +78,7 @@ pub struct ContextFactory<Loader, Storage> {
     /// The loader to load the nasl files.
     pub loader: Loader,
     /// The functions available to the nasl script.
-    pub functions: NaslFunctionRegister,
+    pub functions: Executor,
 }
 
 impl Default for ContextFactory<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
@@ -210,13 +108,18 @@ where
     }
 
     /// Sets the functions available to the nasl script.
-    pub fn functions(mut self, functions: NaslFunctionRegister) -> Self {
+    pub fn functions(mut self, functions: Executor) -> Self {
         self.functions = functions;
         self
     }
 
     /// Creates a new Context with the shared loader, logger and function register
-    pub fn build(&self, key: ContextKey, target: String) -> Context {
+    pub fn build(&self, key: ContextKey) -> Context {
+        let target = match &key {
+            ContextKey::Scan(_, Some(target)) => target.clone(),
+            ContextKey::Scan(_, None) => String::default(),
+            ContextKey::FileName(target) => target.clone(),
+        };
         Context::new(
             key,
             target,

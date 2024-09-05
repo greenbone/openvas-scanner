@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use nasl_builtin_utils::{error::FunctionErrorKind, NaslFunction};
-use nasl_builtin_utils::{Context, Register};
+use nasl_builtin_utils::error::FunctionErrorKind;
+use nasl_builtin_utils::function_set;
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 use regex::{Regex, RegexBuilder};
@@ -160,30 +160,15 @@ fn eregmatch(
     Ok(NaslValue::Array(matches))
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "ereg" => Some(ereg),
-        "egrep" => Some(egrep),
-        "ereg_replace" => Some(ereg_replace),
-        "eregmatch" => Some(eregmatch),
-        _ => None,
-    }
-}
-
 pub struct RegularExpressions;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for RegularExpressions {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+function_set! {
+    RegularExpressions,
+    sync_stateless,
+    (
+        ereg,
+        egrep,
+        ereg_replace,
+        eregmatch
+    )
 }

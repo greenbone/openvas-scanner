@@ -36,6 +36,10 @@ members = [
   "nasl-function-proc-macro",
 ]
 
+[workspace.dependencies]
+tokio = { version = "1.39.3", features = ["full"] }
+futures = "0.3.30"
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"

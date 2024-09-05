@@ -158,12 +158,20 @@ where
     fn by_indices<T>(&self, key: &str, indices: &[crate::base::Index]) -> Result<Vec<T>, Error>
     where
         T: TryFrom<Vec<u8>>,
+        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     {
         let encrypted = self.store.by_indices::<Encrypted>(key, indices)?;
+
         Ok(encrypted
             .into_iter()
             .map(|e| Self::decrypt(&self.key, &e).try_into())
-            .filter_map(Result::ok)
+            .filter_map(|x| match x {
+                Err(e) => {
+                    tracing::warn!(file=key, error=?e, "unable to decrypt");
+                    None
+                }
+                Ok(x) => Some(x),
+            })
             .collect())
     }
 }

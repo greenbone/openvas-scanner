@@ -14,7 +14,7 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost}
 use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
 use nasl_builtin_utils::{
-    Context, ContextType, FunctionErrorKind, NaslFunction, NaslVars, Register,
+    function_set, Context, ContextType, FunctionErrorKind, NaslVars, Register,
 };
 use nasl_syntax::NaslValue;
 
@@ -2360,32 +2360,34 @@ pub fn expose_vars() -> NaslVars<'static> {
     builtin_vars
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "forge_ip_packet" => Some(forge_ip_packet),
-        "set_ip_elements" => Some(set_ip_elements),
-        "get_ip_element" => Some(get_ip_element),
-        "dump_ip_packet" => Some(dump_ip_packet),
-        "insert_ip_options" => Some(insert_ip_options),
-        "forge_tcp_packet" => Some(forge_tcp_packet),
-        "get_tcp_element" => Some(get_tcp_element),
-        "get_tcp_option" => Some(get_tcp_option),
-        "set_tcp_elements" => Some(set_tcp_elements),
-        "insert_tcp_options" => Some(insert_tcp_options),
-        "dump_tcp_packet" => Some(dump_tcp_packet),
-        "forge_udp_packet" => Some(forge_udp_packet),
-        "set_udp_elements" => Some(set_udp_elements),
-        "dump_udp_packet" => Some(dump_udp_packet),
-        "get_udp_element" => Some(get_udp_element),
-        "forge_icmp_packet" => Some(forge_icmp_packet),
-        "get_icmp_element" => Some(get_icmp_element),
-        "dump_icmp_packet" => Some(dump_icmp_packet),
-        "forge_igmp_packet" => Some(forge_igmp_packet),
-        "tcp_ping" => Some(nasl_tcp_ping),
-        "send_packet" => Some(nasl_send_packet),
-        "pcap_next" => Some(nasl_pcap_next),
-        "send_capture" => Some(nasl_send_capture),
-        _ => None,
-    }
+pub struct PacketForgery;
+
+function_set! {
+    PacketForgery,
+    sync_stateless,
+    (
+        forge_ip_packet,
+        set_ip_elements,
+        get_ip_element,
+        dump_ip_packet,
+        insert_ip_options,
+        forge_tcp_packet,
+        get_tcp_element,
+        get_tcp_option,
+        set_tcp_elements,
+        insert_tcp_options,
+        dump_tcp_packet,
+        forge_udp_packet,
+        set_udp_elements,
+        dump_udp_packet,
+        get_udp_element,
+        forge_icmp_packet,
+        get_icmp_element,
+        dump_icmp_packet,
+        forge_igmp_packet,
+        (nasl_tcp_ping, "tcp_ping"),
+        (nasl_send_packet, "send_packet"),
+        (nasl_pcap_next, "pcap_next"),
+        (nasl_send_capture, "send_capture"),
+    )
 }

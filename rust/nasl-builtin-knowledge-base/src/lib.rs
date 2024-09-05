@@ -4,11 +4,11 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use nasl_builtin_utils::{error::FunctionErrorKind, NaslFunction};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set};
+use nasl_function_proc_macro::nasl_function;
 use storage::{Field, Kb, Retrieve};
 
-use nasl_builtin_utils::{Context, Register};
-use nasl_function_proc_macro::nasl_function;
+use nasl_builtin_utils::Context;
 use nasl_syntax::NaslValue;
 
 /// NASL function to set a value under name in a knowledge base
@@ -105,30 +105,15 @@ fn get_kb_list(key: NaslValue, c: &Context) -> Result<NaslValue, FunctionErrorKi
         .map_err(|e| e.into())
 }
 
-/// Returns found function for key or None when not found
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "set_kb_item" => Some(set_kb_item),
-        "get_kb_item" => Some(get_kb_item),
-        "get_kb_list" => Some(get_kb_list),
-        "replace_kb_item" => Some(replace_kb_item),
-        _ => None,
-    }
-}
-
 pub struct KnowledgeBase;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for KnowledgeBase {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+function_set! {
+    KnowledgeBase,
+    sync_stateless,
+    (
+        set_kb_item,
+        get_kb_item,
+        get_kb_list,
+        replace_kb_item
+    )
 }

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! # Responses of OSPD commands
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 use serde::{de::Visitor, Deserialize};
 
@@ -11,28 +11,28 @@ use crate::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StringU32(u32);
+pub struct StringU64(u64);
 
-impl From<i64> for StringU32 {
+impl From<i64> for StringU64 {
     fn from(value: i64) -> Self {
-        StringU32(value as u32)
+        StringU64(value as u64)
     }
 }
 
-impl From<StringU32> for u32 {
-    fn from(value: StringU32) -> Self {
+impl From<StringU64> for u64 {
+    fn from(value: StringU64) -> Self {
         value.0
     }
 }
 
-impl From<StringU32> for i64 {
-    fn from(value: StringU32) -> Self {
+impl From<StringU64> for i64 {
+    fn from(value: StringU64) -> Self {
         value.0 as i64
     }
 }
 
-impl From<StringU32> for i32 {
-    fn from(value: StringU32) -> Self {
+impl From<StringU64> for i32 {
+    fn from(value: StringU64) -> Self {
         value.0 as i32
     }
 }
@@ -85,14 +85,14 @@ impl<'de> Deserialize<'de> for StringF32 {
     }
 }
 
-impl<'de> Deserialize<'de> for StringU32 {
+impl<'de> Deserialize<'de> for StringU64 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         struct MyVisitor;
         impl<'de> Visitor<'de> for MyVisitor {
-            type Value = StringU32;
+            type Value = StringU64;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("string")
@@ -102,8 +102,8 @@ impl<'de> Deserialize<'de> for StringU32 {
             where
                 E: serde::de::Error,
             {
-                match value.parse::<u32>() {
-                    Ok(value) => Ok(StringU32(value)),
+                match value.parse::<u64>() {
+                    Ok(value) => Ok(StringU64(value)),
                     Err(_) => Err(E::custom("invalid number")),
                 }
             }
@@ -268,7 +268,7 @@ pub struct Status {
     pub text: String,
     #[serde(rename = "@status")]
     /// Status code
-    pub code: StringU32,
+    pub code: StringU64,
 }
 
 impl Status {
@@ -399,10 +399,7 @@ impl From<&ScanResult> for models::Result {
         };
         let detail = match r_type {
             models::ResultType::HostDetail => match urlencoding::decode(&result.description) {
-                Ok(decoded) => match quick_xml::de::from_str::<HostDetail>(&decoded) {
-                    Ok(details) => details,
-                    Err(_) => Default::default(),
-                },
+                Ok(decoded) => quick_xml::de::from_str::<HostDetail>(&decoded).unwrap_or_default(),
                 Err(_) => Default::default(),
             },
             _ => Default::default(),
@@ -508,13 +505,13 @@ pub struct Scan {
     pub target: String,
     #[serde(rename = "@start_time")]
     /// Start time
-    pub start_time: Option<StringU32>,
+    pub start_time: Option<StringU64>,
     #[serde(rename = "@end_time")]
     /// End time
-    pub end_time: Option<StringU32>,
+    pub end_time: Option<StringU64>,
     #[serde(rename = "@progress")]
     /// Progress
-    pub progress: StringU32,
+    pub progress: StringU64,
     #[serde(rename = "@status")]
     /// Status
     pub status: ScanStatus,
@@ -532,24 +529,24 @@ pub struct HostInfo {
     /// Currently scanned hosts
     pub host: Vec<Host>,
     /// Overall progress
-    pub overall: ElementU32,
+    pub overall: ElementU64,
     /// Number of alive hosts finished
     // TODO: Consider divide into alive and finished
-    pub count_alive: ElementU32,
+    pub count_alive: ElementU64,
     /// Number of dead hosts
-    pub count_dead: ElementU32,
+    pub count_dead: ElementU64,
     /// Number of excluded hosts
-    pub count_excluded: ElementU32,
+    pub count_excluded: ElementU64,
     /// Total number of hosts
-    pub count_total: ElementU32,
+    pub count_total: ElementU64,
 }
 
 /// An StringU32 element
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct ElementU32 {
+pub struct ElementU64 {
     #[serde(rename = "$text")]
     /// Content of the element
-    pub content: StringU32,
+    pub content: StringU64,
 }
 
 /// Progress information for a single host
@@ -560,7 +557,7 @@ pub struct Host {
     pub name: String,
     #[serde(rename = "$text")]
     /// Current progress for the host
-    pub progress: StringU32,
+    pub progress: StringU64,
 }
 
 impl Default for Scan {
@@ -570,7 +567,7 @@ impl Default for Scan {
             target: "".to_string(),
             start_time: None,
             end_time: None,
-            progress: StringU32(0),
+            progress: StringU64(0),
             status: ScanStatus::default(),
             results: Results { result: vec![] },
             host_info: None,
@@ -591,28 +588,23 @@ impl From<Scan> for models::Status {
             ScanStatus::Interrupted => models::Phase::Failed,
         };
 
-        let mut scanning: HashMap<String, i32> = HashMap::new();
-        if let Some(i) = &value.host_info {
-            for host in &i.host {
-                scanning.insert(host.name.clone(), 0);
-            }
-        }
-
         models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
-            host_info: value.host_info.map(|i| models::HostInfo {
-                all: i.count_total.content.0,
-                excluded: i.count_excluded.content.0,
-                dead: i.count_dead.content.0,
-                alive: i.count_alive.content.0,
-                queued: i.count_total.content.0
-                    - i.count_excluded.content.0
-                    - i.count_alive.content.0
-                    - i.host.len() as u32,
-                finished: i.count_alive.content.0,
-                scanning: Some(scanning),
+            host_info: value.host_info.map(|host_info| {
+                models::HostInfoBuilder {
+                    all: host_info.count_total.content.0,
+                    excluded: host_info.count_excluded.content.0,
+                    dead: host_info.count_dead.content.0,
+                    alive: host_info.count_alive.content.0,
+                    queued: host_info.count_total.content.0
+                        - host_info.count_excluded.content.0
+                        - host_info.count_alive.content.0
+                        - host_info.host.len() as u64,
+                    finished: host_info.count_alive.content.0,
+                }
+                .build()
             }),
         }
     }

@@ -4,14 +4,14 @@
 
 use std::str::FromStr;
 
-use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind, Register};
 
 use storage::{
     item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
     ContextKey,
 };
 
-use nasl_builtin_utils::{get_named_parameter, NaslFunction};
+use nasl_builtin_utils::get_named_parameter;
 use nasl_syntax::NaslValue;
 
 /// Makes a storage function based on a very small DSL.
@@ -94,14 +94,15 @@ macro_rules! make_storage_function {
             Ok(NaslValue::Null)
         }
         )*
-        /// Returns found function for key or None when not found
-        pub fn lookup(key: &str) -> Option<NaslFunction> {
-            match key {
+
+        function_set! {
+            Description,
+            sync_stateless,
+            (
                 $(
-                stringify!($name) => Some($name),
+                    $name,
                 )*
-                _ => None,
-            }
+            )
         }
     };
 }
@@ -261,20 +262,4 @@ make_storage_function! {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-/// The description builtin function
 pub struct Description;
-
-impl nasl_builtin_utils::NaslFunctionExecuter for Description {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
-}

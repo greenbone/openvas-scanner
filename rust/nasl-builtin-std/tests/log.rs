@@ -4,35 +4,28 @@
 
 #[cfg(test)]
 mod tests {
-
-    use nasl_builtin_std::ContextFactory;
-    use nasl_builtin_utils::Register;
-    use nasl_interpreter::CodeInterpreter;
+    use nasl_interpreter::test_utils::TestBuilder;
 
     fn verify(function: &str, result_type: models::ResultType) {
-        let code = format!(
+        let mut t = TestBuilder::default();
+        t.run_all(format!(
             r###"
         {function}(data: "test0", port: 12, proto: "udp", uri: "moep");
         {function}(data: "test1", port: 12, proto: "tcp", uri: "moep");
         {function}(data: "test2", port: 12, proto: "nonsense", uri: "moep");
         {function}(data: "test3");
         "###
-        );
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-
-        let mut parser = CodeInterpreter::new(&code, register, &context);
-        let no_error = parser.find_map(|x| x.err());
-        assert_eq!(
-            no_error, None,
-            "there should be no error when creating log_messages"
-        );
-        let results = context
-            .retriever()
-            .results(context.key())
-            .unwrap()
-            .collect::<Vec<_>>();
+        ));
+        t.check_no_errors();
+        let results = t.results();
+        let context = t.context();
+        let get_result = |index| {
+            context
+                .retriever()
+                .result(context.key(), index)
+                .unwrap()
+                .unwrap()
+        };
         assert_eq!(
             results.len(),
             4,
@@ -50,33 +43,17 @@ mod tests {
             message: Some(format!("test{id}")),
             detail: None,
         };
-        let udp = context
-            .retriever()
-            .result(context.key(), 0)
-            .expect("expected udp result of first call")
-            .unwrap();
+
+        let udp = get_result(0);
         let expected = create_expected(0, Some(12), models::Protocol::UDP);
         assert_eq!(udp, expected);
-
-        let tcp = context
-            .retriever()
-            .result(context.key(), 1)
-            .expect("expected udp result of first call")
-            .unwrap();
+        let tcp = get_result(1);
         let expected = create_expected(1, Some(12), models::Protocol::TCP);
         assert_eq!(tcp, expected);
-        let defaults_to_tcp = context
-            .retriever()
-            .result(context.key(), 2)
-            .expect("expected udp result of first call")
-            .unwrap();
+        let defaults_to_tcp = get_result(2);
         let expected = create_expected(2, Some(12), models::Protocol::TCP);
         assert_eq!(defaults_to_tcp, expected);
-        let default = context
-            .retriever()
-            .result(context.key(), 3)
-            .expect("expected udp result of first call")
-            .unwrap();
+        let default = get_result(3);
         let expected = create_expected(3, None, models::Protocol::TCP);
         assert_eq!(default, expected);
     }

@@ -12,12 +12,14 @@ use redis_storage::{
 };
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::{sync::RwLock, task::JoinSet};
+use tracing::info;
 
-use crate::{controller::ClientHash, storage::FeedType};
+use crate::{config::Config, controller::ClientHash, storage::FeedType};
 use models::scanner::ScanResults;
 
 use super::{
-    AppendFetchResult, Error, FeedHash, NVTStorer, ProgressGetter, ScanIDClientMapper, ScanStorer,
+    AppendFetchResult, Error, FeedHash, FromConfigAndFeeds, NVTStorer, ProgressGetter,
+    ScanIDClientMapper, ScanStorer,
 };
 
 pub struct Storage<T> {
@@ -69,32 +71,26 @@ impl<T> Storage<T> {
         .unwrap()
     }
 
-    async fn update_nasl(url: Arc<String>, p: PathBuf, current_feed: String) -> Result<(), Error> {
-        let nasl_feed_path = p;
-        tokio::task::spawn_blocking(move || {
-            tracing::debug!("starting nasl feed update");
-            let oversion = "0.1";
-            let loader = FSPluginLoader::new(nasl_feed_path);
-            let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+    async fn update_nasl(
+        url: Arc<String>,
+        nasl_feed_path: PathBuf,
+        current_feed: String,
+    ) -> Result<(), Error> {
+        tracing::debug!("starting nasl feed update");
+        let oversion = "0.1";
+        let loader = FSPluginLoader::new(nasl_feed_path);
+        let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
-            let redis_cache: CacheDispatcher<RedisCtx> =
-                redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
-
-            let store = PerItemDispatcher::new(redis_cache);
-            let mut fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
-            if !fu.feed_is_outdated(current_feed).unwrap() {
-                return Ok(());
-            }
-
-            if let Some(x) = fu.find_map(|x| x.err()) {
-                Err(Error::from(x))
-            } else {
-                tracing::debug!("finished nasl feed update");
-                Ok(())
-            }
-        })
-        .await
-        .unwrap()
+        let redis_cache: CacheDispatcher<RedisCtx> =
+            redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
+        let store = PerItemDispatcher::new(redis_cache);
+        let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
+        if !fu.feed_is_outdated(current_feed).await.unwrap() {
+            return Ok(());
+        }
+        fu.perform_update().await?;
+        tracing::debug!("finished nasl feed update");
+        Ok(())
     }
 }
 
@@ -334,5 +330,49 @@ where
 {
     async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
         self.underlying.append_fetched_result(results).await
+    }
+}
+
+impl<T> FromConfigAndFeeds for Storage<T>
+where
+    T: FromConfigAndFeeds + std::marker::Sync + 'static,
+{
+    fn from_config_and_feeds(
+        config: &Config,
+        feeds: Vec<FeedHash>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        info!(url = config.storage.redis.url, "using redis");
+        Ok(Self::new(
+            T::from_config_and_feeds(config, feeds.clone())?,
+            config.storage.redis.url.clone(),
+            feeds,
+        ))
+    }
+}
+
+impl<S> super::ResultHandler for Storage<S>
+where
+    S: super::ResultHandler,
+{
+    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
+        self.underlying.underlying_storage()
+    }
+
+    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    where
+        E: From<storage::StorageError>,
+    {
+        self.underlying.handle_result(key, result)
+    }
+
+    fn remove_result<E>(
+        &self,
+        key: &storage::ContextKey,
+        idx: Option<usize>,
+    ) -> Result<Vec<models::Result>, E>
+    where
+        E: From<storage::StorageError>,
+    {
+        self.underlying.remove_result(key, idx)
     }
 }

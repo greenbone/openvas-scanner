@@ -5,7 +5,7 @@
 //! Defines NASL functions to perform HTTP/2 request.
 // TODO: implement http functions once socket handling is available
 
-use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, ContextType, FunctionErrorKind, Register};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 
@@ -14,13 +14,14 @@ use h2::client;
 use core::convert::AsRef;
 use http::{response::Parts, Method, Request};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 
 use rustls::ClientConfig;
-use tokio::net::TcpStream;
+use tokio::{
+    net::TcpStream,
+    sync::{Mutex, MutexGuard},
+};
 use tokio_rustls::TlsConnector;
-
-type NaslHttp2Function = fn(&NaslHttp, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
 
 pub struct Handle {
     pub handle_id: i32,
@@ -33,12 +34,12 @@ pub struct NaslHttp {
     handles: Arc<Mutex<Vec<Handle>>>,
 }
 
-fn lock_handles(
+async fn lock_handles(
     handles: &Arc<Mutex<Vec<Handle>>>,
 ) -> Result<MutexGuard<Vec<Handle>>, FunctionErrorKind> {
     // we actually need to panic as a lock error is fatal
     // alternatively we need to add a poison error on FunctionErrorKind
-    Ok(Arc::as_ref(handles).lock().unwrap())
+    Ok(Arc::as_ref(handles).lock().await)
 }
 
 /// Return the next available handle ID
@@ -233,10 +234,10 @@ impl NaslHttp {
     }
 
     /// Perform request with the given method.
-    fn http2_req(
+    async fn http2_req<'a>(
         &self,
         register: &Register,
-        ctx: &Context,
+        ctx: &Context<'a>,
         method: Method,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let handle_id = match register.named("handle") {
@@ -248,7 +249,7 @@ impl NaslHttp {
             }
         };
 
-        let mut handles = lock_handles(&self.handles)?;
+        let mut handles = lock_handles(&self.handles).await?;
         let handle = match handles
             .iter_mut()
             .enumerate()
@@ -308,13 +309,7 @@ impl NaslHttp {
 
         uri = format!("{}{}", uri, item);
 
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(1)
-            .enable_all()
-            .build()
-            .unwrap();
-
-        match runtime.block_on(self.request(&ip_str, port, uri, data, method, handle)) {
+        match self.request(&ip_str, port, uri, data, method, handle).await {
             Ok((head, body)) => {
                 handle.http_code = head.status.as_u16();
                 let mut header_str = String::new();
@@ -336,28 +331,48 @@ impl NaslHttp {
     }
 
     /// Wrapper function for GET request. See http2_req
-    fn get(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        self.http2_req(register, ctx, Method::GET)
+    async fn get<'a>(
+        &self,
+        register: &Register,
+        ctx: &Context<'a>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        self.http2_req(register, ctx, Method::GET).await
     }
 
     /// Wrapper function for POST request. See http2_req
-    fn post(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        self.http2_req(register, ctx, Method::POST)
+    async fn post<'a>(
+        &self,
+        register: &Register,
+        ctx: &Context<'a>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        self.http2_req(register, ctx, Method::POST).await
     }
 
     /// Wrapper function for PUT request. See http2_req
-    fn put(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        self.http2_req(register, ctx, Method::PUT)
+    async fn put<'a>(
+        &self,
+        register: &Register,
+        ctx: &Context<'a>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        self.http2_req(register, ctx, Method::PUT).await
     }
 
     /// Wrapper function for HEAD request. See http2_req
-    fn head(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        self.http2_req(register, ctx, Method::HEAD)
+    async fn head<'a>(
+        &self,
+        register: &Register,
+        ctx: &Context<'a>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        self.http2_req(register, ctx, Method::HEAD).await
     }
 
     /// Wrapper function for DELETE request. See http2_req
-    fn delete(&self, register: &Register, ctx: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        self.http2_req(register, ctx, Method::DELETE)
+    async fn delete<'a>(
+        &self,
+        register: &Register,
+        ctx: &Context<'a>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        self.http2_req(register, ctx, Method::DELETE).await
     }
 
     /// Creates a handle for http requests
@@ -367,8 +382,8 @@ impl NaslHttp {
     /// On success the function returns a and integer with the handle
     /// identifier. Null on error.
     #[nasl_function]
-    fn handle(&self) -> Result<NaslValue, FunctionErrorKind> {
-        let mut handles = lock_handles(&self.handles)?;
+    async fn handle(&self) -> Result<NaslValue, FunctionErrorKind> {
+        let mut handles = lock_handles(&self.handles).await?;
         let handle_id = next_handle_id(&handles);
         let h = Handle {
             handle_id,
@@ -387,8 +402,8 @@ impl NaslHttp {
     /// The function returns an integer.
     /// O on success, -1 on error.
     #[nasl_function(named(handle))]
-    fn close_handle(&self, handle: i32) -> Result<NaslValue, FunctionErrorKind> {
-        let mut handles = lock_handles(&self.handles)?;
+    async fn close_handle(&self, handle: i32) -> Result<NaslValue, FunctionErrorKind> {
+        let mut handles = lock_handles(&self.handles).await?;
         match handles
             .iter_mut()
             .enumerate()
@@ -411,10 +426,10 @@ impl NaslHttp {
     ///
     /// On success the function returns an integer
     /// representing the http code response. Null on error.
-    fn get_response_code(
+    async fn get_response_code(
         &self,
         register: &Register,
-        _: &Context,
+        _: &Context<'_>,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
@@ -425,7 +440,7 @@ impl NaslHttp {
             }
         };
 
-        let mut handles = lock_handles(&self.handles)?;
+        let mut handles = lock_handles(&self.handles).await?;
         match handles
             .iter_mut()
             .enumerate()
@@ -445,10 +460,10 @@ impl NaslHttp {
     ///   - header_item A string to add to the header
     ///
     /// On success the function returns an integer. 0 on success. Null on error.
-    fn set_custom_header(
+    async fn set_custom_header(
         &self,
         register: &Register,
-        _: &Context,
+        _: &Context<'_>,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let header_item = match register.named("header_item") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
@@ -466,7 +481,7 @@ impl NaslHttp {
             }
         };
 
-        let mut handles = lock_handles(&self.handles)?;
+        let mut handles = lock_handles(&self.handles).await?;
         match handles
             .iter_mut()
             .enumerate()
@@ -482,46 +497,20 @@ impl NaslHttp {
             )),
         }
     }
-
-    /// Returns found function for key or None when not found
-    fn lookup(key: &str) -> Option<NaslHttp2Function> {
-        match key {
-            "http2_handle" => Some(NaslHttp::handle),
-            "http2_close_handle" => Some(NaslHttp::close_handle),
-            "http2_get_response_code" => Some(NaslHttp::get_response_code),
-            "http2_set_custom_header" => Some(NaslHttp::set_custom_header),
-            "http2_get" => Some(NaslHttp::get),
-            "http2_head" => Some(NaslHttp::head),
-            "http2_post" => Some(NaslHttp::post),
-            "http2_delete" => Some(NaslHttp::delete),
-            "http2_put" => Some(NaslHttp::put),
-            _ => None,
-        }
-    }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for NaslHttp {
-    fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        let mut data = Arc::as_ref(&self.handles).lock().unwrap();
-        if data.is_empty() {
-            return None;
-        }
-        let result = data.len();
-        data.clear();
-        data.shrink_to_fit();
-        Some(result)
-    }
-
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        NaslHttp::lookup(name).map(|x| x(self, register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        NaslHttp::lookup(name).is_some()
-    }
+function_set! {
+    NaslHttp,
+    async_stateful,
+    (
+        (NaslHttp::handle, "http2_handle"),
+        (NaslHttp::close_handle, "http2_close_handle"),
+        (NaslHttp::get_response_code, "http2_get_response_code"),
+        (NaslHttp::set_custom_header, "http2_set_custom_header"),
+        (NaslHttp::get, "http2_get"),
+        (NaslHttp::head, "http2_head"),
+        (NaslHttp::post, "http2_post"),
+        (NaslHttp::delete, "http2_delete"),
+        (NaslHttp::put, "http2_put"),
+    )
 }

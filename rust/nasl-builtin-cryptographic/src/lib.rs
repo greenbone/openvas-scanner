@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+// use nasl_builtin_utils::combine_function_sets;
 use nasl_builtin_utils::error::FunctionErrorKind;
-use nasl_builtin_utils::{Context, NaslFunction};
 
-use nasl_builtin_utils::{ContextType, Register};
+use nasl_builtin_utils::{ContextType, IntoFunctionSet, Register, StoredFunctionSet};
 use nasl_syntax::NaslValue;
 
 pub mod aes_cbc;
@@ -23,34 +23,6 @@ enum Crypt {
     Decrypt,
 }
 
-pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
-    aes_ccm::lookup(function_name)
-        .or_else(|| hmac::lookup(function_name))
-        .or_else(|| aes_cbc::lookup(function_name))
-        .or_else(|| aes_ctr::lookup(function_name))
-        .or_else(|| aes_gcm::lookup(function_name))
-        .or_else(|| aes_cmac::lookup(function_name))
-        .or_else(|| aes_gmac::lookup(function_name))
-        .or_else(|| hash::lookup(function_name))
-        .or_else(|| des::lookup(function_name))
-}
-
-pub struct Cryptographic;
-
-impl nasl_builtin_utils::NaslFunctionExecuter for Cryptographic {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
-}
 /// Get named argument of Type Data or String from the register with appropriate error handling.
 /// In case the argument is required, the returned value is either an Error or the Option is always
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some
@@ -124,5 +96,25 @@ fn get_len(register: &Register) -> Result<Option<usize>, FunctionErrorKind> {
                 x
             ))),
         },
+    }
+}
+
+pub struct Cryptographic;
+
+impl IntoFunctionSet for Cryptographic {
+    type State = Cryptographic;
+
+    fn into_function_set(self) -> StoredFunctionSet<Cryptographic> {
+        let mut set = StoredFunctionSet::new(self);
+        set.add_set(aes_ccm::AesCcm);
+        set.add_set(hmac::HmacFns);
+        set.add_set(aes_cbc::AesCbc);
+        set.add_set(aes_ctr::AesCtr);
+        set.add_set(aes_gcm::AesGcmFns);
+        set.add_set(aes_cmac::AesCmac);
+        set.add_set(aes_gmac::AesGmac);
+        set.add_set(hash::Hash);
+        set.add_set(des::Des);
+        set
     }
 }

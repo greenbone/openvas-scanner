@@ -7,7 +7,7 @@
 use std::{
     fs::{self, File},
     io,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use thiserror::Error;
@@ -45,7 +45,7 @@ where
 }
 
 /// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
-pub trait Loader {
+pub trait Loader: Sync + Send {
     /// Resolves the given key to nasl code
     fn load(&self, key: &str) -> Result<String, LoadError>;
     /// Return the root plugins folder
@@ -86,11 +86,8 @@ impl Default for Box<dyn Loader> {
 /// So when the root path is `/var/lib/openvas/plugins` than it will be extended to
 /// `/var/lib/openvas/plugins/plugin_feed_info.inc`.
 #[derive(Debug, Clone)]
-pub struct FSPluginLoader<P>
-where
-    P: AsRef<Path>,
-{
-    root: P,
+pub struct FSPluginLoader {
+    root: PathBuf,
 }
 
 impl From<(&Path, std::io::Error)> for LoadError {
@@ -113,13 +110,15 @@ impl From<(&str, std::io::Error)> for LoadError {
     }
 }
 
-impl<P> FSPluginLoader<P>
-where
-    P: AsRef<Path>,
-{
+impl FSPluginLoader {
     /// Creates a new file system plugin loader based on the given root path
-    pub fn new(root: P) -> Self {
-        Self { root }
+    pub fn new<P>(root: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
+        Self {
+            root: root.as_ref().to_owned(),
+        }
     }
 
     /// Returns the used path
@@ -128,12 +127,9 @@ where
     }
 }
 
-impl<P> AsBufReader<File> for FSPluginLoader<P>
-where
-    P: AsRef<Path>,
-{
+impl AsBufReader<File> for FSPluginLoader {
     fn as_bufreader(&self, key: &str) -> Result<io::BufReader<File>, LoadError> {
-        let path = self.root.as_ref().join(key);
+        let path = self.root.join(key);
         match File::open(path).map_err(|e| LoadError::from((key, e))) {
             Ok(file) => Ok(io::BufReader::new(file)),
             Err(e) => Err(e),
@@ -141,12 +137,9 @@ where
     }
 }
 
-impl<P> Loader for FSPluginLoader<P>
-where
-    P: AsRef<Path>,
-{
+impl Loader for FSPluginLoader {
     fn load(&self, key: &str) -> Result<String, LoadError> {
-        let path = self.root.as_ref().join(key);
+        let path = self.root.join(key);
         if !path.is_file() {
             return Err(LoadError::NotFound(format!(
                 "{} does not exist or is not accessible.",
@@ -158,14 +151,14 @@ where
     }
     /// Return the root path of the plugins directory
     fn root_path(&self) -> Result<String, LoadError> {
-        let path = self.root.as_ref().to_str().unwrap_or_default().to_string();
+        let path = self.root.to_str().unwrap_or_default().to_string();
         Ok(path)
     }
 }
 
 impl<S> Loader for S
 where
-    S: Fn(&str) -> String,
+    S: Fn(&str) -> String + Sync + Send,
 {
     fn load(&self, key: &str) -> Result<String, LoadError> {
         Ok((self)(key))

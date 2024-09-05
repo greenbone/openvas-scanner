@@ -1,7 +1,7 @@
 use crate::types::*;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{ItemFn, Signature};
+use syn::{token::Async, Ident, ItemFn, Signature};
 
 impl<'a> ArgsStruct<'a> {
     fn positional(&self) -> impl Iterator<Item = (&Arg<'a>, &PositionalArg)> + '_ {
@@ -100,6 +100,33 @@ impl<'a> ArgsStruct<'a> {
             .collect()
     }
 
+    fn get_fn_args_names(&self) -> TokenStream {
+        self.args
+            .iter()
+            .map(|arg| {
+                let ident = &arg.ident;
+                quote! { #ident, }
+            })
+            .collect()
+    }
+
+    pub fn get_inner_call_expr(
+        &self,
+        mangled_ident: &Ident,
+        asyncness: Option<Async>,
+    ) -> TokenStream {
+        let fn_args_names = self.get_fn_args_names();
+        let call_expr = match self.receiver_type {
+            ReceiverType::None => quote! { #mangled_ident(#fn_args_names) },
+            ReceiverType::RefSelf => quote! { self.#mangled_ident(#fn_args_names) },
+        };
+        let await_ = match asyncness {
+            Some(_) => quote! { .await },
+            None => quote! {},
+        };
+        quote! { #call_expr #await_; }
+    }
+
     fn make_array_of_names(&self, f: impl Fn(&ArgKind) -> Option<&str>) -> TokenStream {
         let contents: TokenStream = self
             .args
@@ -135,7 +162,8 @@ impl<'a> ArgsStruct<'a> {
             block,
         } = self.function;
         let stmts = &block.stmts;
-        let args = self.get_args();
+        let get_args = self.get_args();
+        let fn_args = &sig.inputs;
         let Signature {
             fn_token,
             ident,
@@ -150,23 +178,27 @@ impl<'a> ArgsStruct<'a> {
         let inputs = quote! {
             #self_arg
             _register: &::nasl_builtin_utils::Register,
-            _context: &::nasl_builtin_utils::Context,
+            _context: &::nasl_builtin_utils::Context<'_>,
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },
             syn::ReturnType::Type(_, ty) => quote! { #ty },
         };
+        let asyncness = sig.asyncness;
         let checks = self.gen_checks();
-        // We annotate the _inner closure with the output_ty to aid
-        // the compiler with type inference.
+        let mangled_name = format!("_internal_{}", ident);
+        let mangled_ident = Ident::new(&mangled_name, ident.span());
+        let inner_call = self.get_inner_call_expr(&mangled_ident, asyncness);
         quote! {
-            #(#attrs)* #vis #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {
+            #asyncness fn #mangled_ident #generics ( #fn_args ) -> #output_ty {
+                #(#stmts)*
+            }
+
+            #(#attrs)* #vis #asyncness #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {
                 #checks
-                #args
-                let _inner = || -> #output_ty {
-                    #(#stmts)*
-                };
-                <#output_ty as ::nasl_builtin_utils::function::ToNaslResult>::to_nasl_result(_inner())
+                #get_args
+                let _result = #inner_call;
+                <#output_ty as ::nasl_builtin_utils::function::ToNaslResult>::to_nasl_result(_result)
             }
         }
     }

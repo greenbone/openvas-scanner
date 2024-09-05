@@ -61,13 +61,14 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self
     }
     /// Sets the feed config.
-    pub fn feed_config(mut self, config: config::Feed) -> Self {
+    pub async fn feed_config(mut self, config: config::Feed) -> Self {
         self.feed_config = Some(config);
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
             let dispatcher: DefaultDispatcher = DefaultDispatcher::default();
-            let version =
-                feed::version(&loader, &dispatcher).unwrap_or_else(|_| String::from("UNDEFINED"));
+            let version = feed::version(&loader, &dispatcher)
+                .await
+                .unwrap_or_else(|_| String::from("UNDEFINED"));
             self.response.set_feed_version(&version);
         }
         self
@@ -138,11 +139,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where
-        S: models::scanner::Scanner
-            + 'static
-            + std::marker::Send
-            + std::marker::Sync
-            + std::fmt::Debug,
+        S: models::scanner::Scanner + 'static + std::marker::Send + std::marker::Sync,
     {
         let Self {
             feed_config,

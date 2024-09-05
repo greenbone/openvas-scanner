@@ -21,13 +21,24 @@ use std::{
 use item::NVTField;
 use types::Primitive;
 
+/// The identifier of a Scan
+///
+/// Either created when creating a new scan or given via models::Scan#scan_id.
+pub type ScanID = String;
+///  The target of a scan run
+///
+///  This is necessary for target specific data, e.g. KB items that should be deleted when the
+///  target is not scanned anymore.
+pub type Target = Option<String>;
+
 /// Is a key used by a Storage to find data within a certain scope.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ContextKey {
     /// The context is used within a scan.
     ///
-    /// This is used to limit kb items or results to a specific scan.
-    Scan(String),
+    /// This is used to limit kb items or results to a specific scan. The kb items are limited to
+    /// ScanID and Target while the results are limited to just the ScanID.
+    Scan(ScanID, Target),
     /// The context is used within a feed update.
     ///
     /// The filename is used to know that a given information belongs to certain nasl script.
@@ -37,7 +48,8 @@ pub enum ContextKey {
 impl Display for ContextKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContextKey::Scan(id) => write!(f, "scan_id={id}"),
+            ContextKey::Scan(id, None) => write!(f, "scan_id={id}"),
+            ContextKey::Scan(id, Some(target)) => write!(f, "scan_id={id} target={target}"),
             ContextKey::FileName(name) => write!(f, "file={name}"),
         }
     }
@@ -46,7 +58,7 @@ impl Display for ContextKey {
 impl AsRef<str> for ContextKey {
     fn as_ref(&self) -> &str {
         match self {
-            ContextKey::Scan(x) => x,
+            ContextKey::Scan(x, _) => x,
             ContextKey::FileName(x) => x,
         }
     }
@@ -68,7 +80,7 @@ impl ContextKey {
     /// Returns the owned inner value of ContextKey
     pub fn value(&self) -> String {
         match self {
-            ContextKey::Scan(x) => x.to_string(),
+            ContextKey::Scan(x, _) => x.to_string(),
             ContextKey::FileName(x) => x.to_string(),
         }
     }
@@ -80,7 +92,6 @@ impl ContextKey {
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-
 /// Structure to hold a knowledge base item
 pub struct Kb {
     /// Key of the knowledge base entry
@@ -169,6 +180,9 @@ pub enum StorageError {
     /// An example would be that there is no free db left on redis and that it needs to be cleaned up.
     #[error("Unexpected issue: {0}")]
     Dirty(String),
+    #[error("Not found: {0}")]
+    /// Not found variant
+    NotFound(String),
 }
 
 impl<S> From<PoisonError<S>> for StorageError {
@@ -230,7 +244,7 @@ pub trait Dispatcher: Sync + Send {
     /// On exit is called when a script exit
     ///
     /// Some database require a cleanup therefore this method is called when a script finishes.
-    fn on_exit(&self) -> Result<(), StorageError>;
+    fn on_exit(&self, key: &ContextKey) -> Result<(), StorageError>;
 
     /// Retries a dispatch for the amount of retries when a retrievable error occurs.
     fn retry_dispatch(
@@ -252,6 +266,34 @@ pub trait Dispatcher: Sync + Send {
     }
 }
 
+/// This trait defines methods to delete knowledge base items and results.
+///
+/// Kb (KnowledgeBase) are information that are shared between individual script (VT) runs and are
+/// usually obsolete when a whole scan is finished.
+///
+/// Results are log_-, security- or error_messages send from a VT to inform our customer about
+/// found information, vulnerabilities or unexpected errors. A customer can request to delete those
+/// messages.
+pub trait Remover: Sync + Send {
+    /// Removes a knowledge base of a contextkye
+    ///
+    /// When kb_key is None all KBs of that key are deleted
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError>;
+
+    /// Removes a result of a ContextKey
+    ///
+    /// When result_id is None all results of that CotnextKey get deleted.
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError>;
+}
+
 impl<T> Dispatcher for Arc<T>
 where
     T: Dispatcher,
@@ -264,22 +306,88 @@ where
         self.as_ref().dispatch_replace(key, scope)
     }
 
-    fn on_exit(&self) -> Result<(), StorageError> {
-        self.as_ref().on_exit()
+    fn on_exit(&self, key: &ContextKey) -> Result<(), StorageError> {
+        self.as_ref().on_exit(key)
+    }
+
+    fn retry_dispatch(
+        &self,
+        retries: usize,
+        key: &ContextKey,
+        scope: Field,
+    ) -> Result<(), StorageError> {
+        self.as_ref().retry_dispatch(retries, key, scope)
+    }
+}
+
+impl<T> Remover for Arc<T>
+where
+    T: Remover,
+{
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
+        self.as_ref().remove_kb(key, kb_key)
+    }
+
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
+        self.as_ref().remove_result(key, result_id)
+    }
+}
+
+type FieldIter = Box<dyn Iterator<Item = Field>>;
+
+impl<T> Retriever for Arc<T>
+where
+    T: Retriever + Sync,
+{
+    fn retrieve(&self, key: &ContextKey, scope: Retrieve) -> Result<FieldIter, StorageError> {
+        self.as_ref().retrieve(key, scope)
+    }
+
+    fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult {
+        self.as_ref().retrieve_by_field(field, scope)
+    }
+
+    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
+        self.as_ref().retrieve_by_fields(field, scope)
     }
 }
 
 /// Convenience trait to use a dispatcher and retriever implementation
-pub trait Storage: Dispatcher + Retriever {
+pub trait Storage: Dispatcher + Retriever + Remover {
     /// Returns a reference to the retriever
     fn as_retriever(&self) -> &dyn Retriever;
     /// Returns a reference to the dispatcher
     fn as_dispatcher(&self) -> &dyn Dispatcher;
+
+    /// Is called when the whole scan is finished.
+    ///
+    /// It has to remove all knowledge base items of that scan.
+    fn scan_finished(&self, key: &ContextKey) -> Result<(), StorageError> {
+        self.remove_kb(key, None)?;
+        Ok(())
+    }
+
+    /// Is called to remove the whole scan and returns its results.
+    ///
+    /// It has to remove all kb items as well as results of that scan.
+    fn remove_scan(&self, key: &ContextKey) -> Result<Vec<models::Result>, StorageError> {
+        self.remove_kb(key, None)?;
+        let results = self.remove_result(key, None)?;
+        Ok(results.unwrap_or_default())
+    }
 }
 
 impl<T> Storage for T
 where
-    T: Dispatcher + Retriever,
+    T: Dispatcher + Retriever + Remover,
 {
     fn as_retriever(&self) -> &dyn Retriever {
         self
@@ -294,7 +402,7 @@ where
 ///
 /// To make lookups easier KB items are fetched by a scan_id, followed by the kb key this should
 /// make required_key verifications relatively simple.
-type Kbs = HashMap<String, HashMap<String, Vec<Kb>>>;
+type Kbs = HashMap<ContextKey, HashMap<String, Vec<Kb>>>;
 
 /// Vts are using a relative file path as a key. This should make includes, script_dependency
 /// lookups relative simple.
@@ -304,10 +412,8 @@ pub type Vts = HashMap<String, item::Nvt>;
 type Results = HashMap<String, Vec<models::Result>>;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DefaultDispatcher {
-    /// If dirty it will not clean the data on_exit
-    dirty: bool,
     vts: Arc<RwLock<Vts>>,
     feed_version: Arc<RwLock<String>>,
     advisories: Arc<RwLock<HashSet<NotusAdvisory>>>,
@@ -317,9 +423,8 @@ pub struct DefaultDispatcher {
 
 impl DefaultDispatcher {
     /// Creates a new DefaultDispatcher
-    pub fn new(dirty: bool) -> Self {
+    pub fn new() -> Self {
         Self {
-            dirty,
             ..Default::default()
         }
     }
@@ -364,9 +469,9 @@ impl DefaultDispatcher {
         Ok(())
     }
 
-    fn cache_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
+    fn cache_kb(&self, ck: ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut data = self.kbs.as_ref().write()?;
-        if let Some(scan_entry) = data.get_mut(scan_id) {
+        if let Some(scan_entry) = data.get_mut(&ck) {
             if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
                 if !kb_entry.iter().any(|x| x.value == kb.value) {
                     kb_entry.push(kb);
@@ -377,14 +482,14 @@ impl DefaultDispatcher {
         } else {
             let mut scan_entry = HashMap::new();
             scan_entry.insert(kb.key.clone(), vec![kb]);
-            data.insert(scan_id.to_string(), scan_entry);
+            data.insert(ck, scan_entry);
         }
         Ok(())
     }
 
-    fn replace_kb(&self, scan_id: &str, kb: Kb) -> Result<(), StorageError> {
+    fn replace_kb(&self, ck: &ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut data = self.kbs.as_ref().write()?;
-        if let Some(scan_entry) = data.get_mut(scan_id) {
+        if let Some(scan_entry) = data.get_mut(ck) {
             if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
                 *kb_entry = vec![kb];
             } else {
@@ -393,7 +498,7 @@ impl DefaultDispatcher {
         } else {
             let mut scan_entry = HashMap::new();
             scan_entry.insert(kb.key.clone(), vec![kb]);
-            data.insert(scan_id.to_string(), scan_entry);
+            data.insert(ck.clone(), scan_entry);
         }
         Ok(())
     }
@@ -424,13 +529,69 @@ impl DefaultDispatcher {
             .map(item::Nvt::from);
         Ok(vts.chain(notus))
     }
+
+    /// Removes all stored nasl_vts
+    pub fn clean_vts(&self) -> Result<(), StorageError> {
+        let mut vts = self.vts.write()?;
+        vts.clear();
+        let mut version = self.feed_version.write()?;
+        *version = String::new();
+        Ok(())
+    }
+
+    /// Removes all stored nasl_vts
+    pub fn clean_advisories(&self) -> Result<(), StorageError> {
+        let mut advisories = self.advisories.write()?;
+        advisories.clear();
+        Ok(())
+    }
+}
+
+impl Remover for DefaultDispatcher {
+    fn remove_kb(
+        &self,
+        key: &ContextKey,
+        kb_key: Option<String>,
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
+        let mut kbs = self.kbs.write().unwrap();
+        Ok(match kb_key {
+            None => kbs
+                .remove(key)
+                .map(|x| x.values().flat_map(|x| x.clone()).collect()),
+            Some(x) => {
+                if let Some(kbs) = kbs.get_mut(key) {
+                    kbs.remove(&x)
+                } else {
+                    None
+                }
+            }
+        })
+    }
+
+    fn remove_result(
+        &self,
+        key: &ContextKey,
+        result_id: Option<usize>,
+    ) -> Result<Option<Vec<models::Result>>, StorageError> {
+        let mut results = self.results.write().unwrap();
+        if let Some(idx) = result_id {
+            if let Some(results) = results.get_mut(key.as_ref()) {
+                if let Some(idx) = results.iter().position(|x| x.id == idx) {
+                    return Ok(Some(vec![results.remove(idx)]));
+                }
+            }
+            Ok(None)
+        } else {
+            Ok(results.remove(key.as_ref()))
+        }
+    }
 }
 
 impl Dispatcher for DefaultDispatcher {
     fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(x) => self.cache_nvt_field(key.as_ref(), x)?,
-            Field::KB(x) => self.cache_kb(key.as_ref(), x)?,
+            Field::KB(x) => self.cache_kb(key.clone(), x)?,
             Field::NotusAdvisory(x) => {
                 if let Some(x) = *x {
                     self.cache_notus_advisory(x)?
@@ -444,7 +605,7 @@ impl Dispatcher for DefaultDispatcher {
     fn dispatch_replace(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(x) => self.cache_nvt_field(key.as_ref(), x)?,
-            Field::KB(x) => self.replace_kb(key.as_ref(), x)?,
+            Field::KB(x) => self.replace_kb(key, x)?,
             Field::NotusAdvisory(x) => {
                 if let Some(x) = *x {
                     self.cache_notus_advisory(x)?
@@ -455,11 +616,7 @@ impl Dispatcher for DefaultDispatcher {
         Ok(())
     }
 
-    fn on_exit(&self) -> Result<(), StorageError> {
-        if !self.dirty {
-            self.cleanse()?;
-        }
-
+    fn on_exit(&self, _: &ContextKey) -> Result<(), StorageError> {
         Ok(())
     }
 }
@@ -519,11 +676,11 @@ impl Retriever for DefaultDispatcher {
                 };
                 Ok(Box::new(data.into_iter()))
             }
-            Retrieve::KB(x) => {
+            Retrieve::KB(kb_id) => {
                 let kbs = self.kbs.as_ref().read()?;
                 // TODO: maybe return all when x is empty?
-                if let Some(kbs) = kbs.get(key.as_ref()) {
-                    if let Some(kbs) = kbs.get(&x) {
+                if let Some(kbs) = kbs.get(key) {
+                    if let Some(kbs) = kbs.get(&kb_id) {
                         let data = InMemoryDataWrapper {
                             inner: Box::new(kbs.clone().into_iter().map(|x| x.into())),
                         };

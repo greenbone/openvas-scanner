@@ -4,7 +4,7 @@ Contains functions that are within the std library of nasl.
 
 To use the std functions it is recommended to use the defined [ContextFactory] as it sets the function register to the one created in [nasl_std_functions] automatically.
 
-All you have todo as a user is to create the builder
+All you have to do as a user is to create the builder
 
 ```
 let cb = nasl_builtin_std::ContextFactory::default();
@@ -15,7 +15,6 @@ and set all but the functions. This will use the DefaultDispatcher as well as an
 For production use cases it is recommended to use new method and include a key and a storage:
 
 ```
-
 let loader = nasl_syntax::FSPluginLoader::new("/feed");
 let storage = storage::DefaultDispatcher::default();
 let cb = nasl_builtin_std::ContextFactory::new(loader, storage);
@@ -78,31 +77,4 @@ nasl-builtin-ssh = {path = "../nasl-builtin-ssh", optional = true}
 experimental = ["nasl-builtin-ssh"]
 ```
 
-Afterwards you need to create two methods. One for when the library is not included and one for when it is.
-
-```
-#[cfg(not(feature = "nasl-builtin-ssh"))]
-fn add_ssh(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-    builder
-}
-
-#[cfg(feature = "nasl-builtin-ssh")]
-fn add_ssh(
-    builder: nasl_builtin_utils::NaslfunctionRegisterBuilder,
-) -> nasl_builtin_utils::NaslfunctionRegisterBuilder {
-    builder.push_register(nasl_builtin_ssh::Ssh::default())
-}
-
-```
-
 It is recommended to toggle on the crate name and not on experimental to also enable toggling those without using experimental.
-
-
-Afterwards you call the created function to add it within the builder of [nasl_std_functions]
-
-
-```text
-    builder = add_ssh(builder);
-```

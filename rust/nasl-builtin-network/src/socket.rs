@@ -13,7 +13,7 @@ use std::{
 };
 
 use dns_lookup::lookup_host;
-use nasl_builtin_utils::{error::FunctionErrorKind, Context, Register};
+use nasl_builtin_utils::{error::FunctionErrorKind, function_set, Context};
 use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 use pkcs8::der::Decode;
@@ -30,9 +30,6 @@ use crate::{
 
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
-
-type NaslSocketFunction =
-    fn(&NaslSockets, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
 
 pub struct Interval {
     interval: Duration,
@@ -776,43 +773,17 @@ impl NaslSockets {
 
         Ok(NaslValue::Number(fd as i64))
     }
-
-    /// Returns found function for key or None when not found
-    fn lookup(key: &str) -> Option<NaslSocketFunction> {
-        match key {
-            "open_sock_kdc" => Some(Self::open_sock_kdc),
-            "open_sock_tcp" => Some(Self::open_sock_tcp),
-            "open_sock_udp" => Some(Self::open_sock_udp),
-            "close" => Some(Self::close),
-            "send" => Some(Self::send),
-            "recv" => Some(Self::recv),
-            _ => None,
-        }
-    }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for NaslSockets {
-    fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        let mut data = self.handles.write().unwrap();
-        if data.handles.is_empty() {
-            return None;
-        }
-        let result = data.handles.len();
-        data.handles.clear();
-        data.handles.shrink_to_fit();
-        Some(result)
-    }
-
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        NaslSockets::lookup(name).map(|x| x(self, register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        NaslSockets::lookup(name).is_some()
-    }
+function_set! {
+    NaslSockets,
+    sync_stateful,
+    (
+        (NaslSockets::open_sock_kdc, "open_sock_kdc"),
+        (NaslSockets::open_sock_tcp, "open_sock_tcp"),
+        (NaslSockets::open_sock_udp, "open_sock_udp"),
+        (NaslSockets::close, "close"),
+        (NaslSockets::send, "send"),
+        (NaslSockets::recv, "recv"),
+    )
 }

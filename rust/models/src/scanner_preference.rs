@@ -36,7 +36,10 @@ impl Default for PreferenceValue {
 
 /// Configuration preference information for a scan. The type can be derived from the default value.
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct ScanPreferenceInformation {
     /// The ID of the scan preference
     pub id: &'static str,

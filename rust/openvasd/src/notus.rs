@@ -2,11 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::fs::File;
-
 use async_trait::async_trait;
 use models::NotusResults;
-use nasl_interpreter::FSPluginLoader;
 use notus::{error::Error, loader::hashsum::HashsumProductLoader, notus::Notus};
 use tokio::sync::RwLock;
 
@@ -18,11 +15,11 @@ pub trait NotusScanner {
 
 #[derive(Debug)]
 pub struct NotusWrapper {
-    notus: RwLock<Notus<HashsumProductLoader<File, FSPluginLoader<String>>>>,
+    notus: RwLock<Notus<HashsumProductLoader>>,
 }
 
 impl NotusWrapper {
-    pub fn new(notus: Notus<HashsumProductLoader<File, FSPluginLoader<String>>>) -> Self {
+    pub fn new(notus: Notus<HashsumProductLoader>) -> Self {
         Self {
             notus: RwLock::new(notus),
         }

@@ -101,7 +101,7 @@ pub type FieldResult = Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 /// Result of a heap stored iterator or StorageError
 pub type FieldKeyResult = Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError>;
 /// Retrieves fields based on a key and scope.
-pub trait Retriever {
+pub trait Retriever: Send + Sync {
     /// Gets Fields find by key and scope. This is to get all instances.
     fn retrieve(
         &self,

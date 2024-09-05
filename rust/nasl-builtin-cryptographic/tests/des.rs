@@ -5,26 +5,14 @@
 mod helper;
 #[cfg(test)]
 mod tests {
-
     use super::helper::decode_hex;
-    use nasl_interpreter::*;
+    use nasl_interpreter::test_utils::TestBuilder;
 
     #[test]
     fn des_encrypt() {
-        let code = r#"
-        key = hexstr_to_data("0101010101010101");
-        data = hexstr_to_data("95f8a5e5dd31d900");
-        DES(data,key);
-        "#;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        parser.next();
-        parser.next();
-        assert_eq!(
-            parser.next(),
-            Some(Ok(NaslValue::Data(decode_hex("8000000000000000").unwrap())))
-        );
+        let mut t = TestBuilder::default();
+        t.run(r#"key = hexstr_to_data("0101010101010101");"#);
+        t.run(r#"data = hexstr_to_data("95f8a5e5dd31d900");"#);
+        t.ok(r#"DES(data,key);"#, decode_hex("8000000000000000").unwrap());
     }
 }

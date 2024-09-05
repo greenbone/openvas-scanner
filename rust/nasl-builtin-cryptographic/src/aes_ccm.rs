@@ -12,8 +12,7 @@ use ccm::{
 use digest::generic_array::ArrayLength;
 use nasl_builtin_utils::error::{FunctionErrorKind, GeneralErrorType};
 
-use crate::NaslFunction;
-use nasl_builtin_utils::{Context, Register};
+use nasl_builtin_utils::{function_set, Context, Register};
 use nasl_syntax::NaslValue;
 
 use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt};
@@ -215,24 +214,6 @@ fn aes256_ccm_decrypt_auth(
     ccm::<Aes256>(register, Crypt::Decrypt, true)
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "aes128_ccm_encrypt" => Some(aes128_ccm_encrypt),
-        "aes128_ccm_encrypt_auth" => Some(aes128_ccm_encrypt_auth),
-        "aes128_ccm_decrypt" => Some(aes128_ccm_decrypt),
-        "aes128_ccm_decrypt_auth" => Some(aes128_ccm_decrypt_auth),
-        "aes192_ccm_encrypt" => Some(aes192_ccm_encrypt),
-        "aes192_ccm_encrypt_auth" => Some(aes192_ccm_encrypt_auth),
-        "aes192_ccm_decrypt" => Some(aes192_ccm_decrypt),
-        "aes192_ccm_decrypt_auth" => Some(aes192_ccm_decrypt_auth),
-        "aes256_ccm_encrypt" => Some(aes256_ccm_encrypt),
-        "aes256_ccm_encrypt_auth" => Some(aes256_ccm_encrypt_auth),
-        "aes256_ccm_decrypt" => Some(aes256_ccm_decrypt),
-        "aes256_ccm_decrypt_auth" => Some(aes256_ccm_decrypt_auth),
-        _ => None,
-    }
-}
-
 macro_rules! ccm_call_typed {
     ($(($t1s: expr, $t1: ty) => $(($t2s: expr, $t2: ty)),*);*) => {
         fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8], aad: &[u8]) -> Result<Result<Vec<u8>, aError>, FunctionErrorKind>
@@ -266,3 +247,24 @@ ccm_call_typed!(
     (14, U14) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13) ;
     (16, U16) => (7, U7) , (8, U8) , (9, U9) , (10, U10) , (11, U11) , (12, U12) , (13, U13)
 );
+
+pub struct AesCcm;
+
+function_set! {
+    AesCcm,
+    sync_stateless,
+    (
+        aes128_ccm_encrypt,
+        aes128_ccm_encrypt_auth,
+        aes128_ccm_decrypt,
+        aes128_ccm_decrypt_auth,
+        aes192_ccm_encrypt,
+        aes192_ccm_encrypt_auth,
+        aes192_ccm_decrypt,
+        aes192_ccm_decrypt_auth,
+        aes256_ccm_encrypt,
+        aes256_ccm_encrypt_auth,
+        aes256_ccm_decrypt,
+        aes256_ccm_decrypt_auth,
+    )
+}

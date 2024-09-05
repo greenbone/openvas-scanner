@@ -5,33 +5,27 @@
 mod frame_forgery;
 mod packet_forgery;
 mod raw_ip_utils;
-use nasl_builtin_utils::{Context, NaslVars, Register};
+use frame_forgery::FrameForgery;
+use nasl_builtin_utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};
+use packet_forgery::PacketForgery;
 
 pub struct RawIp;
-
-impl nasl_builtin_utils::NaslFunctionExecuter for RawIp {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        frame_forgery::lookup(name)
-            .map(|x| x(register, context))
-            .or_else(|| packet_forgery::lookup(name).map(|x| x(register, context)))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        frame_forgery::lookup(name)
-            .or_else(|| packet_forgery::lookup(name))
-            .is_some()
-    }
-}
 
 impl nasl_builtin_utils::NaslVarDefiner for RawIp {
     fn nasl_var_define(&self) -> NaslVars {
         let mut raw_ip_vars = packet_forgery::expose_vars();
         raw_ip_vars.extend(frame_forgery::expose_vars());
         raw_ip_vars
+    }
+}
+
+impl IntoFunctionSet for RawIp {
+    type State = RawIp;
+
+    fn into_function_set(self) -> StoredFunctionSet<Self::State> {
+        let mut set = StoredFunctionSet::new(self);
+        set.add_set(PacketForgery);
+        set.add_set(FrameForgery);
+        set
     }
 }

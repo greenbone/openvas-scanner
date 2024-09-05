@@ -10,7 +10,7 @@ mod sessions;
 
 use core::str;
 use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
-use nasl_builtin_utils::{Context, ContextType, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, ContextType, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
 use sessions::SshSession;
 use std::io::Write;
@@ -23,8 +23,6 @@ use std::{
     time::Duration,
 };
 use tracing::{debug, info};
-
-type NaslSSHFunction = fn(&Ssh, &Register, &Context) -> Result<NaslValue, FunctionErrorKind>;
 
 fn read_ssh_blocking(channel: &Channel, timeout: Duration, response: &mut String) -> i32 {
     let mut buf: [u8; 4096] = [0; 4096];
@@ -2016,55 +2014,30 @@ impl Ssh {
             ))),
         }
     }
-
-    fn lookup(key: &str) -> Option<NaslSSHFunction> {
-        match key {
-            "ssh_connect" => Some(Ssh::nasl_ssh_connect),
-            "ssh_disconnect" => Some(Ssh::nasl_ssh_disconnect),
-            "ssh_session_id_from_sock" => Some(Ssh::nasl_ssh_session_id_from_sock),
-            "ssh_get_sock" => Some(Ssh::nasl_ssh_get_sock),
-            "ssh_set_login" => Some(Ssh::nasl_ssh_set_login),
-            "ssh_userauth" => Some(Ssh::nasl_ssh_userauth),
-            "ssh_request_exec" => Some(Ssh::nasl_ssh_request_exec),
-            "ssh_shell_open" => Some(Ssh::nasl_ssh_shell_open),
-            "ssh_shell_read" => Some(Ssh::nasl_ssh_shell_read),
-            "ssh_shell_write" => Some(Ssh::nasl_ssh_shell_write),
-            "ssh_shell_close" => Some(Ssh::nasl_ssh_shell_close),
-            "ssh_login_interactive" => Some(Ssh::nasl_ssh_login_interactive),
-            "ssh_login_interactive_pass" => Some(Ssh::nasl_ssh_login_interactive_pass),
-            "ssh_get_issue_banner" => Some(Ssh::nasl_ssh_get_issue_banner),
-            "ssh_get_server_banner" => Some(Ssh::nasl_ssh_get_server_banner),
-            "ssh_get_auth_methods" => Some(Ssh::nasl_ssh_get_auth_methods),
-            "ssh_get_host_key" => Some(Ssh::nasl_ssh_get_host_key),
-            "sftp_enabled_check" => Some(Ssh::nasl_sftp_enabled_check),
-            "ssh_execute_netconf_subsystem" => Some(Ssh::nasl_ssh_execute_netconf_subsystem),
-            _ => None,
-        }
-    }
 }
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Ssh {
-    fn nasl_fn_cache_clear(&self) -> Option<usize> {
-        let mut data = Arc::as_ref(&self.sessions).lock().unwrap();
-        if data.is_empty() {
-            return None;
-        }
-        let result = data.len();
-        data.clear();
-        data.shrink_to_fit();
-        Some(result)
-    }
-
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        Ssh::lookup(name).map(|f| f(self, register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        Ssh::lookup(name).is_some()
-    }
+function_set! {
+    Ssh,
+    sync_stateful,
+    (
+        Ssh::nasl_ssh_connect,
+        Ssh::nasl_ssh_disconnect,
+        Ssh::nasl_ssh_session_id_from_sock,
+        Ssh::nasl_ssh_get_sock,
+        Ssh::nasl_ssh_set_login,
+        Ssh::nasl_ssh_userauth,
+        Ssh::nasl_ssh_request_exec,
+        Ssh::nasl_ssh_shell_open,
+        Ssh::nasl_ssh_shell_read,
+        Ssh::nasl_ssh_shell_write,
+        Ssh::nasl_ssh_shell_close,
+        Ssh::nasl_ssh_login_interactive,
+        Ssh::nasl_ssh_login_interactive_pass,
+        Ssh::nasl_ssh_get_issue_banner,
+        Ssh::nasl_ssh_get_server_banner,
+        Ssh::nasl_ssh_get_auth_methods,
+        Ssh::nasl_ssh_get_host_key,
+        Ssh::nasl_sftp_enabled_check,
+        Ssh::nasl_ssh_execute_netconf_subsystem,
+    )
 }

@@ -7,6 +7,7 @@ use std::{
     path::PathBuf,
 };
 
+use futures::StreamExt;
 use nasl_interpreter::{
     load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
     RegisterBuilder,
@@ -18,7 +19,7 @@ use crate::{CliError, CliErrorKind, Db};
 
 struct Run<L, S> {
     context_builder: nasl_interpreter::ContextFactory<L, S>,
-    target: String,
+    _target: String,
     scan_id: String,
 }
 
@@ -77,7 +78,7 @@ where
         Run {
             context_builder: nasl_interpreter::ContextFactory::new(self.loader, self.storage),
             scan_id: self.scan_id,
-            target: self.target,
+            _target: self.target,
         }
     }
 }
@@ -98,7 +99,7 @@ where
                 )?;
                 let results: Option<String> = iter
                     .filter_map(|(k, _)| match k {
-                        ContextKey::Scan(_) => None,
+                        ContextKey::Scan(..) => None,
                         ContextKey::FileName(f) => Some(f.to_string()),
                     })
                     .next();
@@ -111,17 +112,18 @@ where
         }
     }
 
-    fn run(&self, script: &str) -> Result<(), CliErrorKind> {
+    async fn run(&self, script: &str) -> Result<(), CliErrorKind> {
         let context = self
             .context_builder
-            .build(ContextKey::Scan(self.scan_id.clone()), self.target.clone());
+            // TODO: use proper  target
+            .build(ContextKey::Scan(self.scan_id.clone(), None));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
-        let interpreter =
-            CodeInterpreter::with_statement_callback(&code, register, &context, &|x| {
-                tracing::debug!("> {x}")
-            });
-        for result in interpreter {
+        let results: Vec<_> = CodeInterpreter::new(&code, register, &context)
+            .stream()
+            .collect()
+            .await;
+        for result in results {
             let r = match result {
                 Ok(x) => x,
                 Err(e) => match &e.kind {
@@ -145,7 +147,6 @@ where
             }
         }
 
-        context.executor().nasl_fn_cache_clear();
         Ok(())
     }
 }
@@ -156,7 +157,7 @@ fn create_redis_storage(
     redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
-fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader<PathBuf>) -> Result<(), CliError>
+async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
 where
     S: storage::Dispatcher,
 {
@@ -165,10 +166,7 @@ where
     tracing::info!("loading feed. This may take a while.");
     let verifier = feed::HashSumNameLoader::sha256(pl)?;
     let updater = feed::Update::init("scannerctl", 5, pl, storage, verifier);
-    for u in updater {
-        tracing::trace!(updated=?u);
-        u?;
-    }
+    updater.perform_update().await?;
     tracing::info!("loaded feed.");
     Ok(())
 }
@@ -187,7 +185,7 @@ fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), Cl
     Ok(())
 }
 
-pub fn run(
+pub async fn run(
     db: &Db,
     feed: Option<PathBuf>,
     script: &str,
@@ -197,30 +195,33 @@ pub fn run(
         .target(target.unwrap_or_default())
         .scan_id(format!("scannerctl-{script}"));
     let result = match (db, feed) {
-        (Db::Redis(url), None) => builder
-            .storage(create_redis_storage(url))
-            .build()
-            .run(script),
-        (Db::InMemory, None) => builder.build().run(script),
+        (Db::Redis(url), None) => {
+            builder
+                .storage(create_redis_storage(url))
+                .build()
+                .run(script)
+                .await
+        }
+        (Db::InMemory, None) => builder.build().run(script).await,
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
             let loader = FSPluginLoader::new(path);
-            load_feed_by_exec(&storage, &loader)?;
+            load_feed_by_exec(&storage, &loader).await?;
             let builder = RunBuilder::default().loader(loader);
-            builder.storage(storage).build().run(script)
+            builder.storage(storage).build().run(script).await
         }
         (Db::InMemory, Some(path)) => {
-            let storage = DefaultDispatcher::new(true);
+            let storage = DefaultDispatcher::new();
             let guessed_feed_json = path.join("feed.json");
             let loader = FSPluginLoader::new(path.clone());
             if guessed_feed_json.exists() {
                 load_feed_by_json(&storage, &guessed_feed_json)?
             } else {
-                load_feed_by_exec(&storage, &loader)?
+                load_feed_by_exec(&storage, &loader).await?
             }
 
             let builder = RunBuilder::default().loader(loader);
-            builder.storage(storage).build().run(script)
+            builder.storage(storage).build().run(script).await
         }
     };
 

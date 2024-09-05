@@ -32,6 +32,7 @@ enum HealthOpts {
     Alive,
 }
 /// The supported paths of openvasd
+// TODO: change KnownPath to reflect query parameter
 #[derive(PartialEq, Eq)]
 enum KnownPaths {
     /// /scans/{id}
@@ -67,7 +68,7 @@ impl KnownPaths {
         match parts.next() {
             Some("scans") => match mode {
                 config::Mode::Service => {
-                    tracing::debug!(?mode, ?path, "Scan endpoint enabled");
+                    tracing::debug!(?mode, ?path);
                     match parts.next() {
                         Some(id) => match parts.next() {
                             Some("results") => KnownPaths::ScanResults(
@@ -304,12 +305,11 @@ where
                     match crate::request::json_request::<models::Scan, _>(&ctx.response, req).await
                     {
                         Ok(mut scan) => {
-                            let id = if scan.scan_id.is_empty() {
-                                uuid::Uuid::new_v4().to_string()
+                            let id = if !scan.scan_id.is_empty() {
+                                scan.scan_id.to_string()
                             } else {
-                                scan.scan_id.clone()
+                                uuid::Uuid::new_v4().to_string()
                             };
-
                             let resp = ctx.response.created(&id);
                             scan.scan_id.clone_from(&id);
                             ctx.scheduler.insert_scan(scan).await?;
@@ -463,5 +463,375 @@ where
                 _ => Ok(ctx.response.not_found("path", req.uri().path())),
             }
         })
+    }
+}
+
+#[cfg(test)]
+pub mod client {
+    use std::sync::Arc;
+
+    use http_body_util::{BodyExt, Empty, Full};
+    use hyper::{
+        body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
+    };
+    use infisto::base::CachedIndexFileStorer;
+    use models::scanner::Scanner;
+    use nasl_interpreter::FSPluginLoader;
+    use serde::Deserialize;
+
+    use crate::{
+        controller::{ClientIdentifier, Context},
+        storage::{file::Storage, NVTStorer, UserNASLStorageForKBandVT},
+    };
+
+    use super::KnownPaths;
+
+    type HttpResult = Result<crate::response::Result, models::scanner::Error>;
+    type TypeResult<T> = Result<T, models::scanner::Error>;
+
+    pub struct Client<S, DB> {
+        ctx: Arc<Context<S, DB>>,
+        cid: Arc<ClientIdentifier>,
+    }
+
+    pub async fn in_memory_example_feed() -> Client<
+        nasl_interpreter::Scanner<(
+            Arc<
+                UserNASLStorageForKBandVT<
+                    crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
+                >,
+            >,
+            FSPluginLoader,
+        )>,
+        Arc<
+            UserNASLStorageForKBandVT<
+                crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
+            >,
+        >,
+    > {
+        use crate::file::tests::{example_feeds, nasl_root};
+        let storage = crate::storage::inmemory::Storage::default();
+
+        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+
+        storage
+            .synchronize_feeds(example_feeds().await)
+            .await
+            .unwrap();
+        let nasl_feed_path = nasl_root().await;
+        let scanner = nasl_interpreter::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        Client::authenticated(scanner, storage)
+    }
+    pub async fn encrypted_file_based_example_feed(
+        prefix: &str,
+    ) -> Client<
+        nasl_interpreter::Scanner<(
+            Arc<
+                UserNASLStorageForKBandVT<
+                    Storage<
+                        infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>,
+                    >,
+                >,
+            >,
+            FSPluginLoader,
+        )>,
+        Arc<
+            UserNASLStorageForKBandVT<
+                Storage<infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>>,
+            >,
+        >,
+    > {
+        use crate::file::tests::{example_feeds, nasl_root};
+        let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
+
+        let key = "testdontbother";
+        let feeds = example_feeds().await;
+        let storage = crate::storage::file::encrypted(&storage_dir, key, feeds).unwrap();
+
+        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+
+        storage
+            .synchronize_feeds(example_feeds().await)
+            .await
+            .unwrap();
+        let nasl_feed_path = nasl_root().await;
+        let scanner = nasl_interpreter::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        Client::authenticated(scanner, storage)
+    }
+
+    pub async fn file_based_example_feed(
+        prefix: &str,
+    ) -> Client<
+        nasl_interpreter::Scanner<(
+            Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+            FSPluginLoader,
+        )>,
+        Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+    > {
+        use crate::file::tests::{example_feed_file_storage, nasl_root};
+        let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
+        let store = example_feed_file_storage(&storage_dir).await;
+        let store = Arc::new(UserNASLStorageForKBandVT::new(store));
+        let nasl_feed_path = nasl_root().await;
+        let scanner = nasl_interpreter::Scanner::with_storage(store.clone(), &nasl_feed_path);
+        Client::authenticated(scanner, store)
+    }
+    impl<S, DB> Client<S, DB>
+    where
+        S: Scanner + 'static + std::marker::Send + std::marker::Sync,
+        DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
+    {
+        pub fn authenticated(scanner: S, db: DB) -> Self {
+            let ns = crate::config::Scheduler {
+                check_interval: std::time::Duration::from_nanos(10),
+                ..Default::default()
+            };
+
+            let ctx = Arc::new(
+                crate::controller::ContextBuilder::new()
+                    .api_key(Some("mtls_is_preferred".to_string()))
+                    .scheduler_config(ns)
+                    .scanner(scanner)
+                    .storage(db)
+                    .enable_get_scans(true)
+                    .build(),
+            );
+            let cid = Arc::new(ClientIdentifier::Known("42".into()));
+            Self { ctx, cid }
+        }
+
+        pub fn set_client(&mut self, cid: ClientIdentifier) {
+            self.cid = Arc::new(cid);
+        }
+
+        async fn entrypoint<R>(&self, req: Request<R>) -> HttpResult
+        where
+            R: hyper::body::Body + Send + 'static,
+            <R as hyper::body::Body>::Error: std::error::Error,
+            <R as hyper::body::Body>::Data: Send,
+        {
+            let mut entry =
+                crate::controller::entry::EntryPoint::new(self.ctx.clone(), self.cid.clone());
+            entry.call(req).await
+        }
+
+        async fn request_empty(&self, method: Method, url: KnownPaths) -> HttpResult {
+            self.request_body(method, url, Empty::<Bytes>::new()).await
+        }
+
+        async fn request_json<T>(&self, method: Method, url: KnownPaths, data: &T) -> HttpResult
+        where
+            T: serde::Serialize + std::fmt::Debug,
+        {
+            let data = serde_json::to_vec(data).map_err(|x| {
+                models::scanner::Error::Unexpected(format!("Unable to transform {data:?}: {x}"))
+            })?;
+            let body: Full<Bytes> = Full::from(data);
+            self.request_body(method, url, body).await
+        }
+
+        async fn request_body<B>(
+            &self,
+            method: Method,
+            url: KnownPaths,
+            body: B,
+        ) -> Result<crate::response::Result, models::scanner::Error>
+        where
+            B: Sync + Send + http_body::Body + 'static,
+            <B as http_body::Body>::Data: Send,
+            <B as http_body::Body>::Error: std::error::Error,
+        {
+            let req = Request::builder()
+                .uri(url.to_string())
+                .method(method)
+                .body(body)
+                .map_err(|x| {
+                    models::scanner::Error::Unexpected(format!("Unable to create request: {x}"))
+                })?;
+            self.entrypoint(req).await
+        }
+
+        pub async fn scan_status(&self, id: &str) -> TypeResult<models::Status> {
+            let result = self
+                .request_empty(Method::GET, KnownPaths::ScanStatus(id.to_string()))
+                .await;
+            self.parsed(result).await
+        }
+
+        pub async fn header(&self) -> TypeResult<HeaderMap<HeaderValue>> {
+            let result = self
+                .request_empty(Method::HEAD, KnownPaths::Vts(None))
+                .await?;
+            Ok(result.headers().clone())
+        }
+
+        pub async fn scan(&self, id: &str) -> TypeResult<models::Scan> {
+            let result = self
+                .request_empty(Method::GET, KnownPaths::Scans(Some(id.to_string())))
+                .await;
+            self.parsed(result).await
+        }
+
+        pub async fn scan_results(&self, id: &str) -> TypeResult<Vec<models::Result>> {
+            let result = self
+                .request_empty(Method::GET, KnownPaths::ScanResults(id.to_string(), None))
+                .await;
+            self.parsed(result).await
+        }
+        pub async fn scan_delete(&self, id: &str) -> TypeResult<()> {
+            let result = self
+                .request_empty(Method::DELETE, KnownPaths::Scans(Some(id.to_string())))
+                .await;
+            self.no_content(result).await
+        }
+
+        pub async fn scan_action(&self, id: &str, action: models::Action) -> TypeResult<()> {
+            let action: models::ScanAction = action.into();
+            let result = self
+                .request_json(
+                    Method::POST,
+                    KnownPaths::Scans(Some(id.to_string())),
+                    &action,
+                )
+                .await;
+            self.no_content(result).await
+        }
+
+        pub async fn no_content(&self, result: HttpResult) -> TypeResult<()> {
+            let resp = result?;
+            if resp.status() != 204 {
+                return Err(models::scanner::Error::Unexpected(format!(
+                    "Expected 204 for a no-content response but got {}",
+                    resp.status()
+                )));
+            }
+            Ok(())
+        }
+
+        pub async fn scans(&self) -> TypeResult<Vec<models::Scan>> {
+            let result = self
+                .request_empty(Method::GET, KnownPaths::Scans(None))
+                .await;
+            self.parsed(result).await
+        }
+
+        // TODO: deal with that static stuff that prevents deserializiation based on Bytes
+        pub async fn scans_preferences(&self) -> TypeResult<String> {
+            let result = self
+                .request_empty(Method::GET, KnownPaths::ScanPreferences)
+                .await;
+            let resp = result?;
+            if resp.status() != 200 && resp.status() != 201 {
+                return Err(models::scanner::Error::Unexpected(format!(
+                    "Expected 200 for a body response but got {}",
+                    resp.status()
+                )));
+            }
+
+            // infallible
+            let resp = resp.into_body().collect().await.unwrap().to_bytes();
+            String::from_utf8(resp.to_vec())
+                .map_err(|x| models::scanner::Error::Unexpected(format!("lol: {x}")))
+        }
+
+        pub async fn scan_create(&self, scan: &models::Scan) -> TypeResult<String> {
+            let result = self
+                .request_json(Method::POST, KnownPaths::Scans(None), scan)
+                .await;
+            self.parsed(result).await
+        }
+
+        pub async fn vts(&self) -> TypeResult<Vec<String>> {
+            let result = self.request_empty(Method::GET, KnownPaths::Vts(None)).await;
+            self.parsed(result).await
+        }
+
+        /// Starts a scan and wait until is finished and returns it status and results
+        ///
+        pub async fn scan_finish(
+            &self,
+            scan: &models::Scan,
+        ) -> TypeResult<(String, models::Status)> {
+            let id = self.scan_create(scan).await?;
+            self.scan_action(&id, models::Action::Start).await?;
+            // move to queued
+            self.ctx.scheduler.sync_scans().await?;
+            // move to running
+            self.ctx.scheduler.sync_scans().await?;
+            let start = std::time::SystemTime::now();
+            loop {
+                let response = self.scan_status(&id).await?;
+                if response.is_done() {
+                    let mut abort = Arc::as_ref(&self.ctx).abort.write().unwrap();
+                    *abort = true;
+                    return Ok((id, response));
+                }
+
+                if let Ok(has_run) = std::time::SystemTime::now().duration_since(start) {
+                    let mut abort = Arc::as_ref(&self.ctx).abort.write().unwrap();
+                    *abort = true;
+                    if has_run.as_secs() > 10 {
+                        return Err(models::scanner::Error::Unexpected(format!(
+                            "scan_finish took over {} seconds, aborting",
+                            has_run.as_secs()
+                        )));
+                    }
+                }
+            }
+        }
+
+        pub async fn parsed<'a, T>(&self, result: HttpResult) -> TypeResult<T>
+        where
+            T: for<'de> Deserialize<'de>,
+        {
+            let resp = result?;
+            if resp.status() != 200 && resp.status() != 201 {
+                return Err(models::scanner::Error::Unexpected(format!(
+                    "Expected 200 for a body response but got {}",
+                    resp.status()
+                )));
+            }
+
+            // infallible
+            let resp = resp.into_body().collect().await.unwrap().to_bytes();
+            serde_json::from_slice::<T>(&resp).map_err(|e| {
+                models::scanner::Error::Unexpected(format!("Unable to serialize: {e}"))
+            })
+        }
+    }
+}
+
+#[cfg(test)]
+pub(super) mod tests {
+
+    #[tokio::test]
+    #[tracing_test::traced_test]
+    async fn results_via_internal_scanner() {
+        let client =
+            super::client::encrypted_file_based_example_feed("results_via_internal_scanner").await;
+
+        let mut scan: models::Scan = models::Scan::default();
+        scan.target.hosts.push("localhost".to_string());
+        scan.vts = vec![
+            models::VT {
+                oid: "0.0.0.0.0.0.0.0.0.3".to_string(),
+                parameters: vec![],
+            },
+            models::VT {
+                oid: "0.0.0.0.0.0.0.0.0.4".to_string(),
+                parameters: vec![],
+            },
+            models::VT {
+                oid: "0.0.0.0.0.0.0.0.0.5".to_string(),
+                parameters: vec![],
+            },
+        ];
+        let vts = client.vts().await.unwrap();
+        assert!(vts.len() > 2);
+        let (id, status) = client.scan_finish(&scan).await.unwrap();
+        assert_eq!(status.status, models::Phase::Succeeded);
+        let results = client.scan_results(&id).await.unwrap();
+        assert_eq!(3, results.len());
+        client.scan_delete(&id).await.unwrap();
     }
 }

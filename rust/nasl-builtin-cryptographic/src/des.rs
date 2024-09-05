@@ -5,7 +5,7 @@
 use aes::cipher::BlockEncrypt;
 use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
-use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind, Register};
 
 fn encrypt_des(
     register: &Register,
@@ -43,9 +43,13 @@ fn encrypt_des(
     des_cipher.encrypt_block(&mut data);
     Ok(data.to_vec().into())
 }
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "DES" => Some(encrypt_des),
-        _ => None,
-    }
+
+pub struct Des;
+
+function_set! {
+    Des,
+    sync_stateless,
+    (
+        (encrypt_des, "DES"),
+    )
 }

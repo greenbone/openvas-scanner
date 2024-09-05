@@ -12,10 +12,8 @@ use aes_gcm::{
     AesGcm,
 };
 use digest::typenum::{U12, U16};
-use nasl_builtin_utils::{Context, FunctionErrorKind, Register};
+use nasl_builtin_utils::{function_set, Context, FunctionErrorKind, Register};
 use nasl_syntax::NaslValue;
-
-use crate::NaslFunction;
 
 use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt};
 
@@ -244,20 +242,23 @@ fn aes256_gcm_decrypt_auth(
     gcm::<Aes256>(register, Crypt::Decrypt, true)
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "aes128_gcm_encrypt" => Some(aes128_gcm_encrypt),
-        "aes128_gcm_encrypt_auth" => Some(aes128_gcm_encrypt_auth),
-        "aes128_gcm_decrypt" => Some(aes128_gcm_decrypt),
-        "aes128_gcm_decrypt_auth" => Some(aes128_gcm_decrypt_auth),
-        "aes192_gcm_encrypt" => Some(aes192_gcm_encrypt),
-        "aes192_gcm_encrypt_auth" => Some(aes192_gcm_encrypt_auth),
-        "aes192_gcm_decrypt" => Some(aes192_gcm_decrypt),
-        "aes192_gcm_decrypt_auth" => Some(aes192_gcm_decrypt_auth),
-        "aes256_gcm_encrypt" => Some(aes256_gcm_encrypt),
-        "aes256_gcm_encrypt_auth" => Some(aes256_gcm_encrypt_auth),
-        "aes256_gcm_decrypt" => Some(aes256_gcm_decrypt),
-        "aes256_gcm_decrypt_auth" => Some(aes256_gcm_decrypt_auth),
-        _ => None,
-    }
+pub struct AesGcmFns;
+
+function_set! {
+    AesGcmFns,
+    sync_stateless,
+    (
+        aes128_gcm_encrypt,
+        aes128_gcm_encrypt_auth,
+        aes128_gcm_decrypt,
+        aes128_gcm_decrypt_auth,
+        aes192_gcm_encrypt,
+        aes192_gcm_encrypt_auth,
+        aes192_gcm_decrypt,
+        aes192_gcm_decrypt_auth,
+        aes256_gcm_encrypt,
+        aes256_gcm_encrypt_auth,
+        aes256_gcm_decrypt,
+        aes256_gcm_decrypt_auth,
+    )
 }

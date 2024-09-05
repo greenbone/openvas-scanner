@@ -24,8 +24,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn function_variable() {
+    #[tokio::test]
+    async fn function_variable() {
         let example = r#"
         a = 12;
         function test() {
@@ -47,12 +47,15 @@ mod tests {
             functions: nasl_std_functions(),
             storage: storage::DefaultDispatcher::default(),
         };
-        let ctx = context.build(Default::default(), Default::default());
+        let ctx = context.build(Default::default());
         let mut interpreter = CodeInterpreter::new(code, register, &ctx);
-        assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-        assert_eq!(interpreter.next(), Some(Ok(12.into())));
         assert_eq!(
-            interpreter.next(),
+            interpreter.next_statement().await,
+            Some(Ok(NaslValue::Null))
+        );
+        assert_eq!(interpreter.next_statement().await, Some(Ok(12.into())));
+        assert_eq!(
+            interpreter.next_statement().await,
             Some(Ok(NaslValue::Dict(HashMap::from([(
                 "hello".to_owned(),
                 NaslValue::Data("world".as_bytes().into())

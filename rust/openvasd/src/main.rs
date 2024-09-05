@@ -2,12 +2,25 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
-use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
-use nasl_interpreter::FSPluginLoader;
-use notus::NotusWrapper;
+use std::marker::{Send, Sync};
 
-use crate::storage::FeedHash;
+use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
+use config::{Config, Mode, ScannerType};
+use controller::{Context, ContextBuilder};
+use infisto::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
+use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner};
+use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
+use notus::NotusWrapper;
+use openvas::cmd;
+use storage::{FromConfigAndFeeds, Storage};
+use tracing::{info, metadata::LevelFilter, warn};
+use tracing_subscriber::EnvFilter;
+
+use crate::{
+    config::StorageType,
+    crypt::ChaCha20Crypt,
+    storage::{file, inmemory, redis, FeedHash},
+};
 pub mod config;
 pub mod controller;
 pub mod crypt;
@@ -20,22 +33,73 @@ mod scheduling;
 pub mod storage;
 pub mod tls;
 
-fn create_context<DB, ScanHandler>(
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+fn setup_log(config: &Config) {
+    let filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
+    tracing_subscriber::fmt().with_env_filter(filter).init();
+}
+
+fn get_feeds(config: &Config) -> Vec<FeedHash> {
+    match config.mode {
+        Mode::Service => vec![
+            FeedHash::nasl(&config.feed.path),
+            FeedHash::advisories(&config.notus.advisories_path),
+        ],
+        Mode::ServiceNotus => vec![FeedHash::advisories(&config.notus.advisories_path)],
+    }
+}
+
+fn check_redis_url(config: &mut Config) -> String {
+    let redis_url = cmd::get_redis_socket();
+    if redis_url != config.storage.redis.url {
+        warn!(openvas_redis=&redis_url, openvasd_redis=&config.storage.redis.url, "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url");
+        config.storage.redis.url = redis_url.clone();
+    }
+    redis_url
+}
+
+fn make_osp_scanner(config: &Config) -> osp::Scanner {
+    if !config.scanner.ospd.socket.exists() {
+        warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.scanner.ospd.socket.display());
+    }
+    osp::Scanner::new(
+        config.scanner.ospd.socket.clone(),
+        config.scanner.ospd.read_timeout,
+    )
+}
+
+fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
+    let redis_url = check_redis_url(&mut config);
+    openvas::Scanner::new(
+        config.scheduler.min_free_mem,
+        None,
+        cmd::check_sudo(),
+        redis_url,
+    )
+}
+
+fn make_openvasd_scanner<S>(
+    config: &Config,
+    storage: S,
+) -> nasl_interpreter::Scanner<ScannerStackWithStorage<S>>
+where
+    S: storage::NaslStorage + Send + 'static,
+{
+    nasl_interpreter::Scanner::with_storage(storage, &config.feed.path)
+}
+
+async fn create_context<DB, ScanHandler>(
     db: DB,
     sh: ScanHandler,
-    config: &config::Config,
-) -> Result<controller::Context<ScanHandler, DB>, Box<dyn std::error::Error + Send + Sync>>
+    config: &Config,
+) -> Context<ScanHandler, DB>
 where
-    ScanHandler: ScanStarter
-        + ScanStopper
-        + ScanDeleter
-        + ScanResultFetcher
-        + std::fmt::Debug
-        + std::marker::Sync
-        + std::marker::Send
-        + 'static,
+    ScanHandler:
+        ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Sync + Send + 'static,
 {
-    let mut ctx_builder = controller::ContextBuilder::new();
+    let mut ctx_builder = ContextBuilder::new();
 
     let loader = FSPluginLoader::new(config.notus.products_path.to_string_lossy().to_string());
     match HashsumProductLoader::new(loader) {
@@ -43,136 +107,83 @@ where
             let notus = Notus::new(loader, config.feed.signature_check);
             ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
         }
-        Err(e) => tracing::warn!("Notus Scanner disabled: {e}"),
+        Err(e) => warn!("Notus Scanner disabled: {e}"),
     }
+    tracing::warn!(enable_get_scans = config.endpoints.enable_get_scans);
 
-    let tls_config = tls::tls_config(config)?;
-
-    Ok(ctx_builder
+    ctx_builder
         .mode(config.mode.clone())
         .scheduler_config(config.scheduler.clone())
         .feed_config(config.feed.clone())
+        .await
         .scanner(sh)
         .api_key(config.endpoints.key.clone())
-        .tls_config(tls_config)
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
-        .build())
+        .build()
 }
 
-async fn run<S>(
-    scanner: S,
-    config: &config::Config,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+async fn run_with_scanner_and_storage<Sc, St>(
+    scanner: Sc,
+    storage: St,
+    config: &Config,
+) -> Result<()>
 where
-    S: ScanStarter
-        + ScanStopper
-        + ScanDeleter
-        + ScanResultFetcher
-        + std::fmt::Debug
-        + std::marker::Sync
-        + std::marker::Send
-        + 'static,
+    St: Storage + Send + Sync + 'static,
+    Sc: Scanner + Send + Sync + 'static,
 {
-    tracing::info!(mode = ?config.mode, storage_type=?config.storage.storage_type, "configuring storage devices");
-    let feeds = match config.mode {
-        config::Mode::Service => vec![
-            FeedHash::nasl(&config.feed.path),
-            FeedHash::advisories(&config.notus.advisories_path),
-        ],
+    let ctx = create_context(storage, scanner, config).await;
+    controller::run(ctx, config).await
+}
 
-        config::Mode::ServiceNotus => vec![FeedHash::advisories(&config.notus.advisories_path)],
-    };
+async fn run_with_storage<St>(config: &Config) -> Result<()>
+where
+    St: FromConfigAndFeeds + storage::ResultHandler + Storage + Send + 'static + Sync,
+{
+    let feeds = get_feeds(config);
+    let storage = St::from_config_and_feeds(config, feeds)?;
+
+    match config.scanner.scanner_type {
+        ScannerType::OSPD => {
+            let scanner = make_osp_scanner(config);
+            run_with_scanner_and_storage(scanner, storage, config).await
+        }
+        ScannerType::Openvas => {
+            let scanner = make_openvas_scanner(config.clone());
+            run_with_scanner_and_storage(scanner, storage, config).await
+        }
+        ScannerType::Openvasd => {
+            let storage = std::sync::Arc::new(storage::UserNASLStorageForKBandVT::new(storage));
+            let scanner = make_openvasd_scanner(config, storage.clone());
+            run_with_scanner_and_storage(scanner, storage, config).await
+        }
+    }
+}
+
+async fn run(config: &Config) -> Result<()> {
+    info!(mode = ?config.mode, storage_type=?config.storage.storage_type, "configuring storage devices");
     match config.storage.storage_type {
-        config::StorageType::Redis => {
-            tracing::info!(url = config.storage.redis.url, "using redis");
-
-            let ic = storage::inmemory::Storage::new(
-                crate::crypt::ChaCha20Crypt::default(),
-                feeds.clone(),
-            );
-            let ctx = create_context(
-                storage::redis::Storage::new(ic, config.storage.redis.url.clone(), feeds),
-                scanner,
-                config,
-            )?;
-            controller::run(ctx, config).await
+        StorageType::Redis => {
+            run_with_storage::<redis::Storage<inmemory::Storage<ChaCha20Crypt>>>(config).await
         }
-        config::StorageType::InMemory => {
-            tracing::info!("using in memory store. No sensitive data will be stored on disk.");
-            // Self::new(crate::crypt::ChaCha20Crypt::default(), "/var/lib/openvas/feed".to_string())
-            let ctx = create_context(
-                storage::inmemory::Storage::new(crate::crypt::ChaCha20Crypt::default(), feeds),
-                scanner,
-                config,
-            )?;
-            controller::run(ctx, config).await
-        }
-        config::StorageType::FileSystem => {
-            if let Some(key) = &config.storage.fs.key {
-                tracing::info!(
-                    "using in file storage. Sensitive data will be encrypted stored on disk."
-                );
-
-                let ctx = create_context(
-                    storage::file::encrypted(&config.storage.fs.path, key, feeds)?,
-                    scanner,
+        StorageType::InMemory => run_with_storage::<inmemory::Storage<ChaCha20Crypt>>(config).await,
+        StorageType::FileSystem => {
+            if config.storage.fs.key.is_some() {
+                run_with_storage::<file::Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>(
                     config,
-                )?;
-                controller::run(ctx, config).await
+                )
+                .await
             } else {
-                tracing::warn!(
-                    "using in file storage. Sensitive data will be stored on disk without any encryption."
-                );
-                let ctx = create_context(
-                    storage::file::unencrypted(&config.storage.fs.path, feeds)?,
-                    scanner,
-                    config,
-                )?;
-                controller::run(ctx, config).await
+                run_with_storage::<file::Storage<IndexedFileStorer>>(config).await
             }
         }
     }
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut config = config::Config::load();
-    let filter = tracing_subscriber::EnvFilter::builder()
-        .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
-    tracing::debug!("config: {:?}", config);
-    tracing_subscriber::fmt().with_env_filter(filter).init();
-    if !config.scanner.ospd.socket.exists() {
-        tracing::warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.scanner.ospd.socket.display());
-    }
-    match config.scanner.scanner_type {
-        config::ScannerType::OSPD => {
-            run(
-                osp::Scanner::new(
-                    config.scanner.ospd.socket.clone(),
-                    config.scanner.ospd.read_timeout,
-                ),
-                &config,
-            )
-            .await
-        }
-        config::ScannerType::Openvas => {
-            let redis_url = openvas::cmd::get_redis_socket();
-            if redis_url != config.storage.redis.url {
-                tracing::warn!(openvas_redis=&redis_url, openvasd_redis=&config.storage.redis.url, "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url");
-                config.storage.redis.url.clone_from(&redis_url);
-            }
-            run(
-                openvas::Scanner::new(
-                    config.scheduler.min_free_mem,
-                    None,
-                    openvas::cmd::check_sudo(),
-                    redis_url,
-                ),
-                &config,
-            )
-            .await
-        }
-    }
+async fn main() -> Result<()> {
+    let config = Config::load();
+    tracing::debug!(key = config.storage.fs.key);
+    setup_log(&config);
+    run(&config).await
 }

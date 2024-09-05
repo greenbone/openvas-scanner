@@ -21,7 +21,7 @@ use nasl_syntax::NaslValue;
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
-use nasl_builtin_utils::{error::FunctionErrorKind, function::Maybe, NaslFunction};
+use nasl_builtin_utils::{error::FunctionErrorKind, function::Maybe, function_set};
 use nasl_builtin_utils::{Context, ContextType, Register};
 
 #[inline]
@@ -68,7 +68,7 @@ fn usleep(micros: u64) {
 /// Returns the type of given unnamed argument.
 // typeof is a reserved keyword, therefore it is prefixed with "nasl_"
 #[nasl_function]
-fn nasl_typeof(val: NaslValue) -> &str {
+fn nasl_typeof(val: NaslValue) -> String {
     match val {
         NaslValue::Null => "undef",
         NaslValue::String(_) => "string",
@@ -79,6 +79,7 @@ fn nasl_typeof(val: NaslValue) -> &str {
         NaslValue::Data(_) => "data",
         _ => "unknown",
     }
+    .into()
 }
 
 /// Returns true when the given unnamed argument is null.
@@ -241,42 +242,26 @@ fn dump_ctxt(register: &Register) {
     register.dump(register.index() - 1);
 }
 
-/// Returns found function for key or None when not found
-fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "rand" => Some(rand),
-        "get_byte_order" => Some(get_byte_order),
-        "dec2str" => Some(dec2str),
-        "typeof" => Some(nasl_typeof),
-        "isnull" => Some(isnull),
-        "unixtime" => Some(unixtime),
-        "localtime" => Some(localtime),
-        "mktime" => Some(mktime),
-        "usleep" => Some(usleep),
-        "sleep" => Some(sleep),
-        "gzip" => Some(gzip),
-        "gunzip" => Some(gunzip),
-        "defined_func" => Some(defined_func),
-        "gettimeofday" => Some(gettimeofday),
-        "dump_ctxt" => Some(dump_ctxt),
-        _ => None,
-    }
-}
-
-/// The description builtin function
 pub struct Misc;
 
-impl nasl_builtin_utils::NaslFunctionExecuter for Misc {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
+function_set! {
+    Misc,
+    sync_stateless,
+    (
+        rand,
+        get_byte_order,
+        dec2str,
+        (nasl_typeof, "typeof"),
+        isnull,
+        unixtime,
+        localtime,
+        mktime,
+        usleep,
+        sleep,
+        gzip,
+        gunzip,
+        defined_func,
+        gettimeofday,
+        dump_ctxt,
+    )
 }

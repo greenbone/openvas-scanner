@@ -4,18 +4,12 @@
 
 #[cfg(test)]
 mod tests {
-    use nasl_interpreter::*;
+    use nasl_interpreter::check_code_result_matches;
+    use nasl_syntax::NaslValue;
+
     #[test]
     fn get_host_name() {
-        let code = r###"
-        get_host_name();
-        get_host_names();
-        "###;
-        let register = Register::default();
-        let binding = ContextFactory::default();
-        let context = binding.build(Default::default(), Default::default());
-        let mut parser = CodeInterpreter::new(code, register, &context);
-        assert!(matches!(parser.next(), Some(Ok(NaslValue::String(_)))));
-        assert!(matches!(parser.next(), Some(Ok(NaslValue::Array(_)))));
+        check_code_result_matches!("get_host_name();", NaslValue::String(_));
+        check_code_result_matches!("get_host_names();", NaslValue::Array(_));
     }
 }

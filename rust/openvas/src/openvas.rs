@@ -7,7 +7,7 @@ use models::{
     scanner::{
         Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
     },
-    HostInfo, Phase, Scan, Status,
+    HostInfoBuilder, Phase, Scan, Status,
 };
 use redis_storage::{NameSpaceSelector, RedisCtx};
 use std::{
@@ -314,16 +314,15 @@ impl ScanResultFetcher for Scanner {
 
         match Arc::as_ref(&ov_results.results).lock() {
             Ok(all_results) => {
-                //let all_results = all_r.clone();
-                let hosts_info = HostInfo {
-                    all: all_results.count_total as u32,
-                    excluded: all_results.count_excluded as u32,
-                    dead: all_results.count_dead as u32,
-                    alive: all_results.count_alive as u32,
+                let hosts_info = HostInfoBuilder {
+                    all: all_results.count_total as u64,
+                    excluded: all_results.count_excluded as u64,
+                    dead: all_results.count_dead as u64,
+                    alive: all_results.count_alive as u64,
                     queued: 0,
-                    finished: all_results.count_alive as u32,
-                    scanning: Some(all_results.host_status.clone()),
-                };
+                    finished: all_results.count_alive as u64,
+                }
+                .build();
 
                 let status: Phase = OpenvasPhase::from_str(&all_results.scan_status)
                     .map_err(|_| {
@@ -338,7 +337,7 @@ impl ScanResultFetcher for Scanner {
                         SystemTime::now()
                             .duration_since(SystemTime::UNIX_EPOCH)
                             .expect("Valid timestamp for start scan")
-                            .as_secs() as u32,
+                            .as_secs(),
                     ),
                     _ => None,
                 };
@@ -347,7 +346,7 @@ impl ScanResultFetcher for Scanner {
                         SystemTime::now()
                             .duration_since(SystemTime::UNIX_EPOCH)
                             .expect("Valid timestamp for start scan")
-                            .as_secs() as u32,
+                            .as_secs(),
                     ),
                     _ => None,
                 };
