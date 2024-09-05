@@ -146,7 +146,6 @@ impl IndexedFileStorer {
 
     fn store_index(&self, index: &[Index], id: &str) -> Result<(), Error> {
         let fn_name = format!("{}.idx", id);
-        //let to_store = serde_json::to_vec(index).map_err(|_e| Error::Serialize)?;
         let to_store = serde_json::to_vec(index).map_err(|x| {
             warn!(error=%x, "unable to serialize index for storage");
             Error::Serialize

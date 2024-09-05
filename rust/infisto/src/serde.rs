@@ -22,11 +22,6 @@ where
 {
     /// Serializes given data to Vec<u8>
     pub fn serialize(t: T) -> Result<Self, Error> {
-        // match serde_json::to_vec(&t) {
-        //     Ok(v) => Ok(Serialization::Serialized(v)),
-        //     Err(_) => Err(Error::Serialize),
-        // }
-
         match serde_json::to_vec(&t) {
             Ok(v) => Ok(Serialization::Serialized(v)),
             Err(e) => {
@@ -52,10 +47,6 @@ where
     type Error = Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        // match serde_json::from_slice(&value) {
-        //     Ok(t) => Ok(Serialization::Deserialized(t)),
-        //     Err(_) => Err(Error::Serialize),
-        // }
         match serde_json::from_slice(&value) {
             Ok(t) => Ok(Serialization::Deserialized(t)),
             Err(_) => Err(Error::Serialize),
