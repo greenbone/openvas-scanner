@@ -6,7 +6,7 @@
 mod tests {
     use std::collections::HashMap;
 
-    use nasl_interpreter::test_utils::{check_ok, TestBuilder};
+    use nasl_interpreter::test_utils::{check_code_result, TestBuilder};
     use nasl_syntax::NaslValue;
     macro_rules! make_dict {
         ($($key:expr => $val:expr),*) => {
@@ -26,13 +26,13 @@ mod tests {
 
     #[test]
     fn make_array() {
-        check_ok("make_array(1, 0, 2, 1);", make_dict!(1 => 0i64, 2 => 1i64));
-        check_ok(
+        check_code_result("make_array(1, 0, 2, 1);", make_dict!(1 => 0i64, 2 => 1i64));
+        check_code_result(
             "make_array(1, 0, 2, 1, 1);",
             make_dict!(1 => 0i64, 2 => 1i64),
         );
-        check_ok("make_array(1);", make_dict!());
-        check_ok("make_array();", make_dict!());
+        check_code_result("make_array(1);", make_dict!());
+        check_code_result("make_array();", make_dict!());
     }
 
     #[test]

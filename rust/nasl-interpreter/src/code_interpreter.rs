@@ -88,13 +88,13 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::check_ok;
+    use crate::test_utils::check_code_result;
     use nasl_syntax::NaslValue;
 
     #[test]
     fn code_interpreter() {
-        check_ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
-        check_ok(r#"set_kb_item(name: "test", value: 2);"#, NaslValue::Null);
-        check_ok(r#"display(get_kb_item("test"));"#, NaslValue::Null);
+        check_code_result(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        check_code_result(r#"set_kb_item(name: "test", value: 2);"#, NaslValue::Null);
+        check_code_result(r#"display(get_kb_item("test"));"#, NaslValue::Null);
     }
 }

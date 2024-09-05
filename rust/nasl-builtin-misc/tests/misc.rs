@@ -7,8 +7,8 @@ mod tests {
     use chrono::Offset;
 
     use nasl_interpreter::{
-        check_err_matches, check_ok_matches,
-        test_utils::{check_ok, TestBuilder},
+        check_code_result_matches, check_err_matches,
+        test_utils::{check_code_result, TestBuilder},
         FunctionErrorKind,
     };
     use nasl_syntax::NaslValue;
@@ -16,18 +16,18 @@ mod tests {
 
     #[test]
     fn rand() {
-        check_ok_matches!("rand();", NaslValue::Number(_));
-        check_ok_matches!("rand();", NaslValue::Number(_));
+        check_code_result_matches!("rand();", NaslValue::Number(_));
+        check_code_result_matches!("rand();", NaslValue::Number(_));
     }
 
     #[test]
     fn get_byte_order() {
-        check_ok_matches!("get_byte_order();", NaslValue::Boolean(_));
+        check_code_result_matches!("get_byte_order();", NaslValue::Boolean(_));
     }
 
     #[test]
     fn dec2str() {
-        check_ok("dec2str(num: 23);", "23");
+        check_code_result("dec2str(num: 23);", "23");
     }
 
     #[test]
@@ -50,24 +50,24 @@ mod tests {
 
     #[test]
     fn isnull() {
-        check_ok(r#"isnull(42);"#, false);
-        check_ok(r#"isnull(Null);"#, true);
+        check_code_result(r#"isnull(42);"#, false);
+        check_code_result(r#"isnull(Null);"#, true);
     }
 
     #[test]
     fn unixtime() {
-        check_ok_matches!(r#"unixtime();"#, NaslValue::Number(_));
+        check_code_result_matches!(r#"unixtime();"#, NaslValue::Number(_));
     }
 
     #[test]
     fn gzip() {
-        check_ok(
+        check_code_result(
             r#"gzip(data: 'z', headformat: "gzip");"#,
             vec![
                 31u8, 139, 8, 0, 0, 0, 0, 0, 0, 255, 171, 2, 0, 175, 119, 210, 98, 1, 0, 0, 0,
             ],
         );
-        check_ok(
+        check_code_result(
             r#"gzip(data: 'z');"#,
             vec![120u8, 156, 171, 2, 0, 0, 123, 0, 123],
         );
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn mktime() {
         let offset = chrono::Local::now().offset().fix().local_minus_utc();
-        check_ok(
+        check_code_result(
             r#"mktime(sec: 01, min: 02, hour: 03, mday: 01, mon: 01, year: 1970);"#,
             10921 - offset,
         );
@@ -181,14 +181,14 @@ mod tests {
     #[test]
     fn sleep() {
         let now = Instant::now();
-        check_ok(r#"sleep(1);"#, NaslValue::Null);
+        check_code_result(r#"sleep(1);"#, NaslValue::Null);
         assert!(now.elapsed().as_secs() >= 1);
     }
 
     #[test]
     fn usleep() {
         let now = Instant::now();
-        check_ok(r#"usleep(1000);"#, NaslValue::Null);
+        check_code_result(r#"usleep(1000);"#, NaslValue::Null);
         assert!(now.elapsed().as_micros() >= 1000);
     }
 

@@ -241,7 +241,7 @@ impl<'a> Interpreter<'a> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use test_utils::{check_ok, TestBuilder};
+    use test_utils::{check_code_result, TestBuilder};
 
     use crate::*;
 
@@ -298,6 +298,6 @@ mod tests {
 
     #[test]
     fn array_creation() {
-        check_ok("a = [1, 2, 3];", vec![1, 2, 3]);
+        check_code_result("a = [1, 2, 3];", vec![1, 2, 3]);
     }
 }

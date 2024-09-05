@@ -329,7 +329,7 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
 /// value. This is a convenience function to check single lines
 /// of code that require no state.
 #[track_caller]
-pub fn check_ok(code: &str, expected: impl ToNaslResult) {
+pub fn check_code_result(code: &str, expected: impl ToNaslResult) {
     let mut test_builder = TestBuilder::default();
     test_builder.ok(code, expected);
 }
@@ -354,7 +354,7 @@ macro_rules! check_err_matches {
 /// Check that the line of NASL code returns an Ok variant
 /// and that the inner value matches a pattern.
 #[macro_export]
-macro_rules! check_ok_matches {
+macro_rules! check_code_result_matches {
     ($code: literal, $pat: pat) => {
         let mut t = $crate::test_utils::TestBuilder::default();
         t.check($code, |val| matches!(val, Ok($pat)));

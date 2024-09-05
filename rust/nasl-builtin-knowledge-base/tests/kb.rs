@@ -5,12 +5,12 @@
 #[cfg(test)]
 mod tests {
     use nasl_interpreter::*;
-    use test_utils::{check_ok, TestBuilder};
+    use test_utils::{check_code_result, TestBuilder};
     use FunctionErrorKind::*;
 
     #[test]
     fn set_kb_item() {
-        check_ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
+        check_code_result(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
         check_err_matches!(r#"set_kb_item(name: "test");"#, MissingArguments { .. });
         check_err_matches!(r#"set_kb_item(value: 1);"#, MissingArguments { .. });
     }
