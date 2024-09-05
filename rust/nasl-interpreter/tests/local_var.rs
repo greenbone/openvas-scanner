@@ -6,31 +6,20 @@
 
 #[cfg(test)]
 mod tests {
-    //     use nasl_builtin_std::ContextFactory;
-    //     use nasl_interpreter::{InterpretError, Interpreter, Register};
-    //     use nasl_syntax::{parse, NaslValue};
-    //     #[test]
-    //     fn in_if() {
-    //         let code = r###"
-    // a = 1;
-    // if (a) {
-    //     local_var a;
-    //     a = 23;
-    // }
-    // a;
-    //         "###;
-    //         let dc = ContextFactory::default();
-    //         let register = Register::default();
-    //         let ctx = dc.build(Default::default());
-    //         let mut interpreter = Interpreter::new(register, &ctx);
-    //         let results = parse(code)
-    //             .map(|stmt| match stmt {
-    //                 Ok(stmt) => interpreter.retry_resolve_next(&stmt, 1),
-    //                 Err(r) => Err(InterpretError::from(r)),
-    //             })
-    //             .last()
-    //             // for the case of NaslValue that returns nothing
-    //             .unwrap_or(Ok(NaslValue::Exit(0)));
-    //         assert_eq!(results, Ok(NaslValue::Number(1)));
-    //     }
+    use nasl_interpreter::test_utils::TestBuilder;
+    use nasl_syntax::NaslValue;
+    #[test]
+    fn in_if() {
+        let t = TestBuilder::from_code(
+            r###"
+    a = 1;
+    if (a) {
+        local_var a;
+        a = 23;
+    }
+    a;
+            "###,
+        );
+        assert_eq!(t.results().last().unwrap(), &Ok(NaslValue::Number(1)));
+    }
 }
