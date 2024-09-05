@@ -1,5 +1,10 @@
 //! Utilities to test the outcome of NASL functions
 
+use std::{
+    fmt::{self, Display, Formatter},
+    panic::Location,
+};
+
 use crate::*;
 use futures::StreamExt;
 use nasl_builtin_utils::{function::ToNaslResult, NaslResult};
@@ -33,6 +38,51 @@ impl<'a> Clone for Box<dyn 'a + CloneableFn> {
 }
 
 #[derive(Clone)]
+struct CodeLocation {
+    file: String,
+    line: u32,
+    col: u32,
+}
+
+impl CodeLocation {
+    fn new<'a>(location: &Location<'a>) -> Self {
+        Self {
+            file: location.file().to_string(),
+            line: location.line(),
+            col: location.column(),
+        }
+    }
+}
+
+impl Display for CodeLocation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}:{}", self.file, self.line, self.col)
+    }
+}
+
+/// A `TestResult` together with information
+/// about where this particular test originates.
+/// The location information exists in order to provide
+/// better error messages.
+#[derive(Clone)]
+struct TracedTestResult {
+    location: CodeLocation,
+    result: TestResult,
+}
+
+impl From<TestResult> for TracedTestResult {
+    #[track_caller]
+    fn from(result: TestResult) -> Self {
+        Self {
+            result,
+            location: CodeLocation::new(Location::caller()),
+        }
+    }
+}
+
+/// Contains the desired result of a line of
+/// NASL code.
+#[derive(Clone)]
 enum TestResult {
     Ok(NaslValue),
     GenericCheck(Box<dyn CloneableFn>),
@@ -48,7 +98,7 @@ enum TestResult {
 /// values or the right errors).
 pub struct TestBuilder<L: Loader, S: Storage> {
     lines: Vec<String>,
-    results: Vec<TestResult>,
+    results: Vec<TracedTestResult>,
     context: ContextFactory<L, S>,
     context_key: ContextKey,
     variables: Vec<(String, NaslValue)>,
@@ -83,9 +133,10 @@ where
     L: nasl_syntax::Loader,
     S: storage::Storage,
 {
+    #[track_caller]
     fn add_line(&mut self, line: &str, val: TestResult) -> &mut Self {
         self.lines.push(line.to_string());
-        self.results.push(val);
+        self.results.push(val.into());
         self
     }
 
@@ -95,6 +146,7 @@ where
     /// let mut t = TestBuilder::default();
     /// t.ok("x = 3;", 3);
     /// ```
+    #[track_caller]
     pub fn ok(&mut self, line: &str, val: impl ToNaslResult) -> &mut Self {
         self.add_line(line, TestResult::Ok(val.to_nasl_result().unwrap()))
     }
@@ -109,6 +161,7 @@ where
     /// let mut t = TestBuilder::default();
     /// t.check("x = 3;", |x| matches!(x, Ok(NaslValue::Number(3))));
     /// ```
+    #[track_caller]
     pub fn check(
         &mut self,
         line: &str,
@@ -118,6 +171,7 @@ where
     }
 
     /// Run a `line` of NASL code without checking its result.
+    #[track_caller]
     pub fn run(&mut self, line: &str) -> &mut Self {
         self.add_line(line, TestResult::None)
     }
@@ -190,7 +244,7 @@ where
             if self
                 .results
                 .iter()
-                .any(|res| !matches!(res, TestResult::None))
+                .any(|res| !matches!(res.result, TestResult::None))
             {
                 panic!("Take care: Will not verify specified test result in this test, since run_all was called, which will mess with the line numbers.");
             }
@@ -200,21 +254,24 @@ where
     fn check_result(
         &self,
         result: &Result<NaslValue, FunctionErrorKind>,
-        reference: &TestResult,
+        reference: &TracedTestResult,
         line_count: usize,
     ) {
-        if !self.compare_result(result, reference) {
-            match reference {
-                TestResult::Ok(reference) => {
+        if !self.compare_result(result, &reference.result) {
+            match &reference.result {
+                TestResult::Ok(reference_result) => {
                     panic!(
-                        "Mismatch in line {} with code \"{}\". Expected '{:?}', found '{:?}'",
-                        line_count, self.lines[line_count], reference, result,
+                        "Mismatch at {}.\nIn code \"{}\":\nExpected: {:?}\nFound:    {:?}",
+                        reference.location,
+                        self.lines[line_count],
+                        Ok::<_, FunctionErrorKind>(reference_result),
+                        result,
                     );
                 }
                 TestResult::GenericCheck(_) => {
                     panic!(
-                        "Check failed in line {} with code \"{}\".",
-                        line_count, self.lines[line_count]
+                        "Check failed at {}.\nIn code \"{}\".",
+                        reference.location, self.lines[line_count]
                     );
                 }
                 TestResult::None => unreachable!(),
@@ -271,6 +328,7 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
 /// Ok(...) and that the inner value is equal to the expected
 /// value. This is a convenience function to check single lines
 /// of code that require no state.
+#[track_caller]
 pub fn check_ok(code: &str, expected: impl ToNaslResult) {
     let mut test_builder = TestBuilder::default();
     test_builder.ok(code, expected);
