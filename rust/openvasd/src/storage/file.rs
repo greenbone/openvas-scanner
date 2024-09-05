@@ -536,6 +536,16 @@ pub(crate) mod tests {
         result
     }
 
+    fn clear_tmp_files(tmp_path: &Path) {
+        let remove = |filename| fs::remove_file(tmp_path.join(filename)).unwrap();
+        remove("scan_aha.dat");
+        remove("scan_aha.idx");
+        remove("status_aha.dat");
+        remove("status_aha.idx");
+        remove("scans.dat");
+        remove("scans.idx");
+    }
+
     #[tokio::test]
     async fn credentials() {
         let jraw = r#"
@@ -575,7 +585,9 @@ pub(crate) mod tests {
             "#;
         let mut scan: Scan = serde_json::from_str(jraw).unwrap();
         scan.scan_id = "aha".to_string();
-        let storage = example_feed_file_storage("/tmp/openvasd/credential").await;
+        let tmp_path = "/tmp/openvasd/credential";
+        clear_tmp_files(Path::new(tmp_path));
+        let storage = example_feed_file_storage(&tmp_path).await;
         storage.insert_scan(scan.clone()).await.unwrap();
         let (scan2, _) = storage.get_scan("aha").await.unwrap();
         assert_eq!(scan, scan2);
