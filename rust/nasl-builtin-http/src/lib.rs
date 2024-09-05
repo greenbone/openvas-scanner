@@ -503,14 +503,14 @@ function_set! {
     NaslHttp,
     async_stateful,
     (
-        (NaslHttp::handle, "handle"),
-        (NaslHttp::close_handle, "close_handle"),
-        (NaslHttp::get_response_code, "get_response_code"),
-        (NaslHttp::set_custom_header, "set_custom_header"),
-        (NaslHttp::get, "get"),
-        (NaslHttp::head, "head"),
-        (NaslHttp::post, "post"),
-        (NaslHttp::delete, "delete"),
-        (NaslHttp::put, "put"),
+        (NaslHttp::handle, "http2_handle"),
+        (NaslHttp::close_handle, "http2_close_handle"),
+        (NaslHttp::get_response_code, "http2_get_response_code"),
+        (NaslHttp::set_custom_header, "http2_set_custom_header"),
+        (NaslHttp::get, "http2_get"),
+        (NaslHttp::head, "http2_head"),
+        (NaslHttp::post, "http2_post"),
+        (NaslHttp::delete, "http2_delete"),
+        (NaslHttp::put, "http2_put"),
     )
 }
