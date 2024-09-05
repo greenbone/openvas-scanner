@@ -30,7 +30,6 @@ des = "0.8.1"
 rsa = "0.9.6"
 rand = "0.8.5"
 num-bigint = "0.4"
-openssl = "0.10.38"
 
 # depend on c libraries and are considered unstable for now
 nasl-c-lib = { path = "../nasl-c-lib", optional = true }

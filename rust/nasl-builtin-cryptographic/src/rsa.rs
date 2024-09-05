@@ -2,18 +2,16 @@
 //
 
 // SPDX-License-Identifier: GPL-2.0-or-later
-
-use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
-use openssl::bn::BigNum;
-use openssl::hash::MessageDigest;
-use openssl::pkey::PKey;
-use openssl::rsa::Padding;
-use openssl::rsa::Rsa;
-use openssl::sign::Signer;
-use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-use std::str;
-
+//use md5::Digest;
 use crate::get_required_named_data;
+use core::str;
+use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
+use rsa::pkcs8::DecodePrivateKey;
+use rsa::signature::digest::Digest;
+use rsa::{Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
+use sha1::Sha1;
+use std::fs::{self, File};
+use std::io::Read;
 
 fn rsa_public_encrypt(
     register: &Register,
@@ -70,16 +68,31 @@ fn rsa_sign(register: &Register, _: &Context) -> Result<nasl_syntax::NaslValue, 
     let data = get_required_named_data(register, "data")?;
     let pem = get_required_named_data(register, "priv")?;
     let passphrase = get_required_named_data(register, "passphrase")?;
+    let mut f = File::open(&str::from_utf8(pem).expect("msg")).expect("Pem-file not found");
+    let mut buffer = vec![
+        0;
+        fs::metadata(&str::from_utf8(pem).expect("Error while decoding filename"))
+            .expect("Cannot read attribute length from file")
+            .len() as usize
+    ];
+    f.read(&mut buffer).expect("Buffer overflow");
     let rsa = if passphrase.is_empty() {
-        Rsa::private_key_from_pem(pem).expect("Failed to get private key")
+        RsaPrivateKey::from_pkcs8_pem(
+            str::from_utf8(buffer.as_ref()).expect("Error while decoding pem"),
+        )
+        .expect("Failed to get private key")
     } else {
-        Rsa::private_key_from_pem_passphrase(pem, passphrase)
-            .expect("Failed to get private key from passphrase")
+        RsaPrivateKey::from_pkcs8_pem(
+            str::from_utf8(buffer.as_ref()).expect("Error while decoding pem"),
+        )
+        .expect("Cant decrypt private key with passphrase, not supported yet")
     };
-    let pkey = PKey::from_rsa(rsa).expect("Failed to get private key from rsa(pem)");
-    let mut signer = Signer::new(MessageDigest::sha1(), &pkey).expect("Failed to init signer");
-    signer.update(data).expect("Failed to update signer");
-    let signature = signer.sign_to_vec().expect("Failed to get vector");
+    let mut hasher = Sha1::new_with_prefix(data);
+    hasher.update(data);
+    let hashed_data = hasher.finalize();
+    let signature = rsa
+        .sign(Pkcs1v15Sign::new_unprefixed(), &hashed_data)
+        .expect("Signing failed");
     Ok(signature.into())
 }
 
@@ -90,19 +103,12 @@ fn rsa_public_decrypt(
     let sign = get_required_named_data(register, "sign")?;
     let n = get_required_named_data(register, "n")?;
     let e = get_required_named_data(register, "e")?;
-    let mut e_b = BigNum::new().unwrap();
-    let mut n_b = BigNum::new().unwrap();
-    BigNum::copy_from_slice(&mut n_b, n).expect("Failed to get n");
-    BigNum::copy_from_slice(&mut e_b, e).expect("Failed to get e");
-    let public_key = Rsa::from_public_components(n_b, e_b).expect("Failed to get public key");
-    let pkey = PKey::from_rsa(public_key.clone()).expect("Failed to get public key from clone");
-    let sign_bytes = sign;
-    let mut decrypted = vec![0; pkey.size()];
-    let len = public_key
-        .public_decrypt(sign_bytes, &mut decrypted, Padding::PKCS1)
-        .expect("Failed to public decrypt");
-    decrypted.truncate(len);
-    Ok(decrypted.to_vec().into())
+    let e_b = rsa::BigUint::from_bytes_be(e);
+    let n_b = rsa::BigUint::from_bytes_be(n);
+    let public_key = RsaPublicKey::new(n_b, e_b).expect("Failed to create Public key");
+    let mut rng = rand::thread_rng();
+    let enc_data = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, sign).unwrap();
+    Ok(enc_data.to_vec().into())
 }
 
 pub fn lookup(key: &str) -> Option<NaslFunction> {
