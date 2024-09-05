@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{fmt::Display, path::PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 use feed::VerifyError;
 use nasl_interpreter::{InterpretError, LoadError};
@@ -49,6 +52,15 @@ impl CliErrorKind {
 pub struct CliError {
     pub filename: String,
     pub kind: CliErrorKind,
+}
+
+impl CliError {
+    pub fn load_error(err: std::io::Error, path: &Path) -> Self {
+        Self {
+            filename: path.to_owned().to_string_lossy().to_string(),
+            kind: CliErrorKind::LoadError(LoadError::Dirty(err.to_string())),
+        }
+    }
 }
 
 impl Display for CliErrorKind {
