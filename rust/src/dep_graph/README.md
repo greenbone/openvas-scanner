@@ -15,7 +15,7 @@ This library supports both sequential and parallel (multi-threaded) operations o
 Here is a simple example on how to use this library:
 
 ```rust
-use dep_graph::{Node, DepGraph};
+use scannerlib::dep_graph::{Node, DepGraph};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

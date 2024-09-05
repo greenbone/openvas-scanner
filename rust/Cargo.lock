@@ -737,17 +737,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dep-graph"
-version = "0.2.0"
-dependencies = [
- "criterion",
- "crossbeam-channel",
- "num_cpus",
- "rayon",
- "thiserror",
-]
-
-[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2070,7 +2059,6 @@ name = "nasl-interpreter"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "dep-graph",
  "futures",
  "models",
  "nasl-builtin-std",
@@ -2453,9 +2441,9 @@ dependencies = [
 name = "plugin-scheduler"
 version = "0.1.0"
 dependencies = [
- "dep-graph",
  "generic-array 1.1.0",
  "rayon",
+ "scannerlib",
  "thiserror",
 ]
 
@@ -2992,6 +2980,7 @@ dependencies = [
  "chacha20",
  "clap",
  "configparser",
+ "crossbeam-channel",
  "futures",
  "futures-util",
  "generic-array 0.14.7",
@@ -3009,11 +2998,13 @@ dependencies = [
  "models",
  "nasl-interpreter",
  "nasl-syntax",
+ "num_cpus",
  "openvas",
  "osp",
  "pbkdf2",
  "quick-xml",
  "rand",
+ "rayon",
  "redis-storage",
  "rustls 0.22.4",
  "rustls-pemfile 1.0.4",

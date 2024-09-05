@@ -5,7 +5,6 @@ edition = "2021"
 license = "GPL-2.0-or-later"
 
 [dependencies]
-dep-graph = {path = "../dep-graph"}
 nasl-syntax = {path = "../nasl-syntax"}
 models = { path = "../models" }
 storage = {path = "../storage"}

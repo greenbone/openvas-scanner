@@ -4,7 +4,7 @@
 
 use std::{collections::HashMap, vec};
 
-use dep_graph::{DepGraph, Node, Wrapper};
+use scannerlib::dep_graph::{DepGraph, Node, Wrapper};
 use generic_array::{sequence::GenericSequence, GenericArray};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 

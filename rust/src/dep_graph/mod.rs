@@ -88,8 +88,8 @@
 //! ## Basic usage
 //!
 //! ```rust
-//! use dep_graph::{Node, DepGraph};
-//! #[cfg(feature = "parallel")]
+//! use scannerlib::dep_graph::{Node, DepGraph};
+//! #[cfg(feature = "dep-graph-parallel")]
 //! use rayon::prelude::*;
 //!
 //! // Create a list of nodes
@@ -120,7 +120,7 @@
 //!
 //! // This is the same as the previous command, excepts it leverages rayon
 //! // to process them in parallel as much as possible.
-//! #[cfg(feature = "parallel")]
+//! #[cfg(feature = "dep-graph-parallel")]
 //! {
 //!     let graph = DepGraph::new(&nodes);
 //!     graph
@@ -135,21 +135,21 @@
 
 pub mod error;
 mod graph;
-#[cfg(feature = "parallel")]
+#[cfg(feature = "dep-graph-parallel")]
 mod graph_par;
 mod node;
 
 pub use graph::DepGraph;
-#[cfg(feature = "parallel")]
+#[cfg(feature = "dep-graph-parallel")]
 pub use graph_par::Wrapper;
 pub use node::Node;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "dep-graph-parallel")]
     use rayon::prelude::*;
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "dep-graph-parallel")]
     use std::time::Duration;
 
     /// Run against a diamond graph
@@ -161,7 +161,7 @@ mod tests {
     ///  \ /
     ///   4
     /// ```
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "dep-graph-parallel")]
     #[test]
     fn par_diamond_graph() {
         let mut n1 = Node::new("1");
@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(result.len(), deps.len());
     }
 
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "dep-graph-parallel")]
     #[test]
     fn par_diamond_graph_steps() {
         let mut n1 = Node::new("1");
@@ -206,7 +206,7 @@ mod tests {
         assert_eq!(result, 10);
     }
 
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "dep-graph-parallel")]
     #[test]
     fn par_diamond_graph_with_timeout() {
         let mut n1 = Node::new("1");
@@ -252,7 +252,7 @@ mod tests {
     }
 
     /// 1 000 nodes with 999 depending on one
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "dep-graph-parallel")]
     #[test]
     fn par_thousand_graph() {
         let mut nodes: Vec<Node<_>> = (0..1000).map(|i| Node::new(format!("{}", i))).collect();
