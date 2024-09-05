@@ -1,0 +1,8 @@
+#!/bin/bash
+owner=${1:-greenbone}
+if [ -d "/workspaces/$owner" ]; then
+    target_dir="/workspaces/$owner/gvm-libs"
+else
+    target_dir="/workspaces/gvm-libs"
+fi
+/usr/local/bin/build-cmake-project.sh "$target_dir"
