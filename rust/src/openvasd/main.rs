@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+#![doc = include_str!("README.md")]
+
 use std::marker::{Send, Sync};
 
 use ::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
