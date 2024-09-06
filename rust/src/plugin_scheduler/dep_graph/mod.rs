@@ -69,69 +69,6 @@
 //! __E__ takes only a fraction of the time compared to __F__, we will end up
 //! in the same situation, as there are no nodes without un-processed
 //! dependencies.
-//!
-//! ## Parallel iterators
-//!
-//! This library supports using `rayon` as an optional dependency. When using
-//! `rayon`, [DepGraph](struct.DepGraph.html) supports a new method
-//! `into_par_iter()` that will process the dependency graph across multiple
-//! threads.
-//!
-//! Under the hood, it works by creating a dispatcher thread and a series of
-//! crossbeam channels to dispatch nodes and notify the dispatcher when nodes
-//! are done processing.
-//!
-//! Because of that, iterator functions receive a
-//! [Wrapper](struct.Wrapper.html) instead of the item itself. The underlying
-//! item is available by using the dereference operator (`*wrapper`).
-//!
-//! ## Basic usage
-//!
-//! ```rust
-//! use scannerlib::dep_graph::{Node, DepGraph};
-//! #[cfg(feature = "dep-graph-parallel")]
-//! use rayon::prelude::*;
-//!
-//! // Create a list of nodes
-//! let mut root = Node::new("root");
-//! let mut dep1 = Node::new("dep1");
-//! let mut dep2 = Node::new("dep2");
-//! let leaf = Node::new("leaf");
-//!
-//! // Map their connections
-//! root.add_dep(dep1.id());
-//! root.add_dep(dep2.id());
-//! dep1.add_dep(leaf.id());
-//! dep2.add_dep(leaf.id());
-//!
-//! // Create a graph
-//! let nodes = vec![root, dep1, dep2, leaf];
-//!
-//! // Print the name of all nodes in the dependency graph.
-//! // This will parse the dependency graph sequentially
-//! {
-//!     let graph = DepGraph::new(&nodes);
-//!     graph
-//!         .into_iter()
-//!         .for_each(|node| {
-//!             println!("{:?}", node)
-//!         });
-//! }
-//!
-//! // This is the same as the previous command, excepts it leverages rayon
-//! // to process them in parallel as much as possible.
-//! #[cfg(feature = "dep-graph-parallel")]
-//! {
-//!     let graph = DepGraph::new(&nodes);
-//!     graph
-//!         .into_par_iter()
-//!         .for_each(|node| {
-//!             // The node is a dep_graph::Wrapper object, not a String.
-//!             // We need to use `*node` to get its value.
-//!             println!("{:?}", *node)
-//!         });
-//! }
-//! ```
 
 pub mod error;
 mod graph;

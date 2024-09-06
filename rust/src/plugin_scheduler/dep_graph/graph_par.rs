@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: (GPL-2.0-or-later WITH x11vnc-openssl-exception) AND MIT
 
-use crate::dep_graph::{
+use super::{
     error::Error,
     graph::{remove_node_id, DepGraph, DependencyMap},
 };
