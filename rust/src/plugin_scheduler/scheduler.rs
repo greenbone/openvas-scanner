@@ -4,11 +4,11 @@
 
 use std::{collections::HashMap, vec};
 
-use scannerlib::dep_graph::{DepGraph, Node, Wrapper};
-use generic_array::{sequence::GenericSequence, GenericArray};
+use crate::dep_graph::{DepGraph, Node, Wrapper};
+use generic_array_new::{sequence::GenericSequence, GenericArray};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
-use crate::{
+use super::{
     error::SchedulerError,
     plugin::{Phase, Plugin, PluginCollection},
 };
@@ -250,9 +250,8 @@ mod tests {
 
     use generic_array::typenum::U2;
 
-    use crate::{plugin::Phase, scheduler::PluginScheduler};
-
     use super::{Plugin, PluginCollection};
+    use crate::plugin_scheduler::{plugin::Phase, scheduler::PluginScheduler};
 
     #[derive(PartialEq, Clone)]
     enum TestCategory {

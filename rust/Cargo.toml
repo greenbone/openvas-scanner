@@ -15,6 +15,7 @@ crossbeam-channel = { version = "0.5.8", optional = true }
 futures = "0.3.30"
 futures-util = "0.3.28"
 generic-array = "0.14.7"
+generic-array_new = { version = "1.1", package = "generic-array" }
 glob = "0.3.1"
 hex = "0.4.3"
 http-body = "1"
@@ -84,7 +85,6 @@ members = [
   "openvas",
   "infisto",
   "smoketest",
-  "plugin-scheduler",
   "nasl-function-proc-macro",
 ]
 
