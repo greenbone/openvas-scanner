@@ -5,7 +5,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
-use nasl_interpreter::FSPluginLoader;
+use scannerlib::nasl::FSPluginLoader;
 use scannerlib::storage::redis::{
     CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
 };

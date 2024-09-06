@@ -32,7 +32,7 @@ use rustls::pki_types::{
 use rustls::server::danger::ClientCertVerifier;
 use rustls::server::WebPkiClientVerifier;
 use rustls::{RootCertStore, ServerConfig};
-use rustls_pemfile::{read_one, Item};
+use rustls_pemfile_old::{read_one, Item};
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -252,7 +252,8 @@ where
     let certfile = fs::File::open(filename)
         .map_err(|e| error(format!("failed to open {:?}: {}", filename, e)))?;
     let mut reader = io::BufReader::new(certfile);
-    rustls_pemfile::certs(&mut reader).map(|x| x.into_iter().map(CertificateDer::from).collect())
+    rustls_pemfile_old::certs(&mut reader)
+        .map(|x| x.into_iter().map(CertificateDer::from).collect())
 }
 
 // Load private key from file.

@@ -4,9 +4,11 @@
 
 use std::{env, path::PathBuf};
 
-use crate::feed::{HashSumNameLoader, Update};
+use crate::{
+    feed::{HashSumNameLoader, Update},
+    nasl::syntax::FSPluginLoader,
+};
 use futures::StreamExt;
-use nasl_interpreter::FSPluginLoader;
 use storage::DefaultDispatcher;
 
 fn loader() -> FSPluginLoader {

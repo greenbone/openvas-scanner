@@ -6,13 +6,15 @@ use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use futures::StreamExt;
-use nasl_interpreter::{
-    nasl_std_functions,
-    scheduling::{ExecutionPlaner, WaveExecutionPlan},
-    ScanRunner,
-};
-use nasl_syntax::FSPluginLoader;
 use scannerlib::feed::{HashSumNameLoader, Update};
+use scannerlib::nasl::FSPluginLoader;
+use scannerlib::nasl::{
+    interpreter::{
+        scheduling::{ExecutionPlaner, WaveExecutionPlan},
+        ScanRunner,
+    },
+    nasl_std_functions,
+};
 use tracing::{info, warn, warn_span};
 
 use crate::{interpret, CliError, CliErrorKind, Db};

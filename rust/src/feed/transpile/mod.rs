@@ -6,7 +6,7 @@
 
 mod error;
 
-use nasl_syntax::{Statement, StatementKind};
+use crate::nasl::syntax::{Statement, StatementKind};
 
 use crate::feed::{verify, NaslFileFinder};
 
@@ -165,8 +165,8 @@ impl<'a> FunctionNameMatcher<'a> {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
-                if let nasl_syntax::TokenCategory::Identifier(
-                    nasl_syntax::IdentifierType::Undefined(ref x),
+                if let crate::nasl::syntax::TokenCategory::Identifier(
+                    crate::nasl::syntax::IdentifierType::Undefined(ref x),
                 ) = s.start().category()
                 {
                     self.name.map(|y| x == y).unwrap_or(true)
@@ -175,8 +175,8 @@ impl<'a> FunctionNameMatcher<'a> {
                 }
             }
             StatementKind::FunctionDeclaration(id, ..) => {
-                if let nasl_syntax::TokenCategory::Identifier(
-                    nasl_syntax::IdentifierType::Undefined(ref x),
+                if let crate::nasl::syntax::TokenCategory::Identifier(
+                    crate::nasl::syntax::IdentifierType::Undefined(ref x),
                 ) = id.category()
                 {
                     self.name.map(|y| x == y).unwrap_or(true)
@@ -227,7 +227,7 @@ impl<'a> Matcher for FunctionNameMatcher<'a> {
                     // the given indices number when available
                     //
                     // let fcta = _block.find(&|x| {
-                    //     use nasl_syntax::{IdentifierType as IT, Token, TokenCategory as TC};
+                    //     use crate::nasl::syntax::{IdentifierType as IT, Token, TokenCategory as TC};
                     //     matches!(
                     //         x,
                     //         Statement::Array(
@@ -328,12 +328,12 @@ impl CodeReplacer {
         stmts: &'a [Statement],
         wanted: &str,
     ) -> Option<(usize, &'a Statement)> {
-        use nasl_syntax::IdentifierType::Undefined;
-        use nasl_syntax::TokenCategory::Identifier;
+        use crate::nasl::syntax::IdentifierType::Undefined;
+        use crate::nasl::syntax::TokenCategory::Identifier;
         for (i, s) in stmts.iter().enumerate() {
             match s.kind() {
                 StatementKind::Variable | StatementKind::NamedParameter(_) => {
-                    if let nasl_syntax::Token {
+                    if let crate::nasl::syntax::Token {
                         category: Identifier(Undefined(name)),
                         ..
                     } = s.start()
@@ -443,7 +443,9 @@ impl CodeReplacer {
                 changed: false,
             };
             if cached_stmts.is_empty() {
-                cached_stmts = nasl_syntax::parse(&code).filter_map(|x| x.ok()).collect();
+                cached_stmts = crate::nasl::syntax::parse(&code)
+                    .filter_map(|x| x.ok())
+                    .collect();
             }
 
             for s in cached_stmts.iter() {
@@ -656,7 +658,7 @@ impl<'a> FeedReplacer<'a> {
         path: Result<String, verify::Error>,
     ) -> Result<Option<(String, String)>, TranspileError> {
         let name = path?;
-        let code = nasl_syntax::load_non_utf8_path(&name)?;
+        let code = crate::nasl::syntax::load_non_utf8_path(&name)?;
         let new_code = CodeReplacer::replace(&code, self.replace)?;
         // otherwise  we will transform the whole feed to utf-8
         if code != new_code {

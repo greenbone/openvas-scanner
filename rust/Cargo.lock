@@ -1772,10 +1772,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 
 [[package]]
-name = "libgcrypt-sys"
-version = "0.1.0"
-
-[[package]]
 name = "libloading"
 version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1979,243 +1975,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "nasl-builtin-cryptographic"
-version = "0.1.0"
-dependencies = [
- "aes",
- "aes-gcm",
- "cbc",
- "ccm",
- "cmac",
- "ctr",
- "des",
- "digest",
- "hex",
- "hmac",
- "md-5",
- "md2",
- "md4",
- "nasl-builtin-utils",
- "nasl-c-lib",
- "nasl-interpreter",
- "nasl-syntax",
- "ripemd",
- "sha1",
- "sha2",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-description"
-version = "0.1.0"
-dependencies = [
- "nasl-builtin-utils",
- "nasl-syntax",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-host"
-version = "0.1.0"
-dependencies = [
- "nasl-builtin-utils",
- "nasl-interpreter",
- "nasl-syntax",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-http"
-version = "0.1.0"
-dependencies = [
- "h2 0.4.6",
- "http 1.1.0",
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "rustls 0.23.12",
- "rustls-pemfile 2.1.3",
- "storage",
- "tokio",
- "tokio-rustls 0.26.0",
-]
-
-[[package]]
-name = "nasl-builtin-knowledge-base"
-version = "0.1.0"
-dependencies = [
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-misc"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "flate2",
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-network"
-version = "0.1.0"
-dependencies = [
- "dns-lookup",
- "libc",
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "pkcs8",
- "rustls 0.23.12",
- "rustls-pemfile 2.1.3",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-raw-ip"
-version = "0.1.0"
-dependencies = [
- "nasl-builtin-host",
- "nasl-builtin-misc",
- "nasl-builtin-std",
- "nasl-builtin-utils",
- "nasl-interpreter",
- "nasl-syntax",
- "pcap",
- "pnet",
- "pnet_base",
- "pnet_macros",
- "pnet_macros_support",
- "socket2 0.5.7",
- "storage",
- "tracing",
-]
-
-[[package]]
-name = "nasl-builtin-regex"
-version = "0.1.0"
-dependencies = [
- "nasl-builtin-std",
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "regex",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-ssh"
-version = "0.1.0"
-dependencies = [
- "libssh-rs",
- "nasl-builtin-utils",
- "nasl-interpreter",
- "nasl-syntax",
- "storage",
- "tracing",
-]
-
-[[package]]
-name = "nasl-builtin-std"
-version = "0.1.0"
-dependencies = [
- "models",
- "nasl-builtin-cryptographic",
- "nasl-builtin-description",
- "nasl-builtin-host",
- "nasl-builtin-http",
- "nasl-builtin-knowledge-base",
- "nasl-builtin-misc",
- "nasl-builtin-network",
- "nasl-builtin-raw-ip",
- "nasl-builtin-regex",
- "nasl-builtin-ssh",
- "nasl-builtin-string",
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-string"
-version = "0.1.0"
-dependencies = [
- "glob",
- "nasl-builtin-utils",
- "nasl-function-proc-macro",
- "nasl-interpreter",
- "nasl-syntax",
- "storage",
-]
-
-[[package]]
-name = "nasl-builtin-utils"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "nasl-function-proc-macro",
- "nasl-syntax",
- "storage",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "nasl-c-lib"
-version = "0.1.0"
-dependencies = [
- "cc",
- "libgcrypt-sys",
-]
-
-[[package]]
 name = "nasl-function-proc-macro"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.77",
-]
-
-[[package]]
-name = "nasl-interpreter"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures",
- "models",
- "nasl-builtin-std",
- "nasl-builtin-utils",
- "nasl-syntax",
- "regex",
- "storage",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-test",
-]
-
-[[package]]
-name = "nasl-syntax"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "storage",
- "thiserror",
 ]
 
 [[package]]
@@ -2958,20 +2723,6 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.22.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf4ef73721ac7bcd79b2b315da7779d8fc09718c6b3d2d1b2d94850eb8c18432"
-dependencies = [
- "log",
- "ring",
- "rustls-pki-types",
- "rustls-webpki 0.102.7",
- "subtle",
- "zeroize",
-]
-
-[[package]]
-name = "rustls"
 version = "0.23.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c58f8c84392efc0a126acce10fa59ff7b3d2ac06ab451a33f2741989b806b044"
@@ -3079,20 +2830,34 @@ dependencies = [
 name = "scannerlib"
 version = "0.1.0"
 dependencies = [
+ "aes",
+ "aes-gcm",
  "anyhow",
  "async-trait",
  "base64 0.21.7",
+ "cbc",
+ "ccm",
  "chacha20",
+ "chrono",
  "clap",
+ "cmac",
  "configparser",
  "criterion",
  "crossbeam-channel",
+ "ctr",
+ "des",
+ "digest",
+ "dns-lookup",
+ "flate2",
  "futures",
  "futures-util",
  "generic-array 0.14.7",
  "generic-array 1.1.0",
  "glob",
+ "h2 0.4.6",
  "hex",
+ "hmac",
+ "http 1.1.0",
  "http-body 1.0.1",
  "http-body-util",
  "hyper 1.4.1",
@@ -3101,26 +2866,41 @@ dependencies = [
  "itertools 0.12.1",
  "lazy-regex",
  "lazy_static",
+ "libc",
+ "libssh-rs",
+ "md-5",
+ "md2",
+ "md4",
  "models",
- "nasl-interpreter",
- "nasl-syntax",
+ "nasl-function-proc-macro",
  "num_cpus",
  "pbkdf2",
+ "pcap",
+ "pkcs8",
+ "pnet",
+ "pnet_base",
+ "pnet_macros",
+ "pnet_macros_support",
  "quick-xml",
  "rand",
  "rayon",
  "redis",
- "rustls 0.22.4",
+ "regex",
+ "ripemd",
+ "rustls 0.23.12",
  "rustls-pemfile 1.0.4",
+ "rustls-pemfile 2.1.3",
  "sequoia-ipc",
  "sequoia-openpgp",
  "serde",
  "serde_json",
+ "sha1",
  "sha2",
+ "socket2 0.5.7",
  "storage",
  "thiserror",
  "tokio",
- "tokio-rustls 0.25.0",
+ "tokio-rustls 0.26.0",
  "toml",
  "tracing",
  "tracing-subscriber",
@@ -3723,17 +3503,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
 dependencies = [
  "rustls 0.21.12",
- "tokio",
-]
-
-[[package]]
-name = "tokio-rustls"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "775e0c0f0adb3a2f22a00c4745d728b479985fc15ee7ca6a2608388c5569860f"
-dependencies = [
- "rustls 0.22.4",
- "rustls-pki-types",
  "tokio",
 ]
 

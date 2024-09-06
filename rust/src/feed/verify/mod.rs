@@ -16,9 +16,9 @@ use std::{
     path::Path,
 };
 
+use crate::nasl::syntax::{AsBufReader, LoadError};
+use crate::nasl::syntax::{FSPluginLoader, Loader};
 use hex::encode;
-use nasl_interpreter::{AsBufReader, LoadError};
-use nasl_syntax::{FSPluginLoader, Loader};
 use sha2::{Digest, Sha256};
 
 use openpgp::{
@@ -394,7 +394,7 @@ impl Loader for NaslFileFinder {
         };
 
         // unfortunately nasl is still in iso-8859-1
-        nasl_syntax::load_non_utf8_path(path.as_path())
+        crate::nasl::syntax::load_non_utf8_path(path.as_path())
     }
 
     fn root_path(&self) -> Result<String, LoadError> {

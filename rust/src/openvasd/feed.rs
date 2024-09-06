@@ -8,6 +8,7 @@ use std::{
 };
 
 use scannerlib::feed;
+use scannerlib::nasl::prelude::FSPluginLoader;
 use storage::{ContextKey, StorageError};
 
 #[derive(Debug, Default, Clone)]
@@ -31,7 +32,7 @@ impl FeedIdentifier {
         tracing::debug!("getting oids from ${path:?}");
         // needed to strip the root path so that we can build a relative path
         // e.g. 2006/something.nasl
-        let loader = nasl_interpreter::FSPluginLoader::new(path);
+        let loader = FSPluginLoader::new(path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
         let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
 
@@ -79,7 +80,7 @@ impl FeedIdentifier {
     where
         S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
     {
-        let loader = nasl_interpreter::FSPluginLoader::new(path);
+        let loader = scannerlib::nasl::FSPluginLoader::new(path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
         verifier.sumfile_hash().map_err(|e| feed::UpdateError {
             kind: feed::UpdateErrorKind::VerifyError(e),

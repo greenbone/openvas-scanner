@@ -18,9 +18,9 @@ use async_trait::async_trait;
 use models::scanner::ScanResults;
 
 use crate::{config::Config, controller::ClientHash, crypt};
-use nasl_interpreter::FSPluginLoader;
 use scannerlib::{
     feed::{self, HashSumNameLoader, Update},
+    nasl::FSPluginLoader,
     notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
 };
 

@@ -8,8 +8,11 @@ use std::{
 };
 
 use feed::VerifyError;
-use nasl_interpreter::{ExecuteError, InterpretError, LoadError};
-use nasl_syntax::{SyntaxError, Token};
+use scannerlib::nasl::syntax::{SyntaxError, Token};
+use scannerlib::nasl::{
+    interpreter::{ExecuteError, InterpretError},
+    syntax::LoadError,
+};
 use scannerlib::{feed, notus};
 use storage::StorageError;
 
@@ -30,8 +33,8 @@ pub enum CliErrorKind {
     Corrupt(String),
 }
 
-impl From<nasl_interpreter::ExecuteError> for CliErrorKind {
-    fn from(value: nasl_interpreter::ExecuteError) -> Self {
+impl From<ExecuteError> for CliErrorKind {
+    fn from(value: ExecuteError) -> Self {
         Self::ExecuteError(value)
     }
 }

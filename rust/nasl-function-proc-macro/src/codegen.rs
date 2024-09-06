@@ -43,19 +43,19 @@ impl<'a> ArgsStruct<'a> {
                     ArgKind::Positional(positional) => {
                         let position = positional.position;
                             if arg.optional {
-                                quote! { ::nasl_builtin_utils::function::utils::get_optional_positional_arg::<#inner_ty>(_register, #position)? }
+                                quote! { crate::nasl::utils::function::utils::get_optional_positional_arg::<#inner_ty>(_register, #position)? }
                             }
                             else {
-                                quote! { ::nasl_builtin_utils::function::utils::get_positional_arg::<#inner_ty>(_register, #position, #num_required_positional_args)? }
+                                quote! { crate::nasl::utils::function::utils::get_positional_arg::<#inner_ty>(_register, #position, #num_required_positional_args)? }
                             }
                     }
                     ArgKind::Named(named) => {
                         let name = &named.name;
                         if arg.optional {
-                            quote! { ::nasl_builtin_utils::function::utils::get_optional_named_arg::<#inner_ty>(_register, #name)? }
+                            quote! { crate::nasl::utils::function::utils::get_optional_named_arg::<#inner_ty>(_register, #name)? }
                         }
                         else {
-                            quote! { ::nasl_builtin_utils::function::utils::get_named_arg::<#inner_ty>(_register, #name)? }
+                            quote! { crate::nasl::utils::function::utils::get_named_arg::<#inner_ty>(_register, #name)? }
                         }
                     }
                     ArgKind::MaybeNamed(positional, named) => {
@@ -63,12 +63,12 @@ impl<'a> ArgsStruct<'a> {
                         let position = positional.position;
                         if arg.optional {
                             quote! {
-                                ::nasl_builtin_utils::function::utils::get_optional_maybe_named_arg::<#inner_ty>(_register, #name, #position)?
+                                crate::nasl::utils::function::utils::get_optional_maybe_named_arg::<#inner_ty>(_register, #name, #position)?
                             }
                         }
                         else {
                             quote! {
-                                ::nasl_builtin_utils::function::utils::get_maybe_named_arg::<#inner_ty>(_register, #name, #position)?
+                                crate::nasl::utils::function::utils::get_maybe_named_arg::<#inner_ty>(_register, #name, #position)?
                             }
                         }
                     }
@@ -84,12 +84,12 @@ impl<'a> ArgsStruct<'a> {
                     },
                     ArgKind::PositionalIterator => {
                         quote! {
-                            ::nasl_builtin_utils::function::Positionals::new(_register)
+                            crate::nasl::utils::function::Positionals::new(_register)
                         }
                     }
                     ArgKind::CheckedPositionalIterator => {
                         quote! {
-                            ::nasl_builtin_utils::function::CheckedPositionals::new(_register)?
+                            crate::nasl::utils::function::CheckedPositionals::new(_register)?
                         }
                     }
                 };
@@ -150,7 +150,7 @@ impl<'a> ArgsStruct<'a> {
         };
         let fn_name = self.function.sig.ident.to_string();
         quote! {
-            ::nasl_builtin_utils::function::utils::check_args(_register, #fn_name, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
+            crate::nasl::utils::function::utils::check_args(_register, #fn_name, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
         }
     }
 
@@ -177,8 +177,8 @@ impl<'a> ArgsStruct<'a> {
         };
         let inputs = quote! {
             #self_arg
-            _register: &::nasl_builtin_utils::Register,
-            _context: &::nasl_builtin_utils::Context<'_>,
+            _register: &crate::nasl::Register,
+            _context: &crate::nasl::Context<'_>,
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },
@@ -194,11 +194,11 @@ impl<'a> ArgsStruct<'a> {
                 #(#stmts)*
             }
 
-            #(#attrs)* #vis #asyncness #fn_token #ident #generics ( #inputs ) -> ::nasl_builtin_utils::NaslResult {
+            #(#attrs)* #vis #asyncness #fn_token #ident #generics ( #inputs ) -> crate::nasl::NaslResult {
                 #checks
                 #get_args
                 let _result = #inner_call;
-                <#output_ty as ::nasl_builtin_utils::function::ToNaslResult>::to_nasl_result(_result)
+                <#output_ty as crate::nasl::ToNaslResult>::to_nasl_result(_result)
             }
         }
     }

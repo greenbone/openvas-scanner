@@ -4,8 +4,8 @@
 
 use std::io;
 
+use crate::nasl::syntax::LoadError;
 use models::FixedPackage;
-use nasl_syntax::LoadError;
 use thiserror::Error;
 
 use crate::feed::VerifyError;

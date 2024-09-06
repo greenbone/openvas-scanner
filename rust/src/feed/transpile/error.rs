@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use nasl_syntax::{LoadError, Statement};
+use crate::nasl::syntax::{LoadError, Statement};
 
 use super::verify;
 use super::Replace;

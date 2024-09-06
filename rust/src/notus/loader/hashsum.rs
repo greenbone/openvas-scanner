@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::nasl::syntax::{FSPluginLoader, Loader};
 use models::ProductsAdivisories;
-use nasl_syntax::{FSPluginLoader, Loader};
 
 use crate::feed::verify::check_signature;
 use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError};

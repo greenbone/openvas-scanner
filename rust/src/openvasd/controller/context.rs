@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
-use scannerlib::feed;
+use scannerlib::{feed, nasl::FSPluginLoader};
 use std::sync::{Arc, RwLock};
 use storage::DefaultDispatcher;
 
@@ -65,7 +65,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
     pub async fn feed_config(mut self, config: config::Feed) -> Self {
         self.feed_config = Some(config);
         if let Some(fp) = self.feed_config.as_ref() {
-            let loader = nasl_interpreter::FSPluginLoader::new(fp.path.clone());
+            let loader = FSPluginLoader::new(fp.path.clone());
             let dispatcher: DefaultDispatcher = DefaultDispatcher::default();
             let version = feed::version(&loader, &dispatcher)
                 .await

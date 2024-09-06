@@ -9,8 +9,9 @@ use std::marker::{Send, Sync};
 use config::{Config, Mode, ScannerType};
 use controller::{Context, ContextBuilder};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner};
-use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
 use notus::NotusWrapper;
+use scannerlib::nasl::interpreter::ScannerStackWithStorage;
+use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
@@ -86,11 +87,11 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
 fn make_openvasd_scanner<S>(
     config: &Config,
     storage: S,
-) -> nasl_interpreter::Scanner<ScannerStackWithStorage<S>>
+) -> scannerlib::nasl::interpreter::Scanner<ScannerStackWithStorage<S>>
 where
     S: storage::NaslStorage + Send + 'static,
 {
-    nasl_interpreter::Scanner::with_storage(storage, &config.feed.path)
+    scannerlib::nasl::interpreter::Scanner::with_storage(storage, &config.feed.path)
 }
 
 async fn create_context<DB, ScanHandler>(

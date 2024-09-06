@@ -4,11 +4,13 @@
 
 use std::path::PathBuf;
 
-use nasl_interpreter::FSPluginLoader;
-use scannerlib::feed;
+use scannerlib::{
+    feed,
+    nasl::{syntax::LoadError, FSPluginLoader},
+};
 use storage::Dispatcher;
 
-use crate::CliError;
+use crate::{CliError, CliErrorKind};
 
 pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
@@ -32,16 +34,14 @@ where
                 tracing::warn!("{}", e);
                 return Err(CliError {
                     filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(e)),
+                    kind: CliErrorKind::LoadError(LoadError::Dirty(e)),
                 });
             }
             Err(e) => {
                 tracing::warn!("Unexpected error during signature verification: {e}");
                 return Err(CliError {
                     filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
-                        e.to_string(),
-                    )),
+                    kind: CliErrorKind::LoadError(LoadError::Dirty(e.to_string())),
                 });
             }
         }

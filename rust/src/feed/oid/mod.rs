@@ -6,8 +6,8 @@
 
 use std::fs::File;
 
-use nasl_interpreter::{AsBufReader, Loader};
-use nasl_syntax::{IdentifierType, Statement, StatementKind, TokenCategory};
+use crate::nasl::syntax::{AsBufReader, Loader};
+use crate::nasl::syntax::{IdentifierType, Statement, StatementKind, TokenCategory};
 
 use crate::feed::{
     update,
@@ -55,7 +55,7 @@ where
     /// Returns the OID string or update::Error::MissingExit.
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
-        for stmt in nasl_syntax::parse(&code) {
+        for stmt in crate::nasl::syntax::parse(&code) {
             if let StatementKind::If(_, stmts, _, _) = stmt?.kind() {
                 if let StatementKind::Block(x) = stmts.kind() {
                     for stmt in x {

@@ -8,18 +8,21 @@ use std::{
 };
 
 use futures::StreamExt;
-use nasl_interpreter::{
-    load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
-    RegisterBuilder,
-};
 use scannerlib::feed;
+use scannerlib::nasl::interpreter::CodeInterpreter;
+use scannerlib::nasl::{
+    interpreter::{FunctionError, InterpretErrorKind},
+    prelude::*,
+    syntax::{load_non_utf8_path, LoadError},
+    Loader, NoOpLoader,
+};
 use scannerlib::storage::redis::FEEDUPDATE_SELECTOR;
 use storage::{ContextKey, DefaultDispatcher};
 
 use crate::{CliError, CliErrorKind, Db};
 
 struct Run<L, S> {
-    context_builder: nasl_interpreter::ContextFactory<L, S>,
+    context_builder: ContextFactory<L, S>,
     _target: String,
     scan_id: String,
 }
@@ -45,7 +48,7 @@ impl Default for RunBuilder<NoOpLoader, DefaultDispatcher> {
 impl<L, S> RunBuilder<L, S>
 where
     S: storage::Storage,
-    L: nasl_interpreter::Loader,
+    L: Loader,
 {
     pub fn storage<S2>(self, s: S2) -> RunBuilder<L, S2> {
         RunBuilder {
@@ -77,7 +80,7 @@ where
 
     pub fn build(self) -> Run<L, S> {
         Run {
-            context_builder: nasl_interpreter::ContextFactory::new(self.loader, self.storage),
+            context_builder: ContextFactory::new(self.loader, self.storage),
             scan_id: self.scan_id,
             _target: self.target,
         }
@@ -86,7 +89,7 @@ where
 
 impl<L, S> Run<L, S>
 where
-    L: nasl_interpreter::Loader,
+    L: Loader,
     S: storage::Storage,
 {
     fn load(&self, script: &str) -> Result<String, CliErrorKind> {
@@ -128,12 +131,10 @@ where
             let r = match result {
                 Ok(x) => x,
                 Err(e) => match &e.kind {
-                    nasl_interpreter::InterpretErrorKind::FunctionCallError(
-                        nasl_interpreter::FunctionError {
-                            function: _,
-                            kind: nasl_interpreter::FunctionErrorKind::Diagnostic(_, x),
-                        },
-                    ) => {
+                    InterpretErrorKind::FunctionCallError(FunctionError {
+                        function: _,
+                        kind: FunctionErrorKind::Diagnostic(_, x),
+                    }) => {
                         tracing::warn!(error=?e, "function call error");
                         x.clone().unwrap_or_default()
                     }

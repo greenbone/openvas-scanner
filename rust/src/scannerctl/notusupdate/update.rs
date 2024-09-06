@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::{CliError, CliErrorKind};
 
-use nasl_syntax::{FSPluginLoader, LoadError};
+use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::{
     feed,
     notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
@@ -41,16 +41,14 @@ where
                 tracing::warn!("{}", e);
                 return Err(CliError {
                     filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(e)),
+                    kind: crate::CliErrorKind::LoadError(LoadError::Dirty(e)),
                 });
             }
             Err(e) => {
                 tracing::warn!("Unexpected error during signature verification: {e}");
                 return Err(CliError {
                     filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: crate::CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
-                        e.to_string(),
-                    )),
+                    kind: crate::CliErrorKind::LoadError(LoadError::Dirty(e.to_string())),
                 });
             }
         }

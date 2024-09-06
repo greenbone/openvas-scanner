@@ -11,10 +11,13 @@ use std::{
 use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
 
-use scannerlib::storage::{
-    json::{ArrayWrapper, ItemDispatcher},
-    redis::{
-        CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+use scannerlib::{
+    nasl::syntax::LoadError,
+    storage::{
+        json::{ArrayWrapper, ItemDispatcher},
+        redis::{
+            CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+        },
     },
 };
 
@@ -88,7 +91,7 @@ pub async fn update_notus(
         None => {
             return Err(CliError {
                 filename: "".to_string(),
-                kind: CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
+                kind: CliErrorKind::LoadError(LoadError::Dirty(
                     "Path to the notus advisories is mandatory".to_string(),
                 )),
             });
@@ -130,7 +133,7 @@ pub async fn update(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     match (loadup_notus_only, loadup_vts_only) {
         (true, true) => Some(Err(CliError {
             filename: "".to_string(),
-            kind: CliErrorKind::LoadError(nasl_syntax::LoadError::Dirty(
+            kind: CliErrorKind::LoadError(LoadError::Dirty(
                 "Please do not use --notus-only and --vts-only together".to_string(),
             )),
         })),

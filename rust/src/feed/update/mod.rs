@@ -11,9 +11,11 @@ use futures::{stream, Stream, StreamExt};
 use std::fs::File;
 use tracing::trace;
 
-use nasl_interpreter::{
-    AsBufReader, CodeInterpreter, Context, ContextType, Interpreter, Loader, NaslValue, Register,
-};
+use crate::nasl::interpreter::{CodeInterpreter, Interpreter};
+use crate::nasl::nasl_std_functions;
+use crate::nasl::prelude::*;
+use crate::nasl::syntax::AsBufReader;
+use crate::nasl::ContextType;
 use storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
 use crate::feed::verify::check_signature;
@@ -48,10 +50,10 @@ pub async fn feed_version(
     let fr = NoOpRetriever::default();
     let target = String::default();
     // TODO add parameter to struct
-    let functions = nasl_interpreter::nasl_std_functions();
+    let functions = nasl_std_functions();
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
     let mut interpreter = Interpreter::new(register, &context);
-    for stmt in nasl_syntax::parse(&code) {
+    for stmt in crate::nasl::syntax::parse(&code) {
         let stmt = stmt?;
         interpreter.retry_resolve_next(&stmt, 3).await?;
     }
@@ -146,7 +148,7 @@ where
         let register = Register::root_initial(&self.initial);
         let fr = NoOpRetriever::default();
         let target = String::default();
-        let functions = nasl_interpreter::nasl_std_functions();
+        let functions = nasl_std_functions();
 
         let context = Context::new(
             key.clone(),
