@@ -71,8 +71,8 @@ pub enum SendState {
     End,
 }
 
-static JARREND: &[u8] = &[b']'];
-static JARRSTART: &[u8] = &[b'['];
+static JARREND: &[u8] = b"]";
+static JARRSTART: &[u8] = b"[";
 impl Body for BodyKind {
     type Data = Bytes;
 

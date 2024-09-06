@@ -37,7 +37,7 @@ where
     ///
     /// This is to ensure that an enclosed `]` is printed.
     pub fn end(&mut self) -> io::Result<()> {
-        self.w.write_all(&[b']'])
+        self.w.write_all(b"]")
     }
 }
 
@@ -51,10 +51,10 @@ where
 
     fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
         if self.first {
-            self.w.write_all(&[b'['])?;
+            self.w.write_all(b"[")?;
             self.first = false;
         } else {
-            self.w.write_all(&[b','])?;
+            self.w.write_all(b",")?;
         }
         self.w.write_all(buf)?;
         Ok(())
