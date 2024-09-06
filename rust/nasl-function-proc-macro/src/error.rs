@@ -11,6 +11,9 @@ pub struct Error {
 pub enum ErrorKind {
     TooManyAttributes,
     OnlyNormalArgumentsAllowed,
+    MovedReceiverType,
+    MutableRefReceiverType,
+    TypedRefReceiverType,
 }
 
 impl Error {
@@ -25,11 +28,20 @@ impl Error {
     pub fn message(&self) -> String {
         match self.kind {
             ErrorKind::OnlyNormalArgumentsAllowed => {
-                "Only normal identifier arguments are allowed on the function.".into()
+                "Only normal identifier arguments are allowed on the function."
             }
             ErrorKind::TooManyAttributes => {
-                "Argument is named more than once in attributes.".into()
+                "Argument is named more than once in attributes."
             }
-        }
+            ErrorKind::MovedReceiverType => {
+                "Receiver argument is of type `self`. Currently, only `&self` receiver types are supported."
+            }
+            ErrorKind::MutableRefReceiverType => {
+                "Receiver argument is of type `&mut self`. Currently, only `&self` receiver types are supported."
+            }
+            ErrorKind::TypedRefReceiverType => {
+                "Specific type specified in receiver argument. Currently, only `&self` is supported."
+            }
+        }.into()
     }
 }

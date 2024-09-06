@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use crate::error::{Error, ErrorKind, Result};
 use crate::types::*;
 use crate::utils::{get_subty_if_name_is, ty_is_context, ty_is_register, ty_name_is};
-use syn::{
-    parenthesized, parse::Parse, punctuated::Punctuated, spanned::Spanned, FnArg, Ident, ItemFn,
-    Token, Type,
-};
+use syn::punctuated::Punctuated;
+use syn::token::Comma;
+use syn::{parenthesized, parse::Parse, spanned::Spanned, FnArg, Ident, ItemFn, Token, Type};
 
 mod attrs {
     syn::custom_keyword!(named);
@@ -106,6 +105,41 @@ impl<'a> Arg<'a> {
     }
 }
 
+impl ReceiverType {
+    pub fn new(inputs: &Punctuated<FnArg, Comma>) -> Result<Self> {
+        let first_input = inputs.iter().next();
+        if let Some(first_input) = first_input {
+            let make_err = |kind| {
+                Err(Error {
+                    kind,
+                    span: first_input.span(),
+                })
+            };
+            Ok(match first_input {
+                FnArg::Receiver(rec) => {
+                    // `self`
+                    if rec.reference.is_none() {
+                        return make_err(ErrorKind::MovedReceiverType);
+                    }
+                    // `&mut self`
+                    else if rec.mutability.is_some() {
+                        return make_err(ErrorKind::MutableRefReceiverType);
+                    }
+                    // e.g. `self: Box<Self>`
+                    else if rec.colon_token.is_some() {
+                        return make_err(ErrorKind::TypedRefReceiverType);
+                    } else {
+                        ReceiverType::RefSelf
+                    }
+                }
+                FnArg::Typed(_) => ReceiverType::None,
+            })
+        } else {
+            Ok(ReceiverType::None)
+        }
+    }
+}
+
 fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, &Type, bool, bool)> {
     match arg {
         FnArg::Receiver(_) => unreachable!(),
@@ -146,11 +180,7 @@ fn parse_function_args<'a>(
         .enumerate()
         .map(|(position, arg)| Arg::new(arg, attrs, position))
         .collect::<Result<Vec<_>>>()?;
-    let receiver_type = if function.sig.inputs.iter().any(is_self_arg) {
-        ReceiverType::RefSelf
-    } else {
-        ReceiverType::None
-    };
+    let receiver_type = ReceiverType::new(&function.sig.inputs)?;
     Ok((args, receiver_type))
 }
 
