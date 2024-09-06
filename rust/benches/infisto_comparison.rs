@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use infisto::base::{CachedIndexFileStorer, IndexedByteStorage};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
+use scannerlib::storage::file::base::{
+    CachedIndexFileStorer, IndexedByteStorage, IndexedFileStorer, Range,
+};
+use scannerlib::storage::file::crypto::{ChaCha20IndexFileStorer, Key};
 
 const BASE: &str = "/tmp/openvasd";
 
@@ -39,15 +42,13 @@ pub fn reading(c: &mut Criterion) {
     let mut store = CachedIndexFileStorer::init(BASE).unwrap();
     store.append_all(&cached_name, &data).unwrap();
     let uncached_name = fname("uncached");
-    let mut store = infisto::base::IndexedFileStorer::init(BASE).unwrap();
+    let mut store = IndexedFileStorer::init(BASE).unwrap();
     store.append_all(&uncached_name, &data).unwrap();
     // to be useable in openvasd we must create Stream interface to allow polling
     // on ranges otherwise the use has to wait until the whole file is read
     let crypto_name = fname("crypto");
-    let mut store = infisto::crypto::ChaCha20IndexFileStorer::new(
-        CachedIndexFileStorer::init(BASE).unwrap(),
-        infisto::crypto::Key::default(),
-    );
+    let mut store =
+        ChaCha20IndexFileStorer::new(CachedIndexFileStorer::init(BASE).unwrap(), Key::default());
     store.append_all(&crypto_name, &data).unwrap();
     let mut group = c.benchmark_group("reading");
     group.sample_size(10);
@@ -55,26 +56,24 @@ pub fn reading(c: &mut Criterion) {
     group.bench_with_input("cached", &cached_name, move |b, key| {
         b.iter(|| {
             store
-                .by_range::<Vec<u8>>(black_box(key), infisto::base::Range::All)
+                .by_range::<Vec<u8>>(black_box(key), Range::All)
                 .unwrap();
         })
     });
-    let store = infisto::base::IndexedFileStorer::init(BASE).unwrap();
+    let store = IndexedFileStorer::init(BASE).unwrap();
     group.bench_with_input("uncached", &uncached_name, move |b, key| {
         b.iter(|| {
             store
-                .by_range::<Vec<u8>>(black_box(key), infisto::base::Range::All)
+                .by_range::<Vec<u8>>(black_box(key), Range::All)
                 .unwrap();
         })
     });
-    let store = infisto::crypto::ChaCha20IndexFileStorer::new(
-        CachedIndexFileStorer::init(BASE).unwrap(),
-        infisto::crypto::Key::default(),
-    );
+    let store =
+        ChaCha20IndexFileStorer::new(CachedIndexFileStorer::init(BASE).unwrap(), Key::default());
     group.bench_with_input("crypto", &crypto_name, move |b, key| {
         b.iter(|| {
             store
-                .by_range::<Vec<u8>>(black_box(key), infisto::base::Range::All)
+                .by_range::<Vec<u8>>(black_box(key), Range::All)
                 .unwrap();
         })
     });
@@ -128,7 +127,7 @@ pub fn storing(c: &mut Criterion) {
         "uncached",
         &(&uncached_name, &data),
         move |b, (key, data)| {
-            let mut store = infisto::base::IndexedFileStorer::init(BASE).unwrap();
+            let mut store = IndexedFileStorer::init(BASE).unwrap();
             b.iter(|| {
                 store.append_all(black_box(key), black_box(data)).unwrap();
             })
@@ -136,9 +135,9 @@ pub fn storing(c: &mut Criterion) {
     );
     let crypto_name = fname("crypto");
     group.bench_with_input("crypto", &(&crypto_name, &data), move |b, (key, data)| {
-        let mut store = infisto::crypto::ChaCha20IndexFileStorer::new(
+        let mut store = ChaCha20IndexFileStorer::new(
             CachedIndexFileStorer::init(BASE).unwrap(),
-            infisto::crypto::Key::default(),
+            Key::default(),
         );
         b.iter(|| {
             store.append_all(black_box(key), black_box(data)).unwrap();

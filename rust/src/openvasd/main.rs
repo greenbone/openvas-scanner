@@ -8,13 +8,13 @@ use std::marker::{Send, Sync};
 
 use config::{Config, Mode, ScannerType};
 use controller::{Context, ContextBuilder};
-use infisto::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
 use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner};
 use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
 use notus::NotusWrapper;
 use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
+use scannerlib::storage::file::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
 use storage::{FromConfigAndFeeds, Storage};
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;

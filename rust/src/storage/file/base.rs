@@ -14,7 +14,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tracing::{trace, warn};
 
-use crate::error::{Error, IoErrorKind};
+use super::error::{Error, IoErrorKind};
 
 fn open_file<P: AsRef<Path>>(path: P, opts: &mut OpenOptions) -> Result<File, Error> {
     trace!(path= ?path.as_ref(), "opening");

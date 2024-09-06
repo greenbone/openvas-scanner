@@ -5,7 +5,7 @@
 //! Contains helper for serializing and deserializing structs.
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error;
+use super::error::Error;
 
 #[derive(Debug)]
 /// Serializes and deserializes data
@@ -76,7 +76,7 @@ impl<T> From<Serialization<T>> for Vec<u8> {
 mod test {
     use serde::{Deserialize, Serialize};
 
-    use crate::base::{CachedIndexFileStorer, IndexedByteStorage, Range};
+    use crate::storage::file::base::{CachedIndexFileStorer, IndexedByteStorage, Range};
 
     const BASE: &str = "/tmp/openvasd/unittest";
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

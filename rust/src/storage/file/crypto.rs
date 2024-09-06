@@ -11,8 +11,9 @@ use pbkdf2::pbkdf2_hmac;
 use rand::RngCore;
 use sha2::Sha256;
 
-use crate::base::IndexedByteStorage;
-use crate::error::Error;
+use super::base::Index;
+use super::base::IndexedByteStorage;
+use super::error::Error;
 
 #[derive(Clone, Debug)]
 struct Encrypted {
@@ -151,11 +152,11 @@ where
         self.store.remove(key)
     }
 
-    fn indices(&self, key: &str) -> Result<Vec<crate::base::Index>, Error> {
+    fn indices(&self, key: &str) -> Result<Vec<Index>, Error> {
         self.store.indices(key)
     }
 
-    fn by_indices<T>(&self, key: &str, indices: &[crate::base::Index]) -> Result<Vec<T>, Error>
+    fn by_indices<T>(&self, key: &str, indices: &[Index]) -> Result<Vec<T>, Error>
     where
         T: TryFrom<Vec<u8>>,
         <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -178,7 +179,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::base::{CachedIndexFileStorer, Range};
+    use crate::storage::file::base::{CachedIndexFileStorer, Range};
 
     use super::*;
     const BASE: &str = "/tmp/openvasd/unittest";

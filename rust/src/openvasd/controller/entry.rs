@@ -475,9 +475,12 @@ pub mod client {
     use hyper::{
         body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
     };
-    use infisto::base::CachedIndexFileStorer;
     use models::scanner::Scanner;
     use nasl_interpreter::FSPluginLoader;
+    use scannerlib::storage::file::{
+        base::{CachedIndexFileStorer, IndexedFileStorer},
+        crypto::ChaCha20IndexFileStorer,
+    };
     use serde::Deserialize;
 
     use crate::{
@@ -527,20 +530,10 @@ pub mod client {
         prefix: &str,
     ) -> Client<
         nasl_interpreter::Scanner<(
-            Arc<
-                UserNASLStorageForKBandVT<
-                    Storage<
-                        infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>,
-                    >,
-                >,
-            >,
+            Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
             FSPluginLoader,
         )>,
-        Arc<
-            UserNASLStorageForKBandVT<
-                Storage<infisto::crypto::ChaCha20IndexFileStorer<infisto::base::IndexedFileStorer>>,
-            >,
-        >,
+        Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());

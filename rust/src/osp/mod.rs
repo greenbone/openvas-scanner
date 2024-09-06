@@ -20,4 +20,3 @@ pub use scanner::Scanner;
 
 /// The id of a scan
 pub type ScanID = String;
-

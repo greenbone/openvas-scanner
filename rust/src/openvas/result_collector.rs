@@ -10,8 +10,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{openvas::openvas_redis::{KbAccess, VtHelper}, osp};
 use crate::osp::{ScanResult, StringF32};
+use crate::{
+    openvas::openvas_redis::{KbAccess, VtHelper},
+    osp,
+};
 use redis_storage::dberror::RedisStorageResult;
 
 /// Structure to hold the results retrieve from redis main kb

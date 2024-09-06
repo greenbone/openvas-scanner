@@ -44,11 +44,10 @@ tokio-rustls = "0.25"
 toml = "0.8.4"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+urlencoding = "2.1.2"
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 walkdir = "2"
-urlencoding = "2.1.2"
 
-infisto = { path = "infisto" }
 json-storage = { path = "json-storage" }
 models = { path = "models" }
 nasl-interpreter = { path = "nasl-interpreter" }
@@ -80,13 +79,14 @@ members = [
   "redis-storage",
   "json-storage",
   "models",
-  "infisto",
   "smoketest",
   "nasl-function-proc-macro",
 ]
 
 [dev-dependencies]
 tracing-test = "0.2.5"
+criterion = "0"
+uuid = "1.4.1"
 
 [features]
 dep-graph-parallel = ["rayon", "crossbeam-channel"]
@@ -113,3 +113,7 @@ path = "src/scannerctl/main.rs"
 [[bin]]
 name = "feed-verifier"
 path = "src/feed_verifier/main.rs"
+
+[[bench]]
+name = "infisto_comparison"
+harness = false
