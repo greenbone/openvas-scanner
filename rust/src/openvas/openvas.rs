@@ -2,6 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use super::{
+    cmd,
+    error::OpenvasError,
+    openvas_redis::{KbAccess, RedisHelper},
+    pref_handler::PreferenceHandler,
+    result_collector::ResultHelper,
+};
 use async_trait::async_trait;
 use models::{
     scanner::{
@@ -17,14 +24,6 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
     time::SystemTime,
-};
-
-use crate::{
-    cmd,
-    error::OpenvasError,
-    openvas_redis::{KbAccess, RedisHelper},
-    pref_handler::PreferenceHandler,
-    result_collector::ResultHelper,
 };
 
 #[derive(Debug)]

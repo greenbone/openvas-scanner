@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::openvas_redis::{KbAccess, VtHelper};
+use crate::openvas::openvas_redis::{KbAccess, VtHelper};
 use osp::{ScanResult, StringF32};
 use redis_storage::dberror::RedisStorageResult;
 
@@ -256,7 +256,7 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::openvas_redis::FakeRedis;
+    use crate::openvas::openvas_redis::FakeRedis;
     use models::Result;
     use std::collections::HashMap;
 

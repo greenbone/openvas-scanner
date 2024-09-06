@@ -537,7 +537,7 @@ mod tests {
     use models::{AliveTestMethods, Credential, Port, PortRange, Scan};
 
     use super::PreferenceHandler;
-    use crate::openvas_redis::{FakeRedis, KbAccess};
+    use crate::openvas::openvas_redis::{FakeRedis, KbAccess};
 
     #[tokio::test]
     async fn test_prefs() {

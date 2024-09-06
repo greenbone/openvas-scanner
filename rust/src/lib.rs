@@ -3,3 +3,4 @@ pub mod notus;
 
 #[allow(unused)]
 mod plugin_scheduler;
+pub mod openvas;

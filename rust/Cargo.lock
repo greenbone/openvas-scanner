@@ -2390,23 +2390,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "openvas"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "configparser",
- "models",
- "osp",
- "redis",
- "redis-storage",
- "serde",
- "storage",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "osp"
 version = "0.1.0"
 dependencies = [
@@ -3172,7 +3155,6 @@ dependencies = [
  "nasl-interpreter",
  "nasl-syntax",
  "num_cpus",
- "openvas",
  "osp",
  "pbkdf2",
  "quick-xml",

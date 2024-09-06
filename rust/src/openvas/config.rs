@@ -6,7 +6,7 @@ use std::time::Duration;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(
-    feature = "serde_support",
+    feature = "openvas_serde_support",
     derive(serde::Serialize, serde::Deserialize),
     serde(deny_unknown_fields)
 )]

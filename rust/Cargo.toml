@@ -52,7 +52,6 @@ json-storage = { path = "json-storage" }
 models = { path = "models" }
 nasl-interpreter = { path = "nasl-interpreter" }
 nasl-syntax = { path = "nasl-syntax" }
-openvas = { path = "openvas" }
 osp = { path = "osp" }
 redis-storage = { path = "redis-storage" }
 storage = { path = "storage" }
@@ -82,7 +81,6 @@ members = [
   "json-storage",
   "models",
   "osp",
-  "openvas",
   "infisto",
   "smoketest",
   "nasl-function-proc-macro",
@@ -93,7 +91,8 @@ tracing-test = "0.2.5"
 
 [features]
 dep-graph-parallel = ["rayon", "crossbeam-channel"]
-default = ["dep-graph-parallel"]
+openvas_serde_support = []
+default = ["dep-graph-parallel", "openvas_serde_support"]
 
 [workspace.dependencies]
 tokio = { version = "1.39.3", features = ["full"] }
