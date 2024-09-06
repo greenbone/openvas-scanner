@@ -2390,19 +2390,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "osp"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "models",
- "quick-xml",
- "serde",
- "serde_json",
- "tokio",
- "urlencoding",
-]
-
-[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3155,7 +3142,6 @@ dependencies = [
  "nasl-interpreter",
  "nasl-syntax",
  "num_cpus",
- "osp",
  "pbkdf2",
  "quick-xml",
  "rand",
@@ -3177,6 +3163,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracing-test",
+ "urlencoding",
  "uuid",
  "walkdir",
 ]

@@ -46,13 +46,13 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 walkdir = "2"
+urlencoding = "2.1.2"
 
 infisto = { path = "infisto" }
 json-storage = { path = "json-storage" }
 models = { path = "models" }
 nasl-interpreter = { path = "nasl-interpreter" }
 nasl-syntax = { path = "nasl-syntax" }
-osp = { path = "osp" }
 redis-storage = { path = "redis-storage" }
 storage = { path = "storage" }
 
@@ -80,7 +80,6 @@ members = [
   "redis-storage",
   "json-storage",
   "models",
-  "osp",
   "infisto",
   "smoketest",
   "nasl-function-proc-macro",

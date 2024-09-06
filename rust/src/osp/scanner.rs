@@ -52,7 +52,7 @@ impl ScanStarter for Scanner {
     async fn start_scan(&self, scan: models::Scan) -> Result<(), models::scanner::Error> {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            crate::start_scan(socket, rtimeout, &scan)
+            super::start_scan(socket, rtimeout, &scan)
                 .map(|_| ())
                 .map_err(models::scanner::Error::from)
         })
@@ -72,7 +72,7 @@ impl ScanStopper for Scanner {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            crate::stop_scan(socket, rtimeout, id)
+            super::stop_scan(socket, rtimeout, id)
                 .map(|_| ())
                 .map_err(models::scanner::Error::from)
         })
@@ -88,7 +88,7 @@ impl ScanDeleter for Scanner {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            crate::delete_scan(socket, rtimeout, id)
+            super::delete_scan(socket, rtimeout, id)
                 .map(|_| ())
                 .map_err(models::scanner::Error::from)
         })
@@ -104,7 +104,7 @@ impl ScanResultFetcher for Scanner {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            crate::get_delete_scan_results(socket, rtimeout, id)
+            super::get_delete_scan_results(socket, rtimeout, id)
                 .map(|r| ScanResults {
                     id: r.clone().id,
                     status: r.clone().into(),

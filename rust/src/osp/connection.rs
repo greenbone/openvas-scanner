@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{
+use super::{
     commands::Error,
     response::{self, Response},
     ScanCommand, ScanID,

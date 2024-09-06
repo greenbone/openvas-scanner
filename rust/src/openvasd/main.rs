@@ -14,6 +14,7 @@ use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
 use notus::NotusWrapper;
 use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use scannerlib::openvas::{self, cmd};
+use scannerlib::osp;
 use storage::{FromConfigAndFeeds, Storage};
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;

@@ -7,7 +7,7 @@ use std::fmt;
 
 use serde::{de::Visitor, Deserialize};
 
-use crate::Error;
+use super::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
 #[derive(Clone, Copy, Debug, PartialEq)]
