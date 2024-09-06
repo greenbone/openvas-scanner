@@ -9,6 +9,7 @@ use super::{
     pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
+use crate::storage::redis::{NameSpaceSelector, RedisCtx};
 use async_trait::async_trait;
 use models::{
     scanner::{
@@ -16,7 +17,6 @@ use models::{
     },
     HostInfoBuilder, Phase, Scan, Status,
 };
-use redis_storage::{NameSpaceSelector, RedisCtx};
 use std::{
     collections::HashMap,
     fmt::Display,

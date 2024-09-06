@@ -11,7 +11,7 @@ use std::{
 use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
 
-use redis_storage::{
+use scannerlib::storage::redis::{
     CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
 };
 
@@ -57,7 +57,7 @@ fn get_dispatcher(
     path: &Path,
     selector: &[NameSpaceSelector],
 ) -> Result<PerItemDispatcher<CacheDispatcher<RedisCtx>>, CliError> {
-    redis_storage::CacheDispatcher::as_dispatcher(redis, selector)
+    CacheDispatcher::as_dispatcher(redis, selector)
         .map_err(StorageError::from)
         .map_err(|e| CliError {
             kind: e.into(),

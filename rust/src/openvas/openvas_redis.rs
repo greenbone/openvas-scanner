@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use redis_storage::{
+use crate::storage::redis::{
     dberror::{DbError, RedisStorageResult},
     RedisCtx, RedisGetNvt, RedisWrapper,
 };

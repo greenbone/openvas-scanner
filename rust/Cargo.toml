@@ -23,6 +23,7 @@ http-body-util = "0.1.0"
 hyper = { version = "1", features = ["full"] }
 hyper-rustls = "0"
 hyper-util = { version = "0", features = ["tokio"] }
+itertools = "0.12.0"
 lazy-regex = "3.3.0"
 lazy_static = "1.4.0"
 num_cpus = "1.16.0"
@@ -52,7 +53,6 @@ json-storage = { path = "json-storage" }
 models = { path = "models" }
 nasl-interpreter = { path = "nasl-interpreter" }
 nasl-syntax = { path = "nasl-syntax" }
-redis-storage = { path = "redis-storage" }
 storage = { path = "storage" }
 
 [workspace]
@@ -76,7 +76,6 @@ members = [
   "nasl-c-lib",
   "nasl-c-lib/libgcrypt-sys",
   "storage",
-  "redis-storage",
   "json-storage",
   "models",
   "smoketest",

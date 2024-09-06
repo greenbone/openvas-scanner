@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("README.md")]
 /// Module with structures and methods to access redis.
 mod connector;
 pub use connector::{

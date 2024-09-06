@@ -10,8 +10,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 
-use crate::dberror::DbError;
-use crate::dberror::RedisStorageResult;
+use super::dberror::DbError;
+use super::dberror::RedisStorageResult;
 use itertools::Itertools;
 use redis::*;
 
@@ -798,59 +798,48 @@ mod tests {
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::{Arc, Mutex};
 
+    use super::super::dberror::RedisStorageResult;
+    use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper};
+    use storage::item::NVTField::*;
     use storage::item::PerItemDispatcher;
     use storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
     use storage::Dispatcher;
-
-    use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper};
+    use storage::Field::NVT;
 
     #[derive(Clone)]
     struct FakeRedis {
         sender: Sender<(String, Vec<Vec<u8>>)>,
     }
     impl RedisWrapper for FakeRedis {
-        fn rpush<T: redis::ToRedisArgs>(
-            &mut self,
-            key: &str,
-            val: T,
-        ) -> crate::dberror::RedisStorageResult<()> {
+        fn rpush<T: redis::ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
             self.sender
                 .send((key.to_owned(), val.to_redis_args()))
                 .unwrap();
             Ok(())
         }
 
-        fn lpush<T: redis::ToRedisArgs>(
-            &mut self,
-            key: &str,
-            val: T,
-        ) -> crate::dberror::RedisStorageResult<()> {
+        fn lpush<T: redis::ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
             self.sender
                 .send((key.to_owned(), val.to_redis_args()))
                 .unwrap();
             Ok(())
         }
-        fn del(&mut self, _: &str) -> crate::dberror::RedisStorageResult<()> {
+        fn del(&mut self, _: &str) -> RedisStorageResult<()> {
             Ok(())
         }
 
-        fn lindex(&mut self, _: &str, _: isize) -> crate::dberror::RedisStorageResult<String> {
+        fn lindex(&mut self, _: &str, _: isize) -> RedisStorageResult<String> {
             Ok(String::new())
         }
 
-        fn keys(&mut self, _: &str) -> crate::dberror::RedisStorageResult<Vec<String>> {
+        fn keys(&mut self, _: &str) -> RedisStorageResult<Vec<String>> {
             Ok(Vec::new())
         }
-        fn pop(&mut self, _: &str) -> crate::dberror::RedisStorageResult<Vec<String>> {
+        fn pop(&mut self, _: &str) -> RedisStorageResult<Vec<String>> {
             Ok(Vec::new())
         }
 
-        fn lrange(
-            &mut self,
-            _: &str,
-            _: isize,
-            _: isize,
-        ) -> crate::dberror::RedisStorageResult<Vec<String>> {
+        fn lrange(&mut self, _: &str, _: isize, _: isize) -> RedisStorageResult<Vec<String>> {
             Ok(Vec::new())
         }
     }
@@ -859,8 +848,6 @@ mod tests {
     impl RedisAddAdvisory for FakeRedis {}
     impl RedisGetNvt for FakeRedis {}
 
-    use storage::item::NVTField::*;
-    use storage::Field::NVT;
     #[test]
     fn transform_nvt() {
         let commands = [

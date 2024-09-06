@@ -2799,19 +2799,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redis-storage"
-version = "0.1.0"
-dependencies = [
- "itertools 0.12.1",
- "models",
- "redis",
- "serde",
- "serde_json",
- "storage",
- "thiserror",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3119,6 +3106,7 @@ dependencies = [
  "hyper 1.4.1",
  "hyper-rustls 0.27.3",
  "hyper-util",
+ "itertools 0.12.1",
  "json-storage",
  "lazy-regex",
  "lazy_static",
@@ -3131,7 +3119,6 @@ dependencies = [
  "rand",
  "rayon",
  "redis",
- "redis-storage",
  "rustls 0.22.4",
  "rustls-pemfile 1.0.4",
  "sequoia-ipc",

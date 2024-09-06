@@ -12,8 +12,8 @@ use nasl_interpreter::{
     load_non_utf8_path, CodeInterpreter, FSPluginLoader, LoadError, NaslValue, NoOpLoader,
     RegisterBuilder,
 };
-use redis_storage::FEEDUPDATE_SELECTOR;
 use scannerlib::feed;
+use scannerlib::storage::redis::FEEDUPDATE_SELECTOR;
 use storage::{ContextKey, DefaultDispatcher};
 
 use crate::{CliError, CliErrorKind, Db};
@@ -154,8 +154,10 @@ where
 
 fn create_redis_storage(
     url: &str,
-) -> storage::item::PerItemDispatcher<redis_storage::CacheDispatcher<redis_storage::RedisCtx>> {
-    redis_storage::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
+) -> storage::item::PerItemDispatcher<
+    scannerlib::storage::redis::CacheDispatcher<scannerlib::storage::redis::RedisCtx>,
+> {
+    scannerlib::storage::redis::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
 async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>

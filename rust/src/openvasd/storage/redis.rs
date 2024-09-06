@@ -6,7 +6,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use nasl_interpreter::FSPluginLoader;
-use redis_storage::{
+use scannerlib::storage::redis::{
     CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
 };
 use scannerlib::{
@@ -49,7 +49,7 @@ impl<T> Storage<T> {
             let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
 
             let redis_cache: CacheDispatcher<RedisCtx> =
-                redis_storage::CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
+                scannerlib::storage::redis::CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
             let store = PerItemDispatcher::new(redis_cache);
             for filename in advisories_files.get_advisories()?.iter() {
                 let advisories = advisories_files.load_advisory(filename)?;
@@ -85,7 +85,7 @@ impl<T> Storage<T> {
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
         let redis_cache: CacheDispatcher<RedisCtx> =
-            redis_storage::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
+            scannerlib::storage::redis::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
         let store = PerItemDispatcher::new(redis_cache);
         let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
         if !fu.feed_is_outdated(current_feed).await.unwrap() {
@@ -152,8 +152,8 @@ where
     }
 }
 
-impl From<redis_storage::dberror::DbError> for super::Error {
-    fn from(value: redis_storage::dberror::DbError) -> Self {
+impl From<scannerlib::storage::redis::dberror::DbError> for super::Error {
+    fn from(value: scannerlib::storage::redis::dberror::DbError) -> Self {
         super::Error::Storage(Box::new(value))
     }
 }
