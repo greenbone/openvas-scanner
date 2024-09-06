@@ -1662,14 +1662,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "json-storage"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "storage",
-]
-
-[[package]]
 name = "keccak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3107,7 +3099,6 @@ dependencies = [
  "hyper-rustls 0.27.3",
  "hyper-util",
  "itertools 0.12.1",
- "json-storage",
  "lazy-regex",
  "lazy_static",
  "models",

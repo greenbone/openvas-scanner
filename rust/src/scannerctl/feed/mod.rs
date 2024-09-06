@@ -11,8 +11,11 @@ use std::{
 use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
 
-use scannerlib::storage::redis::{
-    CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+use scannerlib::storage::{
+    json::{ArrayWrapper, ItemDispatcher},
+    redis::{
+        CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+    },
 };
 
 use scannerlib::feed::transpile::{self, FeedReplacer};
@@ -156,8 +159,8 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         Some(("transform", args)) => {
             let path = get_vts_path("path", args);
 
-            let mut o = json_storage::ArrayWrapper::new(io::stdout());
-            let dispatcher = json_storage::ItemDispatcher::as_dispatcher(&mut o);
+            let mut o = ArrayWrapper::new(io::stdout());
+            let dispatcher = ItemDispatcher::as_dispatcher(&mut o);
             Some(match update::run(dispatcher, path, false).await {
                 Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                     filename: "".to_string(),

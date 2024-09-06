@@ -76,7 +76,7 @@ To create a single json element per dispatch you can use the ItemDispatcher with
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let dispatcher = json_storage::ItemDispatcher::as_dispatcher(&mut buf);
+let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut buf);
 ```
 
 ### Array
@@ -85,8 +85,8 @@ To create an array for elements per dispatch call:
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let mut ja = json_storage::ArrayWrapper::new(&mut buf);
-let dispatcher = json_storage::ItemDispatcher::as_dispatcher(&mut ja);
+let mut ja = scannerlib::storage::json::ArrayWrapper::new(&mut buf);
+let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut ja);
 // do your work
 ja.end();
 ```

@@ -49,7 +49,6 @@ urlencoding = "2.1.2"
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 walkdir = "2"
 
-json-storage = { path = "json-storage" }
 models = { path = "models" }
 nasl-interpreter = { path = "nasl-interpreter" }
 nasl-syntax = { path = "nasl-syntax" }
@@ -76,7 +75,6 @@ members = [
   "nasl-c-lib",
   "nasl-c-lib/libgcrypt-sys",
   "storage",
-  "json-storage",
   "models",
   "smoketest",
   "nasl-function-proc-macro",
