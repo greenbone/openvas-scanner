@@ -909,14 +909,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8c02a5121d4ea3eb16a80748c74f5549a5665e4c21333c6098f283870fbdea6"
 
 [[package]]
-name = "feed-verifier"
-version = "0.1.0"
-dependencies = [
- "configparser",
- "redis",
-]
-
-[[package]]
 name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3005,6 +2997,7 @@ dependencies = [
  "quick-xml",
  "rand",
  "rayon",
+ "redis",
  "redis-storage",
  "rustls 0.22.4",
  "rustls-pemfile 1.0.4",
