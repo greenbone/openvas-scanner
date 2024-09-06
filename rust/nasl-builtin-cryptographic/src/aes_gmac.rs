@@ -33,12 +33,11 @@ fn aes_gmac(
 pub struct AesGmac;
 
 #[cfg(feature = "nasl-c-lib")]
-stateless_function_set! {
+function_set! {
     AesGmac,
-        sync_stateless,
+    sync_stateless,
     (
-        aes_gmac,
-        ("aes_mac_gcm", aes_gmac),
+        aes_gmac
     )
 }
 
