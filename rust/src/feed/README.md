@@ -22,7 +22,7 @@ Also, implements a [signature verifier](./src/verify/mod.rs#L163) for checking t
 ### Example
 
 ```no_run
-use nasl_interpreter::FSPluginLoader;
+use scannerlib::nasl::FSPluginLoader;
 // needs to be path that contains a sha256sums file otherwise
 // it will throw an exception.
 let path = "/var/lib/openvas/plugins/";

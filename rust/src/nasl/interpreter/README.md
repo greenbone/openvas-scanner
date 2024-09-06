@@ -20,7 +20,8 @@ An interpreter requires:
 ## Example
 
 ```
-use nasl_interpreter::{CodeInterpreter, Register, ContextFactory};
+use scannerlib::nasl::interpreter::{CodeInterpreter};
+use scannerlib::nasl::prelude::*;
 let mut register = Register::default();
 let context_builder = ContextFactory::default();
 let context = context_builder.build(storage::ContextKey::Scan("1".into(), Some("localhost".into())));

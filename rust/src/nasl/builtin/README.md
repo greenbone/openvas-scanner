@@ -7,7 +7,7 @@ To use the std functions it is recommended to use the defined [ContextFactory] a
 All you have to do as a user is to create the builder
 
 ```
-let cb = nasl_builtin_std::ContextFactory::default();
+let cb = scannerlib::nasl::ContextFactory::default();
 ```
 
 and set all but the functions. This will use the DefaultDispatcher as well as an empty String as a key.
@@ -15,9 +15,9 @@ and set all but the functions. This will use the DefaultDispatcher as well as an
 For production use cases it is recommended to use new method and include a key and a storage:
 
 ```
-let loader = nasl_syntax::FSPluginLoader::new("/feed");
+let loader = scannerlib::nasl::FSPluginLoader::new("/feed");
 let storage = storage::DefaultDispatcher::default();
-let cb = nasl_builtin_std::ContextFactory::new(loader, storage);
+let cb = scannerlib::nasl::ContextFactory::new(loader, storage);
 ```
 
 ## Add functions to std
@@ -47,7 +47,7 @@ For this purpose, it is possible to add predefined variables to the Register. Th
 All you have to do is to create a builder for the register:
 
 ```
-let mut register = nasl_builtin_std::RegisterBuilder::build();
+let mut register = scannerlib::nasl::RegisterBuilder::build();
 ```
 
 To add the variables to the register as global, you have to add the function crate to the Cargo.toml, which youprobably have done for adding the functions (see above),

@@ -207,9 +207,9 @@ macro_rules! internal_call_expr {
 
 /// Convenience macro to define a set of functions.
 /// Example:
-/// ```rust
-/// # use crate::nasl::utils::{function_set};
-/// # use nasl_function_proc_macro::{nasl_function};
+/// ```rust ignore
+/// # use crate::nasl::prelude::*;
+/// # use crate::nasl::prelude::*;
 /// struct Foo;
 ///
 /// #[nasl_function]

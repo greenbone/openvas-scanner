@@ -255,9 +255,9 @@ impl Statement {
     ///    }
     /// }
     /// "#;
-    /// let results: usize = crate::nasl::syntax::parse(code)
+    /// let results: usize = scannerlib::nasl::syntax::parse(code)
     ///     .filter_map(|s| s.ok())
-    ///     .map(|s| s.find(&|s| matches!(s.kind(), crate::nasl::syntax::StatementKind::Call(..))).len())
+    ///     .map(|s| s.find(&|s| matches!(s.kind(), scannerlib::nasl::syntax::StatementKind::Call(..))).len())
     ///     .sum();
     ///
     /// assert_eq!(results, 10);

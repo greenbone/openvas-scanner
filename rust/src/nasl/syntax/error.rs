@@ -73,8 +73,8 @@ impl SyntaxError {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::{ErrorKind, Token, TokenCategory};
-/// use crate::syntax_error;
+/// use scannerlib::nasl::syntax::{ErrorKind, Token, TokenCategory};
+/// use scannerlib::syntax_error;
 /// syntax_error!(
 ///     ErrorKind::UnexpectedToken(Token {
 ///         category: TokenCategory::UnknownSymbol,
@@ -97,7 +97,8 @@ macro_rules! syntax_error {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::{unexpected_token, Token, TokenCategory};
+/// use scannerlib::nasl::syntax::{Token, TokenCategory};
+/// use scannerlib::unexpected_token;
 /// unexpected_token!(Token {
 ///     category: TokenCategory::UnknownSymbol,
 ///     line_column: (42, 42),
@@ -119,7 +120,8 @@ macro_rules! unexpected_token {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::{unexpected_statement, Statement, StatementKind};
+/// use scannerlib::nasl::syntax::{Statement, StatementKind};
+/// use scannerlib::unexpected_statement;
 /// unexpected_statement!(Statement::without_token(StatementKind::EoF));
 /// ```
 #[macro_export]
@@ -137,7 +139,8 @@ macro_rules! unexpected_statement {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::{unclosed_statement, Statement, StatementKind};
+/// use scannerlib::nasl::syntax::{Statement, StatementKind};
+/// use scannerlib::unclosed_statement;
 /// unclosed_statement!(Statement::without_token(StatementKind::EoF));
 /// ```
 #[macro_export]
@@ -156,7 +159,8 @@ macro_rules! unclosed_statement {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::{unclosed_token, Token, TokenCategory};
+/// use scannerlib::nasl::syntax::{Token, TokenCategory};
+/// use scannerlib::unclosed_token;
 /// unclosed_token!(Token {
 ///     category: TokenCategory::UnknownSymbol,
 ///     position: (42, 42),
@@ -179,7 +183,7 @@ macro_rules! unclosed_token {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::unexpected_end;
+/// use scannerlib::unexpected_end;
 /// unexpected_end!("within an example.");
 /// ```
 #[macro_export]
@@ -199,7 +203,7 @@ macro_rules! unexpected_end {
 ///
 /// Basic usage:
 /// ```rust
-/// use crate::nasl::syntax::max_recursion;
+/// use scannerlib::max_recursion;
 /// max_recursion!(255);
 /// ```
 #[macro_export]

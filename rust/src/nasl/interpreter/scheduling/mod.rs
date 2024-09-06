@@ -120,9 +120,7 @@ pub trait ExecutionPlaner {
     ///
     /// ```
     ///
-    /// use crate::nasl::interpreter::scheduling::ExecutionPlaner;
-    /// use crate::nasl::interpreter::scheduling::Stage;
-    /// use crate::nasl::interpreter::scheduling::WaveExecutionPlan;
+    /// use scannerlib::nasl::interpreter::scheduling::{ExecutionPlaner, Stage, WaveExecutionPlan};
     /// use storage::Dispatcher;
     /// use storage::Retriever;
     /// use storage::ContextKey;

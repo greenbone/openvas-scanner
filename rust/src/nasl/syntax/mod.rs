@@ -35,9 +35,9 @@ pub use token::Tokenizer;
 /// Basic usage:
 ///
 /// ```
-/// use crate::nasl::syntax::{Statement, SyntaxError};
+/// use scannerlib::nasl::syntax::{Statement, SyntaxError, parse};
 /// let statements =
-///     crate::nasl::syntax::parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
+///     parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
 /// ````
 pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>> + '_ {
     let tokenizer = Tokenizer::new(code);

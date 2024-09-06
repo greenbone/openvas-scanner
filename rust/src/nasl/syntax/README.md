@@ -10,9 +10,9 @@ Each statement is self contained and it is expected to be executed iteratively a
 ## Usage
 
 ```
-use nasl_syntax::{Statement, SyntaxError};
+use scannerlib::nasl::syntax::{Statement, SyntaxError};
 let statements =
-nasl_syntax::parse("a = 23;b = 1;")
+scannerlib::nasl::syntax::parse("a = 23;b = 1;")
   .collect::<Vec<Result<Statement, SyntaxError>>>();
 ```
 
