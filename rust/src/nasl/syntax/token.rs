@@ -7,7 +7,7 @@ use std::fmt::Display;
 use std::ops::Range;
 
 use super::cursor::Cursor;
-use super::ACT;
+use crate::storage::item::ACT;
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

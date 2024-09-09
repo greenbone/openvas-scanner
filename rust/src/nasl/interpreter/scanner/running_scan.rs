@@ -181,11 +181,11 @@ impl RunningScanHandle {
 mod tests {
     use std::time::Duration;
 
+    use crate::storage::{item::Nvt, DefaultDispatcher};
     use models::{
         scanner::{ScanResultFetcher, ScanResults, ScanStarter},
         Scan,
     };
-    use storage::item::Nvt;
     use tracing_test::traced_test;
 
     use crate::nasl::interpreter::scanner::{
@@ -193,7 +193,7 @@ mod tests {
         Scanner,
     };
 
-    type TestStack = (storage::DefaultDispatcher, fn(&str) -> String);
+    type TestStack = (DefaultDispatcher, fn(&str) -> String);
 
     fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
         let ((storage, loader, executor), scan) = setup_success();

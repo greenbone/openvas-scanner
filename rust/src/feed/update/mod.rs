@@ -16,7 +16,7 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::ContextType;
-use storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
+use crate::storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
 use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};

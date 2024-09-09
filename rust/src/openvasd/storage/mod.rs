@@ -5,8 +5,11 @@
 pub mod file;
 pub mod inmemory;
 pub mod redis;
-pub use storage::Storage as NaslStorage;
-use storage::{ContextKey, Field, StorageError};
+pub use scannerlib::storage::Storage as NaslStorage;
+use scannerlib::storage::{
+    item::Nvt, ContextKey, DefaultDispatcher, Dispatcher, Field, FieldKeyResult, Kb, Remover,
+    Retrieve, Retriever, StorageError,
+};
 
 use std::{
     collections::HashMap,
@@ -182,13 +185,11 @@ pub trait NVTStorer {
     }
 
     /// Retrieves NVTs.
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error>;
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error>;
 
     /// Retrieves a NVT.
     ///
-    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
         Ok(self.vts().await?.find(|x| x.oid == oid))
     }
 
@@ -292,13 +293,11 @@ where
         self.as_ref().oids().await
     }
 
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
         self.as_ref().vts().await
     }
 
-    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
         self.as_ref().vt_by_oid(oid).await
     }
 
@@ -363,10 +362,7 @@ pub trait FromConfigAndFeeds: ResultHandler + Storage + Sized {
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>;
 }
 
-async fn update_notus_feed(
-    p: PathBuf,
-    store: Arc<storage::DefaultDispatcher>,
-) -> Result<(), Error> {
+async fn update_notus_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<(), Error> {
     let notus_advisories_path = p;
     store.clean_advisories()?;
 
@@ -385,7 +381,7 @@ async fn update_notus_feed(
                 };
 
                 store.as_dispatcher().dispatch(
-                    &storage::ContextKey::FileName(filename.to_owned()),
+                    &ContextKey::FileName(filename.to_owned()),
                     Field::NotusAdvisory(Some(data).into()),
                 )?;
             }
@@ -397,7 +393,7 @@ async fn update_notus_feed(
     .expect("notus handler to be executed.")
 }
 
-async fn update_nasl_feed(p: PathBuf, store: Arc<storage::DefaultDispatcher>) -> Result<(), Error> {
+async fn update_nasl_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<(), Error> {
     let nasl_feed_path = p;
     store.as_ref().clean_vts()?;
 
@@ -413,20 +409,20 @@ async fn update_nasl_feed(p: PathBuf, store: Arc<storage::DefaultDispatcher>) ->
 }
 
 pub trait ResultHandler {
-    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher>;
-    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    fn underlying_storage(&self) -> &Arc<DefaultDispatcher>;
+    fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
     where
         E: From<StorageError>;
     fn remove_result<E>(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
         E: From<StorageError>;
 }
 
-/// Uses a storage::Storage device to handle KB and VT elements when used within a
+/// Uses a Storage device to handle KB and VT elements when used within a
 /// nasl-interpreter::Interpreter.
 ///
 /// This is used for file storage and inmemeory storage.
@@ -447,10 +443,10 @@ impl<T> ResultHandler for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
-    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
         self.0.underlying_storage()
     }
-    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
     where
         E: From<StorageError>,
     {
@@ -459,7 +455,7 @@ where
 
     fn remove_result<E>(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
@@ -469,16 +465,16 @@ where
     }
 }
 
-impl<T> storage::Retriever for UserNASLStorageForKBandVT<T>
+impl<T> Retriever for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
     fn retrieve(
         &self,
-        key: &storage::ContextKey,
-        scope: storage::Retrieve,
+        key: &ContextKey,
+        scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
-        // Although somebody may try to get a result through the storage::Storage trait it is very
+        // Although somebody may try to get a result through the Storage trait it is very
         // unlikely as this is a openvasd specific implementation and the results are fetched though
         // `get_results`. If that changes we need to:
         // - create a tokio thread,
@@ -489,26 +485,22 @@ where
         self.underlying_storage().retrieve(key, scope)
     }
 
-    fn retrieve_by_field(&self, field: Field, scope: storage::Retrieve) -> storage::FieldKeyResult {
+    fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult {
         // We should never try to return results without an ID
         self.underlying_storage().retrieve_by_field(field, scope)
     }
 
-    fn retrieve_by_fields(
-        &self,
-        field: Vec<Field>,
-        scope: storage::Retrieve,
-    ) -> storage::FieldKeyResult {
+    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
         // We should never try to return results without an ID
         self.underlying_storage().retrieve_by_fields(field, scope)
     }
 }
 
-impl<T> storage::Dispatcher for UserNASLStorageForKBandVT<T>
+impl<T> Dispatcher for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
-    fn dispatch(&self, key: &storage::ContextKey, scope: Field) -> Result<(), StorageError> {
+    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
             Field::Result(result) => {
                 // we may already run in an specialized thread therefore we use current thread.
@@ -521,7 +513,7 @@ where
         }
     }
 
-    fn on_exit(&self, key: &storage::ContextKey) -> Result<(), StorageError> {
+    fn on_exit(&self, key: &ContextKey) -> Result<(), StorageError> {
         self.underlying_storage().on_exit(key)
     }
 
@@ -530,21 +522,21 @@ where
     }
 }
 
-impl<T> storage::Remover for UserNASLStorageForKBandVT<T>
+impl<T> Remover for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
     fn remove_kb(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         kb_key: Option<String>,
-    ) -> Result<Option<Vec<storage::Kb>>, StorageError> {
+    ) -> Result<Option<Vec<Kb>>, StorageError> {
         self.underlying_storage().remove_kb(key, kb_key)
     }
 
     fn remove_result(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         result_id: Option<usize>,
     ) -> Result<Option<Vec<models::Result>>, StorageError> {
         self.underlying_storage().remove_result(key, result_id)
@@ -622,13 +614,11 @@ where
         self.0.oids().await
     }
 
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
         self.0.vts().await
     }
 
-    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
         self.0.vt_by_oid(oid).await
     }
 

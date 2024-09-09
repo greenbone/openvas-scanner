@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use models::scanner::Error as ScanError;
 use models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
 use models::Phase;
+use scannerlib::storage::item::Nvt;
 use tokio::sync::RwLock;
 
 use crate::{
@@ -446,13 +447,11 @@ where
         self.db.oids().await
     }
 
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, StorageError> {
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, StorageError> {
         self.db.vts().await
     }
 
-    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, StorageError> {
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, StorageError> {
         self.db.vt_by_oid(oid).await
     }
 

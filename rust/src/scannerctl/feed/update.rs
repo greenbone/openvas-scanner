@@ -4,11 +4,11 @@
 
 use std::path::PathBuf;
 
+use scannerlib::storage::Dispatcher;
 use scannerlib::{
     feed,
     nasl::{syntax::LoadError, FSPluginLoader},
 };
-use storage::Dispatcher;
 
 use crate::{CliError, CliErrorKind};
 

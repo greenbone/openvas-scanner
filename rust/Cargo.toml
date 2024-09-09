@@ -71,6 +71,7 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 urlencoding = "2.1.2"
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 walkdir = "2"
+time = { version = "0", features = ["parsing"] }
 
 pcap = { version = "1.0.0", optional = true }
 pnet_base = { version = "0.33.0", optional = true }
@@ -82,13 +83,11 @@ pnet_macros_support = { version = "0.33.0", optional = true }
 libssh-rs = {version = "~0.2", features = ["vendored-openssl", "vendored"], optional = true}
 
 models = { path = "models" }
-storage = { path = "storage" }
 nasl-function-proc-macro = { path = "nasl-function-proc-macro" }
 
 [workspace]
 resolver = "2"
 members = [
-  "storage",
   "models",
   "smoketest",
   "nasl-function-proc-macro",
@@ -102,7 +101,8 @@ uuid = "1.4.1"
 [features]
 dep-graph-parallel = ["rayon", "crossbeam-channel"]
 openvas_serde_support = []
-default = ["dep-graph-parallel", "openvas_serde_support", "enforce-no-trailing-arguments"]
+serde_support = []
+default = ["dep-graph-parallel", "openvas_serde_support", "enforce-no-trailing-arguments", "serde_support"]
 
 nasl-builtin-raw-ip = ["pcap", "pnet_base", "pnet", "socket2", "pnet_macros", "pnet_macros_support",]
 nasl-builtin-ssh = ["libssh-rs"]

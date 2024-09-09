@@ -23,14 +23,8 @@ use std::sync::Arc;
 
 use crate::nasl::builtin::ContextFactory;
 use crate::nasl::test_prelude::*;
-use storage::item;
-use storage::item::NvtPreference;
-use storage::item::NvtRef;
-use storage::item::PreferenceType::*;
-use storage::item::TagKey;
-use storage::item::ACT::Denial;
-use storage::DefaultDispatcher;
-use storage::Retriever;
+use crate::storage::item::{NvtPreference, NvtRef, PreferenceType::*, TagKey, ACT::Denial};
+use crate::storage::{item, ContextKey, DefaultDispatcher, Retrieve, Retriever};
 
 #[test]
 fn description() {
@@ -59,7 +53,7 @@ if(description)
 }
         "#;
     let storage = Arc::new(DefaultDispatcher::new());
-    let key: storage::ContextKey = "test.nasl".into();
+    let key: ContextKey = "test.nasl".into();
     let context = ContextFactory::new(NoOpLoader::default(), storage.clone());
     let mut t = TestBuilder::default()
         .with_context(context)
@@ -73,7 +67,7 @@ if(description)
     tag.insert(TagKey::CreationDate, 1366091481.into());
     assert_eq!(
         storage
-            .retrieve(&key, storage::Retrieve::NVT(None))
+            .retrieve(&key, Retrieve::NVT(None))
             .unwrap()
             .collect::<Vec<_>>(),
         vec![item::Nvt {

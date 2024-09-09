@@ -8,7 +8,7 @@ use crate::nasl::syntax::{
     IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, SyntaxError, Token,
     TokenCategory,
 };
-use storage::StorageError;
+use crate::storage::StorageError;
 
 use crate::nasl::interpreter::{
     declare::{DeclareFunctionExtension, DeclareVariableExtension},

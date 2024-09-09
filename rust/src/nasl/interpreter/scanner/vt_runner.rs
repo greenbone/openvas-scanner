@@ -1,8 +1,10 @@
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::{Executor, Register};
+use crate::storage::item::Nvt;
+use crate::storage::{types::Primitive, Retriever, Storage};
+use crate::storage::{ContextKey, Field, Retrieve, StorageError};
 use futures::StreamExt;
 use models::{Host, Parameter, Protocol, ScanId};
-use storage::{item::Nvt, types::Primitive, ContextKey, Retriever, Storage};
 use tracing::{error_span, trace, warn};
 
 use crate::nasl::interpreter::{scheduling::Stage, CodeInterpreter, ExecuteError};
@@ -71,7 +73,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
     fn check_key<A, B, C>(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         kb_key: &str,
         result_none: A,
         result_some: B,
@@ -80,18 +82,15 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
     where
         A: Fn() -> Option<ScriptResultKind>,
         B: Fn(Primitive) -> Option<ScriptResultKind>,
-        C: Fn(storage::StorageError) -> Option<ScriptResultKind>,
+        C: Fn(StorageError) -> Option<ScriptResultKind>,
     {
         let _span = error_span!("kb_item", %key, kb_key).entered();
-        let result = match self
-            .storage
-            .retrieve(key, storage::Retrieve::KB(kb_key.to_string()))
-        {
+        let result = match self.storage.retrieve(key, Retrieve::KB(kb_key.to_string())) {
             Ok(mut x) => {
                 let x = x.next();
                 if let Some(x) = x {
                     match x {
-                        storage::Field::KB(kb) => {
+                        Field::KB(kb) => {
                             trace!(value=?kb.value, "found");
                             result_some(kb.value)
                         }
@@ -116,7 +115,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         }
     }
 
-    fn check_keys(&self, vt: &storage::item::Nvt) -> Result<(), ScriptResultKind> {
+    fn check_keys(&self, vt: &Nvt) -> Result<(), ScriptResultKind> {
         let key = self.generate_key();
         let check_required_key = |k: &str| {
             self.check_key(

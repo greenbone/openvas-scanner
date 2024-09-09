@@ -22,9 +22,10 @@ An interpreter requires:
 ```
 use scannerlib::nasl::interpreter::{CodeInterpreter};
 use scannerlib::nasl::prelude::*;
+use scannerlib::storage::ContextKey;
 let mut register = Register::default();
 let context_builder = ContextFactory::default();
-let context = context_builder.build(storage::ContextKey::Scan("1".into(), Some("localhost".into())));
+let context = context_builder.build(ContextKey::Scan("1".into(), Some("localhost".into())));
 let code = "display('hi');";
 let mut parser = CodeInterpreter::new(code, register, &context);
 ```

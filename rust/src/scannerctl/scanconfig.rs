@@ -6,10 +6,13 @@ use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
+use scannerlib::storage::{ContextKey, DefaultDispatcher, Retriever, StorageError};
 use serde::Deserialize;
-use storage::ContextKey;
 
 use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
+use scannerlib::storage::item::{NVTField, NVTKey};
+use scannerlib::storage::Field;
+use scannerlib::storage::Retrieve;
 use std::collections::HashMap;
 use std::io::BufRead;
 
@@ -60,7 +63,7 @@ async fn execute(
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
-    let storage = Arc::new(storage::DefaultDispatcher::new());
+    let storage = Arc::new(DefaultDispatcher::new());
     let mut scan = {
         if stdin {
             tracing::debug!("reading scan config from stdin");
@@ -184,7 +187,7 @@ pub enum Error {
     /// XML parse error
     ParseError(String),
     /// Storage error
-    StorageError(storage::StorageError),
+    StorageError(StorageError),
 }
 
 impl Display for Error {
@@ -196,8 +199,8 @@ impl Display for Error {
     }
 }
 
-impl From<storage::StorageError> for Error {
-    fn from(e: storage::StorageError) -> Self {
+impl From<StorageError> for Error {
+    fn from(e: StorageError) -> Self {
         Error::StorageError(e)
     }
 }
@@ -272,7 +275,7 @@ struct ScanConfigPreferenceNvt {
 
 pub fn parse_vts<R>(
     sc: R,
-    retriever: &dyn storage::Retriever,
+    retriever: &dyn Retriever,
     vts: &[models::VT],
 ) -> Result<Vec<models::VT>, Error>
 where
@@ -324,10 +327,6 @@ where
                 }
             } else if s.nvt_type == 1 {
                 // lookup oids via family
-                use storage::item::NVTField;
-                use storage::item::NVTKey;
-                use storage::Field;
-                use storage::Retrieve;
                 // TODO: if it's empty we should return all not None
                 match retriever.retrieve_by_field(
                     Field::NVT(NVTField::Family(s.family_or_nvt.clone())),
@@ -353,13 +352,7 @@ where
                     Err(e) => vec![Err(e.into())],
                 }
             } else {
-                use storage::item::NVTField;
-                use storage::Field;
-                use storage::Retrieve;
-                match retriever.retrieve(
-                    &ContextKey::default(),
-                    Retrieve::NVT(Some(storage::item::NVTKey::Oid)),
-                ) {
+                match retriever.retrieve(&ContextKey::default(), Retrieve::NVT(Some(NVTKey::Oid))) {
                     Ok(fields) => {
                         let oids: Vec<_> = fields
                             .flat_map(|f| match &f {
@@ -382,7 +375,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use storage::Storage;
+    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field, Storage};
 
     use super::*;
 
@@ -486,20 +479,18 @@ mod tests {
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
         assert_eq!(result.preferences.preference.len(), 3);
-        let shop: storage::DefaultDispatcher = storage::DefaultDispatcher::default();
+        let shop: DefaultDispatcher = DefaultDispatcher::default();
         let add_product_detection = |oid: &str| {
             shop.as_dispatcher()
                 .dispatch(
-                    &storage::ContextKey::FileName(oid.to_string()),
-                    storage::Field::NVT(storage::item::NVTField::Oid(oid.to_owned().to_string())),
+                    &ContextKey::FileName(oid.to_string()),
+                    Field::NVT(NVTField::Oid(oid.to_owned().to_string())),
                 )
                 .unwrap();
             shop.as_dispatcher()
                 .dispatch(
-                    &storage::ContextKey::FileName(oid.to_string()),
-                    storage::Field::NVT(storage::item::NVTField::Family(
-                        "Product detection".to_string(),
-                    )),
+                    &ContextKey::FileName(oid.to_string()),
+                    Field::NVT(NVTField::Family("Product detection".to_string())),
                 )
                 .unwrap();
         };

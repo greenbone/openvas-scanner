@@ -3,14 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
-#![warn(missing_docs)]
 
 use std::{
     io::{self, Write},
     sync::{Arc, Mutex},
 };
 
-use storage::{self, item::PerItemDispatcher, ContextKey, Kb, NotusAdvisory, StorageError};
+use crate::storage::{self, item::PerItemDispatcher, ContextKey, Kb, NotusAdvisory, StorageError};
 
 /// Wraps write calls of json elements to be as list.
 ///

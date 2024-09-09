@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
+use scannerlib::storage::DefaultDispatcher;
 use scannerlib::{feed, nasl::FSPluginLoader};
 use std::sync::{Arc, RwLock};
-use storage::DefaultDispatcher;
 
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
 

@@ -4,11 +4,10 @@
 
 use std::io;
 
+use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
 use crate::nasl::utils::error::FunctionErrorKind;
-use storage::StorageError;
-
-use crate::nasl::syntax::LoadError;
+use crate::storage::StorageError;
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]

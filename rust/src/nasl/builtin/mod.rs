@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
-#![warn(missing_docs)]
 
 mod array;
 mod cryptographic;
@@ -21,8 +20,9 @@ mod report_functions;
 mod ssh;
 mod string;
 
+use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
-use storage::{ContextKey, DefaultDispatcher};
+use crate::storage::{ContextKey, DefaultDispatcher, Storage};
 
 /// Creates a new Executor and adds all the functions to it.
 ///
@@ -95,10 +95,10 @@ pub struct ContextFactory<Loader, Storage> {
     pub functions: Executor,
 }
 
-impl Default for ContextFactory<crate::nasl::syntax::NoOpLoader, storage::DefaultDispatcher> {
+impl Default for ContextFactory<NoOpLoader, DefaultDispatcher> {
     fn default() -> Self {
         Self {
-            loader: crate::nasl::syntax::NoOpLoader::default(),
+            loader: NoOpLoader::default(),
             functions: nasl_std_functions(),
             storage: DefaultDispatcher::default(),
         }
@@ -107,8 +107,8 @@ impl Default for ContextFactory<crate::nasl::syntax::NoOpLoader, storage::Defaul
 
 impl<L, S> ContextFactory<L, S>
 where
-    L: crate::nasl::syntax::Loader,
-    S: storage::Storage,
+    L: Loader,
+    S: Storage,
 {
     /// Creates a new ContextFactory with nasl_std_functions
     ///

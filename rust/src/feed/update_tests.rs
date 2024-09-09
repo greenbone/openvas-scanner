@@ -4,12 +4,12 @@
 
 use std::{env, path::PathBuf};
 
+use crate::storage::DefaultDispatcher;
 use crate::{
     feed::{HashSumNameLoader, Update},
     nasl::syntax::FSPluginLoader,
 };
 use futures::StreamExt;
-use storage::DefaultDispatcher;
 
 fn loader() -> FSPluginLoader {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

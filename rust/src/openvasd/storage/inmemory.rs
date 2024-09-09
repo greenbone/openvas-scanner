@@ -5,7 +5,10 @@
 use std::{collections::HashSet, sync::RwLock};
 
 use super::*;
-use scannerlib::notus;
+use scannerlib::{
+    notus,
+    storage::{item::Nvt, ContextKey, DefaultDispatcher, StorageError},
+};
 use tokio::task::JoinSet;
 use tracing::info;
 
@@ -26,7 +29,7 @@ pub struct Storage<E> {
     scans: Arc<RwLock<HashMap<String, Progress>>>,
     hash: Arc<RwLock<Vec<FeedHash>>>,
     client_id: Arc<RwLock<Vec<(ClientHash, String)>>>,
-    underlying: Arc<storage::DefaultDispatcher>,
+    underlying: Arc<DefaultDispatcher>,
     crypter: Arc<E>,
     feed_version: Arc<RwLock<String>>,
 }
@@ -41,7 +44,7 @@ where
             hash: RwLock::new(feeds).into(),
             client_id: RwLock::new(vec![]).into(),
             crypter: crypter.into(),
-            underlying: storage::DefaultDispatcher::default().into(),
+            underlying: DefaultDispatcher::default().into(),
             feed_version: Arc::new(RwLock::new(String::new())),
         }
     }
@@ -352,9 +355,7 @@ where
         Ok(())
     }
 
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
         // TODO: change that setup to a channel based construct to get rid of collecting and
         // cloning, see: response.rs#ok_bytestream. This would effectively change the response to a
         // ByteStream enum. This should be fine as we usually just deliver results without
@@ -384,24 +385,20 @@ impl<C> super::ResultHandler for Storage<C>
 where
     C: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
         &self.underlying
     }
 
-    fn handle_result<E>(
-        &self,
-        key: &storage::ContextKey,
-        mut result: models::Result,
-    ) -> Result<(), E>
+    fn handle_result<E>(&self, key: &ContextKey, mut result: models::Result) -> Result<(), E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         // we may already run in an specialized thread therefore we use current thread.
         use models::Phase;
         let mut scans = self.scans.write().unwrap();
-        let progress = scans.get_mut(key.as_ref()).ok_or_else(|| {
-            storage::StorageError::UnexpectedData(format!("Expected scan for {key}"))
-        })?;
+        let progress = scans
+            .get_mut(key.as_ref())
+            .ok_or_else(|| StorageError::UnexpectedData(format!("Expected scan for {key}")))?;
         // Status fail safe when there is a bug
         match &progress.status.status {
             Phase::Stored | Phase::Requested => progress.status.status = Phase::Running,
@@ -410,7 +407,7 @@ where
         result.id = progress.results.len(); // fail safe
 
         let bytes = serde_json::to_vec(&result)
-            .map_err(|e| storage::StorageError::UnexpectedData(format!("{e}")))?;
+            .map_err(|e| StorageError::UnexpectedData(format!("{e}")))?;
         progress.results.push(self.crypter.encrypt_sync(bytes));
 
         Ok(())
@@ -418,21 +415,21 @@ where
 
     fn remove_result<E>(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         let result = self
             .get_results_sync(key.as_ref(), idx, idx.map(|x| x + 1))
-            .map_err(|_| storage::StorageError::NotFound(key.value()))?
+            .map_err(|_| StorageError::NotFound(key.value()))?
             .filter_map(|b| serde_json::de::from_slice(&b).ok());
 
         let mut scans = self.scans.write().unwrap();
-        let progress = scans.get_mut(key.as_ref()).ok_or_else(|| {
-            storage::StorageError::UnexpectedData(format!("Expected scan for {key}"))
-        })?;
+        let progress = scans
+            .get_mut(key.as_ref())
+            .ok_or_else(|| StorageError::UnexpectedData(format!("Expected scan for {key}")))?;
         if let Some(idx) = idx {
             if idx < progress.results.len() {
                 progress.results.remove(idx);
@@ -448,6 +445,7 @@ where
 #[cfg(test)]
 mod tests {
     use models::Scan;
+    use scannerlib::storage::ContextKey;
 
     use super::*;
 
@@ -567,7 +565,7 @@ mod tests {
             .unwrap()
             .collect();
         assert_eq!(results.len(), 5);
-        let ck = storage::ContextKey::Scan(id.clone(), None);
+        let ck = ContextKey::Scan(id.clone(), None);
         storage.remove_result::<Error>(&ck, Some(1)).unwrap();
         let results: Vec<_> = storage
             .get_results(&id, None, None)

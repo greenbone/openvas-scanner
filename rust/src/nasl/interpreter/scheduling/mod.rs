@@ -7,9 +7,9 @@ mod wave;
 
 use std::{collections::HashMap, fmt::Display};
 
-use storage::{
+use crate::storage::{
     item::{NVTField, Nvt},
-    Retrieve, Retriever, StorageError,
+    Field, Retrieve, Retriever, StorageError,
 };
 use thiserror::Error;
 pub use wave::WaveExecutionPlan;
@@ -121,11 +121,11 @@ pub trait ExecutionPlaner {
     /// ```
     ///
     /// use scannerlib::nasl::interpreter::scheduling::{ExecutionPlaner, Stage, WaveExecutionPlan};
-    /// use storage::Dispatcher;
-    /// use storage::Retriever;
-    /// use storage::ContextKey;
-    /// use storage::item::Nvt;
-    /// use storage::DefaultDispatcher;
+    /// use scannerlib::storage::Dispatcher;
+    /// use scannerlib::storage::Retriever;
+    /// use scannerlib::storage::ContextKey;
+    /// use scannerlib::storage::item::Nvt;
+    /// use scannerlib::storage::DefaultDispatcher;
     ///
     /// let feed = vec![
     ///     Nvt {
@@ -270,7 +270,7 @@ where
     where
         E: ExecutionPlan,
     {
-        let oids: Vec<storage::Field> = scan
+        let oids: Vec<Field> = scan
             .clone()
             .vts
             .into_iter()
@@ -283,7 +283,7 @@ where
         for (i, x) in self
             .retrieve_by_fields(oids, Retrieve::NVT(None))?
             .filter_map(|(_, f)| match f {
-                storage::Field::NVT(NVTField::Nvt(x)) => Some(x),
+                Field::NVT(NVTField::Nvt(x)) => Some(x),
                 _ => None,
             })
             .enumerate()
@@ -293,7 +293,7 @@ where
             unknown_dependencies.extend(
                 x.dependencies
                     .iter()
-                    .map(|x| storage::Field::NVT(NVTField::FileName(x.to_string()))),
+                    .map(|x| Field::NVT(NVTField::FileName(x.to_string()))),
             );
             vts.push((x.clone(), params));
         }
@@ -304,7 +304,7 @@ where
                 for x in self
                     .retrieve_by_fields(unknown_dependencies, Retrieve::NVT(None))?
                     .filter_map(|(_, f)| match f {
-                        storage::Field::NVT(NVTField::Nvt(x)) => Some(x),
+                        Field::NVT(NVTField::Nvt(x)) => Some(x),
                         _ => None,
                     })
                 {
@@ -314,7 +314,7 @@ where
                         x.dependencies
                             .iter()
                             .filter(|x| !known_dependencies.contains_key(*x))
-                            .map(|x| storage::Field::NVT(NVTField::FileName(x.to_string()))),
+                            .map(|x| Field::NVT(NVTField::FileName(x.to_string()))),
                     );
                     known_dependencies.insert(x.filename.clone(), x.clone());
                 }
@@ -336,16 +336,20 @@ where
 
 #[cfg(test)]
 mod tests {
-    use storage::item::Nvt;
+    use models::Scan;
+    use models::VT;
+
+    use crate::nasl::interpreter::scheduling::ExecutionPlaner;
+    use crate::nasl::interpreter::scheduling::Stage;
+    use crate::nasl::interpreter::scheduling::WaveExecutionPlan;
+    use crate::storage::item::Nvt;
+    use crate::storage::ContextKey;
+    use crate::storage::DefaultDispatcher;
+    use crate::storage::Dispatcher;
 
     #[test]
     #[tracing_test::traced_test]
     fn load_dependencies() {
-        use crate::nasl::interpreter::scheduling::ExecutionPlaner;
-        use crate::nasl::interpreter::scheduling::Stage;
-        use crate::nasl::interpreter::scheduling::WaveExecutionPlan;
-        use storage::Dispatcher;
-
         let feed = vec![
             Nvt {
                 oid: "0".to_string(),
@@ -365,15 +369,15 @@ mod tests {
                 ..Default::default()
             },
         ];
-        let retrieve = storage::DefaultDispatcher::new();
+        let retrieve = DefaultDispatcher::new();
         feed.clone().into_iter().for_each(|x| {
             retrieve
-                .dispatch(&storage::ContextKey::default(), x.into())
+                .dispatch(&ContextKey::default(), x.into())
                 .expect("should store");
         });
 
-        let scan = models::Scan {
-            vts: vec![models::VT {
+        let scan = Scan {
+            vts: vec![VT {
                 oid: "2".to_string(),
                 parameters: vec![],
             }],

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::storage::item::Nvt;
 use std::collections::{HashMap, VecDeque};
-use storage::item::Nvt;
 
 use super::{ExecutionPlan, RuntimeVT, VTError};
 
@@ -142,11 +142,18 @@ impl Iterator for WaveExecutionPlan {
 
 #[cfg(test)]
 mod tests {
-    use storage::item::Nvt;
+    use models::{Scan, VT};
+
+    use crate::nasl::syntax::ACT;
+    use crate::storage::item::Nvt;
 
     use crate::nasl::interpreter::scheduling::{ConcurrentVTResult, Stage};
+    use crate::storage::{ContextKey, DefaultDispatcher};
 
     use super::WaveExecutionPlan;
+    use crate::nasl::interpreter::scheduling::ExecutionPlaner;
+    use crate::storage::Dispatcher;
+    use crate::storage::Retriever;
 
     struct OidGenerator {
         latest_number: u64,
@@ -176,33 +183,33 @@ mod tests {
     }
 
     impl NvtGenerator {
-        fn pick_exhausting_stage(idx: usize) -> crate::nasl::syntax::ACT {
+        fn pick_exhausting_stage(idx: usize) -> ACT {
             match idx % 4 {
-                3 => crate::nasl::syntax::ACT::DestructiveAttack,
-                2 => crate::nasl::syntax::ACT::Denial,
-                1 => crate::nasl::syntax::ACT::KillHost,
-                _ => crate::nasl::syntax::ACT::Flood,
+                3 => ACT::DestructiveAttack,
+                2 => ACT::Denial,
+                1 => ACT::KillHost,
+                _ => ACT::Flood,
             }
         }
-        fn pick_non_evasive_stage(idx: usize) -> crate::nasl::syntax::ACT {
+        fn pick_non_evasive_stage(idx: usize) -> ACT {
             match idx % 2 {
-                1 => crate::nasl::syntax::ACT::Attack,
-                _ => crate::nasl::syntax::ACT::MixedAttack,
+                1 => ACT::Attack,
+                _ => ACT::MixedAttack,
             }
         }
-        fn pick_discovery_stage(idx: usize) -> crate::nasl::syntax::ACT {
+        fn pick_discovery_stage(idx: usize) -> ACT {
             match idx % 4 {
-                3 => crate::nasl::syntax::ACT::GatherInfo,
-                2 => crate::nasl::syntax::ACT::Scanner,
-                1 => crate::nasl::syntax::ACT::GatherInfo,
-                _ => crate::nasl::syntax::ACT::Init,
+                3 => ACT::GatherInfo,
+                2 => ACT::Scanner,
+                1 => ACT::GatherInfo,
+                _ => ACT::Init,
             }
         }
 
         fn generate_stage(
             oid_gen: &mut OidGenerator,
             amount: usize,
-            f: &dyn Fn(usize) -> crate::nasl::syntax::ACT,
+            f: &dyn Fn(usize) -> ACT,
         ) -> Vec<Nvt> {
             (0..amount)
                 .map(|i| {
@@ -231,16 +238,14 @@ mod tests {
                 self.exhausting,
                 &Self::pick_exhausting_stage,
             ));
-            results.extend(Self::generate_stage(&mut oid_gen, self.end, &|_| {
-                crate::nasl::syntax::ACT::End
-            }));
+            results.extend(Self::generate_stage(&mut oid_gen, self.end, &|_| ACT::End));
             results
         }
 
         fn generate_pyramid_stage(
             oid_gen: &mut OidGenerator,
             lowest: usize,
-            f: &dyn Fn(usize) -> crate::nasl::syntax::ACT,
+            f: &dyn Fn(usize) -> ACT,
         ) -> Vec<Nvt> {
             let mut results: Vec<Nvt> = Vec::with_capacity(lowest * (lowest + 1) / 2);
             for i in (0..=lowest).rev() {
@@ -281,7 +286,7 @@ mod tests {
             results.extend(Self::generate_pyramid_stage(
                 &mut oid_gen,
                 self.end,
-                &|_| crate::nasl::syntax::ACT::End,
+                &|_| ACT::End,
             ));
             results
         }
@@ -295,25 +300,22 @@ mod tests {
         F: Fn() -> Vec<Nvt>,
         F2: Fn(Vec<Nvt>) -> Vec<Nvt>,
     {
-        use crate::nasl::interpreter::scheduling::ExecutionPlaner;
-        use storage::Dispatcher;
-        use storage::Retriever;
         let nvts = vt_gen();
-        let retrieve = storage::DefaultDispatcher::new();
+        let retrieve = DefaultDispatcher::new();
         nvts.clone().into_iter().for_each(|x| {
             retrieve
-                .dispatch(&storage::ContextKey::default(), x.into())
+                .dispatch(&ContextKey::default(), x.into())
                 .expect("should store");
         });
         let scan_vts = pick(nvts)
             .iter()
-            .map(|n| models::VT {
+            .map(|n| VT {
                 oid: n.oid.clone(),
                 parameters: vec![],
             })
             .collect();
 
-        let scan = models::Scan {
+        let scan = Scan {
             vts: scan_vts,
             ..Default::default()
         };

@@ -16,7 +16,7 @@ For production use cases it is recommended to use new method and include a key a
 
 ```
 let loader = scannerlib::nasl::FSPluginLoader::new("/feed");
-let storage = storage::DefaultDispatcher::default();
+let storage = scannerlib::storage::DefaultDispatcher::default();
 let cb = scannerlib::nasl::ContextFactory::new(loader, storage);
 ```
 

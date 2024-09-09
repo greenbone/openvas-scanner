@@ -5,7 +5,7 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
-use storage::{ContextKey, Dispatcher, Retriever};
+use crate::storage::{ContextKey, Dispatcher, Retriever};
 
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 

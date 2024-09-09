@@ -12,10 +12,14 @@ use std::{
 
 use crate::crypt::ChaCha20Crypt;
 use models::{Scan, Status};
-use scannerlib::storage::file::{
-    base::{IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
-    crypto::ChaCha20IndexFileStorer,
-    serde::Serialization,
+use scannerlib::storage::{
+    file::{
+        base::{IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
+        crypto::ChaCha20IndexFileStorer,
+        serde::Serialization,
+    },
+    item::Nvt,
+    ContextKey, DefaultDispatcher, StorageError,
 };
 use tokio::task::spawn_blocking;
 use tracing::{info, warn};
@@ -388,9 +392,7 @@ where
         self.underlying.oids().await
     }
 
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
         self.underlying.vts().await
     }
 
@@ -431,13 +433,13 @@ impl<S> super::ResultHandler for Storage<S>
 where
     S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
         self.underlying.underlying_storage()
     }
 
-    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         tracing::trace!(?key, ?result);
         let store = &mut self.storage.write().unwrap();
@@ -452,27 +454,27 @@ where
         for (i, mut result) in results.into_iter().enumerate() {
             result.id = ilen + i;
             let bytes = serde_json::to_vec(&result).map_err(|x| {
-                storage::StorageError::UnexpectedData(format!("Unable to serialize results: {x}"))
+                StorageError::UnexpectedData(format!("Unable to serialize results: {x}"))
             })?;
             serialized_results.push(bytes);
         }
         store
             .append_all(&key, &serialized_results)
-            .map_err(|x| storage::StorageError::Dirty(format!("Unable to store to disk: {x}")))?;
+            .map_err(|x| StorageError::Dirty(format!("Unable to store to disk: {x}")))?;
         Ok(())
     }
 
     fn remove_result<E>(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         let deleted_results = self
             .get_results_sync(key.as_ref(), idx, idx.map(|x| x + 1))
-            .map_err(|x| storage::StorageError::Dirty(x.to_string()))?
+            .map_err(|x| StorageError::Dirty(x.to_string()))?
             .filter_map(|x| serde_json::de::from_slice(&x).ok())
             .collect();
         if let Some(_idx) = idx {
@@ -485,7 +487,7 @@ where
             let store = &mut self.storage.write().unwrap();
             store
                 .remove(&key)
-                .map_err(|_| storage::StorageError::NotFound(key))?;
+                .map_err(|_| StorageError::NotFound(key))?;
         }
         Ok(deleted_results)
     }
@@ -496,7 +498,10 @@ pub(crate) mod tests {
     use std::{env::current_dir, fs};
 
     use models::{Phase, Scan, Status};
-    use scannerlib::storage::file::base::{CachedIndexFileStorer, IndexedByteStorage};
+    use scannerlib::storage::{
+        file::base::{CachedIndexFileStorer, IndexedByteStorage},
+        ContextKey,
+    };
     use tracing::debug;
 
     use crate::{
@@ -665,7 +670,7 @@ pub(crate) mod tests {
             .collect();
         assert_eq!(2, range.len());
         let deleted_results = storage
-            .remove_result::<Error>(&storage::ContextKey::Scan("42".to_string(), None), None)
+            .remove_result::<Error>(&ContextKey::Scan("42".to_string(), None), None)
             .unwrap();
         assert_eq!(deleted_results.len(), range.len());
         let range: Vec<String> = storage

@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use models::{Protocol, ResultType};
 
-use crate::nasl::prelude::*;
+use crate::{nasl::prelude::*, storage::Field};
 
 #[cfg(test)]
 mod tests;
@@ -57,11 +57,9 @@ impl Reporting {
             message: data,
             detail: None,
         };
-        context.dispatcher().retry_dispatch(
-            5,
-            context.key(),
-            storage::Field::Result(result.into()),
-        )?;
+        context
+            .dispatcher()
+            .retry_dispatch(5, context.key(), Field::Result(result.into()))?;
         Ok(NaslValue::Null)
     }
 

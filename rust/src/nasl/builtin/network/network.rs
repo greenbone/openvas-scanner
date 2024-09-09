@@ -11,8 +11,8 @@ use super::{
 };
 use crate::function_set;
 use crate::nasl::utils::{Context, FunctionErrorKind};
+use crate::storage::{types::Primitive, Field, Kb};
 use nasl_function_proc_macro::nasl_function;
-use storage::{types::Primitive, Field, Kb};
 
 /// Get the IP address of the currently scanned host
 #[nasl_function]

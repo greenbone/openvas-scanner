@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::nasl::prelude::NaslValue;
 
-use storage::StorageError;
+use crate::storage::StorageError;
 
 use super::ContextType;
 

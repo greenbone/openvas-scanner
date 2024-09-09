@@ -8,7 +8,6 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::feed;
 use scannerlib::nasl::interpreter::CodeInterpreter;
 use scannerlib::nasl::{
     interpreter::{FunctionError, InterpretErrorKind},
@@ -17,7 +16,16 @@ use scannerlib::nasl::{
     Loader, NoOpLoader,
 };
 use scannerlib::storage::redis::FEEDUPDATE_SELECTOR;
-use storage::{ContextKey, DefaultDispatcher};
+use scannerlib::storage::{ContextKey, DefaultDispatcher};
+use scannerlib::{
+    feed,
+    storage::{
+        item::{NVTField, Nvt, PerItemDispatcher},
+        redis, Dispatcher,
+        Field::NVT,
+        Retrieve, Storage,
+    },
+};
 
 use crate::{CliError, CliErrorKind, Db};
 
@@ -47,7 +55,7 @@ impl Default for RunBuilder<NoOpLoader, DefaultDispatcher> {
 
 impl<L, S> RunBuilder<L, S>
 where
-    S: storage::Storage,
+    S: Storage,
     L: Loader,
 {
     pub fn storage<S2>(self, s: S2) -> RunBuilder<L, S2> {
@@ -90,16 +98,16 @@ where
 impl<L, S> Run<L, S>
 where
     L: Loader,
-    S: storage::Storage,
+    S: Storage,
 {
     fn load(&self, script: &str) -> Result<String, CliErrorKind> {
         match load_non_utf8_path(&script) {
             Ok(x) => Ok(x),
             Err(LoadError::NotFound(_)) => {
                 let iter = self.context_builder.storage.retrieve_by_field(
-                    storage::Field::NVT(storage::item::NVTField::Oid(script.into())),
+                    NVT(NVTField::Oid(script.into())),
                     // TODO: maybe NvtField::FileName would be better?
-                    storage::Retrieve::NVT(None),
+                    Retrieve::NVT(None),
                 )?;
                 let results: Option<String> = iter
                     .filter_map(|(k, _)| match k {
@@ -153,17 +161,13 @@ where
     }
 }
 
-fn create_redis_storage(
-    url: &str,
-) -> storage::item::PerItemDispatcher<
-    scannerlib::storage::redis::CacheDispatcher<scannerlib::storage::redis::RedisCtx>,
-> {
-    scannerlib::storage::redis::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
+fn create_redis_storage(url: &str) -> PerItemDispatcher<redis::CacheDispatcher<redis::RedisCtx>> {
+    redis::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
 async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
 where
-    S: storage::Dispatcher,
+    S: Dispatcher,
 {
     // update feed with storage
 
@@ -178,7 +182,7 @@ where
 fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), CliError> {
     tracing::info!(path=?path, "loading feed via json. This may take a while.");
     let buf = fs::read_to_string(path).map_err(|e| CliError::load_error(e, path))?;
-    let vts: Vec<storage::item::Nvt> = serde_json::from_str(&buf)?;
+    let vts: Vec<Nvt> = serde_json::from_str(&buf)?;
     let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
 
     store.set_vts(all_vts).map_err(|e| CliError {

@@ -11,7 +11,7 @@ use crate::nasl::interpreter::InterpretError;
 pub enum ExecuteError {
     #[error("storage error occurred: {0}")]
     /// Storage error
-    Storage(#[from] storage::StorageError),
+    Storage(#[from] crate::storage::StorageError),
     #[error("Scheduling error occurred: {0}")]
     /// An error while scheduling
     Scheduling(#[from] crate::nasl::interpreter::scheduling::VTError),

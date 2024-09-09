@@ -12,10 +12,12 @@ use std::{
 
 use models::{Vulnerability, VulnerabilityData};
 
-use crate::{
+use crate::storage::{
     time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Remover,
     Retriever, StorageError,
 };
+
+use super::{FieldKeyResult, Retrieve};
 
 /// Attack Category either set by script_category
 ///
@@ -760,8 +762,8 @@ impl From<(&str, Vulnerability)> for Nvt {
     }
 }
 
-impl From<crate::NVTField> for Nvt {
-    fn from(value: crate::NVTField) -> Self {
+impl From<NVTField> for Nvt {
+    fn from(value: NVTField) -> Self {
         match value {
             NVTField::Oid(oid) => Self {
                 oid,
@@ -913,7 +915,7 @@ impl<S> Dispatcher for PerItemDispatcher<S>
 where
     S: ItemDispatcher + Send + Sync,
 {
-    fn dispatch(&self, key: &ContextKey, scope: crate::Field) -> Result<(), StorageError> {
+    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
         match scope {
             Field::NVT(nvt) => self.store_nvt_field(nvt),
             Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
@@ -949,7 +951,7 @@ where
     fn retrieve(
         &self,
         key: &ContextKey,
-        scope: crate::Retrieve,
+        scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         self.dispatcher.retrieve(key, scope)
     }
@@ -957,16 +959,12 @@ where
     fn retrieve_by_field(
         &self,
         field: Field,
-        scope: crate::Retrieve,
+        scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         self.dispatcher.retrieve_by_field(field, scope)
     }
 
-    fn retrieve_by_fields(
-        &self,
-        field: Vec<Field>,
-        scope: crate::Retrieve,
-    ) -> crate::FieldKeyResult {
+    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
         self.dispatcher.retrieve_by_fields(field, scope)
     }
 }

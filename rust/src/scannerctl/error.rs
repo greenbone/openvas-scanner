@@ -13,8 +13,8 @@ use scannerlib::nasl::{
     interpreter::{ExecuteError, InterpretError},
     syntax::LoadError,
 };
+use scannerlib::storage::StorageError;
 use scannerlib::{feed, notus};
-use storage::StorageError;
 
 #[derive(Debug, Clone)]
 pub enum CliErrorKind {

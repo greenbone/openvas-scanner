@@ -4,6 +4,8 @@
 
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
+use crate::storage::types::Primitive;
+
 use super::{IdentifierType, Token, TokenCategory, ACT};
 
 /// Represents a valid Value of NASL
@@ -54,8 +56,8 @@ pub enum NaslValue {
 
 impl NaslValue {
     /// Transform NASLValue to storage::types::Primitive
-    pub fn as_primitive(self) -> storage::types::Primitive {
-        use storage::types::Primitive::*;
+    pub fn as_primitive(self) -> Primitive {
+        use Primitive::*;
         match self {
             Self::String(s) => String(s),
             Self::Data(x) => Data(x),
@@ -300,9 +302,9 @@ impl From<NaslValue> for Vec<NaslValue> {
     }
 }
 
-impl From<storage::types::Primitive> for NaslValue {
-    fn from(value: storage::types::Primitive) -> Self {
-        use storage::types::Primitive::*;
+impl From<Primitive> for NaslValue {
+    fn from(value: Primitive) -> Self {
+        use Primitive::*;
         match value {
             String(x) => Self::String(x),
             Data(x) => Self::Data(x),

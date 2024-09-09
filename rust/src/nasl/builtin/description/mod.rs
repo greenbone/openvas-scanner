@@ -6,9 +6,9 @@ use std::str::FromStr;
 
 use crate::nasl::prelude::*;
 
-use storage::{
+use crate::storage::{
     item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
-    ContextKey,
+    ContextKey, Field,
 };
 
 use crate::nasl::utils::get_named_parameter;
@@ -88,7 +88,7 @@ macro_rules! make_storage_function {
             )?
             let db_args = $transform(ctxconfigs.key(), &variables)?;
             for db_arg in db_args {
-              ctxconfigs.dispatcher().dispatch(ctxconfigs.key(), storage::Field::NVT(db_arg))?;
+              ctxconfigs.dispatcher().dispatch(ctxconfigs.key(), Field::NVT(db_arg))?;
             }
             Ok(NaslValue::Null)
         }

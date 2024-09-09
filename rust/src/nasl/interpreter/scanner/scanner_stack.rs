@@ -1,5 +1,5 @@
 use crate::nasl::syntax::{FSPluginLoader, Loader};
-use storage::{DefaultDispatcher, Storage};
+use crate::storage::{DefaultDispatcher, Storage};
 
 use crate::nasl::interpreter::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 

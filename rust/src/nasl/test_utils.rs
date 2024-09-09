@@ -5,9 +5,15 @@ use std::{
     panic::Location,
 };
 
-use crate::nasl::prelude::*;
+use crate::storage::ContextKey;
+use crate::{
+    nasl::{
+        prelude::*,
+        syntax::{Loader, NoOpLoader},
+    },
+    storage::{DefaultDispatcher, Storage},
+};
 use futures::StreamExt;
-use storage::{ContextKey, Storage};
 
 use super::{
     builtin::ContextFactory,
@@ -109,7 +115,7 @@ pub struct TestBuilder<L: Loader, S: Storage> {
     should_verify: bool,
 }
 
-impl Default for TestBuilder<crate::nasl::syntax::NoOpLoader, storage::DefaultDispatcher> {
+impl Default for TestBuilder<NoOpLoader, DefaultDispatcher> {
     fn default() -> Self {
         Self {
             lines: vec![],
@@ -122,7 +128,7 @@ impl Default for TestBuilder<crate::nasl::syntax::NoOpLoader, storage::DefaultDi
     }
 }
 
-impl TestBuilder<crate::nasl::syntax::NoOpLoader, storage::DefaultDispatcher> {
+impl TestBuilder<NoOpLoader, DefaultDispatcher> {
     /// Construct a `TestBuilder`, immediately run the
     /// given code on it and return it.
     pub fn from_code(code: impl AsRef<str>) -> Self {
@@ -134,8 +140,8 @@ impl TestBuilder<crate::nasl::syntax::NoOpLoader, storage::DefaultDispatcher> {
 
 impl<L, S> TestBuilder<L, S>
 where
-    L: crate::nasl::syntax::Loader,
-    S: storage::Storage,
+    L: Loader,
+    S: Storage,
 {
     #[track_caller]
     fn add_line(&mut self, line: &str, val: TestResult) -> &mut Self {

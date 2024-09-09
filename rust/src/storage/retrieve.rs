@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::{
-    item::{NVTField, NVTKey},
+use crate::storage::{
+    item::{NVTField, NVTKey, Nvt},
     ContextKey, Field, StorageError,
 };
 
@@ -110,7 +110,7 @@ pub trait Retriever: Send + Sync {
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
     /// Returns all vts as an iterator
-    fn vts(&self) -> Result<Box<dyn Iterator<Item = crate::item::Nvt>>, StorageError> {
+    fn vts(&self) -> Result<Box<dyn Iterator<Item = Nvt>>, StorageError> {
         Ok(Box::new(
             self.retrieve(&ContextKey::default(), Retrieve::NVT(None))?
                 .filter_map(|x| match x {

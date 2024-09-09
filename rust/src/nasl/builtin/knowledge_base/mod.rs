@@ -8,12 +8,11 @@ mod tests;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::function_set;
-use crate::nasl::utils::error::FunctionErrorKind;
-use nasl_function_proc_macro::nasl_function;
-use storage::{Field, Kb, Retrieve};
-
 use crate::nasl::syntax::NaslValue;
+use crate::nasl::utils::error::FunctionErrorKind;
 use crate::nasl::utils::Context;
+use crate::storage::{Field, Kb, Retrieve};
+use nasl_function_proc_macro::nasl_function;
 
 /// NASL function to set a value under name in a knowledge base
 /// Only pushes unique values for the given name.

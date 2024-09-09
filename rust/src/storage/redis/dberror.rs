@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::storage::StorageError;
 use redis::*;
-use storage::StorageError;
 use thiserror::Error;
 
 pub type RedisStorageResult<T> = std::result::Result<T, DbError>;

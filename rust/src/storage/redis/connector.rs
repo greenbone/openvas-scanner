@@ -15,17 +15,23 @@ use super::dberror::RedisStorageResult;
 use itertools::Itertools;
 use redis::*;
 
-use storage::item::Nvt;
-use storage::item::NvtPreference;
-use storage::item::NvtRef;
-use storage::item::PerItemDispatcher;
-use storage::item::TagKey;
-use storage::item::TagValue;
-use storage::ContextKey;
-use storage::Kb;
-use storage::NotusAdvisory;
-
-use storage::StorageError;
+use crate::storage;
+use crate::storage::item::ItemDispatcher;
+use crate::storage::item::NVTKey;
+use crate::storage::item::Nvt;
+use crate::storage::item::NvtPreference;
+use crate::storage::item::NvtRef;
+use crate::storage::item::PerItemDispatcher;
+use crate::storage::item::TagKey;
+use crate::storage::item::TagValue;
+use crate::storage::item::ACT;
+use crate::storage::ContextKey;
+use crate::storage::Field;
+use crate::storage::Kb;
+use crate::storage::NotusAdvisory;
+use crate::storage::Retrieve;
+use crate::storage::Retriever;
+use crate::storage::StorageError;
 
 enum KbNvtPos {
     Filename,
@@ -44,21 +50,21 @@ enum KbNvtPos {
     Name,
 }
 
-impl TryFrom<storage::item::NVTKey> for KbNvtPos {
+impl TryFrom<NVTKey> for KbNvtPos {
     type Error = StorageError;
 
-    fn try_from(value: storage::item::NVTKey) -> Result<Self, Self::Error> {
+    fn try_from(value: NVTKey) -> Result<Self, Self::Error> {
         Ok(match value {
-            storage::item::NVTKey::FileName => Self::Filename,
-            storage::item::NVTKey::Name => Self::Name,
-            storage::item::NVTKey::Dependencies => Self::Dependencies,
-            storage::item::NVTKey::RequiredKeys => Self::RequiredKeys,
-            storage::item::NVTKey::MandatoryKeys => Self::MandatoryKeys,
-            storage::item::NVTKey::ExcludedKeys => Self::ExcludedKeys,
-            storage::item::NVTKey::RequiredPorts => Self::RequiredPorts,
-            storage::item::NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
-            storage::item::NVTKey::Category => Self::Category,
-            storage::item::NVTKey::Family => Self::Family,
+            NVTKey::FileName => Self::Filename,
+            NVTKey::Name => Self::Name,
+            NVTKey::Dependencies => Self::Dependencies,
+            NVTKey::RequiredKeys => Self::RequiredKeys,
+            NVTKey::MandatoryKeys => Self::MandatoryKeys,
+            NVTKey::ExcludedKeys => Self::ExcludedKeys,
+            NVTKey::RequiredPorts => Self::RequiredPorts,
+            NVTKey::RequiredUdpPorts => Self::RequiredUDPPorts,
+            NVTKey::Category => Self::Category,
+            NVTKey::Family => Self::Family,
             // tags must also be handled manually due to differentiation
             _ => {
                 return Err(StorageError::UnexpectedData(format!(
@@ -419,7 +425,7 @@ pub trait RedisGetNvt: RedisWrapper {
             ),
             preferences: Self::get_prefs(self, oid)?,
             category: {
-                match storage::item::ACT::from_str(&nvt_data[KbNvtPos::Category as usize]) {
+                match ACT::from_str(&nvt_data[KbNvtPos::Category as usize]) {
                     Ok(c) => c,
                     Err(_) => return Err(DbError::Unknown("Invalid nvt category".to_string())),
                 }
@@ -706,7 +712,7 @@ impl CacheDispatcher<RedisCtx> {
     }
 }
 
-impl<S> storage::item::ItemDispatcher for CacheDispatcher<S>
+impl<S> ItemDispatcher for CacheDispatcher<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
@@ -721,7 +727,7 @@ where
         cache.rpush(CACHE_KEY, &[&version]).map_err(|e| e.into())
     }
 
-    fn dispatch_kb(&self, _: &ContextKey, kb: storage::Kb) -> Result<(), StorageError> {
+    fn dispatch_kb(&self, _: &ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
         kbs.push(kb);
         Ok(())
@@ -732,42 +738,38 @@ where
     }
 }
 
-impl<S> storage::Retriever for CacheDispatcher<S>
+impl<S> Retriever for CacheDispatcher<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     fn retrieve(
         &self,
         _: &ContextKey,
-        scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         Ok(match scope {
-            storage::Retrieve::NotusAdvisory(_)
-            | storage::Retrieve::NVT(_)
-            | storage::Retrieve::Result(_) => Box::new(Vec::new().into_iter()),
-            storage::Retrieve::KB(s) => Box::new({
+            Retrieve::NotusAdvisory(_) | Retrieve::NVT(_) | Retrieve::Result(_) => {
+                Box::new(Vec::new().into_iter())
+            }
+            Retrieve::KB(s) => Box::new({
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
                 let kbs = kbs.clone();
                 kbs.into_iter()
                     .filter(move |x| x.key == s)
-                    .map(move |x| storage::Field::KB(x.clone()))
+                    .map(move |x| Field::KB(x.clone()))
             }),
         })
     }
 
     fn retrieve_by_field(
         &self,
-        _field: storage::Field,
-        _scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
+        _field: Field,
+        _scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
         unimplemented!()
     }
 
-    fn retrieve_by_fields(
-        &self,
-        _: Vec<storage::Field>,
-        _: storage::Retrieve,
-    ) -> storage::FieldKeyResult {
+    fn retrieve_by_fields(&self, _: Vec<Field>, _: Retrieve) -> storage::FieldKeyResult {
         todo!()
     }
 }
@@ -800,11 +802,11 @@ mod tests {
 
     use super::super::dberror::RedisStorageResult;
     use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper};
-    use storage::item::NVTField::*;
-    use storage::item::PerItemDispatcher;
-    use storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
-    use storage::Dispatcher;
-    use storage::Field::NVT;
+    use crate::storage::item::NVTField::*;
+    use crate::storage::item::PerItemDispatcher;
+    use crate::storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
+    use crate::storage::Field::NVT;
+    use crate::storage::{ContextKey, Dispatcher};
 
     #[derive(Clone)]
     struct FakeRedis {
@@ -899,7 +901,7 @@ mod tests {
         let kbs = Arc::new(Mutex::new(Vec::new()));
         let rcache = CacheDispatcher { cache, kbs };
         let dispatcher = PerItemDispatcher::new(rcache);
-        let key = storage::ContextKey::FileName("test.nasl".to_string());
+        let key = ContextKey::FileName("test.nasl".to_string());
         for c in commands {
             dispatcher.dispatch(&key, c).unwrap();
         }

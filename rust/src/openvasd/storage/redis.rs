@@ -6,14 +6,17 @@ use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use scannerlib::nasl::FSPluginLoader;
+use scannerlib::storage::item::Nvt;
 use scannerlib::storage::redis::{
-    CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+    self, CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR,
+    NOTUSUPDATE_SELECTOR,
 };
+use scannerlib::storage::{item::PerItemDispatcher, Dispatcher, Field};
+use scannerlib::storage::{ContextKey, DefaultDispatcher, StorageError};
 use scannerlib::{
     feed,
     notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
 };
-use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::{sync::RwLock, task::JoinSet};
 use tracing::info;
 
@@ -49,7 +52,7 @@ impl<T> Storage<T> {
             let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
 
             let redis_cache: CacheDispatcher<RedisCtx> =
-                scannerlib::storage::redis::CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
+                CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
             let store = PerItemDispatcher::new(redis_cache);
             for filename in advisories_files.get_advisories()?.iter() {
                 let advisories = advisories_files.load_advisory(filename)?;
@@ -85,7 +88,7 @@ impl<T> Storage<T> {
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
         let redis_cache: CacheDispatcher<RedisCtx> =
-            scannerlib::storage::redis::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
+            redis::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
         let store = PerItemDispatcher::new(redis_cache);
         let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
         if !fu.feed_is_outdated(current_feed).await.unwrap() {
@@ -152,14 +155,14 @@ where
     }
 }
 
-impl From<scannerlib::storage::redis::dberror::DbError> for super::Error {
-    fn from(value: scannerlib::storage::redis::dberror::DbError) -> Self {
+impl From<redis::dberror::DbError> for super::Error {
+    fn from(value: redis::dberror::DbError) -> Self {
         super::Error::Storage(Box::new(value))
     }
 }
 
-impl From<storage::StorageError> for super::Error {
-    fn from(value: storage::StorageError) -> Self {
+impl From<StorageError> for super::Error {
+    fn from(value: StorageError) -> Self {
         super::Error::Storage(Box::new(value))
     }
 }
@@ -207,7 +210,7 @@ where
         Ok(())
     }
 
-    async fn vt_by_oid(&self, oid: &str) -> Result<Option<storage::item::Nvt>, Error> {
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
         let url = self.url.to_string();
         let aoid = oid.to_owned();
         let nr = tokio::task::spawn_blocking(move || {
@@ -232,7 +235,7 @@ where
     }
     async fn vts<'a>(
         &self,
-    ) -> Result<Box<dyn Iterator<Item = storage::item::Nvt> + Send + 'a>, Error> {
+    ) -> Result<Box<dyn Iterator<Item = scannerlib::storage::item::Nvt> + Send + 'a>, Error> {
         let url = self.url.to_string();
         let noids = tokio::task::spawn_blocking(move || {
             let mut notus_redis = RedisCtx::open(&url, NOTUSUPDATE_SELECTOR)?;
@@ -357,24 +360,24 @@ impl<S> super::ResultHandler for Storage<S>
 where
     S: super::ResultHandler,
 {
-    fn underlying_storage(&self) -> &Arc<storage::DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
         self.underlying.underlying_storage()
     }
 
-    fn handle_result<E>(&self, key: &storage::ContextKey, result: models::Result) -> Result<(), E>
+    fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         self.underlying.handle_result(key, result)
     }
 
     fn remove_result<E>(
         &self,
-        key: &storage::ContextKey,
+        key: &ContextKey,
         idx: Option<usize>,
     ) -> Result<Vec<models::Result>, E>
     where
-        E: From<storage::StorageError>,
+        E: From<StorageError>,
     {
         self.underlying.remove_result(key, idx)
     }

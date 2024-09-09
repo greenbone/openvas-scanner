@@ -6,7 +6,7 @@ use std::{fmt::Display, net::IpAddr};
 
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::{Context, FunctionErrorKind};
-use storage::Field;
+use crate::storage::{Field, Retrieve};
 
 pub mod network;
 pub mod network_utils;
@@ -77,7 +77,7 @@ impl Display for OpenvasEncaps {
 pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
     context
         .retriever()
-        .retrieve(context.key(), storage::Retrieve::KB(name.to_string()))
+        .retrieve(context.key(), Retrieve::KB(name.to_string()))
         .map(|r| {
             r.into_iter().find_map(|x| match x {
                 Field::KB(kb) => kb.value.into(),

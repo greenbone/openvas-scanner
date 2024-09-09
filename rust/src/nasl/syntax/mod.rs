@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
-#![warn(missing_docs)]
 mod cursor;
 mod error;
 mod grouping_extension;
@@ -17,12 +16,12 @@ mod statement;
 mod token;
 mod variable_extension;
 
+pub use crate::storage::item::ACT;
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;
-pub use storage::item::ACT;
 pub use token::Base as NumberBase;
 pub use token::Category as TokenCategory;
 pub use token::IdentifierType;

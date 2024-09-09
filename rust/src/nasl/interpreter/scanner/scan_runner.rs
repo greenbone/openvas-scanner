@@ -129,20 +129,20 @@ pub(super) mod tests {
         },
         nasl_std_functions,
     };
+    use crate::storage::item::NVTField;
+    use crate::storage::item::Nvt;
+    use crate::storage::ContextKey;
+    use crate::storage::DefaultDispatcher;
+    use crate::storage::Dispatcher;
+    use crate::storage::Field;
+    use crate::storage::Field::NVT;
+    use crate::storage::Retrieve;
+    use crate::storage::Retriever;
     use futures::StreamExt;
     use models::Protocol;
     use models::Scan;
     use models::Target;
     use models::VT;
-    use storage::item::NVTField;
-    use storage::item::Nvt;
-    use storage::ContextKey;
-    use storage::DefaultDispatcher;
-    use storage::Dispatcher;
-    use storage::Field;
-    use storage::Field::NVT;
-    use storage::Retrieve;
-    use storage::Retriever;
 
     pub fn only_success() -> [(String, Nvt); 3] {
         [

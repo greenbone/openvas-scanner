@@ -7,9 +7,12 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use scannerlib::feed;
-use scannerlib::nasl::prelude::FSPluginLoader;
-use storage::{ContextKey, StorageError};
+use scannerlib::storage::{ContextKey, StorageError};
+use scannerlib::{
+    feed::{self, HashSumNameLoader},
+    nasl::FSPluginLoader,
+    storage::{item::NVTField, Dispatcher, Field},
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct FeedIdentifier {
@@ -33,7 +36,7 @@ impl FeedIdentifier {
         // needed to strip the root path so that we can build a relative path
         // e.g. 2006/something.nasl
         let loader = FSPluginLoader::new(path);
-        let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+        let verifier = HashSumNameLoader::sha256(&loader)?;
         let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
 
         if signature_check {
@@ -80,8 +83,8 @@ impl FeedIdentifier {
     where
         S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
     {
-        let loader = scannerlib::nasl::FSPluginLoader::new(path);
-        let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+        let loader = FSPluginLoader::new(path);
+        let verifier = HashSumNameLoader::sha256(&loader)?;
         verifier.sumfile_hash().map_err(|e| feed::UpdateError {
             kind: feed::UpdateErrorKind::VerifyError(e),
             key: "feed_oid poisoned".to_string(),
@@ -89,25 +92,20 @@ impl FeedIdentifier {
     }
 }
 
-impl storage::Dispatcher for FeedIdentifier {
-    fn dispatch(&self, _: &ContextKey, scope: storage::Field) -> Result<(), storage::StorageError> {
-        use storage::item::NVTField::Oid;
-        if let storage::Field::NVT(Oid(x)) = scope {
+impl Dispatcher for FeedIdentifier {
+    fn dispatch(&self, _: &ContextKey, scope: Field) -> Result<(), StorageError> {
+        if let Field::NVT(NVTField::Oid(x)) = scope {
             let mut oids = self.oids.write()?;
             oids.push(x);
         }
         Ok(())
     }
 
-    fn dispatch_replace(
-        &self,
-        _: &ContextKey,
-        _scope: storage::Field,
-    ) -> Result<(), storage::StorageError> {
+    fn dispatch_replace(&self, _: &ContextKey, _scope: Field) -> Result<(), StorageError> {
         Ok(())
     }
 
-    fn on_exit(&self, _: &ContextKey) -> Result<(), storage::StorageError> {
+    fn on_exit(&self, _: &ContextKey) -> Result<(), StorageError> {
         Ok(())
     }
 }

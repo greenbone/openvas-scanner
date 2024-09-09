@@ -22,7 +22,7 @@ use scannerlib::{
 };
 
 use scannerlib::feed::transpile::{self, FeedReplacer};
-use storage::{item::PerItemDispatcher, StorageError};
+use scannerlib::storage::{item::PerItemDispatcher, StorageError};
 
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
 
