@@ -73,6 +73,17 @@ fn get_required_named_data<'a>(
     }
 }
 
+fn get_required_named_bool<'a>(
+    register: &'a Register,
+    key: &'a str,
+) -> Result<bool, FunctionErrorKind> {
+    match register.named(key) {
+        Some(ContextType::Value(NaslValue::Boolean(x))) => Ok(*x),
+        Some(x) => Err((key, "a Bool Value", format!("{:?}", x).as_str()).into()),
+        _ => Err((key).into()),
+    }
+}
+
 /// Get named argument of Type Number from the register with appropriate error handling.
 /// In case the argument is required, the returned value is either an Error or the Option is always
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some

@@ -3,41 +3,47 @@
 
 // SPDX-License-Identifier: GPL-2.0-or-later
 //use md5::Digest;
+use crate::get_required_named_bool;
 use crate::get_required_named_data;
+use ccm::aead::OsRng;
 use core::str;
 use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
+use nasl_syntax::NaslValue;
 use rsa::pkcs8::DecodePrivateKey;
 use rsa::signature::digest::Digest;
-use rsa::{Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
+use rsa::{BigUint, Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 use sha1::Sha1;
-use std::fs::{self, File};
-use std::io::Read;
 
-fn rsa_public_encrypt(
-    register: &Register,
-    _: &Context,
-) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
+fn rsa_public_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let data = get_required_named_data(register, "data")?;
     let n = get_required_named_data(register, "n")?;
     let e = get_required_named_data(register, "e")?;
+    let pad = get_required_named_bool(register, "pad").unwrap_or_default();
     let mut rng = rand::thread_rng();
     let pub_key = RsaPublicKey::new(
         rsa::BigUint::from_bytes_be(n),
         rsa::BigUint::from_bytes_be(e),
     )
-    .unwrap();
-    let enc_data = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, data).unwrap();
+    .expect("Failed to get public key");
+    let biguint_data = BigUint::from_bytes_be(data);
+    let enc_data = if pad {
+        pub_key
+            .encrypt(&mut rng, Pkcs1v15Encrypt, data)
+            .expect("Failed to encrypt data")
+    } else {
+        rsa::hazmat::rsa_encrypt(&pub_key, &biguint_data)
+            .expect("Failed to encrypt data")
+            .to_bytes_be()
+    };
     Ok(enc_data.to_vec().into())
 }
 
-fn rsa_private_decrypt(
-    register: &Register,
-    _: &Context,
-) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
+fn rsa_private_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let data = get_required_named_data(register, "data")?;
     let n = get_required_named_data(register, "n")?;
     let e = get_required_named_data(register, "e")?;
     let d = get_required_named_data(register, "d")?;
+    let pad = get_required_named_bool(register, "pad")?;
     let priv_key = match RsaPrivateKey::from_components(
         rsa::BigUint::from_bytes_be(n),
         rsa::BigUint::from_bytes_be(e),
@@ -51,41 +57,43 @@ fn rsa_private_decrypt(
                 code
             )),
         )),
-    };
-    let dec_data = match priv_key.unwrap().decrypt(Pkcs1v15Encrypt, data) {
-        Ok(val) => Ok(val),
-        Err(code) => Err(nasl_builtin_utils::FunctionErrorKind::GeneralError(
-            nasl_builtin_utils::error::GeneralErrorType::UnexpectedData(format!(
-                "Error code {}",
-                code
+    }
+    .expect("Failed to get private key");
+    let mut rng = OsRng;
+    let biguint_data = BigUint::from_bytes_be(data);
+    let dec_data = if pad {
+        match priv_key.decrypt(Pkcs1v15Encrypt, data) {
+            Ok(val) => Ok(val),
+            Err(code) => Err(nasl_builtin_utils::FunctionErrorKind::GeneralError(
+                nasl_builtin_utils::error::GeneralErrorType::UnexpectedData(format!(
+                    "Error code {}",
+                    code
+                )),
             )),
-        )),
+        }
+        .expect("Failed to decode")
+    } else {
+        rsa::hazmat::rsa_decrypt_and_check(&priv_key, Some(&mut rng), &biguint_data)
+            .expect("Failed to decode")
+            .to_bytes_be()
     };
-    Ok(dec_data.unwrap().to_vec().into())
+
+    Ok(dec_data.to_vec().into())
 }
 
-fn rsa_sign(register: &Register, _: &Context) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
+fn rsa_sign(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let data = get_required_named_data(register, "data")?;
     let pem = get_required_named_data(register, "priv")?;
     let passphrase = get_required_named_data(register, "passphrase")?;
-    let mut f = File::open(&str::from_utf8(pem).expect("msg")).expect("Pem-file not found");
-    let mut buffer = vec![
-        0;
-        fs::metadata(&str::from_utf8(pem).expect("Error while decoding filename"))
-            .expect("Cannot read attribute length from file")
-            .len() as usize
-    ];
-    f.read(&mut buffer).expect("Buffer overflow");
     let rsa = if passphrase.is_empty() {
-        RsaPrivateKey::from_pkcs8_pem(
-            str::from_utf8(buffer.as_ref()).expect("Error while decoding pem"),
-        )
-        .expect("Failed to get private key")
+        RsaPrivateKey::from_pkcs8_pem(str::from_utf8(pem).expect("Error while decoding pem"))
+            .expect("Failed to decode passphrase")
     } else {
-        RsaPrivateKey::from_pkcs8_pem(
-            str::from_utf8(buffer.as_ref()).expect("Error while decoding pem"),
+        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(
+            str::from_utf8(pem).expect("Error while decoding pem"),
+            str::from_utf8(passphrase).expect("Error while decoding pem"),
         )
-        .expect("Cant decrypt private key with passphrase, not supported yet")
+        .expect("Failed to decode passphrase, maybe wrong passphrase for pem?")
     };
     let mut hasher = Sha1::new_with_prefix(data);
     hasher.update(data);
@@ -96,10 +104,7 @@ fn rsa_sign(register: &Register, _: &Context) -> Result<nasl_syntax::NaslValue, 
     Ok(signature.into())
 }
 
-fn rsa_public_decrypt(
-    register: &Register,
-    _: &Context,
-) -> Result<nasl_syntax::NaslValue, FunctionErrorKind> {
+fn rsa_public_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let sign = get_required_named_data(register, "sign")?;
     let n = get_required_named_data(register, "n")?;
     let e = get_required_named_data(register, "e")?;
