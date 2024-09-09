@@ -6,9 +6,9 @@ use std::{
     time::SystemTime,
 };
 
+use crate::models::{scanner::Error, HostInfo, Phase, Scan, Status};
 use crate::nasl::utils::Executor;
 use futures::StreamExt;
-use models::{scanner::Error, HostInfo, Phase, Scan, Status};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
@@ -181,11 +181,12 @@ impl RunningScanHandle {
 mod tests {
     use std::time::Duration;
 
-    use crate::storage::{item::Nvt, DefaultDispatcher};
-    use models::{
+    use crate::models::Phase;
+    use crate::models::{
         scanner::{ScanResultFetcher, ScanResults, ScanStarter},
         Scan,
     };
+    use crate::storage::{item::Nvt, DefaultDispatcher};
     use tracing_test::traced_test;
 
     use crate::nasl::interpreter::scanner::{
@@ -206,11 +207,7 @@ mod tests {
     }
 
     /// Blocks until given id is in given phase or panics after 1 second
-    async fn wait_for_status(
-        scanner: Scanner<TestStack>,
-        id: &str,
-        phase: models::Phase,
-    ) -> ScanResults {
+    async fn wait_for_status(scanner: Scanner<TestStack>, id: &str, phase: Phase) -> ScanResults {
         let start = super::current_time_in_seconds("test");
         assert!(start > 0);
         loop {
@@ -248,7 +245,7 @@ mod tests {
         let id = scan.scan_id.clone();
         let res = scanner.start_scan(scan).await;
         assert!(res.is_ok());
-        let scan_results = wait_for_status(scanner, &id, models::Phase::Succeeded).await;
+        let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
 
         assert!(
             scan_results.status.start_time.is_some(),
@@ -276,7 +273,7 @@ mod tests {
         let id = scan.scan_id.clone();
         let res = scanner.start_scan(scan).await;
         assert!(res.is_ok());
-        let scan_results = wait_for_status(scanner, &id, models::Phase::Succeeded).await;
+        let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
 
         assert!(
             scan_results.status.start_time.is_some(),

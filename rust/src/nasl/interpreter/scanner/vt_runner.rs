@@ -1,10 +1,10 @@
+use crate::models::{Host, Parameter, Protocol, ScanId};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::{Executor, Register};
 use crate::storage::item::Nvt;
 use crate::storage::{types::Primitive, Retriever, Storage};
 use crate::storage::{ContextKey, Field, Retrieve, StorageError};
 use futures::StreamExt;
-use models::{Host, Parameter, Protocol, ScanId};
 use tracing::{error_span, trace, warn};
 
 use crate::nasl::interpreter::{scheduling::Stage, CodeInterpreter, ExecuteError};
@@ -232,6 +232,6 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
     }
 }
 
-pub(crate) fn generate_port_kb_key(protocol: models::Protocol, port: &str) -> String {
+pub(crate) fn generate_port_kb_key(protocol: crate::models::Protocol, port: &str) -> String {
     format!("Ports/{protocol}/{port}")
 }

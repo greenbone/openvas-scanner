@@ -4,7 +4,7 @@
 
 use std::time::SystemTime;
 
-use models::{Product, ProductsAdivisories};
+use crate::models::{Product, ProductsAdivisories};
 
 use crate::{feed::VerifyError, notus::error::Error};
 

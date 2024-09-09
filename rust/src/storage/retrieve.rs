@@ -2,9 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::storage::{
-    item::{NVTField, NVTKey, Nvt},
-    ContextKey, Field, StorageError,
+use crate::{
+    models,
+    storage::{
+        item::{NVTField, NVTKey, Nvt},
+        ContextKey, Field, StorageError,
+    },
 };
 
 /// Retrieve command for a given Field

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use crate::models::{FixedPackage, FixedVersion, Specifier};
 use crate::notus::{error::Error, loader::fs::FSProductLoader, notus::Notus};
-use models::{FixedPackage, FixedVersion, Specifier};
 
 pub fn make_test_path(sub_components: &[&str]) -> PathBuf {
     let mut path = Path::new(env!("CARGO_MANIFEST_DIR")).to_owned();

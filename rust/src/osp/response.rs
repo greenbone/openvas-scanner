@@ -227,13 +227,13 @@ impl TryFrom<Response> for Scan {
     }
 }
 
-impl From<Scan> for Vec<models::Result> {
+impl From<Scan> for Vec<crate::models::Result> {
     fn from(scan: Scan) -> Self {
         scan.results.into()
     }
 }
 
-impl TryFrom<Response> for Vec<models::Result> {
+impl TryFrom<Response> for Vec<crate::models::Result> {
     type Error = Error;
     fn try_from(response: Response) -> Result<Self, Self::Error> {
         let scan = Scan::try_from(response)?;
@@ -350,18 +350,18 @@ pub struct ScanResult {
     pub description: String,
 }
 
-impl From<&ScanResult> for models::ResultType {
+impl From<&ScanResult> for crate::models::ResultType {
     fn from(sr: &ScanResult) -> Self {
         match (sr.name.as_str(), &sr.result_type) {
-            ("HOST_START", ResultType::Log) => models::ResultType::HostStart,
-            ("HOST_END", ResultType::Log) => models::ResultType::HostEnd,
-            ("DEADHOST", ResultType::Log) => models::ResultType::DeadHost,
-            ("Host Details", ResultType::Log) => models::ResultType::HostDetail,
-            (_, ResultType::Log) => models::ResultType::Log,
-            (_, ResultType::Alarm) => models::ResultType::Alarm,
-            (_, ResultType::Error) => models::ResultType::Error,
-            (_, ResultType::HostStart) => models::ResultType::HostStart,
-            (_, ResultType::HostEnd) => models::ResultType::HostEnd,
+            ("HOST_START", ResultType::Log) => crate::models::ResultType::HostStart,
+            ("HOST_END", ResultType::Log) => crate::models::ResultType::HostEnd,
+            ("DEADHOST", ResultType::Log) => crate::models::ResultType::DeadHost,
+            ("Host Details", ResultType::Log) => crate::models::ResultType::HostDetail,
+            (_, ResultType::Log) => crate::models::ResultType::Log,
+            (_, ResultType::Alarm) => crate::models::ResultType::Alarm,
+            (_, ResultType::Error) => crate::models::ResultType::Error,
+            (_, ResultType::HostStart) => crate::models::ResultType::HostStart,
+            (_, ResultType::HostEnd) => crate::models::ResultType::HostEnd,
             // host details are sent via log messages
             (_, ResultType::HostDetail) => unreachable!(),
         }
@@ -370,16 +370,16 @@ impl From<&ScanResult> for models::ResultType {
 
 #[derive(Deserialize, Debug, Default)]
 struct HostDetail {
-    detail: Vec<models::Detail>,
+    detail: Vec<crate::models::Detail>,
 }
 
 impl HostDetail {
-    pub fn extract(&self) -> Option<models::Detail> {
+    pub fn extract(&self) -> Option<crate::models::Detail> {
         self.detail.first().cloned()
     }
 }
 
-impl From<&ScanResult> for models::Result {
+impl From<&ScanResult> for crate::models::Result {
     fn from(result: &ScanResult) -> Self {
         // name == script_name can be found via oid and is ignored here
         let (port, protocol) = {
@@ -389,7 +389,7 @@ impl From<&ScanResult> for models::Result {
                 .unwrap_or((result.port.as_str(), ""));
             (
                 m_port.parse().ok(),
-                models::Protocol::try_from(m_protocol).ok(),
+                crate::models::Protocol::try_from(m_protocol).ok(),
             )
         };
         let r_type = result.into();
@@ -398,14 +398,15 @@ impl From<&ScanResult> for models::Result {
             _ => Some(result.description.clone()),
         };
         let detail = match r_type {
-            models::ResultType::HostDetail => match urlencoding::decode(&result.description) {
+            crate::models::ResultType::HostDetail => match urlencoding::decode(&result.description)
+            {
                 Ok(decoded) => quick_xml::de::from_str::<HostDetail>(&decoded).unwrap_or_default(),
                 Err(_) => Default::default(),
             },
             _ => Default::default(),
         };
 
-        models::Result {
+        crate::models::Result {
             id: 0,
             hostname: match result.hostname.as_str() {
                 "" => None,
@@ -445,7 +446,7 @@ impl Results {
     }
 }
 
-impl From<Results> for Vec<models::Result> {
+impl From<Results> for Vec<crate::models::Result> {
     fn from(results: Results) -> Self {
         results
             .result
@@ -575,25 +576,25 @@ impl Default for Scan {
     }
 }
 // TODO when traits moved to models create From for ScanResults
-impl From<Scan> for models::Status {
+impl From<Scan> for crate::models::Status {
     fn from(value: Scan) -> Self {
-        let phase: models::Phase = match value.status {
-            ScanStatus::Queued => models::Phase::Requested,
-            ScanStatus::Requested => models::Phase::Requested,
-            ScanStatus::Running => models::Phase::Running,
-            ScanStatus::Stopped => models::Phase::Stopped,
-            ScanStatus::Failed => models::Phase::Failed,
-            ScanStatus::Finished => models::Phase::Succeeded,
-            ScanStatus::Succeeded => models::Phase::Succeeded,
-            ScanStatus::Interrupted => models::Phase::Failed,
+        let phase: crate::models::Phase = match value.status {
+            ScanStatus::Queued => crate::models::Phase::Requested,
+            ScanStatus::Requested => crate::models::Phase::Requested,
+            ScanStatus::Running => crate::models::Phase::Running,
+            ScanStatus::Stopped => crate::models::Phase::Stopped,
+            ScanStatus::Failed => crate::models::Phase::Failed,
+            ScanStatus::Finished => crate::models::Phase::Succeeded,
+            ScanStatus::Succeeded => crate::models::Phase::Succeeded,
+            ScanStatus::Interrupted => crate::models::Phase::Failed,
         };
 
-        models::Status {
+        crate::models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
             host_info: value.host_info.map(|host_info| {
-                models::HostInfoBuilder {
+                crate::models::HostInfoBuilder {
                     all: host_info.count_total.content.0,
                     excluded: host_info.count_excluded.content.0,
                     dead: host_info.count_dead.content.0,
@@ -744,8 +745,8 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        let results: Vec<models::Result> = response.try_into().unwrap();
-        use models::ResultType::*;
+        let results: Vec<crate::models::Result> = response.try_into().unwrap();
+        use crate::models::ResultType::*;
         let expected = [HostStart, HostDetail, HostEnd];
         assert_eq!(results.len(), expected.len());
         for (result, expected) in results.iter().zip(expected.iter()) {
@@ -766,7 +767,7 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        let results: Vec<models::Result> = response.try_into().unwrap();
+        let results: Vec<crate::models::Result> = response.try_into().unwrap();
         assert_eq!(results.len(), 1);
         let result = results.first().unwrap();
         let detail = result.detail.clone().unwrap();

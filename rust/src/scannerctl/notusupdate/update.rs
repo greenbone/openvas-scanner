@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use crate::{CliError, CliErrorKind};
 
+use scannerlib::models;
 use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::storage::{ContextKey, Dispatcher, Field};
 use scannerlib::{

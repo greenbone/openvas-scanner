@@ -6,11 +6,11 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::storage::{Error as StorageError, FeedHash};
+use crate::storage::{Error as StorageError, FeedHash, Storage};
 use async_trait::async_trait;
-use models::scanner::Error as ScanError;
-use models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
-use models::Phase;
+use scannerlib::models::scanner::Error as ScanError;
+use scannerlib::models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
+use scannerlib::models::{Phase, Scan, Status};
 use scannerlib::storage::item::Nvt;
 use tokio::sync::RwLock;
 
@@ -135,8 +135,8 @@ impl<DB, Scanner> Scheduler<DB, Scanner> {
 
 impl<DB, Scanner> Scheduler<DB, Scanner>
 where
-    DB: crate::storage::Storage + Send + Sync + 'static,
-    Scanner: models::scanner::Scanner + Send + Sync,
+    DB: Storage + Send + Sync + 'static,
+    Scanner: scannerlib::models::scanner::Scanner + Send + Sync,
 {
     pub async fn start_scan_by_id(&self, id: &str) -> Result<(), Error> {
         let running = self.running.read().await;
@@ -225,7 +225,7 @@ where
                             self.db
                                 .update_status(
                                     &scan_id,
-                                    models::Status {
+                                    Status {
                                         start_time: None,
                                         end_time: None,
                                         status: Phase::Failed,
@@ -291,8 +291,8 @@ where
 #[async_trait]
 impl<DB, Scanner> ScanResultFetcher for Scheduler<DB, Scanner>
 where
-    DB: crate::storage::Storage + Send + Sync + 'static,
-    Scanner: models::scanner::Scanner + Send + Sync,
+    DB: Storage + Send + Sync + 'static,
+    Scanner: scannerlib::models::scanner::Scanner + Send + Sync,
 {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, ScanError>
     where
@@ -305,8 +305,8 @@ where
 #[async_trait]
 impl<DB, Scanner> ScanStopper for Scheduler<DB, Scanner>
 where
-    DB: crate::storage::Storage + Send + Sync + 'static,
-    Scanner: models::scanner::Scanner + Send + Sync,
+    DB: Storage + Send + Sync + 'static,
+    Scanner: scannerlib::models::scanner::Scanner + Send + Sync,
 {
     async fn stop_scan<I>(&self, id: I) -> Result<(), ScanError>
     where
@@ -341,7 +341,7 @@ where
 #[async_trait]
 impl<DB, S> ScanIDClientMapper for Scheduler<DB, S>
 where
-    DB: crate::storage::Storage + Sync + Send + 'static,
+    DB: Storage + Sync + Send + 'static,
     S: Send + Sync,
 {
     async fn add_scan_client_id(
@@ -380,22 +380,19 @@ where
 #[async_trait]
 impl<DB, S> ProgressGetter for Scheduler<DB, S>
 where
-    DB: crate::storage::Storage + Sync + Send + 'static,
+    DB: Storage + Sync + Send + 'static,
     S: Sync + Send,
 {
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), StorageError> {
+    async fn get_scan(&self, id: &str) -> Result<(Scan, Status), StorageError> {
         self.db.get_scan(id).await
     }
-    async fn get_decrypted_scan(
-        &self,
-        id: &str,
-    ) -> Result<(models::Scan, models::Status), StorageError> {
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(Scan, Status), StorageError> {
         self.db.get_decrypted_scan(id).await
     }
     async fn get_scan_ids(&self) -> Result<Vec<String>, StorageError> {
         self.db.get_scan_ids().await
     }
-    async fn get_status(&self, id: &str) -> Result<models::Status, StorageError> {
+    async fn get_status(&self, id: &str) -> Result<Status, StorageError> {
         self.db.get_status(id).await
     }
     async fn get_results(
@@ -411,7 +408,7 @@ where
 #[async_trait]
 impl<DB, S> NVTStorer for Scheduler<DB, S>
 where
-    DB: crate::storage::Storage + Sync + Send + 'static,
+    DB: Storage + Sync + Send + 'static,
     S: Sync + Send,
 {
     /// It is marking that a feed synchronization occurs, as long as there are running scans it
@@ -467,16 +464,16 @@ where
 #[async_trait]
 impl<DB, S> ScanStorer for Scheduler<DB, S>
 where
-    DB: crate::storage::Storage + Sync + Send + 'static,
+    DB: Storage + Sync + Send + 'static,
     S: Sync + Send,
 {
-    async fn insert_scan(&self, t: models::Scan) -> Result<(), StorageError> {
+    async fn insert_scan(&self, t: Scan) -> Result<(), StorageError> {
         self.db.insert_scan(t).await
     }
     async fn remove_scan(&self, id: &str) -> Result<(), StorageError> {
         self.db.remove_scan(id).await
     }
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), StorageError> {
+    async fn update_status(&self, id: &str, status: Status) -> Result<(), StorageError> {
         match status.status {
             Phase::Stored | Phase::Requested | Phase::Running => {}
             Phase::Stopped | Phase::Failed | Phase::Succeeded => {
@@ -493,7 +490,7 @@ where
 #[async_trait]
 impl<DB, S> AppendFetchResult for Scheduler<DB, S>
 where
-    DB: crate::storage::Storage + Sync + Send + 'static,
+    DB: Storage + Sync + Send + 'static,
     S: Sync + Send,
 {
     async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), StorageError> {
@@ -519,7 +516,7 @@ where
 mod tests {
     use tracing_test::traced_test;
 
-    use models::Scan;
+    use scannerlib::models::Scan;
 
     use crate::{
         config,
@@ -528,7 +525,10 @@ mod tests {
     };
 
     mod synchronize {
-        use models::scanner::ScanStopper as _;
+        use scannerlib::models::{
+            scanner::{self, Lambda, LambdaBuilder, ScanResults, ScanStopper as _},
+            Phase, Status,
+        };
 
         use super::*;
 
@@ -548,7 +548,7 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -577,7 +577,7 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -611,9 +611,7 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::LambdaBuilder::new()
-                .with_can_start(|_| false)
-                .build();
+            let scanner = LambdaBuilder::new().with_can_start(|_| false).build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -640,8 +638,12 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::LambdaBuilder::new()
-                .with_start(|_| Err(models::scanner::Error::Connection("m".to_string())))
+            let scanner = LambdaBuilder::new()
+                .with_start(|_| {
+                    Err(scannerlib::models::scanner::Error::Connection(
+                        "m".to_string(),
+                    ))
+                })
                 .build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
@@ -669,8 +671,8 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::LambdaBuilder::new()
-                .with_start(|_| Err(models::scanner::Error::Unexpected("m".to_string())))
+            let scanner = LambdaBuilder::new()
+                .with_start(|_| Err(scanner::Error::Unexpected("m".to_string())))
                 .build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
@@ -697,7 +699,7 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::Lambda::default();
+            let scanner = scannerlib::models::scanner::Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans.iter() {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -727,14 +729,14 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = models::scanner::LambdaBuilder::default()
+            let scanner = LambdaBuilder::default()
                 .with_fetch(|s| {
-                    Ok(models::scanner::ScanResults {
+                    Ok(ScanResults {
                         id: s.to_string(),
-                        status: models::Status {
+                        status: Status {
                             start_time: None,
                             end_time: None,
-                            status: models::Phase::Succeeded,
+                            status: Phase::Succeeded,
                             host_info: None,
                         },
                         results: vec![],
@@ -757,6 +759,8 @@ mod tests {
     }
 
     mod start {
+        use scannerlib::models::{scanner::Lambda, Phase};
+
         use crate::storage::ProgressGetter;
 
         use super::*;
@@ -768,7 +772,7 @@ mod tests {
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             scheduler.start_scan_by_id(&scan.scan_id).await.unwrap();
             assert_eq!(scheduler.queued.read().await.len(), 1);
@@ -781,7 +785,7 @@ mod tests {
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             scheduler.start_scan_by_id(&scan.scan_id).await.unwrap();
             assert!(
@@ -797,7 +801,7 @@ mod tests {
         async fn error_not_found() {
             let config = config::Scheduler::default();
             let db = inmemory::Storage::default();
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             assert!(
                 match scheduler.start_scan_by_id("1").await {
@@ -817,7 +821,7 @@ mod tests {
             let db = inmemory::Storage::default();
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             assert!(
                 match scheduler.start_scan_by_id(&scan.scan_id).await {
@@ -838,9 +842,9 @@ mod tests {
             let scan = Scan::default();
             db.insert_scan(scan.clone()).await.unwrap();
             let mut status = db.get_status("").await.unwrap();
-            status.status = models::Phase::Failed;
+            status.status = Phase::Failed;
             db.update_status("", status).await.unwrap();
-            let scanner = models::scanner::Lambda::default();
+            let scanner = Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             assert!(
                 match scheduler.start_scan_by_id(&scan.scan_id).await {

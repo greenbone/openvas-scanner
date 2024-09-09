@@ -7,9 +7,12 @@ mod wave;
 
 use std::{collections::HashMap, fmt::Display};
 
-use crate::storage::{
-    item::{NVTField, Nvt},
-    Field, Retrieve, Retriever, StorageError,
+use crate::{
+    models::{Parameter, Scan},
+    storage::{
+        item::{NVTField, Nvt},
+        Field, Retrieve, Retriever, StorageError,
+    },
 };
 use thiserror::Error;
 pub use wave::WaveExecutionPlan;
@@ -103,7 +106,7 @@ impl TryFrom<usize> for Stage {
 
 /// Enhances the Retriever trait with execution_plan possibility.
 pub trait ExecutionPlaner {
-    /// Creates an execution plan based on the given scan using ExecutionPlan impl E.
+    /// Creates an execution plan based on the given scan using ExecutionPlan.
     ///
     /// To make it as inconvenient as possible for the caller to accidentally execute scripts that should
     /// not run concurrently in a concurrent fashion we return an iterator containing the stage as well
@@ -112,75 +115,16 @@ pub trait ExecutionPlaner {
     ///
     /// If the second value (parameter) is None it indicates that this script in indirectly loaded
     /// and was not explicitly mentioned in the Scan.
-    ///
-    /// # Example
-    ///
-    /// This examples shows the usage of the default implementation for a Retriever to may
-    /// help you understanding the behavior for your own implementation or when using it.
-    ///
-    /// ```
-    ///
-    /// use scannerlib::nasl::interpreter::scheduling::{ExecutionPlaner, Stage, WaveExecutionPlan};
-    /// use scannerlib::storage::Dispatcher;
-    /// use scannerlib::storage::Retriever;
-    /// use scannerlib::storage::ContextKey;
-    /// use scannerlib::storage::item::Nvt;
-    /// use scannerlib::storage::DefaultDispatcher;
-    ///
-    /// let feed = vec![
-    ///     Nvt {
-    ///         oid: "0".to_string(),
-    ///         filename: "/0".to_string(),
-    ///         ..Default::default()
-    ///     },
-    ///     Nvt {
-    ///         oid: "1".to_string(),
-    ///         filename: "/1".to_string(),
-    ///         dependencies: vec!["/0".to_string()],
-    ///         ..Default::default()
-    ///     },
-    ///     Nvt {
-    ///         oid: "2".to_string(),
-    ///         filename: "/2".to_string(),
-    ///         dependencies: vec!["/1".to_string()],
-    ///         ..Default::default()
-    ///     },
-    /// ];
-    /// let retrieve = DefaultDispatcher::new();
-    /// feed.clone().into_iter().for_each(|x| {
-    ///     retrieve
-    ///         .dispatch(&ContextKey::FileName(x.filename.clone()), x.into())
-    ///         .expect("should store");
-    /// });
-    /// let scan = models::Scan {
-    ///     vts: vec![models::VT {
-    ///         oid: "2".to_string(),
-    ///         parameters: vec![],
-    ///     }],
-    ///     ..Default::default()
-    /// };
-    /// let results = (&retrieve as &dyn Retriever)
-    ///     .execution_plan::<WaveExecutionPlan>(&scan)
-    ///     .expect("no error expected");
-    /// assert_eq!(
-    ///     vec![
-    ///         (Stage::End, vec![(feed[0].clone(), None)]),
-    ///         (Stage::End, vec![(feed[1].clone(), None)]),
-    ///         (Stage::End, vec![(feed[2].clone(), Some(vec![]))]),
-    ///     ],
-    ///     results.filter_map(|x| x.ok()).collect::<Vec<_>>()
-    /// )
-    /// ```
     fn execution_plan<'a, E>(
         &self,
-        ids: &'a models::Scan,
+        ids: &'a Scan,
     ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
     where
         E: ExecutionPlan;
 }
 
 /// Contains the Nvt and maybe parameter required to be executed
-pub type RuntimeVT = (Nvt, Option<Vec<models::Parameter>>);
+pub type RuntimeVT = (Nvt, Option<Vec<Parameter>>);
 
 /// Is the result of the Iterator if ExecutionPlaner
 ///
@@ -265,7 +209,7 @@ where
 {
     fn execution_plan<'a, E>(
         &self,
-        scan: &'a models::Scan,
+        scan: &'a Scan,
     ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
     where
         E: ExecutionPlan,
@@ -288,8 +232,7 @@ where
             })
             .enumerate()
         {
-            let params: Option<Vec<models::Parameter>> =
-                scan.vts.get(i).map(|x| x.parameters.clone());
+            let params: Option<Vec<Parameter>> = scan.vts.get(i).map(|x| x.parameters.clone());
             unknown_dependencies.extend(
                 x.dependencies
                     .iter()
@@ -336,8 +279,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use models::Scan;
-    use models::VT;
+    use crate::models::Scan;
+    use crate::models::VT;
 
     use crate::nasl::interpreter::scheduling::ExecutionPlaner;
     use crate::nasl::interpreter::scheduling::Stage;

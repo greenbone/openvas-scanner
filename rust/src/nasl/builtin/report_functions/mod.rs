@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use models::{Protocol, ResultType};
+use crate::models::{self, Protocol, ResultType};
 
 use crate::{nasl::prelude::*, storage::Field};
 

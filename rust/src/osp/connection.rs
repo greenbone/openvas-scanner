@@ -9,6 +9,8 @@ use std::{
     time::Duration,
 };
 
+use crate::models::Scan;
+
 use super::{
     commands::Error,
     response::{self, Response},
@@ -72,7 +74,7 @@ pub fn get_delete_scan_results<T: AsRef<Path>, I: AsRef<str>>(
 pub fn start_scan<T: AsRef<Path>>(
     address: T,
     r_timeout: Option<Duration>,
-    scan: &models::Scan,
+    scan: &Scan,
 ) -> Result<ScanID, Error> {
     let cmd = ScanCommand::Start(scan);
     let response = send_command(address, r_timeout, cmd)?;

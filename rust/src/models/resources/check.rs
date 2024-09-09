@@ -1,3 +1,5 @@
+use crate::models::scanner::ObservableResources;
+
 /// Checks for relative resource availability.
 ///
 /// When e.g. min_free_memory is set to 10 then 10% of the memory must be free so that `verify`
@@ -28,17 +30,17 @@ impl Checker {
     }
 
     /// Returns a list of resource observables that are not within the threshold.
-    pub fn breakaways(&self) -> Vec<crate::scanner::ObservableResources> {
+    pub fn breakaways(&self) -> Vec<ObservableResources> {
         let mut results = Vec::with_capacity(2);
         let available = super::available();
         if let Some(free) = self.memory {
             if available.memory < free {
-                results.push(crate::scanner::ObservableResources::Memory);
+                results.push(ObservableResources::Memory);
             }
         }
         if let Some(workload) = self.cpu {
             if available.cpu > workload {
-                results.push(crate::scanner::ObservableResources::CPU);
+                results.push(ObservableResources::CPU);
             }
         }
 
@@ -53,17 +55,20 @@ impl Checker {
 
 #[cfg(test)]
 mod tests {
+    use crate::models::scanner::ObservableResources;
+
+    use super::Checker;
 
     #[test]
     fn in_boundaries() {
-        let checker = super::Checker::new(Some(u64::MIN), Some(f32::MAX));
+        let checker = Checker::new(Some(u64::MIN), Some(f32::MAX));
         assert_eq!(checker.breakaways(), vec![]);
         assert!(checker.in_boundaries());
     }
     #[test]
     fn not_in_boundaries() {
-        let checker = super::Checker::new(Some(u64::MAX), Some(f32::MIN));
-        use crate::scanner::ObservableResources::*;
+        let checker = Checker::new(Some(u64::MAX), Some(f32::MIN));
+        use ObservableResources::*;
         assert_eq!(checker.breakaways(), vec![Memory, CPU]);
         assert!(!checker.in_boundaries());
     }

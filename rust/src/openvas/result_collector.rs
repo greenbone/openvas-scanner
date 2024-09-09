@@ -259,8 +259,8 @@ where
 #[cfg(test)]
 mod tests {
 
+    use crate::models::{self, Protocol, Result, ResultType};
     use crate::openvas::openvas_redis::FakeRedis;
-    use models::Result;
     use std::collections::HashMap;
 
     use super::ResultHelper;
@@ -287,7 +287,7 @@ mod tests {
 
         let single_r = Result {
             id: 0,
-            r_type: models::ResultType::Log,
+            r_type: ResultType::Log,
             ip_address: Some("127.0.0.1".to_string()),
             hostname: Some("localhost".to_string()),
             oid: Some("".to_string()),
@@ -311,7 +311,7 @@ mod tests {
 
         let single_r = Result {
             id: 0,
-            r_type: models::ResultType::Error,
+            r_type: ResultType::Error,
             ip_address: Some("127.0.0.1".to_string()),
             hostname: Some("localhost".to_string()),
             oid: Some("1.2.3.4.5.6".to_string()),
@@ -335,12 +335,12 @@ mod tests {
 
         let single_r = Result {
             id: 0,
-            r_type: models::ResultType::Alarm,
+            r_type: ResultType::Alarm,
             ip_address: Some("127.0.0.1".to_string()),
             hostname: Some("example.com".to_string()),
             oid: Some("12.11.10.9.8.7".to_string()),
             port: Some(22i16),
-            protocol: Some(models::Protocol::TCP),
+            protocol: Some(Protocol::TCP),
             message: Some("Something wrong".to_string()),
             detail: None,
         };

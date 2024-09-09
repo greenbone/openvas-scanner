@@ -12,14 +12,17 @@ use std::{
 
 use crate::crypt::ChaCha20Crypt;
 use models::{Scan, Status};
-use scannerlib::storage::{
-    file::{
-        base::{IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
-        crypto::ChaCha20IndexFileStorer,
-        serde::Serialization,
+use scannerlib::{
+    models,
+    storage::{
+        file::{
+            base::{IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
+            crypto::ChaCha20IndexFileStorer,
+            serde::Serialization,
+        },
+        item::Nvt,
+        ContextKey, DefaultDispatcher, StorageError,
     },
-    item::Nvt,
-    ContextKey, DefaultDispatcher, StorageError,
 };
 use tokio::task::spawn_blocking;
 use tracing::{info, warn};

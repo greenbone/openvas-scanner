@@ -145,7 +145,7 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
 #[cfg(test)]
 mod tests {
 
-    use crate::{ports_to_openvas_port_list, Port, PortRange, Protocol};
+    use crate::models::{ports_to_openvas_port_list, Port, PortRange, Protocol};
 
     #[test]
     fn test_port_conversion_to_string() {

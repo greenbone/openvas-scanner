@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::models::{Product, ProductsAdivisories};
 use crate::nasl::syntax::{FSPluginLoader, Loader};
-use models::ProductsAdivisories;
 
 use crate::feed::verify::check_signature;
 use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError};
@@ -38,7 +38,7 @@ impl ProductLoader for HashsumProductLoader {
         Ok(ret)
     }
 
-    fn load_product(&self, os: &str) -> Result<(models::Product, FeedStamp), Error> {
+    fn load_product(&self, os: &str) -> Result<(Product, FeedStamp), Error> {
         let mut loader =
             HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
         let file_item = loader

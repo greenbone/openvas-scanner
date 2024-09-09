@@ -15,6 +15,7 @@ use std::{
 use crate::config;
 pub use context::{Context, ContextBuilder, NoOpScanner};
 use hyper_util::rt::{TokioExecutor, TokioIo};
+use scannerlib::models;
 use tokio::net::TcpListener;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -136,6 +137,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use scannerlib::models::Scan;
+
     use crate::controller::ClientIdentifier;
 
     #[tokio::test]
@@ -156,7 +159,7 @@ mod tests {
     #[tokio::test]
     async fn unauthorized() {
         let mut client = super::entry::client::in_memory_example_feed().await;
-        let scan: models::Scan = models::Scan::default();
+        let scan: Scan = Scan::default();
         let id = client.scan_create(&scan).await.unwrap();
         let _ = client.scan(&id).await.unwrap();
         client.set_client(ClientIdentifier::Known("holla".into()));

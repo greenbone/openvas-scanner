@@ -11,7 +11,8 @@ use std::{fmt::Display, marker::PhantomData, sync::Arc};
 use super::{context::Context, ClientIdentifier};
 
 use hyper::{Method, Request};
-use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
+use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
+use scannerlib::models::{scanner::*, Action, Phase, Scan, ScanAction};
 use scannerlib::notus;
 
 use crate::{
@@ -21,7 +22,6 @@ use crate::{
     scheduling,
     storage::{NVTStorer as _, ProgressGetter as _, ScanIDClientMapper as _, ScanStorer as _},
 };
-use models::scanner::*;
 
 #[derive(PartialEq, Eq)]
 enum HealthOpts {
@@ -303,8 +303,7 @@ where
                     }
                 }
                 (&Method::POST, Scans(None)) => {
-                    match crate::request::json_request::<models::Scan, _>(&ctx.response, req).await
-                    {
+                    match crate::request::json_request::<Scan, _>(&ctx.response, req).await {
                         Ok(mut scan) => {
                             let id = if !scan.scan_id.is_empty() {
                                 scan.scan_id.to_string()
@@ -322,16 +321,16 @@ where
                     }
                 }
                 (&Method::POST, Scans(Some(id))) => {
-                    match crate::request::json_request::<models::ScanAction, _>(&ctx.response, req)
+                    match crate::request::json_request::<ScanAction, _>(&ctx.response, req)
                         .await
                         .map(|a| a.action)
                     {
-                        Ok(models::Action::Start) => {
+                        Ok(Action::Start) => {
                             match ctx.scheduler.start_scan_by_id(&id).await {
                                 Ok(_) => Ok(ctx.response.no_content()),
                                 Err(scheduling::Error::ScanRunning)
                                 | Err(scheduling::Error::ScanAlreadyQueued) => {
-                                    use models::Phase::*;
+                                    use Phase::*;
                                     let expected = &[Stored, Stopped, Failed, Succeeded];
                                     Ok(ctx.response.not_accepted(&Requested, expected))
                                 }
@@ -349,7 +348,7 @@ where
                                 Err(e) => Ok(ctx.response.internal_server_error(&e)),
                             }
                         }
-                        Ok(models::Action::Stop) => match ctx.scheduler.stop_scan(id).await {
+                        Ok(Action::Stop) => match ctx.scheduler.stop_scan(id).await {
                             Ok(_) => Ok(ctx.response.no_content()),
                             Err(e) => Ok(ctx.response.internal_server_error(&e)),
                         },
@@ -475,7 +474,8 @@ pub mod client {
     use hyper::{
         body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
     };
-    use models::scanner::Scanner;
+    use scannerlib::models::scanner::{self, Scanner};
+    use scannerlib::models::{self, Action, Scan, ScanAction, Status};
     use scannerlib::nasl::FSPluginLoader;
     use scannerlib::storage::file::{
         base::{CachedIndexFileStorer, IndexedFileStorer},
@@ -490,8 +490,8 @@ pub mod client {
 
     use super::KnownPaths;
 
-    type HttpResult = Result<crate::response::Result, models::scanner::Error>;
-    type TypeResult<T> = Result<T, models::scanner::Error>;
+    type HttpResult = Result<crate::response::Result, scanner::Error>;
+    type TypeResult<T> = Result<T, scanner::Error>;
 
     pub struct Client<S, DB> {
         ctx: Arc<Context<S, DB>>,
@@ -621,7 +621,7 @@ pub mod client {
             T: serde::Serialize + std::fmt::Debug,
         {
             let data = serde_json::to_vec(data).map_err(|x| {
-                models::scanner::Error::Unexpected(format!("Unable to transform {data:?}: {x}"))
+                scanner::Error::Unexpected(format!("Unable to transform {data:?}: {x}"))
             })?;
             let body: Full<Bytes> = Full::from(data);
             self.request_body(method, url, body).await
@@ -632,7 +632,7 @@ pub mod client {
             method: Method,
             url: KnownPaths,
             body: B,
-        ) -> Result<crate::response::Result, models::scanner::Error>
+        ) -> Result<crate::response::Result, scanner::Error>
         where
             B: Sync + Send + http_body::Body + 'static,
             <B as http_body::Body>::Data: Send,
@@ -643,12 +643,12 @@ pub mod client {
                 .method(method)
                 .body(body)
                 .map_err(|x| {
-                    models::scanner::Error::Unexpected(format!("Unable to create request: {x}"))
+                    scanner::Error::Unexpected(format!("Unable to create request: {x}"))
                 })?;
             self.entrypoint(req).await
         }
 
-        pub async fn scan_status(&self, id: &str) -> TypeResult<models::Status> {
+        pub async fn scan_status(&self, id: &str) -> TypeResult<Status> {
             let result = self
                 .request_empty(Method::GET, KnownPaths::ScanStatus(id.to_string()))
                 .await;
@@ -662,7 +662,7 @@ pub mod client {
             Ok(result.headers().clone())
         }
 
-        pub async fn scan(&self, id: &str) -> TypeResult<models::Scan> {
+        pub async fn scan(&self, id: &str) -> TypeResult<Scan> {
             let result = self
                 .request_empty(Method::GET, KnownPaths::Scans(Some(id.to_string())))
                 .await;
@@ -682,8 +682,8 @@ pub mod client {
             self.no_content(result).await
         }
 
-        pub async fn scan_action(&self, id: &str, action: models::Action) -> TypeResult<()> {
-            let action: models::ScanAction = action.into();
+        pub async fn scan_action(&self, id: &str, action: Action) -> TypeResult<()> {
+            let action: ScanAction = action.into();
             let result = self
                 .request_json(
                     Method::POST,
@@ -697,7 +697,7 @@ pub mod client {
         pub async fn no_content(&self, result: HttpResult) -> TypeResult<()> {
             let resp = result?;
             if resp.status() != 204 {
-                return Err(models::scanner::Error::Unexpected(format!(
+                return Err(scanner::Error::Unexpected(format!(
                     "Expected 204 for a no-content response but got {}",
                     resp.status()
                 )));
@@ -705,7 +705,7 @@ pub mod client {
             Ok(())
         }
 
-        pub async fn scans(&self) -> TypeResult<Vec<models::Scan>> {
+        pub async fn scans(&self) -> TypeResult<Vec<Scan>> {
             let result = self
                 .request_empty(Method::GET, KnownPaths::Scans(None))
                 .await;
@@ -719,7 +719,7 @@ pub mod client {
                 .await;
             let resp = result?;
             if resp.status() != 200 && resp.status() != 201 {
-                return Err(models::scanner::Error::Unexpected(format!(
+                return Err(scanner::Error::Unexpected(format!(
                     "Expected 200 for a body response but got {}",
                     resp.status()
                 )));
@@ -728,10 +728,10 @@ pub mod client {
             // infallible
             let resp = resp.into_body().collect().await.unwrap().to_bytes();
             String::from_utf8(resp.to_vec())
-                .map_err(|x| models::scanner::Error::Unexpected(format!("lol: {x}")))
+                .map_err(|x| scanner::Error::Unexpected(format!("lol: {x}")))
         }
 
-        pub async fn scan_create(&self, scan: &models::Scan) -> TypeResult<String> {
+        pub async fn scan_create(&self, scan: &Scan) -> TypeResult<String> {
             let result = self
                 .request_json(Method::POST, KnownPaths::Scans(None), scan)
                 .await;
@@ -745,12 +745,9 @@ pub mod client {
 
         /// Starts a scan and wait until is finished and returns it status and results
         ///
-        pub async fn scan_finish(
-            &self,
-            scan: &models::Scan,
-        ) -> TypeResult<(String, models::Status)> {
+        pub async fn scan_finish(&self, scan: &Scan) -> TypeResult<(String, Status)> {
             let id = self.scan_create(scan).await?;
-            self.scan_action(&id, models::Action::Start).await?;
+            self.scan_action(&id, Action::Start).await?;
             // move to queued
             self.ctx.scheduler.sync_scans().await?;
             // move to running
@@ -768,7 +765,7 @@ pub mod client {
                     let mut abort = Arc::as_ref(&self.ctx).abort.write().unwrap();
                     *abort = true;
                     if has_run.as_secs() > 10 {
-                        return Err(models::scanner::Error::Unexpected(format!(
+                        return Err(scanner::Error::Unexpected(format!(
                             "scan_finish took over {} seconds, aborting",
                             has_run.as_secs()
                         )));
@@ -783,7 +780,7 @@ pub mod client {
         {
             let resp = result?;
             if resp.status() != 200 && resp.status() != 201 {
-                return Err(models::scanner::Error::Unexpected(format!(
+                return Err(scanner::Error::Unexpected(format!(
                     "Expected 200 for a body response but got {}",
                     resp.status()
                 )));
@@ -791,15 +788,15 @@ pub mod client {
 
             // infallible
             let resp = resp.into_body().collect().await.unwrap().to_bytes();
-            serde_json::from_slice::<T>(&resp).map_err(|e| {
-                models::scanner::Error::Unexpected(format!("Unable to serialize: {e}"))
-            })
+            serde_json::from_slice::<T>(&resp)
+                .map_err(|e| scanner::Error::Unexpected(format!("Unable to serialize: {e}")))
         }
     }
 }
 
 #[cfg(test)]
 pub(super) mod tests {
+    use scannerlib::models::{Scan, VT};
 
     #[tokio::test]
     #[tracing_test::traced_test]
@@ -807,18 +804,18 @@ pub(super) mod tests {
         let client =
             super::client::encrypted_file_based_example_feed("results_via_internal_scanner").await;
 
-        let mut scan: models::Scan = models::Scan::default();
+        let mut scan: Scan = Scan::default();
         scan.target.hosts.push("localhost".to_string());
         scan.vts = vec![
-            models::VT {
+            VT {
                 oid: "0.0.0.0.0.0.0.0.0.3".to_string(),
                 parameters: vec![],
             },
-            models::VT {
+            VT {
                 oid: "0.0.0.0.0.0.0.0.0.4".to_string(),
                 parameters: vec![],
             },
-            models::VT {
+            VT {
                 oid: "0.0.0.0.0.0.0.0.0.5".to_string(),
                 parameters: vec![],
             },
@@ -826,7 +823,7 @@ pub(super) mod tests {
         let vts = client.vts().await.unwrap();
         assert!(vts.len() > 2);
         let (id, status) = client.scan_finish(&scan).await.unwrap();
-        assert_eq!(status.status, models::Phase::Succeeded);
+        assert_eq!(status.status, scannerlib::models::Phase::Succeeded);
         let results = client.scan_results(&id).await.unwrap();
         assert_eq!(3, results.len());
         client.scan_delete(&id).await.unwrap();

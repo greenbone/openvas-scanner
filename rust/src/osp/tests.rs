@@ -6,7 +6,10 @@
 mod tests {
     use std::fs::read_to_string;
 
-    use crate::osp::{Response, Scan, ScanStatus};
+    use crate::{
+        models::Result,
+        osp::{Response, Scan, ScanStatus},
+    };
 
     fn load_response(filename: &str) -> Scan {
         let path = format!("data/osp/{filename}");
@@ -19,7 +22,7 @@ mod tests {
     fn finished() {
         let scan = load_response("response_finished.xml");
         assert_eq!(scan.status, ScanStatus::Finished);
-        let results: Vec<models::Result> = scan.results.into();
+        let results: Vec<Result> = scan.results.into();
         assert_eq!(results.len(), 113);
     }
 

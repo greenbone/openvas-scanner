@@ -4,7 +4,7 @@
 
 use std::io::{self, Cursor};
 
-use models::Scan;
+use crate::models::{scanner, PortRange, Protocol, Scan};
 use quick_xml::events::{attributes::Attribute, BytesEnd, BytesStart, BytesText, Event};
 
 use super::response::Status;
@@ -214,7 +214,7 @@ fn write_event<'a, E: AsRef<Event<'a>>>(name: &str, writer: &mut Writer, event: 
 }
 
 fn write_target(scan: &Scan, writer: &mut Writer) -> Result<()> {
-    let as_comma_list = |x: &[models::PortRange]| {
+    let as_comma_list = |x: &[PortRange]| {
         x.iter()
             .map(|x| x.to_string())
             .reduce(|a, b| format!("{},{}", a, b))
@@ -231,10 +231,10 @@ fn write_target(scan: &Scan, writer: &mut Writer) -> Result<()> {
                     None => {
                         other.push_str(&format!("{},", as_comma_list(&p.range)));
                     }
-                    Some(models::Protocol::UDP) => {
+                    Some(Protocol::UDP) => {
                         udp.push_str(&format!("{},", as_comma_list(&p.range)));
                     }
-                    Some(models::Protocol::TCP) => {
+                    Some(Protocol::TCP) => {
                         tcp.push_str(&format!("{},", as_comma_list(&p.range)));
                     }
                 }
@@ -276,7 +276,7 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
             if c.port.is_some() {
                 parameter.push(("port", &sp));
             }
-            use models::CredentialType;
+            use crate::models::CredentialType;
 
             writer.within_parameter_element("credential", parameter, &mut |writer| {
                 match &c.credential_type {
@@ -342,7 +342,7 @@ pub enum Error {
     /// Invalid response from OSPD
     InvalidResponse(Status),
 }
-impl From<Error> for models::scanner::Error {
+impl From<Error> for scanner::Error {
     fn from(value: Error) -> Self {
         Self::Unexpected(format!("{value:?}"))
     }

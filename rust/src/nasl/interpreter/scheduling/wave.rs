@@ -142,7 +142,7 @@ impl Iterator for WaveExecutionPlan {
 
 #[cfg(test)]
 mod tests {
-    use models::{Scan, VT};
+    use crate::models::{Scan, VT};
 
     use crate::nasl::syntax::ACT;
     use crate::storage::item::Nvt;

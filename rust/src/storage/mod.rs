@@ -24,6 +24,8 @@ use std::{
 use thiserror::Error;
 use types::Primitive;
 
+use crate::models::{self, VulnerabilityData};
+
 /// The identifier of a Scan
 ///
 /// Either created when creating a new scan or given via models::Scan#scan_id.
@@ -123,7 +125,7 @@ where
 }
 
 /// Redefine Vulnerability so that other libraries using that don't have to include models
-pub type NotusAdvisory = models::VulnerabilityData;
+pub type NotusAdvisory = VulnerabilityData;
 
 /// Describes various Fields of supported items.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -156,8 +158,8 @@ impl From<item::Nvt> for Field {
         Field::NVT(NVTField::Nvt(value))
     }
 }
-impl From<models::VulnerabilityData> for Field {
-    fn from(value: models::VulnerabilityData) -> Self {
+impl From<VulnerabilityData> for Field {
+    fn from(value: VulnerabilityData) -> Self {
         Self::NotusAdvisory(Some(value).into())
     }
 }

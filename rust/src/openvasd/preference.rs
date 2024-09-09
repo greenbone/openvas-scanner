@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use lazy_static::lazy_static;
-use models::{PreferenceValue, ScanPreferenceInformation};
+use scannerlib::models::{PreferenceValue, ScanPreferenceInformation};
 
 pub const PREFERENCES: [ScanPreferenceInformation; 22] = [
     ScanPreferenceInformation {

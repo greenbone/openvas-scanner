@@ -5,6 +5,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
+use scannerlib::models::{self, Scan, Status, VulnerabilityData};
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::storage::item::Nvt;
 use scannerlib::storage::redis::{
@@ -21,7 +22,7 @@ use tokio::{sync::RwLock, task::JoinSet};
 use tracing::info;
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
-use models::scanner::ScanResults;
+use scannerlib::models::scanner::ScanResults;
 
 use super::{
     AppendFetchResult, Error, FeedHash, FromConfigAndFeeds, NVTStorer, ProgressGetter,
@@ -58,7 +59,7 @@ impl<T> Storage<T> {
                 let advisories = advisories_files.load_advisory(filename)?;
 
                 for adv in advisories.advisories {
-                    let data = models::VulnerabilityData {
+                    let data = VulnerabilityData {
                         adv,
                         family: advisories.family.clone(),
                         filename: filename.to_owned(),
@@ -129,11 +130,11 @@ impl<T> ProgressGetter for Storage<T>
 where
     T: super::Storage + std::marker::Sync,
 {
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         self.underlying.get_scan(id).await
     }
 
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         self.underlying.get_decrypted_scan(id).await
     }
 
@@ -141,7 +142,7 @@ where
         self.underlying.get_scan_ids().await
     }
 
-    async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
+    async fn get_status(&self, id: &str) -> Result<Status, Error> {
         self.underlying.get_status(id).await
     }
 
@@ -318,13 +319,13 @@ impl<T> ScanStorer for Storage<T>
 where
     T: super::Storage + std::marker::Sync,
 {
-    async fn insert_scan(&self, t: models::Scan) -> Result<(), Error> {
+    async fn insert_scan(&self, t: Scan) -> Result<(), Error> {
         self.underlying.insert_scan(t).await
     }
     async fn remove_scan(&self, id: &str) -> Result<(), Error> {
         self.underlying.remove_scan(id).await
     }
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
+    async fn update_status(&self, id: &str, status: Status) -> Result<(), Error> {
         self.underlying.update_status(id, status).await
     }
 }

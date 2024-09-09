@@ -15,6 +15,8 @@ use super::dberror::RedisStorageResult;
 use itertools::Itertools;
 use redis::*;
 
+use crate::models;
+use crate::models::Vulnerability;
 use crate::storage;
 use crate::storage::item::ItemDispatcher;
 use crate::storage::item::NVTKey;
@@ -288,7 +290,7 @@ pub trait RedisAddAdvisory: RedisWrapper {
         match adv {
             Some(data) => {
                 let key = format!("internal/notus/advisories/{}", &data.adv.oid);
-                let value = models::Vulnerability::from(data);
+                let value = Vulnerability::from(data);
                 let value = serde_json::to_string(&value)
                     .map_err(|e| DbError::Unknown(format!("Serialization error: {e}")))?;
                 self.rpush(&key, value)?;
@@ -371,7 +373,7 @@ pub trait RedisGetNvt: RedisWrapper {
             return Ok(None);
         }
 
-        if let Ok(adv) = serde_json::from_str::<models::Vulnerability>(&nvt_data) {
+        if let Ok(adv) = serde_json::from_str::<Vulnerability>(&nvt_data) {
             Ok(Some(Nvt::from((oid, adv))))
         } else {
             Ok(None)

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use models::{FixedPackage, FixedVersion, Specifier};
+use crate::models::{self, FixedPackage, FixedVersion, PackageType, Specifier};
 
 use crate::{
     notus::error::Error,
@@ -32,7 +32,7 @@ impl Product {
     /// Transform a given list mode VT models into internal representation for performing package
     /// version comparisons.
     fn transform<P: Package>(
-        vts_model: Vec<models::VulnerabilityTest>,
+        vts_model: Vec<crate::models::VulnerabilityTest>,
     ) -> Result<VulnerabilityTests<P>, Error> {
         let mut vts = VulnerabilityTests::new();
         // Iterate through vulnerability tests of parsed file
@@ -70,23 +70,23 @@ impl Product {
 impl TryFrom<models::Product> for Product {
     fn try_from(value: models::Product) -> Result<Self, Self::Error> {
         match value.package_type {
-            models::PackageType::DEB => {
+            PackageType::DEB => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::Deb(vts))
             }
-            models::PackageType::EBUILD => {
+            PackageType::EBUILD => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::EBuild(vts))
             }
-            models::PackageType::RPM => {
+            PackageType::RPM => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::Rpm(vts))
             }
-            models::PackageType::SLACK => {
+            PackageType::SLACK => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::Slack(vts))
             }
-            models::PackageType::MSP => {
+            PackageType::MSP => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::Windows(vts))
             }
@@ -120,7 +120,7 @@ where
         match &fixed_package {
             // Package information can be either given by full name, name and full version
             // or as a range
-            models::FixedPackage::ByFullName {
+            FixedPackage::ByFullName {
                 specifier,
                 full_name,
             } => {
@@ -141,7 +141,7 @@ where
                     },
                 ))
             }
-            models::FixedPackage::ByNameAndFullVersion {
+            FixedPackage::ByNameAndFullVersion {
                 full_version,
                 specifier,
                 name,
@@ -163,7 +163,7 @@ where
                     },
                 ))
             }
-            models::FixedPackage::ByRange { range, name } => {
+            FixedPackage::ByRange { range, name } => {
                 // Parse both packages from name and full version
                 let start = match P::from_name_and_full_version(name, &range.start) {
                     Some(pkg) => pkg,

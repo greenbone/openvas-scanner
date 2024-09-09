@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use models::{Vulnerability, VulnerabilityData};
+use crate::models::{self, Vulnerability, VulnerabilityData};
 
 use crate::storage::{
     time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Remover,

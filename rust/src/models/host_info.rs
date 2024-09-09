@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::Host;
+use crate::models::Host;
 
 #[derive(Default)]
 pub struct HostInfoBuilder {

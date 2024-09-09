@@ -26,6 +26,10 @@ use tokio::sync::RwLock;
 
 use std::{collections::HashMap, path::Path, sync::Arc};
 
+use crate::models::{
+    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
+    Scan,
+};
 use crate::nasl::interpreter::scheduling::WaveExecutionPlan;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
@@ -33,10 +37,6 @@ use crate::nasl::utils::Executor;
 use crate::storage::Storage;
 use crate::storage::{ContextKey, DefaultDispatcher};
 use async_trait::async_trait;
-use models::{
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
-    Scan,
-};
 use running_scan::{RunningScan, RunningScanHandle};
 
 /// Allows starting, stopping and managing the results of new scans.

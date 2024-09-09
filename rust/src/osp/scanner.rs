@@ -7,8 +7,11 @@
 //!The scanner is used in openvasd to control scans.
 use std::{path::PathBuf, time::Duration};
 
+use crate::models::{
+    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
+    Scan,
+};
 use async_trait::async_trait;
-use models::scanner::{ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper};
 
 #[derive(Debug, Clone)]
 /// OSPD wrapper, is used to utilize ospd
@@ -25,48 +28,48 @@ impl Scanner {
         Self { socket, r_timeout }
     }
 
-    fn check_socket(&self) -> Result<PathBuf, models::scanner::Error> {
+    fn check_socket(&self) -> Result<PathBuf, Error> {
         if !self.socket.exists() {
-            return Err(models::scanner::Error::Unexpected(format!(
+            return Err(Error::Unexpected(format!(
                 "OSPD socket {} does not exist.",
                 self.socket.display()
             )));
         }
         Ok(self.socket.clone())
     }
-    async fn spawn_blocking<F, R, E>(&self, f: F) -> Result<R, models::scanner::Error>
+    async fn spawn_blocking<F, R, E>(&self, f: F) -> Result<R, Error>
     where
         F: FnOnce(PathBuf) -> Result<R, E> + Send + 'static,
         R: Send + 'static,
-        E: Into<models::scanner::Error> + Send + 'static,
+        E: Into<Error> + Send + 'static,
     {
         let socket = self.check_socket()?;
         tokio::task::spawn_blocking(move || f(socket).map_err(Into::into))
             .await
-            .map_err(|_| models::scanner::Error::Poisoned)?
+            .map_err(|_| Error::Poisoned)?
     }
 }
 
 #[async_trait]
 impl ScanStarter for Scanner {
-    async fn start_scan(&self, scan: models::Scan) -> Result<(), models::scanner::Error> {
+    async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
             super::start_scan(socket, rtimeout, &scan)
                 .map(|_| ())
-                .map_err(models::scanner::Error::from)
+                .map_err(Error::from)
         })
         .await
     }
 
-    async fn can_start_scan(&self, _: &models::Scan) -> bool {
+    async fn can_start_scan(&self, _: &Scan) -> bool {
         true
     }
 }
 
 #[async_trait]
 impl ScanStopper for Scanner {
-    async fn stop_scan<I>(&self, id: I) -> Result<(), models::scanner::Error>
+    async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
     {
@@ -74,7 +77,7 @@ impl ScanStopper for Scanner {
         self.spawn_blocking(move |socket| {
             super::stop_scan(socket, rtimeout, id)
                 .map(|_| ())
-                .map_err(models::scanner::Error::from)
+                .map_err(Error::from)
         })
         .await
     }
@@ -82,7 +85,7 @@ impl ScanStopper for Scanner {
 
 #[async_trait]
 impl ScanDeleter for Scanner {
-    async fn delete_scan<I>(&self, id: I) -> Result<(), models::scanner::Error>
+    async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
     {
@@ -90,7 +93,7 @@ impl ScanDeleter for Scanner {
         self.spawn_blocking(move |socket| {
             super::delete_scan(socket, rtimeout, id)
                 .map(|_| ())
-                .map_err(models::scanner::Error::from)
+                .map_err(Error::from)
         })
         .await
     }
@@ -98,7 +101,7 @@ impl ScanDeleter for Scanner {
 
 #[async_trait]
 impl ScanResultFetcher for Scanner {
-    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, models::scanner::Error>
+    async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,
     {
@@ -110,7 +113,7 @@ impl ScanResultFetcher for Scanner {
                     status: r.clone().into(),
                     results: r.into(),
                 })
-                .map_err(models::scanner::Error::from)
+                .map_err(Error::from)
         })
         .await
     }

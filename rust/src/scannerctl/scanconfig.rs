@@ -6,6 +6,7 @@ use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
+use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
 use scannerlib::storage::{ContextKey, DefaultDispatcher, Retriever, StorageError};
 use serde::Deserialize;
 
@@ -72,7 +73,7 @@ async fn execute(
                 kind: CliErrorKind::Corrupt(format!("{e:?}")),
             })?
         } else {
-            models::Scan::default()
+            Scan::default()
         }
     };
     let feed = match feed {
@@ -126,12 +127,12 @@ struct PortRange {
 }
 
 impl PortRange {
-    fn as_port_range(&self) -> models::PortRange {
+    fn as_port_range(&self) -> scannerlib::models::PortRange {
         let end = match self.end {
             0 => None,
             _ => Some(self.end),
         };
-        models::PortRange {
+        scannerlib::models::PortRange {
             start: self.start,
             end,
         }
@@ -153,7 +154,7 @@ struct PortList {
 }
 
 impl PortList {
-    fn as_port_list(&self) -> Vec<models::Port> {
+    fn as_port_list(&self) -> Vec<Port> {
         let mut tcp = vec![];
         let mut udp = vec![];
         let mut none = vec![];
@@ -165,15 +166,15 @@ impl PortList {
             }
         }
         vec![
-            models::Port {
-                protocol: Some(models::Protocol::TCP),
+            Port {
+                protocol: Some(Protocol::TCP),
                 range: tcp,
             },
-            models::Port {
-                protocol: Some(models::Protocol::UDP),
+            Port {
+                protocol: Some(Protocol::UDP),
                 range: udp,
             },
-            models::Port {
+            Port {
                 protocol: None,
                 range: none,
             },
@@ -208,7 +209,7 @@ impl From<StorageError> for Error {
 impl std::error::Error for Error {}
 
 /// Parse a port list from a string.
-pub fn parse_portlist<R>(pl: R) -> Result<Vec<models::Port>, Error>
+pub fn parse_portlist<R>(pl: R) -> Result<Vec<Port>, Error>
 where
     R: BufRead,
 {
@@ -273,11 +274,7 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-pub fn parse_vts<R>(
-    sc: R,
-    retriever: &dyn Retriever,
-    vts: &[models::VT],
-) -> Result<Vec<models::VT>, Error>
+pub fn parse_vts<R>(sc: R, retriever: &dyn Retriever, vts: &[VT]) -> Result<Vec<VT>, Error>
 where
     R: BufRead,
 {
@@ -290,23 +287,23 @@ where
         result.comment.as_deref().unwrap_or(""),
         &result.preferences.preference.len()
     );
-    let preference_lookup: HashMap<String, Vec<models::Parameter>> = result
+    let preference_lookup: HashMap<String, Vec<Parameter>> = result
         .preferences
         .preference
         .iter()
         .map(|p| {
             (
                 p.nvt.oid.clone(),
-                vec![models::Parameter {
+                vec![Parameter {
                     id: p.id,
                     value: p.value.clone(),
                 }],
             )
         })
         .collect();
-    let oid_to_vt = |oid: &String| -> Result<models::VT, Error> {
+    let oid_to_vt = |oid: &String| -> Result<VT, Error> {
         let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
-        Ok(models::VT {
+        Ok(VT {
             oid: oid.clone(),
             parameters,
         })
@@ -417,9 +414,9 @@ mod tests {
 
         let result = super::parse_portlist(pl.as_bytes()).unwrap();
         assert_eq!(result.len(), 3);
-        assert_eq!(result[0].protocol, Some(models::Protocol::TCP));
+        assert_eq!(result[0].protocol, Some(scannerlib::models::Protocol::TCP));
         assert_eq!(result[0].range.len(), 2);
-        assert_eq!(result[1].protocol, Some(models::Protocol::UDP));
+        assert_eq!(result[1].protocol, Some(scannerlib::models::Protocol::UDP));
         assert_eq!(result[1].range.len(), 1);
         assert_eq!(result[2].protocol, None);
         assert_eq!(result[2].range.len(), 1);
@@ -498,7 +495,7 @@ mod tests {
         add_product_detection("2");
         add_product_detection("4");
         add_product_detection("5");
-        let exists = vec![models::VT {
+        let exists = vec![scannerlib::models::VT {
             oid: "1".to_string(),
             parameters: vec![],
         }];

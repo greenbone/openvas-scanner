@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::Specifier;
+use crate::models::Specifier;
 
 use super::port::Protocol;
 

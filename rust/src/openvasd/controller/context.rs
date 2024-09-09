@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
 
-use models::scanner::{
+use scannerlib::models::scanner::{
     Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
 };
 
@@ -140,7 +140,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where
-        S: models::scanner::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: scannerlib::models::scanner::Scanner + 'static + std::marker::Send + std::marker::Sync,
     {
         let Self {
             feed_config,
@@ -250,11 +250,11 @@ pub struct NoOpScanner;
 
 #[async_trait]
 impl ScanStarter for NoOpScanner {
-    async fn start_scan(&self, _: models::Scan) -> Result<(), Error> {
+    async fn start_scan(&self, _: scannerlib::models::Scan) -> Result<(), Error> {
         Ok(())
     }
 
-    async fn can_start_scan(&self, _: &models::Scan) -> bool {
+    async fn can_start_scan(&self, _: &scannerlib::models::Scan) -> bool {
         true
     }
 }

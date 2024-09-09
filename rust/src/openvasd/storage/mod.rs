@@ -6,9 +6,12 @@ pub mod file;
 pub mod inmemory;
 pub mod redis;
 pub use scannerlib::storage::Storage as NaslStorage;
-use scannerlib::storage::{
-    item::Nvt, ContextKey, DefaultDispatcher, Dispatcher, Field, FieldKeyResult, Kb, Remover,
-    Retrieve, Retriever, StorageError,
+use scannerlib::{
+    models::{self, Scan, Status, VulnerabilityData},
+    storage::{
+        item::Nvt, ContextKey, DefaultDispatcher, Dispatcher, Field, FieldKeyResult, Kb, Remover,
+        Retrieve, Retriever, StorageError,
+    },
 };
 
 use std::{
@@ -18,7 +21,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use models::scanner::ScanResults;
+use scannerlib::models::scanner::ScanResults;
 
 use crate::{config::Config, controller::ClientHash, crypt};
 use scannerlib::{
@@ -101,16 +104,16 @@ pub trait ScanIDClientMapper {
 /// The main usage of this trait is in the controller and when transforming a scan to a osp
 pub trait ProgressGetter {
     /// Returns the scan.
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error>;
+    async fn get_scan(&self, id: &str) -> Result<(Scan, Status), Error>;
     /// Returns the scan with dcecrypted passwords.
     ///
     /// This method should only be used when the password is required. E.g.
     /// when transforming a scan to a osp command.
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error>;
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(Scan, Status), Error>;
     /// Returns all scans.
     async fn get_scan_ids(&self) -> Result<Vec<String>, Error>;
     /// Returns the status of a scan.
-    async fn get_status(&self, id: &str) -> Result<models::Status, Error>;
+    async fn get_status(&self, id: &str) -> Result<Status, Error>;
     /// Returns the results of a scan as json bytes.
     ///
     /// OpenVASD just stores to results without processing them therefore we
@@ -206,13 +209,13 @@ pub trait NVTStorer {
 /// The main usage of this trait is in the controller and when a user inserts or removes a scan.
 pub trait ScanStorer {
     /// Inserts a scan.
-    async fn insert_scan(&self, t: models::Scan) -> Result<(), Error>;
+    async fn insert_scan(&self, t: Scan) -> Result<(), Error>;
     /// Removes a scan.
     async fn remove_scan(&self, id: &str) -> Result<(), Error>;
     /// Updates a status of a scan.
     ///
     /// This is required when a scan is started or stopped.
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error>;
+    async fn update_status(&self, id: &str, status: Status) -> Result<(), Error>;
 }
 
 #[async_trait]
@@ -237,11 +240,11 @@ impl<T> ProgressGetter for Arc<T>
 where
     T: ProgressGetter + Send + Sync,
 {
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         self.as_ref().get_scan(id).await
     }
 
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         self.as_ref().get_decrypted_scan(id).await
     }
 
@@ -249,7 +252,7 @@ where
         self.as_ref().get_scan_ids().await
     }
 
-    async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
+    async fn get_status(&self, id: &str) -> Result<Status, Error> {
         self.as_ref().get_status(id).await
     }
 
@@ -268,14 +271,14 @@ impl<T> ScanStorer for Arc<T>
 where
     T: ScanStorer + Send + Sync,
 {
-    async fn insert_scan(&self, t: models::Scan) -> Result<(), Error> {
+    async fn insert_scan(&self, t: Scan) -> Result<(), Error> {
         self.as_ref().insert_scan(t).await
     }
     async fn remove_scan(&self, id: &str) -> Result<(), Error> {
         self.as_ref().remove_scan(id).await
     }
 
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
+    async fn update_status(&self, id: &str, status: Status) -> Result<(), Error> {
         self.as_ref().update_status(id, status).await
     }
 }
@@ -374,7 +377,7 @@ async fn update_notus_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<
             let advisories = advisories_files.load_advisory(filename)?;
 
             for adv in advisories.advisories {
-                let data = models::VulnerabilityData {
+                let data = VulnerabilityData {
                     adv,
                     family: advisories.family.clone(),
                     filename: filename.to_owned(),
@@ -548,10 +551,10 @@ impl<T> ProgressGetter for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
-    async fn get_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         self.0.get_scan(id).await
     }
-    async fn get_decrypted_scan(&self, id: &str) -> Result<(models::Scan, models::Status), Error> {
+    async fn get_decrypted_scan(&self, id: &str) -> Result<(Scan, Status), Error> {
         self.0.get_decrypted_scan(id).await
     }
 
@@ -559,7 +562,7 @@ where
         self.0.get_scan_ids().await
     }
     /// Returns the status of a scan.
-    async fn get_status(&self, id: &str) -> Result<models::Status, Error> {
+    async fn get_status(&self, id: &str) -> Result<Status, Error> {
         self.0.get_status(id).await
     }
     /// Returns the results of a scan as json bytes.
@@ -580,13 +583,13 @@ impl<T> ScanStorer for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
-    async fn insert_scan(&self, t: models::Scan) -> Result<(), Error> {
+    async fn insert_scan(&self, t: Scan) -> Result<(), Error> {
         self.0.insert_scan(t).await
     }
     async fn remove_scan(&self, id: &str) -> Result<(), Error> {
         self.0.remove_scan(id).await
     }
-    async fn update_status(&self, id: &str, status: models::Status) -> Result<(), Error> {
+    async fn update_status(&self, id: &str, status: Status) -> Result<(), Error> {
         self.0.update_status(id, status).await
     }
 }

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod config;
-use models::{Phase, Result as ScanResult, Status};
 use reqwest::header;
+use scannerlib::models::{Phase, Result as ScanResult, Status};
 
 use std::collections::HashMap;
 use std::fs::File;

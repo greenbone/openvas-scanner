@@ -4,7 +4,7 @@
 
 #[cfg(feature = "smoketest")]
 pub mod tests {
-    use models::Phase;
+    use scannerlib::models::Phase;
     use smoketest::*;
     //use crate::tests::*;
     use smoketest::config::Args;

@@ -8,8 +8,10 @@ use std::marker::{Send, Sync};
 
 use config::{Config, Mode, ScannerType};
 use controller::{Context, ContextBuilder};
-use models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner};
 use notus::NotusWrapper;
+use scannerlib::models::scanner::{
+    ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
+};
 use scannerlib::nasl::interpreter::ScannerStackWithStorage;
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};

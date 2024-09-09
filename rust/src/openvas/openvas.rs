@@ -9,14 +9,17 @@ use super::{
     pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
-use crate::storage::redis::{NameSpaceSelector, RedisCtx};
-use async_trait::async_trait;
-use models::{
+use crate::models::{
     scanner::{
         Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
     },
-    HostInfoBuilder, Phase, Scan, Status,
+    HostInfoBuilder, Phase, Status,
 };
+use crate::{
+    models::{self, resources::check::Checker, Scan},
+    storage::redis::{NameSpaceSelector, RedisCtx},
+};
+use async_trait::async_trait;
 use std::{
     collections::HashMap,
     fmt::Display,
@@ -31,7 +34,7 @@ pub struct Scanner {
     running: Mutex<HashMap<String, (Child, u32)>>,
     sudo: bool,
     redis_socket: String,
-    resource_checker: Option<models::resources::check::Checker>,
+    resource_checker: Option<Checker>,
 }
 
 impl From<OpenvasError> for ScanError {
@@ -94,9 +97,7 @@ impl Scanner {
             running: Default::default(),
             sudo,
             redis_socket: url,
-            resource_checker: Some(models::resources::check::Checker::new_relative_memory(
-                memory, None,
-            )),
+            resource_checker: Some(Checker::new_relative_memory(memory, None)),
         }
     }
 
@@ -105,7 +106,7 @@ impl Scanner {
             running: Default::default(),
             sudo,
             redis_socket: url,
-            resource_checker: Some(models::resources::check::Checker::new(memory, cpu)),
+            resource_checker: Some(Checker::new(memory, cpu)),
         }
     }
 
@@ -180,7 +181,7 @@ impl ScanStarter for Scanner {
         return Ok(());
     }
 
-    async fn can_start_scan(&self, _: &models::Scan) -> bool {
+    async fn can_start_scan(&self, _: &Scan) -> bool {
         self.resource_checker
             .as_ref()
             .map(|v| v.in_boundaries())

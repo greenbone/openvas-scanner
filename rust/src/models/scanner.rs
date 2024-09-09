@@ -5,7 +5,7 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::{Scan, Status};
+use super::{Scan, Status};
 
 /// Contains results of a scan as well as identification factors and statuses.
 ///
@@ -19,7 +19,7 @@ use crate::{Scan, Status};
 pub struct ScanResults {
     pub id: String,
     pub status: Status,
-    pub results: Vec<crate::Result>,
+    pub results: Vec<super::Result>,
 }
 
 /// Starts a scan
@@ -89,16 +89,6 @@ impl Default for Lambda {
 }
 
 /// Builds a Lambda scanner implementation.
-///
-/// Usage:
-/// ```
-/// use models::scanner::Error as ScanError;
-/// use models::scanner::LambdaBuilder;
-///
-/// let builder = LambdaBuilder::default().with_start(|_|
-/// Err(ScanError::Unexpected("meh".to_string())));
-/// let scanner = builder.build();
-/// ```
 pub struct LambdaBuilder {
     lambda: Lambda,
 }

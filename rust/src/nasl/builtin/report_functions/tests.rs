@@ -4,9 +4,12 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::test_prelude::*;
+    use crate::{
+        models::{self, Protocol, ResultType},
+        nasl::test_prelude::*,
+    };
 
-    fn verify(function: &str, result_type: models::ResultType) {
+    fn verify(function: &str, result_type: ResultType) {
         let mut t = TestBuilder::default();
         t.run_all(format!(
             r###"
@@ -45,31 +48,31 @@ mod tests {
         };
 
         let udp = get_result(0);
-        let expected = create_expected(0, Some(12), models::Protocol::UDP);
+        let expected = create_expected(0, Some(12), Protocol::UDP);
         assert_eq!(udp, expected);
         let tcp = get_result(1);
-        let expected = create_expected(1, Some(12), models::Protocol::TCP);
+        let expected = create_expected(1, Some(12), Protocol::TCP);
         assert_eq!(tcp, expected);
         let defaults_to_tcp = get_result(2);
-        let expected = create_expected(2, Some(12), models::Protocol::TCP);
+        let expected = create_expected(2, Some(12), Protocol::TCP);
         assert_eq!(defaults_to_tcp, expected);
         let default = get_result(3);
-        let expected = create_expected(3, None, models::Protocol::TCP);
+        let expected = create_expected(3, None, Protocol::TCP);
         assert_eq!(default, expected);
     }
 
     #[test]
     fn log_message() {
-        verify("log_message", models::ResultType::Log)
+        verify("log_message", ResultType::Log)
     }
 
     #[test]
     fn security_message() {
-        verify("security_message", models::ResultType::Alarm)
+        verify("security_message", ResultType::Alarm)
     }
 
     #[test]
     fn error_message() {
-        verify("error_message", models::ResultType::Error)
+        verify("error_message", ResultType::Error)
     }
 }

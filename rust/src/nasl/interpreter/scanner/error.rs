@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use models::Host;
+use crate::models::{Host, Protocol};
 
 use crate::nasl::interpreter::InterpretError;
 
@@ -20,7 +20,7 @@ pub enum ExecuteError {
     NotFound(#[from] crate::nasl::syntax::LoadError),
     #[error("unable to handle parameter: {0}")]
     /// The parameter could not be processed
-    Parameter(models::Parameter),
+    Parameter(crate::models::Parameter),
 }
 
 #[derive(Debug, Clone)]
@@ -30,7 +30,7 @@ pub enum ScriptResultKind {
     /// call
     ReturnCode(i64),
     /// Is missing a port
-    MissingPort(models::Protocol, String),
+    MissingPort(Protocol, String),
     /// Script did not run because an excluded key is set
     ContainsExcludedKey(String),
     /// Script did not run because of missing required keys

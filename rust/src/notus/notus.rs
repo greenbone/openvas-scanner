@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use models::{NotusResults, VulnerablePackage};
+use crate::models::{NotusResults, VulnerablePackage};
 
 use crate::feed::VerifyError;
 

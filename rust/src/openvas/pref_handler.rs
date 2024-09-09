@@ -4,8 +4,10 @@
 
 use std::collections::HashMap;
 
+use crate::models::{
+    ports_to_openvas_port_list, AliveTestMethods, CredentialType, Scan, Service, VT,
+};
 use crate::storage::redis::dberror::RedisStorageResult;
-use models::{ports_to_openvas_port_list, AliveTestMethods, CredentialType, Scan, Service, VT};
 
 use super::cmd;
 use super::openvas_redis::{KbAccess, VtHelper};
@@ -534,7 +536,9 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use models::{AliveTestMethods, Credential, Port, PortRange, Scan};
+    use crate::models::{
+        AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
+    };
 
     use super::PreferenceHandler;
     use crate::openvas::openvas_redis::{FakeRedis, KbAccess};
@@ -547,9 +551,9 @@ mod tests {
         };
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
         scan.target.credentials = vec![Credential {
-            service: models::Service::SSH,
+            service: Service::SSH,
             port: Some(22),
-            credential_type: models::CredentialType::UP {
+            credential_type: CredentialType::UP {
                 username: "user".to_string(),
                 password: "pass".to_string(),
                 privilege: None,
@@ -557,7 +561,7 @@ mod tests {
         }];
         scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
         scan.target.ports = vec![Port {
-            protocol: Some(models::Protocol::TCP),
+            protocol: Some(Protocol::TCP),
             range: vec![
                 PortRange {
                     start: 22,

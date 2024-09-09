@@ -7,6 +7,7 @@ use std::{fs, path::PathBuf};
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
+use scannerlib::models::Scan;
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::nasl::{
     interpreter::{
@@ -34,7 +35,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 
 async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
     let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
-    let scan: models::Scan = if stdin {
+    let scan: Scan = if stdin {
         tracing::debug!("reading scan config from stdin");
         serde_json::from_reader(std::io::stdin()).map_err(|e| CliError {
             filename: "".to_string(),

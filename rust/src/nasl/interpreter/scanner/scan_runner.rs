@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::models::{Host, HostInfo, Scan};
 use crate::nasl::utils::Executor;
 use futures::{stream, Stream};
-use models::{Host, HostInfo, Scan};
 
 use crate::nasl::interpreter::scanner::ScannerStack;
 use crate::nasl::interpreter::scheduling::{ConcurrentVT, VTError};
@@ -39,7 +39,7 @@ fn all_positions(hosts: Vec<Host>, vts: Vec<ConcurrentVT>) -> impl Iterator<Item
 /// necessary instructions. In order to have control over the scan (such as
 /// starting and stopping it), use `RunningScan` instead.
 pub struct ScanRunner<'a, S: ScannerStack> {
-    scan: &'a models::Scan,
+    scan: &'a Scan,
     storage: &'a S::Storage,
     loader: &'a S::Loader,
     executor: &'a Executor,
@@ -113,6 +113,10 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 
 #[cfg(test)]
 pub(super) mod tests {
+    use crate::models::Protocol;
+    use crate::models::Scan;
+    use crate::models::Target;
+    use crate::models::VT;
     use crate::nasl::syntax::NaslValue;
     use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
@@ -139,10 +143,6 @@ pub(super) mod tests {
     use crate::storage::Retrieve;
     use crate::storage::Retriever;
     use futures::StreamExt;
-    use models::Protocol;
-    use models::Scan;
-    use models::Target;
-    use models::VT;
 
     pub fn only_success() -> [(String, Nvt); 3] {
         [
