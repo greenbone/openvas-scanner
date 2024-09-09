@@ -9,6 +9,7 @@ mod cryptographic;
 mod description;
 mod host;
 mod http;
+mod isotime;
 mod knowledge_base;
 mod misc;
 mod network;
@@ -44,7 +45,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(network::network::Network)
         .add_set(regex::RegularExpressions)
         .add_set(cryptographic::Cryptographic)
-        .add_set(description::Description);
+        .add_set(description::Description)
+        .add_set(isotime::NaslIsotime);
 
     #[cfg(feature = "nasl-builtin-ssh")]
     executor.add_set(ssh::Ssh::default());
