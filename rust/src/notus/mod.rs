@@ -8,6 +8,7 @@ pub mod loader;
 pub mod packages;
 
 pub mod error;
+#[allow(clippy::module_inception)]
 pub mod notus;
 pub mod vts;
 

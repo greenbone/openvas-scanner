@@ -5,6 +5,7 @@
 pub mod cmd;
 pub mod config;
 pub mod error;
+#[allow(clippy::module_inception)]
 pub mod openvas;
 pub mod openvas_redis;
 pub mod pref_handler;

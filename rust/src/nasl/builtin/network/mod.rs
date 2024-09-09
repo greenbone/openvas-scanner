@@ -8,6 +8,7 @@ use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::{Context, FunctionErrorKind};
 use crate::storage::{Field, Retrieve};
 
+#[allow(clippy::module_inception)]
 pub mod network;
 pub mod network_utils;
 pub mod socket;

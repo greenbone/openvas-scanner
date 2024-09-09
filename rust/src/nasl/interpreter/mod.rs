@@ -11,6 +11,7 @@ mod call;
 mod code_interpreter;
 mod declare;
 mod include;
+#[allow(clippy::module_inception)]
 mod interpreter;
 mod loop_extension;
 mod operator;
