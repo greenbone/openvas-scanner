@@ -13,6 +13,7 @@ use nasl_interpreter::{FSPluginLoader, ScannerStackWithStorage};
 use notus::NotusWrapper;
 use openvas::cmd;
 use storage::{FromConfigAndFeeds, Storage};
+use tls::tls_config;
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -117,6 +118,7 @@ where
         .feed_config(config.feed.clone())
         .await
         .scanner(sh)
+        .tls_config(tls_config(config).unwrap_or(None))
         .api_key(config.endpoints.key.clone())
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
