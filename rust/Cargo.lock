@@ -1772,6 +1772,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 
 [[package]]
+name = "libgcrypt-sys"
+version = "0.1.0"
+
+[[package]]
 name = "libloading"
 version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1961,6 +1965,14 @@ name = "mirai-annotations"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9be0862c1b3f26a88803c4a49de6889c10e608b3ee9344e6ef5b45fb37ad3d1"
+
+[[package]]
+name = "nasl-c-lib"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "libgcrypt-sys",
+]
 
 [[package]]
 name = "nasl-function-proc-macro"
@@ -2859,6 +2871,7 @@ dependencies = [
  "md-5",
  "md2",
  "md4",
+ "nasl-c-lib",
  "nasl-function-proc-macro",
  "num_cpus",
  "pbkdf2",

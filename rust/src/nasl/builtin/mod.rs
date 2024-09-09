@@ -73,7 +73,7 @@ pub fn nasl_std_variables() -> NaslVarRegister {
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
-    builder.push_register(nasl_builtin_raw_ip::RawIp)
+    builder.push_register(raw_ip::RawIp)
 }
 
 #[cfg(not(feature = "nasl-builtin-raw-ip"))]

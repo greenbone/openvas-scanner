@@ -11,12 +11,11 @@ use std::{
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost};
 
+use super::super::host::get_host_ip;
+use crate::nasl::builtin::misc::random_impl;
+use crate::nasl::prelude::*;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{
-    function_set, Context, ContextType, FunctionErrorKind, NaslVars, Register,
-};
-use nasl_builtin_host::get_host_ip;
-use nasl_builtin_misc::random_impl;
+use crate::nasl::utils::NaslVars;
 
 use pcap::Capture;
 use pnet::packet::{

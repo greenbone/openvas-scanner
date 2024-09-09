@@ -8,8 +8,8 @@
 //!
 mod sessions;
 
+use crate::nasl::prelude::*;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{function_set, Context, ContextType, FunctionErrorKind, Register};
 use core::str;
 use libssh_rs::{AuthMethods, AuthStatus, Channel, LogLevel, Session, SshKey, SshOption};
 use sessions::SshSession;

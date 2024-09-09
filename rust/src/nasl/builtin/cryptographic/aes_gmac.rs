@@ -12,7 +12,7 @@ fn aes_gmac(
     register: &crate::nasl::utils::Register,
     _: &crate::nasl::utils::Context,
 ) -> Result<crate::nasl::syntax::NaslValue, crate::nasl::utils::FunctionErrorKind> {
-    use crate::{get_data, get_iv, get_key};
+    use super::{get_data, get_iv, get_key};
     use nasl_c_lib::cryptographic::mac::aes_gmac;
 
     let key = get_key(register)?;

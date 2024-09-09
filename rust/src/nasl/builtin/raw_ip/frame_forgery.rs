@@ -4,7 +4,6 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use crate::nasl::utils::{function_set, NaslVars};
 use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
@@ -12,13 +11,14 @@ use std::{net::Ipv4Addr, str::FromStr};
 
 use pcap::{Capture, Device};
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{error::FunctionErrorKind, Context, ContextType, Register};
-use nasl_builtin_host::get_host_ip;
+use super::super::host::get_host_ip;
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 
 use tracing::info;
+
+use crate::nasl::prelude::*;
+use crate::nasl::utils::NaslVars;
 
 /// Hardware type ethernet
 pub const ARPHRD_ETHER: u16 = 0x0001;
