@@ -123,6 +123,7 @@ pub struct FakeRedis {
 }
 
 impl FakeRedis {
+    #[cfg(test)]
     pub fn item_exists(&self, key: &str, value: &str) -> bool {
         let mut v: Vec<String> = Vec::new();
         if let Some(item) = self.data.get(key) {

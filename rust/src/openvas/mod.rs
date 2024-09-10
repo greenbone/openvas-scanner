@@ -3,11 +3,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod cmd;
-pub mod config;
-pub mod error;
+mod config;
+mod error;
 #[allow(clippy::module_inception)]
-pub mod openvas;
-pub mod openvas_redis;
-pub mod pref_handler;
-pub mod result_collector;
+mod openvas;
+mod openvas_redis;
+mod pref_handler;
+mod result_collector;
+
 pub use openvas::Scanner;
