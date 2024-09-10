@@ -13,6 +13,8 @@ use crate::models::{
 };
 use async_trait::async_trait;
 
+use super::connection::{delete_scan, get_delete_scan_results, start_scan, stop_scan};
+
 #[derive(Debug, Clone)]
 /// OSPD wrapper, is used to utilize ospd
 pub struct Scanner {
@@ -55,7 +57,7 @@ impl ScanStarter for Scanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            super::start_scan(socket, rtimeout, &scan)
+            start_scan(socket, rtimeout, &scan)
                 .map(|_| ())
                 .map_err(Error::from)
         })
@@ -75,7 +77,7 @@ impl ScanStopper for Scanner {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            super::stop_scan(socket, rtimeout, id)
+            stop_scan(socket, rtimeout, id)
                 .map(|_| ())
                 .map_err(Error::from)
         })
@@ -91,7 +93,7 @@ impl ScanDeleter for Scanner {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            super::delete_scan(socket, rtimeout, id)
+            delete_scan(socket, rtimeout, id)
                 .map(|_| ())
                 .map_err(Error::from)
         })
@@ -107,7 +109,7 @@ impl ScanResultFetcher for Scanner {
     {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
-            super::get_delete_scan_results(socket, rtimeout, id)
+            get_delete_scan_results(socket, rtimeout, id)
                 .map(|r| ScanResults {
                     id: r.clone().id,
                     status: r.clone().into(),

@@ -11,10 +11,11 @@ use std::{
 
 use crate::models::Scan;
 
+type ScanID = String;
+
 use super::{
-    commands::Error,
+    commands::{Error, ScanCommand},
     response::{self, Response},
-    ScanCommand, ScanID,
 };
 
 /// Sends a command to the unix socket and returns the response
@@ -34,23 +35,6 @@ pub fn send_command<T: AsRef<Path>>(
     let reader: BufReader<_> = BufReader::new(socket);
 
     quick_xml::de::from_reader(reader).map_err(|e| e.into())
-}
-
-/// Returns the scan information from OSPD
-pub fn get_scan<T: AsRef<Path>, I: AsRef<str>>(
-    address: T,
-    r_timeout: Option<Duration>,
-    scan_id: I,
-) -> Result<response::Scan, Error> {
-    let cmd = ScanCommand::Get(scan_id.as_ref());
-    let response = send_command(address, r_timeout, cmd)?;
-    match response {
-        Response::GetScans {
-            status: _,
-            scan: Some(scan),
-        } => Ok(scan),
-        _ => Err(Error::InvalidResponse(response.into())),
-    }
 }
 
 /// Returns the scan information from OSPD and deletes the results from it

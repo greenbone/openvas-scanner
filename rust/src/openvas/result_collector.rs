@@ -10,18 +10,15 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::osp::{ScanResult, StringF32};
+use crate::openvas::openvas_redis::{KbAccess, VtHelper};
+use crate::osp::{OspResultType, OspScanResult, StringF32};
 use crate::storage::redis::dberror::RedisStorageResult;
-use crate::{
-    openvas::openvas_redis::{KbAccess, VtHelper},
-    osp,
-};
 
 /// Structure to hold the results retrieve from redis main kb
 #[derive(Default, Debug, Clone)]
 pub struct Results {
     /// The list of results retrieve
-    pub results: Vec<ScanResult>,
+    pub results: Vec<OspScanResult>,
     /// Total amount of alive hosts found. This is sent once for scan, as it is the
     /// the alive host found by Boreas at the start of the scan.
     pub count_total: i64,
@@ -59,7 +56,7 @@ where
         let mut count_total = 0;
         let mut count_excluded = 0;
 
-        let mut scan_results: Vec<ScanResult> = Vec::new();
+        let mut scan_results: Vec<OspScanResult> = Vec::new();
         for result in ov_results.iter() {
             //result_type|||host ip|||hostname|||port|||OID|||value[|||uri]
             let res_fields: Vec<&str> = result.split("|||").collect();
@@ -116,8 +113,8 @@ where
             }
 
             if error_msg {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::Error,
+                scan_results.push(OspScanResult {
+                    result_type: OspResultType::Error,
                     host: current_host,
                     hostname: host_name,
                     port,
@@ -127,8 +124,8 @@ where
                     name: rname,
                 });
             } else if result_type == "LOG" {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::Log,
+                scan_results.push(OspScanResult {
+                    result_type: OspResultType::Log,
                     host: current_host,
                     hostname: host_name,
                     port,
@@ -138,8 +135,8 @@ where
                     name: rname,
                 });
             } else if result_type == "HOST_START" {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::HostStart,
+                scan_results.push(OspScanResult {
+                    result_type: OspResultType::HostStart,
                     host: current_host,
                     hostname: host_name,
                     port,
@@ -149,8 +146,8 @@ where
                     name: rname,
                 });
             } else if result_type == "HOST_END" {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::HostEnd,
+                scan_results.push(OspScanResult {
+                    result_type: OspResultType::HostEnd,
                     host: current_host,
                     hostname: host_name,
                     port,
@@ -160,8 +157,8 @@ where
                     name: rname,
                 });
             } else if result_type == "ALARM" {
-                scan_results.push(ScanResult {
-                    result_type: osp::ResultType::Alarm,
+                scan_results.push(OspScanResult {
+                    result_type: OspResultType::Alarm,
                     host: current_host,
                     hostname: host_name,
                     port,

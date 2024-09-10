@@ -18,6 +18,7 @@ pub enum ScanCommand<'a> {
     /// Stop a scan.
     Stop(&'a str),
     /// Get the status and results of a scan.
+    #[allow(unused)]
     Get(&'a str),
     /// Get the status and results of a scan and deletes results from OSPD.
     GetDelete(&'a str),

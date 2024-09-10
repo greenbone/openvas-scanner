@@ -8,20 +8,20 @@ mod tests {
 
     use crate::{
         models::Result,
-        osp::{Response, Scan, ScanStatus},
+        osp::{OspResponse, OspScan, OspScanStatus},
     };
 
-    fn load_response(filename: &str) -> Scan {
+    fn load_response(filename: &str) -> OspScan {
         let path = format!("data/osp/{filename}");
         let xml = read_to_string(path).unwrap();
-        let response: Response = quick_xml::de::from_str(&xml).unwrap();
+        let response: OspResponse = quick_xml::de::from_str(&xml).unwrap();
         response.try_into().unwrap()
     }
 
     #[test]
     fn finished() {
         let scan = load_response("response_finished.xml");
-        assert_eq!(scan.status, ScanStatus::Finished);
+        assert_eq!(scan.status, OspScanStatus::Finished);
         let results: Vec<Result> = scan.results.into();
         assert_eq!(results.len(), 113);
     }
@@ -29,11 +29,11 @@ mod tests {
     #[test]
     fn running() {
         let scan = load_response("response_running.xml");
-        assert_eq!(scan.status, ScanStatus::Running);
+        assert_eq!(scan.status, OspScanStatus::Running);
     }
     #[test]
     fn queued() {
         let scan = load_response("response_queued.xml");
-        assert_eq!(scan.status, ScanStatus::Queued);
+        assert_eq!(scan.status, OspScanStatus::Queued);
     }
 }
