@@ -12,9 +12,11 @@
 //! In order to create new sets of NASL functions, the `function_set!` macro is provided.
 mod nasl_function;
 
-use std::{collections::HashMap, future::Future};
+use std::collections::HashMap;
 
+use async_trait::async_trait;
 use nasl_function::{AsyncDoubleArgFn, AsyncTripleArgFn, NaslFunction};
+use tokio::sync::RwLock;
 
 use crate::nasl::prelude::*;
 
@@ -53,13 +55,12 @@ impl Executor {
         context: &Context<'_>,
         register: &Register,
     ) -> Option<NaslResult> {
-        let entry = self
-            .sets
-            .iter()
-            .filter_map(|set| set.exec(k, register, context))
-            .next()?;
-
-        Some(entry.await)
+        for set in self.sets.iter() {
+            if set.contains(k) {
+                return Some(set.exec(k, register, context).await);
+            }
+        }
+        None
     }
 
     pub fn contains(&self, k: &str) -> bool {
@@ -68,14 +69,14 @@ impl Executor {
 }
 
 pub struct StoredFunctionSet<State> {
-    state: State,
+    state: RwLock<State>,
     fns: HashMap<String, NaslFunction<State>>,
 }
 
 impl<State> StoredFunctionSet<State> {
     pub fn new(state: State) -> Self {
         Self {
-            state,
+            state: RwLock::new(state),
             fns: HashMap::new(),
         }
     }
@@ -94,6 +95,30 @@ impl<State> StoredFunctionSet<State> {
     pub fn sync_stateful(&mut self, k: &str, v: fn(&State, &Register, &Context) -> NaslResult) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStateful(v));
+    }
+
+    pub fn async_stateful_mut<F>(&mut self, k: &str, v: F)
+    where
+        F: for<'a> AsyncTripleArgFn<
+                &'a mut State,
+                &'a Register,
+                &'a Context<'a>,
+                Output = NaslResult,
+            > + Send
+            + Sync
+            + 'static,
+    {
+        self.fns
+            .insert(k.to_string(), NaslFunction::AsyncStatefulMut(Box::new(v)));
+    }
+
+    pub fn sync_stateful_mut(
+        &mut self,
+        k: &str,
+        v: fn(&mut State, &Register, &Context) -> NaslResult,
+    ) {
+        self.fns
+            .insert(k.to_string(), NaslFunction::SyncStatefulMut(v));
     }
 
     pub fn async_stateless<F>(&mut self, k: &str, v: F)
@@ -129,6 +154,8 @@ impl<State> StoredFunctionSet<State> {
                 // remove the ergonomics of the `function_set!` macro.
                 NaslFunction::AsyncStateful(_) => unimplemented!(),
                 NaslFunction::SyncStateful(_) => unimplemented!(),
+                NaslFunction::AsyncStatefulMut(_) => unimplemented!(),
+                NaslFunction::SyncStatefulMut(_) => unimplemented!(),
                 NaslFunction::AsyncStateless(f) => NaslFunction::AsyncStateless(f),
                 NaslFunction::SyncStateless(f) => NaslFunction::SyncStateless(f),
             };
@@ -143,35 +170,47 @@ impl<State> StoredFunctionSet<State> {
 /// (namely `StoredFunctionSet`), but this trait is nevertheless
 /// useful in order to store `StoredFunctionSet`s of different type
 /// within the `Executor`.
+#[async_trait]
 pub trait FunctionSet {
-    fn exec<'a>(
+    async fn exec<'a>(
         &'a self,
         k: &'a str,
         register: &'a Register,
         context: &'a Context<'_>,
-    ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>>;
+    ) -> NaslResult;
 
     fn contains(&self, k: &str) -> bool;
 }
 
-impl<State: Sync> FunctionSet for StoredFunctionSet<State> {
-    fn exec<'a>(
+#[async_trait]
+impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
+    async fn exec<'a>(
         &'a self,
         k: &'a str,
         register: &'a Register,
         context: &'a Context<'_>,
-    ) -> Option<Box<dyn Future<Output = NaslResult> + Send + Unpin + 'a>> {
-        let f = self.fns.get(k)?;
-        Some(match f {
+    ) -> NaslResult {
+        let f = &self.fns[k];
+        match f {
             NaslFunction::AsyncStateful(f) => {
-                Box::new(f.call_stateful(&self.state, register, context))
+                let state = self.state.read().await;
+                f.call_stateful(&state, register, context).await
             }
             NaslFunction::SyncStateful(f) => {
-                Box::new(Box::pin(async { f(&self.state, register, context) }))
+                let state = self.state.read().await;
+                f(&state, register, context)
             }
-            NaslFunction::AsyncStateless(f) => Box::new(f.call_stateless(register, context)),
-            NaslFunction::SyncStateless(f) => Box::new(Box::pin(async { f(register, context) })),
-        })
+            NaslFunction::AsyncStatefulMut(f) => {
+                let mut state = self.state.write().await;
+                f.call_stateful(&mut state, register, context).await
+            }
+            NaslFunction::SyncStatefulMut(f) => {
+                let mut state = self.state.write().await;
+                f(&mut state, register, context)
+            }
+            NaslFunction::AsyncStateless(f) => f.call_stateless(register, context).await,
+            NaslFunction::SyncStateless(f) => f(register, context),
+        }
     }
 
     fn contains(&self, k: &str) -> bool {
