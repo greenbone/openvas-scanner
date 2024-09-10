@@ -10,11 +10,12 @@ pub mod redis;
 
 pub mod item;
 mod retrieve;
-pub mod time;
+mod time;
 pub mod types;
 
-use item::NVTField;
 pub use retrieve::*;
+
+use item::NVTField;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
@@ -29,12 +30,13 @@ use crate::models::{self, VulnerabilityData};
 /// The identifier of a Scan
 ///
 /// Either created when creating a new scan or given via models::Scan#scan_id.
-pub type ScanID = String;
+type ScanID = String;
+
 ///  The target of a scan run
 ///
 ///  This is necessary for target specific data, e.g. KB items that should be deleted when the
 ///  target is not scanned anymore.
-pub type Target = Option<String>;
+type Target = Option<String>;
 
 /// Is a key used by a Storage to find data within a certain scope.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

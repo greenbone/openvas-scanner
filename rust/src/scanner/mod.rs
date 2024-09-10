@@ -19,12 +19,12 @@ mod vt_runner;
 
 pub use error::ExecuteError;
 pub use scan_runner::ScanRunner;
-pub use scanner_stack::DefaultScannerStack;
 pub use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
-use tokio::sync::RwLock;
 
+use async_trait::async_trait;
 use std::{collections::HashMap, path::Path, sync::Arc};
+use tokio::sync::RwLock;
 
 use crate::models::{
     scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
@@ -36,8 +36,8 @@ use crate::nasl::utils::Executor;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Storage;
 use crate::storage::{ContextKey, DefaultDispatcher};
-use async_trait::async_trait;
 use running_scan::{RunningScan, RunningScanHandle};
+use scanner_stack::DefaultScannerStack;
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {

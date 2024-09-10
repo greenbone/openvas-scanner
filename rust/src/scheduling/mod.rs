@@ -15,6 +15,7 @@ use crate::{
     },
 };
 use thiserror::Error;
+
 pub use wave::WaveExecutionPlan;
 
 /// Error cases for VTFetcher
@@ -124,7 +125,7 @@ pub trait ExecutionPlaner {
 }
 
 /// Contains the Nvt and maybe parameter required to be executed
-pub type RuntimeVT = (Nvt, Option<Vec<Parameter>>);
+type RuntimeVT = (Nvt, Option<Vec<Parameter>>);
 
 /// Is the result of the Iterator if ExecutionPlaner
 ///
