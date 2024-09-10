@@ -13,7 +13,7 @@ use scannerlib::models::scanner::{
     ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
 };
 use scannerlib::nasl::FSPluginLoader;
-use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
+use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
 use scannerlib::scanner::ScannerStackWithStorage;

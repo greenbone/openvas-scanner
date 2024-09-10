@@ -27,7 +27,7 @@ use crate::{config::Config, controller::ClientHash, crypt};
 use scannerlib::{
     feed::{self, HashSumNameLoader, Update},
     nasl::FSPluginLoader,
-    notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
+    notus::{AdvisoryLoader, HashsumAdvisoryLoader},
 };
 
 #[derive(Debug)]

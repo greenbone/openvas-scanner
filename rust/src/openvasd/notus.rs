@@ -6,14 +6,14 @@ use async_trait::async_trait;
 use models::NotusResults;
 use scannerlib::{
     models,
-    notus::{error::Error, loader::hashsum::HashsumProductLoader, notus::Notus},
+    notus::{HashsumProductLoader, Notus, NotusError},
 };
 use tokio::sync::RwLock;
 
 #[async_trait]
 pub trait NotusScanner {
-    async fn scan(&self, os: &str, packages: &[String]) -> Result<NotusResults, Error>;
-    async fn get_available_os(&self) -> Result<Vec<String>, Error>;
+    async fn scan(&self, os: &str, packages: &[String]) -> Result<NotusResults, NotusError>;
+    async fn get_available_os(&self) -> Result<Vec<String>, NotusError>;
 }
 
 #[derive(Debug)]
@@ -31,11 +31,11 @@ impl NotusWrapper {
 
 #[async_trait]
 impl NotusScanner for NotusWrapper {
-    async fn scan(&self, os: &str, packages: &[String]) -> Result<NotusResults, Error> {
+    async fn scan(&self, os: &str, packages: &[String]) -> Result<NotusResults, NotusError> {
         self.notus.write().await.scan(os, packages)
     }
 
-    async fn get_available_os(&self) -> Result<Vec<String>, Error> {
+    async fn get_available_os(&self) -> Result<Vec<String>, NotusError> {
         self.notus.read().await.get_available_os()
     }
 }

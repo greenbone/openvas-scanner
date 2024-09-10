@@ -120,8 +120,8 @@ impl From<serde_json::Error> for CliError {
     }
 }
 
-impl From<notus::error::Error> for CliError {
-    fn from(value: notus::error::Error) -> Self {
+impl From<notus::NotusError> for CliError {
+    fn from(value: notus::NotusError) -> Self {
         CliError {
             filename: Default::default(),
             kind: CliErrorKind::Corrupt(value.to_string()),

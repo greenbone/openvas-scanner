@@ -16,7 +16,7 @@ use scannerlib::storage::{item::PerItemDispatcher, Dispatcher, Field};
 use scannerlib::storage::{ContextKey, DefaultDispatcher, StorageError};
 use scannerlib::{
     feed,
-    notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
+    notus::{AdvisoryLoader, HashsumAdvisoryLoader},
 };
 use tokio::{sync::RwLock, task::JoinSet};
 use tracing::info;

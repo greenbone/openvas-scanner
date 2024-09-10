@@ -307,8 +307,8 @@ impl From<feed::UpdateError> for Error {
         Error::Storage(Box::new(value))
     }
 }
-impl From<notus::error::Error> for Error {
-    fn from(value: notus::error::Error) -> Self {
+impl From<notus::NotusError> for Error {
+    fn from(value: notus::NotusError) -> Self {
         Error::Storage(Box::new(value))
     }
 }

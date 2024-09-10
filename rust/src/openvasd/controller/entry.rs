@@ -13,7 +13,7 @@ use super::{context::Context, ClientIdentifier};
 use hyper::{Method, Request};
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use scannerlib::models::{scanner::*, Action, Phase, Scan, ScanAction};
-use scannerlib::notus;
+use scannerlib::notus::NotusError;
 
 use crate::{
     config,
@@ -288,10 +288,10 @@ where
                             Some(notus) => match notus.scan(&os, &packages).await {
                                 Ok(results) => Ok(ctx.response.ok(&results)),
                                 Err(err) => match err {
-                                    notus::error::Error::UnknownProduct(_) => {
+                                    NotusError::UnknownProduct(_) => {
                                         Ok(ctx.response.not_found("advisories", &os))
                                     }
-                                    notus::error::Error::PackageParseError(_) => {
+                                    NotusError::PackageParseError(_) => {
                                         Ok(ctx.response.bad_request(&format!("{err}")))
                                     }
                                     _ => Ok(ctx.response.internal_server_error(&err)),

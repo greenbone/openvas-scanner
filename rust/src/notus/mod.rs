@@ -4,13 +4,20 @@
 
 #![doc = include_str!("README.md")]
 
-pub mod loader;
-pub mod packages;
+mod loader;
+mod packages;
 
-pub mod error;
+mod error;
 #[allow(clippy::module_inception)]
-pub mod notus;
-pub mod vts;
+mod notus;
+mod vts;
 
 #[cfg(test)]
 mod tests;
+
+pub use error::Error as NotusError;
+pub use loader::fs::FSProductLoader;
+pub use loader::hashsum::HashsumAdvisoryLoader;
+pub use loader::hashsum::HashsumProductLoader;
+pub use loader::AdvisoryLoader;
+pub use notus::Notus;

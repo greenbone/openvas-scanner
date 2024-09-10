@@ -6,13 +6,11 @@ use std::path::PathBuf;
 
 use crate::{CliError, CliErrorKind};
 
+use scannerlib::feed;
 use scannerlib::models;
 use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
+use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::storage::{ContextKey, Dispatcher, Field};
-use scannerlib::{
-    feed,
-    notus::loader::{hashsum::HashsumAdvisoryLoader, AdvisoryLoader},
-};
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
