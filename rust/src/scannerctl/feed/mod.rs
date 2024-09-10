@@ -21,7 +21,7 @@ use scannerlib::{
     },
 };
 
-use scannerlib::feed::transpile::{self, FeedReplacer};
+use scannerlib::feed::{FeedReplacer, ReplaceCommand};
 use scannerlib::storage::{item::PerItemDispatcher, StorageError};
 
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
@@ -182,7 +182,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 
             #[derive(serde::Deserialize, serde::Serialize)]
             struct Wrapper {
-                cmds: Vec<transpile::ReplaceCommand>,
+                cmds: Vec<ReplaceCommand>,
             }
 
             let rules = std::fs::read_to_string(rules).unwrap();
