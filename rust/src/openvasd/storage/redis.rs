@@ -156,8 +156,8 @@ where
     }
 }
 
-impl From<redis::dberror::DbError> for super::Error {
-    fn from(value: redis::dberror::DbError) -> Self {
+impl From<redis::DbError> for super::Error {
+    fn from(value: redis::DbError) -> Self {
         super::Error::Storage(Box::new(value))
     }
 }

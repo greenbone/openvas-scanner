@@ -3,10 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::storage::item::Nvt;
-use crate::storage::redis::{
-    dberror::{DbError, RedisStorageResult},
-    RedisCtx, RedisGetNvt, RedisWrapper,
-};
+use crate::storage::redis::{DbError, RedisCtx, RedisGetNvt, RedisStorageResult, RedisWrapper};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, MutexGuard},

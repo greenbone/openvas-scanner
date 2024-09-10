@@ -12,7 +12,7 @@ use std::{
 
 use crate::openvas::openvas_redis::{KbAccess, VtHelper};
 use crate::osp::{OspResultType, OspScanResult, StringF32};
-use crate::storage::redis::dberror::RedisStorageResult;
+use crate::storage::redis::RedisStorageResult;
 
 /// Structure to hold the results retrieve from redis main kb
 #[derive(Default, Debug, Clone)]

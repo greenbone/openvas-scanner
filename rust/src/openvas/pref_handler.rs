@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use crate::models::{
     ports_to_openvas_port_list, AliveTestMethods, CredentialType, Scan, Service, VT,
 };
-use crate::storage::redis::dberror::RedisStorageResult;
+use crate::storage::redis::RedisStorageResult;
 
 use super::cmd;
 use super::openvas_redis::{KbAccess, VtHelper};
