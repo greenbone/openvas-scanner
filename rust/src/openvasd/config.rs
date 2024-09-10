@@ -422,8 +422,10 @@ impl Config {
                 clap::Arg::new("enable-get-scans")
                     .env("ENABLE_GET_SCANS")
                     .long("enable-get-scans")
-                    .action(ArgAction::SetTrue)
-                    .help("enable get scans endpoint"),
+                    .num_args(0..=1)
+                    .value_parser(clap::builder::BoolValueParser::new())
+                    .default_missing_value("true")
+                    .help("enable get scans endpoint. Default 'true'."),
             )
             .arg(
                 clap::Arg::new("api-key")
