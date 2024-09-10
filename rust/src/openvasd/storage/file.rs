@@ -16,9 +16,8 @@ use scannerlib::{
     models,
     storage::{
         file::{
-            base::{IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
-            crypto::ChaCha20IndexFileStorer,
-            serde::Serialization,
+            ChaCha20IndexFileStorer, Serialization,
+            {IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
         },
         item::Nvt,
         ContextKey, DefaultDispatcher, StorageError,
@@ -51,7 +50,7 @@ pub fn encrypted<P, K>(
 ) -> Result<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>, Error>
 where
     P: AsRef<Path>,
-    K: Into<scannerlib::storage::file::crypto::Key>,
+    K: Into<scannerlib::storage::file::Key>,
 {
     let ifs = IndexedFileStorer::init(path)?;
     let ifs = ChaCha20IndexFileStorer::new(ifs, key);
@@ -83,7 +82,7 @@ where
         from: Option<usize>,
         to: Option<usize>,
     ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
-        use scannerlib::storage::file::base::Range;
+        use scannerlib::storage::file::Range;
         let range = {
             match (from, to) {
                 (None, None) => Range::All,
@@ -333,12 +332,12 @@ where
         let storage = Arc::clone(&self.storage);
 
         spawn_blocking(move || {
-            use scannerlib::storage::file::serde::Serialization;
+            use scannerlib::storage::file::Serialization;
             let mut storage = storage.write().unwrap();
             let sid = scan_id.as_ref();
 
             let ids: Vec<Serialization<(ClientHash, String)>> =
-                storage.by_range(key, scannerlib::storage::file::base::Range::All)?;
+                storage.by_range(key, scannerlib::storage::file::Range::All)?;
             let new: Vec<Serialization<(ClientHash, String)>> = ids
                 .into_iter()
                 .map(|x| x.deserialize())
@@ -362,11 +361,11 @@ where
         let client_id = client_id.clone();
 
         spawn_blocking(move || {
-            use scannerlib::storage::file::serde::Serialization;
+            use scannerlib::storage::file::Serialization;
             let storage = storage.read().unwrap();
 
             let ids: Vec<Serialization<(ClientHash, String)>> = storage
-                .by_range(key, scannerlib::storage::file::base::Range::All)
+                .by_range(key, scannerlib::storage::file::Range::All)
                 .unwrap_or_default();
             let new: Vec<String> = ids
                 .into_iter()
@@ -502,7 +501,7 @@ pub(crate) mod tests {
 
     use models::{Phase, Scan, Status};
     use scannerlib::storage::{
-        file::base::{CachedIndexFileStorer, IndexedByteStorage},
+        file::{CachedIndexFileStorer, IndexedByteStorage},
         ContextKey,
     };
     use tracing::debug;
@@ -728,7 +727,7 @@ pub(crate) mod tests {
         assert!(!storage.is_client_allowed("s1", &"1".into()).await.unwrap());
         assert!(storage.is_client_allowed("s4", &"1".into()).await.unwrap());
 
-        let mut storage = scannerlib::storage::file::base::IndexedFileStorer::init(
+        let mut storage = scannerlib::storage::file::IndexedFileStorer::init(
             "/tmp/openvasd/file_storage_id_mapper_test",
         )
         .unwrap();

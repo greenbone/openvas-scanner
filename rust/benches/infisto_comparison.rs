@@ -5,10 +5,10 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
-use scannerlib::storage::file::base::{
+use scannerlib::storage::file::{
     CachedIndexFileStorer, IndexedByteStorage, IndexedFileStorer, Range,
 };
-use scannerlib::storage::file::crypto::{ChaCha20IndexFileStorer, Key};
+use scannerlib::storage::file::{ChaCha20IndexFileStorer, Key};
 
 const BASE: &str = "/tmp/openvasd";
 

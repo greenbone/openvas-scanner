@@ -478,8 +478,7 @@ pub mod client {
     use scannerlib::models::{self, Action, Scan, ScanAction, Status};
     use scannerlib::nasl::FSPluginLoader;
     use scannerlib::storage::file::{
-        base::{CachedIndexFileStorer, IndexedFileStorer},
-        crypto::ChaCha20IndexFileStorer,
+        CachedIndexFileStorer, ChaCha20IndexFileStorer, IndexedFileStorer,
     };
     use serde::Deserialize;
 
