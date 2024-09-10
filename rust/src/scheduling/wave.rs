@@ -147,11 +147,11 @@ mod tests {
     use crate::nasl::syntax::ACT;
     use crate::storage::item::Nvt;
 
-    use crate::nasl::interpreter::scheduling::{ConcurrentVTResult, Stage};
+    use crate::scheduling::{ConcurrentVTResult, Stage};
     use crate::storage::{ContextKey, DefaultDispatcher};
 
     use super::WaveExecutionPlan;
-    use crate::nasl::interpreter::scheduling::ExecutionPlaner;
+    use crate::scheduling::ExecutionPlaner;
     use crate::storage::Dispatcher;
     use crate::storage::Retriever;
 

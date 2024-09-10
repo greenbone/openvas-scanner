@@ -499,7 +499,7 @@ pub mod client {
     }
 
     pub async fn in_memory_example_feed() -> Client<
-        scannerlib::nasl::interpreter::Scanner<(
+        scannerlib::scanner::Scanner<(
             Arc<
                 UserNASLStorageForKBandVT<
                     crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
@@ -523,14 +523,13 @@ pub mod client {
             .await
             .unwrap();
         let nasl_feed_path = nasl_root().await;
-        let scanner =
-            scannerlib::nasl::interpreter::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
         Client::authenticated(scanner, storage)
     }
     pub async fn encrypted_file_based_example_feed(
         prefix: &str,
     ) -> Client<
-        scannerlib::nasl::interpreter::Scanner<(
+        scannerlib::scanner::Scanner<(
             Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
             FSPluginLoader,
         )>,
@@ -550,15 +549,14 @@ pub mod client {
             .await
             .unwrap();
         let nasl_feed_path = nasl_root().await;
-        let scanner =
-            scannerlib::nasl::interpreter::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
         Client::authenticated(scanner, storage)
     }
 
     pub async fn file_based_example_feed(
         prefix: &str,
     ) -> Client<
-        scannerlib::nasl::interpreter::Scanner<(
+        scannerlib::scanner::Scanner<(
             Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
             FSPluginLoader,
         )>,
@@ -569,8 +567,7 @@ pub mod client {
         let store = example_feed_file_storage(&storage_dir).await;
         let store = Arc::new(UserNASLStorageForKBandVT::new(store));
         let nasl_feed_path = nasl_root().await;
-        let scanner =
-            scannerlib::nasl::interpreter::Scanner::with_storage(store.clone(), &nasl_feed_path);
+        let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)
     }
     impl<S, DB> Client<S, DB>

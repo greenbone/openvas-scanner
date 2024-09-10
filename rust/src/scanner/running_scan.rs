@@ -8,14 +8,13 @@ use std::{
 
 use crate::models::{scanner::Error, HostInfo, Phase, Scan, Status};
 use crate::nasl::utils::Executor;
-use futures::StreamExt;
-use tokio::{sync::RwLock, task::JoinHandle};
-use tracing::{debug, trace, warn};
-
-use crate::nasl::interpreter::{
+use crate::{
     scanner::scan_runner::ScanRunner,
     scheduling::{ExecutionPlan, ExecutionPlaner, VTError},
 };
+use futures::StreamExt;
+use tokio::{sync::RwLock, task::JoinHandle};
+use tracing::{debug, trace, warn};
 
 use super::ScannerStack;
 
@@ -189,7 +188,7 @@ mod tests {
     use crate::storage::{item::Nvt, DefaultDispatcher};
     use tracing_test::traced_test;
 
-    use crate::nasl::interpreter::scanner::{
+    use crate::scanner::{
         scan_runner::tests::{setup, setup_success, GenerateScript},
         Scanner,
     };

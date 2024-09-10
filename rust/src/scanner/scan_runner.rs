@@ -6,8 +6,8 @@ use crate::models::{Host, HostInfo, Scan};
 use crate::nasl::utils::Executor;
 use futures::{stream, Stream};
 
-use crate::nasl::interpreter::scanner::ScannerStack;
-use crate::nasl::interpreter::scheduling::{ConcurrentVT, VTError};
+use crate::scanner::ScannerStack;
+use crate::scheduling::{ConcurrentVT, VTError};
 
 use super::error::{ExecuteError, ScriptResult};
 use super::scanner_stack::Schedule;
@@ -121,18 +121,13 @@ pub(super) mod tests {
     use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
-    use crate::nasl::{
-        interpreter::{
-            scanner::{
-                error::{ExecuteError, ScriptResult},
-                scan_runner::ScanRunner,
-                vt_runner::generate_port_kb_key,
-            },
-            scheduling::{ExecutionPlaner, WaveExecutionPlan},
-            CodeInterpreter,
-        },
-        nasl_std_functions,
+    use crate::nasl::{interpreter::CodeInterpreter, nasl_std_functions};
+    use crate::scanner::{
+        error::{ExecuteError, ScriptResult},
+        scan_runner::ScanRunner,
+        vt_runner::generate_port_kb_key,
     };
+    use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
     use crate::storage::item::NVTField;
     use crate::storage::item::Nvt;
     use crate::storage::ContextKey;

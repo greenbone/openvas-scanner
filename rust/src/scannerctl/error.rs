@@ -8,13 +8,13 @@ use std::{
 };
 
 use feed::VerifyError;
-use scannerlib::nasl::syntax::{SyntaxError, Token};
-use scannerlib::nasl::{
-    interpreter::{ExecuteError, InterpretError},
-    syntax::LoadError,
-};
+use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
 use scannerlib::storage::StorageError;
 use scannerlib::{feed, notus};
+use scannerlib::{
+    nasl::syntax::{SyntaxError, Token},
+    scanner::ExecuteError,
+};
 
 #[derive(Debug, Clone)]
 pub enum CliErrorKind {

@@ -5,6 +5,7 @@
 use crate::models::{Host, Protocol};
 
 use crate::nasl::interpreter::InterpretError;
+use crate::scheduling::Stage;
 
 #[derive(thiserror::Error, Debug, Clone)]
 /// An error occurred while executing the script
@@ -14,7 +15,7 @@ pub enum ExecuteError {
     Storage(#[from] crate::storage::StorageError),
     #[error("Scheduling error occurred: {0}")]
     /// An error while scheduling
-    Scheduling(#[from] crate::nasl::interpreter::scheduling::VTError),
+    Scheduling(#[from] crate::scheduling::VTError),
     #[error("unable to load: {0}")]
     /// Script was not found
     NotFound(#[from] crate::nasl::syntax::LoadError),
@@ -53,7 +54,7 @@ pub struct ScriptResult {
     /// relative filename of the script
     pub filename: String,
     /// the stage of the script
-    pub stage: crate::nasl::interpreter::scheduling::Stage,
+    pub stage: Stage,
     /// the result
     pub kind: ScriptResultKind,
     /// The target of the result

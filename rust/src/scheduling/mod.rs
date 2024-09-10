@@ -282,9 +282,9 @@ mod tests {
     use crate::models::Scan;
     use crate::models::VT;
 
-    use crate::nasl::interpreter::scheduling::ExecutionPlaner;
-    use crate::nasl::interpreter::scheduling::Stage;
-    use crate::nasl::interpreter::scheduling::WaveExecutionPlan;
+    use crate::scheduling::ExecutionPlaner;
+    use crate::scheduling::Stage;
+    use crate::scheduling::WaveExecutionPlan;
     use crate::storage::item::Nvt;
     use crate::storage::ContextKey;
     use crate::storage::DefaultDispatcher;

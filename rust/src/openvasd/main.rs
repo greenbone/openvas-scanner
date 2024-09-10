@@ -12,11 +12,11 @@ use notus::NotusWrapper;
 use scannerlib::models::scanner::{
     ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
 };
-use scannerlib::nasl::interpreter::ScannerStackWithStorage;
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::{loader::hashsum::HashsumProductLoader, notus::Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
+use scannerlib::scanner::ScannerStackWithStorage;
 use scannerlib::storage::file::{base::IndexedFileStorer, crypto::ChaCha20IndexFileStorer};
 use storage::{FromConfigAndFeeds, Storage};
 use tracing::{info, metadata::LevelFilter, warn};
@@ -89,11 +89,11 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
 fn make_openvasd_scanner<S>(
     config: &Config,
     storage: S,
-) -> scannerlib::nasl::interpreter::Scanner<ScannerStackWithStorage<S>>
+) -> scannerlib::scanner::Scanner<ScannerStackWithStorage<S>>
 where
     S: storage::NaslStorage + Send + 'static,
 {
-    scannerlib::nasl::interpreter::Scanner::with_storage(storage, &config.feed.path)
+    scannerlib::scanner::Scanner::with_storage(storage, &config.feed.path)
 }
 
 async fn create_context<DB, ScanHandler>(

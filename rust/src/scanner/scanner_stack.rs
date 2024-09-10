@@ -1,7 +1,7 @@
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 use crate::storage::{DefaultDispatcher, Storage};
 
-use crate::nasl::interpreter::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
+use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 
 pub trait Schedule: Iterator<Item = ConcurrentVTResult> + Sized {
     fn cache(self) -> Result<Vec<ConcurrentVT>, VTError> {

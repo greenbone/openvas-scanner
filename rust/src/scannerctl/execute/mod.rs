@@ -8,14 +8,9 @@ use clap::{arg, value_parser, Arg, ArgAction, Command};
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
 use scannerlib::models::Scan;
-use scannerlib::nasl::FSPluginLoader;
-use scannerlib::nasl::{
-    interpreter::{
-        scheduling::{ExecutionPlaner, WaveExecutionPlan},
-        ScanRunner,
-    },
-    nasl_std_functions,
-};
+use scannerlib::nasl::{nasl_std_functions, FSPluginLoader};
+use scannerlib::scanner::ScanRunner;
+use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
 use tracing::{info, warn, warn_span};
 
 use crate::{interpret, CliError, CliErrorKind, Db};

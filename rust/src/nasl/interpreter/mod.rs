@@ -15,8 +15,6 @@ mod include;
 mod interpreter;
 mod loop_extension;
 mod operator;
-mod scanner;
-pub mod scheduling;
 
 #[cfg(test)]
 mod tests;
@@ -26,9 +24,3 @@ pub use error::FunctionError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;
-pub use scanner::ExecuteError;
-
-pub use scanner::DefaultScannerStack;
-pub use scanner::ScanRunner;
-pub use scanner::Scanner;
-pub use scanner::ScannerStackWithStorage;

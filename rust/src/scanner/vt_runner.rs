@@ -1,15 +1,17 @@
 use crate::models::{Host, Parameter, Protocol, ScanId};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::{Executor, Register};
+use crate::scheduling::Stage;
 use crate::storage::item::Nvt;
 use crate::storage::{types::Primitive, Retriever, Storage};
 use crate::storage::{ContextKey, Field, Retrieve, StorageError};
 use futures::StreamExt;
 use tracing::{error_span, trace, warn};
 
-use crate::nasl::interpreter::{scheduling::Stage, CodeInterpreter, ExecuteError};
+use crate::nasl::interpreter::CodeInterpreter;
 use crate::nasl::prelude::*;
 
+use super::ExecuteError;
 use super::{
     error::{ScriptResult, ScriptResultKind},
     ScannerStack,
