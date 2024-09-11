@@ -1,6 +1,6 @@
 use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, Sftp, SshKey, SshOption};
-use std::sync::MutexGuard;
 use std::{os::fd::AsRawFd, time::Duration};
+use tokio::sync::MutexGuard;
 use tracing::{debug, info};
 
 use crate::nasl::builtin::ssh::SessionId;
