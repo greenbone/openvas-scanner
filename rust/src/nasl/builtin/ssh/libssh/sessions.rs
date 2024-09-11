@@ -4,9 +4,9 @@
 
 //! Defines functions and structures for handling sessions
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Mutex;
 
 use crate::nasl::builtin::ssh::SessionId;
 
@@ -15,17 +15,20 @@ use super::session::{BorrowedSession, SshSession};
 
 #[derive(Default)]
 pub struct Ssh {
-    sessions: Arc<Mutex<Vec<SshSession>>>,
+    // Unfortunately, we need a Mutex around the SshSession here.
+    // This is because it contains a libssh::Channel, which is not `Send`.
+    sessions: HashMap<SessionId, Mutex<SshSession>>,
 }
 
 impl Ssh {
-    fn lock(&self) -> Result<MutexGuard<Vec<SshSession>>> {
-        self.sessions.lock().map_err(|_| SshError::PoisonedLock)
-    }
-
     pub fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession> {
-        let guard = self.lock()?;
-        BorrowedSession::new(guard, id)
+        Ok(BorrowedSession::new(
+            self.sessions
+                .get(&id)
+                .ok_or_else(|| SshError::InvalidSessionId(id))?
+                .lock()
+                .map_err(|_| SshError::PoisonedLock)?,
+        ))
     }
 
     /// Return the next available session ID
@@ -34,47 +37,31 @@ impl Ssh {
         // hand out is an arbitrary high number, this is only to help
         // debugging.
         const MIN_VAL: SessionId = 9000;
-        let taken_ids = self
-            .lock()?
-            .iter()
-            .map(|session| session.id)
-            .collect::<HashSet<SessionId>>();
+        let taken_ids: HashSet<_> = self.sessions.keys().collect();
         if taken_ids.is_empty() {
             Ok(MIN_VAL)
         } else {
-            let max_val = taken_ids.iter().max().unwrap() + 1;
+            let max_val = **taken_ids.iter().max().unwrap() + 1;
             Ok((MIN_VAL..=max_val)
                 .find(|id| !taken_ids.contains(id))
                 .unwrap())
         }
     }
 
-    pub fn remove(&self, session_id: SessionId) -> Result<()> {
-        let mut guard = self.lock()?;
-        if let Some((index, _)) = guard
-            .iter()
-            .enumerate()
-            .find(|(_, session)| session.id == session_id)
-        {
-            guard.remove(index);
-        }
+    pub fn remove(&mut self, session_id: SessionId) -> Result<()> {
+        self.sessions.remove(&session_id);
         Ok(())
     }
 
-    pub fn find<'a>(
+    pub fn find_id<'a>(
         &'a self,
         f: impl for<'b> Fn(&BorrowedSession<'b>) -> bool,
-    ) -> Result<Option<BorrowedSession<'a>>> {
-        // This is a pretty ugly implementation but the borrow checker
-        // (somewhat rightfully) makes this quite hard to do normally.
-        let mut guard = self.lock()?;
-        let len = guard.len();
-        for i in 0..len {
-            let session = BorrowedSession::from_index(guard, i);
+    ) -> Result<Option<SessionId>> {
+        for id in self.sessions.keys() {
+            let session = self.get_by_id(*id)?;
             if f(&session) {
-                return Ok(Some(session));
+                return Ok(Some(session.id()));
             }
-            guard = session.take_guard();
         }
         Ok(None)
     }
@@ -82,23 +69,20 @@ impl Ssh {
     /// Create a new session, but only add it to the list of active sessions
     /// if the given closure which modifies the session returns Ok(...).
     pub fn add_new_session(
-        &self,
+        &mut self,
         f: impl Fn(&mut BorrowedSession) -> Result<()>,
     ) -> Result<SessionId> {
         let id = self.next_session_id()?;
-        let mut guard = self.lock()?;
-        let index = guard.len();
-        let session = SshSession::new(id)?;
-        guard.push(session);
-        let mut session = BorrowedSession::from_index(guard, index);
-        let result = f(&mut session);
-        match result {
-            Ok(()) => Ok(id),
-            Err(e) => {
-                session.disconnect()?;
-                session.take_guard().pop();
-                Err(e)
+        let session = Mutex::new(SshSession::new(id)?);
+        {
+            let mut borrowed_session =
+                BorrowedSession::new(session.lock().map_err(|_| SshError::PoisonedLock)?);
+            if let Err(e) = f(&mut borrowed_session) {
+                borrowed_session.disconnect()?;
+                return Err(e);
             }
         }
+        self.sessions.insert(id, session);
+        Ok(id)
     }
 }

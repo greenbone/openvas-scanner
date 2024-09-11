@@ -25,6 +25,7 @@ use tracing::debug;
 use super::SessionId;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::function::{Maybe, StringOrData};
+use crate::nasl::utils::{IntoFunctionSet, StoredFunctionSet};
 
 pub type Socket = c_int;
 
@@ -79,7 +80,7 @@ impl Ssh {
     /// nasl return An integer to identify the ssh session. Zero on error.
     #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
     fn nasl_ssh_connect(
-        &self,
+        &mut self,
         socket: Option<Socket>,
         port: Option<u16>,
         keytype: Option<&str>,
@@ -145,10 +146,12 @@ impl Ssh {
     /// channels they are closed as well and their ids will be marked as
     /// invalid.
     #[nasl_function]
-    fn nasl_ssh_disconnect(&self, session_id: SessionId) -> Result<()> {
+    fn nasl_ssh_disconnect(&mut self, session_id: SessionId) -> Result<()> {
         if session_id != 0 {
-            let mut session = self.get_by_id(session_id)?;
-            session.disconnect()?;
+            {
+                let mut session = self.get_by_id(session_id)?;
+                session.disconnect()?;
+            }
             self.remove(session_id)?;
         }
         Ok(())
@@ -157,9 +160,7 @@ impl Ssh {
     /// Given a socket, return the corresponding session id if available.
     #[nasl_function]
     fn nasl_ssh_session_id_from_sock(&self, socket: Socket) -> Result<Option<SessionId>> {
-        Ok(self
-            .find(|session| session.get_socket() == socket)?
-            .map(|session| session.id()))
+        Ok(self.find_id(|session| session.get_socket() == socket)?)
     }
 
     /// Given a session id, return the corresponding socket
@@ -649,28 +650,38 @@ impl Ssh {
     }
 }
 
-function_set! {
-    Ssh,
-    sync_stateful,
-    (
-        Ssh::nasl_ssh_connect,
-        Ssh::nasl_ssh_disconnect,
-        Ssh::nasl_ssh_session_id_from_sock,
-        Ssh::nasl_ssh_get_sock,
-        Ssh::nasl_ssh_set_login,
-        Ssh::nasl_ssh_userauth,
-        Ssh::nasl_ssh_request_exec,
-        Ssh::nasl_ssh_shell_open,
-        Ssh::nasl_ssh_shell_read,
-        Ssh::nasl_ssh_shell_write,
-        Ssh::nasl_ssh_shell_close,
-        Ssh::nasl_ssh_login_interactive,
-        Ssh::nasl_ssh_login_interactive_pass,
-        Ssh::nasl_ssh_get_issue_banner,
-        Ssh::nasl_ssh_get_server_banner,
-        Ssh::nasl_ssh_get_auth_methods,
-        Ssh::nasl_ssh_get_host_key,
-        Ssh::nasl_sftp_enabled_check,
-        Ssh::nasl_ssh_execute_netconf_subsystem,
-    )
+impl IntoFunctionSet for Ssh {
+    type State = Ssh;
+    fn into_function_set(self) -> StoredFunctionSet<Self::State> {
+        let mut set = StoredFunctionSet::new(self);
+        set.sync_stateful_mut("ssh_connect", Ssh::nasl_ssh_connect);
+        set.sync_stateful_mut("ssh_disconnect", Ssh::nasl_ssh_disconnect);
+        set.sync_stateful(
+            "ssh_session_id_from_sock",
+            Ssh::nasl_ssh_session_id_from_sock,
+        );
+        set.sync_stateful("ssh_get_sock", Ssh::nasl_ssh_get_sock);
+        set.sync_stateful("ssh_set_login", Ssh::nasl_ssh_set_login);
+        set.sync_stateful("ssh_userauth", Ssh::nasl_ssh_userauth);
+        set.sync_stateful("ssh_request_exec", Ssh::nasl_ssh_request_exec);
+        set.sync_stateful("ssh_shell_open", Ssh::nasl_ssh_shell_open);
+        set.sync_stateful("ssh_shell_read", Ssh::nasl_ssh_shell_read);
+        set.sync_stateful("ssh_shell_write", Ssh::nasl_ssh_shell_write);
+        set.sync_stateful("ssh_shell_close", Ssh::nasl_ssh_shell_close);
+        set.sync_stateful("ssh_login_interactive", Ssh::nasl_ssh_login_interactive);
+        set.sync_stateful(
+            "ssh_login_interactive_pass",
+            Ssh::nasl_ssh_login_interactive_pass,
+        );
+        set.sync_stateful("ssh_get_issue_banner", Ssh::nasl_ssh_get_issue_banner);
+        set.sync_stateful("ssh_get_server_banner", Ssh::nasl_ssh_get_server_banner);
+        set.sync_stateful("ssh_get_auth_methods", Ssh::nasl_ssh_get_auth_methods);
+        set.sync_stateful("ssh_get_host_key", Ssh::nasl_ssh_get_host_key);
+        set.sync_stateful("sftp_enabled_check", Ssh::nasl_sftp_enabled_check);
+        set.sync_stateful(
+            "ssh_execute_netconf_subsystem",
+            Ssh::nasl_ssh_execute_netconf_subsystem,
+        );
+        set
+    }
 }
