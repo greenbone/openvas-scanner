@@ -6,7 +6,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 use crate::nasl::builtin::ssh::SessionId;
 
@@ -21,13 +21,13 @@ pub struct Ssh {
 }
 
 impl Ssh {
-    pub fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession> {
+    pub async fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession> {
         Ok(BorrowedSession::new(
             self.sessions
                 .get(&id)
                 .ok_or_else(|| SshError::InvalidSessionId(id))?
                 .lock()
-                .map_err(|_| SshError::PoisonedLock)?,
+                .await,
         ))
     }
 
@@ -53,12 +53,12 @@ impl Ssh {
         Ok(())
     }
 
-    pub fn find_id<'a>(
+    pub async fn find_id<'a>(
         &'a self,
         f: impl for<'b> Fn(&BorrowedSession<'b>) -> bool,
     ) -> Result<Option<SessionId>> {
         for id in self.sessions.keys() {
-            let session = self.get_by_id(*id)?;
+            let session = self.get_by_id(*id).await?;
             if f(&session) {
                 return Ok(Some(session.id()));
             }
@@ -68,15 +68,14 @@ impl Ssh {
 
     /// Create a new session, but only add it to the list of active sessions
     /// if the given closure which modifies the session returns Ok(...).
-    pub fn add_new_session(
+    pub async fn add_new_session(
         &mut self,
         f: impl Fn(&mut BorrowedSession) -> Result<()>,
     ) -> Result<SessionId> {
         let id = self.next_session_id()?;
         let session = Mutex::new(SshSession::new(id)?);
         {
-            let mut borrowed_session =
-                BorrowedSession::new(session.lock().map_err(|_| SshError::PoisonedLock)?);
+            let mut borrowed_session = BorrowedSession::new(session.lock().await);
             if let Err(e) = f(&mut borrowed_session) {
                 borrowed_session.disconnect()?;
                 return Err(e);
