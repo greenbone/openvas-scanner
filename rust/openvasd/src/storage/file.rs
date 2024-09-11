@@ -17,7 +17,6 @@ use infisto::{
 };
 use models::{Scan, Status};
 use tokio::task::spawn_blocking;
-use tracing::{info, warn};
 
 use crate::crypt::ChaCha20Crypt;
 
@@ -408,7 +407,6 @@ impl FromConfigAndFeeds for Storage<ChaCha20IndexFileStorer<IndexedFileStorer>> 
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
-        info!("using in file storage. Sensitive data will be encrypted stored on disk.");
         // If this is even being called, we can assume we have a key
         let key = config.storage.fs.key.as_ref().unwrap();
         Ok(file::encrypted(&config.storage.fs.path, key, feeds)?)
@@ -420,9 +418,6 @@ impl FromConfigAndFeeds for Storage<IndexedFileStorer> {
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
-        warn!(
-            "using in file storage. Sensitive data will be stored on disk without any encryption."
-        );
         Ok(file::unencrypted(&config.storage.fs.path, feeds)?)
     }
 }

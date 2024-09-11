@@ -163,19 +163,27 @@ where
 }
 
 async fn run(config: &Config) -> Result<()> {
-    info!(mode = ?config.mode, storage_type=?config.storage.storage_type, "configuring storage devices");
+    info!(mode = ?config.mode, storage_type=?config.storage.storage_type, "Configuring storage devices");
     match config.storage.storage_type {
         StorageType::Redis => {
+            info!(url = config.storage.redis.url, "Using redis storage.");
             run_with_storage::<redis::Storage<inmemory::Storage<ChaCha20Crypt>>>(config).await
         }
-        StorageType::InMemory => run_with_storage::<inmemory::Storage<ChaCha20Crypt>>(config).await,
+        StorageType::InMemory => {
+            info!("Using in-memory storage. No sensitive data will be stored on disk.");
+            run_with_storage::<inmemory::Storage<ChaCha20Crypt>>(config).await
+        }
         StorageType::FileSystem => {
             if config.storage.fs.key.is_some() {
+                info!("Using in-file storage. Sensitive data will be encrypted stored on disk.");
                 run_with_storage::<file::Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>(
                     config,
                 )
                 .await
             } else {
+                warn!(
+                    "Using in-file storage. Sensitive data will be stored on disk without any encryption."
+                );
                 run_with_storage::<file::Storage<IndexedFileStorer>>(config).await
             }
         }

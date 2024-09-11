@@ -12,7 +12,6 @@ use redis_storage::{
 };
 use storage::{item::PerItemDispatcher, Dispatcher, Field};
 use tokio::{sync::RwLock, task::JoinSet};
-use tracing::info;
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
 use models::scanner::ScanResults;
@@ -341,7 +340,6 @@ where
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        info!(url = config.storage.redis.url, "using redis");
         Ok(Self::new(
             T::from_config_and_feeds(config, feeds.clone())?,
             config.storage.redis.url.clone(),
