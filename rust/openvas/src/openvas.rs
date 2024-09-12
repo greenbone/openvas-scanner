@@ -321,6 +321,7 @@ impl ScanResultFetcher for Scanner {
                     alive: all_results.count_alive as u64,
                     queued: 0,
                     finished: all_results.count_alive as u64,
+                    scanning: Some(all_results.host_status.clone()),
                 }
                 .build();
 
@@ -367,7 +368,6 @@ impl ScanResultFetcher for Scanner {
                         .map(|r| models::Result::from(r).clone())
                         .collect(),
                 };
-
                 // If the scan finished, release. Openvas "finished" status is translated todo
                 // Succeeded. It is necessary to read the exit code to know if it failed.
                 if status == Phase::Succeeded {
