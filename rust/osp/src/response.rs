@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! # Responses of OSPD commands
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 use serde::{de::Visitor, Deserialize};
 
@@ -588,6 +588,12 @@ impl From<Scan> for models::Status {
             ScanStatus::Interrupted => models::Phase::Failed,
         };
 
+        let mut scanning: HashMap<String, i32> = HashMap::new();
+        if let Some(i) = &value.host_info {
+            for host in &i.host {
+                scanning.insert(host.name.clone(), 0);
+            }
+        }
         models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
@@ -603,6 +609,9 @@ impl From<Scan> for models::Status {
                         - host_info.count_alive.content.0
                         - host_info.host.len() as u64,
                     finished: host_info.count_alive.content.0,
+                    // Not used by OSP but necessary for Openvas and Openvasd
+                    // scanner types respectively
+                    scanning: Some(scanning),
                 }
                 .build()
             }),
