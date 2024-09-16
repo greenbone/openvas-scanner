@@ -11,7 +11,6 @@ use std::{
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost};
 
-use nasl_builtin_host::get_host_ip;
 use nasl_builtin_misc::random_impl;
 use nasl_builtin_utils::{
     function_set, Context, ContextType, FunctionErrorKind, NaslVars, Register,
@@ -115,7 +114,7 @@ fn safe_copy_from_slice(
 /// - ip_off: is the fragment offset in 64 bits words. By default, 0.
 /// - ip_p: is the IP protocol. 0 by default.
 /// - ip_src: is the source address in ASCII. NASL will convert it into an integer in network order.
-/// - ip_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. By default it takes the target IP address via call to **[plug_get_host_ip(3)](plug_get_host_ip.md)**. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
+/// - ip_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
 /// - ip_sum: is the packet header checksum. It will be computed by default.
 /// - ip_tos: is the “type of service” field. 0 by default
 /// - ip_ttl: is the “Time To Live”. 64 by default.
@@ -123,12 +122,11 @@ fn safe_copy_from_slice(
 ///
 /// Returns the IP datagram or NULL on error.
 fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let dst_addr = get_host_ip(configs)?;
+    let dst_addr = configs.target();
 
     if dst_addr.is_ipv6() {
         return Err(FunctionErrorKind::WrongArgument(
-            "forge_ip_packet: No valid dst_addr could be determined via call to get_host_ip()"
-                .to_string(),
+            "forge_ip_packet: target IP address is IPv6".to_string(),
         ));
     }
 
@@ -1956,9 +1954,9 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
-    let iface = get_interface_by_local_ip(local_ip)?;
+    let target_ip = configs.target();
+    let local_ip = get_source_ip(target_ip.clone(), 50000u16)?;
+    let iface = get_interface_by_local_ip(&local_ip)?;
 
     let port = match register.named("port") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
@@ -2036,7 +2034,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
         tcp.set_checksum(chksum);
         ip.set_payload(tcp.packet());
 
-        let sockaddr = socket2::SockAddr::from(SocketAddr::new(target_ip, 0));
+        let sockaddr = socket2::SockAddr::from(SocketAddr::new(target_ip.clone(), 0));
         match soc.send_to(ip.packet(), &sockaddr) {
             Ok(b) => {
                 debug!("Sent {} bytes", b);
@@ -2142,9 +2140,9 @@ fn nasl_send_packet(
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
-    let iface = get_interface_by_local_ip(local_ip)?;
+    let target_ip = configs.target();
+    let local_ip = get_source_ip(target_ip.clone(), 50000u16)?;
+    let iface = get_interface_by_local_ip(&local_ip)?;
 
     let mut capture_dev = match Capture::from_device(iface) {
         Ok(c) => match c.promisc(true).timeout(timeout).open() {
@@ -2178,7 +2176,7 @@ fn nasl_send_packet(
 
         // No broadcast destination and dst ip address inside the IP packet
         // differs from target IP, is consider a malicious or buggy script.
-        if packet.get_destination() != target_ip && !allow_broadcast {
+        if packet.get_destination() != *target_ip && !allow_broadcast {
             return Err(FunctionErrorKind::Dirty(
                 format!("send_packet: malicious or buggy script is trying to send packet to {} instead of designated target {}",
                         packet.get_destination(), target_ip)
@@ -2275,9 +2273,9 @@ fn nasl_send_capture(
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
-    let mut iface = get_interface_by_local_ip(local_ip)?;
+    let target_ip = configs.target();
+    let local_ip = get_source_ip(target_ip.clone(), 50000u16)?;
+    let mut iface = get_interface_by_local_ip(&local_ip)?;
     if !interface.is_empty() {
         iface = pcap::Device::from(interface.as_str());
     }

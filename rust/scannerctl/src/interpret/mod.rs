@@ -4,6 +4,7 @@
 
 use std::{
     fs::{self},
+    net::{IpAddr, Ipv4Addr},
     path::PathBuf,
 };
 
@@ -19,14 +20,13 @@ use crate::{CliError, CliErrorKind, Db};
 
 struct Run<L, S> {
     context_builder: nasl_interpreter::ContextFactory<L, S>,
-    _target: String,
     scan_id: String,
 }
 
 struct RunBuilder<L, S> {
     loader: L,
     storage: S,
-    target: String,
+    target: IpAddr,
     scan_id: String,
 }
 
@@ -35,7 +35,7 @@ impl Default for RunBuilder<NoOpLoader, DefaultDispatcher> {
         Self {
             storage: DefaultDispatcher::default(),
             loader: NoOpLoader::default(),
-            target: String::default(),
+            target: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             scan_id: "scannerctl".to_string(),
         }
     }
@@ -64,7 +64,7 @@ where
         }
     }
 
-    pub fn target(mut self, target: String) -> RunBuilder<L, S> {
+    pub fn target(mut self, target: IpAddr) -> RunBuilder<L, S> {
         self.target = target;
         self
     }
@@ -76,9 +76,12 @@ where
 
     pub fn build(self) -> Run<L, S> {
         Run {
-            context_builder: nasl_interpreter::ContextFactory::new(self.loader, self.storage),
+            context_builder: nasl_interpreter::ContextFactory::new(
+                self.target,
+                self.loader,
+                self.storage,
+            ),
             scan_id: self.scan_id,
-            _target: self.target,
         }
     }
 }
@@ -113,10 +116,10 @@ where
     }
 
     async fn run(&self, script: &str) -> Result<(), CliErrorKind> {
-        let context = self
-            .context_builder
-            // TODO: use proper  target
-            .build(ContextKey::Scan(self.scan_id.clone(), None));
+        let context = self.context_builder.build(ContextKey::Scan(
+            self.scan_id.clone(),
+            self.context_builder.target.clone(),
+        ));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
         let results: Vec<_> = CodeInterpreter::new(&code, register, &context)
@@ -189,11 +192,14 @@ pub async fn run(
     db: &Db,
     feed: Option<PathBuf>,
     script: &str,
-    target: Option<String>,
+    target: Option<IpAddr>,
 ) -> Result<(), CliError> {
-    let builder = RunBuilder::default()
-        .target(target.unwrap_or_default())
-        .scan_id(format!("scannerctl-{script}"));
+    let builder = RunBuilder::default().scan_id(format!("scannerctl-{script}"));
+    let builder = if let Some(target) = target {
+        builder.target(target)
+    } else {
+        builder
+    };
     let result = match (db, feed) {
         (Db::Redis(url), None) => {
             builder

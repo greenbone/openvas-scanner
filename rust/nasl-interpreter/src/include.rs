@@ -4,7 +4,10 @@
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{
+        collections::HashMap,
+        net::{IpAddr, Ipv4Addr},
+    };
 
     use crate::*;
 
@@ -43,6 +46,7 @@ mod tests {
         "#;
         let register = Register::default();
         let context = ContextFactory {
+            target: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             loader,
             functions: nasl_std_functions(),
             storage: storage::DefaultDispatcher::default(),

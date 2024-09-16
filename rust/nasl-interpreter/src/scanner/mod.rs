@@ -24,6 +24,8 @@ pub use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
 use tokio::sync::RwLock;
 
+use std::net::IpAddr;
+use std::net::Ipv4Addr;
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use crate::{nasl_std_functions, scheduling::WaveExecutionPlan};
@@ -128,7 +130,10 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
-        let ck = ContextKey::Scan(id.as_ref().to_string(), None);
+        let ck = ContextKey::Scan(
+            id.as_ref().to_string(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+        );
         self.stop_scan(id).await?;
         self.storage
             .remove_scan(&ck)

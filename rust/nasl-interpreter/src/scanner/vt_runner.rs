@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use futures::StreamExt;
 use models::{Host, Parameter, Protocol, ScanId};
 use nasl_builtin_utils::{Executor, Register};
@@ -184,7 +186,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
     // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
     fn generate_key(&self) -> ContextKey {
-        ContextKey::Scan(self.scan_id.clone(), Some(self.target.clone()))
+        ContextKey::Scan(self.scan_id.clone(), self.target.clone())
     }
 
     async fn get_result_kind(&self, code: &str, register: Register) -> ScriptResultKind {
@@ -227,7 +229,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             filename: self.vt.filename.clone(),
             stage: self.stage,
             kind,
-            target: self.target.clone(),
+            target: self.target.to_string(),
         })
     }
 }

@@ -13,8 +13,11 @@ use h2::client;
 
 use core::convert::AsRef;
 use http::{response::Parts, Method, Request};
-use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use std::sync::Arc;
+use rustls::{
+    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    pki_types::ServerName,
+};
+use std::{net::IpAddr, sync::Arc};
 
 use rustls::ClientConfig;
 use tokio::{
@@ -126,7 +129,7 @@ impl ServerCertVerifier for NoVerifier {
 impl NaslHttp {
     async fn request(
         &self,
-        ip_str: &String,
+        ip: &IpAddr,
         port: u16,
         uri: String,
         data: String,
@@ -143,10 +146,10 @@ impl NaslHttp {
         // For HTTP/2. For older HTTP versions should not be set,
         config.alpn_protocols = vec![b"h2".to_vec()];
 
-        let server_name = ip_str.clone().to_owned().try_into().unwrap();
+        let server_name = ServerName::IpAddress(ip.clone().into());
 
         let connector = TlsConnector::from(Arc::new(config));
-        let stream = match TcpStream::connect(format!("{}:{}", ip_str, port)).await {
+        let stream = match TcpStream::connect(format!("{}:{}", ip, port)).await {
             Ok(a) => a,
             Err(e) => {
                 return Err(FunctionErrorKind::Diagnostic(
@@ -295,21 +298,18 @@ impl NaslHttp {
             _ => 0u16,
         };
 
-        let ip_str: String = match ctx.target() {
-            x if !x.is_empty() => x.to_string(),
-            _ => "127.0.0.1".to_string(),
-        };
+        let ip = ctx.target();
 
         let mut uri: String;
         if port != 80 && port != 443 {
-            uri = format!("{}://{}:{}", schema, ip_str, port);
+            uri = format!("{}://{}:{}", schema, ip, port);
         } else {
-            uri = format!("{}://{}", schema, ip_str)
+            uri = format!("{}://{}", schema, ip)
         }
 
         uri = format!("{}{}", uri, item);
 
-        match self.request(&ip_str, port, uri, data, method, handle).await {
+        match self.request(&ip, port, uri, data, method, handle).await {
             Ok((head, body)) => {
                 handle.http_code = head.status.as_u16();
                 let mut header_str = String::new();

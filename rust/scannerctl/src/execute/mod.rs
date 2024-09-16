@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{fs, path::PathBuf};
+use std::{fs, net::IpAddr, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use feed::{HashSumNameLoader, Update};
@@ -115,16 +115,8 @@ async fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         Some(path) => path,
         _ => unreachable!("path is set to required"),
     };
-    let target = args.get_one::<String>("target").cloned();
-    Some(
-        interpret::run(
-            &Db::InMemory,
-            feed.clone(),
-            &script.to_string(),
-            target.clone(),
-        )
-        .await,
-    )
+    let target = args.get_one::<IpAddr>("target").cloned();
+    Some(interpret::run(&Db::InMemory, feed, &script, target).await)
 }
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(crate::add_verbose(
@@ -143,7 +135,7 @@ When ID is used than a valid feed path must be given within the path parameter."
                             .value_parser(value_parser!(PathBuf)),
                     )
                     .arg(Arg::new("script").required(true))
-                    .arg(arg!(-t --target <HOST> "Target to scan").required(false)),
+                    .arg(arg!(-t --target <HOST> "Target to scan").required(false).value_parser(value_parser!(IpAddr))),
             )
             .subcommand(
                 Command::new("scan")

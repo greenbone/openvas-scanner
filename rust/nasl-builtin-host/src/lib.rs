@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{net::IpAddr, str::FromStr};
-
 use nasl_builtin_utils::{error::FunctionErrorKind, lookup_keys::TARGET};
 
 use nasl_builtin_utils::{function_set, Context, ContextType, Register};
@@ -49,32 +47,6 @@ fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, Function
     resolve_hostname(register).map(NaslValue::String)
 }
 
-/// Return the target's IP address as IpAddr.
-pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
-    let default_ip = "127.0.0.1";
-    let r_sock_addr = match context.target() {
-        x if !x.is_empty() => IpAddr::from_str(x),
-        _ => IpAddr::from_str(default_ip),
-    };
-
-    match r_sock_addr {
-        Ok(x) => Ok(x),
-        Err(e) => Err(FunctionErrorKind::wrong_unnamed_argument(
-            "IP address",
-            e.to_string().as_str(),
-        )),
-    }
-}
-
-/// Return the target's IP address or 127.0.0.1 if not set.
-fn nasl_get_host_ip(
-    _register: &Register,
-    context: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
-    let ip = get_host_ip(context)?;
-    Ok(NaslValue::String(ip.to_string()))
-}
-
 pub struct Host;
 
 function_set! {
@@ -83,6 +55,5 @@ function_set! {
     (
         get_host_name,
         get_host_names,
-        (nasl_get_host_ip, "get_host_ip")
     )
 }

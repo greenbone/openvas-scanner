@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::net::IpAddr;
+
 use super::{credential::Credential, port::Port};
 
 pub type Host = String;

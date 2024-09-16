@@ -5,6 +5,8 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
+use std::net::{IpAddr, Ipv4Addr};
+
 use nasl_builtin_utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
 use storage::{ContextKey, DefaultDispatcher};
 mod array;
@@ -73,6 +75,8 @@ fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
 /// [nasl_std_functions] to functions register.
 // TODO: remove key and target and box dyn
 pub struct ContextFactory<Loader, Storage> {
+    /// The target of the scan
+    pub target: IpAddr,
     /// The shared storage
     pub storage: Storage,
     /// The loader to load the nasl files.
@@ -84,6 +88,7 @@ pub struct ContextFactory<Loader, Storage> {
 impl Default for ContextFactory<nasl_syntax::NoOpLoader, storage::DefaultDispatcher> {
     fn default() -> Self {
         Self {
+            target: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             loader: nasl_syntax::NoOpLoader::default(),
             functions: nasl_std_functions(),
             storage: DefaultDispatcher::default(),
@@ -99,8 +104,9 @@ where
     /// Creates a new ContextFactory with nasl_std_functions
     ///
     /// If you want to override the functions register please use functions method.
-    pub fn new(loader: L, storage: S) -> ContextFactory<L, S> {
+    pub fn new(target: IpAddr, loader: L, storage: S) -> ContextFactory<L, S> {
         ContextFactory {
+            target,
             storage,
             loader,
             functions: nasl_std_functions(),
@@ -116,9 +122,8 @@ where
     /// Creates a new Context with the shared loader, logger and function register
     pub fn build(&self, key: ContextKey) -> Context {
         let target = match &key {
-            ContextKey::Scan(_, Some(target)) => target.clone(),
-            ContextKey::Scan(_, None) => String::default(),
-            ContextKey::FileName(target) => target.clone(),
+            ContextKey::Scan(_, target) => target.clone(),
+            _ => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
         };
         Context::new(
             key,

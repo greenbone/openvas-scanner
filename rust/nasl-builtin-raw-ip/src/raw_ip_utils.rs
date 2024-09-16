@@ -24,7 +24,7 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
 
 /// Tests whether a packet sent to IP is LIKELY to route through the
 /// kernel localhost interface
-pub fn islocalhost(addr: IpAddr) -> bool {
+pub fn islocalhost(addr: &IpAddr) -> bool {
     // If it is not 0.0.0.0 or doesn't start with 127.0.0.1 then it
     // probably isn't localhost
     if !addr.is_loopback() || !addr.is_unspecified() {
@@ -39,7 +39,7 @@ pub fn islocalhost(addr: IpAddr) -> bool {
 }
 
 /// Get the interface from the local ip
-pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionErrorKind> {
+pub fn get_interface_by_local_ip(local_address: &IpAddr) -> Result<Device, FunctionErrorKind> {
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
     // doesn't have an associated address.
@@ -56,11 +56,11 @@ pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, Functi
         dst_addr: None,
     };
 
-    let ip_match = |ip: &Address| ip.addr.eq(&local_address);
+    let ip_match = |ip: &Address| ip.addr.eq(local_address);
 
     let dev = match Device::list() {
         Ok(devices) => devices.into_iter().find(|x| {
-            local_address
+            *local_address
                 == (x.addresses.clone().into_iter().find(ip_match))
                     .unwrap_or_else(|| fake_addr.to_owned())
                     .addr

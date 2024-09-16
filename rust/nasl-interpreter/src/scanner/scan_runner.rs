@@ -113,6 +113,9 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 
 #[cfg(test)]
 pub(super) mod tests {
+    use std::net::IpAddr;
+    use std::net::Ipv4Addr;
+
     use futures::StreamExt;
     use models::Protocol;
     use models::Scan;
@@ -322,12 +325,18 @@ exit({rc});
         let storage = DefaultDispatcher::new();
 
         let register = Register::root_initial(&initial);
-        let target = String::default();
         let functions = nasl_std_functions();
         let loader = |_: &str| code.to_string();
         let key = ContextKey::FileName(id.to_string());
 
-        let context = Context::new(key, target, &storage, &storage, &loader, &functions);
+        let context = Context::new(
+            key,
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            &storage,
+            &storage,
+            &loader,
+            &functions,
+        );
         let interpreter = CodeInterpreter::new(code, register, &context);
         for stmt in interpreter.iter_blocking() {
             if let NaslValue::Exit(_) = stmt.expect("stmt success") {
@@ -452,7 +461,7 @@ exit({rc});
         .for_each(|(p, port, enabled)| {
             dispatcher
                 .dispatch(
-                    &ContextKey::Scan("sid".into(), Some("test.host".into())),
+                    &ContextKey::Scan("sid".into(), IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
                     Field::KB((&generate_port_kb_key(p, port), enabled).into()),
                 )
                 .expect("store kb");
@@ -466,7 +475,7 @@ exit({rc});
         let dispatcher = prepare_vt_storage(&vts);
         dispatcher
             .dispatch(
-                &ContextKey::Scan("sid".into(), Some("test.host".into())),
+                &ContextKey::Scan("sid".into(), IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
                 Field::KB(("key/exists", 1).into()),
             )
             .expect("store kb");

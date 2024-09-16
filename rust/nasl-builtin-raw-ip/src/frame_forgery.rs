@@ -12,7 +12,6 @@ use std::{net::Ipv4Addr, str::FromStr};
 
 use pcap::{Capture, Device};
 
-use nasl_builtin_host::get_host_ip;
 use nasl_builtin_utils::{error::FunctionErrorKind, Context, ContextType, Register};
 use nasl_syntax::NaslValue;
 
@@ -361,7 +360,7 @@ fn nasl_send_arp_request(
         }
     };
 
-    let target_ip = get_host_ip(context)?;
+    let target_ip = context.target();
 
     if target_ip.is_ipv6() {
         return Err(FunctionErrorKind::wrong_unnamed_argument(
@@ -369,8 +368,8 @@ fn nasl_send_arp_request(
             "IPv6 does not support ARP protocol.",
         ));
     }
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
-    let iface = get_interface_by_local_ip(local_ip)?;
+    let local_ip = get_source_ip(target_ip.clone(), 50000u16)?;
+    let iface = get_interface_by_local_ip(&local_ip)?;
     let local_mac_address = match get_local_mac_address(&iface.name) {
         Some(x) => x,
         _ => {
@@ -424,7 +423,7 @@ fn nasl_get_local_mac_address_from_ip(
     match &positional[0] {
         NaslValue::String(x) => {
             let ip = ipstr2ipaddr(x)?;
-            let iface = get_interface_by_local_ip(ip)?;
+            let iface = get_interface_by_local_ip(&ip)?;
             match get_local_mac_address(&iface.name) {
                 Some(mac) => Ok(NaslValue::String(mac.to_string())),
                 _ => Err(FunctionErrorKind::Diagnostic(
@@ -517,10 +516,10 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
         }
     };
 
-    let target_ip = get_host_ip(context)?;
+    let target_ip = context.target();
 
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
-    let iface = get_interface_by_local_ip(local_ip)?;
+    let local_ip = get_source_ip(target_ip.clone(), 50000u16)?;
+    let iface = get_interface_by_local_ip(&local_ip)?;
 
     // send the frame and get a response if pcap_active enabled
     match send_frame(frame, &iface, pcap_active, filter, timeout)? {

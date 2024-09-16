@@ -2149,7 +2149,6 @@ dependencies = [
 name = "nasl-builtin-raw-ip"
 version = "0.1.0"
 dependencies = [
- "nasl-builtin-host",
  "nasl-builtin-misc",
  "nasl-builtin-std",
  "nasl-builtin-utils",

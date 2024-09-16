@@ -288,7 +288,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr};
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -336,7 +336,7 @@ pub struct Context<'a> {
     /// key for this context. A file name or a scan id
     key: ContextKey,
     /// target to run a scan against
-    target: String,
+    target: IpAddr,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher,
     /// Default Retriever
@@ -351,7 +351,7 @@ impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
         key: ContextKey,
-        target: String,
+        target: IpAddr,
         dispatcher: &'a dyn Dispatcher,
         retriever: &'a dyn Retriever,
         loader: &'a dyn Loader,
@@ -394,7 +394,7 @@ impl<'a> Context<'a> {
     }
 
     /// Get the target host
-    pub fn target(&self) -> &str {
+    pub fn target(&self) -> &IpAddr {
         &self.target
     }
 

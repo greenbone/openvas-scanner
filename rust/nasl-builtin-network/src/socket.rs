@@ -5,7 +5,7 @@
 use std::{
     fs,
     io::{self, BufReader, Read, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
+    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     os::fd::AsRawFd,
     sync::{Arc, RwLock},
     thread::sleep,
@@ -22,11 +22,7 @@ use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
 };
 
-use crate::{
-    get_kb_item, mtu,
-    network_utils::{bind_local_socket, ipstr2ipaddr},
-    verify_port, OpenvasEncaps,
-};
+use crate::{get_kb_item, mtu, network_utils::bind_local_socket, verify_port, OpenvasEncaps};
 
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
@@ -104,7 +100,7 @@ impl UDPConnection {
 
         let ip = self.socket.peer_addr()?.ip();
 
-        let mtu = mtu(ip);
+        let mtu = mtu(&ip);
 
         if len > mtu {
             return Err(FunctionErrorKind::Diagnostic(
@@ -533,12 +529,7 @@ impl NaslSockets {
         let port = verify_port(port)?;
         let transport = transport.unwrap_or(-1);
 
-        let addr = context.target();
-        if addr.is_empty() {
-            return Err(FunctionErrorKind::Dirty(
-                "A target must be specified to open a socket".to_string(),
-            ));
-        }
+        let addr = context.target().clone();
 
         self.wait_before_next_probe();
 
@@ -619,14 +610,13 @@ impl NaslSockets {
 
     fn open_sock_tcp_ip(
         &self,
-        addr: &str,
+        addr: IpAddr,
         port: u16,
         bufsz: Option<i64>,
         timeout: Duration,
         tls_config: Option<TLSConfig>,
         context: &Context,
     ) -> Result<NaslSocket, FunctionErrorKind> {
-        let addr = ipstr2ipaddr(addr)?;
         let mut retry = super::get_kb_item(context, "timeout_retry")?
             .map(|val| match val {
                 NaslValue::String(val) => val.parse::<i64>().unwrap_or_default(),
@@ -679,7 +669,7 @@ impl NaslSockets {
 
     fn open_sock_tcp_tls(
         &self,
-        addr: &str,
+        addr: IpAddr,
         port: u16,
         bufsz: Option<i64>,
         timeout: Duration,
@@ -767,10 +757,8 @@ impl NaslSockets {
     fn open_sock_udp(&self, port: i64, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
         let port = verify_port(port)?;
         dbg!(context.target());
-        let addr = ipstr2ipaddr(context.target())?;
-        // let addr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
-        let socket = Self::open_udp(addr, port)?;
+        let socket = Self::open_udp(context.target().clone(), port)?;
         let fd = self.add(socket);
 
         Ok(NaslValue::Number(fd as i64))

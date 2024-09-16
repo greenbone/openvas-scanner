@@ -423,10 +423,7 @@ impl Ssh {
             }
         };
 
-        let ip_str: String = match ctx.target() {
-            x if !x.is_empty() => x.to_string(),
-            _ => "127.0.0.1".to_string(),
-        };
+        let ip_str = ctx.target().to_string();
 
         let timeout: i64 = register
             .named("timeout")
@@ -551,7 +548,7 @@ impl Ssh {
             let option = SshOption::Socket(my_sock.as_raw_fd());
 
             debug!(
-                ip_str = ip_str,
+                ip_str = ip_str.to_string(),
                 sock_fd = my_sock.as_raw_fd(),
                 nasl_sock = sock,
                 "Setting SSH fd for socket",

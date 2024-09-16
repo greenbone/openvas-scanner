@@ -15,6 +15,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
     io,
+    net::IpAddr,
     sync::{Arc, PoisonError, RwLock},
 };
 
@@ -29,7 +30,7 @@ pub type ScanID = String;
 ///
 ///  This is necessary for target specific data, e.g. KB items that should be deleted when the
 ///  target is not scanned anymore.
-pub type Target = Option<String>;
+pub type Target = IpAddr;
 
 /// Is a key used by a Storage to find data within a certain scope.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -48,8 +49,7 @@ pub enum ContextKey {
 impl Display for ContextKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContextKey::Scan(id, None) => write!(f, "scan_id={id}"),
-            ContextKey::Scan(id, Some(target)) => write!(f, "scan_id={id} target={target}"),
+            ContextKey::Scan(id, target) => write!(f, "scan_id={id} target={target}"),
             ContextKey::FileName(name) => write!(f, "file={name}"),
         }
     }

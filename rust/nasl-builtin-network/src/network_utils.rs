@@ -9,20 +9,7 @@ use std::{
     str::FromStr,
 };
 
-use nasl_syntax::NaslValue;
-
 use crate::FunctionErrorKind;
-
-/// Convert a string in a IpAddr
-pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
-    match IpAddr::from_str(ip_addr) {
-        Ok(ip) => Ok(ip),
-        Err(_) => Err(FunctionErrorKind::Diagnostic(
-            format!("Invalid IP address ({})", ip_addr),
-            Some(NaslValue::Null),
-        )),
-    }
-}
 
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
 pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
@@ -37,8 +24,8 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKin
 }
 
 /// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
-    let socket = SocketAddr::new(dst, port);
+pub fn get_source_ip(dst: &IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
+    let socket = SocketAddr::new(dst.clone(), port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;
     local_socket
@@ -51,7 +38,7 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind
 
 /// Tests whether a packet sent to IP is LIKELY to route through the
 /// kernel localhost interface
-pub fn islocalhost(addr: IpAddr) -> bool {
+pub fn islocalhost(addr: &IpAddr) -> bool {
     // If it is not 0.0.0.0 or doesn't start with 127.0.0.1 then it
     // probably isn't localhost
     if addr.is_loopback() || addr.is_unspecified() {
@@ -62,7 +49,9 @@ pub fn islocalhost(addr: IpAddr) -> bool {
 }
 
 /// Get the interface from the local ip
-pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, FunctionErrorKind> {
+pub fn get_netmask_by_local_ip(
+    local_address: &IpAddr,
+) -> Result<Option<IpAddr>, FunctionErrorKind> {
     let mut interfaces: *mut libc::ifaddrs = ptr::null_mut();
 
     let ret = unsafe { libc::getifaddrs(&mut interfaces) };
@@ -116,7 +105,7 @@ pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, 
                         continue;
                     }
                 };
-                if ip == local_address {
+                if ip == *local_address {
                     libc::freeifaddrs(interfaces);
                     return Ok(net);
                 }

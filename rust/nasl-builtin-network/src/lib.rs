@@ -21,7 +21,7 @@ const DEFAULT_PORT: u16 = 33435;
 
 // Get the max MTU possible for network communication
 // TODO: Calculate the MTU dynamically
-pub fn mtu(_: IpAddr) -> usize {
+pub fn mtu(_: &IpAddr) -> usize {
     MTU
 }
 
