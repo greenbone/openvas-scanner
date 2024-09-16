@@ -5,7 +5,7 @@
 use std::{
     fs,
     io::{self, BufReader, Read, Write},
-    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     os::fd::AsRawFd,
     sync::{Arc, RwLock},
     thread::sleep,
@@ -354,18 +354,18 @@ impl NaslSockets {
     /// - length the number of bytes that you want to read at most. recv may return before length bytes have been read: as soon as at least one byte has been received, the timeout is lowered to 1 second. If no data is received during that time, the function returns the already read data; otherwise, if the full initial timeout has not been reached, a 1 second timeout is re-armed and the script tries to receive more data from the socket. This special feature was implemented to get a good compromise between reliability and speed when openvas-scanner talks to unknown or complex protocols. Two other optional named integer arguments can twist this behavior:
     /// - min is the minimum number of data that must be read in case the “magic read function” is activated and the timeout is lowered. By default this is 0. It works together with length. More info https://lists.archive.carbon60.com/nessus/devel/13796
     /// - timeout can be changed from the default.
-    #[nasl_function(named(socket, len, min, timeout))]
+    #[nasl_function(named(socket, length, min, timeout))]
     fn recv(
         &self,
         socket: usize,
-        len: usize,
+        length: usize,
         min: Option<i64>,
         timeout: Option<i64>,
     ) -> Result<NaslValue, FunctionErrorKind> {
         let min = min
-            .map(|min| if min < 0 { len } else { min as usize })
-            .unwrap_or(len);
-        let mut data = vec![0; len];
+            .map(|min| if min < 0 { length } else { min as usize })
+            .unwrap_or(length);
+        let mut data = vec![0; length];
 
         let mut ret = Ok(NaslValue::Null);
 
@@ -387,9 +387,9 @@ impl NaslSockets {
                 }
                 if let Some(tls) = conn.tls_connection.as_mut() {
                     let mut socket = Stream::new(tls, &mut conn.socket);
-                    Self::socket_recv(&mut socket, &mut data, len, min)?;
+                    Self::socket_recv(&mut socket, &mut data, length, min)?;
                 } else {
-                    Self::socket_recv(&mut conn.socket, &mut data, len, min)?;
+                    Self::socket_recv(&mut conn.socket, &mut data, length, min)?;
                 }
 
                 if let Some(timeout) = old {
@@ -522,13 +522,13 @@ impl NaslSockets {
     #[nasl_function(named(timeout, transport, bufsz))]
     fn open_sock_tcp(
         &self,
-        context: &Context,
         port: i64,
         timeout: Option<i64>,
         transport: Option<i64>,
         bufsz: Option<i64>,
         // TODO: Extract information from custom priority string
         // priority: Option<&str>,
+        context: &Context,
     ) -> Result<NaslValue, FunctionErrorKind> {
         // Get port
         let port = verify_port(port)?;
@@ -567,14 +567,14 @@ impl NaslSockets {
                 Some(OpenvasEncaps::Auto) => {
                     // Try SSL/TLS first
                     if let Ok(fd) =
-                        self.open_sock_tcp_tls(context, addr, port, bufsz, timeout, vhost)
+                        self.open_sock_tcp_tls(addr, port, bufsz, timeout, vhost, context)
                     {
                         fds.push(self.add(fd))
                         // TODO: Set port transport
                     } else {
                         // Then try IP
                         if let Ok(fd) =
-                            self.open_sock_tcp_ip(context, addr, port, bufsz, timeout, None)
+                            self.open_sock_tcp_ip(addr, port, bufsz, timeout, None, context)
                         {
                             fds.push(self.add(fd))
                             // TODO: Set port transport
@@ -583,7 +583,7 @@ impl NaslSockets {
                 }
                 // IP
                 Some(OpenvasEncaps::Ip) => {
-                    if let Ok(fd) = self.open_sock_tcp_ip(context, addr, port, bufsz, timeout, None)
+                    if let Ok(fd) = self.open_sock_tcp_ip(addr, port, bufsz, timeout, None, context)
                     {
                         fds.push(self.add(fd))
                         // TODO: Set port transport
@@ -599,7 +599,7 @@ impl NaslSockets {
                 Some(tls_version) => match tls_version {
                     OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
                         let fd =
-                            self.open_sock_tcp_tls(context, addr, port, bufsz, timeout, vhost)?;
+                            self.open_sock_tcp_tls(addr, port, bufsz, timeout, vhost, context)?;
                         fds.push(self.add(fd))
                     }
                     _ => {
@@ -620,12 +620,12 @@ impl NaslSockets {
 
     fn open_sock_tcp_ip(
         &self,
-        context: &Context,
         addr: &str,
         port: u16,
         bufsz: Option<i64>,
         timeout: Duration,
         tls_config: Option<TLSConfig>,
+        context: &Context,
     ) -> Result<NaslSocket, FunctionErrorKind> {
         let addr = ipstr2ipaddr(addr)?;
         let mut retry = super::get_kb_item(context, "timeout_retry")?
@@ -680,12 +680,12 @@ impl NaslSockets {
 
     fn open_sock_tcp_tls(
         &self,
-        context: &Context,
         addr: &str,
         port: u16,
         bufsz: Option<i64>,
         timeout: Duration,
         hostname: &str,
+        context: &Context,
     ) -> Result<NaslSocket, FunctionErrorKind> {
         let cert_path = get_kb_item(context, "SSL/cert")?
             .ok_or(FunctionErrorKind::Diagnostic(
@@ -754,20 +754,22 @@ impl NaslSockets {
             .map_err(|_| FunctionErrorKind::WrongArgument("Invalid Key".to_string()))?;
 
         self.open_sock_tcp_ip(
-            context,
             addr,
             port,
             bufsz,
             timeout,
             Some(TLSConfig { config, server }),
+            context,
         )
     }
 
     /// Open a UDP socket to the target host
     #[nasl_function]
-    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, FunctionErrorKind> {
+    fn open_sock_udp(&self, port: i64, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
         let port = verify_port(port)?;
+        dbg!(context.target());
         let addr = ipstr2ipaddr(context.target())?;
+        // let addr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
         let socket = Self::open_udp(addr, port)?;
         let fd = self.add(socket);
