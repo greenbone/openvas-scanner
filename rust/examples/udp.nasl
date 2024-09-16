@@ -7,7 +7,7 @@ display("is function defined: ", defined_func("open_sock_udp"));
 sock = open_sock_udp(34254);
 display("was socket created: ", !isnull(sock));
 display("fd: ", sock);
-ret = send(socket: sock, data: "123");
+ret = send(socket: sock, data: '123');
 display("num bytes sent: ", ret);
 rec = recv(socket: sock, length: 10);
 display(rec);
