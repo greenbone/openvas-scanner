@@ -31,7 +31,7 @@ use crate::{CliError, CliErrorKind, Db};
 
 struct Run<L, S> {
     context_builder: ContextFactory<L, S>,
-    _target: String,
+    target: String,
     scan_id: String,
 }
 
@@ -90,7 +90,7 @@ where
         Run {
             context_builder: ContextFactory::new(self.loader, self.storage),
             scan_id: self.scan_id,
-            _target: self.target,
+            target: self.target,
         }
     }
 }
@@ -125,10 +125,10 @@ where
     }
 
     async fn run(&self, script: &str) -> Result<(), CliErrorKind> {
-        let context = self
-            .context_builder
-            // TODO: use proper  target
-            .build(ContextKey::Scan(self.scan_id.clone(), None));
+        let context = self.context_builder.build(ContextKey::Scan(
+            self.scan_id.clone(),
+            Some(self.target.clone()),
+        ));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
         let results: Vec<_> = CodeInterpreter::new(&code, register, &context)

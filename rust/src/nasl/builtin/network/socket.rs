@@ -5,7 +5,7 @@
 use std::{
     fs,
     io::{self, BufReader, Read, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
+    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     os::fd::AsRawFd,
     sync::{Arc, RwLock},
     thread::sleep,
