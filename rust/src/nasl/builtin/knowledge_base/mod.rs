@@ -18,10 +18,10 @@ use nasl_function_proc_macro::nasl_function;
 /// Only pushes unique values for the given name.
 #[nasl_function(named(name, value, expires))]
 fn set_kb_item(
+    c: &Context,
     name: NaslValue,
     value: NaslValue,
     expires: Option<NaslValue>,
-    c: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let expires = match expires {
         Some(NaslValue::Number(x)) => Some(x),
@@ -56,7 +56,7 @@ fn set_kb_item(
 
 /// NASL function to get a knowledge base
 #[nasl_function]
-fn get_kb_item(key: &str, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FunctionErrorKind> {
     c.retriever()
         .retrieve(c.key(), Retrieve::KB(key.to_string()))
         .map(|r| {
@@ -72,11 +72,11 @@ fn get_kb_item(key: &str, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
 }
 
 /// NASL function to replace a kb list
-#[nasl_function(named(name, value, expires))]
+#[nasl_function(named(name, value))]
 fn replace_kb_item(
+    c: &Context,
     name: NaslValue,
     value: NaslValue,
-    c: &Context,
 ) -> Result<NaslValue, FunctionErrorKind> {
     c.dispatcher()
         .dispatch_replace(
@@ -92,8 +92,8 @@ fn replace_kb_item(
 }
 
 /// NASL function to retrieve an item in a KB.
-#[nasl_function(named(name, value, expires))]
-fn get_kb_list(key: NaslValue, c: &Context) -> Result<NaslValue, FunctionErrorKind> {
+#[nasl_function]
+fn get_kb_list(c: &Context, key: NaslValue) -> Result<NaslValue, FunctionErrorKind> {
     c.retriever()
         .retrieve(c.key(), Retrieve::KB(key.to_string()))
         .map(|r| {

@@ -211,7 +211,7 @@ fn localtime(secs: Option<i64>, utc: Option<NaslValue>) -> HashMap<String, NaslV
 /// This argument must be a string everything else will return False per default.
 /// Returns NaslValue::Boolean(true) when defined NaslValue::Boolean(false) otherwise.
 #[nasl_function]
-fn defined_func(fn_name: Option<Maybe<&str>>, ctx: &Context, register: &Register) -> bool {
+fn defined_func(ctx: &Context, register: &Register, fn_name: Option<Maybe<&str>>) -> bool {
     fn_name
         .and_then(Maybe::as_option)
         .map(|fn_name| match register.named(fn_name) {

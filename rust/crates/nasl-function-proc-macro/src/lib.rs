@@ -23,6 +23,5 @@ pub fn nasl_function(
 
 fn nasl_function_internal(function: ItemFn, attrs: Attrs) -> Result<TokenStream> {
     let args = ArgsStruct::try_parse(&function, &attrs)?;
-    attrs.verify()?;
     Ok(args.impl_nasl_function_args())
 }

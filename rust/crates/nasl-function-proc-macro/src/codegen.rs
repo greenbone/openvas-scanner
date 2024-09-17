@@ -12,7 +12,9 @@ impl<'a> ArgsStruct<'a> {
     }
 
     fn num_required_positional(&self) -> usize {
-        self.positional().filter(|(arg, _)| !arg.optional).count()
+        self.positional()
+            .filter(|(arg, _)| arg.is_required_positional())
+            .count()
     }
 
     fn max_num_allowed_positional(&self) -> usize {
