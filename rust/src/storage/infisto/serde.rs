@@ -76,7 +76,7 @@ impl<T> From<Serialization<T>> for Vec<u8> {
 mod test {
     use serde::{Deserialize, Serialize};
 
-    use crate::storage::file::base::{CachedIndexFileStorer, IndexedByteStorage, Range};
+    use crate::storage::infisto::base::{CachedIndexFileStorer, IndexedByteStorage, Range};
 
     const BASE: &str = "/tmp/openvasd/unittest";
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

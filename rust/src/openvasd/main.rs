@@ -17,7 +17,7 @@ use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
 use scannerlib::scanner::ScannerStackWithStorage;
-use scannerlib::storage::file::{ChaCha20IndexFileStorer, IndexedFileStorer};
+use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
 use storage::{FromConfigAndFeeds, Storage};
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;

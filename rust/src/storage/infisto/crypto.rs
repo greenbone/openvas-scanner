@@ -179,7 +179,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::file::base::{CachedIndexFileStorer, Range};
+    use crate::storage::infisto::base::{CachedIndexFileStorer, Range};
 
     use super::*;
     const BASE: &str = "/tmp/openvasd/unittest";

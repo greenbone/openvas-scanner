@@ -4,7 +4,7 @@
 
 #![doc = include_str!("README.md")]
 
-pub mod file;
+pub mod infisto;
 pub mod json;
 pub mod redis;
 
