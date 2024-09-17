@@ -24,6 +24,7 @@ pub enum FindParameter {
 }
 
 /// Is used within Replacer to find a specific statement to operator on.
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Find {
     /// Finds a function by name.
