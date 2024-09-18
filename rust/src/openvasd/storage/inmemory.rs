@@ -10,7 +10,6 @@ use scannerlib::{
     storage::{item::Nvt, ContextKey, DefaultDispatcher, StorageError},
 };
 use tokio::task::JoinSet;
-use tracing::info;
 
 #[derive(Clone, Debug, Default)]
 struct Progress {
@@ -292,7 +291,6 @@ where
         _: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        info!("using in memory store. No sensitive data will be stored on disk.");
         Ok(inmemory::Storage::new(E::default(), feeds))
     }
 }
