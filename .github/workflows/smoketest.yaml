@@ -42,7 +42,7 @@ jobs:
           kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd 
           echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
       - name: smoketest
-        working-directory: rust/smoketest
+        working-directory: rust/crates/smoketest
         env:
           SCAN_CONFIG: configs/simple_scan_ssh_only.json
           CLIENT_KEY: ../examples/tls/Self-Signed mTLS Method/client.rsa

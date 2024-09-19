@@ -67,6 +67,24 @@ Additionally we want to:
 - implement scheduling for a multi script run
 - create an http frontend based on [OpenAPI definition](./doc/openapi.yml)
 
+# Structure of the code
+The codebase is structured roughly as follows:
+- `nasl`: Contains the NASL syntax, interpreter and builtin functions.
+- `nasl/syntax`: Definition of the NASL syntax.
+- `nasl/interpreter`: The NASL language interpreter.
+- `nasl/utils`: Utilities to make working with the NASL interpreter and implementing new builtin functions easier.
+- `nasl/builtin`: The builtin NASL functions. This is divided into submodules depending on the functionality (i.e. `string`, `ssh`, `http`, ...).
+- `storage`: Implementation of the different methods to store scan results. This contains code that is relevant to all storage types, as well as submodules containing the code of the individual storage types.
+- `scanner`: Implementation of the `openvasd` scanner type.
+- `feed`: Functionality to perform feed verification and updates.
+- `models`: Defines types that are commonly used throughout the codebase.
+- ..
+
+Integration with existing implementations is done in `openvas` and `osp`.
+
+This crate provides two binaries: `openvasd`, which is the main executable and `scannerctl`, which is used for performing quick tests of NASL functionality and has many other utility functions.
+
+
 # Current status
 
 The programs openvasd and scannerctl are usable, but might not support all features yet. The current openvasd implementation does not use and internal rust scanner yet, but still uses the c implementation of the openvas-scanner. Additionally depending on the configuration, an ospd-openvas instance is also needed.

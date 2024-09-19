@@ -7,4 +7,4 @@ hd = "hd"
 guid = "guid"
 
 [files]
-extend-exclude = ["osp/tests/response_*.xml", "smoketest/configs/client_sample.cert", "*.notus"]
+extend-exclude = ["data/osp/response_*.xml", "crates/smoketest/configs/client_sample.cert", "*.notus"]

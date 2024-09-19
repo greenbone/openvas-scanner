@@ -1,8 +1,0 @@
-[package]
-name = "feed-verifier"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-redis = "0.22.3"
-configparser = "3"
