@@ -27,7 +27,7 @@ String with the received data or NULL on error.
 
 ## EXAMPLES
 
-**1**: Open a socket, recieve data, close the socket and finally display the data.
+**1**: Open a socket, receive data, close the socket and finally display the data.
 ```cpp
 soc = open_sock_tcp(port);
 data = recv_line(socket: soc, length: 4096, timeout: 10);
