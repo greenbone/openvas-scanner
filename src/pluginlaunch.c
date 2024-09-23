@@ -403,6 +403,11 @@ get_available_memory ()
   size_t len;
 
   fd = fopen ("/proc/meminfo", "r");
+  if (fd == NULL)
+    {
+      g_warning ("Couldn't open /proc/meminfo");
+      return 0;
+    }
   len = fread (buf, 1, sizeof (buf) - 1, fd);
   fclose (fd);
   if (len == 0)
