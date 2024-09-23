@@ -398,8 +398,9 @@ plugin_timeout (nvti_t *nvti)
 static int
 get_available_memory ()
 {
-  char buf[8192], *hit;
-  FILE *fd;
+  char buf[8192] = NULL;
+  char *hit = NULL;
+  FILE *fd = NULL;
   size_t len;
 
   fd = fopen ("/proc/meminfo", "r");
