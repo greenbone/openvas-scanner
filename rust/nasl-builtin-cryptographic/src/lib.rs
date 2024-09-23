@@ -24,35 +24,6 @@ enum Crypt {
     Decrypt,
 }
 
-pub(crate) fn lookup(function_name: &str) -> Option<NaslFunction> {
-    aes_ccm::lookup(function_name)
-        .or_else(|| hmac::lookup(function_name))
-        .or_else(|| aes_cbc::lookup(function_name))
-        .or_else(|| aes_ctr::lookup(function_name))
-        .or_else(|| aes_gcm::lookup(function_name))
-        .or_else(|| aes_cmac::lookup(function_name))
-        .or_else(|| aes_gmac::lookup(function_name))
-        .or_else(|| hash::lookup(function_name))
-        .or_else(|| des::lookup(function_name))
-        .or_else(|| rsa::lookup(function_name))
-}
-
-pub struct Cryptographic;
-
-impl nasl_builtin_utils::NaslFunctionExecuter for Cryptographic {
-    fn nasl_fn_execute(
-        &self,
-        name: &str,
-        register: &Register,
-        context: &Context,
-    ) -> Option<nasl_builtin_utils::NaslResult> {
-        lookup(name).map(|x| x(register, context))
-    }
-
-    fn nasl_fn_defined(&self, name: &str) -> bool {
-        lookup(name).is_some()
-    }
-}
 /// Get named argument of Type Data or String from the register with appropriate error handling.
 /// In case the argument is required, the returned value is either an Error or the Option is always
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some
@@ -70,17 +41,6 @@ fn get_required_named_data<'a>(
             format!("{:?}", x).as_str(),
         )),
         _ => Err(FunctionErrorKind::missing_argument(key)),
-    }
-}
-
-fn get_required_named_bool<'a>(
-    register: &'a Register,
-    key: &'a str,
-) -> Result<bool, FunctionErrorKind> {
-    match register.named(key) {
-        Some(ContextType::Value(NaslValue::Boolean(x))) => Ok(*x),
-        Some(x) => Err((key, "a Bool Value", format!("{:?}", x).as_str()).into()),
-        _ => Err((key).into()),
     }
 }
 
@@ -156,6 +116,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(aes_gmac::AesGmac);
         set.add_set(hash::Hash);
         set.add_set(des::Des);
-        set
+        set.add_set(rsa::Rsa);
+        return set;
     }
 }

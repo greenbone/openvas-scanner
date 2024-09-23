@@ -3,22 +3,28 @@
 
 // SPDX-License-Identifier: GPL-2.0-or-later
 //use md5::Digest;
-use crate::get_required_named_bool;
-use crate::get_required_named_data;
 use ccm::aead::OsRng;
 use core::str;
-use nasl_builtin_utils::{Context, FunctionErrorKind, NaslFunction, Register};
+use nasl_builtin_utils::function_set;
+use nasl_builtin_utils::FunctionErrorKind;
+use nasl_function_proc_macro::nasl_function;
 use nasl_syntax::NaslValue;
 use rsa::pkcs8::DecodePrivateKey;
 use rsa::signature::digest::Digest;
 use rsa::{BigUint, Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 use sha1::Sha1;
 
-fn rsa_public_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let data = get_required_named_data(register, "data")?;
-    let n = get_required_named_data(register, "n")?;
-    let e = get_required_named_data(register, "e")?;
-    let pad = get_required_named_bool(register, "pad").unwrap_or_default();
+#[nasl_function]
+async fn rsa_public_encrypt(
+    data: Option<&[u8]>,
+    n: Option<&[u8]>,
+    e: Option<&[u8]>,
+    pad: Option<bool>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    let data = data.unwrap();
+    let n = n.unwrap();
+    let e = e.unwrap();
+    let pad = pad.unwrap_or_default();
     let mut rng = rand::thread_rng();
     let pub_key = RsaPublicKey::new(
         rsa::BigUint::from_bytes_be(n),
@@ -38,12 +44,19 @@ fn rsa_public_encrypt(register: &Register, _: &Context) -> Result<NaslValue, Fun
     Ok(enc_data.to_vec().into())
 }
 
-fn rsa_private_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let data = get_required_named_data(register, "data")?;
-    let n = get_required_named_data(register, "n")?;
-    let e = get_required_named_data(register, "e")?;
-    let d = get_required_named_data(register, "d")?;
-    let pad = get_required_named_bool(register, "pad")?;
+#[nasl_function]
+async fn rsa_private_decrypt(
+    data: Option<&[u8]>,
+    n: Option<&[u8]>,
+    e: Option<&[u8]>,
+    d: Option<&[u8]>,
+    pad: Option<bool>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    let data = data.unwrap();
+    let n = n.unwrap();
+    let e = e.unwrap();
+    let d = d.unwrap();
+    let pad = pad.unwrap_or_default();
     let priv_key = match RsaPrivateKey::from_components(
         rsa::BigUint::from_bytes_be(n),
         rsa::BigUint::from_bytes_be(e),
@@ -81,19 +94,20 @@ fn rsa_private_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Fu
     Ok(dec_data.to_vec().into())
 }
 
-fn rsa_sign(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let data = get_required_named_data(register, "data")?;
-    let pem = get_required_named_data(register, "priv")?;
-    let passphrase = get_required_named_data(register, "passphrase")?;
+#[nasl_function]
+async fn rsa_sign(
+    data: Option<&[u8]>,
+    pem: Option<&str>,
+    passphrase: Option<&str>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    let data = data.unwrap();
+    let pem = pem.unwrap();
+    let passphrase = passphrase.unwrap_or_default();
     let rsa = if passphrase.is_empty() {
-        RsaPrivateKey::from_pkcs8_pem(str::from_utf8(pem).expect("Error while decoding pem"))
-            .expect("Failed to decode passphrase")
+        RsaPrivateKey::from_pkcs8_pem(pem).expect("Failed to decode passphrase")
     } else {
-        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(
-            str::from_utf8(pem).expect("Error while decoding pem"),
-            str::from_utf8(passphrase).expect("Error while decoding pem"),
-        )
-        .expect("Failed to decode passphrase, maybe wrong passphrase for pem?")
+        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(pem, passphrase)
+            .expect("Failed to decode passphrase, maybe wrong passphrase for pem?")
     };
     let mut hasher = Sha1::new_with_prefix(data);
     hasher.update(data);
@@ -104,10 +118,15 @@ fn rsa_sign(register: &Register, _: &Context) -> Result<NaslValue, FunctionError
     Ok(signature.into())
 }
 
-fn rsa_public_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    let sign = get_required_named_data(register, "sign")?;
-    let n = get_required_named_data(register, "n")?;
-    let e = get_required_named_data(register, "e")?;
+#[nasl_function]
+async fn rsa_public_decrypt(
+    sign: Option<&[u8]>,
+    n: Option<&[u8]>,
+    e: Option<&[u8]>,
+) -> Result<NaslValue, FunctionErrorKind> {
+    let sign = sign.unwrap();
+    let n = n.unwrap();
+    let e = e.unwrap();
     let e_b = rsa::BigUint::from_bytes_be(e);
     let n_b = rsa::BigUint::from_bytes_be(n);
     let public_key = RsaPublicKey::new(n_b, e_b).expect("Failed to create Public key");
@@ -116,12 +135,14 @@ fn rsa_public_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Fun
     Ok(enc_data.to_vec().into())
 }
 
-pub fn lookup(key: &str) -> Option<NaslFunction> {
-    match key {
-        "rsa_public_encrypt" => Some(rsa_public_encrypt),
-        "rsa_private_decrypt" => Some(rsa_private_decrypt),
-        "rsa_sign" => Some(rsa_sign),
-        "rsa_public_decrypt" => Some(rsa_public_decrypt),
-        _ => None,
-    }
+pub struct Rsa;
+function_set! {
+    Rsa,
+    async_stateless,
+    (
+        (rsa_public_encrypt, "rsa_public_encrypt"),
+        (rsa_private_decrypt, "rsa_private_decrypt"),
+        (rsa_sign, "rsa_sign"),
+        (rsa_public_decrypt, "rsa_public_decrypt"),
+    )
 }

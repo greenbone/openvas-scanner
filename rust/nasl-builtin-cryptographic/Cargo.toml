@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 nasl-builtin-utils = { path = "../nasl-builtin-utils" }
 nasl-syntax = { path = "../nasl-syntax" }
+nasl-function-proc-macro = {path = "../nasl-function-proc-macro"}
 # requires libssh > 3.0.0 to be installed
 storage = { path = "../storage" }
 aes = "0.8.2"
