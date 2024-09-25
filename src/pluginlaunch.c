@@ -410,7 +410,7 @@ get_available_memory ()
     }
   len = fread (buf, 1, sizeof (buf) - 1, fd);
   fclose (fd);
-  if (len == 0)
+  if (len == 0 || buf == NULL)
     {
       g_warning ("Couldn't read /proc/meminfo");
       return 0;
