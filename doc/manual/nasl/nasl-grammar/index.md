@@ -99,7 +99,7 @@ NASL imported some operators from C:
 
 - `++` is the pre-incrementation (`++x`) or post-incrementation (`x++`).
 - `++x` adds 1 to x and returns the result; `x++` adds 1 to x but returns the previous value.
-- `-` is the pre-decrementation (`–x`) or post-decrementation (`x–`).
+- `--` is the pre-decrementation (`--x`) or post-decrementation (`x--`).
 - `+= -= *= /= %=` have the same meaning as in C, e.g., `x += y;` is equivalent to `x = x + y;` but x is evaluated only once. This is important in expressions like `a[i++] *= 2;` where the index “i” is incremented only once.
 - `<<=` and `>>=` also exist; we added `>>>=`
 
