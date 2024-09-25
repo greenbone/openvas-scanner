@@ -1,6 +1,6 @@
 ARG VERSION=edge
 
-FROM greenbone/gvm-libs:$VERSION
+FROM registry.community.greenbone.net/community/gvm-libs:${VERSION}
 LABEL deprecated="This image is deprecated and may be removed soon."
 
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
