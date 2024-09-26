@@ -11,7 +11,6 @@ COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
-
 FROM registry.community.greenbone.net/community/gvm-libs:${VERSION}
 ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
