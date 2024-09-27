@@ -13,16 +13,15 @@
 - get_host_ip
 - scanner_add_port
 - recv_line
+- get_source_port
 
 ## Missing
 
-- end_denial
 - ftp_get_pasv_port
 - ftp_log_in
 - get_host_open_port
 - get_port_state
 - get_port_transport
-- get_source_port
 - get_tcp_port_state
 - get_udp_port_state
 - join_multicast_group
@@ -31,4 +30,5 @@
 - open_priv_sock_udp
 - scanner_get_port
 - start_denial
+- end_denial
 - telnet_init
