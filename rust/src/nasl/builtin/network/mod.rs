@@ -75,6 +75,24 @@ impl Display for OpenvasEncaps {
     }
 }
 
+pub fn get_retry(context: &Context) -> u8 {
+    if let Ok(Some(val)) = get_kb_item(context, "timeout_retry") {
+        match val {
+            NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
+            NaslValue::Number(val) => {
+                if val < 1 || val > 255 {
+                    2
+                } else {
+                    val as u8
+                }
+            }
+            _ => 2,
+        }
+    } else {
+        2
+    }
+}
+
 pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
     context
         .retriever()

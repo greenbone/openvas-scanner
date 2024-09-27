@@ -11,4 +11,5 @@ ret = send(socket: sock, data: '123');
 display("num bytes sent: ", ret);
 rec = recv(socket: sock, length: 10);
 display(rec);
+close(sock);
 display("end");
