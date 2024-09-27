@@ -4,14 +4,14 @@ ARG REPOSITORY=greenbone/openvas-scanner
 
 FROM greenbone/openvas-smb AS openvas-smb
 
-FROM greenbone/gvm-libs:$VERSION AS build
+FROM registry.community.greenbone.net/community/gvm-libs:${VERSION} AS build
 COPY . /source
 RUN sh /source/.github/install-openvas-dependencies.sh
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
-FROM greenbone/gvm-libs:$VERSION
+FROM registry.community.greenbone.net/community/gvm-libs:${VERSION}
 ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
@@ -58,4 +58,3 @@ RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
 ENV NMAP_PRIVILEGED=1
 RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
 CMD /usr/local/bin/openvasd
-

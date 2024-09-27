@@ -5,7 +5,7 @@ ARG GVM_LIBS_VERSION=testing-edge
 
 FROM greenbone/openvas-smb:testing-edge AS openvas-smb
 
-FROM greenbone/gvm-libs:${GVM_LIBS_VERSION} AS build
+FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION} AS build
 COPY . /source
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
@@ -41,7 +41,7 @@ COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
-FROM greenbone/gvm-libs:${GVM_LIBS_VERSION}
+FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION}
 ARG TARGETPLATFORM
 RUN apt-get update
 RUN apt-get install --no-install-recommends --no-install-suggests -y \
