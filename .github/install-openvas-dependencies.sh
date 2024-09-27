@@ -18,7 +18,8 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libksba-dev \
     libpaho-mqtt-dev \
     libpcap-dev \
-    libssh-gcrypt-dev \
+    libgcrypt-dev \
+    libssh-dev \
     libbsd-dev \
     libgnutls30 \
     libgssapi3-heimdal \
