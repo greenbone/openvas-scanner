@@ -887,6 +887,28 @@ impl NaslSockets {
 
         Ok(NaslValue::Number(fd as i64))
     }
+
+    /// Get the source port of a open socket
+    #[nasl_function]
+    fn get_source_port(&self, socket: usize) -> Result<NaslValue, FunctionErrorKind> {
+        let handles = self.handles.read().unwrap();
+        let socket = handles
+            .handles
+            .get(socket)
+            .ok_or(FunctionErrorKind::WrongArgument(
+                "the given socket FD does not exist".to_string(),
+            ))?;
+        let port = match socket {
+            NaslSocket::Tcp(conn) => conn.socket.local_addr()?.port(),
+            NaslSocket::Udp(conn) => conn.socket.local_addr()?.port(),
+            NaslSocket::Close => {
+                return Err(FunctionErrorKind::WrongArgument(
+                    "the given socket FD is already closed".to_string(),
+                ))
+            }
+        };
+        Ok(NaslValue::Number(port as i64))
+    }
 }
 
 function_set! {
@@ -900,5 +922,6 @@ function_set! {
         (NaslSockets::send, "send"),
         (NaslSockets::recv, "recv"),
         (NaslSockets::recv_line, "recv_line"),
+        (NaslSockets::get_source_port, "get_source_port"),
     )
 }
