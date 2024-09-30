@@ -14,8 +14,8 @@ use rsa::signature::digest::Digest;
 use rsa::{BigUint, Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 use sha1::Sha1;
 
-#[nasl_function]
-async fn rsa_public_encrypt(
+#[nasl_function(named(data, n, e, pad))]
+fn rsa_public_encrypt(
     data: Option<&[u8]>,
     n: Option<&[u8]>,
     e: Option<&[u8]>,
@@ -44,8 +44,8 @@ async fn rsa_public_encrypt(
     Ok(enc_data.to_vec().into())
 }
 
-#[nasl_function]
-async fn rsa_private_decrypt(
+#[nasl_function(named(data, n, e, d, pad))]
+fn rsa_private_decrypt(
     data: Option<&[u8]>,
     n: Option<&[u8]>,
     e: Option<&[u8]>,
@@ -94,19 +94,26 @@ async fn rsa_private_decrypt(
     Ok(dec_data.to_vec().into())
 }
 
-#[nasl_function]
-async fn rsa_sign(
+#[nasl_function(named(data, pem, passphrase))]
+fn rsa_sign(
     data: Option<&[u8]>,
     pem: Option<&str>,
     passphrase: Option<&str>,
 ) -> Result<NaslValue, FunctionErrorKind> {
     let data = data.unwrap();
-    let pem = pem.unwrap();
-    let passphrase = passphrase.unwrap_or_default();
-    let rsa = if passphrase.is_empty() {
-        RsaPrivateKey::from_pkcs8_pem(pem).expect("Failed to decode passphrase")
+    //let pem_str = pem.unwrap().iter().map(|x| *x as char).collect::<String>();
+    let pem_str = pem.unwrap();
+    //let passphrase_str = str::from_utf8(passphrase.unwrap()).unwrap();
+    let passphrase_str = passphrase.unwrap();
+    dbg!(pem_str);
+    dbg!(passphrase_str);
+    let mut rng = rand::thread_rng();
+    let bits = 2048;
+    let rsa: RsaPrivateKey = if passphrase_str == "" {
+        //RsaPrivateKey::from_pkcs8_pem(pem_str).expect("Failed to decode passphrase")
+        RsaPrivateKey::new(&mut rng, bits).unwrap()
     } else {
-        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(pem, passphrase)
+        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(pem_str, passphrase_str)
             .expect("Failed to decode passphrase, maybe wrong passphrase for pem?")
     };
     let mut hasher = Sha1::new_with_prefix(data);
@@ -118,8 +125,8 @@ async fn rsa_sign(
     Ok(signature.into())
 }
 
-#[nasl_function]
-async fn rsa_public_decrypt(
+#[nasl_function(named(sign, n, e))]
+fn rsa_public_decrypt(
     sign: Option<&[u8]>,
     n: Option<&[u8]>,
     e: Option<&[u8]>,
@@ -138,7 +145,7 @@ async fn rsa_public_decrypt(
 pub struct Rsa;
 function_set! {
     Rsa,
-    async_stateless,
+    sync_stateless,
     (
         (rsa_public_encrypt, "rsa_public_encrypt"),
         (rsa_private_decrypt, "rsa_private_decrypt"),

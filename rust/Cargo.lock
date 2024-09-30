@@ -2056,6 +2056,7 @@ dependencies = [
  "md4",
  "nasl-builtin-utils",
  "nasl-c-lib",
+ "nasl-function-proc-macro",
  "nasl-interpreter",
  "nasl-syntax",
  "pkcs8",
