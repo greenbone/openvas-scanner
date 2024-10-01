@@ -1114,6 +1114,9 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    return (char *) var2str (v);
  }
 
+ // TODO: this is very confusing that it returns char * instead of const char *
+ // because it is not supposed to be modified as str_form is freed later on and
+ // may double free on misuse
  char *
  get_str_var_by_name (lex_ctxt *lexic, const char *name)
  {
