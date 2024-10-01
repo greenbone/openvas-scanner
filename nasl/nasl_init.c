@@ -27,6 +27,8 @@
 #include "nasl_misc_funcs.h"
 #include "nasl_packet_forgery.h"
 #include "nasl_packet_forgery_v6.h"
+#include "nasl_krb5.h"
+
 
 #include <stdlib.h> /* for getenv.  */
 #include <string.h> /* for memset */
@@ -414,6 +416,8 @@ static init_func libfuncs[] = {
   {"isotime_scan", nasl_isotime_scan},
   {"isotime_print", nasl_isotime_print},
   {"isotime_add", nasl_isotime_add},
+  // krb5
+  {"krb5_find_kdc", nasl_okrb5_find_kdc },
   {NULL, NULL}};
 
 /* String variables */
