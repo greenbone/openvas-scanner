@@ -1,9 +1,8 @@
-#include "openvas-krb5.h"
+#include "../misc/openvas-krb5.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define REALM "GBKERB.LOCAL"
 
 #define GUARD_ENV_SET(var, env)                  \
   do                                             \
@@ -15,6 +14,7 @@
         }                                        \
     }                                            \
   while (0)
+
 int
 main ()
 {

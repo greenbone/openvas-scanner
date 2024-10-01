@@ -339,7 +339,7 @@ result:
 // numbers but can just reuse credentials to find connections that way we can
 // simply reconnect when we either don't find an entry or when the ticket is
 // invalid witout having the caller to remember artifical identifier.
-unsigned long
+static unsigned long
 o_krb5_cache_credential_id (const OKrb5Credential *cred)
 {
   unsigned long hash = 2166136261;
@@ -379,9 +379,9 @@ OKrb5ErrorCode
 o_krb5_cache_clear (void)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
+size_t i;
   if (element_cache == NULL)
     goto result;
-  int i;
   for (i = 0; i < element_cache->len; i++)
     {
       o_krb5_free_element ((element_cache->elements[i])->element);
@@ -401,8 +401,8 @@ o_krb5_cache_find (const OKrb5Credential *cred)
     {
       return NULL;
     }
-  int i;
   unsigned long id = o_krb5_cache_credential_id (cred);
+  size_t i;
 
   for (i = 0; i < element_cache->len; i++)
     {
@@ -414,7 +414,7 @@ o_krb5_cache_find (const OKrb5Credential *cred)
   return NULL;
 }
 
-OKrb5ErrorCode
+static OKrb5ErrorCode
 o_krb5_cache_add_element (const OKrb5Credential credentials,
                           OKrb5CacheElement **out)
 {
