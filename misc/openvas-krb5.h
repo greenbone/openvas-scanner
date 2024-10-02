@@ -1,4 +1,5 @@
 #include <krb5/krb5.h>
+#include <stdbool.h>
 #ifndef OPENVAS_KRB5
 #define OPENVAS_KRB5 1
 #include <krb5.h>
@@ -38,13 +39,39 @@ typedef struct
   krb5_creds creds;
 } OKrb5Element;
 
+struct OKrb5Slice
+{
+  void *data;
+  size_t len;
+};
+
+struct OKrb5User
+{
+  struct OKrb5Slice user;
+  struct OKrb5Slice password;
+};
+
+struct OKrb5Target
+{
+  struct OKrb5Slice host_name;
+  struct OKrb5Slice service;
+  struct OKrb5Slice domain;
+};
+
 typedef struct
 {
-  const char *config_path;
-  const char *realm;
-  const char *user;
-  const char *password;
+  struct OKrb5Slice config_path;
+  struct OKrb5Slice realm;
+  // required for the case that the realm is not configured in the krb5.conf
+  // will be ignored otherwise.
+  struct OKrb5Slice kdc;
+  struct OKrb5User user;
+  struct OKrb5Target target;
 } OKrb5Credential;
+
+
+
+// TODO: initializer with default values and NULL
 
 typedef struct
 {
@@ -85,7 +112,7 @@ o_krb5_free_element (OKrb5Element *element);
 
 typedef struct
 {
-  OKrb5Credential credentials;
+  const OKrb5Credential *credentials;
   OKrb5Element *element;
   OKrb5ErrorCode last_error_code;
   unsigned long id;
@@ -113,5 +140,40 @@ OKrb5ErrorCode
 o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
                       const size_t data_len, OKrb5Data **out);
 #endif
+
+#define okrb5_slice_from_str(str)                               \
+  (struct OKrb5Slice)                                           \
+  {                                                             \
+    .data = (void *) str, .len = str == NULL ? 0 : strlen (str) \
+  }
+
+#define okrb5_set_slice_from_str(slice, str)      \
+  do                                              \
+    {                                             \
+      slice.data = (void *) str;                  \
+      slice.len = str == NULL ? 0 : strlen (str); \
+    }                                             \
+  while (0)
+
+
+typedef struct OKrb5GSSContext OKrb5GSSContext;
+// Unsure about bool type
+
+OKrb5ErrorCode
+o_krb5_gss_session_key_context (struct OKrb5GSSContext *gss_context,
+                                struct OKrb5Slice **out);
+
+struct OKrb5GSSContext *okrb5_gss_init_context (void);
+void okrb5_gss_free_context (struct OKrb5GSSContext *context);
+
+OKrb5ErrorCode
+o_krb5_gss_prepare_context (const OKrb5Credential *creds,
+                            struct OKrb5GSSContext *gss_context);
+
+OKrb5ErrorCode
+o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
+                           const struct OKrb5Slice *in_data,
+                           struct OKrb5Slice **out_data, bool *more);
+
 
 #endif
