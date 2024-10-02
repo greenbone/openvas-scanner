@@ -60,6 +60,18 @@ impl ArgKind {
             None
         }
     }
+
+    pub fn order(&self) -> usize {
+        match self {
+            ArgKind::Context => 0,
+            ArgKind::Register => 0,
+            ArgKind::Positional(_) => 1,
+            ArgKind::MaybeNamed(_, _) => 2,
+            ArgKind::Named(_) => 3,
+            ArgKind::PositionalIterator => 4,
+            ArgKind::CheckedPositionalIterator => 4,
+        }
+    }
 }
 
 pub struct NamedArg {

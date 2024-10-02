@@ -65,7 +65,15 @@ impl Attrs {
         }
     }
 
-    pub fn verify(&self) -> Result<()> {
+    pub fn verify_attrs(&self, args: &[Arg<'_>]) -> Result<()> {
+        // Check that no argument is named twice in an attribute
+        self.check_no_arg_mentioned_twice()?;
+        // Check that all arguments that are mentioned in the attributes actually exist.
+        self.check_all_args_in_attrs_exist(args)?;
+        Ok(())
+    }
+
+    fn check_no_arg_mentioned_twice(&self) -> Result<()> {
         let mut ids: HashSet<_> = HashSet::default();
         for attr in self.attrs.iter() {
             for ident in attr.idents.iter() {
@@ -75,6 +83,18 @@ impl Attrs {
                         kind: ErrorKind::TooManyAttributes,
                     });
                 }
+            }
+        }
+        Ok(())
+    }
+
+    fn check_all_args_in_attrs_exist(&self, args: &[Arg<'_>]) -> Result<()> {
+        for attr_ident in self.attrs.iter().flat_map(|attr| attr.idents.iter()) {
+            if !args.iter().any(|arg| arg.ident == attr_ident) {
+                return Err(Error {
+                    span: attr_ident.span(),
+                    kind: ErrorKind::ArgInAttrDoesNotExist,
+                });
             }
         }
         Ok(())
@@ -102,6 +122,17 @@ impl<'a> Arg<'a> {
             optional,
             mutable,
         })
+    }
+
+    pub fn is_required_positional(&self) -> bool {
+        matches!(self.kind, ArgKind::Positional(_)) && !self.optional
+    }
+
+    pub fn is_positional(&self) -> bool {
+        matches!(
+            self.kind,
+            ArgKind::Positional(_) | ArgKind::MaybeNamed(_, _)
+        )
     }
 }
 
@@ -172,21 +203,51 @@ fn parse_function_args<'a>(
     function: &'a ItemFn,
     attrs: &Attrs,
 ) -> Result<(Vec<Arg<'a>>, ReceiverType)> {
-    let args = function
-        .sig
-        .inputs
-        .iter()
-        .filter(|arg| !is_self_arg(arg))
-        .enumerate()
-        .map(|(position, arg)| Arg::new(arg, attrs, position))
-        .collect::<Result<Vec<_>>>()?;
+    let mut position = 0;
+    let mut args = vec![];
+    for arg in function.sig.inputs.iter() {
+        if !is_self_arg(arg) {
+            let arg = Arg::new(arg, attrs, position)?;
+            if arg.is_positional() {
+                position += 1;
+            }
+            args.push(arg);
+        }
+    }
     let receiver_type = ReceiverType::new(&function.sig.inputs)?;
     Ok((args, receiver_type))
+}
+
+fn first_unsorted_index(iter: impl Iterator<Item = usize>) -> Option<usize> {
+    let mut prev = None;
+    for (index, next) in iter.enumerate() {
+        if let Some(prev) = prev {
+            if next < prev {
+                return Some(index);
+            }
+        }
+        prev = Some(next);
+    }
+    None
+}
+
+fn verify_args(args: &[Arg<'_>]) -> Result<()> {
+    let index = first_unsorted_index(args.iter().map(|arg| arg.kind.order()));
+    if let Some(index) = index {
+        Err(Error {
+            span: args[index].ident.span(),
+            kind: ErrorKind::WrongArgumentOrder,
+        })
+    } else {
+        Ok(())
+    }
 }
 
 impl<'a> ArgsStruct<'a> {
     pub fn try_parse(function: &'a ItemFn, attrs: &'a Attrs) -> Result<Self> {
         let (args, receiver_type) = parse_function_args(function, attrs)?;
+        attrs.verify_attrs(&args)?;
+        verify_args(&args)?;
         Ok(Self {
             function,
             args,

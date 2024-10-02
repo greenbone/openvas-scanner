@@ -10,7 +10,9 @@ pub struct Error {
 
 pub enum ErrorKind {
     TooManyAttributes,
+    ArgInAttrDoesNotExist,
     OnlyNormalArgumentsAllowed,
+    WrongArgumentOrder,
     MovedReceiverType,
     MutableRefReceiverType,
     TypedRefReceiverType,
@@ -33,6 +35,9 @@ impl Error {
             ErrorKind::TooManyAttributes => {
                 "Argument is named more than once in attributes."
             }
+            ErrorKind::ArgInAttrDoesNotExist => {
+                "Argument mentioned in attribute does not exist in function signature."
+            }
             ErrorKind::MovedReceiverType => {
                 "Receiver argument is of type `self`. Currently, only `&self` receiver types are supported."
             }
@@ -41,6 +46,9 @@ impl Error {
             }
             ErrorKind::TypedRefReceiverType => {
                 "Specific type specified in receiver argument. Currently, only `&self` is supported."
+            }
+            ErrorKind::WrongArgumentOrder => {
+                "Argument in wrong position. Order of arguments should be: Context/Register, Positionals, Named"
             }
         }.into()
     }

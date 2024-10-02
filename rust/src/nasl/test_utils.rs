@@ -18,6 +18,7 @@ use futures::StreamExt;
 use super::{
     builtin::ContextFactory,
     interpreter::{CodeInterpreter, InterpretErrorKind},
+    utils::Executor,
 };
 
 // The following exists to trick the trait solver into
@@ -319,6 +320,12 @@ where
     /// Return a new `TestBuilder` with the given `ContextKey`.
     pub fn with_context_key(mut self, key: ContextKey) -> Self {
         self.context_key = key;
+        self
+    }
+
+    /// Return a new `TestBuilder` with the given `Executor`.
+    pub fn with_executor(mut self, executor: Executor) -> Self {
+        self.context.functions = executor;
         self
     }
 
