@@ -14,29 +14,35 @@
                credential.user, result);
 
 OKrb5ErrorCode last_okrb5_result;
+
+#define set_slice_from_lex_or_env(lexic, slice, name, env_name)            \
+  do                                                                       \
+    {                                                                      \
+      okrb5_set_slice_from_str (slice, get_str_var_by_name (lexic, name)); \
+      if (slice.len == 0)                                                  \
+        {                                                                  \
+          okrb5_set_slice_from_str (slice, getenv (env_name));             \
+        }                                                                  \
+    }                                                                      \
+  while (0)
+
 static OKrb5Credential
 build_krb5_credential (lex_ctxt *lexic)
 {
   OKrb5Credential credential;
-  credential.user = NULL;
-  credential.password = NULL;
-  // neither values from get_str_var_by_name nor getenv must be freed
-  if ((credential.config_path = get_str_var_by_name (lexic, "config_path"))
-      == NULL)
+  memset (&credential, 0, sizeof (OKrb5Credential));
+
+  set_slice_from_lex_or_env (lexic, credential.config_path, "config_path",
+                             "KRB5_CONFIG");
+  if (credential.config_path.len == 0)
     {
-      credential.config_path = getenv ("KRB5_CONFIG");
-      if (credential.config_path == NULL)
-        {
-          credential.config_path = "/etc/krb5.conf";
-        }
+      okrb5_set_slice_from_str (credential.config_path, "/etc/krb5.conf");
     }
-  if ((credential.realm = get_str_var_by_name (lexic, "realm")) == NULL)
+  // TODO: enhance with redis check? maybe.
+  set_slice_from_lex_or_env (lexic, credential.realm, "realm", "KRB5_REALM");
+  if (credential.realm.len == 0)
     {
-      credential.realm = getenv ("KRB5_REALM");
-      if (credential.realm == NULL)
-        {
-          nasl_print_krb_error (lexic, credential, O_KRB5_REALM_NOT_FOUND);
-        }
+      nasl_print_krb_error (lexic, credential, O_KRB5_REALM_NOT_FOUND);
     }
 
   return credential;
@@ -114,7 +120,8 @@ exit:
 }
 
 tree_cell *
-nasl_okrb5_result (lex_ctxt *lexic) {
+nasl_okrb5_result (lex_ctxt *lexic)
+{
   (void) lexic;
   // TODO: implement function to return string representation of result
   return NULL;
@@ -124,16 +131,19 @@ nasl_okrb5_result (lex_ctxt *lexic) {
  * @brief Returns 1 if the krb5 function was successful 0 otherwise
  *
  * The nasl function has one optional parameter:
- * - retval: the return value of the krb5 function. If the value is not defined, the return value of the last krb5 function is used.
+ * - retval: the return value of the krb5 function. If the value is not defined,
+ * the return value of the last krb5 function is used.
  *
  *
- * @param[in] lexic     NASL lexer. 
+ * @param[in] lexic     NASL lexer.
  *
  * @return lex cell containing a number indicating success.
  */
 tree_cell *
-nasl_okrb5_is_success (lex_ctxt *lexic) {
-  OKrb5ErrorCode result = get_int_var_by_name (lexic, "retval", last_okrb5_result);
+nasl_okrb5_is_success (lex_ctxt *lexic)
+{
+  OKrb5ErrorCode result =
+    get_int_var_by_name (lexic, "retval", last_okrb5_result);
   tree_cell *retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = result == O_KRB5_SUCCESS;
   return retc;
@@ -143,18 +153,20 @@ nasl_okrb5_is_success (lex_ctxt *lexic) {
  * @brief Returns 0 if the krb5 function was successful and 1 if it failed
  *
  * The nasl function has one optional parameter:
- * - retval: the return value of the krb5 function. If the value is not defined, the return value of the last krb5 function is used.
+ * - retval: the return value of the krb5 function. If the value is not defined,
+ * the return value of the last krb5 function is used.
  *
  *
- * @param[in] lexic     NASL lexer. 
+ * @param[in] lexic     NASL lexer.
  *
  * @return lex cell containing a number indicating success.
  */
 tree_cell *
-nasl_okrb5_is_failure (lex_ctxt *lexic) {
-  OKrb5ErrorCode result = get_int_var_by_name (lexic, "retval", last_okrb5_result);
+nasl_okrb5_is_failure (lex_ctxt *lexic)
+{
+  OKrb5ErrorCode result =
+    get_int_var_by_name (lexic, "retval", last_okrb5_result);
   tree_cell *retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = result != O_KRB5_SUCCESS;
   return retc;
 }
-
