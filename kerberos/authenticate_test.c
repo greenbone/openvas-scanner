@@ -4,25 +4,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define GUARD_ENV_SET(var, env)                  \
-  do                                             \
-    {                                            \
-      var = okrb5_slice_from_str (getenv (env)); \
-      if (var.len == 0)                          \
-        {                                        \
-          fprintf (stderr, env " is not set\n"); \
-          return 1;                              \
-        }                                        \
-    }                                            \
+#define GUARD_ENV_SET(var, env)                     \
+  do                                                \
+    {                                               \
+      okrb5_set_slice_from_str (var, getenv (env)); \
+      if (var.len == 0)                             \
+        {                                           \
+          fprintf (stderr, env " is not set\n");    \
+          return 1;                                 \
+        }                                           \
+    }                                               \
   while (0)
 
+struct OKrb5GSSContext *cached_gss_context = NULL;
 int
 main ()
 {
   char *kdc = NULL;
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
   OKrb5Credential credentials;
-  OKrb5GSSContext *context = NULL;
+
+  memset (&credentials, 0, sizeof (OKrb5Credential));
   struct OKrb5Slice from_application = {.data = NULL, .len = 0};
   struct OKrb5Slice *to_application = NULL;
   bool more = false;
@@ -50,17 +52,17 @@ main ()
   //     printf ("Using kdc: %s\n", kdc);
   //     free (kdc);
   //   }
-  context = okrb5_gss_init_context ();
+  cached_gss_context = okrb5_gss_init_context ();
   printf ("Using realm: %s\n", (char *) credentials.realm.data);
-  if ((result = o_krb5_gss_prepare_context (&credentials, context)))
+  if ((result = o_krb5_gss_prepare_context (&credentials, cached_gss_context)))
     {
       fprintf (stderr, "Unable to prepare context: %d\n", result);
       return 1;
     }
   printf ("Using realm: %s\n", (char *) credentials.realm.data);
   // first call always empty
-  if ((result = o_krb5_gss_update_context (context, &from_application,
-                                           &to_application, &more)))
+  if ((result = o_krb5_gss_update_context (
+         cached_gss_context, &from_application, &to_application, &more)))
     {
       fprintf (stderr, "Unable to update context: %d\n", result);
       return 1;
