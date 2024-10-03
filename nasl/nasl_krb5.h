@@ -81,3 +81,20 @@ nasl_okrb5_is_success (lex_ctxt *lexic);
 tree_cell *
 nasl_okrb5_is_failure (lex_ctxt *lexic);
 
+tree_cell *
+nasl_okrb5_gss_init (lex_ctxt *lexic);
+
+
+tree_cell *
+nasl_okrb5_gss_prepare_context (lex_ctxt *lexic);
+
+
+tree_cell *
+nasl_okrb5_gss_update_context (lex_ctxt *lexic);
+
+
+tree_cell *
+nasl_okrb5_gss_update_context_needs_more(lex_ctxt *lexic);
+
+tree_cell *
+nasl_okrb5_gss_update_context_out (lex_ctxt *lexic);
