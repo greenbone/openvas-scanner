@@ -164,6 +164,7 @@ o_krb5_gss_session_key_context (struct OKrb5GSSContext *gss_context,
                                 struct OKrb5Slice **out);
 
 struct OKrb5GSSContext *okrb5_gss_init_context (void);
+
 void okrb5_gss_free_context (struct OKrb5GSSContext *context);
 
 OKrb5ErrorCode

@@ -669,6 +669,7 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
   gss_buffer_desc targetbuf = GSS_C_EMPTY_BUFFER;
   const struct OKrb5Target *target = &creds->target;
 
+
   if (gss_context->gss_creds == GSS_C_NO_CREDENTIAL)
     {
       if ((result = okrb5_gss_authenticate (creds, gss_context)))
