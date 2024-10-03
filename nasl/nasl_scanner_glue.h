@@ -101,7 +101,7 @@ tree_cell *
 log_message (lex_ctxt *);
 
 tree_cell *
-error_message (lex_ctxt *);
+error_message2 (lex_ctxt *);
 
 tree_cell *
 nasl_scanner_get_port (lex_ctxt *);
