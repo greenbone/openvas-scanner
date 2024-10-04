@@ -398,14 +398,25 @@ plugin_timeout (nvti_t *nvti)
 static int
 get_available_memory ()
 {
-  char buf[8192], *hit;
-  FILE *fd;
+  char buf[8192];
+  char *hit = NULL;
+  FILE *fd = NULL;
   size_t len;
+  memset (buf, 0, sizeof (buf));
 
   fd = fopen ("/proc/meminfo", "r");
+  if (fd == NULL)
+    {
+      g_warning ("Couldn't open /proc/meminfo");
+      return 0;
+    }
   len = fread (buf, 1, sizeof (buf) - 1, fd);
   fclose (fd);
-  if (len == 0)
+  // if len is less then 0, then there was an error reading the file
+  // and we should check errno. Currently it is ignored because
+  // the caller just wants to know if memory is available and we asumme
+  // that there is none on error.
+  if (len <= 0)
     {
       g_warning ("Couldn't read /proc/meminfo");
       return 0;

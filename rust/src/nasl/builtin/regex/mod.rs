@@ -97,7 +97,7 @@ fn ereg_replace(
 /// - rnul    replace the null char in the string. Default TRUE.
 ///
 /// Returns the concatenation of all lines that match. Null otherwise.
-#[nasl_function(named(string, pattern, replace, icase, rnul))]
+#[nasl_function(named(string, pattern, icase, rnul))]
 fn egrep(
     string: NaslValue,
     pattern: NaslValue,

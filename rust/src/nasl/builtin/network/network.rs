@@ -132,12 +132,12 @@ fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
 fn scanner_add_port(
-    port: i64,
-    protocol: Option<&str>,
     context: &Context,
+    port: i64,
+    proto: Option<&str>,
 ) -> Result<(), FunctionErrorKind> {
     let port = verify_port(port)?;
-    let protocol = protocol.unwrap_or("tcp");
+    let protocol = proto.unwrap_or("tcp");
 
     context.dispatcher().dispatch(
         context.key(),
