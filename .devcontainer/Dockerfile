@@ -1,9 +1,8 @@
-
 FROM rust:latest
 ARG UID=1000
 ARG GID=1000
 
-RUN apt-get update && apt-get install -y sudo git rsync pipx redis-server
+RUN apt-get update && apt-get install -y sudo git rsync pipx redis-server clangd
 # Add prepare-user-dirs.sh and execcute it
 COPY prepare-user-dirs.sh /prepare-user-dirs.sh
 COPY build-cmake-project.sh /usr/local/bin/build-cmake-project.sh
