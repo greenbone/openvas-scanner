@@ -12,6 +12,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     curl \
     git \
     lcov \
+    openssl \
     libgnutls28-dev \
     libgpgme-dev \
     libjson-glib-dev \
