@@ -2856,6 +2856,7 @@ dependencies = [
  "nasl-c-lib",
  "nasl-function-proc-macro",
  "num_cpus",
+ "openssl",
  "pbkdf2",
  "pcap",
  "pkcs8",
