@@ -20,7 +20,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libpcap-dev \
     libgcrypt-dev \
     libssh-dev \
-    libssl-dev \
+    libssl1.1 \
     libbsd-dev \
     libgnutls30 \
     libgssapi3-heimdal \
