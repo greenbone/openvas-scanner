@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use russh::keys::*;
 use russh::server::{Msg, Session};
 use russh::*;
-use server::{Auth, Response};
 use tokio::sync::Mutex;
 
 #[derive(Clone, Default)]
@@ -61,17 +60,6 @@ impl server::Handler for TestServer {
         _: &key::PublicKey,
     ) -> Result<server::Auth, Self::Error> {
         Ok(server::Auth::Accept)
-    }
-
-    async fn auth_keyboard_interactive(
-        &mut self,
-        user: &str,
-        submethods: &str,
-        response: Option<Response<'async_trait>>,
-    ) -> Result<Auth, Self::Error> {
-        Ok(Auth::Reject {
-            proceed_with_methods: None,
-        })
     }
 
     async fn data(
