@@ -3332,6 +3332,7 @@ dependencies = [
  "nasl-c-lib",
  "nasl-function-proc-macro",
  "num_cpus",
+ "once_cell",
  "openssl",
  "pbkdf2 0.12.2",
  "pcap",

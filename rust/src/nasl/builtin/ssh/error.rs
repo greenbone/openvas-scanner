@@ -6,6 +6,7 @@ use super::SessionId;
 
 pub type Result<T> = std::result::Result<T, SshError>;
 
+#[cfg(feature = "nasl-builtin-libssh")]
 #[derive(Debug, Error)]
 pub enum SshError {
     #[error("Failed to open new SSH session: {0}")]
@@ -65,6 +66,10 @@ pub enum SshError {
     #[error("Error while initiating sftp for session ID {0}: {1}")]
     Sftp(SessionId, libssh_rs::Error),
 }
+
+#[cfg(not(feature = "nasl-builtin-libssh"))]
+#[derive(Debug, Error)]
+pub enum SshError {}
 
 impl From<SshError> for FunctionErrorKind {
     fn from(e: SshError) -> Self {
