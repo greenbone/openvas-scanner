@@ -18,7 +18,7 @@ RUN cat config.log
 RUN make install
 
 RUN mkdir /tmp/zlib
-RUN curl -Lsfo https://www.zlib.net/current/zlib.tar.gz | tar zxvf - --strip-components=1 -C /tmp/zlib
+RUN curl -sf -L https://www.zlib.net/current/zlib.tar.gz | tar zxvf - --strip-components=1 -C /tmp/zlib
 WORKDIR /tmp/zlib
 RUN ./configure
 RUN make install
