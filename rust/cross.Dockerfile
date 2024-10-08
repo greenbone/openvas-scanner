@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
   flex \
   curl \
   zlib1g-dev
-RUN curl -L -o /tmp/pcap.tar.gz https://www.tcpdump.org/release/libpcap-1.10.3.tar.gz
+RUN curl -Lfo /tmp/pcap.tar.gz https://www.tcpdump.org/release/libpcap-1.10.3.tar.gz
 WORKDIR /tmp
 RUN tar xvf pcap.tar.gz
 RUN ls -las
@@ -18,13 +18,13 @@ RUN cat config.log
 RUN make install
 
 RUN mkdir /tmp/zlib
-RUN curl -sf -L https://www.zlib.net/current/zlib.tar.gz | tar zxvf - --strip-components=1 -C /tmp/zlib
+RUN curl -Lsfo https://www.zlib.net/current/zlib.tar.gz | tar zxvf - --strip-components=1 -C /tmp/zlib
 WORKDIR /tmp/zlib
 RUN ./configure
 RUN make install
 RUN ldconfig
 
-RUN curl -L -o /tmp/openssl.tar.gz https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
+RUN curl -Lfo /tmp/openssl.tar.gz https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
 WORKDIR /tmp
 RUN tar xvf openssl.tar.gz
 RUN ls -las
