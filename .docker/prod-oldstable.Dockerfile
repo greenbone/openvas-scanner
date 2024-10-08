@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   cmake \
   curl \
   lcov \
+  libcjson1 \
   libgnutls28-dev \
   libgpgme-dev \
   libjson-glib-dev \

@@ -85,6 +85,7 @@ libssh-rs = {version = "~0.2", features = ["vendored-openssl", "vendored"], opti
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
+openssl = { version = "0.10.66", features = ["vendored"] }
 
 [workspace]
 resolver = "2"
