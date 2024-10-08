@@ -7,6 +7,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket},
     ptr,
     str::FromStr,
+    time::Duration,
 };
 
 use crate::nasl::prelude::*;
@@ -20,6 +21,17 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
             Some(NaslValue::Null),
         )),
     }
+}
+
+/// Convert timeout
+pub fn convert_timeout(timeout: Option<i64>) -> Option<Duration> {
+    timeout.and_then(|timeout| {
+        if timeout < 1 {
+            None
+        } else {
+            Some(Duration::from_secs(timeout as u64))
+        }
+    })
 }
 
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
