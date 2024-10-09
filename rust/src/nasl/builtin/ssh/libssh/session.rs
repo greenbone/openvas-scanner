@@ -2,9 +2,8 @@ use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, Sftp, Ssh
 use std::{os::fd::AsRawFd, time::Duration};
 use tracing::{debug, info};
 
-use crate::nasl::builtin::ssh::SessionId;
-
-use super::super::error::{Result, SshError};
+use super::error::{Result, SshError};
+use super::SessionId;
 use super::{channel::Channel, Socket};
 
 /// Structure to hold an SSH Session

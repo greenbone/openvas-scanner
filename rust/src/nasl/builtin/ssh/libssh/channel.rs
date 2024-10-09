@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use crate::nasl::builtin::ssh::SessionId;
-
-use super::super::error::{Result, SshError};
+use super::{
+    error::{Result, SshError},
+    SessionId,
+};
 
 pub struct Channel {
     channel: libssh_rs::Channel,

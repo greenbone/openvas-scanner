@@ -1,9 +1,12 @@
+mod session;
+
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
 };
 
 use russh::client::Session;
+use session::SshSession;
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::nasl::{
@@ -39,36 +42,31 @@ pub enum SshOption {
     Socket(Socket),
 }
 
-pub struct SshSession {
-    session: Session,
-    id: SessionId,
-}
-
 impl SshSession {
-    pub fn session(&self) -> &Session {
-        &self.session
-    }
-
-    pub fn connect(&self) -> Result<()> {
-        todo!()
-    }
-
-    pub fn disconnect(&self) -> Result<()> {
-        todo!()
-    }
-
     pub fn set_option(&self, option: SshOption) -> Result<()> {
-        todo!()
+        todo!("set_option")
         // let formatted = format!("{:?}", option);
         // self.session()
         //     .set_option(option)
         //     .map_err(|e| SshError::SetOption(self.id(), formatted, e))
     }
-
-    fn new(_: SessionId) -> Result<Self> {
-        todo!()
-    }
 }
+//     fn session(&self) -> &Session {
+//         &self.session
+//     }
+
+//     pub fn connect(&self) -> Result<()> {
+//         todo!()
+//     }
+
+//     pub fn disconnect(&self) -> Result<()> {
+//         todo!()
+//     }
+
+//     fn new(_: SessionId) -> Result<Self> {
+//         todo!()
+//     }
+// }
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 
