@@ -120,7 +120,9 @@ impl<'a> ArgsStruct<'a> {
         let fn_args_names = self.get_fn_args_names();
         let call_expr = match self.receiver_type {
             ReceiverType::None => quote! { #mangled_ident(#fn_args_names) },
-            ReceiverType::RefSelf => quote! { self.#mangled_ident(#fn_args_names) },
+            ReceiverType::RefSelf | ReceiverType::RefMutSelf => {
+                quote! { self.#mangled_ident(#fn_args_names) }
+            }
         };
         let await_ = match asyncness {
             Some(_) => quote! { .await },
@@ -176,6 +178,7 @@ impl<'a> ArgsStruct<'a> {
         let self_arg = match self.receiver_type {
             ReceiverType::None => quote! {},
             ReceiverType::RefSelf => quote! {&self,},
+            ReceiverType::RefMutSelf => quote! {&mut self,},
         };
         let inputs = quote! {
             #self_arg

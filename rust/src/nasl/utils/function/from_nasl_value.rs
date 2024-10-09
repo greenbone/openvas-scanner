@@ -111,6 +111,7 @@ macro_rules! impl_from_nasl_value_for_numeric_type {
 }
 
 impl_from_nasl_value_for_numeric_type!(u8);
+impl_from_nasl_value_for_numeric_type!(u16);
 impl_from_nasl_value_for_numeric_type!(i32);
 impl_from_nasl_value_for_numeric_type!(i64);
 impl_from_nasl_value_for_numeric_type!(u32);

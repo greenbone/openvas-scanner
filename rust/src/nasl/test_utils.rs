@@ -145,8 +145,8 @@ where
     S: Storage,
 {
     #[track_caller]
-    fn add_line(&mut self, line: &str, val: TestResult) -> &mut Self {
-        self.lines.push(line.to_string());
+    fn add_line(&mut self, line: impl Into<String>, val: TestResult) -> &mut Self {
+        self.lines.push(line.into());
         self.results.push(val.into());
         self
     }
@@ -158,7 +158,7 @@ where
     /// t.ok("x = 3;", 3);
     /// ```
     #[track_caller]
-    pub fn ok(&mut self, line: &str, val: impl ToNaslResult) -> &mut Self {
+    pub fn ok(&mut self, line: impl Into<String>, val: impl ToNaslResult) -> &mut Self {
         self.add_line(line, TestResult::Ok(val.to_nasl_result().unwrap()))
     }
 
@@ -175,7 +175,7 @@ where
     #[track_caller]
     pub fn check(
         &mut self,
-        line: &str,
+        line: impl Into<String>,
         f: impl Fn(NaslResult) -> bool + 'static + Clone,
     ) -> &mut Self {
         self.add_line(line, TestResult::GenericCheck(Box::new(f)))
@@ -183,7 +183,7 @@ where
 
     /// Run a `line` of NASL code without checking its result.
     #[track_caller]
-    pub fn run(&mut self, line: &str) -> &mut Self {
+    pub fn run(&mut self, line: impl Into<String>) -> &mut Self {
         self.add_line(line, TestResult::None)
     }
 

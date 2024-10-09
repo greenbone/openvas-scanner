@@ -152,13 +152,13 @@ impl ReceiverType {
                     if rec.reference.is_none() {
                         return make_err(ErrorKind::MovedReceiverType);
                     }
-                    // `&mut self`
-                    else if rec.mutability.is_some() {
-                        return make_err(ErrorKind::MutableRefReceiverType);
-                    }
                     // e.g. `self: Box<Self>`
                     else if rec.colon_token.is_some() {
                         return make_err(ErrorKind::TypedRefReceiverType);
+                    }
+                    // `&mut self`
+                    else if rec.mutability.is_some() {
+                        ReceiverType::RefMutSelf
                     } else {
                         ReceiverType::RefSelf
                     }
