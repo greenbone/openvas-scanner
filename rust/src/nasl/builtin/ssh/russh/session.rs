@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -7,6 +6,8 @@ use russh::keys::*;
 use russh::*;
 use tokio::io::AsyncWriteExt;
 use tokio::net::ToSocketAddrs;
+
+use super::SessionId;
 
 // async fn main() -> Result<()> {
 //     // Session is a wrapper around a russh client, defined down below
@@ -54,15 +55,11 @@ impl client::Handler for Client {
 /// around a russh client
 pub struct SshSession {
     session: client::Handle<Client>,
+    id: SessionId,
 }
 
 impl SshSession {
-    async fn new<P: AsRef<Path>, A: ToSocketAddrs>(
-        key_path: P,
-        user: impl Into<String>,
-        addrs: A,
-    ) -> Result<Self, russh::Error> {
-        let key_pair = load_secret_key(key_path, None)?;
+    pub async fn new<A: ToSocketAddrs>(addrs: A, id: SessionId) -> Result<Self, russh::Error> {
         let config = client::Config {
             inactivity_timeout: Some(Duration::from_secs(5)),
             ..<_>::default()
@@ -71,19 +68,12 @@ impl SshSession {
         let config = Arc::new(config);
         let sh = Client {};
 
-        let mut session = client::connect(config, addrs, sh).await?;
-        let auth_res = session
-            .authenticate_publickey(user, Arc::new(key_pair))
-            .await?;
+        let session = client::connect(config, addrs, sh).await?;
 
-        if !auth_res {
-            anyhow::bail!("Authentication failed");
-        }
-
-        Ok(Self { session })
+        Ok(Self { session, id })
     }
 
-    async fn call(&mut self, command: &str) -> Result<u32> {
+    async fn call(&mut self, command: &str) -> Result<u32, russh::Error> {
         let mut channel = self.session.channel_open_session().await?;
         channel.exec(true, command).await?;
 
@@ -112,7 +102,7 @@ impl SshSession {
         Ok(code.expect("program did not exit cleanly"))
     }
 
-    async fn close(&mut self) -> Result<()> {
+    async fn close(&mut self) -> Result<(), russh::Error> {
         self.session
             .disconnect(Disconnect::ByApplication, "", "English")
             .await?;
