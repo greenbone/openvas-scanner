@@ -109,10 +109,10 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
 
 async fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = args.get_one::<PathBuf>("path").cloned();
-    let script = match args.get_one::<String>("script").cloned() {
-        Some(path) => path,
-        _ => unreachable!("path is set to required"),
-    };
+    let script = args
+        .get_one::<String>("script")
+        .cloned()
+        .expect("script is set to required");
     let target = args.get_one::<String>("target").cloned();
     Some(
         interpret::run(
