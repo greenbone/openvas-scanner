@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::time::Duration;
 use std::{net::IpAddr, sync::Arc};
 
@@ -7,7 +8,8 @@ use russh::keys::*;
 use russh::*;
 use tokio::net::ToSocketAddrs;
 
-use super::Port;
+use super::error::SshError;
+use super::{Port, Socket};
 
 // async fn main() -> Result<()> {
 //     // Session is a wrapper around a russh client, defined down below
@@ -59,16 +61,28 @@ pub struct SshSession {
 }
 
 impl SshSession {
-    pub async fn new<A: ToSocketAddrs>(addrs: A) -> Result<Self, russh::Error> {
+    pub async fn new(
+        ip_addr: IpAddr,
+        port: Port,
+        timeout: Option<Duration>,
+        keytype: Option<&str>,
+        csciphers: Option<&str>,
+        scciphers: Option<&str>,
+        socket: Option<Socket>,
+    ) -> Result<Self, SshError> {
+        let preferred = construct_preferred(keytype, csciphers, scciphers)?;
         let config = client::Config {
-            inactivity_timeout: Some(Duration::from_secs(5)),
-            ..<_>::default()
+            inactivity_timeout: timeout,
+            preferred,
+            ..Default::default()
         };
 
         let config = Arc::new(config);
         let sh = Client {};
 
-        let session = client::connect(config, addrs, sh).await?;
+        let session = client::connect(config, (ip_addr, port), sh)
+            .await
+            .map_err(|e| SshError::Connect(e))?;
 
         Ok(Self {
             session,
@@ -118,13 +132,41 @@ impl SshSession {
     // }
 }
 
-pub struct SessionConfig {
-    pub port: Port,
-    pub ip_addr: IpAddr,
+/// Takes a comma separated string of algorithms
+/// and turns it into a list of names that russh accepts.
+/// Returns Err(...) if any given name is invalid.
+fn make_named_list<'a, N: TryFrom<&'a str> + Clone>(
+    s: &'a str,
+    error_variant: fn(String) -> SshError,
+) -> Result<Cow<'static, [N]>, SshError> {
+    Ok(Cow::from(
+        s.split(",")
+            .map(|alg| N::try_from(alg).map_err(|_| error_variant(alg.to_string())))
+            .collect::<Result<Vec<_>, SshError>>()?,
+    ))
 }
 
-impl SessionConfig {
-    pub fn new(port: Port, ip_addr: IpAddr) -> Self {
-        Self { port, ip_addr }
-    }
+fn construct_preferred(
+    keytype: Option<&str>,
+    csciphers: Option<&str>,
+    scciphers: Option<&str>,
+) -> Result<Preferred, SshError> {
+    let key = keytype
+        .map(|keytype| make_named_list(keytype, SshError::InvalidKeytype))
+        .transpose()?
+        .unwrap_or(Preferred::DEFAULT.key);
+    let csciphers = csciphers
+        .map(|csciphers| make_named_list(csciphers, SshError::InvalidCipher))
+        .transpose()?
+        .unwrap_or(Preferred::DEFAULT.cipher);
+    // TODO: figure out what to do with this
+    let scciphers = scciphers
+        .map(|scciphers| make_named_list(scciphers, SshError::InvalidCipher))
+        .transpose()?
+        .unwrap_or(Preferred::DEFAULT.cipher);
+    Ok(Preferred {
+        key,
+        cipher: csciphers,
+        ..Preferred::DEFAULT
+    })
 }
