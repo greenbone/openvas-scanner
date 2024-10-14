@@ -1,13 +1,13 @@
-use std::sync::Arc;
 use std::time::Duration;
+use std::{net::IpAddr, sync::Arc};
 
 use async_trait::async_trait;
+use client::Msg;
 use russh::keys::*;
 use russh::*;
-use tokio::io::AsyncWriteExt;
 use tokio::net::ToSocketAddrs;
 
-use super::SessionId;
+use super::Port;
 
 // async fn main() -> Result<()> {
 //     // Session is a wrapper around a russh client, defined down below
@@ -55,11 +55,11 @@ impl client::Handler for Client {
 /// around a russh client
 pub struct SshSession {
     session: client::Handle<Client>,
-    id: SessionId,
+    channel: Option<Channel<Msg>>,
 }
 
 impl SshSession {
-    pub async fn new<A: ToSocketAddrs>(addrs: A, id: SessionId) -> Result<Self, russh::Error> {
+    pub async fn new<A: ToSocketAddrs>(addrs: A) -> Result<Self, russh::Error> {
         let config = client::Config {
             inactivity_timeout: Some(Duration::from_secs(5)),
             ..<_>::default()
@@ -70,42 +70,61 @@ impl SshSession {
 
         let session = client::connect(config, addrs, sh).await?;
 
-        Ok(Self { session, id })
+        Ok(Self {
+            session,
+            channel: None,
+        })
     }
 
-    async fn call(&mut self, command: &str) -> Result<u32, russh::Error> {
-        let mut channel = self.session.channel_open_session().await?;
-        channel.exec(true, command).await?;
+    // pub async fn open_channel(&mut self) -> Result<(), russh::Error> {
+    //     self.channel = Some(self.session.channel_open_session().await?);
+    //     Ok(())
+    // }
 
-        let mut code = None;
-        let mut stdout = tokio::io::stdout();
+    // async fn call(&mut self, command: &str) -> Result<u32, russh::Error> {
+    //     let mut channel = self.session.channel_open_session().await?;
+    //     channel.exec(true, command).await?;
 
-        loop {
-            // There's an event available on the session channel
-            let Some(msg) = channel.wait().await else {
-                break;
-            };
-            match msg {
-                // Write data to the terminal
-                ChannelMsg::Data { ref data } => {
-                    stdout.write_all(data).await?;
-                    stdout.flush().await?;
-                }
-                // The command has returned an exit code
-                ChannelMsg::ExitStatus { exit_status } => {
-                    code = Some(exit_status);
-                    // cannot leave the loop immediately, there might still be more data to receive
-                }
-                _ => {}
-            }
-        }
-        Ok(code.expect("program did not exit cleanly"))
-    }
+    //     let mut code = None;
+    //     let mut stdout = tokio::io::stdout();
 
-    async fn close(&mut self) -> Result<(), russh::Error> {
-        self.session
-            .disconnect(Disconnect::ByApplication, "", "English")
-            .await?;
-        Ok(())
+    //     loop {
+    //         // There's an event available on the session channel
+    //         let Some(msg) = channel.wait().await else {
+    //             break;
+    //         };
+    //         match msg {
+    //             // Write data to the terminal
+    //             ChannelMsg::Data { ref data } => {
+    //                 stdout.write_all(data).await?;
+    //                 stdout.flush().await?;
+    //             }
+    //             // The command has returned an exit code
+    //             ChannelMsg::ExitStatus { exit_status } => {
+    //                 code = Some(exit_status);
+    //                 // cannot leave the loop immediately, there might still be more data to receive
+    //             }
+    //             _ => {}
+    //         }
+    //     }
+    //     Ok(code.expect("program did not exit cleanly"))
+    // }
+
+    // async fn close(&mut self) -> Result<(), russh::Error> {
+    //     self.session
+    //         .disconnect(Disconnect::ByApplication, "", "English")
+    //         .await?;
+    //     Ok(())
+    // }
+}
+
+pub struct SessionConfig {
+    pub port: Port,
+    pub ip_addr: IpAddr,
+}
+
+impl SessionConfig {
+    pub fn new(port: Port, ip_addr: IpAddr) -> Self {
+        Self { port, ip_addr }
     }
 }
