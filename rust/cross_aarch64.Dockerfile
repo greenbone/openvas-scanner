@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
   flex \
   curl \
   zlib1g-dev
-RUN curl -o /tmp/pcap.tar.gz https://www.tcpdump.org/release/libpcap-1.10.3.tar.gz
+RUN curl -Lfo /tmp/pcap.tar.gz https://www.tcpdump.org/release/libpcap-1.10.3.tar.gz
 ENV CC=aarch64-linux-gnu-gcc
 ENV CFLAGS='-Os'
 ENV CHOST=arm64
@@ -29,7 +29,7 @@ RUN ./configure
 RUN make install
 RUN ldconfig
 
-RUN curl -o /tmp/openssl.tar.gz https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
+RUN curl -Lfo /tmp/openssl.tar.gz https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
 WORKDIR /tmp
 RUN tar xvf openssl.tar.gz
 RUN ls -las

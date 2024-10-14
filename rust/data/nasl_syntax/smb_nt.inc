@@ -339,7 +339,7 @@ function smb_recv( socket ) {
   if( strlen( trailer ) < len ) return NULL;
 
   # Verify that the transform header signature is correct
-  # Decrpyt the encryption data and craft a packet with the correct length but without the transform header
+  # Decrypt the encryption data and craft a packet with the correct length but without the transform header
   # We delete the transform header after this step because else we would need to restructure every other function
   # These checks are in accordance with [MS-SMB2 3.3.5.2.1.1]
   # We should only decrypt the received packages that are encrypted of course
