@@ -4,10 +4,11 @@ mod session;
 use std::{
     collections::{HashMap, HashSet},
     net::IpAddr,
+    time::Duration,
 };
 
 use error::{Result, SshError};
-use session::{SessionConfig, SshSession};
+use session::SshSession;
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::nasl::{
@@ -56,12 +57,22 @@ impl Ssh {
         }
     }
 
-    pub async fn add_new_session(&mut self, config: SessionConfig) -> Result<SessionId> {
+    pub async fn add_new_session(
+        &mut self,
+        port: Port,
+        ip_addr: IpAddr,
+        timeout: Option<Duration>,
+        keytype: Option<&str>,
+        csciphers: Option<&str>,
+        scciphers: Option<&str>,
+        socket: Option<Socket>,
+    ) -> Result<SessionId> {
         let id = self.next_session_id()?;
         let session = Mutex::new(
-            SshSession::new((config.ip_addr, config.port))
-                .await
-                .map_err(|e| SshError::Connect(id, e))?,
+            SshSession::new(
+                ip_addr, port, timeout, keytype, csciphers, scciphers, socket,
+            )
+            .await?,
         );
         self.sessions.insert(id, session);
         Ok(id)
@@ -90,28 +101,11 @@ impl Ssh {
         let ip = ip_str
             .parse::<IpAddr>()
             .map_err(|e| SshError::InvalidIpAddr(ip_str.clone(), e))?;
+        let timeout = timeout.map(|timeout| Duration::from_secs(timeout as u64));
 
-        let config = SessionConfig::new(port, ip);
-        let session_id = self.add_new_session(config).await?;
-        // session.set_option(SshOption::LogLevel(get_log_level()))?;
-        // session.set_option(SshOption::Hostname(ip_str.to_owned()))?;
-        // session.set_option(SshOption::KnownHosts(Some("/dev/null".to_owned())))?;
-        // if let Some(timeout) = timeout {
-        //     session.set_option(SshOption::Timeout(Duration::from_secs(timeout as u64)))?;
-        // }
-        // if let Some(keytype) = keytype {
-        //     session.set_option(SshOption::HostKeys(keytype.to_owned()))?;
-        // }
-        // if let Some(csciphers) = csciphers {
-        //     session.set_option(SshOption::CiphersCS(csciphers.to_owned()))?;
-        // }
-        // if let Some(scciphers) = scciphers {
-        //     session.set_option(SshOption::CiphersSC(scciphers.to_owned()))?;
-        // }
-        // if let Some(port) = port {
-        //     session.set_option(SshOption::Port(port))?;
-        // }
-
+        let session_id = self
+            .add_new_session(port, ip, timeout, keytype, csciphers, scciphers, socket)
+            .await?;
         // if let Some(socket) = socket {
         //     todo!()
         //     // // This is a fake raw socket.
