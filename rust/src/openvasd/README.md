@@ -17,7 +17,7 @@ Create a configuration file under either:
 
 or provide the `-c` flag when starting openvasd.
 
-An example can be found [here](../examples/openvasd/config.example.toml)
+An example can be found [here](/rust/examples/openvasd/config.example.toml)
 
 ## Authentication
 
@@ -218,4 +218,4 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 
 # Migration from previous OSP commands
 
-In this [page](doc/osp-cmd-equivalence.md) you can find a guide for API usage of previous OSP commands
+In this [page](/rust/doc/openvasd-osp-cmd-equivalence.md) you can find a guide for API usage of previous OSP commands
