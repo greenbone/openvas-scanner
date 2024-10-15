@@ -26,7 +26,7 @@ if [ -d "$target_dir" ]; then
     exit 1
 fi
 
-if ls id_* &>/dev/null; then
+if ls $HOME/.ssh/id_* &>/dev/null; then
     if git clone git@github.com:$1.git "$target_dir"; then
         echo "Cloning with SSH URL successful."
     else
