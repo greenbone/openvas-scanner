@@ -7,6 +7,7 @@ use russh::server::Config as ServerConfig;
 use russh::server::Server as _;
 use russh_keys::key::KeyPair;
 use server::TestServer;
+use tokio::select;
 
 use crate::nasl::test_prelude::TestBuilder;
 use crate::nasl::NoOpLoader;
@@ -30,8 +31,14 @@ fn default_config() -> ServerConfig {
 async fn ssh_connect() {
     run_test(
         |mut t| {
-            t.ok(format!("id = ssh_connect(port:{});", PORT), 9000);
-            t.ok(format!("id = ssh_connect(port:{});", PORT), 9001);
+            t.ok(format!(r#"id = ssh_connect(port:{});"#, PORT), 9000);
+            t.ok(
+                format!(
+                    r#"id = ssh_connect(port:{}, keytype: "ssh-rsa,ssh-ed25519");"#,
+                    PORT
+                ),
+                9001,
+            );
         },
         default_config(),
     )
@@ -65,14 +72,17 @@ async fn run_test(
     // Acquire the global lock to prevent multiple
     // tests from opening a server at the same time.
     let _guard = LOCK.lock();
-    let server = tokio::time::timeout(Duration::from_millis(2000), run_server(config));
+    let server = tokio::spawn(run_server(config));
     let client = tokio::task::spawn_blocking(move || {
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(200));
         let t = TestBuilder::default();
         f(t)
     });
-    let (ser, res) = futures::join!(server, client);
-    assert!(ser.is_err());
+    // Simply wait for whatever the test does on the client side
+    let res = client.await;
+    // and then abort the server, to make sure we do not run it for
+    // all eternity.
+    server.abort();
     res.unwrap()
 }
 
