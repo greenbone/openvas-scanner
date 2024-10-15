@@ -17,6 +17,7 @@ pub mod aes_gmac;
 pub mod des;
 pub mod hash;
 pub mod hmac;
+pub mod rsa;
 
 #[cfg(test)]
 mod tests;
@@ -118,6 +119,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(aes_gmac::AesGmac);
         set.add_set(hash::Hash);
         set.add_set(des::Des);
+        set.add_set(rsa::Rsa);
         set
     }
 }
