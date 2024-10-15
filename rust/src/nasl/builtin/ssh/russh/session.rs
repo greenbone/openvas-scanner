@@ -6,7 +6,6 @@ use async_trait::async_trait;
 use client::Msg;
 use russh::keys::*;
 use russh::*;
-use tokio::net::ToSocketAddrs;
 
 use super::error::SshError;
 use super::{Port, Socket};
@@ -159,11 +158,18 @@ fn construct_preferred(
         .map(|csciphers| make_named_list(csciphers, SshError::InvalidCipher))
         .transpose()?
         .unwrap_or(Preferred::DEFAULT.cipher);
-    // TODO: figure out what to do with this
     let scciphers = scciphers
         .map(|scciphers| make_named_list(scciphers, SshError::InvalidCipher))
         .transpose()?
         .unwrap_or(Preferred::DEFAULT.cipher);
+    // Only keep the intersection of scciphers and csciphers.
+    let csciphers = Cow::from(
+        csciphers
+            .into_iter()
+            .filter(|cs| scciphers.iter().any(|sc| sc == *cs))
+            .cloned()
+            .collect::<Vec<_>>(),
+    );
     Ok(Preferred {
         key,
         cipher: csciphers,

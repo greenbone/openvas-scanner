@@ -13,9 +13,9 @@ pub enum SshError {
     InvalidIpAddr(String, AddrParseError),
     #[error("Failed to connect with error {0}")]
     Connect(russh::Error),
-    #[error("Invalid keytype: {0}.")]
+    #[error("Invalid keytype: '{0}'")]
     InvalidKeytype(String),
-    #[error("Invalid cipher: {0}.")]
+    #[error("Invalid cipher: '{0}'")]
     InvalidCipher(String),
 }
 

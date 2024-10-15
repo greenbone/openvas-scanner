@@ -1,19 +1,30 @@
 use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use russh::server::{Msg, Session};
+use russh::server::{Handle, Msg, Session};
 use russh::*;
-use server::Auth;
+use server::{run_stream, Auth, Config};
+use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 
 #[derive(Clone, Default)]
 pub struct TestServer {
-    clients: Arc<Mutex<HashMap<(usize, ChannelId), russh::server::Handle>>>,
+    clients: Arc<Mutex<HashMap<(usize, ChannelId), Handle>>>,
     id: usize,
+    stop: Arc<AtomicBool>,
 }
 
 impl TestServer {
+    fn new(stop: Arc<AtomicBool>) -> Self {
+        Self {
+            stop,
+            ..Default::default()
+        }
+    }
+
     async fn post(&mut self, data: CryptoVec) {
         let mut clients = self.clients.lock().await;
         for ((id, channel), ref mut s) in clients.iter_mut() {
@@ -24,18 +35,36 @@ impl TestServer {
     }
 }
 
+#[async_trait]
 impl server::Server for TestServer {
     type Handler = Self;
 
-    fn new_client(&mut self, _: Option<std::net::SocketAddr>) -> Self {
+    fn new_client(&mut self, _: Option<SocketAddr>) -> Self {
         let s = self.clone();
         self.id += 1;
         s
     }
 
-    fn handle_session_error(&mut self, _error: <Self::Handler as russh::server::Handler>::Error) {
-        eprintln!("Session error: {:#?}", _error);
-    }
+    // /// We can vastly simplify the actual server main loop here by basically
+    // /// unwrapping everything (since this is a test context) and only accepting
+    // /// a single connection.
+    // async fn run_on_socket(
+    //     &mut self,
+    //     config: Arc<Config>,
+    //     socket: &TcpListener,
+    // ) -> Result<(), std::io::Error> {
+    //     let (socket, _) = socket.accept().await.unwrap();
+    //     let config = config.clone();
+    //     let handler = self.new_client(socket.peer_addr().ok());
+    //     tokio::spawn(async move {
+    //         run_stream(config, socket, handler)
+    //             .await
+    //             .unwrap()
+    //             .await
+    //             .unwrap();
+    //     });
+    //     Ok(())
+    // }
 }
 
 #[async_trait]
