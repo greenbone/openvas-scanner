@@ -7,7 +7,6 @@ use russh::server::Config as ServerConfig;
 use russh::server::Server as _;
 use russh_keys::key::KeyPair;
 use server::TestServer;
-use tokio::select;
 
 use crate::nasl::test_prelude::TestBuilder;
 use crate::nasl::NoOpLoader;

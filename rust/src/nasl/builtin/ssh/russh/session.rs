@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use client::Msg;
 use russh::keys::*;
 use russh::*;
+use tokio::io::AsyncWriteExt;
 
 use super::error::SshError;
 use super::{Port, Socket};
@@ -37,9 +38,6 @@ use super::{Port, Socket};
 
 struct Client {}
 
-// More SSH event handlers
-// can be defined in this trait
-// In this example, we're only using Channel, so these aren't needed.
 #[async_trait]
 impl client::Handler for Client {
     type Error = russh::Error;
@@ -56,7 +54,6 @@ impl client::Handler for Client {
 /// around a russh client
 pub struct SshSession {
     session: client::Handle<Client>,
-    channel: Option<Channel<Msg>>,
 }
 
 impl SshSession {
@@ -83,52 +80,44 @@ impl SshSession {
             .await
             .map_err(|e| SshError::Connect(e))?;
 
-        Ok(Self {
-            session,
-            channel: None,
-        })
+        Ok(Self { session })
     }
 
-    // pub async fn open_channel(&mut self) -> Result<(), russh::Error> {
-    //     self.channel = Some(self.session.channel_open_session().await?);
-    //     Ok(())
-    // }
+    pub async fn call(&mut self, command: &str) -> Result<u32, russh::Error> {
+        let mut channel = self.session.channel_open_session().await?;
+        channel.exec(true, command).await?;
 
-    // async fn call(&mut self, command: &str) -> Result<u32, russh::Error> {
-    //     let mut channel = self.session.channel_open_session().await?;
-    //     channel.exec(true, command).await?;
+        let mut code = None;
+        let mut stdout = tokio::io::stdout();
 
-    //     let mut code = None;
-    //     let mut stdout = tokio::io::stdout();
+        loop {
+            // There's an event available on the session channel
+            let Some(msg) = channel.wait().await else {
+                break;
+            };
+            match msg {
+                // Write data to the terminal
+                ChannelMsg::Data { ref data } => {
+                    stdout.write_all(data).await?;
+                    stdout.flush().await?;
+                }
+                // The command has returned an exit code
+                ChannelMsg::ExitStatus { exit_status } => {
+                    code = Some(exit_status);
+                    // cannot leave the loop immediately, there might still be more data to receive
+                }
+                _ => {}
+            }
+        }
+        Ok(code.expect("program did not exit cleanly"))
+    }
 
-    //     loop {
-    //         // There's an event available on the session channel
-    //         let Some(msg) = channel.wait().await else {
-    //             break;
-    //         };
-    //         match msg {
-    //             // Write data to the terminal
-    //             ChannelMsg::Data { ref data } => {
-    //                 stdout.write_all(data).await?;
-    //                 stdout.flush().await?;
-    //             }
-    //             // The command has returned an exit code
-    //             ChannelMsg::ExitStatus { exit_status } => {
-    //                 code = Some(exit_status);
-    //                 // cannot leave the loop immediately, there might still be more data to receive
-    //             }
-    //             _ => {}
-    //         }
-    //     }
-    //     Ok(code.expect("program did not exit cleanly"))
-    // }
-
-    // async fn close(&mut self) -> Result<(), russh::Error> {
-    //     self.session
-    //         .disconnect(Disconnect::ByApplication, "", "English")
-    //         .await?;
-    //     Ok(())
-    // }
+    async fn close(&mut self) -> Result<(), russh::Error> {
+        self.session
+            .disconnect(Disconnect::ByApplication, "", "English")
+            .await?;
+        Ok(())
+    }
 }
 
 /// Takes a comma separated string of algorithms
