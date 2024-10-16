@@ -13,7 +13,7 @@ use tokio::sync::{Mutex, MutexGuard};
 
 use crate::nasl::{
     prelude::*,
-    utils::{IntoFunctionSet, StoredFunctionSet},
+    utils::{function::StringOrData, IntoFunctionSet, StoredFunctionSet},
 };
 
 pub type SessionId = i32;
@@ -128,6 +128,13 @@ impl Ssh {
         // session.connect()?;
         // Ok(())
         Ok(session_id)
+    }
+
+    /// Write the string `cmd` to an ssh shell.
+    #[nasl_function]
+    async fn nasl_ssh_shell_write(&self, session_id: SessionId, cmd: StringOrData) -> Result<i32> {
+        let session = self.get_by_id(session_id).await?;
+        session.call(&cmd.0).await.map(|exit_code| exit_code as i32)
     }
 }
 
