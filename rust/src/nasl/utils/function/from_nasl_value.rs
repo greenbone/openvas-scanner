@@ -86,6 +86,7 @@ impl<'a> FromNaslValue<'a> for bool {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::Boolean(b) => Ok(*b),
+            NaslValue::Number(n) => Ok(*n != 0),
             _ => Err(FunctionErrorKind::WrongArgument(
                 "Expected bool.".to_string(),
             )),

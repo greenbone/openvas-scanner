@@ -11,7 +11,7 @@ pub enum SshError {
     InvalidSessionId(SessionId),
     #[error("Failed to parse IP address '{0}' with error {1}")]
     InvalidIpAddr(String, AddrParseError),
-    #[error("Failed to connect with error {0}")]
+    #[error("Failed to connect. {0}")]
     Connect(russh::Error),
     #[error("Invalid keytype: '{0}'")]
     InvalidKeytype(String),
