@@ -13,7 +13,7 @@ use crate::{
     },
     storage::{DefaultDispatcher, Storage},
 };
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
@@ -211,27 +211,37 @@ where
     /// Return the list of results returned by all the lines of
     /// code.
     pub fn results(&self) -> Vec<NaslResult> {
-        let code = self.lines.join("\n");
+        futures::executor::block_on(async {
+            self.results_stream(&self.code(), &self.context())
+                .collect()
+                .await
+        })
+    }
+
+    fn code(&self) -> String {
+        self.lines.join("\n")
+    }
+
+    pub fn results_stream<'a>(
+        &'a self,
+        code: &'a str,
+        context: &'a Context,
+    ) -> impl Stream<Item = NaslResult> + 'a {
         let variables: Vec<_> = self
             .variables
             .iter()
             .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
             .collect();
         let register = Register::root_initial(&variables);
-        let context = self.context();
+        // let code = self.lines.join("\n");
+        // let context = self.context();
 
         let parser = CodeInterpreter::new(&code, register, &context);
-        futures::executor::block_on(async {
-            parser
-                .stream()
-                .map(|res| {
-                    res.map_err(|e| match e.kind {
-                        InterpretErrorKind::FunctionCallError(f) => f.kind,
-                        e => panic!("Unknown error: {}", e),
-                    })
-                })
-                .collect()
-                .await
+        parser.stream().map(|res| {
+            res.map_err(|e| match e.kind {
+                InterpretErrorKind::FunctionCallError(f) => f.kind,
+                e => panic!("Unknown error: {}", e),
+            })
         })
     }
 
@@ -251,14 +261,18 @@ where
     }
 
     fn verify(&mut self) {
-        let results = self.results();
         if self.should_verify {
-            assert_eq!(results.len(), self.results.len());
-            for (line_count, (result, reference)) in
-                (results.iter().zip(self.results.iter())).enumerate()
-            {
-                self.check_result(result, reference, line_count);
-            }
+            let mut references_iter = self.results.iter().enumerate();
+            let code = self.code();
+            let context = self.context();
+            let mut results = self.results_stream(&code, &context);
+            futures::executor::block_on(async {
+                while let Some(result) = results.next().await {
+                    let (line_count, reference) = references_iter.next().unwrap();
+                    self.check_result(&result, reference, line_count);
+                }
+            });
+            assert!(references_iter.next().is_none());
         } else {
             // Make sure the user did not add requirements to this test
             // since we wont verify them. Panic if they did
