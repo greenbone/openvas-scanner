@@ -53,4 +53,37 @@ impl server::Handler for TestServer {
     async fn auth_none(&mut self, _user: &str) -> Result<Auth, Self::Error> {
         Ok(Auth::Accept)
     }
+
+    /// Called when authentication succeeds for a session.
+    #[allow(unused_variables)]
+    async fn auth_succeeded(&mut self, session: &mut Session) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// The client requests a pseudo-terminal with the given
+    /// specifications.
+    #[allow(unused_variables, clippy::too_many_arguments)]
+    async fn pty_request(
+        &mut self,
+        channel: ChannelId,
+        term: &str,
+        col_width: u32,
+        row_height: u32,
+        pix_width: u32,
+        pix_height: u32,
+        modes: &[(Pty, u32)],
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// The client requests a shell.
+    #[allow(unused_variables)]
+    async fn shell_request(
+        &mut self,
+        channel: ChannelId,
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
