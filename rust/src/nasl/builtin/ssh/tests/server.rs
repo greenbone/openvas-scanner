@@ -31,10 +31,9 @@ impl server::Handler for TestServer {
         channel: Channel<Msg>,
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        {
-            let mut clients = self.clients.lock().await;
-            clients.insert(channel.id(), session.handle());
-        }
+        dbg!("OH YEAH");
+        let mut clients = self.clients.lock().await;
+        clients.insert(channel.id(), session.handle());
         Ok(true)
     }
 
@@ -57,6 +56,19 @@ impl server::Handler for TestServer {
     /// Called when authentication succeeds for a session.
     #[allow(unused_variables)]
     async fn auth_succeeded(&mut self, session: &mut Session) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// The client sends a command to execute, to be passed to a
+    /// shell. Make sure to check the command before doing so.
+    #[allow(unused_variables)]
+    async fn exec_request(
+        &mut self,
+        channel: ChannelId,
+        data: &[u8],
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        panic!();
         Ok(())
     }
 

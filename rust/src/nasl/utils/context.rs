@@ -289,6 +289,7 @@ impl Default for Register {
     }
 }
 use std::collections::HashMap;
+use std::net::{AddrParseError, IpAddr};
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -396,6 +397,15 @@ impl<'a> Context<'a> {
     /// Get the target host
     pub fn target(&self) -> &str {
         &self.target
+    }
+
+    /// Get the target host
+    pub fn target_ip(&self) -> Result<IpAddr, AddrParseError> {
+        match self.target() {
+            x if !x.is_empty() => x.to_string(),
+            _ => "127.0.0.1".to_string(),
+        }
+        .parse()
     }
 
     /// Get the storage

@@ -64,6 +64,8 @@ pub enum SshError {
     ReadSsh(SessionId),
     #[error("Error while initiating sftp for session ID {0}: {1}")]
     Sftp(SessionId, libssh_rs::Error),
+    #[error("Failed to parse IP address '{0}' with error {1}")]
+    InvalidIpAddr(String, std::net::AddrParseError),
 }
 
 impl From<SshError> for FunctionErrorKind {

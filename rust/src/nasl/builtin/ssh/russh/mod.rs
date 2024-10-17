@@ -1,13 +1,15 @@
 mod error;
 mod session;
 
+pub use error::Result;
+
 use std::{
     collections::{HashMap, HashSet},
     net::IpAddr,
     time::Duration,
 };
 
-use error::{Result, SshError};
+use error::SshError;
 use russh::cipher;
 use russh_keys::key;
 use session::SshSession;
@@ -24,8 +26,6 @@ pub type SessionId = i32;
 pub type Port = u16;
 // TODO: Fix this
 pub type Socket = i32;
-
-const DEFAULT_SSH_PORT: u16 = 22;
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 
@@ -84,66 +84,6 @@ impl Ssh {
 }
 
 impl Ssh {
-    #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
-    async fn nasl_ssh_connect(
-        &mut self,
-        socket: Option<Socket>,
-        port: Option<u16>,
-        keytype: Option<CommaSeparated<key::Name>>,
-        csciphers: Option<CommaSeparated<cipher::Name>>,
-        scciphers: Option<CommaSeparated<cipher::Name>>,
-        timeout: Option<u64>,
-        ctx: &Context<'_>,
-    ) -> Result<SessionId> {
-        let port = port
-            .filter(|_| socket.is_none())
-            .unwrap_or(DEFAULT_SSH_PORT);
-        let ip_str: String = match ctx.target() {
-            x if !x.is_empty() => x.to_string(),
-            _ => "127.0.0.1".to_string(),
-        };
-        let ip = ip_str
-            .parse::<IpAddr>()
-            .map_err(|e| SshError::InvalidIpAddr(ip_str.clone(), e))?;
-        let timeout = timeout.map(|timeout| Duration::from_secs(timeout as u64));
-
-        let keytype = keytype
-            .map(|keytype| keytype.0)
-            .unwrap_or(russh::Preferred::DEFAULT.key[..].to_vec());
-        let csciphers = csciphers
-            .map(|cscipher| cscipher.0)
-            .unwrap_or(russh::Preferred::DEFAULT.cipher[..].to_vec());
-        let scciphers = scciphers
-            .map(|sccipher| sccipher.0)
-            .unwrap_or(russh::Preferred::DEFAULT.cipher[..].to_vec());
-
-        let session_id = self
-            .add_new_session(port, ip, timeout, keytype, csciphers, scciphers, socket)
-            .await?;
-        // if let Some(socket) = socket {
-        //     todo!()
-        //     // // This is a fake raw socket.
-        //     // // TODO: implement openvas_get_socket_from_connection()
-        //     // let my_sock = UdpSocket::bind("127.0.0.1:0").unwrap();
-        //     // debug!(
-        //     //     ip_str = ip_str,
-        //     //     sock_fd = my_sock.as_raw_fd(),
-        //     //     nasl_sock = socket,
-        //     //     "Setting SSH fd for socket",
-        //     // );
-        //     // session.set_option(SshOption::Socket(my_sock.as_raw_fd()))?;
-        // }
-        // debug!(
-        //     ip_str = ip_str,
-        //     port = port,
-        //     socket = socket,
-        //     "Connecting to SSH server",
-        // );
-        // session.connect()?;
-        // Ok(())
-        Ok(session_id)
-    }
-
     /// Run a command via ssh.
     ///
     /// The function opens a channel to the remote end and ask it to
