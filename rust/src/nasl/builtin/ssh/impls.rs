@@ -1,21 +1,25 @@
-use std::{io::Write, time::Duration};
+use std::time::Duration;
 
 use russh::cipher;
 use russh_keys::key;
-use tracing::debug;
 
 use crate::nasl::{
     prelude::*,
-    utils::{
-        function::{Maybe, StringOrData},
-        IntoFunctionSet, StoredFunctionSet,
-    },
+    utils::{IntoFunctionSet, StoredFunctionSet},
 };
 
 use super::{utils::CommaSeparated, SessionId, Socket, Ssh, SshError};
 
 #[cfg(feature = "nasl-builtin-libssh")]
-use libssh_rs::{AuthMethods, AuthStatus, PublicKeyHashType, SshKey};
+mod libssh_uses {
+    pub use libssh_rs::{AuthMethods, AuthStatus, PublicKeyHashType, SshKey};
+    pub use tracing::debug;
+    pub use crate::nasl::utils::function::{Maybe, StringOrData};
+    pub use std::io::Write;
+}
+
+#[cfg(feature = "nasl-builtin-libssh")]
+pub use libssh_uses::*;
 
 type Result<T> = std::result::Result<T, FunctionErrorKind>;
 
@@ -26,6 +30,7 @@ impl IntoFunctionSet for Ssh {
     fn into_function_set(self) -> StoredFunctionSet<Self::State> {
         let mut set = StoredFunctionSet::new(self);
         set.async_stateful_mut("ssh_connect", Ssh::nasl_ssh_connect);
+        set.async_stateful("ssh_request_exec", Ssh::nasl_ssh_request_exec);
         #[cfg(feature = "nasl-builtin-libssh")]
         {
             set.async_stateful_mut("ssh_disconnect", Ssh::nasl_ssh_disconnect);
@@ -36,7 +41,6 @@ impl IntoFunctionSet for Ssh {
             set.async_stateful("ssh_get_sock", Ssh::nasl_ssh_get_sock);
             set.async_stateful("ssh_set_login", Ssh::nasl_ssh_set_login);
             set.async_stateful("ssh_userauth", Ssh::nasl_ssh_userauth);
-            set.async_stateful("ssh_request_exec", Ssh::nasl_ssh_request_exec);
             set.async_stateful("ssh_shell_open", Ssh::nasl_ssh_shell_open);
             set.async_stateful("ssh_shell_read", Ssh::nasl_ssh_shell_read);
             set.async_stateful("ssh_shell_write", Ssh::nasl_ssh_shell_write);
@@ -124,6 +128,57 @@ impl Ssh {
         Ok(self
             .connect(socket, ip, port, keytype, csciphers, scciphers, timeout)
             .await?)
+    }
+
+    /// Run a command via ssh.
+    ///
+    /// The function opens a channel to the remote end and ask it to
+    /// execute a command.  The output of the command is then returned as a
+    /// data block.  The first unnamed argument is the session id. The
+    /// command itself is expected as string in the named argument "cmd".
+    ///
+    /// Regarding the handling of the stderr and stdout stream, this
+    /// function may be used in different modes.
+    ///
+    /// If either the named arguments @a stdout or @a stderr are given and
+    /// that one is set to 1, only the output of the specified stream is
+    /// returned.
+    ///
+    /// If stdout and stderr are both given and set to 1, the output
+    /// of both is returned interleaved.  NOTE: The following feature has
+    /// not yet been implemented: The output is guaranteed not to switch
+    /// between stderr and stdout within a line.
+    ///
+    /// If stdout and stderr are both given but set to 0, a special
+    /// backward compatibility mode is used: First all output to stderr is
+    /// collected up until any output to stdout is received.  Then all
+    /// output to stdout is returned while ignoring all further stderr
+    /// output; at EOF the initial collected data from stderr is returned.
+    ///
+    /// If the named parameters @a stdout and @a stderr are not given, the
+    /// function acts exactly as if only @a stdout has been set to 1.
+    #[nasl_function(named(cmd, stdout, stderr))]
+    pub async fn nasl_ssh_request_exec(
+        &self,
+        session_id: SessionId,
+        cmd: &str,
+        stdout: Option<bool>,
+        stderr: Option<bool>,
+    ) -> Result<Option<String>> {
+        let session = self.get_by_id(session_id).await?;
+        if cmd.is_empty() {
+            return Ok(None);
+        }
+        let (stdout, stderr, compat_mode) = match (stdout, stderr) {
+            (None, None) => (true, false, false),
+            (Some(false), Some(false)) => (true, false, true),
+            (stdout, stderr) => (stdout.unwrap_or(false), stderr.unwrap_or(false), false),
+        };
+        Ok(Some(
+            session
+                .exec_ssh_cmd(cmd, compat_mode, stdout, stderr)
+                .await?,
+        ))
     }
 }
 
@@ -350,58 +405,6 @@ impl Ssh {
             };
         };
         Ok(())
-    }
-
-    /// Run a command via ssh.
-    ///
-    /// The function opens a channel to the remote end and ask it to
-    /// execute a command.  The output of the command is then returned as a
-    /// data block.  The first unnamed argument is the session id. The
-    /// command itself is expected as string in the named argument "cmd".
-    ///
-    /// Regarding the handling of the stderr and stdout stream, this
-    /// function may be used in different modes.
-    ///
-    /// If either the named arguments @a stdout or @a stderr are given and
-    /// that one is set to 1, only the output of the specified stream is
-    /// returned.
-    ///
-    /// If stdout and stderr are both given and set to 1, the output
-    /// of both is returned interleaved.  NOTE: The following feature has
-    /// not yet been implemented: The output is guaranteed not to switch
-    /// between stderr and stdout within a line.
-    ///
-    /// If stdout and stderr are both given but set to 0, a special
-    /// backward compatibility mode is used: First all output to stderr is
-    /// collected up until any output to stdout is received.  Then all
-    /// output to stdout is returned while ignoring all further stderr
-    /// output; at EOF the initial collected data from stderr is returned.
-    ///
-    /// If the named parameters @a stdout and @a stderr are not given, the
-    /// function acts exactly as if only @a stdout has been set to 1.
-    #[nasl_function(named(cmd, stdout, stderr))]
-    pub async fn nasl_ssh_request_exec(
-        &self,
-        session_id: SessionId,
-        cmd: &str,
-        stdout: Option<bool>,
-        stderr: Option<bool>,
-    ) -> Result<Option<String>> {
-        let session = self.get_by_id(session_id).await?;
-        if cmd.is_empty() {
-            return Ok(None);
-        }
-        let (stdout, stderr, compat_mode) = match (stdout, stderr) {
-            (None, None) => (true, false, false),
-            (Some(false), Some(false)) => (true, false, true),
-            (stdout, stderr) => (stdout.unwrap_or(false), stderr.unwrap_or(false), false),
-        };
-        Ok(Some(session.exec_ssh_cmd(
-            cmd,
-            compat_mode,
-            stdout,
-            stderr,
-        )?))
     }
 
     /// Open a new ssh shell.

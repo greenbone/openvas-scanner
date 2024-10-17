@@ -14,9 +14,11 @@ use russh_keys::key;
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::debug;
 
+use crate::nasl::builtin::ssh::MIN_SESSION_ID;
+
 use super::error::{Result, SshError};
 use super::session::SshSession;
-use super::{SessionId, Socket, MIN_SESSION_ID};
+use super::{SessionId, Socket};
 
 pub fn get_log_level() -> LogLevel {
     let verbose = std::env::var("OPENVAS_LIBSSH_DEBUG")

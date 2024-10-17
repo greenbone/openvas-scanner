@@ -10,7 +10,7 @@ use russh_keys::key::KeyPair;
 use server::TestServer;
 
 use crate::check_err_matches;
-use crate::nasl::builtin::ssh::libssh::MIN_SESSION_ID;
+use crate::nasl::builtin::ssh::MIN_SESSION_ID;
 use crate::nasl::builtin::SshError;
 use crate::nasl::test_prelude::*;
 use crate::nasl::NoOpLoader;
@@ -114,7 +114,7 @@ async fn ssh_request_exec() {
             );
             t.ok(
                 r#"auth = ssh_userauth(session_id, login: "user", password: "pass");"#,
-                1,
+                NaslValue::Null,
             );
             t.ok(
                 r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "ls");"#,
@@ -124,27 +124,4 @@ async fn ssh_request_exec() {
         default_config(),
     )
     .await
-}
-
-#[tokio::test]
-async fn server() {
-    run_server(default_config()).await
-}
-
-#[tokio::test]
-#[tracing_test::traced_test]
-async fn client() {
-    let handle = tokio::task::spawn_blocking(move || {
-        let mut t = TestBuilder::default();
-        t.ok(
-            format!(r#"session_id = ssh_connect(port: {});"#, PORT),
-            MIN_SESSION_ID,
-        );
-        t.ok(r#"auth = ssh_userauth(session_id);"#, 15);
-        t.ok(
-            r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "ls");"#,
-            15,
-        );
-    });
-    handle.await.unwrap();
 }

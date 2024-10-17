@@ -139,7 +139,7 @@ impl SshSession {
         }
     }
 
-    pub fn exec_ssh_cmd(
+    pub async fn exec_ssh_cmd(
         &self,
         cmd: &str,
         compat_mode: bool,

@@ -14,3 +14,5 @@ mod tests;
 mod utils;
 
 mod impls;
+
+const MIN_SESSION_ID: SessionId = 9000;
