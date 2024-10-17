@@ -3,12 +3,11 @@ use std::time::Duration;
 use std::{net::IpAddr, sync::Arc};
 
 use async_trait::async_trait;
-use client::{connect_stream, Config, DisconnectReason, Handle, Handler, Msg, Session};
+use client::{connect, DisconnectReason, Msg, Session};
 use key::PublicKey;
 use russh::keys::*;
 use russh::*;
-use tokio::net::{TcpStream, ToSocketAddrs};
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::nasl::utils::function::bytes_to_str;
 
@@ -299,24 +298,6 @@ pub struct SshSession {
     session: client::Handle<Client>,
 }
 
-/// Connect to a server at the address specified, using the [`Handler`]
-/// (implemented by you) and [`Config`] specified. Returns a future that
-/// resolves to a [`Handle`]. This handle can then be used to create channels,
-/// which in turn can be used to tunnel TCP connections, request a PTY, execute
-/// commands, etc. The future will resolve to an error if the connection fails.
-/// This function creates a connection to the `addr` specified using a
-/// [`tokio::net::TcpStream`] and then calls [`connect_stream`] under the hood.
-pub async fn connect<H: Handler + Send + 'static, A: ToSocketAddrs>(
-    config: Arc<Config>,
-    addrs: A,
-    handler: H,
-) -> Result<Handle<H>, H::Error> {
-    let socket = TcpStream::connect(addrs)
-        .await
-        .map_err(russh::Error::from)?;
-    connect_stream(config, socket, handler).await
-}
-
 impl SshSession {
     pub async fn new(
         ip_addr: IpAddr,
@@ -342,12 +323,24 @@ impl SshSession {
 
         let session = connect(config, (ip_addr, port), sh)
             .await
-            .map_err(|e| SshError::Connect(e))?;
+            .map_err(|e| SshError::Connect(e.into()))?;
 
         Ok(Self { session })
     }
 
-    pub async fn call(&mut self, command: &str) -> Result<(u32, String), russh::Error> {
+    pub async fn exec_ssh_cmd(
+        &self,
+        command: &str,
+        compat_mode: bool,
+        stdout: bool,
+        stderr: bool,
+    ) -> Result<String, SshError> {
+        self.call(command)
+            .await
+            .map_err(|e| SshError::CallError(todo!(), command.to_string(), e.into()))
+    }
+
+    pub async fn call(&self, command: &str) -> Result<String, russh::Error> {
         let mut channel = self.session.channel_open_session().await?;
         channel.exec(true, command).await?;
 
@@ -372,10 +365,10 @@ impl SshSession {
                 _ => {}
             }
         }
-        Ok((
-            code.expect("program did not exit cleanly"),
-            stdout.to_string(),
-        ))
+        if code.is_none() {
+            warn!("Program did not exit cleanly: {}", command);
+        }
+        Ok(stdout.to_string())
     }
 }
 
