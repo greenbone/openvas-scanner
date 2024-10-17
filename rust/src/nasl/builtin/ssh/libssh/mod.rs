@@ -14,5 +14,6 @@ pub mod sessions;
 pub use self::sessions::Ssh;
 
 pub type SessionId = i32;
+pub const MIN_SESSION_ID: SessionId = 9000;
 pub type Socket = std::os::raw::c_int;
 pub use error::SshError;

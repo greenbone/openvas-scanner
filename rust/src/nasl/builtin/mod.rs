@@ -20,6 +20,8 @@ mod report_functions;
 mod ssh;
 mod string;
 
+pub use ssh::SshError;
+
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
 use crate::storage::{ContextKey, DefaultDispatcher, Storage};

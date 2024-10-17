@@ -110,13 +110,7 @@ impl Ssh {
         let ip = ctx
             .target_ip()
             .map_err(|e| SshError::InvalidIpAddr(ctx.target().to_string(), e))?;
-
-        let ip_str: String = match ctx.target() {
-            x if !x.is_empty() => x.to_string(),
-            _ => "127.0.0.1".to_string(),
-        };
         let timeout = timeout.map(|timeout| Duration::from_secs(timeout as u64));
-
         let keytype = keytype
             .map(|keytype| keytype.0)
             .unwrap_or(russh::Preferred::DEFAULT.key[..].to_vec());
@@ -257,10 +251,7 @@ impl Ssh {
     ) -> Result<()> {
         if password.is_none() && privatekey.is_none() && passphrase.is_none() {
             //TODO: Get values from KB
-            return Err(FunctionErrorKind::Dirty(format!(
-                "No authentication data given for session ID: {}",
-                session_id
-            )));
+            return Err(SshError::NoAuthenticationGiven(session_id).into());
         }
         let mut session = self.get_by_id(session_id).await?;
         session.ensure_user_set(login)?;

@@ -23,6 +23,6 @@ pub enum SshError {
 
 impl From<SshError> for FunctionErrorKind {
     fn from(e: SshError) -> Self {
-        FunctionErrorKind::Dirty(e.to_string())
+        FunctionErrorKind::Ssh(e)
     }
 }

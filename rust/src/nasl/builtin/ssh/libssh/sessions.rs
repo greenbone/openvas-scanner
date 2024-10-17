@@ -16,7 +16,7 @@ use tracing::debug;
 
 use super::error::{Result, SshError};
 use super::session::SshSession;
-use super::{SessionId, Socket};
+use super::{SessionId, Socket, MIN_SESSION_ID};
 
 pub fn get_log_level() -> LogLevel {
     let verbose = std::env::var("OPENVAS_LIBSSH_DEBUG")
@@ -32,12 +32,18 @@ pub fn get_log_level() -> LogLevel {
     }
 }
 
-fn to_comma_separated_string<T: AsRef<str>>(items: &[T]) -> String {
-    items
-        .into_iter()
-        .map(|name| name.as_ref().to_string())
-        .collect::<Vec<_>>()
-        .join(",")
+fn to_comma_separated_string<T: AsRef<str>>(items: &[T]) -> Option<String> {
+    if items.is_empty() {
+        None
+    } else {
+        Some(
+            items
+                .into_iter()
+                .map(|name| name.as_ref().to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+        )
+    }
 }
 
 #[derive(Default)]
@@ -64,13 +70,12 @@ impl Ssh {
         // Note that the first session ID we will
         // hand out is an arbitrary high number, this is only to help
         // debugging.
-        const MIN_VAL: SessionId = 9000;
         let taken_ids: HashSet<_> = self.sessions.keys().collect();
         if taken_ids.is_empty() {
-            Ok(MIN_VAL)
+            Ok(MIN_SESSION_ID)
         } else {
             let max_val = **taken_ids.iter().max().unwrap() + 1;
-            Ok((MIN_VAL..=max_val)
+            Ok((MIN_SESSION_ID..=max_val)
                 .find(|id| !taken_ids.contains(id))
                 .unwrap())
         }
@@ -131,9 +136,15 @@ impl Ssh {
             if let Some(timeout) = timeout {
                 session.set_option(SshOption::Timeout(timeout))?;
             }
-            session.set_option(SshOption::HostKeys(to_comma_separated_string(&keytype)))?;
-            session.set_option(SshOption::CiphersCS(to_comma_separated_string(&csciphers)))?;
-            session.set_option(SshOption::CiphersSC(to_comma_separated_string(&scciphers)))?;
+            if let Some(keytype) = to_comma_separated_string(&keytype) {
+                session.set_option(SshOption::HostKeys(keytype))?;
+            }
+            if let Some(csciphers) = to_comma_separated_string(&csciphers) {
+                session.set_option(SshOption::CiphersCS(csciphers))?;
+            }
+            if let Some(scciphers) = to_comma_separated_string(&scciphers) {
+                session.set_option(SshOption::CiphersSC(scciphers))?;
+            }
             session.set_option(SshOption::Port(port))?;
 
             if let Some(socket) = socket {

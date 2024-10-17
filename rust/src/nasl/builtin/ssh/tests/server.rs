@@ -31,7 +31,6 @@ impl server::Handler for TestServer {
         channel: Channel<Msg>,
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        dbg!("OH YEAH");
         let mut clients = self.clients.lock().await;
         clients.insert(channel.id(), session.handle());
         Ok(true)
@@ -68,7 +67,6 @@ impl server::Handler for TestServer {
         data: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        panic!();
         Ok(())
     }
 

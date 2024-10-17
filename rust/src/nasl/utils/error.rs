@@ -6,6 +6,7 @@
 use std::io;
 use thiserror::Error;
 
+use crate::nasl::builtin::SshError;
 use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
@@ -62,6 +63,9 @@ pub enum FunctionErrorKind {
     /// An example would be that there is no free memory left in the system
     #[error("{0}")]
     Dirty(String),
+    /// An Error originating from an SSH-specific NASL function
+    #[error("SSH error: {0}")]
+    Ssh(SshError),
 }
 
 // It would be nicer to derive this using #[from] from
