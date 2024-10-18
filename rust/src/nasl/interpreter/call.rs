@@ -16,6 +16,7 @@ use crate::nasl::utils::ContextType;
 use std::collections::HashMap;
 
 impl<'a> Interpreter<'a> {
+    #[allow(clippy::single_match)]
     pub async fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context
@@ -82,8 +83,8 @@ impl<'a> Interpreter<'a> {
                         // prepare default values
                         for p in params {
                             match self.register().named(&p) {
+                                // add default NaslValue::Null for each defined params
                                 None => {
-                                    // add default NaslValue::Null for each defined params
                                     self.register_mut()
                                         .add_local(&p, ContextType::Value(NaslValue::Null));
                                 }
