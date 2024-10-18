@@ -12,10 +12,10 @@ use super::{utils::CommaSeparated, SessionId, Socket, Ssh, SshError};
 
 #[cfg(feature = "nasl-builtin-libssh")]
 mod libssh_uses {
-    pub use libssh_rs::{AuthMethods, AuthStatus, PublicKeyHashType, SshKey};
-    pub use tracing::debug;
     pub use crate::nasl::utils::function::{Maybe, StringOrData};
+    pub use libssh_rs::{AuthMethods, AuthStatus, PublicKeyHashType, SshKey};
     pub use std::io::Write;
+    pub use tracing::debug;
 }
 
 #[cfg(feature = "nasl-builtin-libssh")]
@@ -195,7 +195,7 @@ impl Ssh {
         if session_id != 0 {
             {
                 let mut session = self.get_by_id(session_id).await?;
-                session.disconnect()?;
+                session.disconnect().await?;
             }
             self.remove(session_id)?;
         }
@@ -416,7 +416,7 @@ impl Ssh {
     ) -> Result<SessionId> {
         let mut session = self.get_by_id(session_id).await?;
         let pty = pty.unwrap_or(true);
-        session.open_shell(pty)?;
+        session.open_shell(pty).await?;
         Ok(session.id())
     }
 
@@ -432,7 +432,7 @@ impl Ssh {
     ) -> Result<String> {
         let session = self.get_by_id(session_id).await?;
         let timeout = Duration::from_secs(timeout.and_then(Maybe::as_option).unwrap_or(0));
-        let channel = session.get_channel()?;
+        let channel = session.get_channel().await?;
         channel.ensure_open()?;
 
         if timeout.as_secs() > 0 {
@@ -450,7 +450,7 @@ impl Ssh {
         cmd: StringOrData,
     ) -> Result<i32> {
         let session = self.get_by_id(session_id).await?;
-        let channel = session.get_channel()?;
+        let channel = session.get_channel().await?;
         channel.ensure_open()?;
 
         let result = match channel.stdin().write_all(cmd.0.as_bytes()) {
@@ -464,7 +464,7 @@ impl Ssh {
     #[nasl_function]
     pub async fn nasl_ssh_shell_close(&self, session_id: SessionId) -> Result<()> {
         let mut session = self.get_by_id(session_id).await?;
-        session.close();
+        session.close().await;
         Ok(())
     }
 

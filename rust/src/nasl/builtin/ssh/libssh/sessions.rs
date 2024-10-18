@@ -112,7 +112,7 @@ impl Ssh {
         {
             let mut borrowed_session = session.lock().await;
             if let Err(e) = f(&mut borrowed_session) {
-                borrowed_session.disconnect()?;
+                borrowed_session.disconnect().await?;
                 return Err(e);
             }
         }
