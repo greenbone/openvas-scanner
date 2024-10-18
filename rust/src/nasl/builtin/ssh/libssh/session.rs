@@ -1,5 +1,6 @@
 use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, Sftp, SshKey, SshOption};
 use std::{os::fd::AsRawFd, time::Duration};
+use tokio::sync::{Mutex, MutexGuard};
 use tracing::{debug, info};
 
 use super::error::{Result, SshError};
@@ -17,7 +18,7 @@ pub struct SshSession {
     /// Set if a user has been set for the session
     pub user_set: bool,
     /// Channel
-    pub channel: Option<Channel>,
+    pub channel: Option<Mutex<Channel>>,
 }
 
 impl SshSession {
@@ -43,12 +44,16 @@ impl SshSession {
         self.id
     }
 
-    fn channel(&self) -> &Option<Channel> {
-        &self.channel
+    async fn channel(&self) -> Option<MutexGuard<'_, Channel>> {
+        if let Some(ref channel) = self.channel {
+            Some(channel.lock().await)
+        } else {
+            None
+        }
     }
 
     pub fn set_channel(&mut self, channel: Channel) {
-        self.channel = Some(channel);
+        self.channel = Some(Mutex::new(channel));
     }
 
     fn authmethods(&self) -> Option<AuthMethods> {
@@ -66,9 +71,9 @@ impl SshSession {
             .map_err(|e| SshError::OpenChannel(self.id(), e.into()))
     }
 
-    pub fn get_channel(&self) -> Result<&Channel> {
+    pub async fn get_channel(&self) -> Result<MutexGuard<'_, Channel>> {
         self.channel()
-            .as_ref()
+            .await
             .ok_or_else(|| SshError::NoAvailableChannel(self.id()))
     }
 
@@ -91,8 +96,8 @@ impl SshSession {
         self.session().as_raw_fd()
     }
 
-    pub fn close(&mut self) {
-        if let Some(channel) = &mut self.channel() {
+    pub async fn close(&mut self) {
+        if let Some(channel) = &mut self.channel().await {
             if let Err(e) = channel.close() {
                 debug!("Encountered error while closing channel: {}", e);
             }
@@ -114,16 +119,16 @@ impl SshSession {
         self.set_option(opt_user)
     }
 
-    pub fn open_shell(&mut self, pty: bool) -> Result<()> {
+    pub async fn open_shell(&mut self, pty: bool) -> Result<()> {
         let mut channel = self.new_channel()?;
         channel.open_session()?;
         self.request_ssh_shell(&mut channel, pty)?;
-        self.channel = Some(channel);
+        self.set_channel(channel);
         Ok(())
     }
 
-    pub fn disconnect(&mut self) -> Result<()> {
-        if let Some(ref channel) = self.channel {
+    pub async fn disconnect(&mut self) -> Result<()> {
+        if let Some(ref channel) = self.channel().await {
             channel.close()?;
         }
         self.session().disconnect();
