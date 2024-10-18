@@ -1024,8 +1024,9 @@ log_message (lex_ctxt *lexic)
   return security_something (lexic, proto_post_log, post_log_with_uri);
 }
 
+// FIXME: the name of the function is too broad, krb5 people also hate prefixes
 tree_cell *
-error_message (lex_ctxt *lexic)
+error_message2 (lex_ctxt *lexic)
 {
   return security_something (lexic, proto_post_error, post_error);
 }
