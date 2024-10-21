@@ -2,7 +2,6 @@
 //
 
 // SPDX-License-Identifier: GPL-2.0-or-later
-//use md5::Digest;
 use crate::function_set;
 use crate::nasl::FunctionErrorKind;
 use crate::nasl::NaslValue;
