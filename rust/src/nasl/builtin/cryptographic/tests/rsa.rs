@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-mod helper;
 #[cfg(test)]
 mod tests {
 
