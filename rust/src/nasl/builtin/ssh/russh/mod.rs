@@ -26,6 +26,14 @@ pub type Socket = i32;
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 
+// This is a 'clone' of the libssh::AuthMethods
+#[allow(non_camel_case_types)]
+pub enum AuthMethods {
+    PASSWORD,
+    INTERACTIVE,
+    PUBLIC_KEY,
+}
+
 #[derive(Default)]
 pub struct Ssh {
     sessions: HashMap<SessionId, Mutex<SshSession>>,
@@ -70,7 +78,7 @@ impl Ssh {
         let id = self.next_session_id()?;
         let session = Mutex::new(
             SshSession::new(
-                ip_addr, port, timeout, keytype, csciphers, scciphers, socket,
+                id, ip_addr, port, timeout, keytype, csciphers, scciphers, socket,
             )
             .await?,
         );

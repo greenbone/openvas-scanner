@@ -8,12 +8,12 @@ use crate::nasl::{
     utils::{IntoFunctionSet, StoredFunctionSet},
 };
 
-use super::{utils::CommaSeparated, SessionId, Socket, Ssh, SshError};
+use super::{utils::CommaSeparated, AuthMethods, SessionId, Socket, Ssh, SshError};
 
 #[cfg(feature = "nasl-builtin-libssh")]
 mod libssh_uses {
     pub use crate::nasl::utils::function::{Maybe, StringOrData};
-    pub use libssh_rs::{AuthMethods, AuthStatus, PublicKeyHashType, SshKey};
+    pub use libssh_rs::{AuthStatus, PublicKeyHashType};
     pub use std::io::Write;
     pub use tracing::debug;
 }
@@ -31,6 +31,7 @@ impl IntoFunctionSet for Ssh {
         let mut set = StoredFunctionSet::new(self);
         set.async_stateful_mut("ssh_connect", Ssh::nasl_ssh_connect);
         set.async_stateful("ssh_request_exec", Ssh::nasl_ssh_request_exec);
+        set.async_stateful("ssh_userauth", Ssh::nasl_ssh_userauth);
         #[cfg(feature = "nasl-builtin-libssh")]
         {
             set.async_stateful_mut("ssh_disconnect", Ssh::nasl_ssh_disconnect);
@@ -40,7 +41,6 @@ impl IntoFunctionSet for Ssh {
             );
             set.async_stateful("ssh_get_sock", Ssh::nasl_ssh_get_sock);
             set.async_stateful("ssh_set_login", Ssh::nasl_ssh_set_login);
-            set.async_stateful("ssh_userauth", Ssh::nasl_ssh_userauth);
             set.async_stateful("ssh_shell_open", Ssh::nasl_ssh_shell_open);
             set.async_stateful("ssh_shell_read", Ssh::nasl_ssh_shell_read);
             set.async_stateful("ssh_shell_write", Ssh::nasl_ssh_shell_write);
@@ -169,16 +169,121 @@ impl Ssh {
         if cmd.is_empty() {
             return Ok(None);
         }
-        let (stdout, stderr, compat_mode) = match (stdout, stderr) {
+        let (to_stdout, to_stderr, compat_mode) = match (stdout, stderr) {
             (None, None) => (true, false, false),
             (Some(false), Some(false)) => (true, false, true),
             (stdout, stderr) => (stdout.unwrap_or(false), stderr.unwrap_or(false), false),
         };
-        Ok(Some(
-            session
-                .exec_ssh_cmd(cmd, compat_mode, stdout, stderr)
-                .await?,
-        ))
+        let combine = |(stdout, stderr): (String, String)| {
+            let mut response = String::new();
+            if to_stderr {
+                response.push_str(stderr.as_str());
+            }
+            if to_stdout {
+                response.push_str(stdout.as_str());
+            }
+            if compat_mode {
+                response.push_str(stderr.as_str())
+            }
+            response
+        };
+        Ok(Some(combine(session.exec_ssh_cmd(cmd).await?)))
+    }
+
+    /// Authenticate a user on an ssh connection
+    ///
+    /// The function expects the session id as its first unnamed argument.
+    /// The first time this function is called for a session id, the named
+    /// argument "login" is also expected; it defaults the KB entry
+    /// "Secret/SSH/login".  It should contain the user name to login.
+    /// Given that many servers don't allow changing the login for an
+    /// established connection, the "login" parameter is silently ignored
+    /// on all further calls.
+    ///
+    /// To perform a password based authentication, the named argument
+    /// "password" must contain a password.
+    ///
+    /// To perform a public key based authentication, the named argument
+    /// "privatekey" must contain a base64 encoded private key in ssh
+    /// native or in PKCS#8 format.
+    ///
+    /// If both, "password" and "privatekey" are given as named arguments
+    /// only "password" is used.  If neither are given the values are taken
+    /// from the KB ("Secret/SSH/password" and "Secret/SSH/privatekey") and
+    /// tried in the order {password, privatekey}.  Note well, that if one
+    /// of the named arguments are given, only those are used and the KB is
+    /// not consulted.
+    ///
+    /// If the private key is protected, its passphrase is taken from the
+    /// named argument "passphrase" or, if not given, taken from the KB
+    /// ("Secret/SSH/passphrase").
+
+    /// Note that the named argument "publickey" and the KB item
+    /// ("Secret/SSH/publickey") are ignored - they are not longer required
+    /// because they can be derived from the private key.
+    ///
+    /// nasl params
+    ///
+    /// - An SSH session id.
+    ///
+    /// nasl named params
+    ///
+    /// - login: A string with the login name.
+    ///
+    /// - password: A string with the password.
+    ///
+    /// - privatekey: A base64 encoded private key in ssh native or in
+    ///   pkcs#8 format.  This parameter is ignored if password is given.
+    ///
+    /// - passphrase: A string with the passphrase used to unprotect privatekey.
+    ///
+    /// return An integer as status value; 0 indicates success.
+    #[nasl_function(named(login, password, privatekey, passphrase))]
+    pub async fn nasl_ssh_userauth(
+        &self,
+        session_id: SessionId,
+        login: Option<&str>,
+        password: Option<&str>,
+        privatekey: Option<&str>,
+        passphrase: Option<&str>,
+    ) -> Result<()> {
+        if password.is_none() && privatekey.is_none() && passphrase.is_none() {
+            //TODO: Get values from KB
+            return Err(SshError::NoAuthenticationGiven(session_id).into());
+        }
+        let login = login.unwrap_or("");
+        let mut session = self.get_by_id(session_id).await?;
+        // Check whether a password has been given.  If so, try to
+        // authenticate using that password.  Note that the OpenSSH client
+        // uses a different order: it first tries the public key and then the
+        // password.  However, the old NASL SSH protocol implementation tries
+        // the password before the public key authentication.  Because we
+        // want to be compatible, we do it in that order.
+        if let Some(password) = password {
+            if session.auth_method_allowed(AuthMethods::PASSWORD).await? {
+                if let Ok(_) = session.auth_password(login, password).await {
+                    return Ok(());
+                }
+            }
+            if session
+                .auth_method_allowed(AuthMethods::INTERACTIVE)
+                .await?
+            {
+                if let Ok(_) = session.auth_keyboard_interactive(login, password).await {
+                    return Ok(());
+                }
+            }
+        }
+        // If we have a private key, try public key authentication.
+        if session.auth_method_allowed(AuthMethods::PUBLIC_KEY).await? {
+            if let Some(private_key) = privatekey {
+                let passphrase = passphrase.unwrap_or_default();
+                session
+                    .auth_public_key(login, private_key, passphrase)
+                    .await?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -245,166 +350,6 @@ impl Ssh {
     ) -> Result<()> {
         let mut session = self.get_by_id(session_id).await?;
         Ok(session.set_opt_user(login)?)
-    }
-
-    /// Authenticate a user on an ssh connection
-    ///
-    /// The function expects the session id as its first unnamed argument.
-    /// The first time this function is called for a session id, the named
-    /// argument "login" is also expected; it defaults the KB entry
-    /// "Secret/SSH/login".  It should contain the user name to login.
-    /// Given that many servers don't allow changing the login for an
-    /// established connection, the "login" parameter is silently ignored
-    /// on all further calls.
-    ///
-    /// To perform a password based authentication, the named argument
-    /// "password" must contain a password.
-    ///
-    /// To perform a public key based authentication, the named argument
-    /// "privatekey" must contain a base64 encoded private key in ssh
-    /// native or in PKCS#8 format.
-    ///
-    /// If both, "password" and "privatekey" are given as named arguments
-    /// only "password" is used.  If neither are given the values are taken
-    /// from the KB ("Secret/SSH/password" and "Secret/SSH/privatekey") and
-    /// tried in the order {password, privatekey}.  Note well, that if one
-    /// of the named arguments are given, only those are used and the KB is
-    /// not consulted.
-    ///
-    /// If the private key is protected, its passphrase is taken from the
-    /// named argument "passphrase" or, if not given, taken from the KB
-    /// ("Secret/SSH/passphrase").
-
-    /// Note that the named argument "publickey" and the KB item
-    /// ("Secret/SSH/publickey") are ignored - they are not longer required
-    /// because they can be derived from the private key.
-    ///
-    /// nasl params
-    ///
-    /// - An SSH session id.
-    ///
-    /// nasl named params
-    ///
-    /// - login: A string with the login name.
-    ///
-    /// - password: A string with the password.
-    ///
-    /// - privatekey: A base64 encoded private key in ssh native or in
-    ///   pkcs#8 format.  This parameter is ignored if password is given.
-    ///
-    /// - passphrase: A string with the passphrase used to unprotect privatekey.
-    ///
-    /// return An integer as status value; 0 indicates success.
-    #[nasl_function(named(login, password, privatekey, passphrase))]
-    pub async fn nasl_ssh_userauth(
-        &self,
-        session_id: SessionId,
-        login: Option<&str>,
-        password: Option<&str>,
-        privatekey: Option<&str>,
-        passphrase: Option<&str>,
-    ) -> Result<()> {
-        if password.is_none() && privatekey.is_none() && passphrase.is_none() {
-            //TODO: Get values from KB
-            return Err(SshError::NoAuthenticationGiven(session_id).into());
-        }
-        let mut session = self.get_by_id(session_id).await?;
-        session.ensure_user_set(login)?;
-
-        let methods: AuthMethods = session.get_authmethods_cached()?;
-        debug!("Available methods:\n{:?}", methods);
-
-        if methods == AuthMethods::NONE {
-            return Ok(());
-        }
-
-        // Check whether a password has been given.  If so, try to
-        // authenticate using that password.  Note that the OpenSSH client
-        // uses a different order: it first tries the public key and then the
-        // password.  However, the old NASL SSH protocol implementation tries
-        // the password before the public key authentication.  Because we
-        // want to be compatible, we do it in that order.
-        if password.is_some() && methods.contains(AuthMethods::PASSWORD) {
-            let status = session.userauth_password(None, password)?;
-            match status {
-                AuthStatus::Success => {
-                    return Ok(());
-                }
-                _ => {
-                    debug!(
-                        session_id = session_id,
-                        "SSH password authentication failed.",
-                    );
-                }
-            };
-        }
-
-        // Our strategy for kbint is to send the password to the first
-        // prompt marked as non-echo.
-        if password.is_some() && methods.contains(AuthMethods::INTERACTIVE) {
-            loop {
-                match session.userauth_keyboard_interactive(None, None)? {
-                    AuthStatus::Info => {
-                        let info = session.userauth_keyboard_interactive_info()?;
-                        debug!(
-                            name = info.name,
-                            instruction = info.instruction,
-                            "SSH keyboard-interactive"
-                        );
-
-                        let mut answers: Vec<String> = Vec::new();
-                        for p in info.prompts.into_iter() {
-                            if !p.echo {
-                                answers.push(password.unwrap_or_default().to_string());
-                            } else {
-                                answers.push(String::new());
-                            };
-                        }
-                        match session.userauth_keyboard_interactive_set_answers(&answers) {
-                            Ok(_) => {
-                                return Ok(());
-                            }
-                            Err(_) => break,
-                        }
-                    }
-                    _ => {
-                        debug!(
-                            session_id = session_id,
-                            "SSH keyboard-interactive authentication failed.",
-                        );
-                        continue;
-                    }
-                };
-            }
-        };
-
-        // If we have a private key, try public key authentication.
-        if privatekey.is_some() && methods.contains(AuthMethods::PUBLIC_KEY) {
-            match SshKey::from_privkey_base64(privatekey.unwrap_or_default(), passphrase) {
-                Ok(k) => {
-                    match session.userauth_try_publickey(None, &k) {
-                        Ok(AuthStatus::Success) => match session.userauth_publickey(None, &k) {
-                            Ok(AuthStatus::Success) => {
-                                return Ok(());
-                            }
-                            _ => {
-                                debug!(session_id=session_id, "SSH authentication failed. No more authentication methods to try");
-                            }
-                        },
-                        _ => {
-                            debug!(session_id=session_id, "SSH public key authentication failed.: Server does not want our key");
-                        }
-                    }
-                }
-                Err(_) => {
-                    debug!(
-                        session_id = session.id(),
-                        "SSH public key authentication failed: Error converting provided key"
-                    );
-                }
-            };
-        };
-        Ok(())
     }
 
     /// Open a new ssh shell.

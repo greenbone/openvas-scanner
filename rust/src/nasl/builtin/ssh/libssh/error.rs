@@ -79,6 +79,13 @@ pub enum SshError {
     InvalidIpAddr(String, std::net::AddrParseError),
     #[error("Attempted to authenticate without authentication data given for session ID: {0}")]
     NoAuthenticationGiven(SessionId),
+    // TODO rename these errors since the above ones already exist.
+    #[error("Error while authenticating with password for session ID {0}")]
+    UserauthPassword(SessionId),
+    #[error("Error while authenticating with keyboard-interactive for session ID {0}")]
+    UserauthKeyboardInteractive(SessionId),
+    #[error("Error while converting private key")]
+    ConvertPrivateKey(SessionId),
 }
 
 impl From<SshError> for FunctionErrorKind {

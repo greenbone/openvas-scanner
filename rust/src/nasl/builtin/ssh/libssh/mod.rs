@@ -16,3 +16,4 @@ pub use self::sessions::Ssh;
 pub type SessionId = i32;
 pub type Socket = std::os::raw::c_int;
 pub use error::SshError;
+pub use libssh_rs::AuthMethods;

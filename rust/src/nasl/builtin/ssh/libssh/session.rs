@@ -150,7 +150,7 @@ impl SshSession {
         compat_mode: bool,
         to_stdout: bool,
         to_stderr: bool,
-    ) -> Result<String> {
+    ) -> Result<(String, String)> {
         let channel = self.new_channel()?;
         channel.open_session()?;
         channel.request_pty("xterm", 80, 24)?;
@@ -160,17 +160,72 @@ impl SshSession {
 
         let timeout = Duration::from_millis(15000);
         let stderr = channel.read_timeout(timeout, true)?;
-        if to_stderr {
-            response.push_str(stderr.as_str());
-        }
         let stdout = channel.read_timeout(timeout, false)?;
-        if to_stdout {
-            response.push_str(stdout.as_str());
+        Ok((stdout, stderr))
+    }
+
+    pub async fn auth_method_allowed(&mut self, method: AuthMethods) -> Result<bool> {
+        let methods = self.get_authmethods_cached()?;
+        Ok(methods.contains(method))
+    }
+
+    pub async fn auth_password(&mut self, login: &str, password: &str) -> Result<()> {
+        self.ensure_user_set(Some(login))?;
+        let status = self.userauth_password(None, Some(password))?;
+        if let AuthStatus::Success = status {
+            return Ok(());
         }
-        if compat_mode {
-            response.push_str(&stderr.as_str())
+        Err(SshError::UserauthPassword(self.id))
+    }
+
+    pub async fn auth_keyboard_interactive(&mut self, login: &str, password: &str) -> Result<()> {
+        self.ensure_user_set(Some(login))?;
+        loop {
+            let response = self.userauth_keyboard_interactive(None, None)?;
+            if let AuthStatus::Info = response {
+                let info = self.userauth_keyboard_interactive_info()?;
+                let mut answers: Vec<String> = Vec::new();
+                for p in info.prompts.into_iter() {
+                    if !p.echo {
+                        answers.push(password.to_string());
+                    } else {
+                        answers.push(String::new());
+                    };
+                }
+                match self.userauth_keyboard_interactive_set_answers(&answers) {
+                    Ok(_) => {
+                        return Ok(());
+                    }
+                    Err(_) => return Err(SshError::UserauthKeyboardInteractive(self.id)),
+                }
+            } else {
+                debug!(
+                    session_id = self.id,
+                    "SSH keyboard-interactive authentication failed.",
+                );
+                continue;
+            }
         }
-        Ok(response)
+    }
+
+    pub async fn auth_public_key(
+        &mut self,
+        login: &str,
+        private_key: &str,
+        passphrase: &str,
+    ) -> Result<()> {
+        self.ensure_user_set(Some(login))?;
+        let key = SshKey::from_privkey_base64(private_key, Some(passphrase))
+            .map_err(|_| SshError::ConvertPrivateKey(self.id))?;
+        let status = self.userauth_try_publickey(None, &key)?;
+        if let AuthStatus::Success = status {
+            return Ok(());
+        }
+        let status = self.userauth_publickey(None, &key)?;
+        if let AuthStatus::Success = status {
+            return Ok(());
+        }
+        Ok(())
     }
 
     fn get_authmethods(&mut self) -> Result<AuthMethods> {

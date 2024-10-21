@@ -12,7 +12,7 @@ use tracing::{error, warn};
 use crate::nasl::utils::function::bytes_to_str;
 
 use super::error::SshError;
-use super::{Port, Socket};
+use super::{AuthMethods, Port, SessionId, Socket};
 
 struct Client {}
 
@@ -295,11 +295,13 @@ impl client::Handler for Client {
 /// This struct is a convenience wrapper
 /// around a russh client
 pub struct SshSession {
+    id: SessionId,
     session: client::Handle<Client>,
 }
 
 impl SshSession {
     pub async fn new(
+        id: SessionId,
         ip_addr: IpAddr,
         port: Port,
         timeout: Option<Duration>,
@@ -323,21 +325,19 @@ impl SshSession {
 
         let session = connect(config, (ip_addr, port), sh)
             .await
-            .map_err(|e| SshError::Connect(e.into()))?;
+            .map_err(|e| SshError::Connect(id, e.into()))?;
 
-        Ok(Self { session })
+        Ok(Self { session, id })
     }
 
-    pub async fn exec_ssh_cmd(
-        &self,
-        command: &str,
-        compat_mode: bool,
-        stdout: bool,
-        stderr: bool,
-    ) -> Result<String, SshError> {
-        self.call(command)
+    pub async fn exec_ssh_cmd(&self, command: &str) -> Result<(String, String), SshError> {
+        let stdout = self
+            .call(command)
             .await
-            .map_err(|e| SshError::CallError(todo!(), command.to_string(), e.into()))
+            .map_err(|e| SshError::CallError(self.id, command.to_string(), e.into()))?;
+        // TODO implement stderr properly.
+        let stderr = String::new();
+        Ok((stdout, stderr))
     }
 
     pub async fn call(&self, command: &str) -> Result<String, russh::Error> {
@@ -369,6 +369,66 @@ impl SshSession {
             warn!("Program did not exit cleanly: {}", command);
         }
         Ok(stdout.to_string())
+    }
+
+    pub async fn auth_password(&mut self, login: &str, password: &str) -> Result<(), SshError> {
+        self.session
+            .authenticate_password(login, password)
+            .await
+            .map_err(|_| SshError::UserauthPassword(self.id))
+            .map(|_| ())
+    }
+
+    pub async fn auth_public_key(
+        &mut self,
+        _login: &str,
+        _private_key: &str,
+        _passphrase: &str,
+    ) -> Result<(), SshError> {
+        let _key_pair = todo!();
+        // self.session
+        //     .authenticate_publickey(login, key_pair)
+        //     .await
+        //     .map_err(|_| SshError::UserauthPassword(self.id))
+        //     .map(|_| ())
+    }
+
+    pub async fn auth_keyboard_interactive(
+        &mut self,
+        login: &str,
+        password: &str,
+    ) -> Result<(), SshError> {
+        let make_err = || SshError::UserauthKeyboardInteractive(self.id);
+        let response = self
+            .session
+            .authenticate_keyboard_interactive_start(login, None)
+            .await
+            .map_err(|_| make_err())?;
+        match response {
+            client::KeyboardInteractiveAuthResponse::Success => Ok(()),
+            client::KeyboardInteractiveAuthResponse::Failure => Err(make_err()),
+            client::KeyboardInteractiveAuthResponse::InfoRequest { prompts, .. } => {
+                let mut answers: Vec<String> = Vec::new();
+                for p in prompts.into_iter() {
+                    if !p.echo {
+                        answers.push(password.to_string());
+                    } else {
+                        answers.push(String::new());
+                    };
+                }
+                self.session
+                    .authenticate_keyboard_interactive_respond(answers)
+                    .await
+                    .map_err(|_| make_err())
+                    .map(|_| ())
+            }
+        }
+    }
+
+    pub async fn auth_method_allowed(&mut self, _method: AuthMethods) -> Result<bool, SshError> {
+        // TODO: Actually check which auth methods are allowed.
+        // Don't really know how to do this
+        Ok(true)
     }
 }
 

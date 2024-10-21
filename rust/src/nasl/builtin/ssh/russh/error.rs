@@ -32,6 +32,10 @@ pub enum SshError {
     CallError(SessionId, String, RusshError),
     #[error("Attempted to authenticate without authentication data given for session ID: {0}")]
     NoAuthenticationGiven(SessionId),
+    #[error("Error while authenticating with password for session ID {0}")]
+    UserauthPassword(SessionId),
+    #[error("Error while authenticating with keyboard-interactive for session ID {0}")]
+    UserauthKeyboardInteractive(SessionId),
 }
 
 impl From<SshError> for FunctionErrorKind {

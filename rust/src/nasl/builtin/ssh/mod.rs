@@ -1,12 +1,12 @@
 #[cfg(feature = "nasl-builtin-libssh")]
 mod libssh;
 #[cfg(feature = "nasl-builtin-libssh")]
-pub use libssh::{SessionId, Socket, Ssh, SshError};
+pub use libssh::{AuthMethods, SessionId, Socket, Ssh, SshError};
 
 #[cfg(not(feature = "nasl-builtin-libssh"))]
 mod russh;
 #[cfg(not(feature = "nasl-builtin-libssh"))]
-pub use russh::{SessionId, Socket, Ssh, SshError};
+pub use russh::{AuthMethods, SessionId, Socket, Ssh, SshError};
 
 #[cfg(test)]
 mod tests;
