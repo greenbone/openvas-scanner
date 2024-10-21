@@ -82,6 +82,7 @@ impl<'a> Interpreter<'a> {
                         // prepare default values
                         for p in params {
 <<<<<<< HEAD
+<<<<<<< HEAD
                             if self.register().named(&p).is_none() {
                                 // add default NaslValue::Null for each defined params
                                 self.register_mut()
@@ -91,6 +92,15 @@ impl<'a> Interpreter<'a> {
                                 // add default NaslValue::Null for each defined params
                                 self.register_mut().add_local(&p, ContextType::Value(NaslValue::Null));
 >>>>>>> 1f9c7915 (Update call.rs)
+=======
+                            match self.register().named(&p) {
+                                None => {
+                                    // add default NaslValue::Null for each defined params
+                                    self.register_mut()
+                                        .add_local(&p, ContextType::Value(NaslValue::Null));
+                                }
+                                Some(_) => {}
+>>>>>>> dba00ae6 (Update call.rs back to version from 'main')
                             }
                         }
                         match self.resolve(&stmt).await? {
