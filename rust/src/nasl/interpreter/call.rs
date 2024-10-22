@@ -16,7 +16,6 @@ use crate::nasl::utils::ContextType;
 use std::collections::HashMap;
 
 impl<'a> Interpreter<'a> {
-    #[allow(clippy::single_match)]
     pub async fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
         let name = &Self::identifier(name)?;
         // get the context
