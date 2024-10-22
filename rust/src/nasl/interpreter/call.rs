@@ -81,13 +81,10 @@ impl<'a> Interpreter<'a> {
                     ContextType::Function(params, stmt) => {
                         // prepare default values
                         for p in params {
-                            match self.register().named(&p) {
-                                None => {
-                                    // add default NaslValue::Null for each defined params
-                                    self.register_mut()
-                                        .add_local(&p, ContextType::Value(NaslValue::Null));
-                                }
-                                Some(_) => {}
+                            if self.register().named(&p).is_none() {
+                                // add default NaslValue::Null for each defined params
+                                self.register_mut()
+                                    .add_local(&p, ContextType::Value(NaslValue::Null));
                             }
                         }
                         match self.resolve(&stmt).await? {
