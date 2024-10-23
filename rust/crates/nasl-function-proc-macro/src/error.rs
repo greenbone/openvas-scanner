@@ -14,7 +14,6 @@ pub enum ErrorKind {
     OnlyNormalArgumentsAllowed,
     WrongArgumentOrder,
     MovedReceiverType,
-    MutableRefReceiverType,
     TypedRefReceiverType,
 }
 
@@ -40,9 +39,6 @@ impl Error {
             }
             ErrorKind::MovedReceiverType => {
                 "Receiver argument is of type `self`. Currently, only `&self` receiver types are supported."
-            }
-            ErrorKind::MutableRefReceiverType => {
-                "Receiver argument is of type `&mut self`. Currently, only `&self` receiver types are supported."
             }
             ErrorKind::TypedRefReceiverType => {
                 "Specific type specified in receiver argument. Currently, only `&self` is supported."
