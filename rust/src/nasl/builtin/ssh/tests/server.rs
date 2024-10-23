@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use russh::keys::*;
 use russh::server::{Msg, Session};
 use russh::*;
+use server::Auth;
 use tokio::sync::Mutex;
 
 #[derive(Clone, Default)]
@@ -54,14 +54,6 @@ impl server::Handler for TestServer {
         Ok(true)
     }
 
-    async fn auth_publickey(
-        &mut self,
-        _: &str,
-        _: &key::PublicKey,
-    ) -> Result<server::Auth, Self::Error> {
-        Ok(server::Auth::Accept)
-    }
-
     async fn data(
         &mut self,
         channel: ChannelId,
@@ -98,4 +90,48 @@ impl server::Handler for TestServer {
         });
         Ok(true)
     }
+
+    async fn auth_none(&mut self, _user: &str) -> Result<Auth, Self::Error> {
+        Ok(Auth::Accept)
+    }
+
+    // #[allow(unused_variables)]
+    // async fn auth_password(&mut self, user: &str, password: &str) -> Result<Auth, Self::Error> {
+    //     todo!("2");
+    // }
+
+    // #[allow(unused_variables)]
+    // async fn auth_publickey_offered(
+    //     &mut self,
+    //     user: &str,
+    //     public_key: &key::PublicKey,
+    // ) -> Result<Auth, Self::Error> {
+    //     todo!()
+    //     // Ok(Auth::Accept)
+    // }
+
+    // #[allow(unused_variables)]
+    // async fn auth_publickey(
+    //     &mut self,
+    //     user: &str,
+    //     public_key: &key::PublicKey,
+    // ) -> Result<Auth, Self::Error> {
+    //     todo!("3");
+    // }
+
+    // #[allow(unused_variables)]
+    // async fn auth_keyboard_interactive(
+    //     &mut self,
+    //     user: &str,
+    //     submethods: &str,
+    //     response: Option<Response<'async_trait>>,
+    // ) -> Result<Auth, Self::Error> {
+    //     todo!("4");
+    // }
+
+    // /// Called when authentication succeeds for a session.
+    // #[allow(unused_variables)]
+    // async fn auth_succeeded(&mut self, session: &mut Session) -> Result<(), Self::Error> {
+    //     todo!("5");
+    // }
 }

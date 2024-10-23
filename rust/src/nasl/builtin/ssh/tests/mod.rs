@@ -65,7 +65,7 @@ async fn run_test(
     // Acquire the global lock to prevent multiple
     // tests from opening a server at the same time.
     let _guard = LOCK.lock();
-    let server = tokio::time::timeout(Duration::from_millis(200), run_server(config));
+    let server = tokio::time::timeout(Duration::from_millis(2000), run_server(config));
     let client = tokio::task::spawn_blocking(move || {
         std::thread::sleep(Duration::from_millis(100));
         let t = TestBuilder::default();

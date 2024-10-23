@@ -8,10 +8,9 @@ use std::collections::{HashMap, HashSet};
 
 use tokio::sync::{Mutex, MutexGuard};
 
-use crate::nasl::builtin::ssh::SessionId;
-
-use super::super::error::{Result, SshError};
+use super::error::{Result, SshError};
 use super::session::SshSession;
+use super::SessionId;
 
 #[derive(Default)]
 pub struct Ssh {
