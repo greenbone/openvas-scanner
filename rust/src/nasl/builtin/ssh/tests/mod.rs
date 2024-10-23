@@ -123,13 +123,15 @@ async fn server() {
 }
 
 #[tokio::test]
-async fn clientasd() {
+#[tracing_test::traced_test]
+async fn client() {
     let handle = tokio::task::spawn_blocking(move || {
         let mut t = TestBuilder::default();
         t.ok(
             format!(r#"session_id = ssh_connect(port: {});"#, PORT),
             9000,
         );
+        t.ok(r#"auth = ssh_userauth(session_id);"#, 15);
         t.ok(
             r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "ls");"#,
             15,

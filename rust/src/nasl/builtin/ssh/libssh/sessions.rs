@@ -5,12 +5,40 @@
 //! Defines functions and structures for handling sessions
 
 use std::collections::{HashMap, HashSet};
+use std::net::{IpAddr, UdpSocket};
+use std::{os::fd::AsRawFd, time::Duration};
 
+use libssh_rs::{LogLevel, SshOption};
+use russh::cipher;
+use russh_keys::key;
 use tokio::sync::{Mutex, MutexGuard};
+use tracing::debug;
 
 use super::error::{Result, SshError};
 use super::session::SshSession;
-use super::SessionId;
+use super::{SessionId, Socket};
+
+pub fn get_log_level() -> LogLevel {
+    let verbose = std::env::var("OPENVAS_LIBSSH_DEBUG")
+        .map(|x| x.parse::<i32>().unwrap_or_default())
+        .unwrap_or(0);
+
+    match verbose {
+        0 => LogLevel::NoLogging,
+        1 => LogLevel::Warning,
+        2 => LogLevel::Protocol,
+        3 => LogLevel::Packet,
+        _ => LogLevel::Functions,
+    }
+}
+
+fn to_comma_separated_string<T: AsRef<str>>(items: &[T]) -> String {
+    items
+        .into_iter()
+        .map(|name| name.as_ref().to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
 
 #[derive(Default)]
 pub struct Ssh {
@@ -83,5 +111,52 @@ impl Ssh {
         }
         self.sessions.insert(id, session);
         Ok(id)
+    }
+
+    pub async fn connect(
+        &mut self,
+        socket: Option<Socket>,
+        ip: IpAddr,
+        port: u16,
+        keytype: Vec<key::Name>,
+        csciphers: Vec<cipher::Name>,
+        scciphers: Vec<cipher::Name>,
+        timeout: Option<Duration>,
+    ) -> Result<SessionId> {
+        self.add_new_session(|session| {
+            let ip_str = ip.to_string();
+            session.set_option(SshOption::LogLevel(get_log_level()))?;
+            session.set_option(SshOption::Hostname(ip_str.clone()))?;
+            session.set_option(SshOption::KnownHosts(Some("/dev/null".to_owned())))?;
+            if let Some(timeout) = timeout {
+                session.set_option(SshOption::Timeout(timeout))?;
+            }
+            session.set_option(SshOption::HostKeys(to_comma_separated_string(&keytype)))?;
+            session.set_option(SshOption::CiphersCS(to_comma_separated_string(&csciphers)))?;
+            session.set_option(SshOption::CiphersSC(to_comma_separated_string(&scciphers)))?;
+            session.set_option(SshOption::Port(port))?;
+
+            if let Some(socket) = socket {
+                // This is a fake raw socket.
+                // TODO: implement openvas_get_socket_from_connection()
+                let my_sock = UdpSocket::bind("127.0.0.1:0").unwrap();
+                debug!(
+                    ip_str,
+                    sock_fd = my_sock.as_raw_fd(),
+                    nasl_sock = socket,
+                    "Setting SSH fd for socket",
+                );
+                session.set_option(SshOption::Socket(my_sock.as_raw_fd()))?;
+            }
+            debug!(
+                ip_str,
+                port = port,
+                socket = socket,
+                "Connecting to SSH server",
+            );
+            session.connect()?;
+            Ok(())
+        })
+        .await
     }
 }

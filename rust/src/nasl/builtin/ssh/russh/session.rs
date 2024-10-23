@@ -8,6 +8,7 @@ use key::PublicKey;
 use russh::keys::*;
 use russh::*;
 use tokio::net::{TcpStream, ToSocketAddrs};
+use tracing::error;
 
 use crate::nasl::utils::function::bytes_to_str;
 
@@ -282,7 +283,13 @@ impl client::Handler for Client {
         &mut self,
         reason: DisconnectReason<Self::Error>,
     ) -> Result<(), Self::Error> {
-        panic!("disconnected");
+        match reason {
+            DisconnectReason::ReceivedDisconnect(_) => Ok(()),
+            DisconnectReason::Error(e) => {
+                error!("SSH session disconnected due to error: {}", e);
+                Err(e)
+            }
+        }
     }
 }
 
