@@ -37,35 +37,20 @@ impl SshSession {
 }
 
 pub struct BorrowedSession<'a> {
-    guard: MutexGuard<'a, Vec<SshSession>>,
-    index: usize,
+    guard: MutexGuard<'a, SshSession>,
 }
 
 impl<'a> BorrowedSession<'a> {
-    pub fn new(guard: MutexGuard<'a, Vec<SshSession>>, id: SessionId) -> Result<Self> {
-        let index = guard
-            .iter()
-            .enumerate()
-            .find(|(_, session)| session.id == id)
-            .ok_or_else(|| SshError::InvalidSessionId(id))?
-            .0;
-        Ok(Self { guard, index })
-    }
-
-    pub fn from_index(guard: MutexGuard<'a, Vec<SshSession>>, index: usize) -> Self {
-        Self { guard, index }
-    }
-
-    pub fn take_guard(self) -> MutexGuard<'a, Vec<SshSession>> {
-        self.guard
+    pub fn new(guard: MutexGuard<'a, SshSession>) -> Self {
+        Self { guard }
     }
 
     fn borrow(&self) -> &SshSession {
-        &self.guard[self.index]
+        &self.guard
     }
 
     fn borrow_mut(&mut self) -> &mut SshSession {
-        &mut self.guard[self.index]
+        &mut self.guard
     }
 
     fn session(&self) -> &Session {
