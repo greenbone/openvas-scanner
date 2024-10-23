@@ -95,8 +95,14 @@ impl From<TestResult> for TracedTestResult {
 /// NASL code.
 #[derive(Clone)]
 enum TestResult {
+    /// Expect the Result to be `Ok(val)` and compare `val` against a
+    /// given `NaslValue`
     Ok(NaslValue),
-    GenericCheck(Box<dyn CloneableFn>),
+    /// Performs a check described by the closure. To still provide
+    /// decent error messages, the second argument may contain a
+    /// String describing the expected result.
+    GenericCheck(Box<dyn CloneableFn>, Option<String>),
+    /// Do not perform any check.
     None,
 }
 
@@ -177,8 +183,12 @@ where
         &mut self,
         line: impl Into<String>,
         f: impl Fn(NaslResult) -> bool + 'static + Clone,
+        expected: Option<impl Into<String>>,
     ) -> &mut Self {
-        self.add_line(line, TestResult::GenericCheck(Box::new(f)))
+        self.add_line(
+            line,
+            TestResult::GenericCheck(Box::new(f), expected.map(|s| s.into())),
+        )
     }
 
     /// Run a `line` of NASL code without checking its result.
@@ -279,12 +289,16 @@ where
                         result,
                     );
                 }
-                TestResult::GenericCheck(_) => {
-                    panic!(
+                TestResult::GenericCheck(_, expected) => match expected {
+                    Some(expected) => panic!(
+                        "Mismatch at {}.\nIn code \"{}\":\nExpected: {}\nFound:    {:?}",
+                        reference.location, self.lines[line_count], expected, result
+                    ),
+                    None => panic!(
                         "Check failed at {}.\nIn code \"{}\". Found result: {:?}",
                         reference.location, self.lines[line_count], result
-                    );
-                }
+                    ),
+                },
                 TestResult::None => unreachable!(),
             }
         }
@@ -297,7 +311,7 @@ where
     ) -> bool {
         match reference {
             TestResult::Ok(val) => result.as_ref() == Ok(val),
-            TestResult::GenericCheck(f) => f(result.clone()),
+            TestResult::GenericCheck(f, _) => f(result.clone()),
             TestResult::None => true,
         }
     }
@@ -360,11 +374,11 @@ pub fn check_code_result(code: &str, expected: impl ToNaslResult) {
 #[macro_export]
 macro_rules! check_err_matches {
     ($t: ident, $code: expr, $pat: pat $(,)?) => {
-        $t.check($code, |e| matches!(e, Err($pat)));
+        $t.check($code, |e| matches!(e, Err($pat)), Some(stringify!($pat)));
     };
     ($code: expr, $pat: pat $(,)?) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
-        t.check($code, |e| matches!(e, Err($pat)));
+        t.check($code, |e| matches!(e, Err($pat)), Some(stringify!($pat)));
     };
 }
 
@@ -374,6 +388,6 @@ macro_rules! check_err_matches {
 macro_rules! check_code_result_matches {
     ($code: expr, $pat: pat) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
-        t.check($code, |val| matches!(val, Ok($pat)));
+        t.check($code, |val| matches!(val, Ok($pat)), Some(stringify!($pat)));
     };
 }
