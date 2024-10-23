@@ -8,6 +8,8 @@ use std::{
 };
 
 use error::{Result, SshError};
+use russh::cipher;
+use russh_keys::key;
 use session::SshSession;
 use tokio::sync::{Mutex, MutexGuard};
 
@@ -15,6 +17,8 @@ use crate::nasl::{
     prelude::*,
     utils::{function::StringOrData, IntoFunctionSet, StoredFunctionSet},
 };
+
+use super::utils::CommaSeparated;
 
 pub type SessionId = i32;
 pub type Port = u16;
@@ -62,9 +66,9 @@ impl Ssh {
         port: Port,
         ip_addr: IpAddr,
         timeout: Option<Duration>,
-        keytype: Option<&str>,
-        csciphers: Option<&str>,
-        scciphers: Option<&str>,
+        keytype: Vec<key::Name>,
+        csciphers: Vec<cipher::Name>,
+        scciphers: Vec<cipher::Name>,
         socket: Option<Socket>,
     ) -> Result<SessionId> {
         let id = self.next_session_id()?;
@@ -85,9 +89,9 @@ impl Ssh {
         &mut self,
         socket: Option<Socket>,
         port: Option<u16>,
-        keytype: Option<&str>,
-        csciphers: Option<&str>,
-        scciphers: Option<&str>,
+        keytype: Option<CommaSeparated<key::Name>>,
+        csciphers: Option<CommaSeparated<cipher::Name>>,
+        scciphers: Option<CommaSeparated<cipher::Name>>,
         timeout: Option<u64>,
         ctx: &Context<'_>,
     ) -> Result<SessionId> {
@@ -102,6 +106,16 @@ impl Ssh {
             .parse::<IpAddr>()
             .map_err(|e| SshError::InvalidIpAddr(ip_str.clone(), e))?;
         let timeout = timeout.map(|timeout| Duration::from_secs(timeout as u64));
+
+        let keytype = keytype
+            .map(|keytype| keytype.0)
+            .unwrap_or(russh::Preferred::DEFAULT.key[..].to_vec());
+        let csciphers = csciphers
+            .map(|cscipher| cscipher.0)
+            .unwrap_or(russh::Preferred::DEFAULT.cipher[..].to_vec());
+        let scciphers = scciphers
+            .map(|sccipher| sccipher.0)
+            .unwrap_or(russh::Preferred::DEFAULT.cipher[..].to_vec());
 
         let session_id = self
             .add_new_session(port, ip, timeout, keytype, csciphers, scciphers, socket)
@@ -133,8 +147,12 @@ impl Ssh {
     /// Write the string `cmd` to an ssh shell.
     #[nasl_function]
     async fn nasl_ssh_shell_write(&self, session_id: SessionId, cmd: StringOrData) -> Result<i32> {
-        let session = self.get_by_id(session_id).await?;
-        session.call(&cmd.0).await.map(|exit_code| exit_code as i32)
+        let mut session = self.get_by_id(session_id).await?;
+        session
+            .call(&cmd.0)
+            .await
+            .map(|exit_code| exit_code as i32)
+            .map_err(|e| SshError::CallError(session_id, cmd.0, e))
     }
 }
 
@@ -143,6 +161,7 @@ impl IntoFunctionSet for Ssh {
     fn into_function_set(self) -> StoredFunctionSet<Self::State> {
         let mut set = StoredFunctionSet::new(self);
         set.async_stateful_mut("ssh_connect", Ssh::nasl_ssh_connect);
+        set.async_stateful("ssh_shell_write", Ssh::nasl_ssh_shell_write);
         set
     }
 }

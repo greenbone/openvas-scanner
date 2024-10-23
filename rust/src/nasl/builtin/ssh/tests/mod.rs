@@ -8,7 +8,8 @@ use russh::server::Server as _;
 use russh_keys::key::KeyPair;
 use server::TestServer;
 
-use crate::nasl::test_prelude::TestBuilder;
+use crate::check_err_matches;
+use crate::nasl::test_prelude::*;
 use crate::nasl::NoOpLoader;
 use crate::storage::DefaultDispatcher;
 
@@ -31,12 +32,16 @@ async fn ssh_connect() {
     run_test(
         |mut t| {
             t.ok(format!(r#"id = ssh_connect(port:{});"#, PORT), 9000);
-            t.ok(
-                format!(
-                    r#"id = ssh_connect(port:{}, keytype: "ssh-rsa,ssh-ed25519");"#,
-                    PORT
-                ),
-                9001,
+            check_err_matches!(
+                t,
+                format!(r#"id = ssh_connect(port:{}, keytype: "foo");"#, PORT),
+                FunctionErrorKind::WrongArgument(_)
+            );
+            // TODO make this error variant better
+            check_err_matches!(
+                t,
+                format!(r#"id = ssh_connect(port:{}, keytype: "");"#, PORT),
+                FunctionErrorKind::Dirty(_)
             );
         },
         default_config(),
@@ -49,7 +54,7 @@ async fn ssh_auth() {
     run_test(
         |mut t| {
             t.run(format!(
-                r#"session_id = ssh_connect(port: {}, keytype: "ssh-rsa,ssh-dss,ssh-ed25519");"#,
+                r#"session_id = ssh_connect(port: {}, keytype: "ssh-rsa,ecdsa-sha2-nistp256");"#,
                 PORT
             ));
             // t.run(r#"#prompt = ssh_login_interactive(session_id, login: "user");"#);

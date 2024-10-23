@@ -3,7 +3,6 @@ use std::time::Duration;
 use std::{net::IpAddr, sync::Arc};
 
 use async_trait::async_trait;
-use client::Msg;
 use russh::keys::*;
 use russh::*;
 use tokio::io::AsyncWriteExt;
@@ -61,9 +60,9 @@ impl SshSession {
         ip_addr: IpAddr,
         port: Port,
         timeout: Option<Duration>,
-        keytype: Option<&str>,
-        csciphers: Option<&str>,
-        scciphers: Option<&str>,
+        keytype: Vec<key::Name>,
+        csciphers: Vec<cipher::Name>,
+        scciphers: Vec<cipher::Name>,
         socket: Option<Socket>,
     ) -> Result<Self, SshError> {
         let preferred = construct_preferred(keytype, csciphers, scciphers)?;
@@ -120,48 +119,19 @@ impl SshSession {
     }
 }
 
-/// Takes a comma separated string of algorithms
-/// and turns it into a list of names that russh accepts.
-/// Returns Err(...) if any given name is invalid.
-fn make_named_list<'a, N: TryFrom<&'a str> + Clone>(
-    s: &'a str,
-    error_variant: fn(String) -> SshError,
-) -> Result<Cow<'static, [N]>, SshError> {
-    Ok(Cow::from(
-        s.split(",")
-            .map(|alg| N::try_from(alg).map_err(|_| error_variant(alg.to_string())))
-            .collect::<Result<Vec<_>, SshError>>()?,
-    ))
-}
-
 fn construct_preferred(
-    keytype: Option<&str>,
-    csciphers: Option<&str>,
-    scciphers: Option<&str>,
+    keytype: Vec<key::Name>,
+    csciphers: Vec<cipher::Name>,
+    scciphers: Vec<cipher::Name>,
 ) -> Result<Preferred, SshError> {
-    let key = keytype
-        .map(|keytype| make_named_list(keytype, SshError::InvalidKeytype))
-        .transpose()?
-        .unwrap_or(Preferred::DEFAULT.key);
-    let csciphers = csciphers
-        .map(|csciphers| make_named_list(csciphers, SshError::InvalidCipher))
-        .transpose()?
-        .unwrap_or(Preferred::DEFAULT.cipher);
-    let scciphers = scciphers
-        .map(|scciphers| make_named_list(scciphers, SshError::InvalidCipher))
-        .transpose()?
-        .unwrap_or(Preferred::DEFAULT.cipher);
     // Only keep the intersection of scciphers and csciphers.
-    let csciphers = Cow::from(
-        csciphers
-            .into_iter()
-            .filter(|cs| scciphers.iter().any(|sc| sc == *cs))
-            .cloned()
-            .collect::<Vec<_>>(),
-    );
+    let ciphers = csciphers
+        .into_iter()
+        .filter(|cs| scciphers.iter().any(|sc| sc == cs))
+        .collect::<Vec<_>>();
     Ok(Preferred {
-        key,
-        cipher: csciphers,
+        key: Cow::from(keytype),
+        cipher: Cow::from(ciphers),
         ..Preferred::DEFAULT
     })
 }

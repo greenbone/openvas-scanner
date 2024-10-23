@@ -17,6 +17,8 @@ pub enum SshError {
     InvalidKeytype(String),
     #[error("Invalid cipher: '{0}'")]
     InvalidCipher(String),
+    #[error("Error while executing command '{1}' in session id {0}: {2}")]
+    CallError(SessionId, String, russh::Error),
 }
 
 impl From<SshError> for FunctionErrorKind {
