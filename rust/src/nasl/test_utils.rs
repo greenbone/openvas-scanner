@@ -281,8 +281,8 @@ where
                 }
                 TestResult::GenericCheck(_) => {
                     panic!(
-                        "Check failed at {}.\nIn code \"{}\".",
-                        reference.location, self.lines[line_count]
+                        "Check failed at {}.\nIn code \"{}\". Found result: {:?}",
+                        reference.location, self.lines[line_count], result
                     );
                 }
                 TestResult::None => unreachable!(),
@@ -359,10 +359,10 @@ pub fn check_code_result(code: &str, expected: impl ToNaslResult) {
 /// perform a check on the line of code using a new `TestBuilder`.
 #[macro_export]
 macro_rules! check_err_matches {
-    ($t: ident, $code: literal, $pat: pat $(,)?) => {
+    ($t: ident, $code: expr, $pat: pat $(,)?) => {
         $t.check($code, |e| matches!(e, Err($pat)));
     };
-    ($code: literal, $pat: pat $(,)?) => {
+    ($code: expr, $pat: pat $(,)?) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
         t.check($code, |e| matches!(e, Err($pat)));
     };
@@ -372,7 +372,7 @@ macro_rules! check_err_matches {
 /// and that the inner value matches a pattern.
 #[macro_export]
 macro_rules! check_code_result_matches {
-    ($code: literal, $pat: pat) => {
+    ($code: expr, $pat: pat) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
         t.check($code, |val| matches!(val, Ok($pat)));
     };
