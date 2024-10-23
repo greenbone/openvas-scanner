@@ -1,6 +1,5 @@
 use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, Sftp, SshKey, SshOption};
 use std::{os::fd::AsRawFd, time::Duration};
-use tokio::sync::MutexGuard;
 use tracing::{debug, info};
 
 use crate::nasl::builtin::ssh::SessionId;
@@ -36,45 +35,29 @@ impl SshSession {
     }
 }
 
-pub struct BorrowedSession<'a> {
-    guard: MutexGuard<'a, SshSession>,
-}
-
-impl<'a> BorrowedSession<'a> {
-    pub fn new(guard: MutexGuard<'a, SshSession>) -> Self {
-        Self { guard }
-    }
-
-    fn borrow(&self) -> &SshSession {
-        &self.guard
-    }
-
-    fn borrow_mut(&mut self) -> &mut SshSession {
-        &mut self.guard
-    }
-
+impl SshSession {
     fn session(&self) -> &Session {
-        &self.borrow().session
+        &self.session
     }
 
     pub fn id(&self) -> SessionId {
-        self.borrow().id
+        self.id
     }
 
     fn channel(&self) -> &Option<Channel> {
-        &self.borrow().channel
+        &self.channel
     }
 
     pub fn set_channel(&mut self, channel: Channel) {
-        self.borrow_mut().channel = Some(channel);
+        self.channel = Some(channel);
     }
 
     fn authmethods(&self) -> Option<AuthMethods> {
-        self.borrow().authmethods
+        self.authmethods
     }
 
     fn user_set(&self) -> bool {
-        self.borrow().user_set
+        self.user_set
     }
 
     pub fn new_channel(&self) -> Result<Channel> {
@@ -115,7 +98,7 @@ impl<'a> BorrowedSession<'a> {
                 debug!("Encountered error while closing channel: {}", e);
             }
         }
-        self.borrow_mut().channel = None;
+        self.channel = None;
     }
 
     pub fn ensure_user_set(&mut self, login: Option<&str>) -> Result<()> {
@@ -136,12 +119,12 @@ impl<'a> BorrowedSession<'a> {
         let mut channel = self.new_channel()?;
         channel.open_session()?;
         self.request_ssh_shell(&mut channel, pty)?;
-        self.borrow_mut().channel = Some(channel);
+        self.channel = Some(channel);
         Ok(())
     }
 
     pub fn disconnect(&mut self) -> Result<()> {
-        if let Some(ref channel) = self.borrow_mut().channel {
+        if let Some(ref channel) = self.channel {
             channel.close()?;
         }
         self.session().disconnect();
@@ -206,7 +189,7 @@ impl<'a> BorrowedSession<'a> {
                 }
             }
         };
-        self.borrow_mut().authmethods = Some(authmethods);
+        self.authmethods = Some(authmethods);
         Ok(authmethods)
     }
 }
@@ -218,14 +201,13 @@ impl<'a> BorrowedSession<'a> {
 macro_rules! inherit_method {
     ($name: ident, $ret: ty, $err_variant: ident $(,)? $($arg: ident : $argtype: ty),*) => {
         pub fn $name(&self, $($arg: $argtype),*) -> Result<$ret> {
-            self.session()
-                .$name($($arg),*)
+            self.session.$name($($arg),*)
                 .map_err(|e| SshError::$err_variant(self.id(), e))
         }
     }
 }
 
-impl<'a> BorrowedSession<'a> {
+impl SshSession {
     inherit_method!(connect, (), Connect);
     inherit_method!(get_server_public_key, SshKey, GetServerPublicKey);
     inherit_method!(get_server_banner, String, GetServerBanner);

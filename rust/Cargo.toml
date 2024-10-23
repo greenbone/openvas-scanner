@@ -97,12 +97,14 @@ members = [
 [dev-dependencies]
 tracing-test = "0.2.5"
 criterion = "0"
+russh = "0.45.0"
+russh-keys = "0.45.0"
 
 [features]
 dep-graph-parallel = ["rayon", "crossbeam-channel"]
 openvas_serde_support = []
 serde_support = []
-default = ["dep-graph-parallel", "openvas_serde_support", "enforce-no-trailing-arguments", "serde_support"]
+default = ["dep-graph-parallel", "openvas_serde_support", "enforce-no-trailing-arguments", "serde_support", "experimental"]
 
 nasl-builtin-raw-ip = ["pcap", "pnet_base", "pnet", "socket2", "pnet_macros", "pnet_macros_support",]
 nasl-builtin-ssh = ["libssh-rs"]

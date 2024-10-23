@@ -6,12 +6,12 @@
 
 use std::collections::{HashMap, HashSet};
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, MutexGuard};
 
 use crate::nasl::builtin::ssh::SessionId;
 
 use super::super::error::{Result, SshError};
-use super::session::{BorrowedSession, SshSession};
+use super::session::SshSession;
 
 #[derive(Default)]
 pub struct Ssh {
@@ -20,15 +20,16 @@ pub struct Ssh {
     sessions: HashMap<SessionId, Mutex<SshSession>>,
 }
 
+type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
+
 impl Ssh {
     pub async fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession> {
-        Ok(BorrowedSession::new(
-            self.sessions
-                .get(&id)
-                .ok_or_else(|| SshError::InvalidSessionId(id))?
-                .lock()
-                .await,
-        ))
+        Ok(self
+            .sessions
+            .get(&id)
+            .ok_or_else(|| SshError::InvalidSessionId(id))?
+            .lock()
+            .await)
     }
 
     /// Return the next available session ID
@@ -75,7 +76,7 @@ impl Ssh {
         let id = self.next_session_id()?;
         let session = Mutex::new(SshSession::new(id)?);
         {
-            let mut borrowed_session = BorrowedSession::new(session.lock().await);
+            let mut borrowed_session = session.lock().await;
             if let Err(e) = f(&mut borrowed_session) {
                 borrowed_session.disconnect()?;
                 return Err(e);
