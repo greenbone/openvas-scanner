@@ -10,6 +10,8 @@ use russh_keys::key::KeyPair;
 use server::TestServer;
 
 use crate::check_err_matches;
+use crate::nasl::builtin::ssh::libssh::MIN_SESSION_ID;
+use crate::nasl::builtin::SshError;
 use crate::nasl::test_prelude::*;
 use crate::nasl::NoOpLoader;
 use crate::storage::DefaultDispatcher;
@@ -61,17 +63,20 @@ async fn run_server(config: ServerConfig) {
 async fn ssh_connect() {
     run_test(
         |mut t| {
-            t.ok(format!(r#"id = ssh_connect(port:{});"#, PORT), 9000);
+            t.ok(
+                format!(r#"id = ssh_connect(port:{});"#, PORT),
+                MIN_SESSION_ID,
+            );
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "foo");"#, PORT),
                 FunctionErrorKind::WrongArgument(_)
             );
-            // TODO make this error variant better
+            // Without a matching key algorithm, we should not be able to connect
             check_err_matches!(
                 t,
-                format!(r#"id = ssh_connect(port:{}, keytype: "");"#, PORT),
-                FunctionErrorKind::Dirty(_)
+                format!(r#"id = ssh_connect(port:{}, keytype: "ssh-rsa");"#, PORT),
+                FunctionErrorKind::Ssh(SshError::Connect(_, _))
             );
         },
         default_config(),
@@ -80,19 +85,19 @@ async fn ssh_connect() {
 }
 
 #[tokio::test]
-async fn ssh_auth() {
+async fn ssh_userauth() {
     run_test(
         |mut t| {
-            t.run(format!(
-                r#"session_id = ssh_connect(port: {}, keytype: "ssh-rsa,ecdsa-sha2-nistp256");"#,
-                PORT
-            ));
-            // t.run(r#"#prompt = ssh_login_interactive(session_id, login: "user");"#);
-            // t.run(r#"#display(prompt);"#);
-            // t.run(r#"#auth = ssh_login_interactive_pass(session_id, pass: "pass");"#);
-            // t.run(r#"#a = ssh_set_login(session_id, login: "admin");"#);
-            t.run(r#"auth = ssh_userauth(session_id, login: "user", password: "pass");"#);
-            // t.run(r#"display(auth);"#);
+            t.ok(
+                format!(r#"session_id = ssh_connect(port: {});"#, PORT),
+                MIN_SESSION_ID,
+            );
+            check_err_matches!(
+                t,
+                r#"ssh_userauth(session_id);"#,
+                FunctionErrorKind::Ssh(SshError::NoAuthenticationGiven(_)),
+            );
+            t.run(r#"ssh_userauth(session_id, login: "user", password: "pass");"#);
         },
         default_config(),
     )
@@ -105,7 +110,11 @@ async fn ssh_request_exec() {
         |mut t| {
             t.ok(
                 format!(r#"session_id = ssh_connect(port: {});"#, PORT),
-                9000,
+                MIN_SESSION_ID,
+            );
+            t.ok(
+                r#"auth = ssh_userauth(session_id, login: "user", password: "pass");"#,
+                1,
             );
             t.ok(
                 r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "ls");"#,
@@ -129,7 +138,7 @@ async fn client() {
         let mut t = TestBuilder::default();
         t.ok(
             format!(r#"session_id = ssh_connect(port: {});"#, PORT),
-            9000,
+            MIN_SESSION_ID,
         );
         t.ok(r#"auth = ssh_userauth(session_id);"#, 15);
         t.ok(

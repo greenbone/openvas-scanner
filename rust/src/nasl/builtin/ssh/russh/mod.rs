@@ -49,7 +49,6 @@ impl Ssh {
         // Note that the first session ID we will
         // hand out is an arbitrary high number, this is only to help
         // debugging.
-        const MIN_VAL: SessionId = 9000;
         let taken_ids: HashSet<_> = self.sessions.keys().collect();
         if taken_ids.is_empty() {
             Ok(MIN_VAL)

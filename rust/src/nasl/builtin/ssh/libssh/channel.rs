@@ -19,15 +19,15 @@ impl Channel {
     }
 
     pub fn request_subsystem(&self, subsystem: &str) -> Result<()> {
-        self.channel
-            .request_subsystem(subsystem)
-            .map_err(|e| SshError::RequestSubsystem(self.session_id, e, subsystem.to_string()))
+        self.channel.request_subsystem(subsystem).map_err(|e| {
+            SshError::RequestSubsystem(self.session_id, e.into(), subsystem.to_string())
+        })
     }
 
     pub fn open_session(&self) -> Result<()> {
         self.channel
             .open_session()
-            .map_err(|e| SshError::OpenSession(self.session_id, e))
+            .map_err(|e| SshError::OpenSession(self.session_id, e.into()))
     }
 
     pub fn is_closed(&self) -> bool {
@@ -37,7 +37,7 @@ impl Channel {
     pub fn close(&self) -> Result<()> {
         self.channel
             .close()
-            .map_err(|e| SshError::Close(self.session_id, e))
+            .map_err(|e| SshError::Close(self.session_id, e.into()))
     }
 
     pub fn stdin(&self) -> impl std::io::Write + '_ {
@@ -47,19 +47,19 @@ impl Channel {
     pub fn request_pty(&self, term: &str, columns: u32, rows: u32) -> Result<()> {
         self.channel
             .request_pty(term, columns, rows)
-            .map_err(|e| SshError::RequestPty(self.session_id, e))
+            .map_err(|e| SshError::RequestPty(self.session_id, e.into()))
     }
 
     pub fn request_exec(&self, command: &str) -> Result<()> {
         self.channel
             .request_exec(command)
-            .map_err(|e| SshError::RequestExec(self.session_id, e))
+            .map_err(|e| SshError::RequestExec(self.session_id, e.into()))
     }
 
     pub fn request_shell(&self) -> Result<()> {
         self.channel
             .request_shell()
-            .map_err(|e| SshError::RequestShell(self.session_id, e))
+            .map_err(|e| SshError::RequestShell(self.session_id, e.into()))
     }
 
     pub fn ensure_open(&self) -> Result<()> {

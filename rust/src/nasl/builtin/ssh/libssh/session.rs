@@ -23,7 +23,7 @@ pub struct SshSession {
 impl SshSession {
     pub fn new(id: SessionId) -> Result<Self> {
         Session::new()
-            .map_err(|e| SshError::NewSession(e))
+            .map_err(|e| SshError::NewSession(e.into()))
             .map(|session| Self {
                 session,
                 id,
@@ -63,7 +63,7 @@ impl SshSession {
         self.session()
             .new_channel()
             .map(|channel| Channel::new(channel, self.id()))
-            .map_err(|e| SshError::OpenChannel(self.id(), e))
+            .map_err(|e| SshError::OpenChannel(self.id(), e.into()))
     }
 
     pub fn get_channel(&self) -> Result<&Channel> {
@@ -84,7 +84,7 @@ impl SshSession {
         let formatted = format!("{:?}", option);
         self.session()
             .set_option(option)
-            .map_err(|e| SshError::SetOption(self.id(), formatted, e))
+            .map_err(|e| SshError::SetOption(self.id(), formatted, e.into()))
     }
 
     pub fn get_socket(&self) -> Socket {
@@ -201,7 +201,7 @@ macro_rules! inherit_method {
     ($name: ident, $ret: ty, $err_variant: ident $(,)? $($arg: ident : $argtype: ty),*) => {
         pub fn $name(&self, $($arg: $argtype),*) -> Result<$ret> {
             self.session.$name($($arg),*)
-                .map_err(|e| SshError::$err_variant(self.id(), e))
+                .map_err(|e| SshError::$err_variant(self.id(), e.into()))
         }
     }
 }
