@@ -13,7 +13,7 @@ use crate::{
     },
     storage::{DefaultDispatcher, Storage},
 };
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
@@ -95,8 +95,14 @@ impl From<TestResult> for TracedTestResult {
 /// NASL code.
 #[derive(Clone)]
 enum TestResult {
+    /// Expect the Result to be `Ok(val)` and compare `val` against a
+    /// given `NaslValue`
     Ok(NaslValue),
-    GenericCheck(Box<dyn CloneableFn>),
+    /// Performs a check described by the closure. To still provide
+    /// decent error messages, the second argument may contain a
+    /// String describing the expected result.
+    GenericCheck(Box<dyn CloneableFn>, Option<String>),
+    /// Do not perform any check.
     None,
 }
 
@@ -115,6 +121,8 @@ pub struct TestBuilder<L: Loader, S: Storage> {
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
 }
+
+pub type DefaultTestBuilder = TestBuilder<NoOpLoader, DefaultDispatcher>;
 
 impl Default for TestBuilder<NoOpLoader, DefaultDispatcher> {
     fn default() -> Self {
@@ -145,8 +153,8 @@ where
     S: Storage,
 {
     #[track_caller]
-    fn add_line(&mut self, line: &str, val: TestResult) -> &mut Self {
-        self.lines.push(line.to_string());
+    fn add_line(&mut self, line: impl Into<String>, val: TestResult) -> &mut Self {
+        self.lines.push(line.into());
         self.results.push(val.into());
         self
     }
@@ -158,7 +166,7 @@ where
     /// t.ok("x = 3;", 3);
     /// ```
     #[track_caller]
-    pub fn ok(&mut self, line: &str, val: impl ToNaslResult) -> &mut Self {
+    pub fn ok(&mut self, line: impl Into<String>, val: impl ToNaslResult) -> &mut Self {
         self.add_line(line, TestResult::Ok(val.to_nasl_result().unwrap()))
     }
 
@@ -175,15 +183,19 @@ where
     #[track_caller]
     pub fn check(
         &mut self,
-        line: &str,
+        line: impl Into<String>,
         f: impl Fn(NaslResult) -> bool + 'static + Clone,
+        expected: Option<impl Into<String>>,
     ) -> &mut Self {
-        self.add_line(line, TestResult::GenericCheck(Box::new(f)))
+        self.add_line(
+            line,
+            TestResult::GenericCheck(Box::new(f), expected.map(|s| s.into())),
+        )
     }
 
     /// Run a `line` of NASL code without checking its result.
     #[track_caller]
-    pub fn run(&mut self, line: &str) -> &mut Self {
+    pub fn run(&mut self, line: impl Into<String>) -> &mut Self {
         self.add_line(line, TestResult::None)
     }
 
@@ -201,27 +213,37 @@ where
     /// Return the list of results returned by all the lines of
     /// code.
     pub fn results(&self) -> Vec<NaslResult> {
-        let code = self.lines.join("\n");
+        futures::executor::block_on(async {
+            self.results_stream(&self.code(), &self.context())
+                .collect()
+                .await
+        })
+    }
+
+    fn code(&self) -> String {
+        self.lines.join("\n")
+    }
+
+    pub fn results_stream<'a>(
+        &'a self,
+        code: &'a str,
+        context: &'a Context,
+    ) -> impl Stream<Item = NaslResult> + 'a {
         let variables: Vec<_> = self
             .variables
             .iter()
             .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
             .collect();
         let register = Register::root_initial(&variables);
-        let context = self.context();
+        // let code = self.lines.join("\n");
+        // let context = self.context();
 
         let parser = CodeInterpreter::new(&code, register, &context);
-        futures::executor::block_on(async {
-            parser
-                .stream()
-                .map(|res| {
-                    res.map_err(|e| match e.kind {
-                        InterpretErrorKind::FunctionCallError(f) => f.kind,
-                        e => panic!("Unknown error: {}", e),
-                    })
-                })
-                .collect()
-                .await
+        parser.stream().map(|res| {
+            res.map_err(|e| match e.kind {
+                InterpretErrorKind::FunctionCallError(f) => f.kind,
+                e => panic!("Unknown error: {}", e),
+            })
         })
     }
 
@@ -241,14 +263,18 @@ where
     }
 
     fn verify(&mut self) {
-        let results = self.results();
         if self.should_verify {
-            assert_eq!(results.len(), self.results.len());
-            for (line_count, (result, reference)) in
-                (results.iter().zip(self.results.iter())).enumerate()
-            {
-                self.check_result(result, reference, line_count);
-            }
+            let mut references_iter = self.results.iter().enumerate();
+            let code = self.code();
+            let context = self.context();
+            let mut results = self.results_stream(&code, &context);
+            futures::executor::block_on(async {
+                while let Some(result) = results.next().await {
+                    let (line_count, reference) = references_iter.next().unwrap();
+                    self.check_result(&result, reference, line_count);
+                }
+            });
+            assert!(references_iter.next().is_none());
         } else {
             // Make sure the user did not add requirements to this test
             // since we wont verify them. Panic if they did
@@ -279,12 +305,16 @@ where
                         result,
                     );
                 }
-                TestResult::GenericCheck(_) => {
-                    panic!(
-                        "Check failed at {}.\nIn code \"{}\".",
-                        reference.location, self.lines[line_count]
-                    );
-                }
+                TestResult::GenericCheck(_, expected) => match expected {
+                    Some(expected) => panic!(
+                        "Mismatch at {}.\nIn code \"{}\":\nExpected: {}\nFound:    {:?}",
+                        reference.location, self.lines[line_count], expected, result
+                    ),
+                    None => panic!(
+                        "Check failed at {}.\nIn code \"{}\". Found result: {:?}",
+                        reference.location, self.lines[line_count], result
+                    ),
+                },
                 TestResult::None => unreachable!(),
             }
         }
@@ -297,7 +327,7 @@ where
     ) -> bool {
         match reference {
             TestResult::Ok(val) => result.as_ref() == Ok(val),
-            TestResult::GenericCheck(f) => f(result.clone()),
+            TestResult::GenericCheck(f, _) => f(result.clone()),
             TestResult::None => true,
         }
     }
@@ -359,12 +389,12 @@ pub fn check_code_result(code: &str, expected: impl ToNaslResult) {
 /// perform a check on the line of code using a new `TestBuilder`.
 #[macro_export]
 macro_rules! check_err_matches {
-    ($t: ident, $code: literal, $pat: pat $(,)?) => {
-        $t.check($code, |e| matches!(e, Err($pat)));
+    ($t: ident, $code: expr, $pat: pat $(,)?) => {
+        $t.check($code, |e| matches!(e, Err($pat)), Some(stringify!($pat)));
     };
-    ($code: literal, $pat: pat $(,)?) => {
+    ($code: expr, $pat: pat $(,)?) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
-        t.check($code, |e| matches!(e, Err($pat)));
+        t.check($code, |e| matches!(e, Err($pat)), Some(stringify!($pat)));
     };
 }
 
@@ -372,8 +402,8 @@ macro_rules! check_err_matches {
 /// and that the inner value matches a pattern.
 #[macro_export]
 macro_rules! check_code_result_matches {
-    ($code: literal, $pat: pat) => {
+    ($code: expr, $pat: pat) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
-        t.check($code, |val| matches!(val, Ok($pat)));
+        t.check($code, |val| matches!(val, Ok($pat)), Some(stringify!($pat)));
     };
 }

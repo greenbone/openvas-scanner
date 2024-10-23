@@ -31,6 +31,7 @@ pub use prelude::*;
 pub mod test_prelude {
     pub use super::prelude::*;
     pub use super::test_utils::check_code_result;
+    pub use super::test_utils::DefaultTestBuilder;
     pub use super::test_utils::TestBuilder;
     pub use crate::check_code_result_matches;
     pub use crate::check_err_matches;

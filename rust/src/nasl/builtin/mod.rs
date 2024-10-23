@@ -17,12 +17,13 @@ mod network;
 mod raw_ip;
 mod regex;
 mod report_functions;
-#[cfg(feature = "nasl-builtin-ssh")]
 mod ssh;
 mod string;
 
 #[cfg(test)]
 mod tests;
+
+pub use ssh::SshError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
@@ -49,10 +50,9 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(regex::RegularExpressions)
         .add_set(cryptographic::Cryptographic)
         .add_set(description::Description)
-        .add_set(isotime::NaslIsotime);
+        .add_set(isotime::NaslIsotime)
+        .add_set(ssh::Ssh::default());
 
-    #[cfg(feature = "nasl-builtin-ssh")]
-    executor.add_set(ssh::Ssh::default());
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_set(raw_ip::RawIp);
 
