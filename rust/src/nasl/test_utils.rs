@@ -122,6 +122,8 @@ pub struct TestBuilder<L: Loader, S: Storage> {
     should_verify: bool,
 }
 
+pub type DefaultTestBuilder = TestBuilder<NoOpLoader, DefaultDispatcher>;
+
 impl Default for TestBuilder<NoOpLoader, DefaultDispatcher> {
     fn default() -> Self {
         Self {
