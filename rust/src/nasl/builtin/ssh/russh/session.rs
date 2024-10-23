@@ -40,9 +40,6 @@ impl client::Handler for Client {
         panic!("auth_banner");
     }
 
-    /// Called when the server confirmed our request to open a
-    /// channel. A channel can only be written to after receiving this
-    /// message (this library panics otherwise).
     #[allow(unused_variables)]
     async fn channel_open_confirmation(
         &mut self,
@@ -51,7 +48,7 @@ impl client::Handler for Client {
         window_size: u32,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        panic!("channel_open_confirmation");
+        Ok(())
     }
 
     /// Called when the server signals success.
@@ -74,24 +71,8 @@ impl client::Handler for Client {
         panic!("channel_failure");
     }
 
-    /// Called when the server closes a channel.
-    #[allow(unused_variables)]
-    async fn channel_close(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("channel_close");
-    }
-
-    /// Called when the server sends EOF to a channel.
-    #[allow(unused_variables)]
-    async fn channel_eof(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("channel_eof");
+    async fn channel_close(&mut self, _: ChannelId, _: &mut Session) -> Result<(), Self::Error> {
+        Ok(())
     }
 
     /// Called when the server rejected our request to open a channel.
@@ -175,18 +156,8 @@ impl client::Handler for Client {
         panic!("server_channel_open_x11");
     }
 
-    /// Called when the server sends us data. The `extended_code`
-    /// parameter is a stream identifier, `None` is usually the
-    /// standard output, and `Some(1)` is the standard error. See
-    /// [RFC4254](https://tools.ietf.org/html/rfc4254#section-5.2).
-    #[allow(unused_variables)]
-    async fn data(
-        &mut self,
-        channel: ChannelId,
-        data: &[u8],
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("data");
+    async fn data(&mut self, _: ChannelId, _: &[u8], _: &mut Session) -> Result<(), Self::Error> {
+        Ok(())
     }
 
     /// Called when the server sends us data. The `extended_code`
@@ -361,6 +332,7 @@ impl SshSession {
                 ChannelMsg::ExitStatus { exit_status } => {
                     code = Some(exit_status);
                     // cannot leave the loop immediately, there might still be more data to receive
+                    channel.eof().await?;
                 }
                 _ => {}
             }

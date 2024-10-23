@@ -7,6 +7,7 @@ use std::time::Duration;
 use russh::server::Config as ServerConfig;
 use russh::server::Server as _;
 use russh_keys::key::KeyPair;
+use server::AuthConfig;
 use server::TestServer;
 
 use crate::check_err_matches;
@@ -20,7 +21,7 @@ use once_cell::sync::Lazy;
 
 static LOCK: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
 
-const PORT: u16 = 2222;
+const PORT: u16 = 2223;
 
 fn default_config() -> ServerConfig {
     ServerConfig {
@@ -50,12 +51,17 @@ async fn run_test(
     // and then abort the server, to make sure we do not run it for
     // all eternity.
     server.abort();
+    // Even if we abort it, we still need to make sure it finishes.
+    // We ignore the result here because we dont care about the
+    // JoinError::Cancelled (which is actually the expected result,
+    // since we aborted).
+    let _ = server.await;
     res.unwrap()
 }
 
 async fn run_server(config: ServerConfig) {
     let config = Arc::new(config);
-    let mut sh = TestServer::default();
+    let mut sh = TestServer::new(AuthConfig::default());
     sh.run_on_address(config, ("0.0.0.0", PORT)).await.unwrap();
 }
 
@@ -84,6 +90,16 @@ async fn ssh_connect() {
     .await
 }
 
+fn userauth(t: &mut DefaultTestBuilder) {
+    let user = AuthConfig::default().user;
+    let password = AuthConfig::default().password;
+    t.run(format!(
+        r#"ssh_userauth(session_id, login: "{user}", password: "{password}");"#,
+        user = user,
+        password = password
+    ));
+}
+
 #[tokio::test]
 async fn ssh_userauth() {
     run_test(
@@ -97,7 +113,7 @@ async fn ssh_userauth() {
                 r#"ssh_userauth(session_id);"#,
                 FunctionErrorKind::Ssh(SshError::NoAuthenticationGiven(_)),
             );
-            t.run(r#"ssh_userauth(session_id, login: "user", password: "pass");"#);
+            userauth(&mut t);
         },
         default_config(),
     )
@@ -112,13 +128,10 @@ async fn ssh_request_exec() {
                 format!(r#"session_id = ssh_connect(port: {});"#, PORT),
                 MIN_SESSION_ID,
             );
-            t.ok(
-                r#"auth = ssh_userauth(session_id, login: "user", password: "pass");"#,
-                NaslValue::Null,
-            );
+            userauth(&mut t);
             t.ok(
                 r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "ls");"#,
-                15,
+                "foo",
             );
         },
         default_config(),

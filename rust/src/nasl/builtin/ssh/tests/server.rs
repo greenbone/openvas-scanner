@@ -8,9 +8,36 @@ use russh::*;
 use server::Auth;
 use tokio::sync::Mutex;
 
-#[derive(Clone, Default)]
+const EXEC_REQUEST_RESPONSE: &str = "foo";
+
+#[derive(Clone)]
+pub struct AuthConfig {
+    pub password: String,
+    pub user: String,
+}
+
+impl Default for AuthConfig {
+    fn default() -> Self {
+        Self {
+            password: "pass".into(),
+            user: "user".into(),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct TestServer {
     clients: Arc<Mutex<HashMap<ChannelId, Handle>>>,
+    auth: AuthConfig,
+}
+
+impl TestServer {
+    pub fn new(config: AuthConfig) -> Self {
+        Self {
+            clients: Arc::new(Mutex::new(HashMap::new())),
+            auth: config,
+        }
+    }
 }
 
 #[async_trait]
@@ -36,15 +63,7 @@ impl server::Handler for TestServer {
         Ok(true)
     }
 
-    async fn data(
-        &mut self,
-        channel: ChannelId,
-        data: &[u8],
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        let data = CryptoVec::from(format!("Got data: {}\r\n", String::from_utf8_lossy(data)));
-        // Send back
-        session.data(channel, data);
+    async fn data(&mut self, _: ChannelId, _: &[u8], _: &mut Session) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -52,48 +71,48 @@ impl server::Handler for TestServer {
         Ok(Auth::Accept)
     }
 
-    /// Called when authentication succeeds for a session.
-    #[allow(unused_variables)]
-    async fn auth_succeeded(&mut self, session: &mut Session) -> Result<(), Self::Error> {
+    async fn auth_password(&mut self, user: &str, password: &str) -> Result<Auth, Self::Error> {
+        if user == self.auth.user && password == self.auth.password {
+            Ok(Auth::Accept)
+        } else {
+            Ok(Auth::Reject {
+                proceed_with_methods: None,
+            })
+        }
+    }
+
+    async fn auth_succeeded(&mut self, _: &mut Session) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    /// The client sends a command to execute, to be passed to a
-    /// shell. Make sure to check the command before doing so.
-    #[allow(unused_variables)]
     async fn exec_request(
         &mut self,
         channel: ChannelId,
-        data: &[u8],
+        _: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        // Send back the same string every time
+        let data = CryptoVec::from(EXEC_REQUEST_RESPONSE.to_string());
+        session.data(channel, data);
+        session.close(channel);
         Ok(())
     }
 
-    /// The client requests a pseudo-terminal with the given
-    /// specifications.
-    #[allow(unused_variables, clippy::too_many_arguments)]
     async fn pty_request(
         &mut self,
-        channel: ChannelId,
-        term: &str,
-        col_width: u32,
-        row_height: u32,
-        pix_width: u32,
-        pix_height: u32,
-        modes: &[(Pty, u32)],
-        session: &mut Session,
+        _: ChannelId,
+        _: &str,
+        _: u32,
+        _: u32,
+        _: u32,
+        _: u32,
+        _: &[(Pty, u32)],
+        _: &mut Session,
     ) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    /// The client requests a shell.
-    #[allow(unused_variables)]
-    async fn shell_request(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
+    async fn shell_request(&mut self, _: ChannelId, _: &mut Session) -> Result<(), Self::Error> {
         Ok(())
     }
 }

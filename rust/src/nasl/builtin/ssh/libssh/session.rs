@@ -144,19 +144,11 @@ impl SshSession {
         }
     }
 
-    pub async fn exec_ssh_cmd(
-        &self,
-        cmd: &str,
-        compat_mode: bool,
-        to_stdout: bool,
-        to_stderr: bool,
-    ) -> Result<(String, String)> {
+    pub async fn exec_ssh_cmd(&self, cmd: &str) -> Result<(String, String)> {
         let channel = self.new_channel()?;
         channel.open_session()?;
         channel.request_pty("xterm", 80, 24)?;
         channel.request_exec(cmd)?;
-
-        let mut response = String::new();
 
         let timeout = Duration::from_millis(15000);
         let stderr = channel.read_timeout(timeout, true)?;
