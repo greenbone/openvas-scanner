@@ -29,4 +29,16 @@ if (out) {
 	display('no data?!');
 }
 
+
+soc = open_sock_tcp( 445 );
+if( ! soc ) {
+    return -1;
+}
+
+display("Forking");
+sk = krb5_gss_session_key();
+display("Error code: " + krb5_error_code_to_string());
+display("Session key: " + hexstr(sk));
+
+
 # TODO: provide clean up function 

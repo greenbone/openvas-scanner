@@ -669,7 +669,6 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
   gss_buffer_desc targetbuf = GSS_C_EMPTY_BUFFER;
   const struct OKrb5Target *target = &creds->target;
 
-
   if (gss_context->gss_creds == GSS_C_NO_CREDENTIAL)
     {
       if ((result = okrb5_gss_authenticate (creds, gss_context)))
@@ -806,6 +805,62 @@ o_krb5_gss_session_key_context (struct OKrb5GSSContext *gss_context,
   memcpy ((*out)->data, set->elements[0].value, set->elements[0].length);
   (*out)->len = set->elements[0].length;
   gss_release_buffer_set (&min_stat, &set);
+result:
+  return result;
+}
+
+char *
+okrb5_error_code_to_string (const OKrb5ErrorCode code)
+{
+#define HEAP_STRING(var, s)             \
+  do                                    \
+    {                                   \
+      var = calloc (1, strlen (s) + 1); \
+      goto result;                      \
+    }                                   \
+  while (0)
+
+  char *result = NULL;
+  switch (code)
+    {
+    case O_KRB5_SUCCESS:
+      HEAP_STRING (result, "success");
+    case O_KRB5_CONF_NOT_FOUND:
+      HEAP_STRING (result, "krb5.conf not found");
+    case O_KRB5_CONF_NOT_CREATED:
+      HEAP_STRING (result, "krb5.conf not created");
+    case O_KRB5_TMP_CONF_NOT_CREATED:
+      HEAP_STRING (result, "tmp krb5.conf not created");
+    case O_KRB5_TMP_CONF_NOT_MOVED:
+      HEAP_STRING (result, "tmp krb5.conf not moved");
+    case O_KRB5_REALM_NOT_FOUND:
+      HEAP_STRING (result, "realm not found");
+    case O_KRB5_EXPECTED_NULL:
+      HEAP_STRING (result, "expected null");
+    case O_KRB5_EXPECTED_NOT_NULL:
+      HEAP_STRING (result, "expected not null");
+    case O_KRB5_UNABLE_TO_WRITE:
+      HEAP_STRING (result, "unable to write");
+    case O_KRB5_NOMEM:
+      HEAP_STRING (result, "no memory");
+    default:
+      if (code >= O_KRB5_ERROR)
+        {
+          int maj_stat = code - O_KRB5_ERROR;
+          OM_uint32 min_stat;
+          gss_buffer_desc msg;
+          OM_uint32 msg_ctx;
+
+          (void) gss_display_status (&min_stat, maj_stat, GSS_C_GSS_CODE,
+                                     GSS_C_NULL_OID, &msg_ctx, &msg);
+          result = msg.value;
+        }
+      else
+        {
+          result = NULL;
+          goto result;
+        }
+    }
 result:
   return result;
 }
