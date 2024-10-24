@@ -14,11 +14,11 @@
 - scanner_add_port
 - recv_line
 - get_source_port
+- ftp_log_in
 
 ## Missing
 
 - ftp_get_pasv_port
-- ftp_log_in
 - get_host_open_port
 - get_port_state
 - get_port_transport

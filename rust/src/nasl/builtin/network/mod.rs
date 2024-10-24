@@ -12,6 +12,9 @@ use crate::storage::{Field, Retrieve};
 pub mod network;
 pub mod network_utils;
 pub mod socket;
+pub mod tcp;
+pub mod tls;
+pub mod udp;
 
 // 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
 // header contains 8 bytes, which must be subtracted from the max size for UDP packages.
@@ -80,7 +83,7 @@ pub fn get_retry(context: &Context) -> u8 {
         match val {
             NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
             NaslValue::Number(val) => {
-                if val < 1 || val > 255 {
+                if !(1..=255).contains(&val) {
                     2
                 } else {
                     val as u8
