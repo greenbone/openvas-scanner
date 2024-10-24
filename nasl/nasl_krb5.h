@@ -98,3 +98,10 @@ nasl_okrb5_gss_update_context_needs_more(lex_ctxt *lexic);
 
 tree_cell *
 nasl_okrb5_gss_update_context_out (lex_ctxt *lexic);
+
+
+tree_cell *
+nasl_okrb5_gss_session_key_context (lex_ctxt *lexic);
+
+tree_cell *
+nasl_okrb5_error_code_to_string (lex_ctxt *lexic);
