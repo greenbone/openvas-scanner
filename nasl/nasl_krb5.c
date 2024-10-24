@@ -284,6 +284,16 @@ nasl_okrb5_gss_update_context_needs_more (lex_ctxt *lexic)
   return retc;
 }
 
+static inline tree_cell *
+okrb5_slice_to_tree_cell (struct OKrb5Slice *slice)
+{
+  tree_cell *retc = alloc_typed_cell (CONST_DATA);
+  printf ("slice->data: %s\n", (char *) slice->data);
+  retc->x.str_val = slice->data;
+  retc->size = slice->len;
+  return retc;
+}
+
 tree_cell *
 nasl_okrb5_gss_update_context_out (lex_ctxt *lexic)
 {
@@ -292,51 +302,37 @@ nasl_okrb5_gss_update_context_out (lex_ctxt *lexic)
     {
       return FAKE_CELL;
     }
-  tree_cell *retc = alloc_typed_cell (CONST_DATA);
-  retc->x.str_val = to_application->data;
-  retc->size = to_application->len;
-  return retc;
+  return okrb5_slice_to_tree_cell (to_application);
 }
 
-/*
-  context = okrb5_gss_init_context ();
-  printf ("Using realm: %s\n", (char *) credentials.realm.data);
-  if ((result = o_krb5_gss_prepare_context (&credentials, context)))
+tree_cell *
+nasl_okrb5_gss_session_key_context (lex_ctxt *lexic)
+{
+  (void) lexic;
+  struct OKrb5Slice *session_key = NULL;
+  if (cached_gss_context == NULL)
     {
-      return 1;
+      printf ("cached_gss_context is NULL\n");
+      last_okrb5_result = O_KRB5_EXPECTED_NOT_NULL;
+      return FAKE_CELL;
     }
-  printf ("Using realm: %s\n", (char *) credentials.realm.data);
-  // first call always empty
-  if ((result = o_krb5_gss_update_context (context, &from_application,
-                                           &to_application, &more)))
+  if ((last_okrb5_result =
+         o_krb5_gss_session_key_context (cached_gss_context, &session_key))
+      != O_KRB5_SUCCESS)
     {
-      return 1;
+      printf ("o_krb5_gss_session_key_context failed\n");
+      return FAKE_CELL;
     }
-  printf ("success: %d: outdata_len: %zu\n", result, to_application->len);
+  return okrb5_slice_to_tree_cell (session_key);
+}
 
-  for (size_t i = 0; i < to_application->len; i++)
-    {
-      printf ("%02x", ((char *) to_application->data)[i]);
-    }
-  printf ("\n");
+tree_cell *
 
-*/
-
-/*
-*OKrb5ErrorCode
-o_krb5_gss_session_key_context (struct OKrb5GSSContext *gss_context,
-                                struct OKrb5Slice **out);
-
-struct OKrb5GSSContext *okrb5_gss_init_context (void);
-
-void okrb5_gss_free_context (struct OKrb5GSSContext *context);
-
-OKrb5ErrorCode
-o_krb5_gss_prepare_context (const OKrb5Credential *creds,
-                            struct OKrb5GSSContext *gss_context);
-
-OKrb5ErrorCode
-o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
-                           const struct OKrb5Slice *in_data,
-                           struct OKrb5Slice **out_data, bool *more);
-*/
+nasl_okrb5_error_code_to_string (lex_ctxt *lexic)
+{
+  (void) lexic;
+  tree_cell *retc = alloc_typed_cell (CONST_STR);
+  retc->x.str_val = okrb5_error_code_to_string (last_okrb5_result);
+  retc->size = strlen (retc->x.str_val);
+  return retc;
+}
