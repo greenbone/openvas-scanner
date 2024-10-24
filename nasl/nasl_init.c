@@ -424,6 +424,8 @@ static init_func libfuncs[] = {
   {"krb5_gss_update_context", nasl_okrb5_gss_update_context},
   {"krb5_gss_update_context_needs_more", nasl_okrb5_gss_update_context_needs_more},
   {"krb5_gss_update_context_out", nasl_okrb5_gss_update_context_out},
+  {"krb5_gss_session_key", nasl_okrb5_gss_session_key_context},
+  {"krb5_error_code_to_string", nasl_okrb5_error_code_to_string},
   {NULL, NULL}};
 
 /* String variables */

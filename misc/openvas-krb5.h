@@ -69,8 +69,6 @@ typedef struct
   struct OKrb5Target target;
 } OKrb5Credential;
 
-
-
 // TODO: initializer with default values and NULL
 
 typedef struct
@@ -155,7 +153,6 @@ o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
     }                                             \
   while (0)
 
-
 typedef struct OKrb5GSSContext OKrb5GSSContext;
 // Unsure about bool type
 
@@ -163,9 +160,11 @@ OKrb5ErrorCode
 o_krb5_gss_session_key_context (struct OKrb5GSSContext *gss_context,
                                 struct OKrb5Slice **out);
 
-struct OKrb5GSSContext *okrb5_gss_init_context (void);
+struct OKrb5GSSContext *
+okrb5_gss_init_context (void);
 
-void okrb5_gss_free_context (struct OKrb5GSSContext *context);
+void
+okrb5_gss_free_context (struct OKrb5GSSContext *context);
 
 OKrb5ErrorCode
 o_krb5_gss_prepare_context (const OKrb5Credential *creds,
@@ -175,6 +174,11 @@ OKrb5ErrorCode
 o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
                            const struct OKrb5Slice *in_data,
                            struct OKrb5Slice **out_data, bool *more);
+
+// Returns NULL if the error code is not found. The returned string must be
+// freed by the caller.
+char *
+okrb5_error_code_to_string (const OKrb5ErrorCode code);
 
 
 #endif
