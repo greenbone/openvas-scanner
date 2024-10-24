@@ -23,6 +23,7 @@ pub struct ArgsStruct<'a> {
 pub enum ReceiverType {
     None,
     RefSelf,
+    RefMutSelf,
 }
 
 pub struct Arg<'a> {
