@@ -12,6 +12,9 @@ use crate::storage::{Field, Retrieve};
 pub mod network;
 pub mod network_utils;
 pub mod socket;
+pub mod tcp;
+pub mod tls;
+pub mod udp;
 
 // 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
 // header contains 8 bytes, which must be subtracted from the max size for UDP packages.
