@@ -52,6 +52,9 @@ install-fish: enforce-running
 	# doesn't work because of attached tty on create there is no reinit of the shell
 	#$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo chsh -s /usr/bin/fish user"
 
+install-pyright: enforce-running
+	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "pipx install pyright"
+
 
 install-rg-fzf: enforce-running
 	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo apt update"
