@@ -85,4 +85,9 @@ impl Ssh {
         self.sessions.insert(id, session);
         Ok(id)
     }
+
+    pub async fn disconnect_and_remove(&mut self, session_id: SessionId) -> Result<()> {
+        self.sessions.remove(&session_id);
+        Ok(())
+    }
 }

@@ -172,4 +172,12 @@ impl Ssh {
         })
         .await
     }
+
+    pub async fn disconnect_and_remove(&mut self, session_id: SessionId) -> Result<()> {
+        {
+            let mut session = self.get_by_id(session_id).await?;
+            session.disconnect().await?;
+        }
+        self.remove(session_id)
+    }
 }

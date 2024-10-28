@@ -48,7 +48,6 @@ impl client::Handler for Client {
     /// Called when the server sent a disconnect message
     ///
     /// If reason is an Error, this function should re-return the error so the join can also evaluate it
-    #[allow(unused_variables)]
     async fn disconnected(
         &mut self,
         reason: DisconnectReason<Self::Error>,
@@ -56,7 +55,12 @@ impl client::Handler for Client {
         match reason {
             DisconnectReason::ReceivedDisconnect(_) => Ok(()),
             DisconnectReason::Error(e) => {
-                error!("SSH session disconnected due to error: {}", e);
+                match e {
+                    russh::Error::Disconnect => {}
+                    _ => {
+                        error!("SSH session disconnected due to error: {}", e);
+                    }
+                }
                 Err(e)
             }
         }

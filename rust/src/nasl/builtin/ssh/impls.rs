@@ -32,9 +32,9 @@ impl IntoFunctionSet for Ssh {
         set.async_stateful_mut("ssh_connect", Ssh::nasl_ssh_connect);
         set.async_stateful("ssh_request_exec", Ssh::nasl_ssh_request_exec);
         set.async_stateful("ssh_userauth", Ssh::nasl_ssh_userauth);
+        set.async_stateful_mut("ssh_disconnect", Ssh::nasl_ssh_disconnect);
         #[cfg(feature = "nasl-builtin-libssh")]
         {
-            set.async_stateful_mut("ssh_disconnect", Ssh::nasl_ssh_disconnect);
             set.async_stateful(
                 "ssh_session_id_from_sock",
                 Ssh::nasl_ssh_session_id_from_sock,
@@ -285,10 +285,7 @@ impl Ssh {
         }
         Ok(())
     }
-}
 
-#[cfg(feature = "nasl-builtin-libssh")]
-impl Ssh {
     /// Disconnect an ssh connection
     /// This function takes the ssh session id (as returned by ssh_connect)
     /// as its only unnamed argument.  Passing 0 as session id is
@@ -298,15 +295,14 @@ impl Ssh {
     #[nasl_function]
     pub async fn nasl_ssh_disconnect(&mut self, session_id: SessionId) -> Result<()> {
         if session_id != 0 {
-            {
-                let mut session = self.get_by_id(session_id).await?;
-                session.disconnect().await?;
-            }
-            self.remove(session_id)?;
+            self.disconnect_and_remove(session_id).await?;
         }
         Ok(())
     }
+}
 
+#[cfg(feature = "nasl-builtin-libssh")]
+impl Ssh {
     /// Given a socket, return the corresponding session id if available.
     #[nasl_function]
     pub async fn nasl_ssh_session_id_from_sock(&self, socket: Socket) -> Result<Option<SessionId>> {
