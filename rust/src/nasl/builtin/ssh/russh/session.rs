@@ -3,8 +3,7 @@ use std::time::Duration;
 use std::{net::IpAddr, sync::Arc};
 
 use async_trait::async_trait;
-use client::{connect, DisconnectReason, Msg, Session};
-use key::PublicKey;
+use client::{connect, DisconnectReason, Session};
 use russh::keys::*;
 use russh::*;
 use tracing::{error, warn};
@@ -27,19 +26,6 @@ impl client::Handler for Client {
         Ok(true)
     }
 
-    /// Called when the server sends us an authentication banner. This
-    /// is usually meant to be shown to the user, see
-    /// [RFC4252](https://tools.ietf.org/html/rfc4252#section-5.4) for
-    /// more details.
-    #[allow(unused_variables)]
-    async fn auth_banner(
-        &mut self,
-        banner: &str,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("auth_banner");
-    }
-
     #[allow(unused_variables)]
     async fn channel_open_confirmation(
         &mut self,
@@ -51,198 +37,12 @@ impl client::Handler for Client {
         Ok(())
     }
 
-    /// Called when the server signals success.
-    #[allow(unused_variables)]
-    async fn channel_success(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("channel_success");
-    }
-
-    /// Called when the server signals failure.
-    #[allow(unused_variables)]
-    async fn channel_failure(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("channel_failure");
-    }
-
     async fn channel_close(&mut self, _: ChannelId, _: &mut Session) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    /// Called when the server rejected our request to open a channel.
-    #[allow(unused_variables)]
-    async fn channel_open_failure(
-        &mut self,
-        channel: ChannelId,
-        reason: ChannelOpenFailure,
-        description: &str,
-        language: &str,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("channel_open_failure");
-    }
-
-    /// Called when the server opens a channel for a new remote port forwarding connection
-    #[allow(unused_variables)]
-    async fn server_channel_open_forwarded_tcpip(
-        &mut self,
-        channel: Channel<Msg>,
-        connected_address: &str,
-        connected_port: u32,
-        originator_address: &str,
-        originator_port: u32,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("server_channel_open_forwarded_tcpip");
-    }
-
-    /// Called when the server opens an agent forwarding channel
-    #[allow(unused_variables)]
-    async fn server_channel_open_agent_forward(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("server_channel_open_agent_forward");
-    }
-
-    /// Called when the server gets an unknown channel. It may return `true`,
-    /// if the channel of unknown type should be handled. If it returns `false`,
-    /// the channel will not be created and an error will be sent to the server.
-    #[allow(unused_variables)]
-    fn server_channel_handle_unknown(&self, channel: ChannelId, channel_type: &[u8]) -> bool {
-        panic!("channel");
-    }
-
-    /// Called when the server opens a session channel.
-    #[allow(unused_variables)]
-    async fn server_channel_open_session(
-        &mut self,
-        channel: ChannelId,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("server_channel_open_session");
-    }
-
-    /// Called when the server opens a direct tcp/ip channel.
-    #[allow(unused_variables)]
-    async fn server_channel_open_direct_tcpip(
-        &mut self,
-        channel: ChannelId,
-        host_to_connect: &str,
-        port_to_connect: u32,
-        originator_address: &str,
-        originator_port: u32,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("server_channel_open_direct_tcpip");
-    }
-
-    /// Called when the server opens an X11 channel.
-    #[allow(unused_variables)]
-    async fn server_channel_open_x11(
-        &mut self,
-        channel: Channel<Msg>,
-        originator_address: &str,
-        originator_port: u32,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("server_channel_open_x11");
-    }
-
     async fn data(&mut self, _: ChannelId, _: &[u8], _: &mut Session) -> Result<(), Self::Error> {
         Ok(())
-    }
-
-    /// Called when the server sends us data. The `extended_code`
-    /// parameter is a stream identifier, `None` is usually the
-    /// standard output, and `Some(1)` is the standard error. See
-    /// [RFC4254](https://tools.ietf.org/html/rfc4254#section-5.2).
-    #[allow(unused_variables)]
-    async fn extended_data(
-        &mut self,
-        channel: ChannelId,
-        ext: u32,
-        data: &[u8],
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("extended_data");
-    }
-
-    /// The server informs this client of whether the client may
-    /// perform control-S/control-Q flow control. See
-    /// [RFC4254](https://tools.ietf.org/html/rfc4254#section-6.8).
-    #[allow(unused_variables)]
-    async fn xon_xoff(
-        &mut self,
-        channel: ChannelId,
-        client_can_do: bool,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("xon_xoff");
-    }
-
-    /// The remote process has exited, with the given exit status.
-    #[allow(unused_variables)]
-    async fn exit_status(
-        &mut self,
-        channel: ChannelId,
-        exit_status: u32,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("exit_status");
-    }
-
-    /// The remote process exited upon receiving a signal.
-    #[allow(unused_variables)]
-    async fn exit_signal(
-        &mut self,
-        channel: ChannelId,
-        signal_name: Sig,
-        core_dumped: bool,
-        error_message: &str,
-        lang_tag: &str,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("exit_signal");
-    }
-
-    /// Called when the network window is adjusted, meaning that we
-    /// can send more bytes. This is useful if this client wants to
-    /// send huge amounts of data, for instance if we have called
-    /// `Session::data` before, and it returned less than the
-    /// full amount of data.
-    #[allow(unused_variables)]
-    async fn window_adjusted(
-        &mut self,
-        channel: ChannelId,
-        new_size: u32,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("window_adjusted");
-    }
-
-    /// Called when this client adjusts the network window. Return the
-    /// next target window and maximum packet size.
-    #[allow(unused_variables)]
-    fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {
-        panic!("adjust_window");
-    }
-
-    /// Called when the server signals success.
-    #[allow(unused_variables)]
-    async fn openssh_ext_host_keys_announced(
-        &mut self,
-        keys: Vec<PublicKey>,
-        session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        panic!("openssh_ext_host_keys_announced");
     }
 
     /// Called when the server sent a disconnect message
