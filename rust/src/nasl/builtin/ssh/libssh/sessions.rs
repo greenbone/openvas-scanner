@@ -13,9 +13,9 @@ use russh_keys::key;
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::debug;
 
+use super::super::error::Result;
 use super::super::Ssh;
 
-use super::error::Result;
 use super::session::SshSession;
 use super::{SessionId, Socket};
 

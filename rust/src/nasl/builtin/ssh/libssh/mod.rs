@@ -5,12 +5,10 @@
 //! Defines NASL ssh and sftp functions
 
 mod channel;
-mod error;
 mod session;
 pub mod sessions;
 
 pub type SessionId = i32;
 pub type Socket = std::os::raw::c_int;
-pub use error::SshError;
 pub use libssh_rs::AuthMethods;
 pub use session::SshSession;

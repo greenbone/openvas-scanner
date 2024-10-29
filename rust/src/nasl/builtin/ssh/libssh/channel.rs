@@ -1,9 +1,8 @@
 use std::time::Duration;
 
-use super::{
-    error::{Result, SshError},
-    SessionId,
-};
+use crate::nasl::builtin::ssh::error::SshErrorKind;
+
+use super::{super::error::Result, SessionId};
 
 pub struct Channel {
     channel: libssh_rs::Channel,
@@ -20,14 +19,16 @@ impl Channel {
 
     pub fn request_subsystem(&self, subsystem: &str) -> Result<()> {
         self.channel.request_subsystem(subsystem).map_err(|e| {
-            SshError::RequestSubsystem(self.session_id, e.into(), subsystem.to_string())
+            SshErrorKind::RequestSubsystem(subsystem.to_string())
+                .with(e)
+                .with(self.session_id)
         })
     }
 
     pub fn open_session(&self) -> Result<()> {
         self.channel
             .open_session()
-            .map_err(|e| SshError::OpenSession(self.session_id, e.into()))
+            .map_err(|e| SshErrorKind::OpenSession.with(self.session_id).with(e))
     }
 
     pub fn is_closed(&self) -> bool {
@@ -37,7 +38,7 @@ impl Channel {
     pub fn close(&self) -> Result<()> {
         self.channel
             .close()
-            .map_err(|e| SshError::Close(self.session_id, e.into()))
+            .map_err(|e| SshErrorKind::Close.with(self.session_id).with(e))
     }
 
     pub fn stdin(&self) -> impl std::io::Write + '_ {
@@ -47,31 +48,33 @@ impl Channel {
     pub fn request_pty(&self, term: &str, columns: u32, rows: u32) -> Result<()> {
         self.channel
             .request_pty(term, columns, rows)
-            .map_err(|e| SshError::RequestPty(self.session_id, e.into()))
+            .map_err(|e| SshErrorKind::RequestPty.with(self.session_id).with(e))
     }
 
     pub fn request_exec(&self, command: &str) -> Result<()> {
-        self.channel
-            .request_exec(command)
-            .map_err(|e| SshError::RequestExec(self.session_id, e.into()))
+        self.channel.request_exec(command).map_err(|e| {
+            SshErrorKind::RequestExec(command.to_string())
+                .with(self.session_id)
+                .with(e)
+        })
     }
 
     pub fn request_shell(&self) -> Result<()> {
         self.channel
             .request_shell()
-            .map_err(|e| SshError::RequestShell(self.session_id, e.into()))
+            .map_err(|e| SshErrorKind::RequestShell.with(self.session_id).with(e))
     }
 
     pub fn ensure_open(&self) -> Result<()> {
         if self.is_closed() {
-            Err(SshError::ChannelClosed(self.session_id))
+            Err(SshErrorKind::ChannelClosed.with(self.session_id))
         } else {
             Ok(())
         }
     }
 
     fn buf_as_str<'a>(&self, buf: &'a [u8]) -> Result<&'a str> {
-        std::str::from_utf8(buf).map_err(|_| SshError::ReadSsh(self.session_id))
+        std::str::from_utf8(buf).map_err(|_| SshErrorKind::ReadSsh.with(self.session_id))
     }
 
     pub fn read_timeout(&self, timeout: Duration, stderr: bool) -> Result<String> {
@@ -85,7 +88,7 @@ impl Channel {
                 }
                 Err(libssh_rs::Error::TryAgain) => {}
                 Err(_) => {
-                    return Err(SshError::ReadSsh(self.session_id));
+                    return Err(SshErrorKind::ReadSsh.with(self.session_id));
                 }
             }
         }
@@ -105,13 +108,13 @@ impl Channel {
                 let response = self.buf_as_str(&buf[..n])?.to_string();
                 Ok(response)
             }
-            Err(_) => Err(SshError::ReadSsh(self.session_id)),
+            Err(_) => Err(SshErrorKind::ReadSsh.with(self.session_id)),
         }
     }
 
     pub fn read_ssh_nonblocking(&self) -> Result<String> {
         if self.channel.is_closed() || self.channel.is_eof() {
-            return Err(SshError::ReadSsh(self.session_id));
+            return Err(SshErrorKind::ReadSsh.with(self.session_id));
         }
 
         let stderr = self.read_nonblocking(true)?;

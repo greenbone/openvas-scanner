@@ -2,12 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use tokio::sync::{Mutex, MutexGuard};
 
+use super::error::SshErrorKind;
 use super::MIN_SESSION_ID;
-use super::{SessionId, SshError, SshSession};
+use super::{error::Result, SessionId, SshSession};
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
-
-type Result<T> = std::result::Result<T, SshError>;
 
 #[derive(Default)]
 pub struct SshSessions {
@@ -23,7 +22,7 @@ impl SshSessions {
         Ok(self
             .sessions
             .get(&id)
-            .ok_or(SshError::InvalidSessionId(id))?
+            .ok_or(SshErrorKind::InvalidSessionId.with(id))?
             .lock()
             .await)
     }

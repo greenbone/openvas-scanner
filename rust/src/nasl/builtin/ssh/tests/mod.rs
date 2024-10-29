@@ -11,6 +11,7 @@ use server::AuthConfig;
 use server::TestServer;
 
 use crate::check_err_matches;
+use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::builtin::ssh::MIN_SESSION_ID;
 use crate::nasl::builtin::SshError;
 use crate::nasl::test_prelude::*;
@@ -82,7 +83,10 @@ async fn ssh_connect() {
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "ssh-rsa");"#, PORT),
-                FunctionErrorKind::Ssh(SshError::Connect(_, _))
+                FunctionErrorKind::Ssh(SshError {
+                    kind: SshErrorKind::Connect,
+                    ..
+                })
             );
         },
         default_config(),
@@ -111,7 +115,10 @@ async fn ssh_userauth() {
             check_err_matches!(
                 t,
                 r#"ssh_userauth(session_id);"#,
-                FunctionErrorKind::Ssh(SshError::NoAuthenticationGiven(_)),
+                FunctionErrorKind::Ssh(SshError {
+                    kind: SshErrorKind::NoAuthenticationGiven,
+                    ..
+                }),
             );
             userauth(&mut t);
         },

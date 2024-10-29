@@ -1,8 +1,5 @@
-mod error;
 mod session;
 
-pub use error::Result;
-pub use error::SshError;
 pub use session::SshSession;
 use tokio::sync::Mutex;
 
@@ -11,7 +8,7 @@ use std::{net::IpAddr, time::Duration};
 use russh::cipher;
 use russh_keys::key;
 
-use crate::nasl::prelude::*;
+use super::error::Result;
 
 use super::sessions::SshSessions;
 

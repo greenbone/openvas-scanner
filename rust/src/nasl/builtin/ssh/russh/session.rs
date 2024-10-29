@@ -8,9 +8,10 @@ use russh::keys::*;
 use russh::*;
 use tracing::{error, warn};
 
+use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::utils::function::bytes_to_str;
 
-use super::error::SshError;
+use super::super::error::SshError;
 use super::{AuthMethods, Port, SessionId, Socket};
 
 struct Client {}
@@ -91,7 +92,7 @@ impl SshSession {
     ) -> Result<Self, SshError> {
         if socket.is_some() {
             error!("Using custom sockets not yet implemented.");
-            return Err(SshError::Unimplemented);
+            return Err(SshErrorKind::Unimplemented.with(id));
         }
         let preferred = construct_preferred(keytype, csciphers, scciphers);
         let config = client::Config {
@@ -105,16 +106,17 @@ impl SshSession {
 
         let session = connect(config, (ip_addr, port), sh)
             .await
-            .map_err(|e| SshError::Connect(id, e.into()))?;
+            .map_err(|e| SshErrorKind::Connect.with(id).with(e))?;
 
         Ok(Self { session, id })
     }
 
     pub async fn exec_ssh_cmd(&self, command: &str) -> Result<(String, String), SshError> {
-        let stdout = self
-            .call(command)
-            .await
-            .map_err(|e| SshError::CallError(self.id, command.to_string(), e.into()))?;
+        let stdout = self.call(command).await.map_err(|e| {
+            SshErrorKind::RequestExec(command.to_string())
+                .with(self.id)
+                .with(e)
+        })?;
         // TODO implement stderr properly.
         let stderr = String::new();
         Ok((stdout, stderr))
@@ -156,7 +158,7 @@ impl SshSession {
         self.session
             .authenticate_password(login, password)
             .await
-            .map_err(|_| SshError::UserauthPassword(self.id))
+            .map_err(|_| SshErrorKind::UserAuthPassword.with(self.id))
             .map(|_| ())
     }
 
@@ -168,7 +170,7 @@ impl SshSession {
     ) -> Result<(), SshError> {
         // TODO: Construct the key pair to provide publickey auth
         error!("Public key auth not yet supported.");
-        Err(SshError::Unimplemented)
+        Err(SshErrorKind::Unimplemented.into())
         // self.session
         //     .authenticate_publickey(login, key_pair)
         //     .await
@@ -181,7 +183,7 @@ impl SshSession {
         login: &str,
         password: &str,
     ) -> Result<(), SshError> {
-        let make_err = || SshError::UserauthKeyboardInteractive(self.id);
+        let make_err = || SshErrorKind::UserAuthKeyboardInteractive.with(self.id);
         let response = self
             .session
             .authenticate_keyboard_interactive_start(login, None)

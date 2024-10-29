@@ -6,11 +6,11 @@
 use std::io;
 use thiserror::Error;
 
-use crate::nasl::builtin::SshError;
 use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
 
+use super::super::builtin::SshError;
 use super::ContextType;
 
 /// Reuses the StorageError definitions as they should fit most cases.

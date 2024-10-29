@@ -3,7 +3,7 @@ use std::{os::fd::AsRawFd, time::Duration};
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::{debug, info};
 
-use super::error::{Result, SshError};
+use super::super::error::{Result, SshErrorKind};
 use super::SessionId;
 use super::{channel::Channel, Socket};
 
@@ -24,7 +24,7 @@ pub struct SshSession {
 impl SshSession {
     pub fn new(id: SessionId) -> Result<Self> {
         Session::new()
-            .map_err(|e| SshError::NewSession(e.into()))
+            .map_err(|e| SshErrorKind::NewSession.with(e))
             .map(|session| Self {
                 session,
                 id,
@@ -68,13 +68,13 @@ impl SshSession {
         self.session()
             .new_channel()
             .map(|channel| Channel::new(channel, self.id()))
-            .map_err(|e| SshError::OpenChannel(self.id(), e.into()))
+            .map_err(|e| SshErrorKind::OpenChannel.with(self.id()).with(e))
     }
 
     pub async fn get_channel(&self) -> Result<MutexGuard<'_, Channel>> {
         self.channel()
             .await
-            .ok_or_else(|| SshError::NoAvailableChannel(self.id()))
+            .ok_or_else(|| SshErrorKind::NoAvailableChannel.with(self.id()))
     }
 
     pub fn get_authmethods_cached(&mut self) -> Result<AuthMethods> {
@@ -86,10 +86,12 @@ impl SshSession {
     }
 
     pub fn set_option(&self, option: SshOption) -> Result<()> {
+        // We have to format this before we set it, even if we might
+        // not need it, since SshOption does implement Clone
         let formatted = format!("{:?}", option);
         self.session()
             .set_option(option)
-            .map_err(|e| SshError::SetOption(self.id(), formatted, e.into()))
+            .map_err(|e| SshErrorKind::SetOption(formatted).with(self.id()).with(e))
     }
 
     pub fn get_socket(&self) -> Socket {
@@ -167,7 +169,7 @@ impl SshSession {
         if let AuthStatus::Success = status {
             return Ok(());
         }
-        Err(SshError::UserauthPassword(self.id))
+        Err(SshErrorKind::UserAuthPassword.with(self.id))
     }
 
     pub async fn auth_keyboard_interactive(&mut self, login: &str, password: &str) -> Result<()> {
@@ -188,7 +190,7 @@ impl SshSession {
                     Ok(_) => {
                         return Ok(());
                     }
-                    Err(_) => return Err(SshError::UserauthKeyboardInteractive(self.id)),
+                    Err(_) => return Err(SshErrorKind::UserAuthKeyboardInteractive.with(self.id)),
                 }
             } else {
                 debug!(
@@ -208,7 +210,7 @@ impl SshSession {
     ) -> Result<()> {
         self.ensure_user_set(Some(login))?;
         let key = SshKey::from_privkey_base64(private_key, Some(passphrase))
-            .map_err(|_| SshError::ConvertPrivateKey(self.id))?;
+            .map_err(|_| SshErrorKind::ConvertPrivateKey.with(self.id))?;
         let status = self.userauth_try_publickey(None, &key)?;
         if let AuthStatus::Success = status {
             return Ok(());
@@ -253,7 +255,7 @@ macro_rules! inherit_method {
     ($name: ident, $ret: ty, $err_variant: ident $(,)? $($arg: ident : $argtype: ty),*) => {
         pub fn $name(&self, $($arg: $argtype),*) -> Result<$ret> {
             self.session.$name($($arg),*)
-                .map_err(|e| SshError::$err_variant(self.id(), e.into()))
+                .map_err(|e| SshErrorKind::$err_variant.with(self.id()).with(e))
         }
     }
 }

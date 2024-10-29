@@ -8,7 +8,8 @@ use crate::nasl::{
     utils::{IntoFunctionSet, StoredFunctionSet},
 };
 
-use super::{utils::CommaSeparated, AuthMethods, SessionId, Socket, Ssh, SshError};
+use super::error::SshError;
+use super::{error::SshErrorKind, utils::CommaSeparated, AuthMethods, SessionId, Socket, Ssh};
 
 #[cfg(feature = "nasl-builtin-libssh")]
 mod libssh_uses {
@@ -111,9 +112,9 @@ impl Ssh {
         let port = port
             .filter(|_| socket.is_none())
             .unwrap_or(DEFAULT_SSH_PORT);
-        let ip = ctx
-            .target_ip()
-            .map_err(|e| SshError::InvalidIpAddr(ctx.target().to_string(), e))?;
+        let ip = ctx.target_ip().map_err(|e| {
+            SshError::from(SshErrorKind::InvalidIpAddr(ctx.target().to_string(), e))
+        })?;
         let timeout = timeout.map(Duration::from_secs);
         let keytype = keytype
             .map(|keytype| keytype.0)
@@ -249,7 +250,7 @@ impl Ssh {
     ) -> Result<()> {
         if password.is_none() && privatekey.is_none() && passphrase.is_none() {
             //TODO: Get values from KB
-            return Err(SshError::NoAuthenticationGiven(session_id).into());
+            return Err(SshErrorKind::NoAuthenticationGiven.with(session_id).into());
         }
         let login = login.unwrap_or("");
         let mut session = self.get_by_id(session_id).await?;
