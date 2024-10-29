@@ -26,8 +26,9 @@ pub type Socket = i32;
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 
-// This is a 'clone' of the libssh::AuthMethods
-#[allow(non_camel_case_types)]
+// This is a 'clone' of the libssh::AuthMethods, so
+// the capital case names are intentional.
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 pub enum AuthMethods {
     PASSWORD,
     INTERACTIVE,
@@ -44,7 +45,7 @@ impl Ssh {
         Ok(self
             .sessions
             .get(&id)
-            .ok_or_else(|| SshError::InvalidSessionId(id))?
+            .ok_or(SshError::InvalidSessionId(id))?
             .lock()
             .await)
     }
@@ -65,6 +66,7 @@ impl Ssh {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn connect(
         &mut self,
         socket: Option<Socket>,

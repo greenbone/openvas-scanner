@@ -36,6 +36,8 @@ pub enum SshError {
     UserauthPassword(SessionId),
     #[error("Error while authenticating with keyboard-interactive for session ID {0}")]
     UserauthKeyboardInteractive(SessionId),
+    #[error("Unsupported operation")]
+    Unimplemented,
 }
 
 impl From<SshError> for FunctionErrorKind {

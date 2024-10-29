@@ -195,6 +195,7 @@ impl<'a> ArgsStruct<'a> {
         let mangled_ident = Ident::new(&mangled_name, ident.span());
         let inner_call = self.get_inner_call_expr(&mangled_ident, asyncness);
         quote! {
+            #[allow(clippy::too_many_arguments)]
             #asyncness fn #mangled_ident #generics ( #fn_args ) -> #output_ty {
                 #(#stmts)*
             }

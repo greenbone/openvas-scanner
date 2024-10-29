@@ -75,6 +75,10 @@ pub struct SshSession {
 }
 
 impl SshSession {
+    // The alternative to many arguments here is making
+    // the fields public or creating some sort of builder struct
+    // both of which feel like much worse alternatives.
+    #[allow(clippy::too_many_arguments)]
     pub async fn new(
         id: SessionId,
         ip_addr: IpAddr,
@@ -85,8 +89,9 @@ impl SshSession {
         scciphers: Vec<cipher::Name>,
         socket: Option<Socket>,
     ) -> Result<Self, SshError> {
-        if let Some(_) = socket {
-            todo!()
+        if socket.is_some() {
+            error!("Using custom sockets not yet implemented.");
+            return Err(SshError::Unimplemented);
         }
         let preferred = construct_preferred(keytype, csciphers, scciphers);
         let config = client::Config {
@@ -130,7 +135,7 @@ impl SshSession {
             match msg {
                 // Write data to the terminal
                 ChannelMsg::Data { ref data } => {
-                    stdout.push_str(&*bytes_to_str(&data));
+                    stdout.push_str(&bytes_to_str(data));
                 }
                 // The command has returned an exit code
                 ChannelMsg::ExitStatus { exit_status } => {
@@ -161,7 +166,9 @@ impl SshSession {
         _private_key: &str,
         _passphrase: &str,
     ) -> Result<(), SshError> {
-        let _key_pair = todo!();
+        // TODO: Construct the key pair to provide publickey auth
+        error!("Public key auth not yet supported.");
+        Err(SshError::Unimplemented)
         // self.session
         //     .authenticate_publickey(login, key_pair)
         //     .await

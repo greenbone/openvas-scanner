@@ -114,7 +114,7 @@ impl Ssh {
         let ip = ctx
             .target_ip()
             .map_err(|e| SshError::InvalidIpAddr(ctx.target().to_string(), e))?;
-        let timeout = timeout.map(|timeout| Duration::from_secs(timeout as u64));
+        let timeout = timeout.map(Duration::from_secs);
         let keytype = keytype
             .map(|keytype| keytype.0)
             .unwrap_or(russh::Preferred::DEFAULT.key[..].to_vec());
@@ -260,18 +260,20 @@ impl Ssh {
         // the password before the public key authentication.  Because we
         // want to be compatible, we do it in that order.
         if let Some(password) = password {
-            if session.auth_method_allowed(AuthMethods::PASSWORD).await? {
-                if let Ok(_) = session.auth_password(login, password).await {
-                    return Ok(());
-                }
+            if session.auth_method_allowed(AuthMethods::PASSWORD).await?
+                && session.auth_password(login, password).await.is_ok()
+            {
+                return Ok(());
             }
             if session
                 .auth_method_allowed(AuthMethods::INTERACTIVE)
                 .await?
+                && session
+                    .auth_keyboard_interactive(login, password)
+                    .await
+                    .is_ok()
             {
-                if let Ok(_) = session.auth_keyboard_interactive(login, password).await {
-                    return Ok(());
-                }
+                return Ok(());
             }
         }
         // If we have a private key, try public key authentication.
