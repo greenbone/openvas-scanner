@@ -4,6 +4,21 @@ Is the implementation for [scanner-api](https://greenbone.github.io/scanner-api/
 
 Currently it is utilizing ospd-openvas.
 
+- [OpenVAS Daemon](#openvas-daemon)
+- [Requirements](#requirements)
+- [Configuration](#configuration)
+  - [Authentication](#authentication)
+    - [API Key](#api-key)
+    - [Certificates](#certificates)
+      - [How does mTLS works?](#how-does-mtls-works)
+      - [Certificate Authority for PKI mTLS Method](#certificate-authority-for-pki-mtls-method)
+      - [mTLS with self-signed client certificates.](#mtls-with-self-signed-client-certificates)
+  - [Mode](#mode)
+- [Usage](#usage)
+  - [Feed signature check.](#feed-signature-check)
+- [Options](#options)
+- [Migration from previous OSP commands](#migration-from-previous-osp-commands)
+
 # Requirements
 
 It requires a running ospd-openvas instance.
@@ -17,7 +32,7 @@ Create a configuration file under either:
 
 or provide the `-c` flag when starting openvasd.
 
-An example can be found [here](../examples/openvasd/config.example.toml)
+An example can be found [here](../../examples/openvasd/config.example.toml)
 
 ## Authentication
 
@@ -118,7 +133,6 @@ As can be seen, no CA certificate is used, since instead the client certificate 
 
 Openvasd currently supports two operation modes. The `service` mode supports all available endpoints, where the `service_notus` mode only supports the notus related endpoints.
 
-
 # Usage
 
 ```
@@ -218,4 +232,4 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 
 # Migration from previous OSP commands
 
-In this [page](doc/osp-cmd-equivalence.md) you can find a guide for API usage of previous OSP commands
+In this [page](../../doc/openvasd-osp-cmd-equivalence.md) you can find a guide for API usage of previous OSP commands

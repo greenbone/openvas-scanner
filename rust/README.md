@@ -4,8 +4,7 @@ This is the rust scanner implementation with the goal to replace the current sca
 (openvas-scanner, ospd-openvas, notus-scanner), including the Open Scanner Protocol (OSP). The rust implementation of the new [HTTP scanner API](https://greenbone.github.io/scanner-api/) is called
 **openvasd**. It provides an interface to manage scans for vulnerability testing. It currently utilizes the **openvas-scanner** to perform tasks.
 
-This project also consist of a collection of tools called [**scannerctl**](scannerctl/README.md). It contains variety of utilities for different tasks. For more information look into [**scannerctl**](scannerctl/README.md).
-
+This project also consist of a collection of tools called [**scannerctl**](./src/scannerctl/README.md). It contains variety of utilities for different tasks. For more information look into [**scannerctl**](./src/scannerctl/README.md).
 
 # Implementation of the NASL Attack Scripting Language
 
@@ -16,7 +15,6 @@ NASL is a domain-specific language (DSL) used by OpenVAS Scanner to write vulner
 The decision to rewrite certain parts in rust was mainly to have an easier way to maintain it in the future the decision for rust is based on the interoperability between rust and c source code so that we can integrate our rust code in openvas and vice versa when it is required to do so.
 
 The implementation is split into multiple parts that are reflected in the directory layout.
-
 
 # Requirements
 

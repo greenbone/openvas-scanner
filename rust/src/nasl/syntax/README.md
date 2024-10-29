@@ -2,7 +2,7 @@
 
 `nasl-syntax` is a library to provide structured representation of NASL code.
 
-It will return an Iterator with either a [statement](./src/statement.rs) for further execution or an [error](./src/error.rs) if the given code was incorrect.
+It will return an Iterator with either a [statement](./statement.rs) for further execution or an [error](./error.rs) if the given code was incorrect.
 
 Each statement is self contained and it is expected to be executed iteratively and therefore there is no visitor implementation.
 

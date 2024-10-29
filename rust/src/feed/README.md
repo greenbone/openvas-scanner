@@ -16,12 +16,12 @@ FEED_NAME = "short name of the feed";
 ```
 ## Verify
 
-[Implements](./src/verify/mod.rs) a [HashSumNameLoader](./src/verify/mod.rs#L93) that loads the filenames defined in the sha256sums and verifies the corresponding hashsum. 
-Also, implements a [signature verifier](./src/verify/mod.rs#L163) for checking the signature of the sha256sums file.
+[Implements](./verify/mod.rs) a `HashSumNameLoader` that loads the filenames defined in the sha256sums and verifies the corresponding hashsum. 
+Also, implements a `signature verifier` for checking the signature of the sha256sums file.
 
 ### Example
 
-```no_run
+```rs,no_run
 use scannerlib::nasl::FSPluginLoader;
 // needs to be path that contains a sha256sums file otherwise
 // it will throw an exception.
