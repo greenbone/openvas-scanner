@@ -99,8 +99,6 @@ members = [
 [dev-dependencies]
 tracing-test = "0.2.5"
 criterion = "0"
-russh = "0.45.0"
-russh-keys = "0.45.0"
 once_cell = "1.20.1"
 
 [features]
