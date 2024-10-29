@@ -2,7 +2,7 @@
 
 Contains functions that are within the std library of nasl.
 
-To use the std functions it is recommended to use the defined [ContextFactory] as it sets the function register to the one created in [nasl_std_functions] automatically.
+To use the std functions it is recommended to use the defined `ContextFactory` as it sets the function register to the one created in `nasl_std_functions` automatically.
 
 All you have to do as a user is to create the builder
 
@@ -29,7 +29,7 @@ To add a function to std you have to add function crate to the Cargo.toml
 nasl-builtin-string = {path = "../nasl-builtin-string"}
 ```
 
-and then extend the builder within [nasl_std_functions] with the implementation of [nasl_builtin_utils::NaslFunctionExecuter] of those functions:
+and then extend the builder within `nasl_std_functions` with the implementation of `nasl_builtin_utils::NaslFunctionExecuter` of those functions:
 
 ```text
 builder = builder.push_register(nasl_builtin_string::NaslString)

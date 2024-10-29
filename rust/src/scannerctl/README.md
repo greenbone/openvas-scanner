@@ -224,7 +224,7 @@ Options:
 On `feed transform` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
 Optionally, it is possible to perform a signature verification of the sha256sums file before the transformation. To enable the signature check, the environment variable `GNUPGHOME` must be set with the gnupg home directory, where the `pubring.kbx` file is stored.
 
-It will produce a json array in stdout in the format described within [json-storage](../json-storage/README.md).
+It will produce a json array in stdout in the format described within [json-storage](../storage/json/README.md)
 
 #### transpile
 
@@ -238,7 +238,7 @@ Options:
 - `-r`, `--rules <FILE>`: Path to transpiler rules.
 - `-h`, `--help`: Print help
 
-An example can be found in [examples](../examples/scannerctl/transpile.toml) folder. This example demonstrates how to
+An example can be found in [examples](../../examples/scannerctl/transpile.toml) folder. This example demonstrates how to
 - rename service `www` to `word-wide-web` in register_product
 - `register_host_detail` to `add_host_detail`
 

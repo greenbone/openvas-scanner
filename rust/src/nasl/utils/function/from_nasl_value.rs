@@ -101,9 +101,10 @@ macro_rules! impl_from_nasl_value_for_numeric_type {
                     NaslValue::Number(num) => Ok(<$ty>::try_from(*num).map_err(|_| {
                         FunctionErrorKind::WrongArgument("Expected positive number.".into())
                     })?),
-                    _ => Err(FunctionErrorKind::WrongArgument(
-                        "Expected a number.".to_string(),
-                    )),
+                    e => Err(FunctionErrorKind::WrongArgument(format!(
+                        "Expected a number, found '{}'.",
+                        e
+                    ))),
                 }
             }
         }

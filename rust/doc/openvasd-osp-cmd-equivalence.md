@@ -2,33 +2,33 @@
 
 This document shows the migration of OSP commands (implemented by ospd-openvas) to the new scanner API (implemented by openvasd). It only provides the XML for the command and its corresponding JSON counterpart, as well as the endpoint of the HTTP API. For further information of the commands either see [OSP](https://docs.greenbone.net/API/OSP/osp-22.4.html) or [Scanner API](https://greenbone.github.io/scanner-api/).
 
-# Table of contents
-1. [Help command](#Help-command)
-2. [Get memory usage command](#Get-memory-usage-command)
-3. [Start a scan](#Start-a-scan)
-4. [Stop a scan](#Stop-a-scan)
-5. [Delete a scan](#Delete-a-scan)
-6. [Fetching results](#Fetching-results)
-7. [Scan status and progress](#Scan-status-and-progress)
-8. [Feed check](#Feed-check)
-9. [Get VTs](#Get-VTs)
-10. [Get Version](#Get-Version)
-11. [Get scanner details](#Get-scanner-details)
-12. [Get sensor performance](#Get-sensor-performance)
+- [Migration Guide for API usage of previous OSP commands](#migration-guide-for-api-usage-of-previous-osp-commands)
+  - [Help command](#help-command)
+  - [Get memory usage command](#get-memory-usage-command)
+  - [Start a scan](#start-a-scan)
+  - [Stop a scan](#stop-a-scan)
+  - [Delete a scan](#delete-a-scan)
+  - [Fetching results](#fetching-results)
+  - [Scan status and progress](#scan-status-and-progress)
+  - [Feed check](#feed-check)
+  - [Get VTs](#get-vts)
+  - [Get Version](#get-version)
+  - [Get scanner details](#get-scanner-details)
+  - [Get sensor performance](#get-sensor-performance)
 
-### Help command
+## Help command
 
 there is a help command which includes all supported OSP commands and details. There is no equivalent command for Scanner API. Just refer to the Scanner API
 ``` xml
 <help/>
 ``` 
-### Get memory usage command
+## Get memory usage command
 
 This command shows RSS, VMS and shared current memory usage. It is a debugging purpose command. There is no equivalent command for Scanner API.
 ``` xml
 <get_memory_usage unit='mb'/>
 ``` 
-### Start a scan
+## Start a scan
 
 ***With OSP***
 
@@ -123,7 +123,7 @@ Json body:
 {"action": "start"}
 ``` 
 
-### Stop a scan
+## Stop a scan
 
 As explained in the subsection above, you know the scan ID for OSP, because it is necessary for starting a new scan, while the scan ID is created by Openvasd when using Scanner API. Then the scan_id is necessary for both protocols.
 
@@ -143,7 +143,7 @@ Json body:
 {"action": "stop"}
 ``` 
 
-### Delete a scan
+## Delete a scan
 
 With the known scan_id, a scan can be deleted. The scan must not be running. So it must be either stopped before or finished. In case of the new scanner API it could also be in the stored status.
 
@@ -162,7 +162,7 @@ Endpoint: /scans/{scan_id}
 Parameter scan_id: is de Scan ID
 ``` 
 
-### Fetching results
+## Fetching results
 
 Knowing the scan id, it is possible to fetch results. This command allows some options, like fetching just an amount of results.
 
@@ -186,7 +186,7 @@ Parameter scan_id: is de Scan ID.
 Optional Query: ?range=start-end, where end is optional as well.
 ``` 
 
-### Scan status and progress
+## Scan status and progress
 
 ***With OSP***
 
@@ -205,7 +205,7 @@ Endpoint: /scans/{scan_id}/status
 Parameter scan_id: is de Scan ID
 ``` 
 
-### Feed check
+## Feed check
 
 ***With OSP***
 
@@ -223,7 +223,7 @@ Endpoint: /health/ready
        or /health/alive
        or /health/started
 ``` 
-### Get VTs
+## Get VTs
 
 Get a list of Vulnerability test present in the current feed. This includes Notus and NASL tests.
 
@@ -249,7 +249,7 @@ Optional Query: ?information=bool shows the whole feed metadata.
           
 ```
 
-### Get Version
+## Get Version
 
 ***With Osp***
 
@@ -266,7 +266,7 @@ Only the feed version and the HTTP version are available.
 Method: HEAD
 ``` 
 
-### Get scanner details
+## Get scanner details
 
 Return details about the scanner
 
@@ -285,7 +285,7 @@ Method: GET
 Entrypoint: scans/preferences
 ``` 
 
-### Get sensor performance
+## Get sensor performance
 
 Return system report. There is currently no equivalent command for Scanner API
 
@@ -295,5 +295,3 @@ More information about this command GOS GVMCG
 ``` xml
 <get_performance start='1706848198' end='1706848198' title='CPU'/>
 ``` 
-
-
