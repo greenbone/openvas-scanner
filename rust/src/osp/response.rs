@@ -464,6 +464,8 @@ pub enum ScanStatus {
     #[default]
     /// A scan has been queued, but not started yet
     Queued,
+    /// A scan is currently initializing
+    Init,
     /// A scan has been requested, but not started yet
     Requested,
     /// A scan is currently running
@@ -484,6 +486,7 @@ impl From<&str> for ScanStatus {
     fn from(s: &str) -> Self {
         match s {
             "requested" => ScanStatus::Requested,
+            "init" => ScanStatus::Init,
             "running" => ScanStatus::Running,
             "stopped" => ScanStatus::Stopped,
             "failed" => ScanStatus::Failed,
@@ -581,6 +584,7 @@ impl From<Scan> for crate::models::Status {
         let phase: crate::models::Phase = match value.status {
             ScanStatus::Queued => crate::models::Phase::Requested,
             ScanStatus::Requested => crate::models::Phase::Requested,
+            ScanStatus::Init => crate::models::Phase::Requested,
             ScanStatus::Running => crate::models::Phase::Running,
             ScanStatus::Stopped => crate::models::Phase::Stopped,
             ScanStatus::Failed => crate::models::Phase::Failed,
@@ -667,6 +671,37 @@ mod tests {
                 },
             }
         );
+    }
+
+    #[test]
+    fn init_response() {
+        let xml = r#"
+     <get_scans_response status_text="OK"
+                         status="200">
+       <scan id="9750f1f8-07aa-49cc-9c31-2f9e469c8f65"
+             target="192.168.1.252"
+             progress="0"
+             status="init"
+             start_time="1432824206">
+         <results>
+         </results>
+        </scan>
+     </get_scans_response>
+            "#;
+        let response: Response = from_str(xml).unwrap();
+        match response {
+            Response::GetScans { status, scan } => {
+                assert_eq!(status.text, "OK");
+                assert_eq!(status.code, 200.into());
+                if let Some(scan) = scan {
+                    assert_eq!(scan.id, "9750f1f8-07aa-49cc-9c31-2f9e469c8f65");
+                    assert_eq!(scan.status, "init".into());
+                } else {
+                    panic!("no scan");
+                }
+            }
+            _ => panic!("wrong type: {:?}", response),
+        }
     }
 
     #[test]
