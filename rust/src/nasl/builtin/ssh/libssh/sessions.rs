@@ -4,7 +4,6 @@
 
 //! Defines functions and structures for handling sessions
 
-use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, UdpSocket};
 use std::{os::fd::AsRawFd, time::Duration};
 
@@ -14,9 +13,9 @@ use russh_keys::key;
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::debug;
 
-use crate::nasl::builtin::ssh::MIN_SESSION_ID;
+use super::super::Ssh;
 
-use super::error::{Result, SshError};
+use super::error::Result;
 use super::session::SshSession;
 use super::{SessionId, Socket};
 
@@ -40,7 +39,7 @@ fn to_comma_separated_string<T: AsRef<str>>(items: &[T]) -> Option<String> {
     } else {
         Some(
             items
-                .into_iter()
+                .iter()
                 .map(|name| name.as_ref().to_string())
                 .collect::<Vec<_>>()
                 .join(","),
@@ -48,51 +47,14 @@ fn to_comma_separated_string<T: AsRef<str>>(items: &[T]) -> Option<String> {
     }
 }
 
-#[derive(Default)]
-pub struct Ssh {
-    // Unfortunately, we need a Mutex around the SshSession here.
-    // This is because it contains a libssh::Channel, which is not `Send`.
-    sessions: HashMap<SessionId, Mutex<SshSession>>,
-}
-
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 
 impl Ssh {
-    pub async fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession> {
-        Ok(self
-            .sessions
-            .get(&id)
-            .ok_or_else(|| SshError::InvalidSessionId(id))?
-            .lock()
-            .await)
-    }
-
-    /// Return the next available session ID
-    fn next_session_id(&self) -> Result<SessionId> {
-        // Note that the first session ID we will
-        // hand out is an arbitrary high number, this is only to help
-        // debugging.
-        let taken_ids: HashSet<_> = self.sessions.keys().collect();
-        if taken_ids.is_empty() {
-            Ok(MIN_SESSION_ID)
-        } else {
-            let max_val = **taken_ids.iter().max().unwrap() + 1;
-            Ok((MIN_SESSION_ID..=max_val)
-                .find(|id| !taken_ids.contains(id))
-                .unwrap())
-        }
-    }
-
-    pub fn remove(&mut self, session_id: SessionId) -> Result<()> {
-        self.sessions.remove(&session_id);
-        Ok(())
-    }
-
     pub async fn find_id<'a>(
         &'a self,
         f: impl for<'b> Fn(&BorrowedSession<'b>) -> bool,
     ) -> Result<Option<SessionId>> {
-        for id in self.sessions.keys() {
+        for id in self.ids() {
             let session = self.get_by_id(*id).await?;
             if f(&session) {
                 return Ok(Some(session.id()));
@@ -116,10 +78,11 @@ impl Ssh {
                 return Err(e);
             }
         }
-        self.sessions.insert(id, session);
+        self.insert(id, session);
         Ok(id)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn connect(
         &mut self,
         socket: Option<Socket>,

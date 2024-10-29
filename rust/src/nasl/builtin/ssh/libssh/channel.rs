@@ -105,9 +105,7 @@ impl Channel {
                 let response = self.buf_as_str(&buf[..n])?.to_string();
                 Ok(response)
             }
-            Err(_) => {
-                return Err(SshError::ReadSsh(self.session_id));
-            }
+            Err(_) => Err(SshError::ReadSsh(self.session_id)),
         }
     }
 
