@@ -3,10 +3,11 @@ use std::collections::{HashMap, HashSet};
 use tokio::sync::{Mutex, MutexGuard};
 
 use super::error::SshErrorKind;
-use super::MIN_SESSION_ID;
 use super::{error::Result, SessionId, SshSession};
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
+
+pub const MIN_SESSION_ID: SessionId = 9000;
 
 #[derive(Default)]
 pub struct SshSessions {
