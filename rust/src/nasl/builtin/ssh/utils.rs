@@ -3,6 +3,9 @@ use russh_keys::key;
 
 use crate::nasl::{prelude::*, utils::function::StringOrData};
 
+/// A list of items which are represented as a
+/// NASL string which contains the items separated by
+/// commas.
 pub struct CommaSeparated<T>(pub Vec<T>);
 
 impl<'a, T> FromNaslValue<'a> for CommaSeparated<T>
