@@ -128,14 +128,18 @@ impl TcpConnection {
         Ok(Self::new(TcpDataStream { tcp, tls }, bufsz))
     }
 
+    /// Returns the socket address of the local half of this TCP connection.
     pub fn local_addr(&self) -> io::Result<SocketAddr> {
         self.stream.get_ref().tcp.local_addr()
     }
 
     pub fn read_with_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> io::Result<usize> {
+        // Get the default timeout
         let old = self.stream.get_ref().tcp.read_timeout()?;
+        // Set the new timeout
         self.stream.get_ref().tcp.set_read_timeout(Some(timeout))?;
         let ret = self.read(buf);
+        // Set the default timeout again
         self.stream.get_ref().tcp.set_read_timeout(old)?;
         ret
     }
@@ -145,9 +149,12 @@ impl TcpConnection {
         buf: &mut String,
         timeout: Duration,
     ) -> io::Result<usize> {
+        // Get the default timeout
         let old = self.stream.get_ref().tcp.read_timeout()?;
+        // Set the new timeout
         self.stream.get_ref().tcp.set_read_timeout(Some(timeout))?;
         let ret = self.stream.read_line(buf);
+        // Set the default timeout again
         self.stream.get_ref().tcp.set_read_timeout(old)?;
         ret
     }

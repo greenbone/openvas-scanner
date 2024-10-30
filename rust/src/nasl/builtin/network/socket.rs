@@ -26,12 +26,15 @@ use super::{
     verify_port, OpenvasEncaps,
 };
 
-pub struct Interval {
+/// Interval used for timing tcp requests. Any tcp request has to wait at least
+/// the time defined by this interval after the last request has been sent.
+struct Interval {
     interval: Duration,
     last_tick: SystemTime,
 }
 
 impl Interval {
+    /// Check the time since the last tick and wait if necessary.
     pub fn tick(&mut self) {
         if let Ok(since) = SystemTime::now().duration_since(self.last_tick) {
             if since < self.interval {
@@ -42,6 +45,7 @@ impl Interval {
     }
 }
 
+/// A small configuration Struct to store TLS relevant information
 struct TlsConfig {
     cert_path: String,
     key_path: String,
@@ -49,6 +53,8 @@ struct TlsConfig {
     cafile_path: String,
 }
 
+/// Representation of a NASL socket. A NASL socket can be either TCP (including TLS),
+/// UDP or Closed
 enum NaslSocket {
     // The TCP Connection is boxed, because it uses a lot of space
     // This way the size of the enum is reduced
@@ -57,12 +63,16 @@ enum NaslSocket {
     Closed,
 }
 
+/// Struct storing handles for socket operations as well as a List of Closed sockets
+/// to override next.
 #[derive(Default)]
 struct Handles {
     handles: Vec<NaslSocket>,
     closed_fd: Vec<usize>,
 }
 
+/// The Top level struct storing all NASL sockets as well as the interval for tcp
+/// requests.
 #[derive(Default)]
 pub struct NaslSockets {
     handles: RwLock<Handles>,
@@ -70,6 +80,8 @@ pub struct NaslSockets {
 }
 
 impl NaslSockets {
+    /// Adds a given NASL socket. It returns the position of the socket within the
+    /// list.
     fn add(&self, socket: NaslSocket) -> usize {
         let mut handles = self
             .handles
@@ -109,6 +121,7 @@ impl NaslSockets {
         Ok(NaslValue::Null)
     }
 
+    /// Check if a new tcp request can be sent and waits if necessary.
     fn wait_before_next_probe(&self) {
         if let Some(interval) = &self.interval {
             interval.write().unwrap().tick();
@@ -180,7 +193,14 @@ impl NaslSockets {
     /// suppose that the last sent datagram was lost and will sent it again a couple of time.
     /// Args:
     /// - socket which was returned by an open sock function
-    /// - length the number of bytes that you want to read at most. recv may return before length bytes have been read: as soon as at least one byte has been received, the timeout is lowered to 1 second. If no data is received during that time, the function returns the already read data; otherwise, if the full initial timeout has not been reached, a 1 second timeout is re-armed and the script tries to receive more data from the socket. This special feature was implemented to get a good compromise between reliability and speed when openvas-scanner talks to unknown or complex protocols. Two other optional named integer arguments can twist this behavior:
+    /// - length the number of bytes that you want to read at most. recv may return before length
+    ///   bytes have been read: as soon as at least one byte has been received, the timeout is
+    ///   lowered to 1 second. If no data is received during that time, the function returns the
+    ///   already read data; otherwise, if the full initial timeout has not been reached, a
+    ///   1 second timeout is re-armed and the script tries to receive more data from the socket.
+    ///   This special feature was implemented to get a good compromise between reliability and
+    ///   speed when openvas-scanner talks to unknown or complex protocols. Two other optional
+    ///   named integer arguments can twist this behavior:
     /// - min is the minimum number of data that must be read in case the “magic read function” is activated and the timeout is lowered. By default this is 0. It works together with length. More info https://lists.archive.carbon60.com/nessus/devel/13796
     /// - timeout can be changed from the default.
     #[nasl_function(named(socket, length, min, timeout))]
@@ -229,6 +249,11 @@ impl NaslSockets {
         }
     }
 
+    /// Receives a line from a TCP response. Note that this only works for NASL sockets
+    /// of type TCP.
+    /// Args:
+    /// - socket which was returned by an open sock function
+    /// - timeout can be changed from the default.
     #[nasl_function(named(socket, length, timeout))]
     fn recv_line(
         &self,
@@ -452,6 +477,8 @@ impl NaslSockets {
         ))
     }
 
+    /// Reads the information necessary for a TLS connection from the KB and
+    /// return a TlsConfig on success.
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FunctionErrorKind> {
         let cert_path = get_kb_item_str(context, "SSL/cert")?;
         let key_path = get_kb_item_str(context, "SSL/key")?;
@@ -500,6 +527,9 @@ impl NaslSockets {
         Ok(NaslValue::Number(port as i64))
     }
 
+    /// Receive a response of a FTP server and checks the status code of it.
+    /// This status code is compared to a list of expected status codes and
+    /// returned, if it is contained in that list.
     pub fn check_ftp_response(
         mut conn: impl BufRead,
         expected_code: &[usize],
