@@ -171,11 +171,11 @@ impl Response {
     }
 
     #[inline]
-    fn ok_json_response(&self, body: BodyKind) -> Result {
+    fn json_response(&self, status: hyper::StatusCode, body: BodyKind) -> Result {
         match self
             .default_response_builder()
             .header("Content-Type", "application/json")
-            .status(hyper::StatusCode::OK)
+            .status(status)
             .body(body)
         {
             Ok(resp) => resp,
@@ -188,8 +188,9 @@ impl Response {
             }
         }
     }
+
     #[inline]
-    pub async fn ok_byte_stream<T>(&self, mut value: T) -> Result
+    pub async fn byte_stream<T>(&self, status: hyper::StatusCode, mut value: T) -> Result
     where
         T: Iterator<Item = Vec<u8>> + Send + 'static,
     {
@@ -227,7 +228,15 @@ impl Response {
             tracing::debug!("end send values");
             drop(tx);
         });
-        self.ok_json_response(BodyKind::BinaryStream(rx))
+        self.json_response(status, BodyKind::BinaryStream(rx))
+    }
+
+    #[inline]
+    pub async fn ok_byte_stream<T>(&self, value: T) -> Result
+    where
+        T: Iterator<Item = Vec<u8>> + Send + 'static,
+    {
+        self.byte_stream(hyper::StatusCode::OK, value).await
     }
 
     #[inline]
@@ -281,7 +290,10 @@ impl Response {
     }
 
     pub fn ok_static(&self, value: &[u8]) -> Result {
-        self.ok_json_response(BodyKind::Binary(value.to_vec().into()))
+        self.json_response(
+            hyper::StatusCode::OK,
+            BodyKind::Binary(value.to_vec().into()),
+        )
     }
 
     pub fn created<T>(&self, value: &T) -> Result

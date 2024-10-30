@@ -265,7 +265,12 @@ where
                     };
                 }
                 Err(e) => {
-                    tracing::warn!(%scan_id, %e, "unable to fetch results");
+                    // TODO: set scan to failed and inform entry to return 500 instead of 200
+                    // Also may remove from running
+                    tracing::warn!(%scan_id, %e, "unable to fetch results, setting scan to failed");
+                    let mut status = self.db.get_status(&scan_id).await?;
+                    status.status = Phase::Failed;
+                    self.db.update_status(&scan_id, status).await?;
                 }
             };
         }

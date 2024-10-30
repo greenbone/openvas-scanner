@@ -346,7 +346,6 @@ paths:
                   description: "Schema of a list of results response"
                 get results 0-3:
                   $ref: "#/components/examples/scan_results"
-
         "400":
           description: "Bad range format"
         "404":
