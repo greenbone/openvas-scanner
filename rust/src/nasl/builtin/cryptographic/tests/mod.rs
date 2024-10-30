@@ -8,4 +8,6 @@ mod des;
 mod hash;
 mod helper;
 mod hmac;
+mod rc4;
 mod rsa;
+

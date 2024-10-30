@@ -49,7 +49,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(regex::RegularExpressions)
         .add_set(cryptographic::Cryptographic)
         .add_set(description::Description)
-        .add_set(isotime::NaslIsotime);
+        .add_set(isotime::NaslIsotime)
+        .add_set(cryptographic::rc4::CipherHandlers::default());
 
     #[cfg(feature = "nasl-builtin-ssh")]
     executor.add_set(ssh::Ssh::default());

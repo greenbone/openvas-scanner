@@ -18,6 +18,7 @@ pub mod bf_cbc;
 pub mod des;
 pub mod hash;
 pub mod hmac;
+pub mod rc4;
 pub mod rsa;
 
 #[cfg(test)]
