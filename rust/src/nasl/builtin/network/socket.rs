@@ -226,12 +226,17 @@ impl NaslSockets {
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
-                let mut pos = 0;
+                let mut pos = match convert_timeout(timeout) {
+                    Some(timeout) => conn.read_with_timeout(&mut data, timeout),
+                    None => conn.read(&mut data),
+                }?;
+                let timeout = Duration::from_secs(1);
                 while pos < min {
-                    pos += match convert_timeout(timeout) {
-                        Some(timeout) => conn.read_with_timeout(&mut data[pos..], timeout),
-                        None => conn.read(&mut data[pos..]),
-                    }?;
+                    match conn.read_with_timeout(&mut data[pos..], timeout) {
+                        Ok(n) => pos += n,
+                        Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
+                        Err(e) => return Err(e.into()),
+                    }
                 }
                 Ok(NaslValue::Data(data[..pos].to_vec()))
             }
