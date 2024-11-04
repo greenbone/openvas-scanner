@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use super::ssh::SshError;
+use super::{ssh::SshError, string::StringError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum BuiltinError {
@@ -8,4 +8,6 @@ pub enum BuiltinError {
     Authentication,
     #[error("{0}")]
     Ssh(SshError),
+    #[error("{0}")]
+    String(StringError),
 }

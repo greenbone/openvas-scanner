@@ -230,7 +230,6 @@ impl From<LoadError> for InterpretError {
 impl From<FunctionError> for InterpretError {
     fn from(fe: FunctionError) -> Self {
         match fe.kind {
-            NaslError::FMTError(fe) => fe.into(),
             NaslError::IOError(ie) => ie.into(),
             NaslError::GeneralError(e) => Self::new(InterpretErrorKind::StorageError(e), None),
             _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),

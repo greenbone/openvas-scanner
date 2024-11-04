@@ -17,8 +17,21 @@ use crate::nasl::{
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
 use std::num::ParseIntError;
+use thiserror::Error;
 
 use crate::nasl::prelude::*;
+
+use super::BuiltinError;
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[error("{0}")]
+pub struct StringError(#[from] std::fmt::Error);
+
+impl From<StringError> for BuiltinError {
+    fn from(value: StringError) -> Self {
+        BuiltinError::String(value)
+    }
+}
 
 /// Decodes given string as hex and returns the result as a byte array
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
@@ -75,7 +88,7 @@ fn raw_string(positional: CheckedPositionals<&NaslValue>) -> Vec<u8> {
     data
 }
 
-fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), NaslError> {
+fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
     match value {
         NaslValue::String(x) => write!(s, "{x}"),
         NaslValue::Data(x) => {
@@ -109,7 +122,7 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), NaslError>
 
 /// NASL function to parse values into string representations
 #[nasl_function]
-fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, NaslError> {
+fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, BuiltinError> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
         write_nasl_string_value(&mut s, p)?;
@@ -117,7 +130,7 @@ fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, NaslE
     Ok(s.into())
 }
 
-fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), NaslError> {
+fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
     match value {
         NaslValue::Array(x) => {
             for p in x {

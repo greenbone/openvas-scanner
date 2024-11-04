@@ -41,9 +41,6 @@ pub enum InternalError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Wraps formatting error
-    #[error("Formatting error: {0}")]
-    FMTError(#[from] std::fmt::Error),
     /// Wraps io::Error
     #[error("IOError: {0}")]
     IOError(io::ErrorKind),
