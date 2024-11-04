@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::{
-    function_set,
-    nasl::utils::{Context, NaslError, Register},
-};
+use crate::nasl::prelude::*;
 use aes::cipher::BlockEncrypt;
 use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
@@ -16,10 +13,10 @@ fn encrypt_des(
 ) -> Result<crate::nasl::syntax::NaslValue, NaslError> {
     let positional = register.positional();
     if positional.len() != 2 {
-        return Err(NaslError::MissingPositionalArguments {
+        return Err(NaslError::Argument(ArgumentError::MissingPositionals {
             expected: 2,
             got: positional.len(),
-        });
+        }));
     }
     let key = match &positional[1] {
         crate::nasl::syntax::NaslValue::Data(x) => x,

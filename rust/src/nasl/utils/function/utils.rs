@@ -27,7 +27,7 @@ pub fn get_positional_arg<'a, T: FromNaslValue<'a>>(
     let positional = register.positional();
     let arg = positional.get(position).ok_or_else(|| {
         let num_given = positional.len();
-        NaslError::MissingPositionalArguments {
+        ArgumentError::MissingPositionals {
             expected: num_required_positional_args,
             got: num_given,
         }

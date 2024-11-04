@@ -387,10 +387,10 @@ fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, 
 fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(NaslError::MissingPositionalArguments {
+        return Err(NaslError::Argument(ArgumentError::MissingPositionals {
             expected: 1,
             got: 0,
-        });
+        }));
     }
 
     for ip in positional.iter() {

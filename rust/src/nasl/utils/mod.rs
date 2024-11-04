@@ -12,6 +12,8 @@ pub mod lookup_keys;
 use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
+pub use error::ArgumentError;
+pub use error::InternalError;
 pub use error::NaslError;
 
 pub use executor::{Executor, IntoFunctionSet, StoredFunctionSet};

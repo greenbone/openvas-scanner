@@ -6,27 +6,41 @@
 use std::io;
 use thiserror::Error;
 
+use crate::nasl::builtin::{BuiltinError, SshError};
 use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
 
-use super::super::builtin::SshError;
 use super::ContextType;
 
 /// Reuses the StorageError definitions as they should fit most cases.
 pub type GeneralErrorType = StorageError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum ArgumentError {
+    #[error("Expected {expected} but got {got}")]
+    MissingPositionals { expected: usize, got: usize },
+    #[error("Expected {expected} but got {got}")]
+    TrailingPositionals { expected: usize, got: usize },
+    #[error("Missing arguments: {}", .0.join(", "))]
+    MissingNamed(Vec<String>),
+    #[error("Unknown named argument given to function: {}", .0)]
+    Unexpected(String),
+    #[error("Function was called with wrong arguments: {0}")]
+    Wrong(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum InternalError {
+    #[error("{0}")]
+    GeneralError(#[from] GeneralErrorType),
+    #[error("{0}")]
+    Dirty(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Function called with insufficient arguments
-    #[error("Expected {expected} but got {got}")]
-    MissingPositionalArguments {
-        /// Expected amount of arguments
-        expected: usize,
-        /// Actual amount of arguments
-        got: usize,
-    },
     /// Function called with trailing positional arguments
     #[error("Expected {expected} but got {got}")]
     TrailingPositionalArguments {
@@ -66,6 +80,12 @@ pub enum NaslError {
     /// An Error originating from an SSH-specific NASL function
     #[error("SSH error: {0}")]
     Ssh(SshError),
+    #[error("{0}")]
+    Argument(#[from] ArgumentError),
+    #[error("{0}")]
+    Builtin(#[from] BuiltinError),
+    #[error("{0}")]
+    Internal(#[from] InternalError),
 }
 
 // It would be nicer to derive this using #[from] from

@@ -13,7 +13,7 @@ use server::TestServer;
 use crate::check_err_matches;
 use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::builtin::ssh::sessions::MIN_SESSION_ID;
-use crate::nasl::builtin::SshError;
+use crate::nasl::builtin::ssh::SshError;
 use crate::nasl::test_prelude::*;
 use crate::nasl::NoOpLoader;
 use crate::storage::DefaultDispatcher;

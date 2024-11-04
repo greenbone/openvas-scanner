@@ -27,7 +27,7 @@ mod tests {
         check_err_matches!(
             t,
             r#"get_kb_item();"#,
-            NaslError::MissingPositionalArguments { .. }
+            Argument(ArgumentError::MissingPositionals { .. })
         );
     }
 

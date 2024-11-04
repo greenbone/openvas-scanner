@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 #[cfg(test)]
 mod tests {
-    use crate::nasl::test_prelude::*;
+    use crate::nasl::{test_prelude::*, utils::error::ArgumentError};
     use NaslError::*;
     use NaslValue::*;
 
@@ -82,7 +82,10 @@ mod tests {
         check_code_result("chomp('abc\n');", "abc");
         check_code_result("chomp('abc  ');", "abc");
         check_code_result("chomp('abc\n\t\r ');", "abc");
-        check_err_matches!("chomp();", MissingPositionalArguments { .. });
+        check_err_matches!(
+            "chomp();",
+            Argument(ArgumentError::MissingPositionals { .. })
+        );
     }
 
     #[test]
@@ -123,7 +126,7 @@ mod tests {
         check_code_result(r#"ord("c");"#, 99);
         check_code_result(r#"ord("");"#, Null);
         check_code_result("ord(1);", 49);
-        check_err_matches!("ord();", MissingPositionalArguments { .. });
+        check_err_matches!("ord();", Argument(ArgumentError::MissingPositionals { .. }));
     }
 
     #[test]
@@ -153,7 +156,10 @@ mod tests {
         check_code_result(r#"hex(256);"#, "0x00");
         check_code_result(r#"hex(257);"#, "0x01");
         check_code_result(r#"hex(-2);"#, "0xfe");
-        check_err_matches!(r#"hex();"#, MissingPositionalArguments { .. });
+        check_err_matches!(
+            r#"hex();"#,
+            Argument(ArgumentError::MissingPositionals { .. })
+        );
     }
 
     #[test]
@@ -210,7 +216,10 @@ mod tests {
             r#"split("a;b;c", sep: ";");"#,
             vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
         );
-        check_err_matches!(r#"split();"#, MissingPositionalArguments { .. });
+        check_err_matches!(
+            r#"split();"#,
+            Argument(ArgumentError::MissingPositionals { .. })
+        );
     }
 
     #[test]
@@ -236,7 +245,13 @@ mod tests {
         check_code_result(r#"strstr("abc", "b");"#, "bc");
         check_code_result(r#"strstr("abcbd", "b");"#, "bcbd");
         check_code_result(r#"strstr('a\rbcbd', '\rb');"#, "\rbcbd");
-        check_err_matches!(r#"strstr();"#, MissingPositionalArguments { .. });
-        check_err_matches!(r#"strstr("a");"#, MissingPositionalArguments { .. });
+        check_err_matches!(
+            r#"strstr();"#,
+            Argument(ArgumentError::MissingPositionals { .. })
+        );
+        check_err_matches!(
+            r#"strstr("a");"#,
+            Argument(ArgumentError::MissingPositionals { .. })
+        );
     }
 }
