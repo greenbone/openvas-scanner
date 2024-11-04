@@ -7,6 +7,7 @@ pub mod utils;
 pub mod test_utils;
 
 pub mod prelude {
+    pub use super::builtin::BuiltinError;
     pub use super::builtin::ContextFactory;
     pub use super::builtin::RegisterBuilder;
     pub use super::syntax::FSPluginLoader;

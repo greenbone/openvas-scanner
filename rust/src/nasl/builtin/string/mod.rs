@@ -27,12 +27,6 @@ use super::BuiltinError;
 #[error("{0}")]
 pub struct StringError(#[from] std::fmt::Error);
 
-impl From<StringError> for BuiltinError {
-    fn from(value: StringError) -> Self {
-        BuiltinError::String(value)
-    }
-}
-
 /// Decodes given string as hex and returns the result as a byte array
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
     (0..s.len())

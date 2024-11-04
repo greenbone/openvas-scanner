@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines function error kinds
-use std::io;
 use thiserror::Error;
 
 use crate::nasl::builtin::{BuiltinError, SshError};
@@ -41,9 +40,6 @@ pub enum InternalError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Wraps io::Error
-    #[error("IOError: {0}")]
-    IOError(io::ErrorKind),
     /// Authentication failed
     #[error("Authentication failed.")]
     Authentication,
@@ -98,16 +94,6 @@ impl TryFrom<NaslError> for BuiltinError {
             NaslError::Builtin(e) => Ok(e),
             _ => Err(()),
         }
-    }
-}
-
-// It would be nicer to derive this using #[from] from
-// thiserror, but io::Error does not impl `PartialEq`,
-// `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
-// does not impl `Error` which is why this `From` impl exists.
-impl From<io::Error> for NaslError {
-    fn from(e: io::Error) -> Self {
-        Self::IOError(e.kind())
     }
 }
 

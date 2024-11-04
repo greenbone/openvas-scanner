@@ -10,7 +10,7 @@ mod tests;
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Read, Write},
+    io::{self, Read, Write},
     thread,
     time::{self, Duration, UNIX_EPOCH},
 };
@@ -19,16 +19,31 @@ use chrono::{
     self, DateTime, Datelike, FixedOffset, Local, LocalResult, Offset, TimeZone, Timelike, Utc,
 };
 use nasl_function_proc_macro::nasl_function;
+use thiserror::Error;
 
 use crate::nasl::{prelude::*, utils::function::Maybe};
 use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[error("{0}")]
+// It would be nicer to derive this using #[from] from
+// thiserror, but io::Error does not impl `PartialEq`,
+// `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
+// does not impl `Error` which is why this `From` impl exists.
+pub struct MiscError(io::ErrorKind);
+
+impl From<io::Error> for MiscError {
+    fn from(value: io::Error) -> Self {
+        Self(value.kind())
+    }
+}
+
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
-pub fn random_impl() -> Result<i64, NaslError> {
+pub fn random_impl() -> Result<i64, MiscError> {
     let mut rng = File::open("/dev/urandom")?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
@@ -38,7 +53,7 @@ pub fn random_impl() -> Result<i64, NaslError> {
 
 /// NASL function to get random number
 #[nasl_function]
-fn rand() -> Result<i64, NaslError> {
+fn rand() -> Result<i64, MiscError> {
     random_impl()
 }
 

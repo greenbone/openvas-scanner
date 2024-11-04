@@ -11,11 +11,13 @@ use std::{
 
 use crate::nasl::prelude::*;
 
+use super::socket::SocketError;
+
 /// Convert a string in a IpAddr
-pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, NaslError> {
+pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, SocketError> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(NaslError::Diagnostic(
+        Err(_) => Err(SocketError::Diagnostic(
             format!("Invalid IP address ({})", ip_addr),
             Some(NaslValue::Null),
         )),
@@ -23,8 +25,8 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, NaslError> {
 }
 
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, NaslError> {
-    let fe = Err(NaslError::Diagnostic("Error binding".to_string(), None));
+pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, SocketError> {
+    let fe = Err(SocketError::Diagnostic("Error binding".to_string(), None));
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
         SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or(fe),
@@ -32,7 +34,7 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, NaslError> {
 }
 
 /// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, NaslError> {
+pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, SocketError> {
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;
@@ -41,7 +43,7 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, NaslError> {
         .ok()
         .and_then(|_| local_socket.local_addr().ok())
         .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
-        .ok_or_else(|| NaslError::Diagnostic("No route to destination".to_string(), None))
+        .ok_or_else(|| SocketError::Diagnostic("No route to destination".to_string(), None))
 }
 
 /// Tests whether a packet sent to IP is LIKELY to route through the
@@ -57,13 +59,13 @@ pub fn islocalhost(addr: IpAddr) -> bool {
 }
 
 /// Get the interface from the local ip
-pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, NaslError> {
+pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, SocketError> {
     let mut interfaces: *mut libc::ifaddrs = ptr::null_mut();
 
     let ret = unsafe { libc::getifaddrs(&mut interfaces) };
 
     if ret < 0 {
-        return Err(NaslError::Diagnostic(
+        return Err(SocketError::Diagnostic(
             "Error getting interfaces".to_string(),
             None,
         ));
@@ -123,7 +125,7 @@ pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, 
     unsafe {
         libc::freeifaddrs(interfaces);
     }
-    Err(NaslError::Diagnostic(
+    Err(SocketError::Diagnostic(
         "No route to destination".to_string(),
         None,
     ))
