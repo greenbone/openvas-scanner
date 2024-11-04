@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-// FunctionErrorKind::GeneralError
+// NaslError::GeneralError
 use super::helper::decode_hex;
 use crate::nasl::test_prelude::*;
 

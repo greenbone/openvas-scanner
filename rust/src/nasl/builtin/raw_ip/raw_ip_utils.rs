@@ -8,14 +8,14 @@ use std::{
 };
 
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::FunctionErrorKind;
+use crate::nasl::utils::NaslError;
 use pcap::{Address, Device};
 
 /// Convert a string in a IpAddr
-pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
+pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, NaslError> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(FunctionErrorKind::Diagnostic(
+        Err(_) => Err(NaslError::Diagnostic(
             "Invalid IP address".to_string(),
             Some(NaslValue::Null),
         )),
@@ -39,7 +39,7 @@ pub fn islocalhost(addr: IpAddr) -> bool {
 }
 
 /// Get the interface from the local ip
-pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionErrorKind> {
+pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, NaslError> {
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
     // doesn't have an associated address.
@@ -70,18 +70,15 @@ pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, Functi
 
     match dev {
         Some(dev) => Ok(dev),
-        _ => Err(FunctionErrorKind::Diagnostic(
+        _ => Err(NaslError::Diagnostic(
             "Invalid ip address".to_string(),
             None,
         )),
     }
 }
 
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
-    let fe = Err(FunctionErrorKind::Diagnostic(
-        "Error binding".to_string(),
-        None,
-    ));
+pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, NaslError> {
+    let fe = Err(NaslError::Diagnostic("Error binding".to_string(), None));
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
         SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
@@ -89,7 +86,7 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKin
 }
 
 /// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, NaslError> {
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;
@@ -97,17 +94,17 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind
         Ok(_) => match local_socket.local_addr() {
             Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
                 Ok(x) => Ok(x),
-                Err(_) => Err(FunctionErrorKind::Diagnostic(
+                Err(_) => Err(NaslError::Diagnostic(
                     "No route to destination".to_string(),
                     None,
                 )),
             },
-            Err(_) => Err(FunctionErrorKind::Diagnostic(
+            Err(_) => Err(NaslError::Diagnostic(
                 "No route to destination".to_string(),
                 None,
             )),
         },
-        Err(_) => Err(FunctionErrorKind::Diagnostic(
+        Err(_) => Err(NaslError::Diagnostic(
             "No route to destination".to_string(),
             None,
         )),

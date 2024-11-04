@@ -6,7 +6,7 @@ use std::io;
 
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
-use crate::nasl::utils::error::FunctionErrorKind;
+use crate::nasl::utils::error::NaslError;
 use crate::storage::StorageError;
 use thiserror::Error;
 
@@ -18,12 +18,12 @@ pub struct FunctionError {
     pub function: String,
     /// Kind of error
     #[source]
-    pub kind: FunctionErrorKind,
+    pub kind: NaslError,
 }
 
 impl FunctionError {
     /// Creates a new FunctionError
-    pub fn new(function: &str, kind: FunctionErrorKind) -> Self {
+    pub fn new(function: &str, kind: NaslError) -> Self {
         Self {
             function: function.to_owned(),
             kind,
@@ -230,11 +230,9 @@ impl From<LoadError> for InterpretError {
 impl From<FunctionError> for InterpretError {
     fn from(fe: FunctionError) -> Self {
         match fe.kind {
-            FunctionErrorKind::FMTError(fe) => fe.into(),
-            FunctionErrorKind::IOError(ie) => ie.into(),
-            FunctionErrorKind::GeneralError(e) => {
-                Self::new(InterpretErrorKind::StorageError(e), None)
-            }
+            NaslError::FMTError(fe) => fe.into(),
+            NaslError::IOError(ie) => ie.into(),
+            NaslError::GeneralError(e) => Self::new(InterpretErrorKind::StorageError(e), None),
             _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),
         }
     }

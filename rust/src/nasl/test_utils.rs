@@ -294,7 +294,7 @@ where
 
     fn check_result(
         &self,
-        result: &Result<NaslValue, FunctionErrorKind>,
+        result: &Result<NaslValue, NaslError>,
         reference: &TracedTestResult,
         line_count: usize,
     ) {
@@ -305,7 +305,7 @@ where
                         "Mismatch at {}.\nIn code \"{}\":\nExpected: {:?}\nFound:    {:?}",
                         reference.location,
                         self.lines[line_count],
-                        Ok::<_, FunctionErrorKind>(reference_result),
+                        Ok::<_, NaslError>(reference_result),
                         result,
                     );
                 }
@@ -326,7 +326,7 @@ where
 
     fn compare_result(
         &self,
-        result: &Result<NaslValue, FunctionErrorKind>,
+        result: &Result<NaslValue, NaslError>,
         reference: &TestResult,
     ) -> bool {
         match reference {

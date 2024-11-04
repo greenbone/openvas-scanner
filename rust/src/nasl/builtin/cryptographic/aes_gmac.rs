@@ -11,7 +11,7 @@ use crate::function_set;
 fn aes_gmac(
     register: &crate::nasl::utils::Register,
     _: &crate::nasl::utils::Context,
-) -> Result<crate::nasl::syntax::NaslValue, crate::nasl::utils::FunctionErrorKind> {
+) -> Result<crate::nasl::syntax::NaslValue, crate::nasl::utils::NaslError> {
     use super::{get_data, get_iv, get_key};
     use nasl_c_lib::cryptographic::mac::aes_gmac;
 
@@ -21,7 +21,7 @@ fn aes_gmac(
 
     match aes_gmac(data, key, iv) {
         Ok(val) => Ok(val.into()),
-        Err(code) => Err(crate::nasl::utils::FunctionErrorKind::GeneralError(
+        Err(code) => Err(crate::nasl::utils::NaslError::GeneralError(
             crate::nasl::utils::error::GeneralErrorType::UnexpectedData(format!(
                 "Error code {}",
                 code

@@ -26,7 +26,7 @@ impl Reporting {
         typus: ResultType,
         register: &Register,
         context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, NaslError> {
         let data = register.named("data").map(|x| x.to_string());
         let port = register
             .named("port")
@@ -70,11 +70,7 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
-    fn log_message(
-        &self,
-        register: &Register,
-        context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    fn log_message(&self, register: &Register, context: &Context) -> Result<NaslValue, NaslError> {
         self.store_result(ResultType::Log, register, context)
     }
 
@@ -89,7 +85,7 @@ impl Reporting {
         &self,
         register: &Register,
         context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, NaslError> {
         self.store_result(ResultType::Alarm, register, context)
     }
 
@@ -104,7 +100,7 @@ impl Reporting {
         &self,
         register: &Register,
         context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, NaslError> {
         self.store_result(ResultType::Error, register, context)
     }
 }

@@ -10,7 +10,7 @@ use super::{
     verify_port, DEFAULT_PORT,
 };
 use crate::function_set;
-use crate::nasl::utils::{Context, FunctionErrorKind};
+use crate::nasl::utils::{Context, NaslError};
 use crate::storage::{types::Primitive, Field, Kb};
 use nasl_function_proc_macro::nasl_function;
 
@@ -22,7 +22,7 @@ fn get_host_ip(context: &Context) -> String {
 
 /// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
-fn this_host(context: &Context) -> Result<String, FunctionErrorKind> {
+fn this_host(context: &Context) -> Result<String, NaslError> {
     let dst = ipstr2ipaddr(context.target())?;
 
     let port: u16 = DEFAULT_PORT;
@@ -42,21 +42,21 @@ fn this_host_name() -> String {
 
 /// get the maximum transition unit for the scanned host
 #[nasl_function]
-fn get_mtu(context: &Context) -> Result<i64, FunctionErrorKind> {
+fn get_mtu(context: &Context) -> Result<i64, NaslError> {
     let target = ipstr2ipaddr(context.target())?;
     Ok(mtu(target) as i64)
 }
 
 /// check if the currently scanned host is the localhost
 #[nasl_function]
-fn nasl_islocalhost(context: &Context) -> Result<bool, FunctionErrorKind> {
+fn nasl_islocalhost(context: &Context) -> Result<bool, NaslError> {
     let host_ip = ipstr2ipaddr(context.target())?;
     Ok(islocalhost(host_ip))
 }
 
 /// Check if the target host is on the same network as the attacking host
 #[nasl_function]
-fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
+fn islocalnet(context: &Context) -> Result<bool, NaslError> {
     let dst = ipstr2ipaddr(context.target())?;
     let src = get_source_ip(dst, DEFAULT_PORT)?;
     let netmask = match get_netmask_by_local_ip(src)? {
@@ -131,11 +131,7 @@ fn islocalnet(context: &Context) -> Result<bool, FunctionErrorKind> {
 
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
-fn scanner_add_port(
-    context: &Context,
-    port: i64,
-    proto: Option<&str>,
-) -> Result<(), FunctionErrorKind> {
+fn scanner_add_port(context: &Context, port: i64, proto: Option<&str>) -> Result<(), NaslError> {
     let port = verify_port(port)?;
     let protocol = proto.unwrap_or("tcp");
 

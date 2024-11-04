@@ -2,7 +2,7 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::nasl::FunctionErrorKind;
+use crate::nasl::NaslError;
 
 use super::SessionId;
 
@@ -170,8 +170,8 @@ impl SshError {
     }
 }
 
-impl From<SshError> for FunctionErrorKind {
+impl From<SshError> for NaslError {
     fn from(e: SshError) -> Self {
-        FunctionErrorKind::Ssh(e)
+        NaslError::Ssh(e)
     }
 }

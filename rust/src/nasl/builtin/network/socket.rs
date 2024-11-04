@@ -14,7 +14,7 @@ use std::{
 
 use crate::function_set;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{error::FunctionErrorKind, Context};
+use crate::nasl::utils::{error::NaslError, Context};
 use dns_lookup::lookup_host;
 use nasl_function_proc_macro::nasl_function;
 use pkcs8::der::Decode;
@@ -65,12 +65,7 @@ impl TCPConnection {
     /// Send data on a TCP connection using the libc send function.
     /// To ensure safety of the function, the caller must ensure, that the given length does not
     /// exceed the length of the given data data.
-    unsafe fn send(
-        &self,
-        mut data: &[u8],
-        len: usize,
-        flags: i32,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    unsafe fn send(&self, mut data: &[u8], len: usize, flags: i32) -> Result<NaslValue, NaslError> {
         let fd = self.socket.as_raw_fd();
         let mut ret = 0;
         while !data.is_empty() {
@@ -95,12 +90,7 @@ impl UDPConnection {
     /// Send data on a UDP connection using the libc send function.
     /// To ensure safety of the function, the caller must ensure, that the given length does not
     /// exceed the length of the given data data.
-    unsafe fn send(
-        &mut self,
-        data: &[u8],
-        len: usize,
-        flags: i32,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    unsafe fn send(&mut self, data: &[u8], len: usize, flags: i32) -> Result<NaslValue, NaslError> {
         let fd = self.socket.as_raw_fd();
 
         let ip = self.socket.peer_addr()?.ip();
@@ -108,7 +98,7 @@ impl UDPConnection {
         let mtu = mtu(ip);
 
         if len > mtu {
-            return Err(FunctionErrorKind::Diagnostic(
+            return Err(NaslError::Diagnostic(
                 format!(
                     "udp data of size {} exceeds the maximum length of {}",
                     len, mtu
@@ -145,11 +135,11 @@ pub struct NaslSockets {
 }
 
 impl NaslSockets {
-    fn resolve_socket_addr(addr: IpAddr, port: u16) -> Result<SocketAddr, FunctionErrorKind> {
+    fn resolve_socket_addr(addr: IpAddr, port: u16) -> Result<SocketAddr, NaslError> {
         (addr, port)
             .to_socket_addrs()?
             .next()
-            .ok_or(FunctionErrorKind::Diagnostic(
+            .ok_or(NaslError::Diagnostic(
                 format!(
                     "the given address and port do not correspond to a valid address: {addr}:{port}"
                 ),
@@ -157,7 +147,7 @@ impl NaslSockets {
             ))
     }
 
-    fn open_udp(addr: IpAddr, port: u16) -> Result<NaslSocket, FunctionErrorKind> {
+    fn open_udp(addr: IpAddr, port: u16) -> Result<NaslSocket, NaslError> {
         let sock_addr = Self::resolve_socket_addr(addr, port)?;
         let socket = bind_local_socket(&sock_addr)?;
         socket.connect(sock_addr)?;
@@ -174,7 +164,7 @@ impl NaslSockets {
         bufsz: Option<i64>,
         timeout: Duration,
         tls_config: Option<&TLSConfig>,
-    ) -> Result<NaslSocket, FunctionErrorKind> {
+    ) -> Result<NaslSocket, NaslError> {
         // Resolve Address and Port to SocketAddr
         let sock_addr = Self::resolve_socket_addr(addr, port)?;
         // Create Vec depending of buffer size
@@ -203,7 +193,7 @@ impl NaslSockets {
             Some(config) => Some(
                 ClientConnection::new(Arc::new(config.config.clone()), config.server.clone())
                     .map_err(|e| {
-                        FunctionErrorKind::Diagnostic(
+                        NaslError::Diagnostic(
                             format!("Unable to establish TLS connection: {e}"),
                             None,
                         )
@@ -235,11 +225,11 @@ impl NaslSockets {
 
     /// Close a given file descriptor taken as an unnamed argument.
     #[nasl_function]
-    fn close(&self, socket_fd: usize) -> Result<NaslValue, FunctionErrorKind> {
+    fn close(&self, socket_fd: usize) -> Result<NaslValue, NaslError> {
         let mut handles = self.handles.write().unwrap();
         match handles.handles.get_mut(socket_fd) {
             Some(NaslSocket::Close) => {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(NaslError::Diagnostic(
                     "the given socket FD is already closed".to_string(),
                     None,
                 ))
@@ -249,7 +239,7 @@ impl NaslSockets {
                 handles.closed_fd.push(socket_fd);
             }
             None => {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(NaslError::Diagnostic(
                     "the given socket FD does not exist".to_string(),
                     None,
                 ))
@@ -280,7 +270,7 @@ impl NaslSockets {
         data: &[u8],
         flags: Option<i64>,
         len: Option<usize>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, NaslError> {
         let len = if let Some(len) = len {
             if len < 1 || len > data.len() {
                 data.len()
@@ -299,7 +289,7 @@ impl NaslSockets {
             .unwrap()
             .handles
             .get_mut(socket)
-            .ok_or(FunctionErrorKind::WrongArgument(format!(
+            .ok_or(NaslError::WrongArgument(format!(
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
@@ -321,7 +311,7 @@ impl NaslSockets {
                 }
             }
             NaslSocket::Udp(conn) => unsafe { conn.send(data, len, flags.unwrap_or(0) as i32) },
-            NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
+            NaslSocket::Close => Err(NaslError::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
         }
@@ -332,7 +322,7 @@ impl NaslSockets {
         data: &mut [u8],
         len: usize,
         min: usize,
-    ) -> Result<(), FunctionErrorKind> {
+    ) -> Result<(), NaslError> {
         let mut ret = 0;
         while ret < len && ret < min {
             let n = socket.read(&mut data[ret..]).or_else(|e| match e.kind() {
@@ -361,7 +351,7 @@ impl NaslSockets {
         len: usize,
         min: Option<i64>,
         timeout: Option<i64>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, NaslError> {
         let min = min
             .map(|min| if min < 0 { len } else { min as usize })
             .unwrap_or(len);
@@ -375,7 +365,7 @@ impl NaslSockets {
             .unwrap()
             .handles
             .get_mut(socket)
-            .ok_or(FunctionErrorKind::WrongArgument(format!(
+            .ok_or(NaslError::WrongArgument(format!(
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
@@ -422,7 +412,7 @@ impl NaslSockets {
                                 conn.socket.send(&conn.buffer)?;
                             }
                             kind => {
-                                ret = Err(FunctionErrorKind::IOError(kind));
+                                ret = Err(NaslError::IOError(kind));
                                 break;
                             }
                         },
@@ -435,7 +425,7 @@ impl NaslSockets {
                 }
                 ret
             }
-            NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
+            NaslSocket::Close => Err(NaslError::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
         }
@@ -446,10 +436,10 @@ impl NaslSockets {
     /// - Secret/kdc_port
     /// - Secret/kdc_use_tcp
     #[nasl_function]
-    fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
+    fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, NaslError> {
         let hostname = match get_kb_item(context, "Secret/kdc_hostname")? {
             Some(x) => Ok(x.to_string()),
-            None => Err(FunctionErrorKind::Diagnostic(
+            None => Err(NaslError::Diagnostic(
                 "KB key 'Secret/kdc_hostname' is not set".to_string(),
                 None,
             )),
@@ -457,11 +447,11 @@ impl NaslSockets {
 
         let ip = lookup_host(&hostname)
             .map_err(|_| {
-                FunctionErrorKind::Diagnostic(format!("unable to lookup hostname {hostname}"), None)
+                NaslError::Diagnostic(format!("unable to lookup hostname {hostname}"), None)
             })?
             .into_iter()
             .next()
-            .ok_or(FunctionErrorKind::Diagnostic(
+            .ok_or(NaslError::Diagnostic(
                 format!("No IP found for hostname {hostname}"),
                 None,
             ))?;
@@ -471,7 +461,7 @@ impl NaslSockets {
         let port = match port {
             Some(NaslValue::Number(x)) => {
                 if x <= 0 || x > 65535 {
-                    Err(FunctionErrorKind::Diagnostic(
+                    Err(NaslError::Diagnostic(
                         "KB key 'Secret/kdc_port' out of range".to_string(),
                         port,
                     ))
@@ -479,11 +469,11 @@ impl NaslSockets {
                     Ok(x as u16)
                 }
             }
-            Some(_) => Err(FunctionErrorKind::Diagnostic(
+            Some(_) => Err(NaslError::Diagnostic(
                 "KB key 'Secret/kdc_port' has wrong type".to_string(),
                 port,
             )),
-            None => Err(FunctionErrorKind::Diagnostic(
+            None => Err(NaslError::Diagnostic(
                 "KB key 'Secret/kdc_port' is not set".to_string(),
                 None,
             )),
@@ -529,14 +519,14 @@ impl NaslSockets {
         bufsz: Option<i64>,
         // TODO: Extract information from custom priority string
         // priority: Option<&str>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, NaslError> {
         // Get port
         let port = verify_port(port)?;
         let transport = transport.unwrap_or(-1);
 
         let addr = context.target();
         if addr.is_empty() {
-            return Err(FunctionErrorKind::Dirty(
+            return Err(NaslError::Dirty(
                 "A target must be specified to open a socket".to_string(),
             ));
         }
@@ -591,7 +581,7 @@ impl NaslSockets {
                 }
                 // Unsupported transport layer
                 None | Some(OpenvasEncaps::Max) => {
-                    return Err(FunctionErrorKind::WrongArgument(format!(
+                    return Err(NaslError::WrongArgument(format!(
                         "unsupported transport layer: {transport}(unknown)"
                     )))
                 }
@@ -603,7 +593,7 @@ impl NaslSockets {
                         fds.push(self.add(fd))
                     }
                     _ => {
-                        return Err(FunctionErrorKind::WrongArgument(format!(
+                        return Err(NaslError::WrongArgument(format!(
                             "unsupported transport layer: {transport}{tls_version}"
                         )))
                     }
@@ -626,7 +616,7 @@ impl NaslSockets {
         bufsz: Option<i64>,
         timeout: Duration,
         tls_config: Option<TLSConfig>,
-    ) -> Result<NaslSocket, FunctionErrorKind> {
+    ) -> Result<NaslSocket, NaslError> {
         let addr = ipstr2ipaddr(addr)?;
         let mut retry = super::get_kb_item(context, "timeout_retry")?
             .map(|val| match val {
@@ -640,7 +630,7 @@ impl NaslSockets {
             match Self::open_tcp(addr, port, bufsz, timeout, tls_config.as_ref()) {
                 Ok(socket) => return Ok(socket),
                 Err(err) => {
-                    if !matches!(err, FunctionErrorKind::IOError(io::ErrorKind::TimedOut)) {
+                    if !matches!(err, NaslError::IOError(io::ErrorKind::TimedOut)) {
                         return Err(err);
                     }
                     retry -= 1;
@@ -652,10 +642,10 @@ impl NaslSockets {
         // 2. Log too many timeouts
         // 3. Create result of type error with:
         //   ERRMSG|||<IP>|||<vhost>|||<port>/tcp||| ||| Too many timeouts. The port was set to closed
-        Err(FunctionErrorKind::IOError(io::ErrorKind::TimedOut))
+        Err(NaslError::IOError(io::ErrorKind::TimedOut))
     }
 
-    fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, FunctionErrorKind> {
+    fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, NaslError> {
         let keyfile = fs::File::open(filename)?;
         let mut reader = BufReader::new(keyfile);
 
@@ -669,7 +659,7 @@ impl NaslSockets {
             }
         }
 
-        Err(FunctionErrorKind::Diagnostic(
+        Err(NaslError::Diagnostic(
             format!(
                 "no keys found in {:?} (encrypted keys not supported)",
                 filename
@@ -686,15 +676,15 @@ impl NaslSockets {
         bufsz: Option<i64>,
         timeout: Duration,
         hostname: &str,
-    ) -> Result<NaslSocket, FunctionErrorKind> {
+    ) -> Result<NaslSocket, NaslError> {
         let cert_path = get_kb_item(context, "SSL/cert")?
-            .ok_or(FunctionErrorKind::Diagnostic(
+            .ok_or(NaslError::Diagnostic(
                 "unable to open TLS connection: kes 'SSL/cert' is missing".to_string(),
                 None,
             ))?
             .to_string();
         let key_path = get_kb_item(context, "SSL/key")?
-            .ok_or(FunctionErrorKind::Diagnostic(
+            .ok_or(NaslError::Diagnostic(
                 "unable to open TLS connection: kes 'SSL/key' is missing".to_string(),
                 None,
             ))?
@@ -703,16 +693,15 @@ impl NaslSockets {
             .unwrap_or(NaslValue::Null)
             .to_string();
         let cafile_path = get_kb_item(context, "SSL/CA")?
-            .ok_or(FunctionErrorKind::Diagnostic(
+            .ok_or(NaslError::Diagnostic(
                 "unable to open TLS connection: kes 'SSL/CA' is missing".to_string(),
                 None,
             ))?
             .to_string();
 
         // TODO: From vhost name
-        let server = ServerName::try_from(hostname.to_owned()).map_err(|_| {
-            FunctionErrorKind::Dirty(format!("Given vHost Name {hostname} is not valid"))
-        })?;
+        let server = ServerName::try_from(hostname.to_owned())
+            .map_err(|_| NaslError::Dirty(format!("Given vHost Name {hostname} is not valid")))?;
 
         let mut root_store = RootCertStore::empty();
         let ca_file = fs::File::open(cafile_path)?;
@@ -732,13 +721,13 @@ impl NaslSockets {
         if !password.is_empty() {
             let encrypted_key = pkcs8::EncryptedPrivateKeyInfo::from_der(key.secret_der())
                 .map_err(|_| {
-                    FunctionErrorKind::Diagnostic(
+                    NaslError::Diagnostic(
                         format!("Unable to decrypt private key {key_path} with given password"),
                         None,
                     )
                 })?;
             let decrypted_key = encrypted_key.decrypt(password).map_err(|_| {
-                FunctionErrorKind::Diagnostic(
+                NaslError::Diagnostic(
                     format!("Unable to decrypt private key {key_path} with given password"),
                     None,
                 )
@@ -751,7 +740,7 @@ impl NaslSockets {
         let config = ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_client_auth_cert(cert, key)
-            .map_err(|_| FunctionErrorKind::WrongArgument("Invalid Key".to_string()))?;
+            .map_err(|_| NaslError::WrongArgument("Invalid Key".to_string()))?;
 
         self.open_sock_tcp_ip(
             context,
@@ -765,7 +754,7 @@ impl NaslSockets {
 
     /// Open a UDP socket to the target host
     #[nasl_function]
-    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, FunctionErrorKind> {
+    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, NaslError> {
         let port = verify_port(port)?;
         let addr = ipstr2ipaddr(context.target())?;
 

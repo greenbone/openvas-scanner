@@ -28,7 +28,7 @@ use flate2::{
 #[inline]
 #[cfg(unix)]
 /// Reads 8 bytes from /dev/urandom and parses it to an i64
-pub fn random_impl() -> Result<i64, FunctionErrorKind> {
+pub fn random_impl() -> Result<i64, NaslError> {
     let mut rng = File::open("/dev/urandom")?;
     let mut buffer = [0u8; 8];
     rng.read_exact(&mut buffer)
@@ -38,7 +38,7 @@ pub fn random_impl() -> Result<i64, FunctionErrorKind> {
 
 /// NASL function to get random number
 #[nasl_function]
-fn rand() -> Result<i64, FunctionErrorKind> {
+fn rand() -> Result<i64, NaslError> {
     random_impl()
 }
 
@@ -91,13 +91,11 @@ fn isnull(val: NaslValue) -> bool {
 
 /// Returns the seconds counted from 1st January 1970 as an integer.
 #[nasl_function]
-fn unixtime() -> Result<u64, FunctionErrorKind> {
+fn unixtime() -> Result<u64, NaslError> {
     std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|t| t.as_secs())
-        .map_err(|_| {
-            FunctionErrorKind::Dirty("System time set to time before 1st January 1960".into())
-        })
+        .map_err(|_| NaslError::Dirty("System time set to time before 1st January 1960".into()))
 }
 
 /// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
@@ -226,13 +224,13 @@ fn defined_func(ctx: &Context, register: &Register, fn_name: Option<Maybe<&str>>
 ///
 /// For example: “1067352015.030757” means 1067352015 seconds and 30757 microseconds.
 #[nasl_function]
-fn gettimeofday() -> Result<String, FunctionErrorKind> {
+fn gettimeofday() -> Result<String, NaslError> {
     match time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH) {
         Ok(time) => {
             let time = time.as_micros();
             Ok(format!("{}.{:06}", time / 1000000, time % 1000000))
         }
-        Err(e) => Err(FunctionErrorKind::Dirty(format!("{e}"))),
+        Err(e) => Err(NaslError::Dirty(format!("{e}"))),
     }
 }
 

@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
     use crate::nasl::test_prelude::*;
-    use FunctionErrorKind::*;
+    use NaslError::*;
     use NaslValue::*;
 
     #[test]

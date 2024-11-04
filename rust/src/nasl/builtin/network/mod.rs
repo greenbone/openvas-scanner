@@ -5,7 +5,7 @@
 use std::{fmt::Display, net::IpAddr};
 
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, FunctionErrorKind};
+use crate::nasl::utils::{Context, NaslError};
 use crate::storage::{Field, Retrieve};
 
 #[allow(clippy::module_inception)]
@@ -75,7 +75,7 @@ impl Display for OpenvasEncaps {
     }
 }
 
-pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
+pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, NaslError> {
     context
         .retriever()
         .retrieve(context.key(), Retrieve::KB(name.to_string()))
@@ -89,9 +89,9 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, F
         .map_err(|e| e.into())
 }
 
-pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {
+pub fn verify_port(port: i64) -> Result<u16, NaslError> {
     if !(0..=65535).contains(&port) {
-        return Err(FunctionErrorKind::WrongArgument(format!(
+        return Err(NaslError::WrongArgument(format!(
             "{} is not a valid port number",
             port
         )));

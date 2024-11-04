@@ -18,7 +18,7 @@ pub type GeneralErrorType = StorageError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
-pub enum FunctionErrorKind {
+pub enum NaslError {
     /// Function called with insufficient arguments
     #[error("Expected {expected} but got {got}")]
     MissingPositionalArguments {
@@ -72,13 +72,13 @@ pub enum FunctionErrorKind {
 // thiserror, but io::Error does not impl `PartialEq`,
 // `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
 // does not impl `Error` which is why this `From` impl exists.
-impl From<io::Error> for FunctionErrorKind {
+impl From<io::Error> for NaslError {
     fn from(e: io::Error) -> Self {
         Self::IOError(e.kind())
     }
 }
 
-impl FunctionErrorKind {
+impl NaslError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
@@ -100,39 +100,39 @@ impl FunctionErrorKind {
     }
 }
 
-impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
+impl From<(&str, &str, &NaslValue)> for NaslError {
     fn from(value: (&str, &str, &NaslValue)) -> Self {
         let (key, expected, got) = value;
         let got: &str = &got.to_string();
-        FunctionErrorKind::wrong_argument(key, expected, got)
+        NaslError::wrong_argument(key, expected, got)
     }
 }
 
-impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
+impl From<(&str, &str, Option<&NaslValue>)> for NaslError {
     fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
         match value {
             (key, expected, Some(x)) => (key, expected, x).into(),
-            (key, expected, None) => FunctionErrorKind::wrong_argument(key, expected, "NULL"),
+            (key, expected, None) => NaslError::wrong_argument(key, expected, "NULL"),
         }
     }
 }
 
-impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
+impl From<(&str, &str, Option<&ContextType>)> for NaslError {
     fn from(value: (&str, &str, Option<&ContextType>)) -> Self {
         match value {
             (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
             (key, expected, Some(ContextType::Function(_, _))) => {
-                FunctionErrorKind::wrong_argument(key, expected, "function")
+                NaslError::wrong_argument(key, expected, "function")
             }
-            (key, expected, None) => FunctionErrorKind::wrong_argument(key, expected, "NULL"),
+            (key, expected, None) => NaslError::wrong_argument(key, expected, "NULL"),
         }
     }
 }
 
-impl From<(&str, &NaslValue)> for FunctionErrorKind {
+impl From<(&str, &NaslValue)> for NaslError {
     fn from(value: (&str, &NaslValue)) -> Self {
         let (expected, got) = value;
         let got: &str = &got.to_string();
-        FunctionErrorKind::wrong_unnamed_argument(expected, got)
+        NaslError::wrong_unnamed_argument(expected, got)
     }
 }

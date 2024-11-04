@@ -83,13 +83,13 @@ async fn ssh_connect() {
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "foo");"#, PORT),
-                FunctionErrorKind::WrongArgument(_)
+                NaslError::WrongArgument(_)
             );
             // Without a matching key algorithm, we should not be able to connect
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "ssh-rsa");"#, PORT),
-                FunctionErrorKind::Ssh(SshError {
+                NaslError::Ssh(SshError {
                     kind: SshErrorKind::Connect,
                     ..
                 })
@@ -121,7 +121,7 @@ async fn ssh_userauth() {
             check_err_matches!(
                 t,
                 r#"ssh_userauth(session_id);"#,
-                FunctionErrorKind::Ssh(SshError {
+                NaslError::Ssh(SshError {
                     kind: SshErrorKind::NoAuthenticationGiven,
                     ..
                 }),

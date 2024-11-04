@@ -141,7 +141,7 @@ where
                 Err(e) => match &e.kind {
                     InterpretErrorKind::FunctionCallError(FunctionError {
                         function: _,
-                        kind: FunctionErrorKind::Diagnostic(_, x),
+                        kind: NaslError::Diagnostic(_, x),
                     }) => {
                         tracing::warn!(error=?e, "function call error");
                         x.clone().unwrap_or_default()

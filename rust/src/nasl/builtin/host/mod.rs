@@ -8,7 +8,7 @@ mod tests;
 use std::{net::IpAddr, str::FromStr};
 
 use crate::function_set;
-use crate::nasl::utils::{error::FunctionErrorKind, lookup_keys::TARGET};
+use crate::nasl::utils::{error::NaslError, lookup_keys::TARGET};
 
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::{Context, ContextType, Register};
@@ -17,7 +17,7 @@ use crate::nasl::utils::{Context, ContextType, Register};
 ///
 /// It does lookup TARGET and when not found falls back to 127.0.0.1 to resolve.
 /// If the TARGET is not a IP address than we assume that it already is a fqdn or a hostname and will return that instead.
-fn resolve_hostname(register: &Register) -> Result<String, FunctionErrorKind> {
+fn resolve_hostname(register: &Register) -> Result<String, NaslError> {
     use std::net::ToSocketAddrs;
 
     let default_ip = "127.0.0.1";
@@ -41,7 +41,7 @@ fn resolve_hostname(register: &Register) -> Result<String, FunctionErrorKind> {
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     resolve_hostname(register).map(|x| NaslValue::Array(vec![NaslValue::String(x)]))
 }
 
@@ -49,12 +49,12 @@ fn get_host_names(register: &Register, _: &Context) -> Result<NaslValue, Functio
 ///
 /// As of now (2023-01-20) there is no vhost handling.
 /// Therefore this function does load the registered TARGET and if it is an IP Address resolves it via DNS instead.
-fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn get_host_name(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     resolve_hostname(register).map(NaslValue::String)
 }
 
 /// Return the target's IP address as IpAddr.
-pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_host_ip(context: &Context) -> Result<IpAddr, NaslError> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = match context.target() {
         x if !x.is_empty() => IpAddr::from_str(x),
@@ -63,7 +63,7 @@ pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
 
     match r_sock_addr {
         Ok(x) => Ok(x),
-        Err(e) => Err(FunctionErrorKind::wrong_unnamed_argument(
+        Err(e) => Err(NaslError::wrong_unnamed_argument(
             "IP address",
             e.to_string().as_str(),
         )),
@@ -71,10 +71,7 @@ pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
-fn nasl_get_host_ip(
-    _register: &Register,
-    context: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_get_host_ip(_register: &Register, context: &Context) -> Result<NaslValue, NaslError> {
     let ip = get_host_ip(context)?;
     Ok(NaslValue::String(ip.to_string()))
 }

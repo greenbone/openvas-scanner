@@ -25,7 +25,7 @@ use crate::nasl::utils::get_named_parameter;
 ///}
 /// ````
 /// The first parameter is the name of the function as well as the &str lookup key.
-/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FunctionErrorKind>` must be defined.
+/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, NaslError>` must be defined.
 ///
 /// Parameter are separated from the definition by a `=>`.
 ///
@@ -59,13 +59,13 @@ macro_rules! make_storage_function {
         pub fn $name(
             registrat: &Register,
             ctxconfigs: &Context,
-        ) -> Result<NaslValue, FunctionErrorKind> {
+        ) -> Result<NaslValue, NaslError> {
             let mut variables = vec![];
             $(
             let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
                 return Err(
-                    FunctionErrorKind::MissingPositionalArguments { expected: $len, got: positional.len() }
+                    NaslError::MissingPositionalArguments { expected: $len, got: positional.len() }
                 );
             }
             for p in positional {
@@ -106,7 +106,7 @@ macro_rules! make_storage_function {
     };
 }
 
-type Transform = Result<Vec<NVTField>, FunctionErrorKind>;
+type Transform = Result<Vec<NVTField>, NaslError>;
 
 fn as_timeout_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Preference(NvtPreference {
@@ -200,7 +200,7 @@ fn as_tag_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 
 fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() != 2 {
-        return Err(FunctionErrorKind::MissingArguments(vec![
+        return Err(NaslError::MissingArguments(vec![
             "name".to_owned(),
             "csv".to_owned(),
         ]));
@@ -213,7 +213,7 @@ fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 
 fn as_preference(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() < 3 {
-        return Err(FunctionErrorKind::MissingArguments(vec![
+        return Err(NaslError::MissingArguments(vec![
             "type".to_owned(),
             "value".to_owned(),
         ]));

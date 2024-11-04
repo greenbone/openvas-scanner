@@ -12,12 +12,12 @@ pub mod lookup_keys;
 use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
-pub use error::FunctionErrorKind;
+pub use error::NaslError;
 
 pub use executor::{Executor, IntoFunctionSet, StoredFunctionSet};
 
 /// The result of a function call.
-pub type NaslResult = Result<crate::nasl::syntax::NaslValue, FunctionErrorKind>;
+pub type NaslResult = Result<crate::nasl::syntax::NaslValue, NaslError>;
 
 /// Resolves positional arguments from the register.
 pub fn resolve_positional_arguments(register: &Register) -> Vec<crate::nasl::syntax::NaslValue> {
@@ -46,11 +46,11 @@ pub fn get_named_parameter<'a>(
     registrat: &'a Register,
     key: &'a str,
     required: bool,
-) -> Result<&'a crate::nasl::syntax::NaslValue, FunctionErrorKind> {
+) -> Result<&'a crate::nasl::syntax::NaslValue, NaslError> {
     match registrat.named(key) {
         None => {
             if required {
-                Err(FunctionErrorKind::MissingArguments(vec![key.to_owned()]))
+                Err(NaslError::MissingArguments(vec![key.to_owned()]))
             } else {
                 // we use exit because a named value can be intentionally set to null and may be
                 // treated differently when it is not set compared to set but null.
@@ -59,7 +59,7 @@ pub fn get_named_parameter<'a>(
         }
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
-            _ => Err(FunctionErrorKind::wrong_argument(key, "value", "function")),
+            _ => Err(NaslError::wrong_argument(key, "value", "function")),
         },
     }
 }

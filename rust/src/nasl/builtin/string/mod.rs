@@ -9,7 +9,7 @@ mod tests;
 
 use crate::nasl::utils::{
     function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
-    Context, FunctionErrorKind, Register,
+    Context, NaslError, Register,
 };
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
@@ -74,7 +74,7 @@ fn raw_string(positional: CheckedPositionals<&NaslValue>) -> Vec<u8> {
     data
 }
 
-fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionErrorKind> {
+fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), NaslError> {
     match value {
         NaslValue::String(x) => write!(s, "{x}"),
         NaslValue::Data(x) => {
@@ -108,7 +108,7 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
 
 /// NASL function to parse values into string representations
 #[nasl_function]
-fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, FunctionErrorKind> {
+fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, NaslError> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
         write_nasl_string_value(&mut s, p)?;
@@ -116,7 +116,7 @@ fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, Funct
     Ok(s.into())
 }
 
-fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), FunctionErrorKind> {
+fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), NaslError> {
     match value {
         NaslValue::Array(x) => {
             for p in x {
@@ -219,11 +219,11 @@ fn hex(s: i64) -> String {
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
 #[nasl_function]
-fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, FunctionErrorKind> {
+fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, NaslError> {
     let s = s.to_string();
     let s = s.as_str();
     decode_hex(s).map_err(|_| {
-        FunctionErrorKind::WrongArgument(format!(
+        NaslError::WrongArgument(format!(
             "Expected an even-length string containing only 0-9a-fA-F, found '{}'",
             s
         ))
@@ -282,7 +282,7 @@ fn stridx(haystack: NaslValue, needle: NaslValue, offset: Option<usize>) -> i64 
 /// NASL function to display any number of NASL values
 ///
 /// Internally the string function is used to concatenate the given parameters
-fn display(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn display(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
     println!("{}", &string(register, configs)?);
     Ok(NaslValue::Null)
 }
@@ -331,7 +331,7 @@ fn insstr(
     to_insert: NaslValue,
     start: usize,
     end: Option<usize>,
-) -> Result<String, FunctionErrorKind> {
+) -> Result<String, NaslError> {
     let mut s = s.to_string();
 
     let insb = to_insert.to_string();
@@ -339,7 +339,7 @@ fn insstr(
 
     let end = end.unwrap_or(s.len()).min(s.len());
     if start > end {
-        return Err(FunctionErrorKind::WrongArgument(format!(
+        return Err(NaslError::WrongArgument(format!(
             "start index ({}) larger than end ({}).",
             start, end
         )));
@@ -360,11 +360,7 @@ fn insstr(
 /// `pattern` contains the pattern to search for.
 /// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
 #[nasl_function(named(string, pattern, icase))]
-fn match_(
-    string: NaslValue,
-    pattern: NaslValue,
-    icase: Option<bool>,
-) -> Result<bool, FunctionErrorKind> {
+fn match_(string: NaslValue, pattern: NaslValue, icase: Option<bool>) -> Result<bool, NaslError> {
     let options = MatchOptions {
         case_sensitive: !icase.unwrap_or(false),
         require_literal_separator: false,
@@ -377,7 +373,7 @@ fn match_(
 
     Ok(Pattern::new(pattern)
         .map_err(|err| {
-            FunctionErrorKind::WrongArgument(format!(
+            NaslError::WrongArgument(format!(
                 "Argument 'pattern' to 'match' is not a valid pattern: {}. {}",
                 pattern, err
             ))

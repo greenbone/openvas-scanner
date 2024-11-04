@@ -36,7 +36,7 @@ use tracing::debug;
 
 macro_rules! custom_error {
     ($a:expr, $b:expr) => {
-        Err(FunctionErrorKind::Diagnostic(
+        Err(NaslError::Diagnostic(
             format!($a, $b),
             Some(NaslValue::Null),
         ))
@@ -88,7 +88,7 @@ fn safe_copy_from_slice(
     o_buf: &[u8],
     o_init: usize,
     o_fin: usize,
-) -> Result<(), FunctionErrorKind> {
+) -> Result<(), NaslError> {
     let o_range = o_fin - o_init;
     let d_range = d_fin - d_init;
     if d_buf.len() < d_range
@@ -97,7 +97,7 @@ fn safe_copy_from_slice(
         || d_buf.len() < d_fin
         || o_buf.len() < o_fin
     {
-        return Err(FunctionErrorKind::Dirty(
+        return Err(NaslError::Dirty(
             "Error copying from slice. Index out of range".to_string(),
         ));
     }
@@ -121,11 +121,11 @@ fn safe_copy_from_slice(
 /// - ip_v is: the IP version. 4 by default.
 ///
 /// Returns the IP datagram or NULL on error.
-fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
     let dst_addr = get_host_ip(configs)?;
 
     if dst_addr.is_ipv6() {
-        return Err(FunctionErrorKind::WrongArgument(
+        return Err(NaslError::WrongArgument(
             "forge_ip_packet: No valid dst_addr could be determined via call to get_host_ip()"
                 .to_string(),
         ));
@@ -141,7 +141,7 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
     let total_length = 20 + data.len();
     let mut buf = vec![0; total_length];
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Diagnostic(
+        NaslError::Diagnostic(
             "No possible to create a packet from buffer".to_string(),
             None,
         )
@@ -202,10 +202,7 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
                     pkt.set_source(ip);
                 }
                 Err(e) => {
-                    return Err(FunctionErrorKind::WrongArgument(format!(
-                        "Invalid ip_src: {}",
-                        e
-                    )));
+                    return Err(NaslError::WrongArgument(format!("Invalid ip_src: {}", e)));
                 }
             };
             x.to_string()
@@ -220,10 +217,7 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
                     pkt.set_destination(ip);
                 }
                 Err(e) => {
-                    return Err(FunctionErrorKind::WrongArgument(format!(
-                        "Invalid ip_dst: {}",
-                        e
-                    )));
+                    return Err(NaslError::WrongArgument(format!("Invalid ip_dst: {}", e)));
                 }
             };
             x.to_string()
@@ -234,10 +228,7 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
                     pkt.set_destination(ip);
                 }
                 Err(e) => {
-                    return Err(FunctionErrorKind::WrongArgument(format!(
-                        "Invalid ip: {}",
-                        e
-                    )));
+                    return Err(NaslError::WrongArgument(format!("Invalid ip: {}", e)));
                 }
             };
             dst_addr.to_string()
@@ -268,19 +259,16 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
 /// - ip_v: IP version, 4 by default
 ///  
 /// Returns the modified IP datagram
-fn set_ip_elements(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn set_ip_elements(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let mut buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("ip"));
+            return Err(NaslError::missing_argument("ip"));
         }
     };
 
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Diagnostic(
+        NaslError::Diagnostic(
             "No possible to create a packet from buffer".to_string(),
             None,
         )
@@ -334,10 +322,7 @@ fn set_ip_elements(
                 pkt.set_source(ip);
             }
             Err(e) => {
-                return Err(FunctionErrorKind::WrongArgument(format!(
-                    "Invalid ip_src: {}",
-                    e
-                )));
+                return Err(NaslError::WrongArgument(format!("Invalid ip_src: {}", e)));
             }
         };
     };
@@ -367,16 +352,16 @@ fn set_ip_elements(
 /// - ip_sum
 /// - ip_src
 /// - ip_dst
-fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("ip"));
+            return Err(NaslError::missing_argument("ip"));
         }
     };
 
     let pkt = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     match register.named("element") {
@@ -392,19 +377,17 @@ fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, 
             "ip_sum" => Ok(NaslValue::Number(pkt.get_checksum() as i64)),
             "ip_src" => Ok(NaslValue::String(pkt.get_source().to_string())),
             "ip_dst" => Ok(NaslValue::String(pkt.get_destination().to_string())),
-            _ => Err(FunctionErrorKind::WrongArgument(
-                "Invalid element".to_string(),
-            )),
+            _ => Err(NaslError::WrongArgument("Invalid element".to_string())),
         },
-        _ => Err(FunctionErrorKind::missing_argument("element")),
+        _ => Err(NaslError::missing_argument("element")),
     }
 }
 
 /// Receive a list of IP packets and print them in a readable format in the screen.
-fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::MissingPositionalArguments {
+        return Err(NaslError::MissingPositionalArguments {
             expected: 1,
             got: 0,
         });
@@ -414,9 +397,7 @@ fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, Functio
         match ip {
             NaslValue::Data(data) => {
                 let pkt = packet::ipv4::Ipv4Packet::new(data).ok_or_else(|| {
-                    FunctionErrorKind::Dirty(
-                        "No possible to create a packet from buffer".to_string(),
-                    )
+                    NaslError::Dirty("No possible to create a packet from buffer".to_string())
                 })?;
 
                 println!("\tip_hl={}", pkt.get_header_length());
@@ -433,9 +414,7 @@ fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, Functio
                 display_packet(data);
             }
             _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    "Invalid ip packet".to_string(),
-                ));
+                return Err(NaslError::WrongArgument("Invalid ip packet".to_string()));
             }
         }
     }
@@ -460,34 +439,31 @@ fn dump_protocol(pkt: &Ipv4Packet) -> String {
 /// - code: is the identifier of the option to add
 /// - length: is the length of the option data
 /// - value: is the option data
-fn insert_ip_options(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn insert_ip_options(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("ip"));
+            return Err(NaslError::missing_argument("ip"));
         }
     };
 
     let code = match register.named("code") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         _ => {
-            return Err(FunctionErrorKind::missing_argument("code"));
+            return Err(NaslError::missing_argument("code"));
         }
     };
     let length = match register.named("length") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as usize,
         _ => {
-            return Err(FunctionErrorKind::missing_argument("length"));
+            return Err(NaslError::missing_argument("length"));
         }
     };
     let value = match register.named("value") {
         Some(ContextType::Value(NaslValue::String(x))) => x.as_bytes(),
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => {
-            return Err(FunctionErrorKind::missing_argument("value"));
+            return Err(NaslError::missing_argument("value"));
         }
     };
 
@@ -532,7 +508,7 @@ fn insert_ip_options(
     )?;
 
     let mut new_pkt = MutableIpv4Packet::new(&mut new_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let checksum = checksum(&new_pkt.to_immutable());
     new_pkt.set_checksum(checksum);
@@ -557,15 +533,12 @@ fn insert_ip_options(
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 ///  
 /// The modified IP datagram or NULL on error.
-fn forge_tcp_packet(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn forge_tcp_packet(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
             // Missingarguments
-            return Err(FunctionErrorKind::missing_argument("ip"));
+            return Err(NaslError::missing_argument("ip"));
         }
     };
     let original_ip_len = ip_buf.len();
@@ -581,7 +554,7 @@ fn forge_tcp_packet(
     let total_length = 20 + data.len();
     let mut buf = vec![0; total_length];
     let mut tcp_seg = packet::tcp::MutableTcpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     if !data.is_empty() {
@@ -630,24 +603,24 @@ fn forge_tcp_packet(
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
             let pkt = packet::ipv4::Ipv4Packet::new(&ip_buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             let tcp_aux = TcpPacket::new(tcp_seg.packet()).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             pnet::packet::tcp::ipv4_checksum(&tcp_aux, &pkt.get_source(), &pkt.get_destination())
         }
     };
 
     let mut tcp_seg = packet::tcp::MutableTcpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     tcp_seg.set_checksum(chksum);
 
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     pkt.set_total_length(l as u16);
     match register.named("update_ip_len") {
@@ -680,22 +653,19 @@ fn forge_tcp_packet(
 /// - data
 ///  
 /// Returns an TCP element from a IP datagram.
-fn get_tcp_element(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn get_tcp_element(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("tcp"));
+            return Err(NaslError::missing_argument("tcp"));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let tcp = packet::tcp::TcpPacket::new(ip.payload()).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     match register.named("element") {
@@ -711,9 +681,9 @@ fn get_tcp_element(
             "th_sum" => Ok(NaslValue::Number(tcp.get_checksum() as i64)),
             "th_urp" => Ok(NaslValue::Number(tcp.get_urgent_ptr() as i64)),
             "th_data" => Ok(NaslValue::Data(tcp.payload().to_vec())),
-            _ => Err(FunctionErrorKind::WrongArgument("element".to_string())),
+            _ => Err(NaslError::WrongArgument("element".to_string())),
         },
-        _ => Err(FunctionErrorKind::missing_argument("element")),
+        _ => Err(NaslError::missing_argument("element")),
     }
 }
 
@@ -728,19 +698,19 @@ fn get_tcp_element(
 /// - 8: TCPOPT_TIMESTAMP, 8 bytes value for timestamp and echo timestamp, 4 bytes each one.
 ///  
 /// The returned option depends on the given *option* parameter. It is either an int for option 2, 3 and 4 or an array containing the two values for option 8.
-fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("tcp"));
+            return Err(NaslError::missing_argument("tcp"));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let tcp = packet::tcp::TcpPacket::new(ip.payload()).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     let mut max_seg: i64 = 0;
@@ -783,11 +753,9 @@ fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, 
             3 => Ok(NaslValue::Number(window)),
             4 => Ok(NaslValue::Number(sack_permitted)),
             8 => Ok(NaslValue::Array(timestamps)),
-            _ => Err(FunctionErrorKind::WrongArgument(
-                "Invalid option".to_string(),
-            )),
+            _ => Err(NaslError::WrongArgument("Invalid option".to_string())),
         },
-        _ => Err(FunctionErrorKind::missing_argument("option")),
+        _ => Err(NaslError::missing_argument("option")),
     }
 }
 
@@ -806,19 +774,16 @@ fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, 
 /// - th_win: is the TCP window size. NASL will convert it into network order if necessary. 0 by default.
 /// - th_x2: is a reserved field and should probably be left unchanged. 0 by default.
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
-fn set_tcp_elements(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn set_tcp_elements(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("tcp"));
+            return Err(NaslError::missing_argument("tcp"));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let iph_len = ip.get_header_length() as usize * 4; // the header length is given in 32-bits words
 
@@ -841,7 +806,7 @@ fn set_tcp_elements(
         //new_buf[..20].copy_from_slice(&ori_tcp_buf[..20]);
         safe_copy_from_slice(&mut new_buf[..], 0, 20, &ori_tcp_buf, 0, 20)?;
         ori_tcp = packet::tcp::MutableTcpPacket::new(&mut new_buf).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
         ori_tcp.set_payload(&data);
     } else {
@@ -858,7 +823,7 @@ fn set_tcp_elements(
             ori_tcp_buf.len(),
         )?;
         ori_tcp = packet::tcp::MutableTcpPacket::new(&mut new_buf).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
     }
 
@@ -896,10 +861,10 @@ fn set_tcp_elements(
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
             let pkt = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             let tcp_aux = TcpPacket::new(ori_tcp.packet()).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             pnet::packet::tcp::ipv4_checksum(&tcp_aux, &pkt.get_source(), &pkt.get_destination())
         }
@@ -920,7 +885,7 @@ fn set_tcp_elements(
 
     let l = new_ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut new_ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     // pnet will panic if the total length set in the ip datagram field does not much with the total length.
@@ -951,21 +916,18 @@ fn set_tcp_elements(
 /// - 3: TCPOPT_WINDOW, with values between 0 and 14
 /// - 4: TCPOPT_SACK_PERMITTED, no value required.
 /// - 8: TCPOPT_TIMESTAMP, 8 bytes value for timestamp and echo timestamp, 4 bytes each one.
-fn insert_tcp_options(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn insert_tcp_options(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("tcp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::Dirty(
+            return Err(NaslError::Dirty(
                 "insert_tcp_options: missing <tcp> field".to_string(),
             ));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let iph_len = ip.get_header_length() as usize * 4; // the header length is given in 32-bits words
     let ori_tcp_buf = <&[u8]>::clone(&ip.payload()).to_owned();
@@ -978,7 +940,7 @@ fn insert_tcp_options(
         Some(ContextType::Value(NaslValue::Number(d))) => d.to_be_bytes().to_vec(),
         _ => {
             let tcp = TcpPacket::new(&ori_tcp_buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             tcp.payload().to_vec()
         }
@@ -987,7 +949,7 @@ fn insert_tcp_options(
     // Forge the options field
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::Dirty(
+        return Err(NaslError::Dirty(
             "Missing optional arguments. At least one optional porsitional argument followed by its value must be given".to_string()
         ));
     }
@@ -1003,7 +965,7 @@ fn insert_tcp_options(
                     opts.push(TcpOption::mss(v));
                     opts_len += 4;
                 } else {
-                    return Err(FunctionErrorKind::WrongArgument(
+                    return Err(NaslError::WrongArgument(
                         "Invalid value for tcp option TCPOPT_MAXSEG".to_string(),
                     ));
                 }
@@ -1014,7 +976,7 @@ fn insert_tcp_options(
                     opts.push(TcpOption::wscale(v));
                     opts_len += 3;
                 } else {
-                    return Err(FunctionErrorKind::WrongArgument(
+                    return Err(NaslError::WrongArgument(
                         "Invalid value for tcp option TCPOPT_WINDOW".to_string(),
                     ));
                 }
@@ -1032,19 +994,19 @@ fn insert_tcp_options(
                         opts.push(TcpOption::timestamp(v1, v2));
                         opts_len += 10;
                     } else {
-                        return Err(FunctionErrorKind::WrongArgument(
+                        return Err(NaslError::WrongArgument(
                             "Invalid value for tcp option TCPOPT_TIMESTAMP".to_string(),
                         ));
                     }
                 } else {
-                    return Err(FunctionErrorKind::WrongArgument(
+                    return Err(NaslError::WrongArgument(
                         "Invalid value for tcp option TCPOPT_TIMESTAMP".to_string(),
                     ));
                 }
             }
             None => break,
             _ => {
-                return Err(FunctionErrorKind::WrongArgument(
+                return Err(NaslError::WrongArgument(
                     "insert_tcp_options: invalid tcp option".to_string(),
                 ));
             }
@@ -1072,7 +1034,7 @@ fn insert_tcp_options(
     safe_copy_from_slice(&mut new_buf[..], 0, 20, &ori_tcp_buf, 0, 20)?;
 
     ori_tcp = packet::tcp::MutableTcpPacket::new(&mut new_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     // At this point, opts len is a 4bytes multiple and the offset is expressed in 32bits words
@@ -1089,10 +1051,10 @@ fn insert_tcp_options(
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
             let pkt = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             let tcp_aux = TcpPacket::new(ori_tcp.packet()).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             pnet::packet::tcp::ipv4_checksum(&tcp_aux, &pkt.get_source(), &pkt.get_destination())
         }
@@ -1112,7 +1074,7 @@ fn insert_tcp_options(
 
     let l = new_ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut new_ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     // pnet will panic if the total length set in the ip datagram field does not much with the total length.
@@ -1136,10 +1098,10 @@ fn insert_tcp_options(
 }
 
 /// Receive a list of IPv4 datagrams and print their TCP part in a readable format in the screen.
-fn dump_tcp_packet(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_tcp_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::Dirty(
+        return Err(NaslError::Dirty(
             "Missing arguments. It needs at least one tcp packet".to_string(),
         ));
     }
@@ -1150,9 +1112,7 @@ fn dump_tcp_packet(register: &Register, _: &Context) -> Result<NaslValue, Functi
                 let ip = match packet::ipv4::Ipv4Packet::new(data) {
                     Some(ip) => ip,
                     None => {
-                        return Err(FunctionErrorKind::WrongArgument(
-                            "Invalid TCP packet".to_string(),
-                        ));
+                        return Err(NaslError::WrongArgument("Invalid TCP packet".to_string()));
                     }
                 };
 
@@ -1174,16 +1134,12 @@ fn dump_tcp_packet(register: &Register, _: &Context) -> Result<NaslValue, Functi
                         display_packet(data);
                     }
                     None => {
-                        return Err(FunctionErrorKind::WrongArgument(
-                            "Invalid TCP packet".to_string(),
-                        ));
+                        return Err(NaslError::WrongArgument("Invalid TCP packet".to_string()));
                     }
                 }
             }
             _ => {
-                return Err(FunctionErrorKind::WrongArgument(
-                    "Invalid ip packet".to_string(),
-                ));
+                return Err(NaslError::WrongArgument("Invalid ip packet".to_string()));
             }
         }
     }
@@ -1240,13 +1196,10 @@ fn format_flags(pkt: &TcpPacket) -> String {
 /// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 ///
 /// Returns the modified IP datagram or NULL on error.
-fn forge_udp_packet(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn forge_udp_packet(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
-        _ => return Err(FunctionErrorKind::missing_argument("ip")),
+        _ => return Err(NaslError::missing_argument("ip")),
     };
     let original_ip_len = ip_buf.len();
 
@@ -1261,7 +1214,7 @@ fn forge_udp_packet(
     let total_length = 8 + data.len();
     let mut buf = vec![0; total_length];
     let mut udp_datagram = packet::udp::MutableUdpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     if !data.is_empty() {
@@ -1286,24 +1239,24 @@ fn forge_udp_packet(
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
             let pkt = packet::ipv4::Ipv4Packet::new(&ip_buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             let udp_aux = UdpPacket::new(udp_datagram.packet()).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             pnet::packet::udp::ipv4_checksum(&udp_aux, &pkt.get_source(), &pkt.get_destination())
         }
     };
 
     let mut udp_datagram = packet::udp::MutableUdpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     udp_datagram.set_checksum(chksum);
 
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     pkt.set_total_length(l as u16);
     match register.named("update_ip_len") {
@@ -1326,19 +1279,16 @@ fn forge_udp_packet(
 /// - uh_sport: is the source port. NASL will convert it into network order if necessary. 0 by default.
 /// - uh_sum: is the UDP checksum. Although it is not compulsory, the right value is computed by default.
 /// - uh_ulen: is the data length. By default it is set to the length the data argument plus the size of the UDP header.
-fn set_udp_elements(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn set_udp_elements(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("udp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("udp"));
+            return Err(NaslError::missing_argument("udp"));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let iph_len = ip.get_header_length() as usize * 4; // the header length is given in 32-bits words
 
@@ -1362,7 +1312,7 @@ fn set_udp_elements(
         safe_copy_from_slice(&mut new_buf[..], 0, 8, &ori_udp_buf, 0, 8)?;
 
         ori_udp = packet::udp::MutableUdpPacket::new(&mut new_buf).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
         ori_udp.set_payload(&data);
     } else {
@@ -1379,7 +1329,7 @@ fn set_udp_elements(
             ori_udp_buf.len(),
         )?;
         ori_udp = packet::udp::MutableUdpPacket::new(&mut new_buf).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
     }
 
@@ -1399,10 +1349,10 @@ fn set_udp_elements(
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
             let pkt = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             let udp_aux = UdpPacket::new(ori_udp.packet()).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             pnet::packet::udp::ipv4_checksum(&udp_aux, &pkt.get_source(), &pkt.get_destination())
         }
@@ -1422,7 +1372,7 @@ fn set_udp_elements(
 
     let l = new_ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut new_ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     pkt.set_total_length(l as u16);
@@ -1436,18 +1386,15 @@ fn set_udp_elements(
 }
 
 /// Receive a list of IPv4 datagrams and print their UDP part in a readable format in the screen.
-fn dump_udp_packet(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_udp_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::Dirty(
+        return Err(NaslError::Dirty(
             "Missing arguments. It needs at least one UDP packet".to_string(),
         ));
     }
-    let invalid_udp_packet_error = || {
-        Err(FunctionErrorKind::WrongArgument(
-            "Invalid UDP packet".to_string(),
-        ))
-    };
+    let invalid_udp_packet_error =
+        || Err(NaslError::WrongArgument("Invalid UDP packet".to_string()));
 
     for udp_datagram in positional.iter() {
         match udp_datagram {
@@ -1491,22 +1438,19 @@ fn dump_udp_packet(register: &Register, _: &Context) -> Result<NaslValue, Functi
 /// - uh_ulen
 /// - uh_sum
 /// - data
-fn get_udp_element(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn get_udp_element(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("udp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("udp"));
+            return Err(NaslError::missing_argument("udp"));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let udp = packet::udp::UdpPacket::new(ip.payload()).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     match register.named("element") {
@@ -1516,9 +1460,9 @@ fn get_udp_element(
             "uh_len" => Ok(NaslValue::Number(udp.get_length() as i64)),
             "uh_sum" => Ok(NaslValue::Number(udp.get_checksum() as i64)),
             "data" => Ok(NaslValue::Data(udp.payload().to_vec())),
-            _ => Err(FunctionErrorKind::WrongArgument("element".to_string())),
+            _ => Err(NaslError::WrongArgument("element".to_string())),
         },
-        _ => Err(FunctionErrorKind::WrongArgument("element".to_string())),
+        _ => Err(NaslError::WrongArgument("element".to_string())),
     }
 }
 
@@ -1531,14 +1475,11 @@ fn get_udp_element(
 /// - *icmp_seq*: ICMP sequence number.
 /// - *icmp_type*: ICMP type. 0 by default.
 /// - *update_ip_len*: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
-fn forge_icmp_packet(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn forge_icmp_packet(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("icmp"));
+            return Err(NaslError::missing_argument("icmp"));
         }
     };
     let original_ip_len = ip_buf.len();
@@ -1553,7 +1494,7 @@ fn forge_icmp_packet(
     let total_length = 8 + data.len();
     let mut buf = vec![0; total_length];
     let mut icmp_pkt = packet::icmp::MutableIcmpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     match register.named("icmp_type") {
@@ -1589,21 +1530,21 @@ fn forge_icmp_packet(
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
             let icmp_aux = IcmpPacket::new(&buf).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             pnet::packet::icmp::checksum(&icmp_aux)
         }
     };
 
     let mut icmp_pkt = packet::icmp::MutableIcmpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     icmp_pkt.set_checksum(chksum);
 
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     pkt.set_total_length(l as u16);
     match register.named("update_ip_len") {
@@ -1629,22 +1570,19 @@ fn forge_icmp_packet(
 /// - icmp_seq
 /// - icmp_chsum
 /// - icmp_data
-fn get_icmp_element(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn get_icmp_element(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let buf = match register.named("icmp") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("icmp"));
+            return Err(NaslError::missing_argument("icmp"));
         }
     };
 
     let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let icmp = packet::icmp::IcmpPacket::new(ip.payload()).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     match register.named("element") {
@@ -1685,15 +1623,15 @@ fn get_icmp_element(
             }
             _ => Ok(NaslValue::Null),
         },
-        _ => Err(FunctionErrorKind::missing_argument("element")),
+        _ => Err(NaslError::missing_argument("element")),
     }
 }
 
 /// Receive a list of IPv4 ICMP packets and print them in a readable format in the screen.
-fn dump_icmp_packet(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn dump_icmp_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(FunctionErrorKind::missing_argument("icmp"));
+        return Err(NaslError::missing_argument("icmp"));
     }
 
     for icmp_pkt in positional.iter() {
@@ -1705,10 +1643,10 @@ fn dump_icmp_packet(register: &Register, _: &Context) -> Result<NaslValue, Funct
         };
 
         let ip = packet::ipv4::Ipv4Packet::new(&buf).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
         let icmp = packet::icmp::IcmpPacket::new(ip.payload()).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
 
         let mut icmp_seq = 0;
@@ -1818,14 +1756,11 @@ pub mod igmp {
 /// - group: IGMP group
 /// - type: IGMP type. 0 by default.
 /// - update_ip_len: If this flag is set, NASL will recompute the size field of the IP datagram. Default: True.
-fn forge_igmp_packet(
-    register: &Register,
-    _configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn forge_igmp_packet(register: &Register, _configs: &Context) -> Result<NaslValue, NaslError> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => {
-            return Err(FunctionErrorKind::missing_argument("igmp"));
+            return Err(NaslError::missing_argument("igmp"));
         }
     };
     let original_ip_len = ip_buf.len();
@@ -1840,7 +1775,7 @@ fn forge_igmp_packet(
     let total_length = 8 + data.len();
     let mut buf = vec![0; total_length];
     let mut igmp_pkt = igmp::MutableIgmpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
 
     match register.named("type") {
@@ -1863,10 +1798,7 @@ fn forge_igmp_packet(
                     igmp_pkt.set_group_address(ip);
                 }
                 Err(e) => {
-                    return Err(FunctionErrorKind::Dirty(format!(
-                        "Invalid address group: {}",
-                        e
-                    )));
+                    return Err(NaslError::Dirty(format!("Invalid address group: {}", e)));
                 }
             };
         }
@@ -1878,19 +1810,19 @@ fn forge_igmp_packet(
     }
 
     let igmp_aux = igmp::IgmpPacket::new(&buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     let cksum = igmp::checksum(&igmp_aux);
 
     let mut icmp_pkt = packet::icmp::MutableIcmpPacket::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     icmp_pkt.set_checksum(cksum);
 
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Diagnostic(
+        NaslError::Diagnostic(
             "No possible to create a packet from buffer".to_string(),
             Some(NaslValue::Null),
         )
@@ -1908,14 +1840,14 @@ fn forge_igmp_packet(
     Ok(NaslValue::Data(ip_buf))
 }
 
-fn new_raw_socket() -> Result<Socket, FunctionErrorKind> {
+fn new_raw_socket() -> Result<Socket, NaslError> {
     match Socket::new_raw(
         Domain::IPV4,
         socket2::Type::RAW,
         Some(Protocol::from(IPPROTO_RAW)),
     ) {
         Ok(s) => Ok(s),
-        Err(e) => Err(FunctionErrorKind::Dirty(format!(
+        Err(e) => Err(NaslError::Dirty(format!(
             "Not possible to create a raw socket: {}",
             e
         ))),
@@ -1926,7 +1858,7 @@ fn new_raw_socket() -> Result<Socket, FunctionErrorKind> {
 ///  
 /// Its argument is:
 /// - port: port for the ping
-fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -1948,7 +1880,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
 
     let soc = new_raw_socket()?;
     if let Err(e) = soc.set_header_included(true) {
-        return Err(FunctionErrorKind::Dirty(format!(
+        return Err(NaslError::Dirty(format!(
             "Not possible to create a raw socket: {}",
             e
         )));
@@ -1963,7 +1895,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0, //TODO: implement plug_get_host_open_port()
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "Number",
                 "Invalid length value",
             ))
@@ -1985,7 +1917,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
 
     let mut ip_buf = [0u8; 40];
     let mut ip = MutableIpv4Packet::new(&mut ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     ip.set_header_length(5);
     ip.set_fragment_offset(0);
@@ -1996,10 +1928,10 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
     ip.set_identification(random_impl()? as u16);
     ip.set_ttl(40);
     let ipv4_src = Ipv4Addr::from_str(&local_ip.to_string())
-        .map_err(|_| FunctionErrorKind::WrongArgument("invalid IP".to_string()))?;
+        .map_err(|_| NaslError::WrongArgument("invalid IP".to_string()))?;
     ip.set_source(ipv4_src);
     let ipv4_dst = Ipv4Addr::from_str(&target_ip.to_string())
-        .map_err(|_| FunctionErrorKind::WrongArgument("invalid IP".to_string()))?;
+        .map_err(|_| NaslError::WrongArgument("invalid IP".to_string()))?;
 
     ip.set_destination(ipv4_dst);
     let chksum = checksum(&ip.to_immutable());
@@ -2007,7 +1939,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
 
     let mut tcp_buf = [0u8; 20];
     let mut tcp = MutableTcpPacket::new(&mut tcp_buf).ok_or_else(|| {
-        FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+        NaslError::Dirty("No possible to create a packet from buffer".to_string())
     })?;
     tcp.set_flags(0x02); //TH_SYN
     tcp.set_sequence(random_impl()? as u32);
@@ -2041,7 +1973,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(FunctionErrorKind::Dirty(format!("send_packet: {}", e)));
+                return Err(NaslError::Dirty(format!("send_packet: {}", e)));
             }
         }
 
@@ -2067,15 +1999,12 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fu
 /// - pcap_filter: BPF filter used for the answers
 /// - pcap_timeout: time to wait for the answers in seconds, 5 by default
 /// - allow_broadcast: default FALSE
-fn nasl_send_packet(
-    register: &Register,
-    configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
     let use_pcap = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
         None => true,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid pcap_active value",
             ))
@@ -2086,7 +2015,7 @@ fn nasl_send_packet(
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
             ))
@@ -2097,7 +2026,7 @@ fn nasl_send_packet(
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
             ))
@@ -2108,7 +2037,7 @@ fn nasl_send_packet(
         Some(ContextType::Value(NaslValue::Boolean(x))) => *x,
         None => false,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid allow_broadcast value",
             ))
@@ -2123,7 +2052,7 @@ fn nasl_send_packet(
     let soc = new_raw_socket()?;
 
     if let Err(e) = soc.set_header_included(true) {
-        return Err(FunctionErrorKind::Dirty(format!(
+        return Err(NaslError::Dirty(format!(
             "Not possible to create a raw socket: {}",
             e
         )));
@@ -2133,7 +2062,7 @@ fn nasl_send_packet(
         Some(ContextType::Value(NaslValue::Number(x))) => *x,
         None => 0,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "Number",
                 "Invalid length value",
             ))
@@ -2156,15 +2085,10 @@ fn nasl_send_packet(
     for pkt in positional.iter() {
         let packet_raw = match pkt {
             NaslValue::Data(data) => data as &[u8],
-            _ => {
-                return Err(FunctionErrorKind::wrong_unnamed_argument(
-                    "Data",
-                    "Invalid packet",
-                ))
-            }
+            _ => return Err(NaslError::wrong_unnamed_argument("Data", "Invalid packet")),
         };
         let packet = packet::ipv4::Ipv4Packet::new(packet_raw).ok_or_else(|| {
-            FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+            NaslError::Dirty("No possible to create a packet from buffer".to_string())
         })?;
 
         if allow_broadcast {
@@ -2178,7 +2102,7 @@ fn nasl_send_packet(
         // No broadcast destination and dst ip address inside the IP packet
         // differs from target IP, is consider a malicious or buggy script.
         if packet.get_destination() != target_ip && !allow_broadcast {
-            return Err(FunctionErrorKind::Dirty(
+            return Err(NaslError::Dirty(
                 format!("send_packet: malicious or buggy script is trying to send packet to {} instead of designated target {}",
                         packet.get_destination(), target_ip)
             ));
@@ -2188,7 +2112,7 @@ fn nasl_send_packet(
         let sockaddr = match SocketAddr::from_str(&sock_str) {
             Ok(addr) => socket2::SockAddr::from(addr),
             Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(NaslError::Diagnostic(
                     format!("send_packet: {}", e),
                     Some(NaslValue::Null),
                 ));
@@ -2200,7 +2124,7 @@ fn nasl_send_packet(
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
+                return Err(NaslError::Diagnostic(
                     format!("send_packet: {}", e),
                     Some(NaslValue::Null),
                 ));
@@ -2227,7 +2151,7 @@ fn nasl_send_packet(
 /// - interface: network interface name, by default NASL will try to find the best one
 /// - pcap_filter: BPF filter, by default it listens to everything
 /// - timeout: timeout in seconds, 5 by default
-fn nasl_pcap_next(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_pcap_next(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
     nasl_send_capture(register, configs)
 }
 
@@ -2236,15 +2160,12 @@ fn nasl_pcap_next(register: &Register, configs: &Context) -> Result<NaslValue, F
 /// - interface: network interface name, by default NASL will try to find the best one
 /// - pcap_filter: BPF filter, by default it listens to everything
 /// - timeout: timeout in seconds, 5 by default
-fn nasl_send_capture(
-    register: &Register,
-    configs: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_send_capture(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
     let interface = match register.named("interface") {
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "String",
                 "Invalid interface value",
             ))
@@ -2255,7 +2176,7 @@ fn nasl_send_capture(
         Some(ContextType::Value(NaslValue::String(x))) => x.to_string(),
         None => String::new(),
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
             ))
@@ -2266,7 +2187,7 @@ fn nasl_send_capture(
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(NaslError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
             ))
@@ -2298,7 +2219,7 @@ fn nasl_send_capture(
         Ok(packet) => {
             // Remove all from lower layer
             let frame = EthernetPacket::new(packet.data).ok_or_else(|| {
-                FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
+                NaslError::Dirty("No possible to create a packet from buffer".to_string())
             })?;
             return Ok(NaslValue::Data(frame.payload().to_vec()));
         }

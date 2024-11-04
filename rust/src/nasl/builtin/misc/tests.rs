@@ -38,7 +38,7 @@ mod tests {
         check_err_matches!(
             t,
             r#"typeof(23,76);"#,
-            FunctionErrorKind::TrailingPositionalArguments { .. }
+            NaslError::TrailingPositionalArguments { .. }
         );
         t.ok("d['test'] = 2;", 2);
         t.ok("typeof(d);", "array");

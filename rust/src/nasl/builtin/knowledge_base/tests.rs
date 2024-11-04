@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests {
     use crate::nasl::test_prelude::*;
-    use FunctionErrorKind::*;
+    use NaslError::*;
 
     #[test]
     fn set_kb_item() {
@@ -22,12 +22,12 @@ mod tests {
         check_err_matches!(
             t,
             r#"get_kb_item("test", 1);"#,
-            FunctionErrorKind::TrailingPositionalArguments { .. }
+            NaslError::TrailingPositionalArguments { .. }
         );
         check_err_matches!(
             t,
             r#"get_kb_item();"#,
-            FunctionErrorKind::MissingPositionalArguments { .. }
+            NaslError::MissingPositionalArguments { .. }
         );
     }
 
