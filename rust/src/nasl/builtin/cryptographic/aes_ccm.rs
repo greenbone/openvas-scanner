@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::utils::error::{GeneralErrorType, NaslError};
+use crate::nasl::utils::error::NaslError;
 use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
 use aes::{Aes128, Aes192, Aes256};
 use ccm::{
@@ -17,7 +17,7 @@ use crate::nasl::utils::{Context, Register};
 
 use crate::function_set;
 
-use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt};
+use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt, CryptographicError};
 
 /// Core function to en- and decrypt data. Throws error in case of failure.
 fn ccm_crypt<D, M, N>(
@@ -60,9 +60,7 @@ where
     // Error handling
     match res {
         Ok(x) => Ok(NaslValue::Data(x)),
-        Err(_) => Err(NaslError::GeneralError(GeneralErrorType::UnexpectedData(
-            "unable to en-/decrypt data".to_string(),
-        ))),
+        Err(_) => Err(CryptographicError::AesCcmUnableToEncrypt.into()),
     }
 }
 

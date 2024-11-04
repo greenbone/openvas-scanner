@@ -3,16 +3,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::function_set;
+#[cfg(feature = "nasl-c-lib")]
+use crate::nasl::prelude::*;
 
 /// NASL function to calculate GMAC with AES128.
 ///
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 #[cfg(feature = "nasl-c-lib")]
-fn aes_gmac(
-    register: &crate::nasl::utils::Register,
-    _: &crate::nasl::utils::Context,
-) -> Result<crate::nasl::syntax::NaslValue, crate::nasl::utils::NaslError> {
-    use super::{get_data, get_iv, get_key};
+fn aes_gmac(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+    use super::{get_data, get_iv, get_key, CryptographicError};
     use nasl_c_lib::cryptographic::mac::aes_gmac;
 
     let key = get_key(register)?;
@@ -21,12 +20,7 @@ fn aes_gmac(
 
     match aes_gmac(data, key, iv) {
         Ok(val) => Ok(val.into()),
-        Err(code) => Err(crate::nasl::utils::NaslError::GeneralError(
-            crate::nasl::utils::error::GeneralErrorType::UnexpectedData(format!(
-                "Error code {}",
-                code
-            )),
-        )),
+        Err(msg) => Err(CryptographicError::AesGmacError(msg.into()).into()),
     }
 }
 

@@ -29,6 +29,10 @@ mod tests;
 pub enum CryptographicError {
     #[error("Error in AesGcm: insufficient buffer size.")]
     InsufficientBufferSize,
+    #[error("Error in AesCcm: unable to encrypt.")]
+    AesCcmUnableToEncrypt,
+    #[error("Error in AesGmac: {0}.")]
+    AesGmacError(String),
 }
 
 enum Crypt {

@@ -32,9 +32,15 @@ pub enum ArgumentError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum InternalError {
     #[error("{0}")]
-    GeneralError(#[from] GeneralErrorType),
+    Storage(#[from] StorageError),
     #[error("{0}")]
     Dirty(String),
+}
+
+impl From<StorageError> for NaslError {
+    fn from(value: StorageError) -> Self {
+        NaslError::Internal(InternalError::Storage(value))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -43,9 +49,6 @@ pub enum NaslError {
     /// Diagnostic string is informational and the second arg is the return value for the user
     #[error("{0}")]
     Diagnostic(String, Option<NaslValue>),
-    /// Generic error
-    #[error("Generic error: {0}")]
-    GeneralError(#[from] GeneralErrorType),
     /// There is a deeper problem
     /// An example would be that there is no free memory left in the system
     #[error("{0}")]
