@@ -149,10 +149,11 @@ pub fn check_args(
         let num_positional_expected = max_num_expected_positional - num_maybe_named_given;
         if num_positional_given > num_positional_expected {
             #[cfg(feature = "enforce-no-trailing-arguments")]
-            return Err(NaslError::TrailingPositionalArguments {
+            return Err(ArgumentError::TrailingPositionals {
                 expected: num_positional_expected,
                 got: num_positional_given,
-            });
+            }
+            .into());
             #[cfg(not(feature = "enforce-no-trailing-arguments"))]
             tracing::debug!(
                 "Trailing positional arguments in NASL function {_nasl_fn_name}. Expected {num_positional_expected}, found {num_positional_given}"

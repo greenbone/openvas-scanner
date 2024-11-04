@@ -41,14 +41,6 @@ pub enum InternalError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Function called with trailing positional arguments
-    #[error("Expected {expected} but got {got}")]
-    TrailingPositionalArguments {
-        /// Expected amount of arguments
-        expected: usize,
-        /// Actual amount of arguments
-        got: usize,
-    },
     /// Function called without required named arguments
     #[error("Missing arguments: {}", .0.join(", "))]
     MissingArguments(Vec<String>),

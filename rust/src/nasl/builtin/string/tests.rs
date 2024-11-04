@@ -12,7 +12,7 @@ mod tests {
         check_code_result("hexstr('foo');", "666f6f");
         check_err_matches!(
             "hexstr('foo', 'I will be ignored');",
-            TrailingPositionalArguments { .. },
+            Argument(ArgumentError::TrailingPositionals { .. }),
         );
         check_code_result("hexstr(6);", Null);
         check_code_result("hexstr();", Null);

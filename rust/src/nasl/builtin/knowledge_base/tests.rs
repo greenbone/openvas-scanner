@@ -22,7 +22,7 @@ mod tests {
         check_err_matches!(
             t,
             r#"get_kb_item("test", 1);"#,
-            NaslError::TrailingPositionalArguments { .. }
+            Argument(ArgumentError::TrailingPositionals { .. }),
         );
         check_err_matches!(
             t,
