@@ -1,12 +1,11 @@
 use thiserror::Error;
 
 use super::super::prelude::NaslError;
+use super::cryptographic::CryptographicError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum BuiltinError {
-    #[error("Authentication error.")]
-    Authentication,
     #[error("{0}")]
     Ssh(SshError),
     #[error("{0}")]
@@ -15,6 +14,8 @@ pub enum BuiltinError {
     Misc(MiscError),
     #[error("{0}")]
     Socket(SocketError),
+    #[error("{0}")]
+    Cryptographic(CryptographicError),
 }
 
 macro_rules! builtin_error_variant (
@@ -36,3 +37,4 @@ macro_rules! builtin_error_variant (
 builtin_error_variant!(StringError, String);
 builtin_error_variant!(MiscError, Misc);
 builtin_error_variant!(SocketError, Socket);
+builtin_error_variant!(CryptographicError, Cryptographic);

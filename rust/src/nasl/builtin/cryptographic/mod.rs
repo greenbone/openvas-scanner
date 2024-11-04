@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use thiserror::Error;
+
 // use crate::nasl::utils::combine_function_sets;
 use crate::nasl::prelude::*;
 
@@ -22,6 +24,12 @@ pub mod rsa;
 
 #[cfg(test)]
 mod tests;
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum CryptographicError {
+    #[error("Error in AesGcm: insufficient buffer size.")]
+    InsufficientBufferSize,
+}
 
 enum Crypt {
     Encrypt,

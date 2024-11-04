@@ -40,9 +40,6 @@ pub enum InternalError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Authentication failed
-    #[error("Authentication failed.")]
-    Authentication,
     /// Diagnostic string is informational and the second arg is the return value for the user
     #[error("{0}")]
     Diagnostic(String, Option<NaslValue>),

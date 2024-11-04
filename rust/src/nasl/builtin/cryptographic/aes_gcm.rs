@@ -3,11 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 // NaslError::GeneralError
-use crate::nasl::syntax::NaslValue;
-use crate::{
-    function_set,
-    nasl::utils::{Context, NaslError, Register},
-};
+use crate::nasl::prelude::*;
 use aes::{
     cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit},
     Aes128, Aes192, Aes256,
@@ -18,7 +14,7 @@ use aes_gcm::{
 };
 use digest::typenum::{U12, U16};
 
-use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt};
+use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt, CryptographicError};
 
 fn gcm<D>(register: &Register, crypt: Crypt, auth: bool) -> Result<NaslValue, NaslError>
 where
@@ -67,7 +63,7 @@ where
             },
             Crypt::Encrypt => Ok(x.into()),
         },
-        Err(_) => Err(NaslError::Authentication),
+        Err(_) => Err(CryptographicError::InsufficientBufferSize.into()),
     }
 }
 
