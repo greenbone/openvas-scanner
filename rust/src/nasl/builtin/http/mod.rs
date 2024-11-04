@@ -220,7 +220,9 @@ impl NaslHttp {
     ) -> Result<NaslValue, NaslError> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => return Err(NaslError::WrongArgument(("Invalid handle ID").to_string())),
+            _ => {
+                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into())
+            }
         };
 
         let mut handles = lock_handles(&self.handles).await?;
@@ -407,7 +409,9 @@ impl NaslHttp {
     ) -> Result<NaslValue, NaslError> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => return Err(NaslError::WrongArgument(("Invalid handle ID").to_string())),
+            _ => {
+                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into())
+            }
         };
 
         let mut handles = lock_handles(&self.handles).await?;
@@ -444,7 +448,9 @@ impl NaslHttp {
 
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => return Err(NaslError::WrongArgument(("Invalid handle ID").to_string())),
+            _ => {
+                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into())
+            }
         };
 
         let mut handles = lock_handles(&self.handles).await?;

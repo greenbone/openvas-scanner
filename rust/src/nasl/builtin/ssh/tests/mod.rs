@@ -83,7 +83,7 @@ async fn ssh_connect() {
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "foo");"#, PORT),
-                NaslError::WrongArgument(_)
+                ArgumentError::WrongArgument(_)
             );
             // Without a matching key algorithm, we should not be able to connect
             check_err_matches!(

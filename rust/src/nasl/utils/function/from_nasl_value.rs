@@ -25,7 +25,7 @@ impl<'a> FromNaslValue<'a> for String {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, NaslError> {
         match value {
             NaslValue::String(string) => Ok(string.to_string()),
-            _ => Err(NaslError::WrongArgument("Expected string.".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Expected string.".to_string()).into()),
         }
     }
 }
@@ -34,7 +34,7 @@ impl<'a> FromNaslValue<'a> for &'a str {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
         match value {
             NaslValue::String(string) => Ok(string),
-            _ => Err(NaslError::WrongArgument("Expected string.".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Expected string.".to_string()).into()),
         }
     }
 }
@@ -43,7 +43,7 @@ impl<'a> FromNaslValue<'a> for &'a [u8] {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
         match value {
             NaslValue::Data(bytes) => Ok(bytes),
-            _ => Err(NaslError::WrongArgument("Expected byte data.".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Expected byte data.".to_string()).into()),
         }
     }
 }
@@ -55,7 +55,7 @@ impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for Vec<T> {
                 .iter()
                 .map(T::from_nasl_value)
                 .collect::<Result<Vec<T>, NaslError>>()?),
-            _ => Err(NaslError::WrongArgument("Expected an array..".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Expected an array..".to_string()).into()),
         }
     }
 }
@@ -67,9 +67,7 @@ impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for HashMap<String, T> {
                 .iter()
                 .map(|(k, v)| T::from_nasl_value(v).map(|v| (k.clone(), v)))
                 .collect::<Result<HashMap<_, _>, _>>()?),
-            _ => Err(NaslError::WrongArgument(
-                "Expected a dictionary.".to_string(),
-            )),
+            _ => Err(ArgumentError::WrongArgument("Expected a dictionary.".to_string()).into()),
         }
     }
 }
@@ -79,7 +77,7 @@ impl<'a> FromNaslValue<'a> for bool {
         match value {
             NaslValue::Boolean(b) => Ok(*b),
             NaslValue::Number(n) => Ok(*n != 0),
-            _ => Err(NaslError::WrongArgument("Expected bool.".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Expected bool.".to_string()).into()),
         }
     }
 }
@@ -90,12 +88,13 @@ macro_rules! impl_from_nasl_value_for_numeric_type {
             fn from_nasl_value(value: &NaslValue) -> Result<Self, NaslError> {
                 match value {
                     NaslValue::Number(num) => Ok(<$ty>::try_from(*num).map_err(|_| {
-                        NaslError::WrongArgument("Expected positive number.".into())
+                        ArgumentError::WrongArgument("Expected positive number.".into())
                     })?),
-                    e => Err(NaslError::WrongArgument(format!(
+                    e => Err(ArgumentError::WrongArgument(format!(
                         "Expected a number, found '{}'.",
                         e
-                    ))),
+                    ))
+                    .into()),
                 }
             }
         }

@@ -5,7 +5,6 @@
 mod tests {
     use crate::nasl::{test_prelude::*, utils::error::ArgumentError};
     use ArgumentError::*;
-    use NaslError::*;
     use NaslValue::*;
 
     #[test]

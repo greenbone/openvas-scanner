@@ -9,9 +9,9 @@ impl<'a> FromNaslValue<'a> for StringOrData {
         match value {
             NaslValue::String(string) => Ok(Self(string.clone())),
             NaslValue::Data(buffer) => Ok(Self(bytes_to_str(buffer))),
-            _ => Err(NaslError::WrongArgument(
-                "Expected string or byte buffer.".to_string(),
-            )),
+            _ => Err(
+                ArgumentError::WrongArgument("Expected string or byte buffer.".to_string()).into(),
+            ),
         }
     }
 }

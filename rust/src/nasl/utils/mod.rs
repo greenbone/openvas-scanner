@@ -48,7 +48,7 @@ pub fn get_named_parameter<'a>(
     registrat: &'a Register,
     key: &'a str,
     required: bool,
-) -> Result<&'a crate::nasl::syntax::NaslValue, NaslError> {
+) -> Result<&'a crate::nasl::syntax::NaslValue, ArgumentError> {
     match registrat.named(key) {
         None => {
             if required {
@@ -61,7 +61,7 @@ pub fn get_named_parameter<'a>(
         }
         Some(ct) => match ct {
             ContextType::Value(value) => Ok(value),
-            _ => Err(NaslError::wrong_argument(key, "value", "function")),
+            _ => Err(ArgumentError::wrong_argument(key, "value", "function")),
         },
     }
 }

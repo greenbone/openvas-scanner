@@ -429,9 +429,10 @@ fn nasl_get_local_mac_address_from_ip(
                 )),
             }
         }
-        _ => Err(NaslError::WrongArgument(
+        _ => Err(ArgumentError::WrongArgument(
             "Expected String containing a valid IP address.".to_string(),
-        )),
+        )
+        .into()),
     }
 }
 

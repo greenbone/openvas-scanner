@@ -125,10 +125,11 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
     let dst_addr = get_host_ip(configs)?;
 
     if dst_addr.is_ipv6() {
-        return Err(NaslError::WrongArgument(
+        return Err(ArgumentError::WrongArgument(
             "forge_ip_packet: No valid dst_addr could be determined via call to get_host_ip()"
                 .to_string(),
-        ));
+        )
+        .into());
     }
 
     let data = match register.named("data") {
@@ -202,7 +203,9 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
                     pkt.set_source(ip);
                 }
                 Err(e) => {
-                    return Err(NaslError::WrongArgument(format!("Invalid ip_src: {}", e)));
+                    return Err(
+                        ArgumentError::WrongArgument(format!("Invalid ip_src: {}", e)).into(),
+                    );
                 }
             };
             x.to_string()
@@ -217,7 +220,9 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
                     pkt.set_destination(ip);
                 }
                 Err(e) => {
-                    return Err(NaslError::WrongArgument(format!("Invalid ip_dst: {}", e)));
+                    return Err(
+                        ArgumentError::WrongArgument(format!("Invalid ip_dst: {}", e)).into(),
+                    );
                 }
             };
             x.to_string()
@@ -228,7 +233,7 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
                     pkt.set_destination(ip);
                 }
                 Err(e) => {
-                    return Err(NaslError::WrongArgument(format!("Invalid ip: {}", e)));
+                    return Err(ArgumentError::WrongArgument(format!("Invalid ip: {}", e)).into());
                 }
             };
             dst_addr.to_string()
@@ -322,7 +327,7 @@ fn set_ip_elements(register: &Register, _configs: &Context) -> Result<NaslValue,
                 pkt.set_source(ip);
             }
             Err(e) => {
-                return Err(NaslError::WrongArgument(format!("Invalid ip_src: {}", e)));
+                return Err(ArgumentError::WrongArgument(format!("Invalid ip_src: {}", e)).into());
             }
         };
     };
@@ -377,7 +382,7 @@ fn get_ip_element(register: &Register, _configs: &Context) -> Result<NaslValue, 
             "ip_sum" => Ok(NaslValue::Number(pkt.get_checksum() as i64)),
             "ip_src" => Ok(NaslValue::String(pkt.get_source().to_string())),
             "ip_dst" => Ok(NaslValue::String(pkt.get_destination().to_string())),
-            _ => Err(NaslError::WrongArgument("Invalid element".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Invalid element".to_string()).into()),
         },
         _ => Err(NaslError::missing_argument("element")),
     }
@@ -415,7 +420,7 @@ fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslErr
                 display_packet(data);
             }
             _ => {
-                return Err(NaslError::WrongArgument("Invalid ip packet".to_string()));
+                return Err(ArgumentError::WrongArgument("Invalid ip packet".to_string()).into());
             }
         }
     }
@@ -682,7 +687,7 @@ fn get_tcp_element(register: &Register, _configs: &Context) -> Result<NaslValue,
             "th_sum" => Ok(NaslValue::Number(tcp.get_checksum() as i64)),
             "th_urp" => Ok(NaslValue::Number(tcp.get_urgent_ptr() as i64)),
             "th_data" => Ok(NaslValue::Data(tcp.payload().to_vec())),
-            _ => Err(NaslError::WrongArgument("element".to_string())),
+            _ => Err(ArgumentError::WrongArgument("element".to_string()).into()),
         },
         _ => Err(NaslError::missing_argument("element")),
     }
@@ -754,7 +759,7 @@ fn get_tcp_option(register: &Register, _configs: &Context) -> Result<NaslValue, 
             3 => Ok(NaslValue::Number(window)),
             4 => Ok(NaslValue::Number(sack_permitted)),
             8 => Ok(NaslValue::Array(timestamps)),
-            _ => Err(NaslError::WrongArgument("Invalid option".to_string())),
+            _ => Err(ArgumentError::WrongArgument("Invalid option".to_string()).into()),
         },
         _ => Err(NaslError::missing_argument("option")),
     }
@@ -966,9 +971,10 @@ fn insert_tcp_options(register: &Register, _configs: &Context) -> Result<NaslVal
                     opts.push(TcpOption::mss(v));
                     opts_len += 4;
                 } else {
-                    return Err(NaslError::WrongArgument(
+                    return Err(ArgumentError::WrongArgument(
                         "Invalid value for tcp option TCPOPT_MAXSEG".to_string(),
-                    ));
+                    )
+                    .into());
                 }
             }
             Some(NaslValue::Number(o)) if *o == 3 => {
@@ -977,9 +983,10 @@ fn insert_tcp_options(register: &Register, _configs: &Context) -> Result<NaslVal
                     opts.push(TcpOption::wscale(v));
                     opts_len += 3;
                 } else {
-                    return Err(NaslError::WrongArgument(
+                    return Err(ArgumentError::WrongArgument(
                         "Invalid value for tcp option TCPOPT_WINDOW".to_string(),
-                    ));
+                    )
+                    .into());
                 }
             }
 
@@ -995,21 +1002,24 @@ fn insert_tcp_options(register: &Register, _configs: &Context) -> Result<NaslVal
                         opts.push(TcpOption::timestamp(v1, v2));
                         opts_len += 10;
                     } else {
-                        return Err(NaslError::WrongArgument(
+                        return Err(ArgumentError::WrongArgument(
                             "Invalid value for tcp option TCPOPT_TIMESTAMP".to_string(),
-                        ));
+                        )
+                        .into());
                     }
                 } else {
-                    return Err(NaslError::WrongArgument(
+                    return Err(ArgumentError::WrongArgument(
                         "Invalid value for tcp option TCPOPT_TIMESTAMP".to_string(),
-                    ));
+                    )
+                    .into());
                 }
             }
             None => break,
             _ => {
-                return Err(NaslError::WrongArgument(
+                return Err(ArgumentError::WrongArgument(
                     "insert_tcp_options: invalid tcp option".to_string(),
-                ));
+                )
+                .into());
             }
         }
     }
@@ -1113,7 +1123,9 @@ fn dump_tcp_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslEr
                 let ip = match packet::ipv4::Ipv4Packet::new(data) {
                     Some(ip) => ip,
                     None => {
-                        return Err(NaslError::WrongArgument("Invalid TCP packet".to_string()));
+                        return Err(
+                            ArgumentError::WrongArgument("Invalid TCP packet".to_string()).into(),
+                        );
                     }
                 };
 
@@ -1135,12 +1147,14 @@ fn dump_tcp_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslEr
                         display_packet(data);
                     }
                     None => {
-                        return Err(NaslError::WrongArgument("Invalid TCP packet".to_string()));
+                        return Err(
+                            ArgumentError::WrongArgument("Invalid TCP packet".to_string()).into(),
+                        );
                     }
                 }
             }
             _ => {
-                return Err(NaslError::WrongArgument("Invalid ip packet".to_string()));
+                return Err(ArgumentError::WrongArgument("Invalid ip packet".to_string()).into());
             }
         }
     }
@@ -1395,7 +1409,7 @@ fn dump_udp_packet(register: &Register, _: &Context) -> Result<NaslValue, NaslEr
         ));
     }
     let invalid_udp_packet_error =
-        || Err(NaslError::WrongArgument("Invalid UDP packet".to_string()));
+        || Err(ArgumentError::WrongArgument("Invalid UDP packet".to_string()).into());
 
     for udp_datagram in positional.iter() {
         match udp_datagram {
@@ -1461,9 +1475,9 @@ fn get_udp_element(register: &Register, _configs: &Context) -> Result<NaslValue,
             "uh_len" => Ok(NaslValue::Number(udp.get_length() as i64)),
             "uh_sum" => Ok(NaslValue::Number(udp.get_checksum() as i64)),
             "data" => Ok(NaslValue::Data(udp.payload().to_vec())),
-            _ => Err(NaslError::WrongArgument("element".to_string())),
+            _ => Err(ArgumentError::WrongArgument("element".to_string()).into()),
         },
-        _ => Err(NaslError::WrongArgument("element".to_string())),
+        _ => Err(ArgumentError::WrongArgument("element".to_string()).into()),
     }
 }
 
@@ -1929,10 +1943,10 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Na
     ip.set_identification(random_impl()? as u16);
     ip.set_ttl(40);
     let ipv4_src = Ipv4Addr::from_str(&local_ip.to_string())
-        .map_err(|_| NaslError::WrongArgument("invalid IP".to_string()))?;
+        .map_err(|_| ArgumentError::WrongArgument("invalid IP".to_string()))?;
     ip.set_source(ipv4_src);
     let ipv4_dst = Ipv4Addr::from_str(&target_ip.to_string())
-        .map_err(|_| NaslError::WrongArgument("invalid IP".to_string()))?;
+        .map_err(|_| ArgumentError::WrongArgument("invalid IP".to_string()))?;
 
     ip.set_destination(ipv4_dst);
     let chksum = checksum(&ip.to_immutable());

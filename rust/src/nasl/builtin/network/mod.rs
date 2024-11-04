@@ -4,8 +4,7 @@
 
 use std::{fmt::Display, net::IpAddr};
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, NaslError};
+use crate::nasl::prelude::*;
 use crate::storage::{Field, Retrieve};
 
 #[allow(clippy::module_inception)]
@@ -89,9 +88,9 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, N
         .map_err(|e| e.into())
 }
 
-pub fn verify_port(port: i64) -> Result<u16, NaslError> {
+pub fn verify_port(port: i64) -> Result<u16, ArgumentError> {
     if !(0..=65535).contains(&port) {
-        return Err(NaslError::WrongArgument(format!(
+        return Err(ArgumentError::WrongArgument(format!(
             "{} is not a valid port number",
             port
         )));

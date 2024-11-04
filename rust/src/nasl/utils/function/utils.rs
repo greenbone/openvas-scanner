@@ -38,9 +38,9 @@ pub fn get_positional_arg<'a, T: FromNaslValue<'a>>(
 fn context_type_as_nasl_value<'a>(
     context_type: &'a ContextType,
     arg_name: &str,
-) -> Result<&'a NaslValue, NaslError> {
+) -> Result<&'a NaslValue, ArgumentError> {
     match context_type {
-        ContextType::Function(_, _) => Err(NaslError::WrongArgument(format!(
+        ContextType::Function(_, _) => Err(ArgumentError::WrongArgument(format!(
             "Wrong argument for {}, expected a value, found a function.",
             arg_name
         ))),

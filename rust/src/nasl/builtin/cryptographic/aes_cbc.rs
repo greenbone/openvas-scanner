@@ -12,10 +12,7 @@ use aes::{
 };
 use cbc::{Decryptor, Encryptor};
 
-use crate::function_set;
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::error::NaslError;
-use crate::nasl::utils::{Context, Register};
+use crate::nasl::prelude::*;
 
 use super::{get_data, get_iv, get_key, get_len, Crypt};
 
@@ -35,7 +32,7 @@ where
             let res = Encryptor::<D>::new_from_slices(key, iv);
             match res {
                 Ok(encryptor) => Ok(encryptor.encrypt_padded_vec_mut::<ZeroPadding>(data).into()),
-                Err(e) => Err(NaslError::WrongArgument(e.to_string())),
+                Err(e) => Err(ArgumentError::WrongArgument(e.to_string()).into()),
             }
         }
         Crypt::Decrypt => {
@@ -47,20 +44,21 @@ where
 
             // len should not be more than the length of the data
             if len > data.len() {
-                return Err(NaslError::wrong_argument(
+                return Err(ArgumentError::wrong_argument(
                     "len",
                     format!("<={:?}", data.len()).as_str(),
                     len.to_string().as_str(),
-                ));
+                )
+                .into());
             }
             let res = Decryptor::<D>::new_from_slices(key, iv);
             match res {
                 Ok(decryptor) => Ok(decryptor
                     .decrypt_padded_vec_mut::<NoPadding>(data)
-                    .map_err(|e| NaslError::WrongArgument(e.to_string()))?[..len]
+                    .map_err(|e| ArgumentError::WrongArgument(e.to_string()))?[..len]
                     .to_vec()
                     .into()),
-                Err(e) => Err(NaslError::WrongArgument(e.to_string())),
+                Err(e) => Err(ArgumentError::WrongArgument(e.to_string()).into()),
             }
         }
     }

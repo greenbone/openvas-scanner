@@ -27,7 +27,7 @@ pub enum ArgumentError {
     #[error("Unknown named argument given to function: {}", .0)]
     UnexpectedArgument(String),
     #[error("Function was called with wrong arguments: {0}")]
-    Wrong(String),
+    WrongArgument(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -47,9 +47,6 @@ pub enum NaslError {
     /// Wraps io::Error
     #[error("IOError: {0}")]
     IOError(io::ErrorKind),
-    /// Function was called with wrong arguments
-    #[error("Function was called with wrong arguments: {0}")]
-    WrongArgument(String),
     /// Authentication failed
     #[error("Authentication failed.")]
     Authentication,
@@ -117,19 +114,23 @@ impl From<io::Error> for NaslError {
     }
 }
 
-impl NaslError {
+impl ArgumentError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
     pub fn wrong_argument(key: &str, expected: &str, got: &str) -> Self {
-        Self::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
+        ArgumentError::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
     }
+}
 
+impl NaslError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
     pub fn wrong_unnamed_argument(expected: &str, got: &str) -> Self {
-        Self::WrongArgument(format!("Expected {expected} but {got}"))
+        Self::Argument(ArgumentError::WrongArgument(format!(
+            "Expected {expected} but {got}"
+        )))
     }
 
     /// Helper function to quickly construct a `MissingArguments` variant
@@ -143,7 +144,7 @@ impl From<(&str, &str, &NaslValue)> for NaslError {
     fn from(value: (&str, &str, &NaslValue)) -> Self {
         let (key, expected, got) = value;
         let got: &str = &got.to_string();
-        NaslError::wrong_argument(key, expected, got)
+        ArgumentError::wrong_argument(key, expected, got).into()
     }
 }
 
@@ -151,7 +152,7 @@ impl From<(&str, &str, Option<&NaslValue>)> for NaslError {
     fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
         match value {
             (key, expected, Some(x)) => (key, expected, x).into(),
-            (key, expected, None) => NaslError::wrong_argument(key, expected, "NULL"),
+            (key, expected, None) => ArgumentError::wrong_argument(key, expected, "NULL").into(),
         }
     }
 }
@@ -161,9 +162,9 @@ impl From<(&str, &str, Option<&ContextType>)> for NaslError {
         match value {
             (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
             (key, expected, Some(ContextType::Function(_, _))) => {
-                NaslError::wrong_argument(key, expected, "function")
+                ArgumentError::wrong_argument(key, expected, "function").into()
             }
-            (key, expected, None) => NaslError::wrong_argument(key, expected, "NULL"),
+            (key, expected, None) => ArgumentError::wrong_argument(key, expected, "NULL").into(),
         }
     }
 }

@@ -13,8 +13,7 @@ use std::{
 };
 
 use crate::function_set;
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{error::NaslError, Context};
+use crate::nasl::prelude::*;
 use dns_lookup::lookup_host;
 use nasl_function_proc_macro::nasl_function;
 use pkcs8::der::Decode;
@@ -289,7 +288,7 @@ impl NaslSockets {
             .unwrap()
             .handles
             .get_mut(socket)
-            .ok_or(NaslError::WrongArgument(format!(
+            .ok_or(ArgumentError::WrongArgument(format!(
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
@@ -311,9 +310,10 @@ impl NaslSockets {
                 }
             }
             NaslSocket::Udp(conn) => unsafe { conn.send(data, len, flags.unwrap_or(0) as i32) },
-            NaslSocket::Close => Err(NaslError::WrongArgument(
+            NaslSocket::Close => Err(ArgumentError::WrongArgument(
                 "the given socket FD is already closed".to_string(),
-            )),
+            )
+            .into()),
         }
     }
 
@@ -365,7 +365,7 @@ impl NaslSockets {
             .unwrap()
             .handles
             .get_mut(socket)
-            .ok_or(NaslError::WrongArgument(format!(
+            .ok_or(ArgumentError::WrongArgument(format!(
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
@@ -425,9 +425,10 @@ impl NaslSockets {
                 }
                 ret
             }
-            NaslSocket::Close => Err(NaslError::WrongArgument(
+            NaslSocket::Close => Err(ArgumentError::WrongArgument(
                 "the given socket FD is already closed".to_string(),
-            )),
+            )
+            .into()),
         }
     }
 
@@ -581,9 +582,10 @@ impl NaslSockets {
                 }
                 // Unsupported transport layer
                 None | Some(OpenvasEncaps::Max) => {
-                    return Err(NaslError::WrongArgument(format!(
+                    return Err(ArgumentError::WrongArgument(format!(
                         "unsupported transport layer: {transport}(unknown)"
-                    )))
+                    ))
+                    .into())
                 }
                 // TLS/SSL
                 Some(tls_version) => match tls_version {
@@ -593,9 +595,10 @@ impl NaslSockets {
                         fds.push(self.add(fd))
                     }
                     _ => {
-                        return Err(NaslError::WrongArgument(format!(
+                        return Err(ArgumentError::WrongArgument(format!(
                             "unsupported transport layer: {transport}{tls_version}"
-                        )))
+                        ))
+                        .into())
                     }
                 },
             }
@@ -740,7 +743,7 @@ impl NaslSockets {
         let config = ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_client_auth_cert(cert, key)
-            .map_err(|_| NaslError::WrongArgument("Invalid Key".to_string()))?;
+            .map_err(|_| ArgumentError::WrongArgument("Invalid Key".to_string()))?;
 
         self.open_sock_tcp_ip(
             context,

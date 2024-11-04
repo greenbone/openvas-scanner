@@ -7,17 +7,18 @@
 #[cfg(test)]
 mod tests;
 
-use crate::nasl::utils::{
-    function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
-    Context, NaslError, Register,
+use crate::nasl::{
+    utils::{
+        function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
+        NaslError,
+    },
+    ArgumentError,
 };
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
-use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
 
-use crate::function_set;
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::*;
 
 /// Decodes given string as hex and returns the result as a byte array
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
@@ -219,11 +220,11 @@ fn hex(s: i64) -> String {
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
 #[nasl_function]
-fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, NaslError> {
+fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, ArgumentError> {
     let s = s.to_string();
     let s = s.as_str();
     decode_hex(s).map_err(|_| {
-        NaslError::WrongArgument(format!(
+        ArgumentError::WrongArgument(format!(
             "Expected an even-length string containing only 0-9a-fA-F, found '{}'",
             s
         ))
@@ -331,7 +332,7 @@ fn insstr(
     to_insert: NaslValue,
     start: usize,
     end: Option<usize>,
-) -> Result<String, NaslError> {
+) -> Result<String, ArgumentError> {
     let mut s = s.to_string();
 
     let insb = to_insert.to_string();
@@ -339,7 +340,7 @@ fn insstr(
 
     let end = end.unwrap_or(s.len()).min(s.len());
     if start > end {
-        return Err(NaslError::WrongArgument(format!(
+        return Err(ArgumentError::WrongArgument(format!(
             "start index ({}) larger than end ({}).",
             start, end
         )));
@@ -373,7 +374,7 @@ fn match_(string: NaslValue, pattern: NaslValue, icase: Option<bool>) -> Result<
 
     Ok(Pattern::new(pattern)
         .map_err(|err| {
-            NaslError::WrongArgument(format!(
+            ArgumentError::WrongArgument(format!(
                 "Argument 'pattern' to 'match' is not a valid pattern: {}. {}",
                 pattern, err
             ))
