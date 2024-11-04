@@ -288,7 +288,6 @@ static inline tree_cell *
 okrb5_slice_to_tree_cell (struct OKrb5Slice *slice)
 {
   tree_cell *retc = alloc_typed_cell (CONST_DATA);
-  printf ("slice->data: %s\n", (char *) slice->data);
   retc->x.str_val = slice->data;
   retc->size = slice->len;
   return retc;
@@ -312,7 +311,6 @@ nasl_okrb5_gss_session_key_context (lex_ctxt *lexic)
   struct OKrb5Slice *session_key = NULL;
   if (cached_gss_context == NULL)
     {
-      printf ("cached_gss_context is NULL\n");
       last_okrb5_result = O_KRB5_EXPECTED_NOT_NULL;
       return FAKE_CELL;
     }
@@ -320,7 +318,6 @@ nasl_okrb5_gss_session_key_context (lex_ctxt *lexic)
          o_krb5_gss_session_key_context (cached_gss_context, &session_key))
       != O_KRB5_SUCCESS)
     {
-      printf ("o_krb5_gss_session_key_context failed\n");
       return FAKE_CELL;
     }
   return okrb5_slice_to_tree_cell (session_key);
