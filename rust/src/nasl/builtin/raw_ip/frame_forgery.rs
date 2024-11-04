@@ -410,10 +410,11 @@ fn nasl_get_local_mac_address_from_ip(
 ) -> Result<NaslValue, NaslError> {
     let positional = register.positional();
     if positional.is_empty() {
-        return Err(NaslError::Argument(ArgumentError::MissingPositionals {
+        return Err(ArgumentError::MissingPositionals {
             expected: 1,
             got: 0,
-        }));
+        }
+        .into());
     }
 
     match &positional[0] {

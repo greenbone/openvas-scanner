@@ -80,6 +80,39 @@ pub enum NaslError {
     Internal(#[from] InternalError),
 }
 
+impl TryFrom<NaslError> for ArgumentError {
+    type Error = ();
+
+    fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+        match value {
+            NaslError::Argument(e) => Ok(e),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<NaslError> for InternalError {
+    type Error = ();
+
+    fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+        match value {
+            NaslError::Internal(e) => Ok(e),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<NaslError> for BuiltinError {
+    type Error = ();
+
+    fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+        match value {
+            NaslError::Builtin(e) => Ok(e),
+            _ => Err(()),
+        }
+    }
+}
+
 // It would be nicer to derive this using #[from] from
 // thiserror, but io::Error does not impl `PartialEq`,
 // `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which

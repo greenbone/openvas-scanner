@@ -5,6 +5,7 @@
 #[cfg(test)]
 mod tests {
     use crate::nasl::test_prelude::*;
+    use ArgumentError::*;
     use NaslError::*;
 
     #[test]
@@ -19,16 +20,8 @@ mod tests {
         let mut t = TestBuilder::default();
         t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
         t.ok(r#"get_kb_item("test");"#, 1);
-        check_err_matches!(
-            t,
-            r#"get_kb_item("test", 1);"#,
-            Argument(ArgumentError::TrailingPositionals { .. }),
-        );
-        check_err_matches!(
-            t,
-            r#"get_kb_item();"#,
-            Argument(ArgumentError::MissingPositionals { .. })
-        );
+        check_err_matches!(t, r#"get_kb_item("test", 1);"#, TrailingPositionals { .. },);
+        check_err_matches!(t, r#"get_kb_item();"#, MissingPositionals { .. });
     }
 
     #[test]

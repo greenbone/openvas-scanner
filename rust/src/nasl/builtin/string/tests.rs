@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests {
     use crate::nasl::{test_prelude::*, utils::error::ArgumentError};
+    use ArgumentError::*;
     use NaslError::*;
     use NaslValue::*;
 
@@ -12,7 +13,7 @@ mod tests {
         check_code_result("hexstr('foo');", "666f6f");
         check_err_matches!(
             "hexstr('foo', 'I will be ignored');",
-            Argument(ArgumentError::TrailingPositionals { .. }),
+            TrailingPositionals { .. },
         );
         check_code_result("hexstr(6);", Null);
         check_code_result("hexstr();", Null);
@@ -82,10 +83,7 @@ mod tests {
         check_code_result("chomp('abc\n');", "abc");
         check_code_result("chomp('abc  ');", "abc");
         check_code_result("chomp('abc\n\t\r ');", "abc");
-        check_err_matches!(
-            "chomp();",
-            Argument(ArgumentError::MissingPositionals { .. })
-        );
+        check_err_matches!("chomp();", MissingPositionals { .. });
     }
 
     #[test]
@@ -126,7 +124,7 @@ mod tests {
         check_code_result(r#"ord("c");"#, 99);
         check_code_result(r#"ord("");"#, Null);
         check_code_result("ord(1);", 49);
-        check_err_matches!("ord();", Argument(ArgumentError::MissingPositionals { .. }));
+        check_err_matches!("ord();", MissingPositionals { .. });
     }
 
     #[test]
@@ -156,10 +154,7 @@ mod tests {
         check_code_result(r#"hex(256);"#, "0x00");
         check_code_result(r#"hex(257);"#, "0x01");
         check_code_result(r#"hex(-2);"#, "0xfe");
-        check_err_matches!(
-            r#"hex();"#,
-            Argument(ArgumentError::MissingPositionals { .. })
-        );
+        check_err_matches!(r#"hex();"#, MissingPositionals { .. });
     }
 
     #[test]
@@ -216,10 +211,7 @@ mod tests {
             r#"split("a;b;c", sep: ";");"#,
             vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
         );
-        check_err_matches!(
-            r#"split();"#,
-            Argument(ArgumentError::MissingPositionals { .. })
-        );
+        check_err_matches!(r#"split();"#, MissingPositionals { .. });
     }
 
     #[test]
@@ -245,13 +237,7 @@ mod tests {
         check_code_result(r#"strstr("abc", "b");"#, "bc");
         check_code_result(r#"strstr("abcbd", "b");"#, "bcbd");
         check_code_result(r#"strstr('a\rbcbd', '\rb');"#, "\rbcbd");
-        check_err_matches!(
-            r#"strstr();"#,
-            Argument(ArgumentError::MissingPositionals { .. })
-        );
-        check_err_matches!(
-            r#"strstr("a");"#,
-            Argument(ArgumentError::MissingPositionals { .. })
-        );
+        check_err_matches!(r#"strstr();"#, MissingPositionals { .. });
+        check_err_matches!(r#"strstr("a");"#, MissingPositionals { .. });
     }
 }

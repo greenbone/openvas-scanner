@@ -65,7 +65,7 @@ macro_rules! make_storage_function {
             let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
                 return Err(
-                    NaslError::Argument(ArgumentError::MissingPositionals { expected: $len, got: positional.len() })
+                    ArgumentError::MissingPositionals { expected: $len, got: positional.len() }.into()
                 );
             }
             for p in positional {

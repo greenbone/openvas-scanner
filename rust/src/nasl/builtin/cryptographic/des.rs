@@ -13,10 +13,11 @@ fn encrypt_des(
 ) -> Result<crate::nasl::syntax::NaslValue, NaslError> {
     let positional = register.positional();
     if positional.len() != 2 {
-        return Err(NaslError::Argument(ArgumentError::MissingPositionals {
+        return Err(ArgumentError::MissingPositionals {
             expected: 2,
             got: positional.len(),
-        }));
+        }
+        .into());
     }
     let key = match &positional[1] {
         crate::nasl::syntax::NaslValue::Data(x) => x,

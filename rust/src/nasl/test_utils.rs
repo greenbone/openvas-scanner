@@ -398,11 +398,32 @@ pub fn check_code_result(code: &str, expected: impl ToNaslResult) {
 #[macro_export]
 macro_rules! check_err_matches {
     ($t: ident, $code: expr, $pat: pat $(,)?) => {
-        $t.check($code, |e| matches!(e, Err($pat)), Some(stringify!($pat)));
+        $t.check(
+            $code,
+            |e| {
+                if let Err(e) = e {
+                    // Convert with try_into to allow using
+                    // the variants of `NaslError` directly without
+                    // having to wrap them in the outer enum.
+                    let converted = e.try_into();
+                    // This is only irrefutable for the
+                    // NaslError -> NaslError conversion but not for others.
+                    #[allow(irrefutable_let_patterns)]
+                    if let Ok(e) = converted {
+                        matches!(e, $pat)
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            },
+            Some(stringify!($pat)),
+        );
     };
     ($code: expr, $pat: pat $(,)?) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
-        t.check($code, |e| matches!(e, Err($pat)), Some(stringify!($pat)));
+        check_err_matches!(t, $code, $pat);
     };
 }
 
