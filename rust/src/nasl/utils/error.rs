@@ -25,7 +25,7 @@ pub enum ArgumentError {
     #[error("Missing arguments: {}", .0.join(", "))]
     MissingNamed(Vec<String>),
     #[error("Unknown named argument given to function: {}", .0)]
-    Unexpected(String),
+    UnexpectedArgument(String),
     #[error("Function was called with wrong arguments: {0}")]
     Wrong(String),
 }
@@ -41,9 +41,6 @@ pub enum InternalError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Function called with additional, unexpected named arguments
-    #[error("Unknown named argument given to function: {}", .0)]
-    UnexpectedArgument(String),
     /// Wraps formatting error
     #[error("Formatting error: {0}")]
     FMTError(#[from] std::fmt::Error),

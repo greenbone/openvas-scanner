@@ -123,7 +123,7 @@ fn check_named_args(
             num_maybe_named += 1;
         } else {
             #[cfg(feature = "enforce-no-trailing-arguments")]
-            return Err(NaslError::UnexpectedArgument(arg_name.into()));
+            return Err(ArgumentError::UnexpectedArgument(arg_name.into()).into());
             #[cfg(not(feature = "enforce-no-trailing-arguments"))]
             tracing::debug!(
                 "Unexpected named argument '{arg_name}' in NASL function {_nasl_fn_name}."
