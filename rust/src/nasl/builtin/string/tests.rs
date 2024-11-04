@@ -142,8 +142,8 @@ mod tests {
         // g_pattern_spec allows globs to match slashes, make sure we do too
         check_code_result(r#"match(string: "a///", pattern: "a*");"#, true);
         check_code_result(r#"match(string: "///a", pattern: "*a");"#, true);
-        check_err_matches!(r#"match(string: "abcd");"#, MissingArguments { .. });
-        check_err_matches!(r#"match(pattern: "ab");"#, MissingArguments { .. });
+        check_err_matches!(r#"match(string: "abcd");"#, MissingNamed { .. });
+        check_err_matches!(r#"match(pattern: "ab");"#, MissingNamed { .. });
     }
 
     #[test]
@@ -220,8 +220,8 @@ mod tests {
             r#"str_replace(string: "abc", find: "b", replace: "foo");"#,
             "afooc",
         );
-        check_err_matches!(r#"str_replace();"#, MissingArguments { .. });
-        check_err_matches!(r#"str_replace(string: "abc");"#, MissingArguments { .. });
+        check_err_matches!(r#"str_replace();"#, MissingNamed { .. });
+        check_err_matches!(r#"str_replace(string: "abc");"#, MissingNamed { .. });
         check_code_result(r#"str_replace(string: "abc", find: "b");"#, "ac");
         check_code_result(
             r#"str_replace(string: "abcbd", find: "b", count: 1);"#,

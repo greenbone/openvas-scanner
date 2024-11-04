@@ -41,9 +41,6 @@ pub enum InternalError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
-    /// Function called without required named arguments
-    #[error("Missing arguments: {}", .0.join(", "))]
-    MissingArguments(Vec<String>),
     /// Function called with additional, unexpected named arguments
     #[error("Unknown named argument given to function: {}", .0)]
     UnexpectedArgument(String),
@@ -141,7 +138,7 @@ impl NaslError {
     /// Helper function to quickly construct a `MissingArguments` variant
     /// for a single missing argument.
     pub fn missing_argument(val: &str) -> Self {
-        Self::MissingArguments(vec![val.to_string()])
+        Self::Argument(ArgumentError::MissingNamed(vec![val.to_string()]))
     }
 }
 

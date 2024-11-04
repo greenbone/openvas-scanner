@@ -70,7 +70,7 @@ pub fn get_named_arg<'a, T: FromNaslValue<'a>>(
 ) -> Result<T, NaslError> {
     let arg = register
         .named(name)
-        .ok_or_else(|| NaslError::MissingArguments(vec![name.to_string()]))?;
+        .ok_or_else(|| ArgumentError::MissingNamed(vec![name.to_string()]))?;
     <T as FromNaslValue>::from_nasl_value(context_type_as_nasl_value(arg, name)?)
 }
 

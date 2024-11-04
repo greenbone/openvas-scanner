@@ -200,10 +200,7 @@ fn as_tag_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 
 fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() != 2 {
-        return Err(NaslError::MissingArguments(vec![
-            "name".to_owned(),
-            "csv".to_owned(),
-        ]));
+        return Err(ArgumentError::MissingNamed(vec!["name".to_owned(), "csv".to_owned()]).into());
     }
     Ok(vec![NVTField::Reference(vec![NvtRef {
         class: arguments[1].to_string(),
@@ -213,10 +210,9 @@ fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 
 fn as_preference(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() < 3 {
-        return Err(NaslError::MissingArguments(vec![
-            "type".to_owned(),
-            "value".to_owned(),
-        ]));
+        return Err(
+            ArgumentError::MissingNamed(vec!["type".to_owned(), "value".to_owned()]).into(),
+        );
     }
     let name = arguments[0].to_string();
     let class = arguments[1].to_string();

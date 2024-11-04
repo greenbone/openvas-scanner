@@ -6,13 +6,12 @@
 mod tests {
     use crate::nasl::test_prelude::*;
     use ArgumentError::*;
-    use NaslError::*;
 
     #[test]
     fn set_kb_item() {
         check_code_result(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
-        check_err_matches!(r#"set_kb_item(name: "test");"#, MissingArguments { .. });
-        check_err_matches!(r#"set_kb_item(value: 1);"#, MissingArguments { .. });
+        check_err_matches!(r#"set_kb_item(name: "test");"#, MissingNamed { .. });
+        check_err_matches!(r#"set_kb_item(value: 1);"#, MissingNamed { .. });
     }
 
     #[test]
