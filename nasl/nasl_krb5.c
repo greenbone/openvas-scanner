@@ -10,10 +10,17 @@
 
 #include <stdio.h>
 // TODO: add string function for result
-#define nasl_print_krb_error(lexic, credential, result)                      \
-  nasl_perror (lexic, "%s[config_path: '%s' realm: '%s' user: '%s'] => %d",  \
-               __func__, credential.config_path.data, credential.realm.data, \
-               credential.user.user.data, result);
+#define nasl_print_krb_error(lexic, credential, result)                       \
+  do                                                                          \
+    {                                                                         \
+      char *error_str = okrb5_error_code_to_string (result);                  \
+      nasl_perror (lexic,                                                     \
+                   "%s[config_path: '%s' realm: '%s' user: '%s'] => %s (%d)", \
+                   __func__, credential.config_path.data,                     \
+                   credential.realm.data, credential.user.user.data, result); \
+      free (error_str);                                                       \
+    }                                                                         \
+  while (0)
 
 OKrb5ErrorCode last_okrb5_result;
 
@@ -44,6 +51,9 @@ static OKrb5Credential
 build_krb5_credential (lex_ctxt *lexic)
 {
   OKrb5Credential credential;
+  OKrb5ErrorCode code;
+
+  char *kdc = NULL;
   memset (&credential, 0, sizeof (OKrb5Credential));
 
   set_slice_from_lex_or_env (lexic, credential.config_path, "config_path",
@@ -56,6 +66,7 @@ build_krb5_credential (lex_ctxt *lexic)
 
   perror_set_slice_from_lex_or_env (lexic, credential.realm, "realm",
                                     "KRB5_REALM");
+  perror_set_slice_from_lex_or_env (lexic, credential.kdc, "kdc", "KRB5_KDC");
   perror_set_slice_from_lex_or_env (lexic, credential.user.user, "user",
                                     "KRB5_USER");
   perror_set_slice_from_lex_or_env (lexic, credential.user.password, "password",
@@ -64,6 +75,25 @@ build_krb5_credential (lex_ctxt *lexic)
                                     "KRB5_TARGET_HOST");
   // set_slice_from_lex_or_env (lexic, credential.target.service, "service",
   // "KRB5_TARGET_SERVICE");
+
+  if ((code = o_krb5_find_kdc (&credential, &kdc)))
+    {
+      if (code != O_KRB5_REALM_NOT_FOUND)
+        {
+          nasl_print_krb_error (lexic, credential, code);
+        }
+      else
+        {
+          if ((code = o_krb5_add_realm (&credential, credential.kdc.data)))
+            {
+              nasl_print_krb_error (lexic, credential, code);
+            }
+        }
+    }
+  else
+    {
+      free (kdc);
+    }
   if (credential.target.service.len == 0)
     {
       okrb5_set_slice_from_str (credential.target.service, "cifs");
@@ -301,7 +331,11 @@ nasl_okrb5_gss_update_context_out (lex_ctxt *lexic)
     {
       return FAKE_CELL;
     }
-  return okrb5_slice_to_tree_cell (to_application);
+  tree_cell *out = okrb5_slice_to_tree_cell (to_application);
+  // we need to prevent accidental free it as it is freed when the tree_cell is
+  // cleaned up
+  to_application = NULL;
+  return out;
 }
 
 tree_cell *
