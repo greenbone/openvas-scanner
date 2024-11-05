@@ -89,10 +89,10 @@ async fn ssh_connect() {
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "ssh-rsa");"#, PORT),
-                NaslError::Ssh(SshError {
+                SshError {
                     kind: SshErrorKind::Connect,
                     ..
-                })
+                }
             );
         },
         default_config(),
@@ -121,10 +121,10 @@ async fn ssh_userauth() {
             check_err_matches!(
                 t,
                 r#"ssh_userauth(session_id);"#,
-                NaslError::Ssh(SshError {
+                SshError {
                     kind: SshErrorKind::NoAuthenticationGiven,
                     ..
-                }),
+                },
             );
             userauth(&mut t);
         },

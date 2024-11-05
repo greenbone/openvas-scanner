@@ -2,8 +2,6 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::nasl::NaslError;
-
 use super::SessionId;
 
 /// A cloneable representation of the Error type of the underlying SSH lib
@@ -167,11 +165,5 @@ impl SshError {
         SshError: AttachErrorInfo<Info>,
     {
         self.attach_error_info(m)
-    }
-}
-
-impl From<SshError> for NaslError {
-    fn from(e: SshError) -> Self {
-        NaslError::Ssh(e)
     }
 }

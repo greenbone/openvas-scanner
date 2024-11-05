@@ -25,7 +25,6 @@ mod string;
 mod tests;
 
 pub use error::BuiltinError;
-pub use ssh::SshError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};

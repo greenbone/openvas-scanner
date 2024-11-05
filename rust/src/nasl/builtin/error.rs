@@ -31,6 +31,17 @@ macro_rules! builtin_error_variant (
                 NaslError::Builtin(BuiltinError::$variant(value))
             }
         }
+
+        impl TryFrom<NaslError> for $ty {
+            type Error = ();
+
+            fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+                match value {
+                    NaslError::Builtin(BuiltinError::$variant(e)) => Ok(e),
+                    _ => Err(()),
+                }
+            }
+        }
     }
 );
 
@@ -38,3 +49,4 @@ builtin_error_variant!(StringError, String);
 builtin_error_variant!(MiscError, Misc);
 builtin_error_variant!(SocketError, Socket);
 builtin_error_variant!(CryptographicError, Cryptographic);
+builtin_error_variant!(SshError, Ssh);
