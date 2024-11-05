@@ -10,8 +10,9 @@ use serde::{de::Visitor, Deserialize};
 use super::commands::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StringU64(u64);
+
 
 impl From<i64> for StringU64 {
     fn from(value: i64) -> Self {
@@ -41,6 +42,12 @@ impl From<StringU64> for i32 {
 #[derive(Clone, Debug, PartialEq)]
 pub struct StringF32(f32);
 
+impl Default for StringF32 {
+    fn default() -> Self {
+        StringF32(0.0)
+    }
+}
+
 impl From<f32> for StringF32 {
     fn from(value: f32) -> Self {
         StringF32(value)
@@ -57,6 +64,16 @@ impl From<StringF32> for f64 {
     fn from(value: StringF32) -> Self {
         value.0 as f64
     }
+}
+
+fn invalid_number_msg<V, E>(value: &str) -> Result<V, E>
+where
+    V: Default,
+{
+    if !value.trim().is_empty() {
+        tracing::warn!(value, "invalid number, returning default");
+    }
+    Ok(V::default())
 }
 
 impl<'de> Deserialize<'de> for StringF32 {
@@ -77,7 +94,7 @@ impl<'de> Deserialize<'de> for StringF32 {
             {
                 match value.parse::<f32>() {
                     Ok(value) => Ok(StringF32(value)),
-                    Err(_) => Err(E::custom("invalid number")),
+                    Err(_) => invalid_number_msg::<Self::Value, E>(value),
                 }
             }
         }
@@ -104,7 +121,7 @@ impl<'de> Deserialize<'de> for StringU64 {
             {
                 match value.parse::<u64>() {
                     Ok(value) => Ok(StringU64(value)),
-                    Err(_) => Err(E::custom("invalid number")),
+                    Err(_) => invalid_number_msg::<Self::Value, E>(value),
                 }
             }
         }
@@ -326,19 +343,19 @@ pub enum ResultType {
 pub struct ScanResult {
     #[serde(rename = "@host")]
     /// Host
-    pub host: String,
+    pub host: Option<String>,
     #[serde(rename = "@hostname")]
     /// Hostname
-    pub hostname: String,
+    pub hostname: Option<String>,
     #[serde(rename = "@severity")]
     /// Severity
-    pub severity: StringF32,
+    pub severity: Option<StringF32>,
     #[serde(rename = "@port")]
     /// Port
-    pub port: String,
+    pub port: Option<String>,
     #[serde(rename = "@test_id")]
     /// Test ID
-    pub test_id: String,
+    pub test_id: Option<String>,
     #[serde(rename = "@name")]
     /// Name
     pub name: String,
@@ -383,14 +400,13 @@ impl From<&ScanResult> for crate::models::Result {
     fn from(result: &ScanResult) -> Self {
         // name == script_name can be found via oid and is ignored here
         let (port, protocol) = {
-            let (m_port, m_protocol) = result
-                .port
-                .split_once('/')
-                .unwrap_or((result.port.as_str(), ""));
-            (
-                m_port.parse().ok(),
-                crate::models::Protocol::try_from(m_protocol).ok(),
-            )
+            result.clone().port.map_or((None, None), |port| {
+                let (m_port, m_protocol) = port.split_once('/').unwrap_or((port.as_str(), ""));
+                (
+                    m_port.parse().ok(),
+                    crate::models::Protocol::try_from(m_protocol).ok(),
+                )
+            })
         };
         let r_type = result.into();
         let message = match result.description.as_str() {
@@ -408,17 +424,11 @@ impl From<&ScanResult> for crate::models::Result {
 
         crate::models::Result {
             id: 0,
-            hostname: match result.hostname.as_str() {
-                "" => None,
-                _ => Some(result.hostname.clone()),
-            },
-            ip_address: match result.host.as_str() {
-                "" => None,
-                _ => Some(result.host.clone()),
-            },
+            hostname: result.hostname.clone(),
+            ip_address: result.host.clone(),
             port,
             protocol,
-            oid: Some(result.test_id.clone()),
+            oid: result.test_id.clone(),
             r_type,
             message,
             detail: detail.extract(),
@@ -674,6 +684,59 @@ mod tests {
     }
 
     #[test]
+    fn empty_optional_fields() {
+        // types Alarm, Log Message, nn
+        // TODO write tests for Log Message, Error Message, Alarm
+        let xml = r#"
+     <get_scans_response status_text="OK"
+                         status="200">
+       <scan id="9750f1f8-07aa-49cc-9c31-2f9e469c8f65"
+             target="192.168.1.252"
+             end_time="0"
+             progress="78"
+             status="finished"
+             start_time="1432824206">
+         <results>
+           <result host="192.168.1.252"
+                   hostname=""
+                   severity=""
+                   port="443/tcp"
+                   test_id=""
+                   name="Path disclosure vulnerability"
+                   type="Log Message">
+             bla
+           </result>
+           <result port="443/tcp"
+                   test_id=""
+                   name="Path disclosure vulnerability"
+                   type="Log Message">
+             bla
+           </result>
+         </results>
+       </scan>
+     </get_scans_response>
+            "#;
+        let response: Response = from_str(xml).unwrap();
+        match response {
+            Response::GetScans { status, scan } => {
+                assert_eq!(status.text, "OK");
+                assert_eq!(status.code, 200.into());
+                if let Some(scan) = scan {
+                    assert_eq!(scan.results.result[0].severity, None);
+                    assert_eq!(scan.results.result[1].severity, None);
+                    assert_eq!(scan.results.result[1].hostname, None);
+                    assert_eq!(scan.results.result[1].host, None);
+                    assert_eq!(scan.results.result[1].test_id, None);
+                } else {
+                    panic!("no scan");
+                }
+            }
+            _ => panic!("wrong type: {:?}", response),
+        }
+    }
+
+
+    #[test]
     fn init_response() {
         let xml = r#"
      <get_scans_response status_text="OK"
@@ -753,11 +816,11 @@ mod tests {
                     assert_eq!(scan.progress, 78.into());
                     assert_eq!(scan.status, "finished".into());
                     assert_eq!(scan.start_time, Some(1432824206.into()));
-                    assert_eq!(scan.results.result[0].host, "192.168.1.252");
-                    assert_eq!(scan.results.result[0].hostname, "");
-                    assert_eq!(scan.results.result[0].severity, 2.5.into());
-                    assert_eq!(scan.results.result[0].port, "443/tcp");
-                    assert_eq!(scan.results.result[0].test_id, "");
+                    assert_eq!(scan.results.result[0].host, Some("192.168.1.252".into()));
+                    assert_eq!(scan.results.result[0].hostname, None);
+                    assert_eq!(scan.results.result[0].severity, Some(2.5.into()));
+                    assert_eq!(scan.results.result[0].port, Some("443/tcp".into()));
+                    assert_eq!(scan.results.result[0].test_id, None);
                     assert_eq!(scan.results.result[0].name, "Path disclosure vulnerability");
                     assert_eq!(scan.results.result[0].result_type, ResultType::Log);
                     assert_eq!(scan.results.result[0].description, "bla");
