@@ -61,7 +61,10 @@ if(description)
     t.set_variable("description", NaslValue::Number(1));
     t.run_all(code);
     let results = t.results();
-    assert_eq!(*results.last().unwrap(), Ok(NaslValue::Exit(23)));
+    assert_eq!(
+        *results.last().unwrap().as_ref().unwrap(),
+        NaslValue::Exit(23)
+    );
 
     let mut tag = BTreeMap::new();
     tag.insert(TagKey::CreationDate, 1366091481.into());

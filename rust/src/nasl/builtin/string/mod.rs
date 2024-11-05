@@ -23,7 +23,7 @@ use crate::nasl::prelude::*;
 
 use super::BuiltinError;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 #[error("{0}")]
 pub struct StringError(#[from] std::fmt::Error);
 

@@ -11,7 +11,7 @@ use crate::nasl::InternalError;
 use crate::storage::StorageError;
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 /// An error that occurred while calling a function
 #[error("Error while calling function '{function}': {kind}")]
 pub struct FunctionError {
@@ -32,7 +32,7 @@ impl FunctionError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 /// Is used to represent an error while interpreting
 #[error("{}{kind}", self.origin.clone().map(|e| format!("{e}: ")).unwrap_or_default())]
 pub struct InterpretError {
@@ -43,7 +43,7 @@ pub struct InterpretError {
     pub origin: Option<Statement>,
 }
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 /// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.

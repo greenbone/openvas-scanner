@@ -35,7 +35,7 @@ use socket2::{Domain, Protocol, Socket};
 use thiserror::Error;
 use tracing::debug;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum PacketForgeryError {
     #[error("{0}")]
     Custom(String),

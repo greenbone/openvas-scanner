@@ -5,7 +5,7 @@ use thiserror::Error;
 use super::SessionId;
 
 /// A cloneable representation of the Error type of the underlying SSH lib
-#[derive(Clone, Debug, PartialEq, Error)]
+#[derive(Clone, Debug, Error)]
 #[error("{0}")]
 pub struct LibError(String);
 
@@ -23,7 +23,7 @@ impl From<russh::Error> for LibError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Error)]
+#[derive(Clone, Debug, Error)]
 pub struct SshError {
     pub kind: SshErrorKind,
     id: Option<SessionId>,
@@ -46,7 +46,7 @@ impl fmt::Display for SshError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, Error)]
 pub enum SshErrorKind {
     #[error("Failed to open new SSH session.")]
     NewSession,

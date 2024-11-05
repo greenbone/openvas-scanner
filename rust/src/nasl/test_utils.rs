@@ -330,7 +330,7 @@ where
         reference: &TestResult,
     ) -> bool {
         match reference {
-            TestResult::Ok(val) => result.as_ref() == Ok(val),
+            TestResult::Ok(val) => result.as_ref().unwrap() == val,
             TestResult::GenericCheck(f, _) => f(result.clone()),
             TestResult::None => true,
         }

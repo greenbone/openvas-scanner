@@ -9,7 +9,7 @@ use crate::nasl::prelude::*;
 use regex::{Regex, RegexBuilder};
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum RegexError {
     #[error("Error building regular expression pattern: {0}")]
     BuildingError(regex::Error),

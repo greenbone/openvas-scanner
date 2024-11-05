@@ -32,11 +32,11 @@ use super::{
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 #[error("{0}")]
 // It would be nicer to derive this using #[from] from
-// thiserror, but io::Error does not impl `PartialEq`,
-// `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
+// thiserror, but io::Error does not impl `Clone`,
+// so we wrap `io::ErrorKind` instead, which
 // does not impl `Error` which is why this `From` impl exists.
 pub enum SocketError {
     IO(std::io::ErrorKind),

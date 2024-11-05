@@ -21,7 +21,7 @@ fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
     let data = get_data(register)?;
 
     let mut mac = Cmac::<Aes128>::new_from_slice(key)
-        .map_err(|e| CryptographicError::AesCmacError(format!("{}", e)))?;
+        .map_err(|e| CryptographicError::AesCmacInvalidLength(e))?;
     mac.update(data);
 
     Ok(mac.finalize().into_bytes().to_vec().into())

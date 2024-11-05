@@ -26,10 +26,10 @@ use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 // It would be nicer to derive this using #[from] from
-// thiserror, but io::Error does not impl `PartialEq`,
-// `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
+// thiserror, but io::Error does not impl `Clone`,
+// so we wrap `io::ErrorKind` instead, which
 // does not impl `Error` which is why this `From` impl exists.
 pub enum MiscError {
     #[error("IO Error: {0}")]

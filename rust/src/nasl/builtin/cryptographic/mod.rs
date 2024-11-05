@@ -25,7 +25,7 @@ pub mod rsa;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum CryptographicError {
     #[error("Error in AesGcm: insufficient buffer size.")]
     InsufficientBufferSize,
@@ -33,8 +33,8 @@ pub enum CryptographicError {
     AesCcmUnableToEncrypt,
     #[error("Error in AesGmac: {0}.")]
     AesGmacError(String),
-    #[error("Error in AesCmac: {0}.")]
-    AesCmacError(String),
+    #[error("Invalid length of key in AesCmac {0}.")]
+    AesCmacInvalidLength(digest::InvalidLength),
 }
 
 enum Crypt {

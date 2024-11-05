@@ -12,7 +12,7 @@ use crate::storage::StorageError;
 
 use super::ContextType;
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
     /// Diagnostic string is informational and the second arg is the return value for the user

@@ -5,7 +5,7 @@ use super::cryptographic::CryptographicError;
 use super::regex::RegexError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum BuiltinError {
     #[error("{0}")]
     Ssh(SshError),
