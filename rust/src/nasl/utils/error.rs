@@ -12,7 +12,7 @@ use crate::storage::StorageError;
 
 use super::ContextType;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum NaslError {
     /// Diagnostic string is informational and the second arg is the return value for the user
@@ -26,7 +26,7 @@ pub enum NaslError {
     Internal(#[from] InternalError),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum ArgumentError {
     #[error("Expected {expected} but got {got}")]
     MissingPositionals { expected: usize, got: usize },
@@ -40,7 +40,7 @@ pub enum ArgumentError {
     WrongArgument(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum InternalError {
     #[error("{0}")]
     Storage(#[from] StorageError),

@@ -167,7 +167,7 @@ impl From<VulnerabilityData> for Field {
 }
 
 /// Defines abstract error cases
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, PartialEq, Error)]
 pub enum StorageError {
     /// Informs the caller to retry the call
     #[error("There was a temporary issue while reading: {0}")]

@@ -32,7 +32,7 @@ use super::{
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 #[error("{0}")]
 // It would be nicer to derive this using #[from] from
 // thiserror, but io::Error does not impl `PartialEq`,

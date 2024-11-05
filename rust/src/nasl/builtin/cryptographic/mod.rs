@@ -25,7 +25,7 @@ pub mod rsa;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum CryptographicError {
     #[error("Error in AesGcm: insufficient buffer size.")]
     InsufficientBufferSize,

@@ -26,7 +26,7 @@ use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 // It would be nicer to derive this using #[from] from
 // thiserror, but io::Error does not impl `PartialEq`,
 // `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which

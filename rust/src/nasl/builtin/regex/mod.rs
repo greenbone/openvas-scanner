@@ -9,10 +9,10 @@ use crate::nasl::prelude::*;
 use regex::{Regex, RegexBuilder};
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum RegexError {
     #[error("Error building regular expression pattern: {0}")]
-    BuildingError(String),
+    BuildingError(regex::Error),
 }
 
 fn parse_search_string(mut s: &str, rnul: bool, multiline: bool) -> &str {
@@ -33,7 +33,7 @@ fn make_regex(pattern: &str, icase: bool, multiline: bool) -> Result<Regex, Rege
         .build()
     {
         Ok(re) => Ok(re),
-        Err(e) => Err(RegexError::BuildingError(e.to_string())),
+        Err(e) => Err(RegexError::BuildingError(e)),
     }
 }
 
