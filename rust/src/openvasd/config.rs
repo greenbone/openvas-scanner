@@ -110,7 +110,7 @@ pub struct OspdWrapper {
 impl Default for OspdWrapper {
     fn default() -> Self {
         OspdWrapper {
-            socket: PathBuf::from("/var/run/ospd/ospd.sock"),
+            socket: PathBuf::from("/var/run/ospd/ospd-openvas.sock"),
             read_timeout: None,
         }
     }
@@ -655,7 +655,7 @@ mod tests {
         assert_eq!(config.scheduler.check_interval, Duration::from_millis(500));
         assert_eq!(
             config.scanner.ospd.socket,
-            PathBuf::from("/var/run/ospd/ospd.sock")
+            PathBuf::from("/var/run/ospd/ospd-openvas.sock")
         );
         assert!(config.scanner.ospd.read_timeout.is_none());
 
