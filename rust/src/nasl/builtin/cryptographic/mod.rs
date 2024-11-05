@@ -33,6 +33,8 @@ pub enum CryptographicError {
     AesCcmUnableToEncrypt,
     #[error("Error in AesGmac: {0}.")]
     AesGmacError(String),
+    #[error("Error in AesCmac: {0}.")]
+    AesCmacError(String),
 }
 
 enum Crypt {

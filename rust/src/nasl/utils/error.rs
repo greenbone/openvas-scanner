@@ -12,8 +12,26 @@ use crate::storage::StorageError;
 
 use super::ContextType;
 
-/// Reuses the StorageError definitions as they should fit most cases.
-pub type GeneralErrorType = StorageError;
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+/// Descriptive kind of error that can occur while calling a function
+pub enum NaslError {
+    /// Diagnostic string is informational and the second arg is the return value for the user
+    #[error("{0}")]
+    Diagnostic(String, Option<NaslValue>),
+    /// There is a deeper problem
+    /// An example would be that there is no free memory left in the system
+    #[error("{0}")]
+    Dirty(String),
+    /// An Error originating from an SSH-specific NASL function
+    #[error("SSH error: {0}")]
+    Ssh(SshError),
+    #[error("{0}")]
+    Argument(#[from] ArgumentError),
+    #[error("{0}")]
+    Builtin(#[from] BuiltinError),
+    #[error("{0}")]
+    Internal(#[from] InternalError),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ArgumentError {
@@ -41,27 +59,6 @@ impl From<StorageError> for NaslError {
     fn from(value: StorageError) -> Self {
         NaslError::Internal(InternalError::Storage(value))
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-/// Descriptive kind of error that can occur while calling a function
-pub enum NaslError {
-    /// Diagnostic string is informational and the second arg is the return value for the user
-    #[error("{0}")]
-    Diagnostic(String, Option<NaslValue>),
-    /// There is a deeper problem
-    /// An example would be that there is no free memory left in the system
-    #[error("{0}")]
-    Dirty(String),
-    /// An Error originating from an SSH-specific NASL function
-    #[error("SSH error: {0}")]
-    Ssh(SshError),
-    #[error("{0}")]
-    Argument(#[from] ArgumentError),
-    #[error("{0}")]
-    Builtin(#[from] BuiltinError),
-    #[error("{0}")]
-    Internal(#[from] InternalError),
 }
 
 impl TryFrom<NaslError> for ArgumentError {
