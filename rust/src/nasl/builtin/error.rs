@@ -2,6 +2,7 @@ use thiserror::Error;
 
 use super::super::prelude::NaslError;
 use super::cryptographic::CryptographicError;
+use super::regex::RegexError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -16,23 +17,28 @@ pub enum BuiltinError {
     Socket(SocketError),
     #[error("{0}")]
     Cryptographic(CryptographicError),
+    #[error("{0}")]
+    Regex(RegexError),
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    #[error("{0}")]
+    PacketForgery(super::raw_ip::PacketForgeryError),
 }
 
 macro_rules! builtin_error_variant (
-    ($ty: ty, $variant: ident) => {
-        impl From<$ty> for BuiltinError {
-            fn from(value: $ty) -> Self {
+    ($err: path, $variant: ident) => {
+        impl From<$err> for BuiltinError {
+            fn from(value: $err) -> Self {
                 BuiltinError::$variant(value)
             }
         }
 
-        impl From<$ty> for NaslError {
-            fn from(value: $ty) -> Self {
+        impl From<$err> for NaslError {
+            fn from(value: $err) -> Self {
                 NaslError::Builtin(BuiltinError::$variant(value))
             }
         }
 
-        impl TryFrom<NaslError> for $ty {
+        impl TryFrom<NaslError> for $err {
             type Error = ();
 
             fn try_from(value: NaslError) -> Result<Self, Self::Error> {
@@ -50,3 +56,6 @@ builtin_error_variant!(MiscError, Misc);
 builtin_error_variant!(SocketError, Socket);
 builtin_error_variant!(CryptographicError, Cryptographic);
 builtin_error_variant!(SshError, Ssh);
+builtin_error_variant!(RegexError, Regex);
+#[cfg(feature = "nasl-builtin-raw-ip")]
+builtin_error_variant!(super::raw_ip::PacketForgeryError, PacketForgery);

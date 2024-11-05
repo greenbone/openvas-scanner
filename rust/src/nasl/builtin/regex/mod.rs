@@ -7,6 +7,13 @@ mod tests;
 
 use crate::nasl::prelude::*;
 use regex::{Regex, RegexBuilder};
+use thiserror::Error;
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum RegexError {
+    #[error("Error building regular expression pattern: {0}")]
+    BuildingError(String),
+}
 
 fn parse_search_string(mut s: &str, rnul: bool, multiline: bool) -> &str {
     if !rnul {
@@ -19,17 +26,14 @@ fn parse_search_string(mut s: &str, rnul: bool, multiline: bool) -> &str {
     s
 }
 
-fn make_regex(pattern: &str, icase: bool, multiline: bool) -> Result<Regex, NaslError> {
+fn make_regex(pattern: &str, icase: bool, multiline: bool) -> Result<Regex, RegexError> {
     match RegexBuilder::new(pattern.to_string().as_str())
         .case_insensitive(icase)
         .multi_line(multiline)
         .build()
     {
         Ok(re) => Ok(re),
-        Err(e) => Err(NaslError::Dirty(format!(
-            " Error building regular expression pattern: {}",
-            e
-        ))),
+        Err(e) => Err(RegexError::BuildingError(e.to_string())),
     }
 }
 

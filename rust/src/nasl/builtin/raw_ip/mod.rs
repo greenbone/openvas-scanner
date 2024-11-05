@@ -8,6 +8,7 @@ mod raw_ip_utils;
 use crate::nasl::utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
+pub use packet_forgery::PacketForgeryError;
 
 pub struct RawIp;
 

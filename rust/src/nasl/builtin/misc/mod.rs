@@ -27,16 +27,20 @@ use flate2::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
-#[error("{0}")]
 // It would be nicer to derive this using #[from] from
 // thiserror, but io::Error does not impl `PartialEq`,
 // `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
 // does not impl `Error` which is why this `From` impl exists.
-pub struct MiscError(io::ErrorKind);
+pub enum MiscError {
+    #[error("IO Error: {0}")]
+    IO(io::ErrorKind),
+    #[error("Encountered time before 1970. {0}")]
+    TimeBefore1970(String),
+}
 
 impl From<io::Error> for MiscError {
     fn from(value: io::Error) -> Self {
-        Self(value.kind())
+        Self::IO(value.kind())
     }
 }
 
@@ -106,11 +110,11 @@ fn isnull(val: NaslValue) -> bool {
 
 /// Returns the seconds counted from 1st January 1970 as an integer.
 #[nasl_function]
-fn unixtime() -> Result<u64, NaslError> {
+fn unixtime() -> Result<u64, MiscError> {
     std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|t| t.as_secs())
-        .map_err(|_| NaslError::Dirty("System time set to time before 1st January 1960".into()))
+        .map_err(|e| MiscError::TimeBefore1970(e.to_string()))
 }
 
 /// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
@@ -239,13 +243,13 @@ fn defined_func(ctx: &Context, register: &Register, fn_name: Option<Maybe<&str>>
 ///
 /// For example: “1067352015.030757” means 1067352015 seconds and 30757 microseconds.
 #[nasl_function]
-fn gettimeofday() -> Result<String, NaslError> {
+fn gettimeofday() -> Result<String, MiscError> {
     match time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH) {
         Ok(time) => {
             let time = time.as_micros();
             Ok(format!("{}.{:06}", time / 1000000, time % 1000000))
         }
-        Err(e) => Err(NaslError::Dirty(format!("{e}"))),
+        Err(e) => Err(MiscError::TimeBefore1970(e.to_string())),
     }
 }
 

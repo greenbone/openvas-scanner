@@ -18,10 +18,6 @@ pub enum NaslError {
     /// Diagnostic string is informational and the second arg is the return value for the user
     #[error("{0}")]
     Diagnostic(String, Option<NaslValue>),
-    /// There is a deeper problem
-    /// An example would be that there is no free memory left in the system
-    #[error("{0}")]
-    Dirty(String),
     #[error("{0}")]
     Argument(#[from] ArgumentError),
     #[error("{0}")]
@@ -48,8 +44,6 @@ pub enum ArgumentError {
 pub enum InternalError {
     #[error("{0}")]
     Storage(#[from] StorageError),
-    #[error("{0}")]
-    Dirty(String),
 }
 
 impl From<StorageError> for NaslError {
