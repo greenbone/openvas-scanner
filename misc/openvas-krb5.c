@@ -1,6 +1,5 @@
 #include "openvas-krb5.h"
 
-#include <assert.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
 #include <krb5/krb5.h>
@@ -78,7 +77,7 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc)
   // we don't know if we should free it or just override it.
   // aborting instead.
   GUARD_NULL (*kdc, result);
-  if ((file = fopen ((char *) &creds->config_path.data, "r")) == NULL)
+  if ((file = fopen ((char *) creds->config_path.data, "r")) == NULL)
     {
       result = O_KRB5_CONF_NOT_FOUND;
       goto result;
@@ -762,7 +761,6 @@ o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
   *out_data = malloc (sizeof (struct OKrb5Slice));
   (*out_data)->data = calloc (1, out_buf.length);
   memcpy ((*out_data)->data, out_buf.value, out_buf.length);
-  printf ("out_buf.length: %lu\n", out_buf.length);
   (*out_data)->len = out_buf.length;
 
   gss_release_buffer (&min_stat, &out_buf);
@@ -849,7 +847,7 @@ okrb5_error_code_to_string (const OKrb5ErrorCode code)
           int maj_stat = code - O_KRB5_ERROR;
           OM_uint32 min_stat;
           gss_buffer_desc msg;
-          OM_uint32 msg_ctx;
+          OM_uint32 msg_ctx = 0;
 
           (void) gss_display_status (&min_stat, maj_stat, GSS_C_GSS_CODE,
                                      GSS_C_NULL_OID, &msg_ctx, &msg);
