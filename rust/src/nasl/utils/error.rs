@@ -14,7 +14,7 @@ use super::ContextType;
 
 #[derive(Debug, Clone, Error)]
 /// Descriptive kind of error that can occur while calling a function
-pub enum NaslError {
+pub enum FunctionErrorKind {
     /// Diagnostic string is informational and the second arg is the return value for the user
     #[error("{0}")]
     Diagnostic(String, Option<NaslValue>),
@@ -46,40 +46,40 @@ pub enum InternalError {
     Storage(#[from] StorageError),
 }
 
-impl From<StorageError> for NaslError {
+impl From<StorageError> for FunctionErrorKind {
     fn from(value: StorageError) -> Self {
-        NaslError::Internal(InternalError::Storage(value))
+        FunctionErrorKind::Internal(InternalError::Storage(value))
     }
 }
 
-impl TryFrom<NaslError> for ArgumentError {
+impl TryFrom<FunctionErrorKind> for ArgumentError {
     type Error = ();
 
-    fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+    fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
         match value {
-            NaslError::Argument(e) => Ok(e),
+            FunctionErrorKind::Argument(e) => Ok(e),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<NaslError> for InternalError {
+impl TryFrom<FunctionErrorKind> for InternalError {
     type Error = ();
 
-    fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+    fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
         match value {
-            NaslError::Internal(e) => Ok(e),
+            FunctionErrorKind::Internal(e) => Ok(e),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<NaslError> for BuiltinError {
+impl TryFrom<FunctionErrorKind> for BuiltinError {
     type Error = ();
 
-    fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+    fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
         match value {
-            NaslError::Builtin(e) => Ok(e),
+            FunctionErrorKind::Builtin(e) => Ok(e),
             _ => Err(()),
         }
     }
@@ -94,7 +94,7 @@ impl ArgumentError {
     }
 }
 
-impl NaslError {
+impl FunctionErrorKind {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
@@ -111,7 +111,7 @@ impl NaslError {
     }
 }
 
-impl From<(&str, &str, &NaslValue)> for NaslError {
+impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
     fn from(value: (&str, &str, &NaslValue)) -> Self {
         let (key, expected, got) = value;
         let got: &str = &got.to_string();
@@ -119,7 +119,7 @@ impl From<(&str, &str, &NaslValue)> for NaslError {
     }
 }
 
-impl From<(&str, &str, Option<&NaslValue>)> for NaslError {
+impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
     fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
         match value {
             (key, expected, Some(x)) => (key, expected, x).into(),
@@ -128,7 +128,7 @@ impl From<(&str, &str, Option<&NaslValue>)> for NaslError {
     }
 }
 
-impl From<(&str, &str, Option<&ContextType>)> for NaslError {
+impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
     fn from(value: (&str, &str, Option<&ContextType>)) -> Self {
         match value {
             (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
@@ -140,10 +140,10 @@ impl From<(&str, &str, Option<&ContextType>)> for NaslError {
     }
 }
 
-impl From<(&str, &NaslValue)> for NaslError {
+impl From<(&str, &NaslValue)> for FunctionErrorKind {
     fn from(value: (&str, &NaslValue)) -> Self {
         let (expected, got) = value;
         let got: &str = &got.to_string();
-        NaslError::wrong_unnamed_argument(expected, got)
+        FunctionErrorKind::wrong_unnamed_argument(expected, got)
     }
 }

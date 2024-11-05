@@ -74,7 +74,7 @@ impl Display for OpenvasEncaps {
     }
 }
 
-pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, NaslError> {
+pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
     context
         .retriever()
         .retrieve(context.key(), Retrieve::KB(name.to_string()))

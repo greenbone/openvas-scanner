@@ -20,8 +20,8 @@ pub mod prelude {
     pub use super::utils::ArgumentError;
     pub use super::utils::Context;
     pub use super::utils::ContextType;
+    pub use super::utils::FunctionErrorKind;
     pub use super::utils::InternalError;
-    pub use super::utils::NaslError;
     pub use super::utils::NaslResult;
     pub use super::utils::Register;
     pub use crate::function_set;

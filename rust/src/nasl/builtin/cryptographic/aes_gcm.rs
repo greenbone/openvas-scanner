@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-// NaslError::GeneralError
+// FunctionErrorKind::GeneralError
 use crate::nasl::prelude::*;
 use aes::{
     cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit},
@@ -16,7 +16,7 @@ use digest::typenum::{U12, U16};
 
 use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt, CryptographicError};
 
-fn gcm<D>(register: &Register, crypt: Crypt, auth: bool) -> Result<NaslValue, NaslError>
+fn gcm<D>(register: &Register, crypt: Crypt, auth: bool) -> Result<NaslValue, FunctionErrorKind>
 where
     D: BlockSizeUser<BlockSize = U16>
         + aes::cipher::KeyInit
@@ -76,7 +76,7 @@ where
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes128_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes128_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Encrypt, false)
 }
 
@@ -89,7 +89,10 @@ fn aes128_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, Nas
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes128_gcm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes128_gcm_encrypt_auth(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Encrypt, true)
 }
 
@@ -102,7 +105,7 @@ fn aes128_gcm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes128_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes128_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Decrypt, false)
 }
 
@@ -115,7 +118,10 @@ fn aes128_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Nas
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes128_gcm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes128_gcm_decrypt_auth(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes128>(register, Crypt::Decrypt, true)
 }
 
@@ -128,7 +134,7 @@ fn aes128_gcm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes192_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes192_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Encrypt, false)
 }
 
@@ -141,7 +147,10 @@ fn aes192_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, Nas
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes192_gcm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes192_gcm_encrypt_auth(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Encrypt, true)
 }
 
@@ -154,7 +163,7 @@ fn aes192_gcm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes192_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes192_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Decrypt, false)
 }
 
@@ -167,7 +176,10 @@ fn aes192_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Nas
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes192_gcm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes192_gcm_decrypt_auth(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes192>(register, Crypt::Decrypt, true)
 }
 
@@ -180,7 +192,7 @@ fn aes192_gcm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes256_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes256_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Encrypt, false)
 }
 
@@ -193,7 +205,10 @@ fn aes256_gcm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, Nas
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-fn aes256_gcm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes256_gcm_encrypt_auth(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Encrypt, true)
 }
 
@@ -206,7 +221,7 @@ fn aes256_gcm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes256_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes256_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Decrypt, false)
 }
 
@@ -219,7 +234,10 @@ fn aes256_gcm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, Nas
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-fn aes256_gcm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn aes256_gcm_decrypt_auth(
+    register: &Register,
+    _: &Context,
+) -> Result<NaslValue, FunctionErrorKind> {
     gcm::<Aes256>(register, Crypt::Decrypt, true)
 }
 

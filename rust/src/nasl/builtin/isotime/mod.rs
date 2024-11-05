@@ -41,14 +41,14 @@ fn parse_readable_time(time: &str) -> Option<NaiveDateTime> {
     None
 }
 
-fn parse_time(time: &str) -> Result<NaiveDateTime, NaslError> {
+fn parse_time(time: &str) -> Result<NaiveDateTime, FunctionErrorKind> {
     if let Some(time) = parse_isotime(time) {
         return Ok(time);
     }
     if let Some(time) = parse_readable_time(time) {
         return Ok(time);
     }
-    Err(NaslError::Diagnostic(
+    Err(FunctionErrorKind::Diagnostic(
         format!(
             "The given time is not in the correct isotime ({}) or readable time format ({}): {}",
             ISOFORMAT, READABLEFORMAT, time
@@ -63,7 +63,7 @@ fn isotime_add(
     years: Option<i64>,
     days: Option<i64>,
     seconds: Option<i64>,
-) -> Result<String, NaslError> {
+) -> Result<String, FunctionErrorKind> {
     let mut time = parse_time(time)?;
 
     if let Some(years) = years {
@@ -83,7 +83,7 @@ fn isotime_add(
     }
 
     if time.year() < 0 || time.year() > 9999 {
-        return Err(NaslError::Diagnostic(
+        return Err(FunctionErrorKind::Diagnostic(
             format!(
                 "The resulting year is out of range (0000-9999): {}.",
                 time.year()
@@ -106,12 +106,12 @@ fn isotime_now() -> String {
 }
 
 #[nasl_function]
-fn isotime_print(time: &str) -> Result<String, NaslError> {
+fn isotime_print(time: &str) -> Result<String, FunctionErrorKind> {
     Ok(parse_time(time)?.format("%Y-%m-%d %H:%M:%S").to_string())
 }
 
 #[nasl_function]
-fn isotime_scan(time: &str) -> Result<String, NaslError> {
+fn isotime_scan(time: &str) -> Result<String, FunctionErrorKind> {
     let time = parse_time(time)?;
 
     Ok(time.format("%Y%m%dT%H%M%S").to_string())

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use super::super::prelude::NaslError;
+use super::super::prelude::FunctionErrorKind;
 use super::cryptographic::CryptographicError;
 use super::regex::RegexError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
@@ -32,18 +32,18 @@ macro_rules! builtin_error_variant (
             }
         }
 
-        impl From<$err> for NaslError {
+        impl From<$err> for FunctionErrorKind {
             fn from(value: $err) -> Self {
-                NaslError::Builtin(BuiltinError::$variant(value))
+                FunctionErrorKind::Builtin(BuiltinError::$variant(value))
             }
         }
 
-        impl TryFrom<NaslError> for $err {
+        impl TryFrom<FunctionErrorKind> for $err {
             type Error = ();
 
-            fn try_from(value: NaslError) -> Result<Self, Self::Error> {
+            fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
                 match value {
-                    NaslError::Builtin(BuiltinError::$variant(e)) => Ok(e),
+                    FunctionErrorKind::Builtin(BuiltinError::$variant(e)) => Ok(e),
                     _ => Err(()),
                 }
             }

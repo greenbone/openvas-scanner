@@ -1,6 +1,6 @@
 use crate::nasl::syntax::NaslValue;
 
-use crate::nasl::NaslError;
+use crate::nasl::FunctionErrorKind;
 
 use super::FromNaslValue;
 
@@ -12,7 +12,7 @@ use super::FromNaslValue;
 pub struct Maybe<T>(Option<T>);
 
 impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for Maybe<T> {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         Ok(Self(T::from_nasl_value(value).ok()))
     }
 }

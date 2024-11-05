@@ -35,9 +35,9 @@ pub struct NaslHttp {
 
 async fn lock_handles(
     handles: &Arc<Mutex<Vec<Handle>>>,
-) -> Result<MutexGuard<Vec<Handle>>, NaslError> {
+) -> Result<MutexGuard<Vec<Handle>>, FunctionErrorKind> {
     // we actually need to panic as a lock error is fatal
-    // alternatively we need to add a poison error on NaslError
+    // alternatively we need to add a poison error on FunctionErrorKind
     Ok(Arc::as_ref(handles).lock().await)
 }
 
@@ -131,7 +131,7 @@ impl NaslHttp {
         data: String,
         method: Method,
         handle: &mut Handle,
-    ) -> Result<(Parts, String), NaslError> {
+    ) -> Result<(Parts, String), FunctionErrorKind> {
         // Establish TCP connection to the server.
 
         let mut config = ClientConfig::builder()
@@ -148,20 +148,31 @@ impl NaslHttp {
         let stream = match TcpStream::connect(format!("{}:{}", ip_str, port)).await {
             Ok(a) => a,
             Err(e) => {
-                return Err(NaslError::Diagnostic(e.to_string(), Some(NaslValue::Null)));
+                return Err(FunctionErrorKind::Diagnostic(
+                    e.to_string(),
+                    Some(NaslValue::Null),
+                ));
             }
         };
 
         let stream = match connector.connect(server_name, stream).await {
             Ok(a) => a,
             Err(e) => {
-                return Err(NaslError::Diagnostic(e.to_string(), Some(NaslValue::Null)));
+                return Err(FunctionErrorKind::Diagnostic(
+                    e.to_string(),
+                    Some(NaslValue::Null),
+                ));
             }
         };
 
         let (h2, connection) = match client::handshake(stream).await {
             Ok((x, y)) => (x, y),
-            Err(e) => return Err(NaslError::Diagnostic(e.to_string(), Some(NaslValue::Null))),
+            Err(e) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    e.to_string(),
+                    Some(NaslValue::Null),
+                ))
+            }
         };
 
         tokio::spawn(async move {
@@ -170,7 +181,12 @@ impl NaslHttp {
 
         let mut h2 = match h2.ready().await {
             Ok(x) => x,
-            Err(e) => return Err(NaslError::Diagnostic(e.to_string(), Some(NaslValue::Null))),
+            Err(e) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    e.to_string(),
+                    Some(NaslValue::Null),
+                ))
+            }
         };
 
         // Prepare the HTTP request to send to the server.
@@ -200,7 +216,12 @@ impl NaslHttp {
         while let Some(chunk) = body.data().await {
             let chunk = match chunk {
                 Ok(byte_chunk) => byte_chunk,
-                Err(e) => return Err(NaslError::Diagnostic(e.to_string(), Some(NaslValue::Null))),
+                Err(e) => {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        e.to_string(),
+                        Some(NaslValue::Null),
+                    ))
+                }
             };
 
             resp.push_str(&String::from_utf8_lossy(&chunk));
@@ -217,7 +238,7 @@ impl NaslHttp {
         register: &Register,
         ctx: &Context<'a>,
         method: Method,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => {
@@ -233,7 +254,7 @@ impl NaslHttp {
         {
             Some((_i, handle)) => handle,
             _ => {
-                return Err(NaslError::Diagnostic(
+                return Err(FunctionErrorKind::Diagnostic(
                     format!("Handle ID {} not found", handle_id),
                     Some(NaslValue::Null),
                 ))
@@ -243,7 +264,7 @@ impl NaslHttp {
         let item: String = match register.named("item") {
             Some(x) => x.to_string(),
             _ => {
-                return Err(NaslError::Diagnostic(
+                return Err(FunctionErrorKind::Diagnostic(
                     "Missing item".to_string(),
                     Some(NaslValue::Null),
                 ))
@@ -311,7 +332,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         ctx: &Context<'a>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::GET).await
     }
 
@@ -320,7 +341,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         ctx: &Context<'a>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::POST).await
     }
 
@@ -329,7 +350,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         ctx: &Context<'a>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::PUT).await
     }
 
@@ -338,7 +359,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         ctx: &Context<'a>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::HEAD).await
     }
 
@@ -347,7 +368,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         ctx: &Context<'a>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         self.http2_req(register, ctx, Method::DELETE).await
     }
 
@@ -358,7 +379,7 @@ impl NaslHttp {
     /// On success the function returns a and integer with the handle
     /// identifier. Null on error.
     #[nasl_function]
-    async fn handle(&self) -> Result<NaslValue, NaslError> {
+    async fn handle(&self) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = lock_handles(&self.handles).await?;
         let handle_id = next_handle_id(&handles);
         let h = Handle {
@@ -378,7 +399,7 @@ impl NaslHttp {
     /// The function returns an integer.
     /// O on success, -1 on error.
     #[nasl_function(named(handle))]
-    async fn close_handle(&self, handle: i32) -> Result<NaslValue, NaslError> {
+    async fn close_handle(&self, handle: i32) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = lock_handles(&self.handles).await?;
         match handles
             .iter_mut()
@@ -389,7 +410,7 @@ impl NaslHttp {
                 handles.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(NaslError::Diagnostic(
+            _ => Err(FunctionErrorKind::Diagnostic(
                 format!("Handle ID {} not found", handle),
                 Some(NaslValue::Number(-1)),
             )),
@@ -406,7 +427,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         _: &Context<'_>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => {
@@ -421,7 +442,7 @@ impl NaslHttp {
             .find(|(_i, h)| h.handle_id == handle_id)
         {
             Some((_i, handle)) => Ok(NaslValue::Number(handle.http_code as i64)),
-            _ => Err(NaslError::Diagnostic(
+            _ => Err(FunctionErrorKind::Diagnostic(
                 format!("Handle ID {} not found", handle_id),
                 Some(NaslValue::Null),
             )),
@@ -438,10 +459,10 @@ impl NaslHttp {
         &self,
         register: &Register,
         _: &Context<'_>,
-    ) -> Result<NaslValue, NaslError> {
+    ) -> Result<NaslValue, FunctionErrorKind> {
         let header_item = match register.named("header_item") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(NaslError::missing_argument("No command passed")),
+            _ => return Err(FunctionErrorKind::missing_argument("No command passed")),
         };
 
         let (key, val) = header_item.split_once(": ").expect("Missing header_item");
@@ -463,7 +484,7 @@ impl NaslHttp {
                 h.header_items.push((key.to_string(), val.to_string()));
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(NaslError::Diagnostic(
+            _ => Err(FunctionErrorKind::Diagnostic(
                 format!("Handle ID {} not found", handle_id),
                 Some(NaslValue::Null),
             )),

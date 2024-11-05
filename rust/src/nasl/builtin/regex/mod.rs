@@ -52,7 +52,7 @@ fn ereg(
     icase: Option<bool>,
     rnul: Option<bool>,
     multiline: Option<bool>,
-) -> Result<bool, NaslError> {
+) -> Result<bool, FunctionErrorKind> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
     let multiline = multiline.unwrap_or(false);
@@ -79,7 +79,7 @@ fn ereg_replace(
     replace: NaslValue,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<String, NaslError> {
+) -> Result<String, FunctionErrorKind> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
 
@@ -107,7 +107,7 @@ fn egrep(
     pattern: NaslValue,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<String, NaslError> {
+) -> Result<String, FunctionErrorKind> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
 
@@ -141,7 +141,7 @@ fn eregmatch(
     find_all: Option<bool>,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<NaslValue, NaslError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
     let find_all = find_all.unwrap_or(false);

@@ -12,7 +12,7 @@ impl<'a, T> FromNaslValue<'a> for CommaSeparated<T>
 where
     T: for<'b> FromNaslValue<'b>,
 {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         let s = StringOrData::from_nasl_value(value)?;
         Ok(Self(
             s.0.split(",")
@@ -21,13 +21,13 @@ where
                     let nasl_val = NaslValue::String(substr.to_string());
                     T::from_nasl_value(&nasl_val)
                 })
-                .collect::<Result<Vec<_>, NaslError>>()?,
+                .collect::<Result<Vec<_>, FunctionErrorKind>>()?,
         ))
     }
 }
 
 impl<'a> FromNaslValue<'a> for key::Name {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         let s = String::from_nasl_value(value)?;
         key::Name::try_from(&*s).map_err(|_| {
             ArgumentError::WrongArgument(format!("Expected a valid SSH key type, found '{}'", s))
@@ -37,7 +37,7 @@ impl<'a> FromNaslValue<'a> for key::Name {
 }
 
 impl<'a> FromNaslValue<'a> for cipher::Name {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         let s = String::from_nasl_value(value)?;
         cipher::Name::try_from(&*s).map_err(|_| {
             ArgumentError::WrongArgument(format!("Expected a valid SSH cipher type, found '{}'", s))

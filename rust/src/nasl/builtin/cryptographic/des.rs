@@ -7,7 +7,7 @@ use aes::cipher::BlockEncrypt;
 use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
 
-fn encrypt_des(register: &Register, _: &Context) -> Result<NaslValue, NaslError> {
+fn encrypt_des(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     let positional = register.positional();
     if positional.len() != 2 {
         return Err(ArgumentError::MissingPositionals {

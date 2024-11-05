@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::function_set;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::error::NaslError;
+use crate::nasl::utils::error::FunctionErrorKind;
 use crate::nasl::utils::Context;
 use crate::storage::{Field, Kb, Retrieve};
 use nasl_function_proc_macro::nasl_function;
@@ -22,13 +22,13 @@ fn set_kb_item(
     name: NaslValue,
     value: NaslValue,
     expires: Option<NaslValue>,
-) -> Result<NaslValue, NaslError> {
+) -> Result<NaslValue, FunctionErrorKind> {
     let expires = match expires {
         Some(NaslValue::Number(x)) => Some(x),
         Some(NaslValue::Exit(0)) => None,
         None => None,
         Some(x) => {
-            return Err(NaslError::Diagnostic(
+            return Err(FunctionErrorKind::Diagnostic(
                 format!("expected expires to be a number but is {x}."),
                 None,
             ))
@@ -56,7 +56,7 @@ fn set_kb_item(
 
 /// NASL function to get a knowledge base
 #[nasl_function]
-fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, NaslError> {
+fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FunctionErrorKind> {
     c.retriever()
         .retrieve(c.key(), Retrieve::KB(key.to_string()))
         .map(|r| {
@@ -73,7 +73,11 @@ fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, NaslError> {
 
 /// NASL function to replace a kb list
 #[nasl_function(named(name, value))]
-fn replace_kb_item(c: &Context, name: NaslValue, value: NaslValue) -> Result<NaslValue, NaslError> {
+fn replace_kb_item(
+    c: &Context,
+    name: NaslValue,
+    value: NaslValue,
+) -> Result<NaslValue, FunctionErrorKind> {
     c.dispatcher()
         .dispatch_replace(
             c.key(),
@@ -89,7 +93,7 @@ fn replace_kb_item(c: &Context, name: NaslValue, value: NaslValue) -> Result<Nas
 
 /// NASL function to retrieve an item in a KB.
 #[nasl_function]
-fn get_kb_list(c: &Context, key: NaslValue) -> Result<NaslValue, NaslError> {
+fn get_kb_list(c: &Context, key: NaslValue) -> Result<NaslValue, FunctionErrorKind> {
     c.retriever()
         .retrieve(c.key(), Retrieve::KB(key.to_string()))
         .map(|r| {

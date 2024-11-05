@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::{NaslError, NaslResult};
+use crate::nasl::{FunctionErrorKind, NaslResult};
 
 /// A type that can be converted to a NaslResult.
 /// The conversion is fallible to make it possible to convert from other Result
@@ -26,7 +26,7 @@ impl<T: ToNaslResult> ToNaslResult for Option<T> {
     }
 }
 
-impl<T: ToNaslResult, E: Into<NaslError>> ToNaslResult for Result<T, E> {
+impl<T: ToNaslResult, E: Into<FunctionErrorKind>> ToNaslResult for Result<T, E> {
     fn to_nasl_result(self) -> NaslResult {
         self.map_err(|e| e.into()).and_then(|x| x.to_nasl_result())
     }
@@ -67,7 +67,7 @@ impl ToNaslResult for Vec<&str> {
         Ok(NaslValue::Array(
             self.into_iter()
                 .map(|s| s.to_nasl_result())
-                .collect::<Result<Vec<_>, NaslError>>()?,
+                .collect::<Result<Vec<_>, FunctionErrorKind>>()?,
         ))
     }
 }
@@ -77,7 +77,7 @@ impl ToNaslResult for Vec<String> {
         Ok(NaslValue::Array(
             self.into_iter()
                 .map(|s| s.to_nasl_result())
-                .collect::<Result<Vec<_>, NaslError>>()?,
+                .collect::<Result<Vec<_>, FunctionErrorKind>>()?,
         ))
     }
 }
@@ -93,7 +93,7 @@ impl<T: ToNaslResult> ToNaslResult for HashMap<String, T> {
         Ok(NaslValue::Dict(
             self.into_iter()
                 .map(|(key, s)| s.to_nasl_result().map(|res| (key, res)))
-                .collect::<Result<HashMap<_, _>, NaslError>>()?,
+                .collect::<Result<HashMap<_, _>, FunctionErrorKind>>()?,
         ))
     }
 }
@@ -116,7 +116,7 @@ macro_rules! impl_to_nasl_result_for_numeric_type {
         impl_to_nasl_result_for_numeric_type!($ty, skip_vec_impl);
         impl ToNaslResult for Vec<$ty> {
             fn to_nasl_result(self) -> NaslResult {
-                let collected: Result<Vec<_>, NaslError> =
+                let collected: Result<Vec<_>, FunctionErrorKind> =
                     self.into_iter().map(|x| x.to_nasl_result()).collect();
                 Ok(NaslValue::Array(collected?))
             }

@@ -25,7 +25,7 @@ use crate::nasl::utils::get_named_parameter;
 ///}
 /// ````
 /// The first parameter is the name of the function as well as the &str lookup key.
-/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, NaslError>` must be defined.
+/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FunctionErrorKind>` must be defined.
 ///
 /// Parameter are separated from the definition by a `=>`.
 ///
@@ -59,7 +59,7 @@ macro_rules! make_storage_function {
         pub fn $name(
             registrat: &Register,
             ctxconfigs: &Context,
-        ) -> Result<NaslValue, NaslError> {
+        ) -> Result<NaslValue, FunctionErrorKind> {
             let mut variables = vec![];
             $(
             let positional = registrat.positional();
@@ -106,7 +106,7 @@ macro_rules! make_storage_function {
     };
 }
 
-type Transform = Result<Vec<NVTField>, NaslError>;
+type Transform = Result<Vec<NVTField>, FunctionErrorKind>;
 
 fn as_timeout_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Preference(NvtPreference {

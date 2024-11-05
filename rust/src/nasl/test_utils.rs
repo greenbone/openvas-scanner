@@ -294,7 +294,7 @@ where
 
     fn check_result(
         &self,
-        result: &Result<NaslValue, NaslError>,
+        result: &Result<NaslValue, FunctionErrorKind>,
         reference: &TracedTestResult,
         line_count: usize,
     ) {
@@ -305,7 +305,7 @@ where
                         "Mismatch at {}.\nIn code \"{}\":\nExpected: {:?}\nFound:    {:?}",
                         reference.location,
                         self.lines[line_count],
-                        Ok::<_, NaslError>(reference_result),
+                        Ok::<_, FunctionErrorKind>(reference_result),
                         result,
                     );
                 }
@@ -326,7 +326,7 @@ where
 
     fn compare_result(
         &self,
-        result: &Result<NaslValue, NaslError>,
+        result: &Result<NaslValue, FunctionErrorKind>,
         reference: &TestResult,
     ) -> bool {
         match reference {
@@ -403,11 +403,11 @@ macro_rules! check_err_matches {
             |e| {
                 if let Err(e) = e {
                     // Convert with try_into to allow using
-                    // the variants of `NaslError` directly without
+                    // the variants of `FunctionErrorKind` directly without
                     // having to wrap them in the outer enum.
                     let converted = e.try_into();
                     // This is only irrefutable for the
-                    // NaslError -> NaslError conversion but not for others.
+                    // FunctionErrorKind -> FunctionErrorKind conversion but not for others.
                     #[allow(irrefutable_let_patterns)]
                     if let Ok(e) = converted {
                         matches!(e, $pat)

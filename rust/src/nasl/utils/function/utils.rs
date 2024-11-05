@@ -9,7 +9,7 @@ use crate::nasl::prelude::*;
 pub fn get_optional_positional_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     position: usize,
-) -> Result<Option<T>, NaslError> {
+) -> Result<Option<T>, FunctionErrorKind> {
     register
         .positional()
         .get(position)
@@ -23,7 +23,7 @@ pub fn get_positional_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     position: usize,
     num_required_positional_args: usize,
-) -> Result<T, NaslError> {
+) -> Result<T, FunctionErrorKind> {
     let positional = register.positional();
     let arg = positional.get(position).ok_or_else(|| {
         let num_given = positional.len();
@@ -53,7 +53,7 @@ fn context_type_as_nasl_value<'a>(
 pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
-) -> Result<Option<T>, NaslError> {
+) -> Result<Option<T>, FunctionErrorKind> {
     register
         .named(name)
         .map(|arg| context_type_as_nasl_value(arg, name))
@@ -67,7 +67,7 @@ pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
 pub fn get_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
-) -> Result<T, NaslError> {
+) -> Result<T, FunctionErrorKind> {
     let arg = register
         .named(name)
         .ok_or_else(|| ArgumentError::MissingNamed(vec![name.to_string()]))?;
@@ -80,7 +80,7 @@ pub fn get_optional_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
     position: usize,
-) -> Result<Option<T>, NaslError> {
+) -> Result<Option<T>, FunctionErrorKind> {
     let via_position = get_optional_positional_arg::<T>(register, position)?;
     if let Some(via_position) = via_position {
         Ok(Some(via_position))
@@ -95,7 +95,7 @@ pub fn get_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
     position: usize,
-) -> Result<T, NaslError> {
+) -> Result<T, FunctionErrorKind> {
     let via_position = get_optional_positional_arg(register, position)?;
     if let Some(via_position) = via_position {
         Ok(via_position)
@@ -114,7 +114,7 @@ fn check_named_args(
     _nasl_fn_name: &str,
     named: &[&str],
     maybe_named: &[&str],
-) -> Result<usize, NaslError> {
+) -> Result<usize, FunctionErrorKind> {
     let mut num_maybe_named = 0;
     for arg_name in register.iter_named_args().unwrap() {
         if arg_name == FC_ANON_ARGS || named.contains(&arg_name) {
@@ -142,7 +142,7 @@ pub fn check_args(
     named: &[&str],
     maybe_named: &[&str],
     max_num_expected_positional: Option<usize>,
-) -> Result<(), NaslError> {
+) -> Result<(), FunctionErrorKind> {
     let num_maybe_named_given = check_named_args(register, _nasl_fn_name, named, maybe_named)?;
     let num_positional_given = register.positional().len();
     if let Some(max_num_expected_positional) = max_num_expected_positional {

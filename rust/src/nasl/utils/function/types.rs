@@ -5,7 +5,7 @@ use crate::nasl::prelude::*;
 pub struct StringOrData(pub String);
 
 impl<'a> FromNaslValue<'a> for StringOrData {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, NaslError> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::String(string) => Ok(Self(string.clone())),
             NaslValue::Data(buffer) => Ok(Self(bytes_to_str(buffer))),

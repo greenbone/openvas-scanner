@@ -10,7 +10,7 @@ mod tests;
 use crate::nasl::{
     utils::{
         function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
-        NaslError,
+        FunctionErrorKind,
     },
     ArgumentError,
 };
@@ -290,7 +290,7 @@ fn stridx(haystack: NaslValue, needle: NaslValue, offset: Option<usize>) -> i64 
 /// NASL function to display any number of NASL values
 ///
 /// Internally the string function is used to concatenate the given parameters
-fn display(register: &Register, configs: &Context) -> Result<NaslValue, NaslError> {
+fn display(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
     println!("{}", &string(register, configs)?);
     Ok(NaslValue::Null)
 }
@@ -368,7 +368,11 @@ fn insstr(
 /// `pattern` contains the pattern to search for.
 /// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
 #[nasl_function(named(string, pattern, icase))]
-fn match_(string: NaslValue, pattern: NaslValue, icase: Option<bool>) -> Result<bool, NaslError> {
+fn match_(
+    string: NaslValue,
+    pattern: NaslValue,
+    icase: Option<bool>,
+) -> Result<bool, FunctionErrorKind> {
     let options = MatchOptions {
         case_sensitive: !icase.unwrap_or(false),
         require_literal_separator: false,
