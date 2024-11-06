@@ -5,10 +5,29 @@
 mod frame_forgery;
 mod packet_forgery;
 mod raw_ip_utils;
+use std::io;
+
 use crate::nasl::utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
 pub use packet_forgery::PacketForgeryError;
+use thiserror::Error;
+
+#[derive(Clone, Debug, Error)]
+pub enum RawIpError {
+    #[error("Failed to get local MAC address.")]
+    FailedToGetLocalMacAddress,
+    #[error("Failed to create packet from buffer.")]
+    FailedToCreatePacket,
+    #[error("Failed to get device list.")]
+    FailedToGetDeviceList,
+    #[error("Invalid IP address.")]
+    InvalidIpAddress,
+    #[error("Failed to bind.")]
+    FailedToBind(io::ErrorKind),
+    #[error("No route to destination.")]
+    NoRouteToDestination,
+}
 
 pub struct RawIp;
 

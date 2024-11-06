@@ -13,6 +13,7 @@ pub mod prelude {
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::syntax::NaslValue;
+    pub use super::utils::error::ReturnValue;
     pub use super::utils::function::CheckedPositionals;
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;

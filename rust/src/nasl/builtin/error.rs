@@ -5,6 +5,9 @@ use crate::nasl::NaslValue;
 
 use super::super::prelude::FunctionErrorKind;
 use super::cryptographic::CryptographicError;
+use super::http::HttpError;
+use super::isotime::IsotimeError;
+use super::knowledge_base::KBError;
 use super::regex::RegexError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
@@ -20,6 +23,8 @@ pub enum BuiltinErrorKind {
     #[error("{0}")]
     Ssh(SshError),
     #[error("{0}")]
+    Http(HttpError),
+    #[error("{0}")]
     String(StringError),
     #[error("{0}")]
     Misc(MiscError),
@@ -29,16 +34,23 @@ pub enum BuiltinErrorKind {
     Cryptographic(CryptographicError),
     #[error("{0}")]
     Regex(RegexError),
+    #[error("{0}")]
+    Isotime(IsotimeError),
+    #[error("{0}")]
+    KB(KBError),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
     PacketForgery(super::raw_ip::PacketForgeryError),
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    #[error("{0}")]
+    RawIp(super::raw_ip::RawIpError),
 }
 
 impl ReturnValue for BuiltinError {
-    fn with_return_value(self, return_value: NaslValue) -> Self {
+    fn with_return_value(self, return_value: impl Into<NaslValue>) -> Self {
         Self {
             kind: self.kind,
-            return_value: Some(return_value),
+            return_value: Some(return_value.into()),
         }
     }
 
@@ -92,6 +104,11 @@ builtin_error_variant!(MiscError, Misc);
 builtin_error_variant!(SocketError, Socket);
 builtin_error_variant!(CryptographicError, Cryptographic);
 builtin_error_variant!(SshError, Ssh);
+builtin_error_variant!(HttpError, Http);
+builtin_error_variant!(IsotimeError, Isotime);
 builtin_error_variant!(RegexError, Regex);
+builtin_error_variant!(KBError, KB);
 #[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(super::raw_ip::PacketForgeryError, PacketForgery);
+#[cfg(feature = "nasl-builtin-raw-ip")]
+builtin_error_variant!(super::raw_ip::RawIpError, RawIp);

@@ -14,6 +14,7 @@ use pcap::{Capture, Device};
 use super::super::host::get_host_ip;
 
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
+use super::RawIpError;
 
 use tracing::info;
 
@@ -284,11 +285,12 @@ fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErro
 }
 
 /// Return the MAC address, given the interface name
-fn get_local_mac_address(name: &str) -> Option<MacAddr> {
-    match interfaces().into_iter().find(|x| x.name == *name) {
-        Some(dev) => dev.mac,
-        _ => None,
-    }
+fn get_local_mac_address(name: &str) -> Result<MacAddr, FunctionErrorKind> {
+    interfaces()
+        .into_iter()
+        .find(|x| x.name == *name)
+        .and_then(|dev| dev.mac)
+        .ok_or_else(|| RawIpError::FailedToGetLocalMacAddress.into())
 }
 
 /// Return a frame given a capture device and a filter. It returns an empty frame in case
@@ -371,14 +373,7 @@ fn nasl_send_arp_request(
     }
     let local_ip = get_source_ip(target_ip, 50000u16)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-    let local_mac_address = match get_local_mac_address(&iface.name) {
-        Some(x) => x,
-        _ => {
-            return Err(FunctionErrorKind::missing_argument(
-                "Not possible to get a src mac address.",
-            ))
-        }
-    };
+    let local_mac_address = get_local_mac_address(&iface.name)?;
 
     let src_ip = match Ipv4Addr::from_str(&local_ip.to_string()) {
         Ok(x) => x,
@@ -426,13 +421,7 @@ fn nasl_get_local_mac_address_from_ip(
         NaslValue::String(x) => {
             let ip = ipstr2ipaddr(x)?;
             let iface = get_interface_by_local_ip(ip)?;
-            match get_local_mac_address(&iface.name) {
-                Some(mac) => Ok(NaslValue::String(mac.to_string())),
-                _ => Err(FunctionErrorKind::Diagnostic(
-                    "Not possible to get the local mac address".to_string(),
-                    Some(NaslValue::Null),
-                )),
-            }
+            get_local_mac_address(&iface.name).map(|mac| mac.to_string().into())
         }
         _ => Err(ArgumentError::WrongArgument(
             "Expected String containing a valid IP address.".to_string(),
@@ -615,9 +604,9 @@ mod tests {
     #[test]
     fn get_local_mac() {
         if cfg!(target_os = "macos") {
-            assert_eq!(get_local_mac_address("lo"), None);
+            assert!(matches!(get_local_mac_address("lo"), Err(_)));
         } else {
-            assert_eq!(get_local_mac_address("lo"), Some(MacAddr::zero()));
+            assert_eq!(get_local_mac_address("lo").unwrap(), MacAddr::zero());
         }
     }
 }

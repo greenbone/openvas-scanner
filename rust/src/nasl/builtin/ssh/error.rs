@@ -110,6 +110,8 @@ pub enum SshErrorKind {
     ConvertPrivateKey,
     #[error("Not yet implemented.")]
     Unimplemented,
+    #[error("Unexpected authentication status")]
+    UnexpectedAuthenticationStatus(String),
 }
 
 pub trait AttachErrorInfo<Info> {

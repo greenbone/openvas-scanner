@@ -13,6 +13,11 @@ use crate::nasl::utils::error::FunctionErrorKind;
 use crate::nasl::utils::Context;
 use crate::storage::{Field, Kb, Retrieve};
 use nasl_function_proc_macro::nasl_function;
+use thiserror::Error;
+
+#[derive(Clone, Debug, Error)]
+#[error("{0}")]
+pub struct KBError(String);
 
 /// NASL function to set a value under name in a knowledge base
 /// Only pushes unique values for the given name.
@@ -28,10 +33,7 @@ fn set_kb_item(
         Some(NaslValue::Exit(0)) => None,
         None => None,
         Some(x) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!("expected expires to be a number but is {x}."),
-                None,
-            ))
+            return Err(KBError(format!("expected expires to be a number but is {x}.")).into())
         }
     }
     .map(|seconds| {

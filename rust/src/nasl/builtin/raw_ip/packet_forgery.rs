@@ -9,7 +9,10 @@ use std::{
     str::FromStr,
 };
 
-use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost};
+use super::{
+    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
+    RawIpError,
+};
 
 use super::super::host::get_host_ip;
 use crate::nasl::builtin::misc::random_impl;
@@ -39,6 +42,10 @@ use tracing::debug;
 pub enum PacketForgeryError {
     #[error("{0}")]
     Custom(String),
+    #[error("Failed to parse socket address. {0}")]
+    ParseSocketAddr(std::net::AddrParseError),
+    #[error("Failed to send packet. {0}")]
+    SendPacket(std::io::ErrorKind),
 }
 
 fn error(s: String) -> FunctionErrorKind {
@@ -47,10 +54,7 @@ fn error(s: String) -> FunctionErrorKind {
 
 macro_rules! custom_error {
     ($a:expr, $b:expr) => {
-        Err(FunctionErrorKind::Diagnostic(
-            format!($a, $b),
-            Some(NaslValue::Null),
-        ))
+        Err(PacketForgeryError::Custom(format!($a, $b)).into())
     };
 }
 
@@ -152,12 +156,8 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
 
     let total_length = 20 + data.len();
     let mut buf = vec![0; total_length];
-    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Diagnostic(
-            "No possible to create a packet from buffer".to_string(),
-            None,
-        )
-    })?;
+    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf)
+        .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
 
     pkt.set_total_length(total_length as u16);
 
@@ -286,12 +286,8 @@ fn set_ip_elements(
         }
     };
 
-    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf).ok_or_else(|| {
-        FunctionErrorKind::Diagnostic(
-            "No possible to create a packet from buffer".to_string(),
-            None,
-        )
-    })?;
+    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf)
+        .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
 
     let ip_hl = match register.named("ip_hl") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as u8,
@@ -415,9 +411,8 @@ fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, Functio
     for ip in positional.iter() {
         match ip {
             NaslValue::Data(data) => {
-                let pkt = packet::ipv4::Ipv4Packet::new(data).ok_or_else(|| {
-                    error("No possible to create a packet from buffer".to_string())
-                })?;
+                let pkt = packet::ipv4::Ipv4Packet::new(data)
+                    .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
 
                 println!("\tip_hl={}", pkt.get_header_length());
                 println!("\tip_v={}", pkt.get_version());
@@ -1834,12 +1829,8 @@ fn forge_igmp_packet(
 
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
-    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf).ok_or_else(|| {
-        FunctionErrorKind::Diagnostic(
-            "No possible to create a packet from buffer".to_string(),
-            Some(NaslValue::Null),
-        )
-    })?;
+    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf)
+        .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
     pkt.set_total_length(l as u16);
     match register.named("update_ip_len") {
         Some(ContextType::Value(NaslValue::Boolean(l))) if !(*l) => {
@@ -2118,25 +2109,16 @@ fn nasl_send_packet(
         }
 
         let sock_str = format!("{}:{}", &packet.get_destination().to_string().as_str(), 0);
-        let sockaddr = match SocketAddr::from_str(&sock_str) {
-            Ok(addr) => socket2::SockAddr::from(addr),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!("send_packet: {}", e),
-                    Some(NaslValue::Null),
-                ));
-            }
-        };
+        let sockaddr =
+            SocketAddr::from_str(&sock_str).map_err(|e| PacketForgeryError::ParseSocketAddr(e))?;
+        let sockaddr = socket2::SockAddr::from(sockaddr);
 
         match soc.send_to(packet_raw, &sockaddr) {
             Ok(b) => {
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!("send_packet: {}", e),
-                    Some(NaslValue::Null),
-                ));
+                return Err(PacketForgeryError::SendPacket(e.kind()).into());
             }
         }
 

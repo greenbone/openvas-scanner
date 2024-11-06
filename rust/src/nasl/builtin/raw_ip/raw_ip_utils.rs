@@ -7,18 +7,20 @@ use std::{
     str::FromStr,
 };
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::FunctionErrorKind;
+use crate::nasl::utils::{error::ReturnValue, FunctionErrorKind};
+use crate::nasl::{syntax::NaslValue, ArgumentError};
 use pcap::{Address, Device};
+
+use super::RawIpError;
 
 /// Convert a string in a IpAddr
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(FunctionErrorKind::Diagnostic(
+        Err(_) => Err(FunctionErrorKind::from(ArgumentError::WrongArgument(
             "Invalid IP address".to_string(),
-            Some(NaslValue::Null),
-        )),
+        ))
+        .with_return_value(NaslValue::Null)),
     }
 }
 
@@ -58,34 +60,24 @@ pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, Functi
 
     let ip_match = |ip: &Address| ip.addr.eq(&local_address);
 
-    let dev = match Device::list() {
-        Ok(devices) => devices.into_iter().find(|x| {
+    let devices = Device::list().map_err(|_| RawIpError::FailedToGetDeviceList)?;
+    devices
+        .into_iter()
+        .find(|x| {
             local_address
                 == (x.addresses.clone().into_iter().find(ip_match))
                     .unwrap_or_else(|| fake_addr.to_owned())
                     .addr
-        }),
-        Err(_) => None,
-    };
-
-    match dev {
-        Some(dev) => Ok(dev),
-        _ => Err(FunctionErrorKind::Diagnostic(
-            "Invalid ip address".to_string(),
-            None,
-        )),
-    }
+        })
+        .ok_or(RawIpError::InvalidIpAddress.into())
 }
 
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
-    let fe = Err(FunctionErrorKind::Diagnostic(
-        "Error binding".to_string(),
-        None,
-    ));
+pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
     match dst {
-        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
-        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0").or(fe),
+        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),
+        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0"),
     }
+    .map_err(|e| RawIpError::FailedToBind(e.kind()))
 }
 
 /// Return the source IP address given the destination IP address
@@ -93,23 +85,10 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;
-    match local_socket.connect(sd) {
-        Ok(_) => match local_socket.local_addr() {
-            Ok(l_addr) => match IpAddr::from_str(&l_addr.ip().to_string()) {
-                Ok(x) => Ok(x),
-                Err(_) => Err(FunctionErrorKind::Diagnostic(
-                    "No route to destination".to_string(),
-                    None,
-                )),
-            },
-            Err(_) => Err(FunctionErrorKind::Diagnostic(
-                "No route to destination".to_string(),
-                None,
-            )),
-        },
-        Err(_) => Err(FunctionErrorKind::Diagnostic(
-            "No route to destination".to_string(),
-            None,
-        )),
-    }
+    local_socket
+        .connect(sd)
+        .ok()
+        .and_then(|_| local_socket.local_addr().ok())
+        .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
+        .ok_or(RawIpError::NoRouteToDestination.into())
 }

@@ -533,13 +533,11 @@ impl Ssh {
                 }
                 AuthStatus::Success => break,
                 status => {
-                    return Err(FunctionErrorKind::Diagnostic(
-                        format!(
-                            "Unexpected authentication status for session_id {}: {:?}",
-                            session_id, status
-                        ),
-                        Some(NaslValue::Number(-1)),
-                    ));
+                    return Err(FunctionErrorKind::from(
+                        SshErrorKind::UnexpectedAuthenticationStatus(format!("{:?}", status))
+                            .with(session_id),
+                    )
+                    .with_return_value(-1));
                 }
             }
         }

@@ -5,9 +5,12 @@
 //! Defines NASL functions to perform HTTP/2 request.
 // TODO: implement http functions once socket handling is available
 
-use crate::nasl::prelude::*;
-use crate::nasl::utils::ContextType;
+mod error;
 
+use crate::nasl::utils::ContextType;
+use crate::nasl::{prelude::*, utils::error::ReturnValue};
+
+pub use error::HttpError;
 use h2::client;
 
 use core::convert::AsRef;
@@ -131,7 +134,7 @@ impl NaslHttp {
         data: String,
         method: Method,
         handle: &mut Handle,
-    ) -> Result<(Parts, String), FunctionErrorKind> {
+    ) -> Result<(Parts, String), HttpError> {
         // Establish TCP connection to the server.
 
         let mut config = ClientConfig::builder()
@@ -145,49 +148,20 @@ impl NaslHttp {
         let server_name = ip_str.clone().to_owned().try_into().unwrap();
 
         let connector = TlsConnector::from(Arc::new(config));
-        let stream = match TcpStream::connect(format!("{}:{}", ip_str, port)).await {
-            Ok(a) => a,
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    e.to_string(),
-                    Some(NaslValue::Null),
-                ));
-            }
-        };
-
-        let stream = match connector.connect(server_name, stream).await {
-            Ok(a) => a,
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    e.to_string(),
-                    Some(NaslValue::Null),
-                ));
-            }
-        };
-
-        let (h2, connection) = match client::handshake(stream).await {
-            Ok((x, y)) => (x, y),
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    e.to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
-        };
+        let stream = TcpStream::connect(format!("{}:{}", ip_str, port))
+            .await
+            .map_err(HttpError::from)?;
+        let stream = connector
+            .connect(server_name, stream)
+            .await
+            .map_err(HttpError::from)?;
+        let (h2, connection) = client::handshake(stream).await.map_err(HttpError::from)?;
 
         tokio::spawn(async move {
             connection.await.unwrap();
         });
 
-        let mut h2 = match h2.ready().await {
-            Ok(x) => x,
-            Err(e) => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    e.to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
-        };
+        let mut h2 = h2.ready().await.map_err(HttpError::from)?;
 
         // Prepare the HTTP request to send to the server.
         let mut request = Request::builder();
@@ -214,15 +188,7 @@ impl NaslHttp {
 
         let mut resp = String::new();
         while let Some(chunk) = body.data().await {
-            let chunk = match chunk {
-                Ok(byte_chunk) => byte_chunk,
-                Err(e) => {
-                    return Err(FunctionErrorKind::Diagnostic(
-                        e.to_string(),
-                        Some(NaslValue::Null),
-                    ))
-                }
-            };
+            let chunk = chunk.map_err(HttpError::from)?;
 
             resp.push_str(&String::from_utf8_lossy(&chunk));
             // Let the server send more data.
@@ -247,29 +213,16 @@ impl NaslHttp {
         };
 
         let mut handles = lock_handles(&self.handles).await?;
-        let handle = match handles
+        let (_, handle) = handles
             .iter_mut()
             .enumerate()
             .find(|(_i, h)| h.handle_id == handle_id)
-        {
-            Some((_i, handle)) => handle,
-            _ => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    format!("Handle ID {} not found", handle_id),
-                    Some(NaslValue::Null),
-                ))
-            }
-        };
+            .ok_or(HttpError::HandleIdNotFound(handle_id))?;
 
-        let item: String = match register.named("item") {
-            Some(x) => x.to_string(),
-            _ => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "Missing item".to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
-        };
+        let item: String = register
+            .named("item")
+            .map(|x| x.to_string())
+            .ok_or(FunctionErrorKind::missing_argument("item"))?;
 
         let schema: String = match register.named("schema") {
             Some(x) => {
@@ -306,25 +259,23 @@ impl NaslHttp {
 
         uri = format!("{}{}", uri, item);
 
-        match self.request(&ip_str, port, uri, data, method, handle).await {
-            Ok((head, body)) => {
-                handle.http_code = head.status.as_u16();
-                let mut header_str = String::new();
-                header_str.push_str(format!("{:?} ", head.version).as_str());
-                header_str.push_str(format!("{:?}\n", head.status).as_str());
-                for (k, v) in head.headers.iter() {
-                    header_str.push_str(&format!(
-                        "{}: {}\n",
-                        k.as_str(),
-                        String::from_utf8_lossy(v.as_bytes())
-                    ))
-                }
-                //let _ = head.headers.iter().map(|(k,v)| header_str.push_str(&format!("{}: {}\n", k.as_str(), String::from_utf8_lossy(v.as_bytes()))));
-                header_str.push_str(&body);
-                Ok(NaslValue::String(header_str))
-            }
-            Err(e) => Err(e),
+        let (head, body) = self
+            .request(&ip_str, port, uri, data, method, handle)
+            .await?;
+        handle.http_code = head.status.as_u16();
+        let mut header_str = String::new();
+        header_str.push_str(format!("{:?} ", head.version).as_str());
+        header_str.push_str(format!("{:?}\n", head.status).as_str());
+        for (k, v) in head.headers.iter() {
+            header_str.push_str(&format!(
+                "{}: {}\n",
+                k.as_str(),
+                String::from_utf8_lossy(v.as_bytes())
+            ))
         }
+        //let _ = head.headers.iter().map(|(k,v)| header_str.push_str(&format!("{}: {}\n", k.as_str(), String::from_utf8_lossy(v.as_bytes()))));
+        header_str.push_str(&body);
+        Ok(NaslValue::String(header_str))
     }
 
     /// Wrapper function for GET request. See http2_req
@@ -410,10 +361,10 @@ impl NaslHttp {
                 handles.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Handle ID {} not found", handle),
-                Some(NaslValue::Number(-1)),
-            )),
+            _ => {
+                Err(FunctionErrorKind::from(HttpError::HandleIdNotFound(handle))
+                    .with_return_value(-1))
+            }
         }
     }
 
@@ -442,10 +393,7 @@ impl NaslHttp {
             .find(|(_i, h)| h.handle_id == handle_id)
         {
             Some((_i, handle)) => Ok(NaslValue::Number(handle.http_code as i64)),
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Handle ID {} not found", handle_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(HttpError::HandleIdNotFound(handle_id).into()),
         }
     }
 
@@ -484,10 +432,7 @@ impl NaslHttp {
                 h.header_items.push((key.to_string(), val.to_string()));
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Handle ID {} not found", handle_id),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(HttpError::HandleIdNotFound(handle_id).into()),
         }
     }
 }

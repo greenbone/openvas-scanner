@@ -15,9 +15,6 @@ use super::ContextType;
 #[derive(Debug, Clone, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
-    /// Diagnostic string is informational and the second arg is the return value for the user
-    #[error("{0}")]
-    Diagnostic(String, Option<NaslValue>),
     #[error("{0}")]
     Argument(#[from] ArgumentError),
     #[error("{0}")]
@@ -47,14 +44,13 @@ pub enum InternalError {
 }
 
 pub trait ReturnValue {
-    fn with_return_value(self, val: NaslValue) -> Self;
+    fn with_return_value(self, return_value: impl Into<NaslValue>) -> Self;
     fn get_return_value(&self) -> Option<&NaslValue>;
 }
 
 impl ReturnValue for FunctionErrorKind {
-    fn with_return_value(self, return_value: NaslValue) -> Self {
+    fn with_return_value(self, return_value: impl Into<NaslValue>) -> Self {
         match self {
-            Self::Diagnostic(_, _) => unimplemented!(),
             Self::Argument(_) => self,
             Self::Builtin(e) => Self::Builtin(e.with_return_value(return_value)),
             Self::Internal(_) => self,
@@ -63,7 +59,6 @@ impl ReturnValue for FunctionErrorKind {
 
     fn get_return_value(&self) -> Option<&NaslValue> {
         match self {
-            Self::Diagnostic(_, _) => unimplemented!(),
             Self::Argument(_) => None,
             Self::Builtin(e) => e.get_return_value(),
             Self::Internal(_) => None,
