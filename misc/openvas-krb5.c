@@ -62,6 +62,18 @@
      ? 1                                                  \
      : (memcmp (line + start, cmp, cmp_len) == 0))
 
+#define GSS_KRB5_INQ_SSPI_SESSION_KEY_OID_LENGTH 11
+// TODO: make GSS_KRB5_INQ_SSPI_SESSION_KEY_OID dynamic
+#define GSS_KRB5_INQ_SSPI_SESSION_KEY_OID \
+  "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x05\x05"
+
+#ifndef gss_mech_spnego
+gss_OID_desc spnego_mech_oid_desc = {6, (void *) "\x2b\x06\x01\x05\x05\x02"};
+#define gss_mech_spnego (&spnego_mech_oid_desc)
+#endif
+
+#define ARRAY_SIZE(a) (sizeof (a) / sizeof (a[0]))
+
 #define MAX_LINE_LENGTH 1024
 // Finds the kdc defined for the given realm.
 OKrb5ErrorCode
@@ -223,19 +235,6 @@ result:
   return result;
 }
 
-
-#define GSS_KRB5_INQ_SSPI_SESSION_KEY_OID_LENGTH 11
-// TODO: make GSS_KRB5_INQ_SSPI_SESSION_KEY_OID dynamic
-#define GSS_KRB5_INQ_SSPI_SESSION_KEY_OID \
-  "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x05\x05"
-
-#ifndef gss_mech_spnego
-gss_OID_desc spnego_mech_oid_desc = {6, (void *) "\x2b\x06\x01\x05\x05\x02"};
-#define gss_mech_spnego (&spnego_mech_oid_desc)
-#endif
-
-#define ARRAY_SIZE(a) (sizeof (a) / sizeof (a[0]))
-
 struct OKrb5GSSCredentials
 {
   gss_cred_id_t gss_creds;
@@ -259,14 +258,21 @@ static OKrb5ErrorCode
 okrb5_gss_authenticate (const OKrb5Credential *creds,
                         struct OKrb5GSSContext *gss_creds)
 {
+#define check_major_stat()              \
+  if (maj_stat != GSS_S_COMPLETE)       \
+    {                                   \
+      result = O_KRB5_ERROR + maj_stat; \
+      goto result;                      \
+    }
   char *user_principal;
   const struct OKrb5User *user = &creds->user;
+  size_t user_principal_len = user->user.len + creds->realm.len + 1;
+  size_t user_principal_cap = user_principal_len + 1;
 
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
-  ALLOCATE_AND_CHECK (user_principal, char,
-                      user->user.len + creds->realm.len + 2, result);
-  sprintf (user_principal, "%s@%s", (char *) user->user.data,
-           (char *) creds->realm.data);
+  ALLOCATE_AND_CHECK (user_principal, char, user_principal_cap, result);
+  snprintf (user_principal, user_principal_cap, "%s@%s",
+            (char *) user->user.data, (char *) creds->realm.data);
 
   gss_name_t gss_username = GSS_C_NO_NAME;
   OM_uint32 maj_stat;
@@ -274,7 +280,7 @@ okrb5_gss_authenticate (const OKrb5Credential *creds,
   // OM_uint32 dummy_min_stat;
   gss_buffer_desc userbuf = {
     .value = user_principal,
-    .length = strlen (user_principal),
+    .length = user_principal_len,
   };
   gss_buffer_desc pwbuf = {
     .value = user->password.data,
@@ -299,32 +305,22 @@ okrb5_gss_authenticate (const OKrb5Credential *creds,
 
   maj_stat =
     gss_import_name (&min_stat, &userbuf, GSS_C_NT_USER_NAME, &gss_username);
-  if (maj_stat != GSS_S_COMPLETE)
-    {
-      return O_KRB5_ERROR + maj_stat;
-    }
+  check_major_stat ();
 
   maj_stat = gss_acquire_cred_with_password (&min_stat, gss_username, &pwbuf, 0,
                                              &creds_mechs, GSS_C_INITIATE,
                                              &cred, NULL, NULL);
 
-  //(void) gss_release_name (&dummy_min_stat, &gss_username);
-  if (maj_stat != GSS_S_COMPLETE)
-    {
-      // return NT_STATUS_LOGON_FAILURE;
-      return O_KRB5_ERROR + maj_stat;
-    }
+  (void) gss_release_name (&min_stat, &gss_username);
+  check_major_stat ();
 
   // let spnego only use the desired mechs
   maj_stat = gss_set_neg_mechs (&min_stat, cred, &spnego_mechs);
-  if (maj_stat != GSS_S_COMPLETE)
-    {
-      // failed setting neg mechs
-      return O_KRB5_ERROR + maj_stat;
-    }
+  check_major_stat ();
   gss_creds->gss_creds = cred;
 result:
-  // TODO: free user_principal on failure?
+  if (user_principal != NULL)
+    free (user_principal);
   return result;
 }
 
@@ -497,7 +493,6 @@ o_krb5_gss_session_key_context (struct OKrb5GSSContext *gss_context,
       goto result;
     }
 
-  // TODO: verify out
   *out = calloc (1, sizeof (struct OKrb5Slice));
   (*out)->data = malloc (set->elements[0].length);
   memcpy ((*out)->data, set->elements[0].value, set->elements[0].length);
