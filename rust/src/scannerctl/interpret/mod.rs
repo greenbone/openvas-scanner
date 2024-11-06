@@ -8,7 +8,7 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::interpreter::CodeInterpreter;
+use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnValue};
 use scannerlib::nasl::{
     interpreter::{FunctionError, InterpretErrorKind},
     prelude::*,
@@ -138,16 +138,16 @@ where
         for result in results {
             let r = match result {
                 Ok(x) => x,
-                Err(e) => match &e.kind {
-                    InterpretErrorKind::FunctionCallError(FunctionError {
-                        function: _,
-                        kind: FunctionErrorKind::Diagnostic(_, x),
-                    }) => {
-                        tracing::warn!(error=?e, "function call error");
-                        x.clone().unwrap_or_default()
+                Err(e) => {
+                    if let InterpretErrorKind::FunctionCallError(FunctionError { kind, .. }) =
+                        e.kind
+                    {
+                        tracing::warn!(error=?kind, "function call error");
+                        kind.get_return_value().cloned().unwrap_or_default()
+                    } else {
+                        return Err(e.into());
                     }
-                    _ => return Err(e.into()),
-                },
+                }
             };
             match r {
                 NaslValue::Exit(rc) => std::process::exit(rc as i32),

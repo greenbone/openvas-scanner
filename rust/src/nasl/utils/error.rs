@@ -46,6 +46,31 @@ pub enum InternalError {
     Storage(#[from] StorageError),
 }
 
+pub trait ReturnValue {
+    fn with_return_value(self, val: NaslValue) -> Self;
+    fn get_return_value(&self) -> Option<&NaslValue>;
+}
+
+impl ReturnValue for FunctionErrorKind {
+    fn with_return_value(self, return_value: NaslValue) -> Self {
+        match self {
+            Self::Diagnostic(_, _) => unimplemented!(),
+            Self::Argument(_) => self,
+            Self::Builtin(e) => Self::Builtin(e.with_return_value(return_value)),
+            Self::Internal(_) => self,
+        }
+    }
+
+    fn get_return_value(&self) -> Option<&NaslValue> {
+        match self {
+            Self::Diagnostic(_, _) => unimplemented!(),
+            Self::Argument(_) => None,
+            Self::Builtin(e) => e.get_return_value(),
+            Self::Internal(_) => None,
+        }
+    }
+}
+
 impl From<StorageError> for FunctionErrorKind {
     fn from(value: StorageError) -> Self {
         FunctionErrorKind::Internal(InternalError::Storage(value))

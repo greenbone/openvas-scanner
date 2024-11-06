@@ -1,12 +1,22 @@
 use thiserror::Error;
 
+use crate::nasl::utils::error::ReturnValue;
+use crate::nasl::NaslValue;
+
 use super::super::prelude::FunctionErrorKind;
 use super::cryptographic::CryptographicError;
 use super::regex::RegexError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
 #[derive(Debug, Clone, Error)]
-pub enum BuiltinError {
+#[error("{kind}")]
+pub struct BuiltinError {
+    kind: BuiltinErrorKind,
+    return_value: Option<NaslValue>,
+}
+
+#[derive(Debug, Clone, Error)]
+pub enum BuiltinErrorKind {
     #[error("{0}")]
     Ssh(SshError),
     #[error("{0}")]
@@ -24,17 +34,39 @@ pub enum BuiltinError {
     PacketForgery(super::raw_ip::PacketForgeryError),
 }
 
+impl ReturnValue for BuiltinError {
+    fn with_return_value(self, return_value: NaslValue) -> Self {
+        Self {
+            kind: self.kind,
+            return_value: Some(return_value),
+        }
+    }
+
+    fn get_return_value(&self) -> Option<&NaslValue> {
+        self.return_value.as_ref()
+    }
+}
+
+impl From<BuiltinErrorKind> for BuiltinError {
+    fn from(kind: BuiltinErrorKind) -> Self {
+        Self {
+            kind,
+            return_value: None,
+        }
+    }
+}
+
 macro_rules! builtin_error_variant (
     ($err: path, $variant: ident) => {
         impl From<$err> for BuiltinError {
             fn from(value: $err) -> Self {
-                BuiltinError::$variant(value)
+                BuiltinErrorKind::$variant(value).into()
             }
         }
 
         impl From<$err> for FunctionErrorKind {
             fn from(value: $err) -> Self {
-                FunctionErrorKind::Builtin(BuiltinError::$variant(value))
+                FunctionErrorKind::Builtin(BuiltinErrorKind::$variant(value).into())
             }
         }
 
@@ -43,7 +75,11 @@ macro_rules! builtin_error_variant (
 
             fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
                 match value {
-                    FunctionErrorKind::Builtin(BuiltinError::$variant(e)) => Ok(e),
+                    FunctionErrorKind::Builtin(
+                        BuiltinError {
+                            kind: BuiltinErrorKind::$variant(e), ..
+                        }
+                    ) => Ok(e),
                     _ => Err(()),
                 }
             }
