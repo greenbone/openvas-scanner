@@ -32,13 +32,6 @@ typedef enum
   O_KRB5_ERROR,
 } OKrb5ErrorCode;
 
-typedef struct
-{
-  krb5_context ctx;
-  krb5_principal me;
-  krb5_creds creds;
-} OKrb5Element;
-
 struct OKrb5Slice
 {
   void *data;
@@ -69,8 +62,6 @@ typedef struct
   struct OKrb5Target target;
 } OKrb5Credential;
 
-// TODO: initializer with default values and NULL
-
 typedef struct
 {
   krb5_data data;
@@ -88,56 +79,6 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc);
 // will create a new one
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc);
-
-// Is used to get a ticket based on the given credentials.
-//
-// It will store the ticket into element, it requires that elemenet is not NULL
-// but that the value of element is NULL. Otherwise an error code is returned.
-OKrb5ErrorCode
-o_krb5_authenticate (const OKrb5Credential credentials, OKrb5Element **element);
-
-OKrb5ErrorCode
-o_krb5_request (const OKrb5Element *element, const char *data,
-                const size_t data_len, OKrb5Data **out);
-
-OKrb5ErrorCode
-o_krb5_free_data (const OKrb5Element *element, OKrb5Data *data);
-
-void
-o_krb5_free_element (OKrb5Element *element);
-
-#if OPENVAS_KRB5_CACHED == 1
-
-typedef struct
-{
-  const OKrb5Credential *credentials;
-  OKrb5Element *element;
-  OKrb5ErrorCode last_error_code;
-  unsigned long id;
-} OKrb5CacheElement;
-
-typedef struct
-{
-  size_t cap;
-  size_t len;
-  OKrb5CacheElement **elements;
-} OKrb5CacheList;
-
-OKrb5ErrorCode
-o_krb5_cache_init (void);
-OKrb5ErrorCode
-o_krb5_cache_clear (void);
-
-OKrb5CacheElement *
-o_krb5_cache_find (const OKrb5Credential *cred);
-OKrb5ErrorCode
-o_krb5_cache_authenticate (const OKrb5Credential credentials,
-                           OKrb5CacheElement **out);
-
-OKrb5ErrorCode
-o_krb5_cache_request (const OKrb5Credential credentials, const char *data,
-                      const size_t data_len, OKrb5Data **out);
-#endif
 
 #define okrb5_slice_from_str(str)                               \
   (struct OKrb5Slice)                                           \
@@ -179,6 +120,5 @@ o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
 // freed by the caller.
 char *
 okrb5_error_code_to_string (const OKrb5ErrorCode code);
-
 
 #endif
