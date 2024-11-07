@@ -1077,7 +1077,6 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
      case VAR2_STRING:
      case VAR2_DATA:
        v->string_form = g_malloc0 (v->v.v_str.s_siz + 1);
-       fprintf(stderr, "%s:%d: %s (type: %i, s_size:%i): %s\n", __FILE__, __LINE__, __func__, v->var_type, v->v.v_str.s_siz, v->v.v_str.s_val);
        memcpy (v->string_form,
                (char *) v->v.v_str.s_val ? (char *) v->v.v_str.s_val : "",
                v->v.v_str.s_siz + 1);

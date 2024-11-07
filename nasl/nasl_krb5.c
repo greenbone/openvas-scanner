@@ -280,7 +280,6 @@ nasl_okrb5_gss_update_context (lex_ctxt *lexic)
   tree_cell *retc;
   struct OKrb5Slice from_application;
 
-
   if (to_application != NULL)
     {
       free (to_application->data);
@@ -288,7 +287,7 @@ nasl_okrb5_gss_update_context (lex_ctxt *lexic)
       to_application = NULL;
     }
 
-  from_application.data = (void *)get_str_var_by_num (lexic, 0);
+  from_application.data = (void *) get_str_var_by_num (lexic, 0);
   from_application.len = get_var_size_by_num (lexic, 0);
 
   if (cached_gss_context == NULL)
@@ -304,6 +303,21 @@ result:
   retc->x.i_val = result;
   last_okrb5_result = result;
   return retc;
+}
+
+void
+nasl_okrb5_clean (void)
+{
+  if (to_application != NULL)
+    {
+      free (to_application->data);
+      free (to_application);
+      to_application = NULL;
+    }
+  if (cached_gss_context != NULL)
+    {
+      okrb5_gss_free_context (cached_gss_context);
+    }
 }
 
 tree_cell *
@@ -359,7 +373,6 @@ nasl_okrb5_gss_session_key_context (lex_ctxt *lexic)
 }
 
 tree_cell *
-
 nasl_okrb5_error_code_to_string (lex_ctxt *lexic)
 {
   (void) lexic;
