@@ -10,8 +10,6 @@ use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
 
-use super::ContextType;
-
 #[derive(Debug, Clone, Error)]
 /// Descriptive kind of error that can occur while calling a function
 pub enum FunctionErrorKind {
@@ -143,18 +141,6 @@ impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
     fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
         match value {
             (key, expected, Some(x)) => (key, expected, x).into(),
-            (key, expected, None) => ArgumentError::wrong_argument(key, expected, "NULL").into(),
-        }
-    }
-}
-
-impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
-    fn from(value: (&str, &str, Option<&ContextType>)) -> Self {
-        match value {
-            (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
-            (key, expected, Some(ContextType::Function(_, _))) => {
-                ArgumentError::wrong_argument(key, expected, "function").into()
-            }
             (key, expected, None) => ArgumentError::wrong_argument(key, expected, "NULL").into(),
         }
     }
