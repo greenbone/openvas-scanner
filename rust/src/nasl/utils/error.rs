@@ -128,20 +128,3 @@ impl FunctionErrorKind {
         Self::Argument(ArgumentError::MissingNamed(vec![val.to_string()]))
     }
 }
-
-impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
-    fn from(value: (&str, &str, &NaslValue)) -> Self {
-        let (key, expected, got) = value;
-        let got: &str = &got.to_string();
-        ArgumentError::wrong_argument(key, expected, got).into()
-    }
-}
-
-impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
-    fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
-        match value {
-            (key, expected, Some(x)) => (key, expected, x).into(),
-            (key, expected, None) => ArgumentError::wrong_argument(key, expected, "NULL").into(),
-        }
-    }
-}
