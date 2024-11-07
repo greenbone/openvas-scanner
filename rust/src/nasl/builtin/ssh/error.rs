@@ -2,6 +2,8 @@ use std::fmt;
 
 use thiserror::Error;
 
+use crate::nasl::utils::error::WithErrorInfo;
+
 use super::SessionId;
 
 /// A cloneable representation of the Error type of the underlying SSH lib
@@ -114,28 +116,24 @@ pub enum SshErrorKind {
     UnexpectedAuthenticationStatus(String),
 }
 
-pub trait AttachErrorInfo<Info> {
-    fn attach_error_info(self, e: Info) -> Self;
-}
-
-impl AttachErrorInfo<SessionId> for SshError {
-    fn attach_error_info(mut self, id: SessionId) -> SshError {
+impl WithErrorInfo<SessionId> for SshError {
+    fn with(mut self, id: SessionId) -> SshError {
         self.id = Some(id);
         self
     }
 }
 
 #[cfg(feature = "nasl-builtin-libssh")]
-impl AttachErrorInfo<libssh_rs::Error> for SshError {
-    fn attach_error_info(mut self, source: libssh_rs::Error) -> SshError {
+impl WithErrorInfo<libssh_rs::Error> for SshError {
+    fn with(mut self, source: libssh_rs::Error) -> SshError {
         self.source = Some(source.into());
         self
     }
 }
 
 #[cfg(not(feature = "nasl-builtin-libssh"))]
-impl AttachErrorInfo<russh::Error> for SshError {
-    fn attach_error_info(mut self, source: russh::Error) -> SshError {
+impl WithErrorInfo<russh::Error> for SshError {
+    fn with(mut self, source: russh::Error) -> SshError {
         self.source = Some(source.into());
         self
     }
@@ -154,18 +152,9 @@ impl From<SshErrorKind> for SshError {
 impl SshErrorKind {
     pub fn with<Info>(self, m: Info) -> SshError
     where
-        SshError: AttachErrorInfo<Info>,
+        SshError: WithErrorInfo<Info>,
     {
         let e: SshError = self.into();
-        e.attach_error_info(m)
-    }
-}
-
-impl SshError {
-    pub fn with<Info>(self, m: Info) -> SshError
-    where
-        SshError: AttachErrorInfo<Info>,
-    {
-        self.attach_error_info(m)
+        e.with(m)
     }
 }

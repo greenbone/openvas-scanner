@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use crate::nasl::builtin::ssh::error::SshErrorKind;
+use crate::nasl::utils::error::WithErrorInfo;
 
 use super::{super::error::Result, SessionId};
 

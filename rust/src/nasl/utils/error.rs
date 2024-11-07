@@ -41,6 +41,10 @@ pub enum InternalError {
     Storage(#[from] StorageError),
 }
 
+pub trait WithErrorInfo<Info> {
+    fn with(self, e: Info) -> Self;
+}
+
 pub trait ReturnValue {
     fn with_return_value(self, return_value: impl Into<NaslValue>) -> Self;
     fn get_return_value(&self) -> Option<&NaslValue>;
