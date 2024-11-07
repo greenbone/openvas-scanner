@@ -98,6 +98,12 @@ impl FunctionErrorKind {
     pub fn missing_argument(val: &str) -> Self {
         Self::MissingArguments(vec![val.to_string()])
     }
+
+    /// Helper function to quickly construct a `MissingArguments` variant
+    /// for a single missing argument and returning a NaslValue::Null
+    pub fn diagnostic_ret_null(val: &str) -> Self {
+        Self::Diagnostic(val.to_string(), Some(NaslValue::Null))
+    }
 }
 
 impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
