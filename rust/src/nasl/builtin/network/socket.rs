@@ -169,13 +169,16 @@ impl NaslSockets {
             NaslSocket::Tcp(conn) => {
                 self.wait_before_next_probe();
 
-                if !conn.is_tls() {
-                    if let Some(flags) = option {
-                        conn.set_flags(flags as i32);
+                if let Some(flags) = option {
+                    if flags < 0 || flags > i32::MAX as i64 {
+                        return Err(FunctionErrorKind::WrongArgument(
+                            "the given flags value is out of range".to_string(),
+                        ));
                     }
+                    Ok(conn.send_with_flags(data, flags as i32)?)
+                } else {
+                    Ok(conn.write(data)?)
                 }
-
-                Ok(conn.write(data)?)
             }
             NaslSocket::Udp(conn) => {
                 if let Some(flags) = option {
@@ -510,6 +513,96 @@ impl NaslSockets {
         Ok(NaslValue::Number(fd as i64))
     }
 
+    /// Open a privileged socket to the target host.
+    /// It takes three named integer arguments:
+    /// - dport is the destination port
+    /// - sport is the source port, which may be inferior to 1024. This argument is optional.
+    ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
+    /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
+    #[nasl_function(named(dport, sport))]
+    fn open_priv_sock_tcp(
+        &self,
+        context: &Context,
+        dport: i64,
+        sport: Option<i64>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let dport = verify_port(dport)?;
+
+        let addr = ipstr2ipaddr(context.target())?;
+
+        // TODO: set timeout to global recv timeout when available
+        let timeout = Duration::from_secs(10);
+
+        if let Some(sport) = sport {
+            let sport = verify_port(sport)?;
+            self.wait_before_next_probe();
+            let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
+
+            let fd = self.add(NaslSocket::Tcp(Box::new(tcp)));
+            return Ok(NaslValue::Number(fd as i64));
+        }
+
+        let mut sport = 1023;
+
+        while sport > 0 {
+            self.wait_before_next_probe();
+            if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport, timeout) {
+                let fd = self.add(NaslSocket::Tcp(Box::new(tcp)));
+                return Ok(NaslValue::Number(fd as i64));
+            }
+            sport -= 1;
+        }
+        Err(FunctionErrorKind::Diagnostic(
+            format!(
+                "Unable to open priv socket to {} on any socket from 1-1023",
+                addr
+            ),
+            None,
+        ))
+    }
+
+    /// Open a privileged UDP socket to the target host.
+    /// It takes three named integer arguments:
+    /// - dport is the destination port
+    /// - sport is the source port, which may be inferior to 1024. This argument is optional.
+    ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
+    #[nasl_function(named(dport, sport))]
+    fn open_priv_sock_udp(
+        &self,
+        context: &Context,
+        dport: i64,
+        sport: Option<i64>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let dport = verify_port(dport)?;
+
+        let addr = ipstr2ipaddr(context.target())?;
+
+        if let Some(sport) = sport {
+            let sport = verify_port(sport)?;
+            let udp = UdpConnection::new_priv(addr, sport, dport)?;
+
+            let fd = self.add(NaslSocket::Udp(udp));
+            return Ok(NaslValue::Number(fd as i64));
+        }
+
+        let mut sport = 1023;
+
+        while sport > 0 {
+            if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport) {
+                let fd = self.add(NaslSocket::Udp(udp));
+                return Ok(NaslValue::Number(fd as i64));
+            }
+            sport -= 1;
+        }
+        Err(FunctionErrorKind::Diagnostic(
+            format!(
+                "Unable to open priv socket to {} on any socket from 1-1023",
+                addr
+            ),
+            None,
+        ))
+    }
+
     /// Get the source port of a open socket
     #[nasl_function]
     fn get_source_port(&self, socket: usize) -> Result<NaslValue, FunctionErrorKind> {
@@ -573,8 +666,6 @@ impl NaslSockets {
         }
     }
 
-    /// *any* **ftp_log_in**(user: *string*, pass: *string*, socket: *int*);
-
     /// **ftp_log_in** takes three named arguments:
     /// - user: is the user name (it has no default value like “anonymous” or “ftp”)
     /// - pass: is the password (again, no default value like the user e-mail address)
@@ -620,7 +711,9 @@ function_set! {
     (
         (NaslSockets::open_sock_kdc, "open_sock_kdc"),
         (NaslSockets::open_sock_tcp, "open_sock_tcp"),
+        (NaslSockets::open_priv_sock_tcp, "open_priv_sock_tcp"),
         (NaslSockets::open_sock_udp, "open_sock_udp"),
+        (NaslSockets::open_priv_sock_udp, "open_priv_sock_udp"),
         (NaslSockets::close, "close"),
         (NaslSockets::send, "send"),
         (NaslSockets::recv, "recv"),

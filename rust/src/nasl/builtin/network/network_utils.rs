@@ -40,16 +40,12 @@ pub fn bind_local_socket(dst: &SocketAddr) -> io::Result<UdpSocket> {
 }
 
 /// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_source_ip(dst: IpAddr, port: u16) -> io::Result<IpAddr> {
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;
-    local_socket
-        .connect(sd)
-        .ok()
-        .and_then(|_| local_socket.local_addr().ok())
-        .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
-        .ok_or_else(|| FunctionErrorKind::Diagnostic("No route to destination".to_string(), None))
+    local_socket.connect(sd)?;
+    Ok(local_socket.local_addr()?.ip())
 }
 
 /// Tests whether a packet sent to IP is LIKELY to route through the
