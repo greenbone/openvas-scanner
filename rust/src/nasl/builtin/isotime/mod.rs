@@ -105,12 +105,12 @@ fn isotime_now() -> String {
 }
 
 #[nasl_function]
-fn isotime_print(time: &str) -> Result<String, FunctionErrorKind> {
+fn isotime_print(time: &str) -> Result<String, FnError> {
     Ok(parse_time(time)?.format("%Y-%m-%d %H:%M:%S").to_string())
 }
 
 #[nasl_function]
-fn isotime_scan(time: &str) -> Result<String, FunctionErrorKind> {
+fn isotime_scan(time: &str) -> Result<String, FnError> {
     let time = parse_time(time)?;
 
     Ok(time.format("%Y%m%dT%H%M%S").to_string())

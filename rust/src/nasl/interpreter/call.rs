@@ -6,7 +6,7 @@ use crate::nasl::syntax::{Statement, StatementKind::*, Token};
 use crate::nasl::utils::lookup_keys::FC_ANON_ARGS;
 
 use crate::nasl::interpreter::{
-    error::{FunctionError, InterpretError},
+    error::{FunctionCallError, InterpretError},
     interpreter::{InterpretResult, RunSpecific},
     Interpreter,
 };
@@ -68,7 +68,7 @@ impl<'a> Interpreter<'a> {
                         NaslValue::Null
                     })
                 } else {
-                    r.map_err(|x| FunctionError::new(name, x).into())
+                    r.map_err(|x| FunctionCallError::new(name, x).into())
                 }
             }
             None => {

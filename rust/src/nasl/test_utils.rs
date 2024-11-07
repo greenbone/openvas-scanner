@@ -294,7 +294,7 @@ where
 
     fn check_result(
         &self,
-        result: &Result<NaslValue, FunctionErrorKind>,
+        result: &Result<NaslValue, FnError>,
         reference: &TracedTestResult,
         line_count: usize,
     ) {
@@ -305,7 +305,7 @@ where
                         "Mismatch at {}.\nIn code \"{}\":\nExpected: {:?}\nFound:    {:?}",
                         reference.location,
                         self.lines[line_count],
-                        Ok::<_, FunctionErrorKind>(reference_result),
+                        Ok::<_, FnError>(reference_result),
                         result,
                     );
                 }
@@ -324,11 +324,7 @@ where
         }
     }
 
-    fn compare_result(
-        &self,
-        result: &Result<NaslValue, FunctionErrorKind>,
-        reference: &TestResult,
-    ) -> bool {
+    fn compare_result(&self, result: &Result<NaslValue, FnError>, reference: &TestResult) -> bool {
         match reference {
             TestResult::Ok(val) => result.as_ref().unwrap() == val,
             TestResult::GenericCheck(f, _) => f(result.clone()),
@@ -403,11 +399,11 @@ macro_rules! check_err_matches {
             |e| {
                 if let Err(e) = e {
                     // Convert with try_into to allow using
-                    // the variants of `FunctionErrorKind` directly without
+                    // the variants of `FnError` directly without
                     // having to wrap them in the outer enum.
                     let converted = e.try_into();
                     // This is only irrefutable for the
-                    // FunctionErrorKind -> FunctionErrorKind conversion but not for others.
+                    // FnError -> FnError conversion but not for others.
                     #[allow(irrefutable_let_patterns)]
                     if let Ok(e) = converted {
                         matches!(e, $pat)

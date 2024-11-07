@@ -15,7 +15,6 @@ pub mod prelude {
     pub use super::syntax::NaslValue;
     pub use super::utils::error::ReturnValue;
     pub use super::utils::error::WithErrorInfo;
-    pub use super::utils::error::FEK;
     pub use super::utils::function::CheckedPositionals;
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;
@@ -23,7 +22,7 @@ pub mod prelude {
     pub use super::utils::ArgumentError;
     pub use super::utils::Context;
     pub use super::utils::ContextType;
-    pub use super::utils::FunctionErrorKind;
+    pub use super::utils::FnError;
     pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
     pub use super::utils::Register;

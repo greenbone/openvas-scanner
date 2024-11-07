@@ -10,7 +10,7 @@ use std::{
 use futures::StreamExt;
 use scannerlib::nasl::interpreter::CodeInterpreter;
 use scannerlib::nasl::{
-    interpreter::{FunctionError, InterpretErrorKind},
+    interpreter::{FunctionCallError, InterpretErrorKind},
     prelude::*,
     syntax::{load_non_utf8_path, LoadError},
     Loader, NoOpLoader,
@@ -139,8 +139,9 @@ where
             let r = match result {
                 Ok(x) => x,
                 Err(e) => {
-                    if let InterpretErrorKind::FunctionCallError(FunctionError { kind, .. }) =
-                        e.kind
+                    if let InterpretErrorKind::FunctionCallError(FunctionCallError {
+                        kind, ..
+                    }) = e.kind
                     {
                         tracing::warn!(error=?kind, "function call error");
                         kind.return_value().clone().unwrap_or_default()

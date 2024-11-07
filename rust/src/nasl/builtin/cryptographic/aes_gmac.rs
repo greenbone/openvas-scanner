@@ -10,7 +10,7 @@ use crate::nasl::prelude::*;
 ///
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 #[cfg(feature = "nasl-c-lib")]
-fn aes_gmac(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn aes_gmac(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     use super::{get_data, get_iv, get_key, CryptographicError};
     use nasl_c_lib::cryptographic::mac::aes_gmac;
 

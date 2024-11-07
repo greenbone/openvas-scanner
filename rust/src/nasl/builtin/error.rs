@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 use crate::nasl::prelude::*;
+use crate::nasl::utils::error::FnErrorKind;
 
 use super::cryptographic::CryptographicError;
 use super::http::HttpError;
@@ -45,18 +46,18 @@ macro_rules! builtin_error_variant (
             }
         }
 
-        impl From<$err> for FunctionErrorKind {
+        impl From<$err> for FnError {
             fn from(value: $err) -> Self {
-                FEK::Builtin(BuiltinError::$variant(value).into()).into()
+                FnErrorKind::Builtin(BuiltinError::$variant(value).into()).into()
             }
         }
 
-        impl TryFrom<FunctionErrorKind> for $err {
+        impl TryFrom<FnError> for $err {
             type Error = ();
 
-            fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
+            fn try_from(value: FnError) -> Result<Self, Self::Error> {
                 match value.kind {
-                    FEK::Builtin(
+                    FnErrorKind::Builtin(
                         BuiltinError::$variant(e)
                     ) => Ok(e),
                     _ => Err(()),

@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::Index};
 
-use crate::nasl::{FunctionErrorKind, Register};
+use crate::nasl::{FnError, Register};
 
 use super::FromNaslValue;
 
@@ -22,9 +22,9 @@ impl<'a, T: FromNaslValue<'a>> Positionals<'a, T> {
     }
 
     /// Returns an iterator over the positional arguments.
-    /// The item type is Result<T, FunctionErrorKind>, since
+    /// The item type is Result<T, FnError>, since
     /// the conversion to T can still fail.
-    pub fn iter(&self) -> impl Iterator<Item = Result<T, FunctionErrorKind>> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = Result<T, FnError>> + 'a {
         self.register
             .positional()
             .iter()
@@ -45,12 +45,12 @@ pub struct CheckedPositionals<T> {
 
 impl<'a, T: FromNaslValue<'a>> CheckedPositionals<T> {
     /// Create a new `CheckedPositionals` from the register.
-    pub fn new(register: &'a Register) -> Result<Self, FunctionErrorKind> {
+    pub fn new(register: &'a Register) -> Result<Self, FnError> {
         let data = register
             .positional()
             .iter()
             .map(T::from_nasl_value)
-            .collect::<Result<Vec<_>, FunctionErrorKind>>()?;
+            .collect::<Result<Vec<_>, FnError>>()?;
         Ok(Self {
             data,
             _marker: PhantomData,

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, FunctionErrorKind, Register};
+use crate::nasl::utils::{Context, FnError, Register};
 use aes::Aes128;
 use cmac::{Cmac, Mac};
 
@@ -16,7 +16,7 @@ use super::{get_data, get_key, CryptographicError};
 /// This function expects 2 named arguments key and data either in a string or data type.
 /// It is important to notice, that internally the CMAC algorithm is used and not, as the name
 /// suggests, CBC-MAC.
-fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     let key = get_key(register)?;
     let data = get_data(register)?;
 

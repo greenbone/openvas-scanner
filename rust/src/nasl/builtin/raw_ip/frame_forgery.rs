@@ -106,11 +106,11 @@ impl From<&Frame> for Vec<u8> {
 }
 
 impl TryFrom<&[u8]> for Frame {
-    type Error = FunctionErrorKind;
+    type Error = FnError;
 
     fn try_from(f: &[u8]) -> Result<Self, Self::Error> {
         if f.len() < 14 {
-            Err(FunctionErrorKind::missing_argument("valid ip address"))
+            Err(FnError::missing_argument("valid ip address"))
         } else {
             let mut frame = Frame::new();
             frame.set_dsthaddr(MacAddr(f[0], f[1], f[2], f[3], f[4], f[5]));
@@ -273,19 +273,17 @@ fn convert_vec_into_mac_address(v: &[u8]) -> Option<MacAddr> {
     }
 }
 
-fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FunctionErrorKind> {
+fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FnError> {
     let mac_addr = match v {
         Some(ContextType::Value(NaslValue::String(x))) => MacAddr::from_str(x).ok(),
         Some(ContextType::Value(NaslValue::Data(x))) => convert_vec_into_mac_address(x),
         _ => None,
     };
-    mac_addr.ok_or_else(|| {
-        FunctionErrorKind::wrong_unnamed_argument("mac address", "invalid mac address")
-    })
+    mac_addr.ok_or_else(|| FnError::wrong_unnamed_argument("mac address", "invalid mac address"))
 }
 
 /// Return the MAC address, given the interface name
-fn get_local_mac_address(name: &str) -> Result<MacAddr, FunctionErrorKind> {
+fn get_local_mac_address(name: &str) -> Result<MacAddr, FnError> {
     interfaces()
         .into_iter()
         .find(|x| x.name == *name)
@@ -295,7 +293,7 @@ fn get_local_mac_address(name: &str) -> Result<MacAddr, FunctionErrorKind> {
 
 /// Return a frame given a capture device and a filter. It returns an empty frame in case
 /// there was no response or anything was filtered.
-fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, FunctionErrorKind> {
+fn recv_frame(cap: &mut Capture<pcap::Active>, filter: &str) -> Result<Frame, FnError> {
     let f = Frame::new();
 
     let p = match cap.filter(filter, true) {
@@ -315,7 +313,7 @@ fn send_frame(
     pcap_active: &bool,
     filter: Option<&String>,
     timeout: i32,
-) -> Result<Option<Frame>, FunctionErrorKind> {
+) -> Result<Option<Frame>, FnError> {
     let mut capture_dev = match Capture::from_device(iface.clone()) {
         Ok(c) => match c.promisc(true).timeout(timeout).open() {
             Ok(mut capture) => match capture.sendpacket(frame) {
@@ -348,15 +346,12 @@ fn send_frame(
 ///  
 /// It takes the following argument:
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
-fn nasl_send_arp_request(
-    register: &Register,
-    context: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslValue, FnError> {
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(FnError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
             ))
@@ -366,7 +361,7 @@ fn nasl_send_arp_request(
     let target_ip = get_host_ip(context)?;
 
     if target_ip.is_ipv6() {
-        return Err(FunctionErrorKind::wrong_unnamed_argument(
+        return Err(FnError::wrong_unnamed_argument(
             "IPv4",
             "IPv6 does not support ARP protocol.",
         ));
@@ -378,7 +373,7 @@ fn nasl_send_arp_request(
     let src_ip = match Ipv4Addr::from_str(&local_ip.to_string()) {
         Ok(x) => x,
         Err(_) => {
-            return Err(FunctionErrorKind::missing_argument(
+            return Err(FnError::missing_argument(
                 "Not possible to parse the src IP address.",
             ))
         }
@@ -387,7 +382,7 @@ fn nasl_send_arp_request(
     let dst_ip = match Ipv4Addr::from_str(&target_ip.to_string()) {
         Ok(x) => x,
         Err(_) => {
-            return Err(FunctionErrorKind::missing_argument(
+            return Err(FnError::missing_argument(
                 "Not possible to parse the dst IP address.",
             ))
         }
@@ -407,7 +402,7 @@ fn nasl_send_arp_request(
 fn nasl_get_local_mac_address_from_ip(
     register: &Register,
     _: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+) -> Result<NaslValue, FnError> {
     let positional = register.positional();
     if positional.is_empty() {
         return Err(ArgumentError::MissingPositionals {
@@ -436,7 +431,7 @@ fn nasl_get_local_mac_address_from_ip(
 /// - ether_proto: is an int containing the ethernet type (normally given as hexadecimal).
 ///   It is optional and its default value is 0x0800. A list of Types can be e.g. looked up here.
 /// - payload: is any data, which is then attached as payload to the frame.
-fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     let src_haddr = validate_mac_address(register.named("src_haddr"))?;
     let dst_haddr = validate_mac_address(register.named("dst_haddr"))?;
     let ether_proto = match register.named("ether_proto") {
@@ -464,22 +459,17 @@ fn nasl_forge_frame(register: &Register, _: &Context) -> Result<NaslValue, Funct
 /// - pcap_active: option to capture the answer, default is TRUE
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
-fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, FnError> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
-        _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
-                "Data",
-                "Invalid data type",
-            ))
-        }
+        _ => return Err(FnError::wrong_unnamed_argument("Data", "Invalid data type")),
     };
 
     let pcap_active = match register.named("pcap_active") {
         Some(ContextType::Value(NaslValue::Boolean(x))) => x,
         None => &true,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(FnError::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid pcap_active value",
             ))
@@ -490,7 +480,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
         Some(ContextType::Value(NaslValue::String(x))) => Some(x),
         None => None,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(FnError::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
             ))
@@ -501,7 +491,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
         _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(FnError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
             ))
@@ -523,15 +513,10 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
 /// Print a datalink layer frame in its hexadecimal representation.
 /// The named argument frame is a string representing the datalink layer frame. A frame can be created with forge_frame(3).
 /// This function is meant to be used for debugging.
-fn nasl_dump_frame(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_dump_frame(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     let frame: Frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => (x as &[u8]).try_into()?,
-        _ => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
-                "Data",
-                "Invalid data type",
-            ))
-        }
+        _ => return Err(FnError::wrong_unnamed_argument("Data", "Invalid data type")),
     };
 
     info!(frame=%frame);

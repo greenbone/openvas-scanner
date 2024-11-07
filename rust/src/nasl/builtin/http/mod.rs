@@ -38,9 +38,9 @@ pub struct NaslHttp {
 
 async fn lock_handles(
     handles: &Arc<Mutex<Vec<Handle>>>,
-) -> Result<MutexGuard<Vec<Handle>>, FunctionErrorKind> {
+) -> Result<MutexGuard<Vec<Handle>>, FnError> {
     // we actually need to panic as a lock error is fatal
-    // alternatively we need to add a poison error on FunctionErrorKind
+    // alternatively we need to add a poison error on FnError
     Ok(Arc::as_ref(handles).lock().await)
 }
 
@@ -204,7 +204,7 @@ impl NaslHttp {
         register: &Register,
         ctx: &Context<'a>,
         method: Method,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => return Err(ArgumentError::WrongArgument("Invalid handle ID".to_string()).into()),
@@ -220,7 +220,7 @@ impl NaslHttp {
         let item: String = register
             .named("item")
             .map(|x| x.to_string())
-            .ok_or(FunctionErrorKind::missing_argument("item"))?;
+            .ok_or(FnError::missing_argument("item"))?;
 
         let schema: String = match register.named("schema") {
             Some(x) => {
@@ -277,38 +277,22 @@ impl NaslHttp {
     }
 
     /// Wrapper function for GET request. See http2_req
-    async fn get<'a>(
-        &self,
-        register: &Register,
-        ctx: &Context<'a>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    async fn get<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::GET).await
     }
 
     /// Wrapper function for POST request. See http2_req
-    async fn post<'a>(
-        &self,
-        register: &Register,
-        ctx: &Context<'a>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    async fn post<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::POST).await
     }
 
     /// Wrapper function for PUT request. See http2_req
-    async fn put<'a>(
-        &self,
-        register: &Register,
-        ctx: &Context<'a>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    async fn put<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::PUT).await
     }
 
     /// Wrapper function for HEAD request. See http2_req
-    async fn head<'a>(
-        &self,
-        register: &Register,
-        ctx: &Context<'a>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    async fn head<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::HEAD).await
     }
 
@@ -317,7 +301,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         ctx: &Context<'a>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::DELETE).await
     }
 
@@ -328,7 +312,7 @@ impl NaslHttp {
     /// On success the function returns a and integer with the handle
     /// identifier. Null on error.
     #[nasl_function]
-    async fn handle(&self) -> Result<NaslValue, FunctionErrorKind> {
+    async fn handle(&self) -> Result<NaslValue, FnError> {
         let mut handles = lock_handles(&self.handles).await?;
         let handle_id = next_handle_id(&handles);
         let h = Handle {
@@ -348,7 +332,7 @@ impl NaslHttp {
     /// The function returns an integer.
     /// O on success, -1 on error.
     #[nasl_function(named(handle))]
-    async fn close_handle(&self, handle: i32) -> Result<NaslValue, FunctionErrorKind> {
+    async fn close_handle(&self, handle: i32) -> Result<NaslValue, FnError> {
         let mut handles = lock_handles(&self.handles).await?;
         match handles
             .iter_mut()
@@ -359,10 +343,7 @@ impl NaslHttp {
                 handles.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => {
-                Err(FunctionErrorKind::from(HttpError::HandleIdNotFound(handle))
-                    .with(ReturnValue(-1)))
-            }
+            _ => Err(FnError::from(HttpError::HandleIdNotFound(handle)).with(ReturnValue(-1))),
         }
     }
 
@@ -376,7 +357,7 @@ impl NaslHttp {
         &self,
         register: &Register,
         _: &Context<'_>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => {
@@ -405,10 +386,10 @@ impl NaslHttp {
         &self,
         register: &Register,
         _: &Context<'_>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let header_item = match register.named("header_item") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
-            _ => return Err(FunctionErrorKind::missing_argument("No command passed")),
+            _ => return Err(FnError::missing_argument("No command passed")),
         };
 
         let (key, val) = header_item.split_once(": ").expect("Missing header_item");

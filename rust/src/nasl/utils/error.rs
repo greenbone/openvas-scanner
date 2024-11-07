@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-//! Defines function error kinds
 use thiserror::Error;
 
 use crate::nasl::builtin::BuiltinError;
@@ -12,57 +11,56 @@ use crate::storage::StorageError;
 
 #[derive(Debug, Clone, Error)]
 #[error("{kind}")]
-pub struct FunctionErrorKind {
+pub struct FnError {
     #[source]
-    pub kind: FEK,
+    pub kind: FnErrorKind,
     return_value: Option<NaslValue>,
 }
 
-impl FunctionErrorKind {
+impl FnError {
     pub fn return_value(&self) -> &Option<NaslValue> {
         &self.return_value
     }
 }
 
-impl From<FEK> for FunctionErrorKind {
-    fn from(value: FEK) -> Self {
-        FunctionErrorKind {
+impl From<FnErrorKind> for FnError {
+    fn from(value: FnErrorKind) -> Self {
+        FnError {
             kind: value,
             return_value: None,
         }
     }
 }
 
-impl From<ArgumentError> for FunctionErrorKind {
+impl From<ArgumentError> for FnError {
     fn from(value: ArgumentError) -> Self {
-        FunctionErrorKind {
-            kind: FEK::Argument(value),
+        FnError {
+            kind: FnErrorKind::Argument(value),
             return_value: None,
         }
     }
 }
 
-impl From<BuiltinError> for FunctionErrorKind {
+impl From<BuiltinError> for FnError {
     fn from(value: BuiltinError) -> Self {
-        FunctionErrorKind {
-            kind: FEK::Builtin(value),
+        FnError {
+            kind: FnErrorKind::Builtin(value),
             return_value: None,
         }
     }
 }
 
-impl From<InternalError> for FunctionErrorKind {
+impl From<InternalError> for FnError {
     fn from(value: InternalError) -> Self {
-        FunctionErrorKind {
-            kind: FEK::Internal(value),
+        FnError {
+            kind: FnErrorKind::Internal(value),
             return_value: None,
         }
     }
 }
 
 #[derive(Debug, Clone, Error)]
-/// Descriptive kind of error that can occur while calling a function
-pub enum FEK {
+pub enum FnErrorKind {
     #[error("{0}")]
     Argument(ArgumentError),
     #[error("{0}")]
@@ -97,47 +95,47 @@ pub trait WithErrorInfo<Info> {
 
 pub struct ReturnValue<T>(pub T);
 
-impl<T: Into<NaslValue>> WithErrorInfo<ReturnValue<T>> for FunctionErrorKind {
+impl<T: Into<NaslValue>> WithErrorInfo<ReturnValue<T>> for FnError {
     fn with(mut self, val: ReturnValue<T>) -> Self {
         self.return_value = Some(val.0.into());
         self
     }
 }
 
-impl From<StorageError> for FunctionErrorKind {
+impl From<StorageError> for FnError {
     fn from(value: StorageError) -> Self {
-        FEK::Internal(InternalError::Storage(value)).into()
+        FnErrorKind::Internal(InternalError::Storage(value)).into()
     }
 }
 
-impl TryFrom<FunctionErrorKind> for ArgumentError {
+impl TryFrom<FnError> for ArgumentError {
     type Error = ();
 
-    fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
+    fn try_from(value: FnError) -> Result<Self, Self::Error> {
         match value.kind {
-            FEK::Argument(e) => Ok(e),
+            FnErrorKind::Argument(e) => Ok(e),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<FunctionErrorKind> for InternalError {
+impl TryFrom<FnError> for InternalError {
     type Error = ();
 
-    fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
+    fn try_from(value: FnError) -> Result<Self, Self::Error> {
         match value.kind {
-            FEK::Internal(e) => Ok(e),
+            FnErrorKind::Internal(e) => Ok(e),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<FunctionErrorKind> for BuiltinError {
+impl TryFrom<FnError> for BuiltinError {
     type Error = ();
 
-    fn try_from(value: FunctionErrorKind) -> Result<Self, Self::Error> {
+    fn try_from(value: FnError) -> Result<Self, Self::Error> {
         match value.kind {
-            FEK::Builtin(e) => Ok(e),
+            FnErrorKind::Builtin(e) => Ok(e),
             _ => Err(()),
         }
     }
@@ -152,12 +150,12 @@ impl ArgumentError {
     }
 }
 
-impl FunctionErrorKind {
+impl FnError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
     pub fn wrong_unnamed_argument(expected: &str, got: &str) -> Self {
-        FEK::Argument(ArgumentError::WrongArgument(format!(
+        FnErrorKind::Argument(ArgumentError::WrongArgument(format!(
             "Expected {expected} but {got}"
         )))
         .into()
@@ -166,6 +164,6 @@ impl FunctionErrorKind {
     /// Helper function to quickly construct a `MissingArguments` variant
     /// for a single missing argument.
     pub fn missing_argument(val: &str) -> Self {
-        FEK::Argument(ArgumentError::MissingNamed(vec![val.to_string()])).into()
+        FnErrorKind::Argument(ArgumentError::MissingNamed(vec![val.to_string()])).into()
     }
 }

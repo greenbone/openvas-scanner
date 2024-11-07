@@ -13,10 +13,10 @@ use pcap::{Address, Device};
 use super::RawIpError;
 
 /// Convert a string in a IpAddr
-pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
+pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FnError> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(FunctionErrorKind::from(ArgumentError::WrongArgument(
+        Err(_) => Err(FnError::from(ArgumentError::WrongArgument(
             "Invalid IP address".to_string(),
         ))
         .with(ReturnValue(NaslValue::Null))),
@@ -40,7 +40,7 @@ pub fn islocalhost(addr: IpAddr) -> bool {
 }
 
 /// Get the interface from the local ip
-pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FunctionErrorKind> {
+pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FnError> {
     // This fake IP is used for matching (and return false)
     // during the search of the interface in case an interface
     // doesn't have an associated address.
@@ -80,7 +80,7 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
 }
 
 /// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FnError> {
     let socket = SocketAddr::new(dst, port);
     let sd = format!("{}:{}", dst, port);
     let local_socket = bind_local_socket(&socket)?;

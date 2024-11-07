@@ -19,7 +19,7 @@ use sha2::{Sha256, Sha384, Sha512};
 
 use crate::nasl::prelude::*;
 
-fn hmac<D>(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind>
+fn hmac<D>(key: &str, data: &str) -> Result<NaslValue, FnError>
 where
     D: CoreProxy,
     D::Core: HashMarker
@@ -34,7 +34,7 @@ where
     let mut hmac = match Hmac::<D>::new_from_slice(key.as_bytes()) {
         Ok(x) => x,
         Err(InvalidLength) => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
+            return Err(FnError::wrong_unnamed_argument(
                 "valid size key",
                 "invalid size key",
             ))
@@ -48,43 +48,43 @@ where
 
 /// NASL function to get HMAC MD2 string
 #[nasl_function(named(key, data))]
-pub fn hmac_md2(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_md2(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Md2>(key, data)
 }
 
 /// NASL function to get HMAC MD5 string
 #[nasl_function(named(key, data))]
-pub fn hmac_md5(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_md5(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Md5>(key, data)
 }
 
 /// NASL function to get HMAC RIPEMD160 string
 #[nasl_function(named(key, data))]
-pub fn hmac_ripemd160(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_ripemd160(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Ripemd160>(key, data)
 }
 
 /// NASL function to get HMAC SHA1 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha1(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha1(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha1>(key, data)
 }
 
 /// NASL function to get HMAC SHA256 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha256(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha256(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha256>(key, data)
 }
 
 /// NASL function to get HMAC SHA384 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha384(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha384(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha384>(key, data)
 }
 
 /// NASL function to get HMAC SHA512 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha512(key: &str, data: &str) -> Result<NaslValue, FunctionErrorKind> {
+pub fn hmac_sha512(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha512>(key, data)
 }
 

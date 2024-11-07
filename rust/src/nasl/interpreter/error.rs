@@ -6,25 +6,25 @@ use std::io;
 
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
-use crate::nasl::utils::error::FunctionErrorKind;
-use crate::nasl::{InternalError, FEK};
+use crate::nasl::utils::error::{FnError, FnErrorKind};
+use crate::nasl::InternalError;
 use crate::storage::StorageError;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
 /// An error that occurred while calling a function
 #[error("Error while calling function '{function}': {kind}")]
-pub struct FunctionError {
+pub struct FunctionCallError {
     /// Name of the function
     pub function: String,
     /// Kind of error
     #[source]
-    pub kind: FunctionErrorKind,
+    pub kind: FnError,
 }
 
-impl FunctionError {
+impl FunctionCallError {
     /// Creates a new FunctionError
-    pub fn new(function: &str, kind: FunctionErrorKind) -> Self {
+    pub fn new(function: &str, kind: FnError) -> Self {
         Self {
             function: function.to_owned(),
             kind,
@@ -90,7 +90,7 @@ pub enum InterpretErrorKind {
     IOError(io::ErrorKind),
     /// An error occurred while calling a built-in function.
     #[error("{0}")]
-    FunctionCallError(FunctionError),
+    FunctionCallError(FunctionCallError),
 }
 
 impl InterpretError {
@@ -228,10 +228,10 @@ impl From<LoadError> for InterpretError {
     }
 }
 
-impl From<FunctionError> for InterpretError {
-    fn from(fe: FunctionError) -> Self {
+impl From<FunctionCallError> for InterpretError {
+    fn from(fe: FunctionCallError) -> Self {
         match fe.kind.kind {
-            FEK::Internal(InternalError::Storage(e)) => {
+            FnErrorKind::Internal(InternalError::Storage(e)) => {
                 Self::new(InterpretErrorKind::StorageError(e), None)
             }
             _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),

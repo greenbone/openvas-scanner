@@ -13,13 +13,13 @@ use std::collections::HashMap;
 
 pub use context::{Context, ContextType, Register};
 pub use error::ArgumentError;
-pub use error::FunctionErrorKind;
+pub use error::FnError;
 pub use error::InternalError;
 
 pub use executor::{Executor, IntoFunctionSet, StoredFunctionSet};
 
 /// The result of a function call.
-pub type NaslResult = Result<crate::nasl::syntax::NaslValue, FunctionErrorKind>;
+pub type NaslResult = Result<crate::nasl::syntax::NaslValue, FnError>;
 
 /// Resolves positional arguments from the register.
 pub fn resolve_positional_arguments(register: &Register) -> Vec<crate::nasl::syntax::NaslValue> {

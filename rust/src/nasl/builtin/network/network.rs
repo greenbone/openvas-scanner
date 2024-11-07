@@ -11,7 +11,7 @@ use super::{
     verify_port, DEFAULT_PORT,
 };
 use crate::function_set;
-use crate::nasl::utils::{Context, FunctionErrorKind};
+use crate::nasl::utils::{Context, FnError};
 use crate::storage::{types::Primitive, Field, Kb};
 use nasl_function_proc_macro::nasl_function;
 
@@ -132,11 +132,7 @@ fn islocalnet(context: &Context) -> Result<bool, SocketError> {
 
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
-fn scanner_add_port(
-    context: &Context,
-    port: i64,
-    proto: Option<&str>,
-) -> Result<(), FunctionErrorKind> {
+fn scanner_add_port(context: &Context, port: i64, proto: Option<&str>) -> Result<(), FnError> {
     let port = verify_port(port)?;
     let protocol = proto.unwrap_or("tcp");
 

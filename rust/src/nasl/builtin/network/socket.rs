@@ -297,7 +297,7 @@ impl NaslSockets {
         data: &[u8],
         flags: Option<i64>,
         len: Option<usize>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let len = if let Some(len) = len {
             if len < 1 || len > data.len() {
                 data.len()
@@ -381,7 +381,7 @@ impl NaslSockets {
         len: usize,
         min: Option<i64>,
         timeout: Option<i64>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let min = min
             .map(|min| if min < 0 { len } else { min as usize })
             .unwrap_or(len);
@@ -473,7 +473,7 @@ impl NaslSockets {
     /// - Secret/kdc_port
     /// - Secret/kdc_use_tcp
     #[nasl_function]
-    fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
+    fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, FnError> {
         let hostname = match get_kb_item(context, "Secret/kdc_hostname")? {
             Some(x) => Ok(x.to_string()),
             None => Err(SocketError::Diagnostic(
@@ -556,7 +556,7 @@ impl NaslSockets {
         bufsz: Option<i64>,
         // TODO: Extract information from custom priority string
         // priority: Option<&str>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         // Get port
         let port = verify_port(port)?;
         let transport = transport.unwrap_or(-1);
@@ -657,7 +657,7 @@ impl NaslSockets {
         bufsz: Option<i64>,
         timeout: Duration,
         tls_config: Option<TLSConfig>,
-    ) -> Result<NaslSocket, FunctionErrorKind> {
+    ) -> Result<NaslSocket, FnError> {
         let addr = ipstr2ipaddr(addr)?;
         let mut retry = super::get_kb_item(context, "timeout_retry")?
             .map(|val| match val {
@@ -717,7 +717,7 @@ impl NaslSockets {
         bufsz: Option<i64>,
         timeout: Duration,
         hostname: &str,
-    ) -> Result<NaslSocket, FunctionErrorKind> {
+    ) -> Result<NaslSocket, FnError> {
         let cert_path = get_kb_item(context, "SSL/cert")?
             .ok_or(SocketError::Diagnostic(
                 "unable to open TLS connection: kes 'SSL/cert' is missing".to_string(),
@@ -796,7 +796,7 @@ impl NaslSockets {
 
     /// Open a UDP socket to the target host
     #[nasl_function]
-    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, FunctionErrorKind> {
+    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, FnError> {
         let port = verify_port(port)?;
         let addr = ipstr2ipaddr(context.target())?;
 
