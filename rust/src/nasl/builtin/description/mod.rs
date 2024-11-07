@@ -120,7 +120,10 @@ fn as_timeout_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 fn as_category_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(vec![NVTField::Category(*cat)]),
-        a => Err(("AttackCategory", a).into()),
+        a => Err(FunctionErrorKind::wrong_unnamed_argument(
+            "AttackCategory",
+            &a.to_string(),
+        )),
     }
 }
 

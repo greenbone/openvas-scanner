@@ -159,11 +159,3 @@ impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
         }
     }
 }
-
-impl From<(&str, &NaslValue)> for FunctionErrorKind {
-    fn from(value: (&str, &NaslValue)) -> Self {
-        let (expected, got) = value;
-        let got: &str = &got.to_string();
-        FunctionErrorKind::wrong_unnamed_argument(expected, got)
-    }
-}
