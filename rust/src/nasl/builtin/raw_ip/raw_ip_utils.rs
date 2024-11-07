@@ -7,8 +7,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::nasl::utils::{error::ReturnValue, FunctionErrorKind};
-use crate::nasl::{syntax::NaslValue, ArgumentError};
+use crate::nasl::prelude::*;
 use pcap::{Address, Device};
 
 use super::RawIpError;
@@ -20,7 +19,7 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
         Err(_) => Err(FunctionErrorKind::from(ArgumentError::WrongArgument(
             "Invalid IP address".to_string(),
         ))
-        .with_return_value(NaslValue::Null)),
+        .with(ReturnValue(NaslValue::Null))),
     }
 }
 

@@ -8,7 +8,7 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnValue};
+use scannerlib::nasl::interpreter::CodeInterpreter;
 use scannerlib::nasl::{
     interpreter::{FunctionError, InterpretErrorKind},
     prelude::*,
@@ -143,7 +143,7 @@ where
                         e.kind
                     {
                         tracing::warn!(error=?kind, "function call error");
-                        kind.get_return_value().cloned().unwrap_or_default()
+                        kind.return_value().clone().unwrap_or_default()
                     } else {
                         return Err(e.into());
                     }

@@ -537,7 +537,7 @@ impl Ssh {
                         SshErrorKind::UnexpectedAuthenticationStatus(format!("{:?}", status))
                             .with(session_id),
                     )
-                    .with_return_value(-1));
+                    .with(ReturnValue(-1)));
                 }
             }
         }

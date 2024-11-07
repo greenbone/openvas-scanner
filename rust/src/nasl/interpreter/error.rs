@@ -7,7 +7,7 @@ use std::io;
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
 use crate::nasl::utils::error::FunctionErrorKind;
-use crate::nasl::InternalError;
+use crate::nasl::{InternalError, FEK};
 use crate::storage::StorageError;
 use thiserror::Error;
 
@@ -230,8 +230,8 @@ impl From<LoadError> for InterpretError {
 
 impl From<FunctionError> for InterpretError {
     fn from(fe: FunctionError) -> Self {
-        match fe.kind {
-            FunctionErrorKind::Internal(InternalError::Storage(e)) => {
+        match fe.kind.kind {
+            FEK::Internal(InternalError::Storage(e)) => {
                 Self::new(InterpretErrorKind::StorageError(e), None)
             }
             _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),
