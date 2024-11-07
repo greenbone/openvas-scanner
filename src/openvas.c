@@ -57,6 +57,7 @@
 #include <sys/un.h>
 #include <sys/wait.h> /* for waitpid */
 #include <unistd.h>   /* for close() */
+#include "../nasl/nasl_krb5.h" /* for nasl_okrb5_clean */
 
 #ifdef GIT_REV_AVAILABLE
 #include "gitrevision.h"
@@ -640,6 +641,7 @@ openvas (int argc, char *argv[], char *env[])
 
       gvm_close_sentry ();
       destroy_scan_globals (globals);
+      nasl_okrb5_clean();
 #ifdef LOG_REFERENCES_AVAILABLE
       free_log_reference ();
 #endif // LOG_REFERENCES_AVAILABLE
