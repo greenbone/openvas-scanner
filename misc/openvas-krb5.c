@@ -346,7 +346,32 @@ okrb5_gss_free_context (struct OKrb5GSSContext *context)
         {
           gss_release_cred (NULL, &context->gss_creds);
         }
-      // TODO: clean rest
+      if (context->gss_ctx != GSS_C_NO_CONTEXT)
+        {
+          gss_delete_sec_context (NULL, &context->gss_ctx, GSS_C_NO_BUFFER);
+        }
+      if (context->gss_target != GSS_C_NO_NAME)
+        {
+          gss_release_name (NULL, &context->gss_target);
+        }
+      if (context->gss_mech != NULL)
+        {
+          gss_release_oid (NULL, &context->gss_mech);
+        }
+      if (context->gss_channel_bindings != GSS_C_NO_CHANNEL_BINDINGS)
+        {
+          gss_release_buffer (
+            NULL, &context->gss_channel_bindings->initiator_address);
+          gss_release_buffer (NULL,
+                              &context->gss_channel_bindings->acceptor_address);
+          gss_release_buffer (NULL,
+                              &context->gss_channel_bindings->application_data);
+          free (context->gss_channel_bindings);
+        }
+      if (context->gss_actual_mech_type != NULL)
+        {
+          gss_release_oid (NULL, &context->gss_actual_mech_type);
+        }
       free (context);
     }
 }
