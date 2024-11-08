@@ -71,15 +71,15 @@ pub enum FnErrorKind {
 
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum ArgumentError {
-    #[error("Expected {expected} but got {got}")]
+    #[error("Missing positional arguments. Expected {expected} but got {got}.")]
     MissingPositionals { expected: usize, got: usize },
-    #[error("Expected {expected} but got {got}")]
+    #[error("Trailing positional arguments. Expected {expected} but got {got}.")]
     TrailingPositionals { expected: usize, got: usize },
-    #[error("Missing arguments: {}", .0.join(", "))]
+    #[error("Missing named arguments: {}", .0.join(", "))]
     MissingNamed(Vec<String>),
-    #[error("Unknown named argument given to function: {}", .0)]
+    #[error("Unknown named argument given: {}", .0)]
     UnexpectedArgument(String),
-    #[error("Function was called with wrong arguments: {0}")]
+    #[error("Wrong arguments given: {0}")]
     WrongArgument(String),
 }
 

@@ -247,9 +247,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Primitive => self.resolve_primitive(statement),
                 Variable => self.resolve_variable(statement),
-                Call(arguments) => {
-                    Box::pin(self.call(statement.as_token(), arguments.children())).await
-                }
+                Call(arguments) => Box::pin(self.call(statement, arguments.children())).await,
                 Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
                 Parameter(x) => self.resolve_parameter(x).await,
                 Assign(cat, order, left, right) => {

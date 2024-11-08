@@ -30,13 +30,25 @@ impl FunctionCallError {
 
 #[derive(Debug, Clone, Error)]
 /// Is used to represent an error while interpreting
-#[error("{}{kind}", self.origin.clone().map(|e| format!("{e}: ")).unwrap_or_default())]
+#[error("{} {kind}", self.format_origin())]
 pub struct InterpretError {
     /// Defined the type of error that occurred.
     #[source]
     pub kind: InterpretErrorKind,
     /// The statement on which this error occurred.
     pub origin: Option<Statement>,
+}
+
+impl InterpretError {
+    fn format_origin(&self) -> String {
+        if let Some(ref origin) = self.origin {
+            let line = self.line();
+            let col = self.column();
+            format!("Error in statement '{origin}' at {}:{}.", line, col)
+        } else {
+            "".into()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Error)]

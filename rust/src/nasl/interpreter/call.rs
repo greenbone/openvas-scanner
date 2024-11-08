@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::{Statement, StatementKind::*, Token};
+use crate::nasl::syntax::{Statement, StatementKind::*};
 use crate::nasl::utils::lookup_keys::FC_ANON_ARGS;
 
 use crate::nasl::interpreter::{
@@ -15,8 +15,15 @@ use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
 use std::collections::HashMap;
 
+use super::InterpretErrorKind;
+
 impl<'a> Interpreter<'a> {
-    pub async fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
+    pub async fn call(
+        &mut self,
+        statement: &Statement,
+        arguments: &[Statement],
+    ) -> InterpretResult {
+        let name = statement.as_token();
         let name = &Self::identifier(name)?;
         // get the context
         let mut named = HashMap::new();
@@ -68,7 +75,12 @@ impl<'a> Interpreter<'a> {
                         NaslValue::Null
                     })
                 } else {
-                    r.map_err(|x| FunctionCallError::new(name, x).into())
+                    r.map_err(|x| {
+                        InterpretError::new(
+                            InterpretErrorKind::FunctionCallError(FunctionCallError::new(name, x)),
+                            Some(statement.clone()),
+                        )
+                    })
                 }
             }
             None => {
