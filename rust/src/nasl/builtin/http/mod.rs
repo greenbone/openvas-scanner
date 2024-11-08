@@ -7,8 +7,8 @@
 
 mod error;
 
+use crate::nasl::prelude::*;
 use crate::nasl::utils::ContextType;
-use crate::nasl::{prelude::*, utils::error::ReturnValue};
 
 pub use error::HttpError;
 use h2::client;
@@ -343,7 +343,7 @@ impl NaslHttp {
                 handles.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(FnError::from(HttpError::HandleIdNotFound(handle)).with(ReturnValue(-1))),
+            _ => Err(FnError::from(HttpError::HandleIdNotFound(handle)).with_return_value(-1)),
         }
     }
 

@@ -27,6 +27,16 @@ impl FnError {
         self.retryable
     }
 
+    pub fn with_return_value(mut self, val: impl Into<NaslValue>) -> Self {
+        self.return_value = Some(val.into());
+        self
+    }
+
+    pub fn with_retryable(mut self) -> Self {
+        self.retryable = true;
+        self
+    }
+
     fn from_kind(kind: FnErrorKind) -> FnError {
         Self {
             kind,
@@ -109,15 +119,6 @@ impl InternalError {
 
 pub trait WithErrorInfo<Info> {
     fn with(self, e: Info) -> Self;
-}
-
-pub struct ReturnValue<T>(pub T);
-
-impl<T: Into<NaslValue>> WithErrorInfo<ReturnValue<T>> for FnError {
-    fn with(mut self, val: ReturnValue<T>) -> Self {
-        self.return_value = Some(val.0.into());
-        self
-    }
 }
 
 impl From<StorageError> for FnError {
