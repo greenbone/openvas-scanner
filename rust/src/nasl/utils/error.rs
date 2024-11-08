@@ -15,45 +15,51 @@ pub struct FnError {
     #[source]
     pub kind: FnErrorKind,
     return_value: Option<NaslValue>,
+    retryable: bool,
 }
 
 impl FnError {
     pub fn return_value(&self) -> &Option<NaslValue> {
         &self.return_value
     }
+
+    pub fn retryable(&self) -> bool {
+        self.retryable
+    }
+
+    fn from_kind(kind: FnErrorKind) -> FnError {
+        Self {
+            kind,
+            return_value: None,
+            retryable: false,
+        }
+    }
 }
 
 impl From<FnErrorKind> for FnError {
-    fn from(value: FnErrorKind) -> Self {
-        FnError {
-            kind: value,
-            return_value: None,
-        }
+    fn from(kind: FnErrorKind) -> Self {
+        FnError::from_kind(kind)
     }
 }
 
 impl From<ArgumentError> for FnError {
-    fn from(value: ArgumentError) -> Self {
-        FnError {
-            kind: FnErrorKind::Argument(value),
-            return_value: None,
-        }
+    fn from(kind: ArgumentError) -> Self {
+        FnError::from_kind(FnErrorKind::Argument(kind))
     }
 }
 
 impl From<BuiltinError> for FnError {
-    fn from(value: BuiltinError) -> Self {
-        FnError {
-            kind: FnErrorKind::Builtin(value),
-            return_value: None,
-        }
+    fn from(kind: BuiltinError) -> Self {
+        FnError::from_kind(FnErrorKind::Builtin(kind))
     }
 }
 
 impl From<InternalError> for FnError {
-    fn from(value: InternalError) -> Self {
-        FnError {
-            kind: FnErrorKind::Internal(value),
+    fn from(kind: InternalError) -> Self {
+        let retryable = kind.retryable();
+        Self {
+            kind: FnErrorKind::Internal(kind),
+            retryable,
             return_value: None,
         }
     }
@@ -87,6 +93,18 @@ pub enum ArgumentError {
 pub enum InternalError {
     #[error("{0}")]
     Storage(#[from] StorageError),
+}
+
+impl InternalError {
+    fn retryable(&self) -> bool {
+        // Keep this match exhaustive without a catchall
+        // to make sure we implement future internal errors
+        // properly.
+        match self {
+            InternalError::Storage(StorageError::Retry(_)) => true,
+            InternalError::Storage(_) => false,
+        }
+    }
 }
 
 pub trait WithErrorInfo<Info> {

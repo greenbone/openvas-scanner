@@ -26,6 +26,10 @@ impl FunctionCallError {
             kind,
         }
     }
+
+    fn retryable(&self) -> bool {
+        self.kind.retryable()
+    }
 }
 
 #[derive(Debug, Clone, Error)]
@@ -47,6 +51,14 @@ impl InterpretError {
             format!("Error in statement '{origin}' at {}:{}.", line, col)
         } else {
             "".into()
+        }
+    }
+
+    pub fn retryable(&self) -> bool {
+        match &self.kind {
+            InterpretErrorKind::LoadError(LoadError::Retry(_)) => true,
+            InterpretErrorKind::FunctionCallError(e) => e.retryable(),
+            _ => false,
         }
     }
 }

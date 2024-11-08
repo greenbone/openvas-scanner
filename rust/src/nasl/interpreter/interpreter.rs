@@ -6,11 +6,10 @@ use std::collections::HashMap;
 
 use crate::nasl::interpreter::{
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    InterpretError, InterpretErrorKind,
+    InterpretError,
 };
 use crate::nasl::syntax::{
-    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, SyntaxError, Token,
-    TokenCategory,
+    IdentifierType, NaslValue, Statement, StatementKind::*, SyntaxError, Token, TokenCategory,
 };
 
 use crate::nasl::utils::{Context, ContextType, Register};
@@ -189,11 +188,10 @@ impl<'a> Interpreter<'a> {
             Ok(x) => Ok(x),
             Err(e) => {
                 if max_attempts > 0 {
-                    match e.kind {
-                        InterpretErrorKind::LoadError(LoadError::Retry(_)) => {
-                            Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
-                        }
-                        _ => Err(e),
+                    if e.retryable() {
+                        Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
+                    } else {
+                        Err(e)
                     }
                 } else {
                     Err(e)
