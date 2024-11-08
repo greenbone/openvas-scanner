@@ -2,13 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::io;
-
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
-use crate::nasl::utils::error::{FnError, FnErrorKind};
-use crate::nasl::InternalError;
-use crate::storage::StorageError;
+use crate::nasl::utils::error::FnError;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
@@ -75,19 +71,9 @@ pub enum InterpretErrorKind {
     /// When the given key was not found in the context
     #[error("Key not found: {0}")]
     NotFound(String),
-    /// A StorageError occurred
-    // FIXME rename to general error
-    #[error("{0}")]
-    StorageError(StorageError),
     /// A LoadError occurred
     #[error("{0}")]
     LoadError(LoadError),
-    /// A Formatting error occurred
-    #[error("{0}")]
-    FMTError(std::fmt::Error),
-    /// An IOError occurred
-    #[error("{0}")]
-    IOError(io::ErrorKind),
     /// An error occurred while calling a built-in function.
     #[error("{0}")]
     FunctionCallError(FunctionCallError),
@@ -198,30 +184,6 @@ impl From<SyntaxError> for InterpretError {
     }
 }
 
-impl From<StorageError> for InterpretError {
-    fn from(se: StorageError) -> Self {
-        Self::new(InterpretErrorKind::StorageError(se), None)
-    }
-}
-
-impl From<io::ErrorKind> for InterpretError {
-    fn from(ie: io::ErrorKind) -> Self {
-        Self::new(InterpretErrorKind::IOError(ie), None)
-    }
-}
-
-impl From<io::Error> for InterpretError {
-    fn from(e: io::Error) -> Self {
-        e.kind().into()
-    }
-}
-
-impl From<std::fmt::Error> for InterpretError {
-    fn from(fe: std::fmt::Error) -> Self {
-        Self::new(InterpretErrorKind::FMTError(fe), None)
-    }
-}
-
 impl From<LoadError> for InterpretError {
     fn from(le: LoadError) -> Self {
         Self::new(InterpretErrorKind::LoadError(le), None)
@@ -230,11 +192,6 @@ impl From<LoadError> for InterpretError {
 
 impl From<FunctionCallError> for InterpretError {
     fn from(fe: FunctionCallError) -> Self {
-        match fe.kind.kind {
-            FnErrorKind::Internal(InternalError::Storage(e)) => {
-                Self::new(InterpretErrorKind::StorageError(e), None)
-            }
-            _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),
-        }
+        Self::new(InterpretErrorKind::FunctionCallError(fe), None)
     }
 }

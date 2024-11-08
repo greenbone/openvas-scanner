@@ -2,17 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{collections::HashMap, io};
-
-use crate::nasl::syntax::{
-    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, SyntaxError, Token,
-    TokenCategory,
-};
-use crate::storage::StorageError;
+use std::collections::HashMap;
 
 use crate::nasl::interpreter::{
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
     InterpretError, InterpretErrorKind,
+};
+use crate::nasl::syntax::{
+    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, SyntaxError, Token,
+    TokenCategory,
 };
 
 use crate::nasl::utils::{Context, ContextType, Register};
@@ -192,9 +190,7 @@ impl<'a> Interpreter<'a> {
             Err(e) => {
                 if max_attempts > 0 {
                     match e.kind {
-                        InterpretErrorKind::LoadError(LoadError::Retry(_))
-                        | InterpretErrorKind::IOError(io::ErrorKind::Interrupted)
-                        | InterpretErrorKind::StorageError(StorageError::Retry(_)) => {
+                        InterpretErrorKind::LoadError(LoadError::Retry(_)) => {
                             Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
                         }
                         _ => Err(e),
