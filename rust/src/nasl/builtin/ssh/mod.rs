@@ -533,11 +533,12 @@ impl Ssh {
                 }
                 AuthStatus::Success => break,
                 status => {
-                    return Err(FnError::from(
-                        SshErrorKind::UnexpectedAuthenticationStatus(format!("{:?}", status))
-                            .with(session_id),
-                    )
-                    .with_return_value(-1));
+                    return Err(SshErrorKind::UnexpectedAuthenticationStatus(format!(
+                        "{:?}",
+                        status
+                    ))
+                    .with(session_id)
+                    .with(ReturnValue(-1)));
                 }
             }
         }

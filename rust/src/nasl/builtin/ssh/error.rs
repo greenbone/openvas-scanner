@@ -117,6 +117,8 @@ pub enum SshErrorKind {
 }
 
 impl WithErrorInfo<SessionId> for SshError {
+    type Error = SshError;
+
     fn with(mut self, id: SessionId) -> SshError {
         self.id = Some(id);
         self
@@ -125,6 +127,8 @@ impl WithErrorInfo<SessionId> for SshError {
 
 #[cfg(feature = "nasl-builtin-libssh")]
 impl WithErrorInfo<libssh_rs::Error> for SshError {
+    type Error = SshError;
+
     fn with(mut self, source: libssh_rs::Error) -> SshError {
         self.source = Some(source.into());
         self
@@ -133,6 +137,8 @@ impl WithErrorInfo<libssh_rs::Error> for SshError {
 
 #[cfg(not(feature = "nasl-builtin-libssh"))]
 impl WithErrorInfo<russh::Error> for SshError {
+    type Error = SshError;
+
     fn with(mut self, source: russh::Error) -> SshError {
         self.source = Some(source.into());
         self
@@ -150,7 +156,7 @@ impl From<SshErrorKind> for SshError {
 }
 
 impl SshErrorKind {
-    pub fn with<Info>(self, m: Info) -> SshError
+    pub fn with<Info>(self, m: Info) -> <SshError as WithErrorInfo<Info>>::Error
     where
         SshError: WithErrorInfo<Info>,
     {

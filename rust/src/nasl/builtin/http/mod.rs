@@ -343,7 +343,7 @@ impl NaslHttp {
                 handles.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(FnError::from(HttpError::HandleIdNotFound(handle)).with_return_value(-1)),
+            _ => Err(HttpError::HandleIdNotFound(handle).with(ReturnValue(-1))),
         }
     }
 

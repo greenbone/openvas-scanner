@@ -27,16 +27,6 @@ impl FnError {
         self.retryable
     }
 
-    pub fn with_return_value(mut self, val: impl Into<NaslValue>) -> Self {
-        self.return_value = Some(val.into());
-        self
-    }
-
-    pub fn with_retryable(mut self) -> Self {
-        self.retryable = true;
-        self
-    }
-
     fn from_kind(kind: FnErrorKind) -> FnError {
         Self {
             kind,
@@ -121,10 +111,6 @@ impl InternalError {
     }
 }
 
-pub trait WithErrorInfo<Info> {
-    fn with(self, e: Info) -> Self;
-}
-
 impl From<StorageError> for FnError {
     fn from(value: StorageError) -> Self {
         FnErrorKind::Internal(InternalError::Storage(value)).into()
@@ -161,6 +147,36 @@ impl<'a> TryFrom<&'a FnError> for &'a BuiltinError {
             FnErrorKind::Builtin(e) => Ok(e),
             _ => Err(()),
         }
+    }
+}
+
+pub trait WithErrorInfo<Info> {
+    type Error;
+    fn with(self, e: Info) -> Self::Error;
+}
+
+pub struct Retryable;
+
+impl<E: Into<FnError>> WithErrorInfo<Retryable> for E {
+    type Error = FnError;
+
+    fn with(self, _: Retryable) -> Self::Error {
+        let mut e = self.into();
+        e.retryable = true;
+        e
+    }
+}
+
+pub struct ReturnValue<T>(pub T);
+
+impl<T: Into<NaslValue>, E: Into<FnError>> WithErrorInfo<ReturnValue<T>> for E {
+    type Error = FnError;
+
+    fn with(self, val: ReturnValue<T>) -> Self::Error {
+        let mut e = self.into();
+        let val = val.0.into();
+        e.return_value = Some(val);
+        e
     }
 }
 

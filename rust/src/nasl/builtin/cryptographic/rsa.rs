@@ -57,12 +57,13 @@ fn rsa_private_decrypt(
     ) {
         Ok(val) => Ok(val),
         Err(code) => Err(
-            FnError::from(CryptographicError::RSA(format!("Error code {}", code)))
-                .with_return_value(NaslValue::Array(vec![
+            FnError::from(CryptographicError::RSA(format!("Error code {}", code))).with(
+                ReturnValue(NaslValue::Array(vec![
                     NaslValue::Data(n.to_vec()),
                     NaslValue::Data(e.to_vec()),
                     NaslValue::Data(d.to_vec()),
                 ])),
+            ),
         ),
     }
     .map_err(|e| CryptographicError::RSA(e.to_string()))?;
@@ -75,7 +76,7 @@ fn rsa_private_decrypt(
                 "Error code {}",
                 code
             )))
-            .with_return_value(NaslValue::Data(data.to_vec()))),
+            .with(ReturnValue(NaslValue::Data(data.to_vec())))),
         }
         .map_err(|e| CryptographicError::RSA(e.to_string()))?
     } else {

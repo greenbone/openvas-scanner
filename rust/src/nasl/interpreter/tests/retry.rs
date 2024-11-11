@@ -20,7 +20,7 @@ impl Counter {
 
     #[nasl_function]
     fn check_counter_retry(&mut self) -> Result<usize, FnError> {
-        self.check_and_increment().map_err(|e| e.with_retryable())
+        self.check_and_increment().map_err(|e| e.with(Retryable))
     }
 
     #[nasl_function]

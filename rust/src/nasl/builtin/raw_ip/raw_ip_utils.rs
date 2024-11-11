@@ -19,7 +19,7 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FnError> {
         Err(_) => Err(FnError::from(ArgumentError::WrongArgument(
             "Invalid IP address".to_string(),
         ))
-        .with_return_value(NaslValue::Null)),
+        .with(ReturnValue(NaslValue::Null))),
     }
 }
 
