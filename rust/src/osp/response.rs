@@ -13,7 +13,6 @@ use super::commands::Error;
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StringU64(u64);
 
-
 impl From<i64> for StringU64 {
     fn from(value: i64) -> Self {
         StringU64(value as u64)
@@ -734,7 +733,6 @@ mod tests {
             _ => panic!("wrong type: {:?}", response),
         }
     }
-
 
     #[test]
     fn init_response() {
