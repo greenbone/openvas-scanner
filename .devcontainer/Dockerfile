@@ -2,7 +2,21 @@ FROM rust:latest
 ARG UID=1000
 ARG GID=1000
 
-RUN apt-get update && apt-get install -y sudo git rsync pipx redis-server clangd
+RUN apt-get update && apt-get install -y \
+    sudo \ 
+    git \ 
+    rsync \ 
+    pipx \ 
+    redis-server \ 
+    clangd \
+    # Runtime dependencies, required for .devcontainer
+    nmap \
+    snmp \
+    netdiag \
+    pnscan \
+    # net-tools is required by some nasl plugins.
+    # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
+    net-tools 
 # Add prepare-user-dirs.sh and execcute it
 COPY prepare-user-dirs.sh /prepare-user-dirs.sh
 COPY build-cmake-project.sh /usr/local/bin/build-cmake-project.sh
