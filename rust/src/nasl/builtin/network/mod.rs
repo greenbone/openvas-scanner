@@ -110,6 +110,12 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, F
         .map_err(|e| e.into())
 }
 
+pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FunctionErrorKind> {
+    get_kb_item(context, name)?
+        .map(|x| x.to_string())
+        .ok_or_else(|| FunctionErrorKind::Diagnostic(format!("KB key {} is not set", name), None))
+}
+
 pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {
     if !(0..=65535).contains(&port) {
         return Err(FunctionErrorKind::WrongArgument(format!(
