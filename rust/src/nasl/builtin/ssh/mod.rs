@@ -46,6 +46,27 @@ type Result<T> = std::result::Result<T, FunctionErrorKind>;
 
 const DEFAULT_SSH_PORT: u16 = 22;
 
+pub struct Output {
+    stdout: String,
+    stderr: String,
+}
+
+impl Output {
+    fn combine(&self, to_stdout: bool, to_stderr: bool, compat_mode: bool) -> String {
+        let mut response = String::new();
+        if to_stderr {
+            response.push_str(self.stderr.as_str());
+        }
+        if to_stdout {
+            response.push_str(self.stdout.as_str());
+        }
+        if compat_mode {
+            response.push_str(self.stderr.as_str())
+        }
+        response
+    }
+}
+
 impl IntoFunctionSet for Ssh {
     type State = Ssh;
     fn into_function_set(self) -> StoredFunctionSet<Self::State> {
@@ -195,20 +216,13 @@ impl Ssh {
             (Some(false), Some(false)) => (true, false, true),
             (stdout, stderr) => (stdout.unwrap_or(false), stderr.unwrap_or(false), false),
         };
-        let combine = |(stdout, stderr): (String, String)| {
-            let mut response = String::new();
-            if to_stderr {
-                response.push_str(stderr.as_str());
-            }
-            if to_stdout {
-                response.push_str(stdout.as_str());
-            }
-            if compat_mode {
-                response.push_str(stderr.as_str())
-            }
-            response
-        };
-        Ok(Some(combine(session.exec_ssh_cmd(cmd).await?)))
+        // TODO: Currently the compat mode above is not implemented as described
+        // but instead we receive stderr and stdout until EOF and then combine the two.
+        Ok(Some(session.exec_ssh_cmd(cmd).await?.combine(
+            to_stdout,
+            to_stderr,
+            compat_mode,
+        )))
     }
 
     /// Authenticate a user on an ssh connection

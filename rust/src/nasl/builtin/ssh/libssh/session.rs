@@ -4,6 +4,7 @@ use tokio::sync::{Mutex, MutexGuard};
 use tracing::{debug, info};
 
 use super::super::error::{Result, SshErrorKind};
+use super::super::Output;
 use super::SessionId;
 use super::{channel::Channel, Socket};
 
@@ -146,7 +147,7 @@ impl SshSession {
         }
     }
 
-    pub async fn exec_ssh_cmd(&self, cmd: &str) -> Result<(String, String)> {
+    pub async fn exec_ssh_cmd(&self, cmd: &str) -> Result<Output> {
         let channel = self.new_channel()?;
         channel.open_session()?;
         channel.request_pty("xterm", 80, 24)?;
@@ -155,7 +156,7 @@ impl SshSession {
         let timeout = Duration::from_millis(15000);
         let stderr = channel.read_timeout(timeout, true)?;
         let stdout = channel.read_timeout(timeout, false)?;
-        Ok((stdout, stderr))
+        Ok(Output { stdout, stderr })
     }
 
     pub async fn auth_method_allowed(&mut self, method: AuthMethods) -> Result<bool> {

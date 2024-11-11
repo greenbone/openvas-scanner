@@ -144,8 +144,16 @@ async fn ssh_request_exec() {
             );
             userauth(&mut t);
             t.ok(
-                r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "ls");"#,
+                r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "write_foo_stdout");"#,
                 "foo",
+            );
+            t.ok(
+                r#"auth = ssh_request_exec(session_id, stdout: 0, stderr: 1, cmd: "write_bar_stderr");"#,
+                "bar",
+            );
+            t.ok(
+                r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 1, cmd: "write_both");"#,
+                "barfoo",
             );
         },
         default_config(),

@@ -9,6 +9,7 @@ use russh::*;
 use tracing::{error, warn};
 
 use crate::nasl::builtin::ssh::error::SshErrorKind;
+use crate::nasl::builtin::ssh::Output;
 use crate::nasl::utils::function::bytes_to_str;
 
 use super::super::error::SshError;
@@ -111,23 +112,22 @@ impl SshSession {
         Ok(Self { session, id })
     }
 
-    pub async fn exec_ssh_cmd(&self, command: &str) -> Result<(String, String), SshError> {
-        let stdout = self.call(command).await.map_err(|e| {
+    pub async fn exec_ssh_cmd(&self, command: &str) -> Result<Output, SshError> {
+        let (stdout, stderr) = self.call(command).await.map_err(|e| {
             SshErrorKind::RequestExec(command.to_string())
                 .with(self.id)
                 .with(e)
         })?;
-        // TODO implement stderr properly.
-        let stderr = String::new();
-        Ok((stdout, stderr))
+        Ok(Output { stdout, stderr })
     }
 
-    pub async fn call(&self, command: &str) -> Result<String, russh::Error> {
+    pub async fn call(&self, command: &str) -> Result<(String, String), russh::Error> {
         let mut channel = self.session.channel_open_session().await?;
         channel.exec(true, command).await?;
 
         let mut code = None;
         let mut stdout = String::new();
+        let mut stderr = String::new();
 
         loop {
             // There's an event available on the session channel
@@ -138,6 +138,9 @@ impl SshSession {
                 // Write data to the terminal
                 ChannelMsg::Data { ref data } => {
                     stdout.push_str(&bytes_to_str(data));
+                }
+                ChannelMsg::ExtendedData { ref data, .. } => {
+                    stderr.push_str(&bytes_to_str(data));
                 }
                 // The command has returned an exit code
                 ChannelMsg::ExitStatus { exit_status } => {
@@ -151,7 +154,7 @@ impl SshSession {
         if code.is_none() {
             warn!("Program did not exit cleanly: {}", command);
         }
-        Ok(stdout.to_string())
+        Ok((stdout.to_string(), stderr.to_string()))
     }
 
     pub async fn auth_password(&mut self, login: &str, password: &str) -> Result<(), SshError> {

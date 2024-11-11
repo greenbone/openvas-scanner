@@ -8,8 +8,6 @@ use russh::*;
 use server::Auth;
 use tokio::sync::Mutex;
 
-const EXEC_REQUEST_RESPONSE: &str = "foo";
-
 #[derive(Clone)]
 pub struct AuthConfig {
     pub password: String,
@@ -88,12 +86,22 @@ impl server::Handler for TestServer {
     async fn exec_request(
         &mut self,
         channel: ChannelId,
-        _: &[u8],
+        cmd: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        // Send back the same string every time
-        let data = CryptoVec::from(EXEC_REQUEST_RESPONSE.to_string());
-        session.data(channel, data);
+        match String::from_utf8(cmd.to_vec()).unwrap().as_str() {
+            // Send to stdout.
+            "write_foo_stdout" => session.data(channel, CryptoVec::from("foo".to_string())),
+            // Send to stderr.
+            "write_bar_stderr" => {
+                session.extended_data(channel, 1, CryptoVec::from("bar".to_string()))
+            }
+            "write_both" => {
+                session.data(channel, CryptoVec::from("foo".to_string()));
+                session.extended_data(channel, 1, CryptoVec::from("bar".to_string()));
+            }
+            _ => panic!(),
+        }
         session.close(channel);
         Ok(())
     }
