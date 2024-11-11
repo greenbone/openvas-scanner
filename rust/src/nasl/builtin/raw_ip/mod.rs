@@ -17,8 +17,6 @@ use thiserror::Error;
 pub enum RawIpError {
     #[error("Failed to get local MAC address.")]
     FailedToGetLocalMacAddress,
-    #[error("Failed to create packet from buffer.")]
-    FailedToCreatePacket,
     #[error("Failed to get device list.")]
     FailedToGetDeviceList,
     #[error("Invalid IP address.")]
@@ -27,6 +25,8 @@ pub enum RawIpError {
     FailedToBind(io::Error),
     #[error("No route to destination.")]
     NoRouteToDestination,
+    #[error("{0}")]
+    PacketForgery(PacketForgeryError),
 }
 
 pub struct RawIp;

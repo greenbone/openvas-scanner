@@ -32,9 +32,6 @@ pub enum BuiltinError {
     KB(KBError),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
-    PacketForgery(super::raw_ip::PacketForgeryError),
-    #[cfg(feature = "nasl-builtin-raw-ip")]
-    #[error("{0}")]
     RawIp(super::raw_ip::RawIpError),
 }
 
@@ -77,7 +74,5 @@ builtin_error_variant!(IsotimeError, Isotime);
 builtin_error_variant!(RegexError, Regex);
 builtin_error_variant!(KBError, KB);
 
-#[cfg(feature = "nasl-builtin-raw-ip")]
-builtin_error_variant!(super::raw_ip::PacketForgeryError, PacketForgery);
 #[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(super::raw_ip::RawIpError, RawIp);

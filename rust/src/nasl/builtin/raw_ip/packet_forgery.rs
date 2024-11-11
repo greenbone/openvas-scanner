@@ -46,6 +46,14 @@ pub enum PacketForgeryError {
     ParseSocketAddr(std::net::AddrParseError),
     #[error("Failed to send packet. {0}")]
     SendPacket(std::io::Error),
+    #[error("Failed to create packet from buffer.")]
+    CreatePacket,
+}
+
+impl From<PacketForgeryError> for FnError {
+    fn from(e: PacketForgeryError) -> Self {
+        RawIpError::PacketForgery(e).into()
+    }
 }
 
 fn error(s: String) -> FnError {
@@ -54,7 +62,7 @@ fn error(s: String) -> FnError {
 
 macro_rules! custom_error {
     ($a:expr, $b:expr) => {
-        Err(PacketForgeryError::Custom(format!($a, $b)).into())
+        Err(RawIpError::PacketForgery(PacketForgeryError::Custom(format!($a, $b))).into())
     };
 }
 
@@ -157,7 +165,7 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
     let total_length = 20 + data.len();
     let mut buf = vec![0; total_length];
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf)
-        .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
+        .ok_or_else(|| PacketForgeryError::CreatePacket)?;
 
     pkt.set_total_length(total_length as u16);
 
@@ -284,7 +292,7 @@ fn set_ip_elements(register: &Register, _configs: &Context) -> Result<NaslValue,
     };
 
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf)
-        .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
+        .ok_or_else(|| PacketForgeryError::CreatePacket)?;
 
     let ip_hl = match register.named("ip_hl") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as u8,
@@ -409,7 +417,7 @@ fn dump_ip_packet(register: &Register, _: &Context) -> Result<NaslValue, FnError
         match ip {
             NaslValue::Data(data) => {
                 let pkt = packet::ipv4::Ipv4Packet::new(data)
-                    .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
+                    .ok_or_else(|| PacketForgeryError::CreatePacket)?;
 
                 println!("\tip_hl={}", pkt.get_header_length());
                 println!("\tip_v={}", pkt.get_version());
@@ -1794,7 +1802,7 @@ fn forge_igmp_packet(register: &Register, _configs: &Context) -> Result<NaslValu
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| RawIpError::FailedToCreatePacket)?;
+        .ok_or_else(|| PacketForgeryError::CreatePacket)?;
     pkt.set_total_length(l as u16);
     match register.named("update_ip_len") {
         Some(ContextType::Value(NaslValue::Boolean(l))) if !(*l) => {
