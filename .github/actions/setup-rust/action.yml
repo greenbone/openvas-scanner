@@ -1,0 +1,12 @@
+name: "Setup Rust Environment"
+description: "Install necessary dependencies and set up Rust stable"
+runs:
+  using: "composite"
+  steps:
+    - run: sudo apt update || true
+      shell: bash
+    - run: sudo apt-get install -y libpcap-dev
+      shell: bash
+    - run: rustup update stable && rustup default stable || rustup default stable
+      shell: bash
+
