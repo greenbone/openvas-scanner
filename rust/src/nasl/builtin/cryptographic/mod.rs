@@ -14,9 +14,11 @@ pub mod aes_cmac;
 pub mod aes_ctr;
 pub mod aes_gcm;
 pub mod aes_gmac;
+pub mod bf_cbc;
 pub mod des;
 pub mod hash;
 pub mod hmac;
+pub mod rc4;
 pub mod rsa;
 
 #[cfg(test)]
@@ -120,6 +122,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(hash::Hash);
         set.add_set(des::Des);
         set.add_set(rsa::Rsa);
+        set.add_set(bf_cbc::BfCbc);
         set
     }
 }

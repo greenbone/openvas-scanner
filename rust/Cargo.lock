@@ -322,6 +322,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "blowfish"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e412e2cd0f2b2d93e02543ceae7917b3c70331573df19ee046bcbc35e45e87d7"
+dependencies = [
+ "byteorder",
+ "cipher",
+]
+
+[[package]]
 name = "buffered-reader"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2575,6 +2585,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rc4"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f1256e23efe6097f27aa82d6ca6889361c001586ae0f6917cbad072f05eb275"
+dependencies = [
+ "cipher",
+]
+
+[[package]]
 name = "redis"
 version = "0.22.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2887,6 +2906,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.21.7",
+ "blowfish",
  "cbc",
  "ccm",
  "chacha20",
@@ -2937,6 +2957,7 @@ dependencies = [
  "quick-xml",
  "rand",
  "rayon",
+ "rc4",
  "redis",
  "regex",
  "ripemd",
