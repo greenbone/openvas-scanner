@@ -2,7 +2,7 @@ use std::io;
 
 use thiserror::Error;
 
-#[derive(Clone, Debug, Error)]
+#[derive(Debug, Error)]
 pub enum HttpError {
     #[error("IO error during HTTP: {0}")]
     IO(io::ErrorKind),

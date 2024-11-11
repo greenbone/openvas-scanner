@@ -206,7 +206,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
-                Err(e) => return ScriptResultKind::Error(e.clone()),
+                Err(e) => return ScriptResultKind::Error(e),
                 Ok(x) => {
                     trace!(statement_result=?x);
                 }

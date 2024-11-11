@@ -9,7 +9,7 @@ use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 #[error("{kind}")]
 pub struct FnError {
     #[source]
@@ -75,7 +75,7 @@ impl From<InternalError> for FnError {
     }
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 pub enum FnErrorKind {
     #[error("{0}")]
     Argument(ArgumentError),
@@ -127,33 +127,33 @@ impl From<StorageError> for FnError {
     }
 }
 
-impl TryFrom<FnError> for ArgumentError {
+impl<'a> TryFrom<&'a FnError> for &'a ArgumentError {
     type Error = ();
 
-    fn try_from(value: FnError) -> Result<Self, Self::Error> {
-        match value.kind {
+    fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+        match &value.kind {
             FnErrorKind::Argument(e) => Ok(e),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<FnError> for InternalError {
+impl<'a> TryFrom<&'a FnError> for &'a InternalError {
     type Error = ();
 
-    fn try_from(value: FnError) -> Result<Self, Self::Error> {
-        match value.kind {
+    fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+        match &value.kind {
             FnErrorKind::Internal(e) => Ok(e),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<FnError> for BuiltinError {
+impl<'a> TryFrom<&'a FnError> for &'a BuiltinError {
     type Error = ();
 
-    fn try_from(value: FnError) -> Result<Self, Self::Error> {
-        match value.kind {
+    fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+        match &value.kind {
             FnErrorKind::Builtin(e) => Ok(e),
             _ => Err(()),
         }

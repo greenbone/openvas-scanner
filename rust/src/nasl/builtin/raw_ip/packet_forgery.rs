@@ -38,14 +38,14 @@ use socket2::{Domain, Protocol, Socket};
 use thiserror::Error;
 use tracing::debug;
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 pub enum PacketForgeryError {
     #[error("{0}")]
     Custom(String),
     #[error("Failed to parse socket address. {0}")]
     ParseSocketAddr(std::net::AddrParseError),
     #[error("Failed to send packet. {0}")]
-    SendPacket(std::io::ErrorKind),
+    SendPacket(std::io::Error),
 }
 
 fn error(s: String) -> FnError {
@@ -2074,7 +2074,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(PacketForgeryError::SendPacket(e.kind()).into());
+                return Err(PacketForgeryError::SendPacket(e).into());
             }
         }
 

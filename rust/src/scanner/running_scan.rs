@@ -122,7 +122,7 @@ impl<S: ScannerStack> RunningScan<S> {
                     }
                     debug!(result=?result, "script finished");
 
-                    if result.has_failed() {
+                    if !result.has_succeeded() {
                         end_phase = Phase::Failed;
                     }
                 }

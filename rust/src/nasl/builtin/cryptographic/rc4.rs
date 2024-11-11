@@ -8,10 +8,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::error::FunctionErrorKind;
 use crate::nasl::utils::{Context, Register};
 
-use super::{get_data, get_key};
+use super::{get_data, get_key, CryptographicError};
 
 /// Structure to hold a Cipher Handler
 pub struct CipherHandler {
@@ -23,9 +22,9 @@ pub struct CipherHandler {
 
 fn lock_handlers(
     handlers: &Arc<Mutex<Vec<CipherHandler>>>,
-) -> Result<MutexGuard<Vec<CipherHandler>>, FunctionErrorKind> {
+) -> Result<MutexGuard<Vec<CipherHandler>>, FnError> {
     // we actually need to panic as a lock error is fatal
-    // alternatively we need to add a poison error on FunctionErrorKind
+    // alternatively we need to add a poison error on FnError
     Ok(Arc::as_ref(handlers).lock().unwrap())
 }
 
@@ -63,15 +62,10 @@ impl CipherHandlers {
         &self,
         register: &Register,
         _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let hd = match register.named("hd") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "Handler ID not found".to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
+            _ => return Err(CryptographicError::RC4("Handler ID not found".to_string()).into()),
         };
 
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
@@ -80,10 +74,7 @@ impl CipherHandlers {
                 handlers.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(FunctionErrorKind::Diagnostic(
-                format!("Handler ID {} not found", hd),
-                Some(NaslValue::Null),
-            )),
+            _ => Err(CryptographicError::RC4(format!("Handler ID {} not found", hd)).into()),
         }
     }
 
@@ -93,21 +84,12 @@ impl CipherHandlers {
     /// -key: the key used for encryption
     ///  
     /// Returns the id of the encrypted data cipher handler on success.
-    pub fn open_rc4_cipher(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    pub fn open_rc4_cipher(&self, register: &Register, _: &Context) -> Result<NaslValue, FnError> {
         // Get Arguments
 
         let key = match get_key(register) {
             Ok(k) if !k.is_empty() => k.to_vec(),
-            _ => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "Missing Key argument".to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
+            _ => return Err(CryptographicError::RC4("Missing Key argument".to_string()).into()),
         };
 
         let rc_handler = Rc4Key::build_handler_from_key(key.to_vec())?;
@@ -131,19 +113,10 @@ impl CipherHandlers {
     ///  -hd: the handler index. (mandatory if not key and iv is given)
     ///  -iv: string Initialization vector (mandatory if no handler is given).
     ///  -key: string key (mandatory if no handler is given).
-    pub fn rc4_encrypt(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    pub fn rc4_encrypt(&self, register: &Register, _: &Context) -> Result<NaslValue, FnError> {
         let data = match get_data(register) {
             Ok(d) if !d.is_empty() => d.to_vec(),
-            _ => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "Missing data argument".to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
+            _ => return Err(CryptographicError::RC4("Missing data argument".to_string()).into()),
         };
 
         let hd = match register.named("hd") {
@@ -162,12 +135,7 @@ impl CipherHandlers {
 
         let key = match get_key(register) {
             Ok(k) if !k.is_empty() => k.to_vec(),
-            _ => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "Missing Key argument".to_string(),
-                    Some(NaslValue::Null),
-                ))
-            }
+            _ => return Err(CryptographicError::RC4("Missing Key argument".to_string()).into()),
         };
 
         let mut rc_handler = Rc4Key::build_handler_from_key(key.to_vec())?;
@@ -185,10 +153,10 @@ macro_rules! build_rc4key_enum {
         }
 
         impl Rc4Key {
-            fn build_handler_from_key(bl: Vec<u8>) -> Result<Self, FunctionErrorKind> {
+            fn build_handler_from_key(bl: Vec<u8>) -> Result<Self, FnError> {
                 match bl.len() {
                     $($l => Ok(Self::$i(Rc4::new_from_slice(bl.as_slice()).unwrap())),)*
-                    _ => {return Err(FunctionErrorKind::Diagnostic("RC4 Key size not supported".into(), Some(NaslValue::Null)))}
+                    _ => {return Err(CryptographicError::RC4("RC4 Key size not supported".into()).into())}
                 }
             }
 

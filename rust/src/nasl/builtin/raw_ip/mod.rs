@@ -13,7 +13,7 @@ use packet_forgery::PacketForgery;
 pub use packet_forgery::PacketForgeryError;
 use thiserror::Error;
 
-#[derive(Clone, Debug, Error)]
+#[derive(Debug, Error)]
 pub enum RawIpError {
     #[error("Failed to get local MAC address.")]
     FailedToGetLocalMacAddress,
@@ -24,7 +24,7 @@ pub enum RawIpError {
     #[error("Invalid IP address.")]
     InvalidIpAddress,
     #[error("Failed to bind.")]
-    FailedToBind(io::ErrorKind),
+    FailedToBind(io::Error),
     #[error("No route to destination.")]
     NoRouteToDestination,
 }

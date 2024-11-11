@@ -10,7 +10,7 @@ use super::knowledge_base::KBError;
 use super::regex::RegexError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 pub enum BuiltinError {
     #[error("{0}")]
     Ssh(SshError),
@@ -52,11 +52,11 @@ macro_rules! builtin_error_variant (
             }
         }
 
-        impl TryFrom<FnError> for $err {
+        impl<'a> TryFrom<&'a FnError> for &'a $err {
             type Error = ();
 
-            fn try_from(value: FnError) -> Result<Self, Self::Error> {
-                match value.kind {
+            fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+                match &value.kind {
                     FnErrorKind::Builtin(
                         BuiltinError::$variant(e)
                     ) => Ok(e),

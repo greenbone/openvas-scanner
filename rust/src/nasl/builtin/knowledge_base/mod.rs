@@ -15,7 +15,7 @@ use crate::storage::{Field, Kb, Retrieve};
 use nasl_function_proc_macro::nasl_function;
 use thiserror::Error;
 
-#[derive(Clone, Debug, Error)]
+#[derive(Debug, Error)]
 #[error("{0}")]
 pub struct KBError(String);
 

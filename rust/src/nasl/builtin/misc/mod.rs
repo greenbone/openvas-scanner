@@ -26,22 +26,12 @@ use flate2::{
     read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
 };
 
-#[derive(Debug, Clone, Error)]
-// It would be nicer to derive this using #[from] from
-// thiserror, but io::Error does not impl `Clone`,
-// so we wrap `io::ErrorKind` instead, which
-// does not impl `Error` which is why this `From` impl exists.
+#[derive(Debug, Error)]
 pub enum MiscError {
     #[error("IO Error: {0}")]
-    IO(io::ErrorKind),
+    IO(#[from] io::Error),
     #[error("Encountered time before 1970. {0}")]
     TimeBefore1970(String),
-}
-
-impl From<io::Error> for MiscError {
-    fn from(value: io::Error) -> Self {
-        Self::IO(value.kind())
-    }
 }
 
 #[inline]

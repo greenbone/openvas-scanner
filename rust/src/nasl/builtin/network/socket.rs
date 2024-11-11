@@ -32,21 +32,11 @@ use super::{
 // Number of times to resend a UDP packet, when no response is received
 const NUM_TIMES_TO_RESEND: usize = 5;
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 #[error("{0}")]
-// It would be nicer to derive this using #[from] from
-// thiserror, but io::Error does not impl `Clone`,
-// so we wrap `io::ErrorKind` instead, which
-// does not impl `Error` which is why this `From` impl exists.
 pub enum SocketError {
-    IO(std::io::ErrorKind),
+    IO(#[from] std::io::Error),
     Diagnostic(String, Option<NaslValue>),
-}
-
-impl From<io::Error> for SocketError {
-    fn from(value: io::Error) -> Self {
-        Self::IO(value.kind())
-    }
 }
 
 pub struct Interval {
@@ -445,8 +435,8 @@ impl NaslSockets {
                             io::ErrorKind::TimedOut => {
                                 conn.socket.send(&conn.buffer).map_err(SocketError::from)?;
                             }
-                            kind => {
-                                ret = Err(SocketError::IO(kind));
+                            _ => {
+                                ret = Err(SocketError::IO(e));
                                 break;
                             }
                         },
@@ -671,8 +661,10 @@ impl NaslSockets {
             match Self::open_tcp(addr, port, bufsz, timeout, tls_config.as_ref()) {
                 Ok(socket) => return Ok(socket),
                 Err(err) => {
-                    if !matches!(err, SocketError::IO(io::ErrorKind::TimedOut)) {
-                        return Err(err.into());
+                    if let SocketError::IO(ref io_err) = err {
+                        if io_err.kind() == io::ErrorKind::TimedOut {
+                            return Err(err.into());
+                        }
                     }
                     retry -= 1;
                 }
@@ -683,7 +675,7 @@ impl NaslSockets {
         // 2. Log too many timeouts
         // 3. Create result of type error with:
         //   ERRMSG|||<IP>|||<vhost>|||<port>/tcp||| ||| Too many timeouts. The port was set to closed
-        Err(SocketError::IO(io::ErrorKind::TimedOut).into())
+        Err(SocketError::IO(io::ErrorKind::TimedOut.into()).into())
     }
 
     fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, SocketError> {

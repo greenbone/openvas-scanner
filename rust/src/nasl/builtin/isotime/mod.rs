@@ -11,7 +11,7 @@ use crate::nasl::prelude::*;
 use chrono::{Datelike, Months, NaiveDate, NaiveDateTime, TimeDelta};
 use thiserror::Error;
 
-#[derive(Clone, Debug, Error)]
+#[derive(Debug, Error)]
 #[error("{0}")]
 pub struct IsotimeError(String);
 

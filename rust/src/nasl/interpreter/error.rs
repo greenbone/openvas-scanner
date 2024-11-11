@@ -7,7 +7,7 @@ use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
 use crate::nasl::utils::error::FnError;
 use thiserror::Error;
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 /// An error that occurred while calling a function
 #[error("Error while calling function '{function}': {kind}")]
 pub struct FunctionCallError {
@@ -32,7 +32,7 @@ impl FunctionCallError {
     }
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 /// Is used to represent an error while interpreting
 #[error("{} {kind}", self.format_origin())]
 pub struct InterpretError {
@@ -63,7 +63,7 @@ impl InterpretError {
     }
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 /// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.

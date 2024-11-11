@@ -25,7 +25,7 @@ impl From<russh::Error> for LibError {
     }
 }
 
-#[derive(Clone, Debug, Error)]
+#[derive(Debug, Error)]
 pub struct SshError {
     pub kind: SshErrorKind,
     id: Option<SessionId>,
