@@ -8,7 +8,7 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::interpreter::CodeInterpreter;
+use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnBehavior};
 use scannerlib::nasl::{
     interpreter::InterpretErrorKind,
     prelude::*,
@@ -140,8 +140,13 @@ where
                 Ok(x) => x,
                 Err(e) => {
                     if let InterpretErrorKind::FunctionCallError(ref fe) = e.kind {
-                        tracing::warn!("{}", e.to_string());
-                        fe.kind.return_value().clone().unwrap_or_default()
+                        match fe.kind.return_behavior() {
+                            ReturnBehavior::ExitScript => return Err(e.into()),
+                            ReturnBehavior::ReturnValue(val) => {
+                                tracing::warn!("{}", e.to_string());
+                                val.clone()
+                            }
+                        }
                     } else {
                         return Err(e.into());
                     }

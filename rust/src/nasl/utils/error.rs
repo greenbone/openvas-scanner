@@ -14,13 +14,19 @@ use crate::storage::StorageError;
 pub struct FnError {
     #[source]
     pub kind: FnErrorKind,
-    return_value: Option<NaslValue>,
+    return_behavior: ReturnBehavior,
     retryable: bool,
 }
 
+#[derive(Debug)]
+pub enum ReturnBehavior {
+    ExitScript,
+    ReturnValue(NaslValue),
+}
+
 impl FnError {
-    pub fn return_value(&self) -> &Option<NaslValue> {
-        &self.return_value
+    pub fn return_behavior(&self) -> &ReturnBehavior {
+        &self.return_behavior
     }
 
     pub fn retryable(&self) -> bool {
@@ -30,7 +36,7 @@ impl FnError {
     fn from_kind(kind: FnErrorKind) -> FnError {
         Self {
             kind,
-            return_value: None,
+            return_behavior: ReturnBehavior::ExitScript,
             retryable: false,
         }
     }
@@ -53,7 +59,7 @@ impl From<BuiltinError> for FnError {
         FnError {
             kind: FnErrorKind::Builtin(kind),
             retryable: false,
-            return_value: Some(NaslValue::Null),
+            return_behavior: ReturnBehavior::ReturnValue(NaslValue::Null),
         }
     }
 }
@@ -64,7 +70,7 @@ impl From<InternalError> for FnError {
         Self {
             kind: FnErrorKind::Internal(kind),
             retryable,
-            return_value: None,
+            return_behavior: ReturnBehavior::ExitScript,
         }
     }
 }
@@ -175,7 +181,7 @@ impl<T: Into<NaslValue>, E: Into<FnError>> WithErrorInfo<ReturnValue<T>> for E {
     fn with(self, val: ReturnValue<T>) -> Self::Error {
         let mut e = self.into();
         let val = val.0.into();
-        e.return_value = Some(val);
+        e.return_behavior = ReturnBehavior::ReturnValue(val);
         e
     }
 }
