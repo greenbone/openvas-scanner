@@ -38,30 +38,29 @@ impl Read for UdpConnection {
 impl Write for UdpConnection {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mtu = mtu(self.socket.peer_addr()?.ip());
-        if buf.len() < mtu {
-            let result = unsafe {
-                libc::send(
-                    self.socket.as_raw_fd(),
-                    buf.as_ptr() as *const libc::c_void,
-                    buf.len(),
-                    self.flags.unwrap_or_default(),
-                )
-            };
-            self.flags = None;
-            if result < 0 {
-                return Err(io::Error::last_os_error());
-            }
-            Ok(result as usize)
-        } else {
-            Err(io::Error::new(
+        if buf.len() > mtu {
+            return Err(io::Error::new(
                 io::ErrorKind::Other,
                 format!(
                     "UDP data of size {} exceeds the maximum length of {}",
                     buf.len(),
                     mtu
                 ),
-            ))
+            ));
         }
+        let result = unsafe {
+            libc::send(
+                self.socket.as_raw_fd(),
+                buf.as_ptr() as *const libc::c_void,
+                buf.len(),
+                self.flags.unwrap_or_default(),
+            )
+        };
+        self.flags = None;
+        if result < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(result as usize)
     }
 
     fn flush(&mut self) -> io::Result<()> {

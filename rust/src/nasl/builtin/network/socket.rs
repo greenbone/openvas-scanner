@@ -4,6 +4,7 @@
 
 use std::{
     io::{BufRead, Read, Write},
+    net::IpAddr,
     sync::RwLock,
     thread::sleep,
     time::{Duration, SystemTime},
@@ -14,9 +15,10 @@ use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::{error::FunctionErrorKind, Context};
 use dns_lookup::lookup_host;
 use nasl_function_proc_macro::nasl_function;
+use rustls::ClientConnection;
 
 use super::{
-    get_kb_item, get_retry,
+    get_kb_item, get_kb_item_str, get_retry,
     network_utils::{convert_timeout, ipstr2ipaddr},
     tcp::TcpConnection,
     tls::create_tls_client,
@@ -52,7 +54,7 @@ enum NaslSocket {
     // This way the size of the enum is reduced
     Tcp(Box<TcpConnection>),
     Udp(UdpConnection),
-    Close,
+    Closed,
 }
 
 #[derive(Default)]
@@ -87,14 +89,14 @@ impl NaslSockets {
     fn close(&self, socket_fd: usize) -> Result<NaslValue, FunctionErrorKind> {
         let mut handles = self.handles.write().unwrap();
         match handles.handles.get_mut(socket_fd) {
-            Some(NaslSocket::Close) => {
+            Some(NaslSocket::Closed) => {
                 return Err(FunctionErrorKind::Diagnostic(
                     "the given socket FD is already closed".to_string(),
                     None,
                 ))
             }
             Some(socket) => {
-                *socket = NaslSocket::Close;
+                *socket = NaslSocket::Closed;
                 handles.closed_fd.push(socket_fd);
             }
             None => {
@@ -168,7 +170,7 @@ impl NaslSockets {
                 }
                 Ok(conn.write(data)?)
             }
-            NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
+            NaslSocket::Closed => Err(FunctionErrorKind::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
         }
@@ -221,7 +223,7 @@ impl NaslSockets {
 
                 Ok(NaslValue::Data(data[..pos].to_vec()))
             }
-            NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
+            NaslSocket::Closed => Err(FunctionErrorKind::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
         }
@@ -255,7 +257,7 @@ impl NaslSockets {
                 "This function is only available for TCP connections".to_string(),
                 None,
             )),
-            NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
+            NaslSocket::Closed => Err(FunctionErrorKind::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
         }
@@ -267,13 +269,7 @@ impl NaslSockets {
     /// - Secret/kdc_use_tcp
     #[nasl_function]
     fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
-        let hostname = match get_kb_item(context, "Secret/kdc_hostname")? {
-            Some(x) => Ok(x.to_string()),
-            None => Err(FunctionErrorKind::Diagnostic(
-                "KB key 'Secret/kdc_hostname' is not set".to_string(),
-                None,
-            )),
-        }?;
+        let hostname = get_kb_item_str(context, "Secret/kdc_hostname")?;
 
         let ip = lookup_host(&hostname)
             .map_err(|_| {
@@ -333,6 +329,67 @@ impl NaslSockets {
         Ok(NaslValue::Number(ret as i64))
     }
 
+    fn make_tls_client_connection(context: &Context, vhost: &str) -> Option<ClientConnection> {
+        Self::get_tls_conf(context).ok().and_then(|conf| {
+            create_tls_client(
+                vhost,
+                &conf.cert_path,
+                &conf.key_path,
+                &conf.password,
+                &conf.cafile_path,
+            )
+            .ok()
+        })
+    }
+
+    fn open_sock_tcp_vhost(
+        context: &Context,
+        addr: IpAddr,
+        timeout: Duration,
+        bufsz: Option<usize>,
+        port: u16,
+        vhost: &str,
+        transport: i64,
+    ) -> Result<Option<NaslSocket>, FunctionErrorKind> {
+        if transport < 0 {
+            // TODO: Get port transport and open connection depending on it
+            todo!()
+        }
+        let tls = match OpenvasEncaps::from_i64(transport) {
+            // Auto Detection
+            Some(OpenvasEncaps::Auto) => {
+                // Try SSL/TLS first
+                Self::make_tls_client_connection(context, vhost)
+            }
+            // IP
+            Some(OpenvasEncaps::Ip) => None,
+            // Unsupported transport layer
+            None | Some(OpenvasEncaps::Max) => {
+                return Err(FunctionErrorKind::Diagnostic(
+                    format!("unsupported transport layer: {transport} (unknown)"),
+                    None,
+                ))
+            }
+            // TLS/SSL
+            Some(tls_version) => match tls_version {
+                OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
+                    Self::make_tls_client_connection(context, vhost)
+                }
+                _ => {
+                    return Err(FunctionErrorKind::Diagnostic(
+                        format!("unsupported transport layer: {transport} {tls_version}"),
+                        None,
+                    ))
+                }
+            },
+        };
+        Ok(
+            TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
+                .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
+                .ok(),
+        )
+    }
+
     /// Open a TCP socket to the target host.
     /// This function is used to create a TCP connection to the target host.  It requires the port
     /// number as its argument and has various optional named arguments to control encapsulation,
@@ -368,160 +425,38 @@ impl NaslSockets {
 
         self.wait_before_next_probe();
 
-        let mut fds = vec![];
-
-        let bufsz = if let Some(bufsz) = bufsz {
-            if bufsz < 0 {
-                None
-            } else {
-                Some(bufsz as usize)
-            }
-        } else {
-            None
-        };
+        let bufsz = bufsz
+            .filter(|bufsz| *bufsz >= 0)
+            .map(|bufsz| bufsz as usize);
 
         // TODO: set timeout to global recv timeout * 2 when available
         let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
         // TODO: for every vhost
         let vhosts = vec!["localhost"];
-        for vhost in vhosts {
-            let tcp = if transport < 0 {
-                // TODO: Get port transport and open connection depending on it
-                todo!()
-            } else {
-                match OpenvasEncaps::from_i64(transport) {
-                    // Auto Detection
-                    Some(OpenvasEncaps::Auto) => {
-                        // Try SSL/TLS first
-                        let tls = if let Ok(conf) = Self::get_tls_conf(context) {
-                            create_tls_client(
-                                vhost,
-                                &conf.cert_path,
-                                &conf.key_path,
-                                &conf.password,
-                                &conf.cafile_path,
-                            )
-                            .ok()
-                        } else {
-                            None
-                        };
-                        if let Ok(tcp) = TcpConnection::connect(
-                            addr,
-                            port,
-                            tls,
-                            timeout,
-                            bufsz,
-                            get_retry(context),
-                        ) {
-                            // TODO: Set port transport
-                            tcp
-                        } else {
-                            continue;
-                        }
-                    }
-                    // IP
-                    Some(OpenvasEncaps::Ip) => {
-                        if let Ok(tcp) = TcpConnection::connect(
-                            addr,
-                            port,
-                            None,
-                            timeout,
-                            bufsz,
-                            get_retry(context),
-                        ) {
-                            // TODO: Set port transport
-                            tcp
-                        } else {
-                            continue;
-                        }
-                    }
-                    // Unsupported transport layer
-                    None | Some(OpenvasEncaps::Max) => {
-                        return Err(FunctionErrorKind::WrongArgument(format!(
-                            "unsupported transport layer: {transport}(unknown)"
-                        )))
-                    }
-                    // TLS/SSL
-                    Some(tls_version) => match tls_version {
-                        OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                            if let Ok(tls_conf) = Self::get_tls_conf(context) {
-                                if let Ok(tls) = create_tls_client(
-                                    vhost,
-                                    &tls_conf.cert_path,
-                                    &tls_conf.key_path,
-                                    &tls_conf.password,
-                                    &tls_conf.cafile_path,
-                                ) {
-                                    if let Ok(tcp) = TcpConnection::connect(
-                                        addr,
-                                        port,
-                                        Some(tls),
-                                        timeout,
-                                        bufsz,
-                                        get_retry(context),
-                                    ) {
-                                        tcp
-                                    } else {
-                                        continue;
-                                    }
-                                } else {
-                                    continue;
-                                }
-                            } else {
-                                continue;
-                            }
-                        }
-                        _ => {
-                            return Err(FunctionErrorKind::WrongArgument(format!(
-                                "unsupported transport layer: {transport}{tls_version}"
-                            )))
-                        }
-                    },
-                }
-            };
-            let fd = self.add(NaslSocket::Tcp(Box::new(tcp)));
-            fds.push(fd);
-        }
+        let sockets: Vec<Option<NaslSocket>> = vhosts
+            .iter()
+            .map(|vhost| {
+                Self::open_sock_tcp_vhost(context, addr, timeout, bufsz, port, vhost, transport)
+            })
+            .collect::<Result<_, _>>()?;
 
         Ok(NaslValue::Fork(
-            fds.iter()
-                .map(|val| NaslValue::Number(*val as i64))
+            sockets
+                .into_iter()
+                .filter_map(|socket| socket)
+                .map(|socket| {
+                    let fd = self.add(socket);
+                    NaslValue::Number(fd as i64)
+                })
                 .collect(),
         ))
     }
 
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FunctionErrorKind> {
-        let cert_path = match get_kb_item(context, "Secret/tls_cert")? {
-            Some(x) => Ok(x.to_string()),
-            None => Err(FunctionErrorKind::Diagnostic(
-                "KB key 'Secret/tls_cert' is not set".to_string(),
-                None,
-            )),
-        }?;
-
-        let key_path = match get_kb_item(context, "Secret/tls_key")? {
-            Some(x) => Ok(x.to_string()),
-            None => Err(FunctionErrorKind::Diagnostic(
-                "KB key 'Secret/tls_key' is not set".to_string(),
-                None,
-            )),
-        }?;
-
-        let password = match get_kb_item(context, "Secret/tls_password")? {
-            Some(x) => Ok(x.to_string()),
-            None => Err(FunctionErrorKind::Diagnostic(
-                "KB key 'Secret/tls_password' is not set".to_string(),
-                None,
-            )),
-        }?;
-
-        let cafile_path = match get_kb_item(context, "Secret/tls_cafile")? {
-            Some(x) => Ok(x.to_string()),
-            None => Err(FunctionErrorKind::Diagnostic(
-                "KB key 'Secret/tls_cafile' is not set".to_string(),
-                None,
-            )),
-        }?;
+        let cert_path = get_kb_item_str(context, "SSL/cert")?;
+        let key_path = get_kb_item_str(context, "SSL/key")?;
+        let password = get_kb_item_str(context, "SSL/password")?;
+        let cafile_path = get_kb_item_str(context, "SSL/CA")?;
 
         Ok(TlsConfig {
             cert_path,
@@ -556,7 +491,7 @@ impl NaslSockets {
         let port = match socket {
             NaslSocket::Tcp(conn) => conn.local_addr()?.port(),
             NaslSocket::Udp(conn) => conn.local_addr()?.port(),
-            NaslSocket::Close => {
+            NaslSocket::Closed => {
                 return Err(FunctionErrorKind::WrongArgument(
                     "the given socket FD is already closed".to_string(),
                 ))
@@ -637,7 +572,7 @@ impl NaslSockets {
                 "This function is only available for TCP connections".to_string(),
                 None,
             )),
-            NaslSocket::Close => Err(FunctionErrorKind::WrongArgument(
+            NaslSocket::Closed => Err(FunctionErrorKind::WrongArgument(
                 "the given socket FD is already closed".to_string(),
             )),
         }
