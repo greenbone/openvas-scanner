@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use std::{
-    io::{BufRead, Read, Write},
+    io::{self, BufRead, Read, Write},
     net::IpAddr,
     sync::RwLock,
     thread::sleep,
@@ -465,7 +465,7 @@ impl NaslSockets {
         // TODO: set timeout to global recv timeout * 2 when available
         let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
         // TODO: for every vhost
-        let vhosts = vec!["localhost"];
+        let vhosts = ["localhost"];
         let sockets: Vec<Option<NaslSocket>> = vhosts
             .iter()
             .map(|vhost| {
@@ -476,7 +476,7 @@ impl NaslSockets {
         Ok(NaslValue::Fork(
             sockets
                 .into_iter()
-                .filter_map(|socket| socket)
+                .flatten()
                 .map(|socket| {
                     let fd = self.add(socket);
                     NaslValue::Number(fd as i64)
@@ -513,6 +513,67 @@ impl NaslSockets {
         Ok(NaslValue::Number(fd as i64))
     }
 
+    fn connect_priv_sock(
+        &self,
+        addr: IpAddr,
+        sport: u16,
+        dport: u16,
+        tcp: bool,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        if tcp {
+            // TODO: set timeout to global recv timeout when available
+            let timeout = Duration::from_secs(10);
+            self.wait_before_next_probe();
+            let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
+            Ok(NaslValue::Number(
+                self.add(NaslSocket::Tcp(Box::new(tcp))) as i64
+            ))
+        } else {
+            let udp = UdpConnection::new_priv(addr, sport, dport)?;
+            Ok(NaslValue::Number(self.add(NaslSocket::Udp(udp)) as i64))
+        }
+    }
+
+    fn open_priv_sock(
+        &self,
+        addr: IpAddr,
+        dport: i64,
+        sport: Option<i64>,
+        tcp: bool,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let dport = verify_port(dport)?;
+
+        if let Some(sport) = sport {
+            let sport = verify_port(sport)?;
+            return self.connect_priv_sock(addr, sport, dport as u16, tcp);
+        }
+
+        for sport in (1..=1023).rev() {
+            let fd = if tcp {
+                // TODO: set timeout to global recv timeout when available
+                let timeout = Duration::from_secs(10);
+                self.wait_before_next_probe();
+                if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport, timeout) {
+                    self.add(NaslSocket::Tcp(Box::new(tcp)))
+                } else {
+                    continue;
+                }
+            } else if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport) {
+                self.add(NaslSocket::Udp(udp))
+            } else {
+                continue;
+            };
+            return Ok(NaslValue::Number(fd as i64));
+        }
+        Err(FunctionErrorKind::Diagnostic(
+            format!(
+                "Unable to open priv socket to {} on any socket from 1-1023",
+                addr
+            ),
+            None,
+        ))
+    }
+
     /// Open a privileged socket to the target host.
     /// It takes three named integer arguments:
     /// - dport is the destination port
@@ -526,39 +587,8 @@ impl NaslSockets {
         dport: i64,
         sport: Option<i64>,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        let dport = verify_port(dport)?;
-
         let addr = ipstr2ipaddr(context.target())?;
-
-        // TODO: set timeout to global recv timeout when available
-        let timeout = Duration::from_secs(10);
-
-        if let Some(sport) = sport {
-            let sport = verify_port(sport)?;
-            self.wait_before_next_probe();
-            let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
-
-            let fd = self.add(NaslSocket::Tcp(Box::new(tcp)));
-            return Ok(NaslValue::Number(fd as i64));
-        }
-
-        let mut sport = 1023;
-
-        while sport > 0 {
-            self.wait_before_next_probe();
-            if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport, timeout) {
-                let fd = self.add(NaslSocket::Tcp(Box::new(tcp)));
-                return Ok(NaslValue::Number(fd as i64));
-            }
-            sport -= 1;
-        }
-        Err(FunctionErrorKind::Diagnostic(
-            format!(
-                "Unable to open priv socket to {} on any socket from 1-1023",
-                addr
-            ),
-            None,
-        ))
+        self.open_priv_sock(addr, dport, sport, true)
     }
 
     /// Open a privileged UDP socket to the target host.
@@ -573,34 +603,8 @@ impl NaslSockets {
         dport: i64,
         sport: Option<i64>,
     ) -> Result<NaslValue, FunctionErrorKind> {
-        let dport = verify_port(dport)?;
-
         let addr = ipstr2ipaddr(context.target())?;
-
-        if let Some(sport) = sport {
-            let sport = verify_port(sport)?;
-            let udp = UdpConnection::new_priv(addr, sport, dport)?;
-
-            let fd = self.add(NaslSocket::Udp(udp));
-            return Ok(NaslValue::Number(fd as i64));
-        }
-
-        let mut sport = 1023;
-
-        while sport > 0 {
-            if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport) {
-                let fd = self.add(NaslSocket::Udp(udp));
-                return Ok(NaslValue::Number(fd as i64));
-            }
-            sport -= 1;
-        }
-        Err(FunctionErrorKind::Diagnostic(
-            format!(
-                "Unable to open priv socket to {} on any socket from 1-1023",
-                addr
-            ),
-            None,
-        ))
+        self.open_priv_sock(addr, dport, sport, false)
     }
 
     /// Get the source port of a open socket
