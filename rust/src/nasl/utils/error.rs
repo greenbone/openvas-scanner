@@ -60,7 +60,11 @@ impl From<ArgumentError> for FnError {
 
 impl From<BuiltinError> for FnError {
     fn from(kind: BuiltinError) -> Self {
-        FnError::from_kind(FnErrorKind::Builtin(kind))
+        FnError {
+            kind: FnErrorKind::Builtin(kind),
+            retryable: false,
+            return_value: Some(NaslValue::Null),
+        }
     }
 }
 
