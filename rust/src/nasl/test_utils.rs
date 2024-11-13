@@ -24,7 +24,7 @@ use super::{
 // The following exists to trick the trait solver into
 // believing me that everything is fine. Doing this naively
 // runs into some compiler errors.
-trait CloneableFn: Fn(NaslResult) -> bool {
+trait CloneableFn: Fn(NaslResult) -> bool + Sync + Send {
     fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
     where
         Self: 'a;
@@ -32,7 +32,7 @@ trait CloneableFn: Fn(NaslResult) -> bool {
 
 impl<F> CloneableFn for F
 where
-    F: Fn(NaslResult) -> bool + Clone,
+    F: Fn(NaslResult) -> bool + Clone + Sync + Send,
 {
     fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
     where
@@ -184,7 +184,7 @@ where
     pub fn check(
         &mut self,
         line: impl Into<String>,
-        f: impl Fn(NaslResult) -> bool + 'static + Clone,
+        f: impl Fn(NaslResult) -> bool + 'static + Clone + Sync + Send,
         expected: Option<impl Into<String>>,
     ) -> &mut Self {
         self.add_line(
@@ -262,18 +262,16 @@ where
         }
     }
 
-    fn verify(&mut self) {
+    async fn verify(&mut self) {
         if self.should_verify {
             let mut references_iter = self.results.iter().enumerate();
             let code = self.code();
             let context = self.context();
             let mut results = self.results_stream(&code, &context);
-            futures::executor::block_on(async {
-                while let Some(result) = results.next().await {
-                    let (line_count, reference) = references_iter.next().unwrap();
-                    self.check_result(&result, reference, line_count);
-                }
-            });
+            while let Some(result) = results.next().await {
+                let (line_count, reference) = references_iter.next().unwrap();
+                self.check_result(&result, reference, line_count);
+            }
             assert!(references_iter.next().is_none());
         } else {
             // Make sure the user did not add requirements to this test
@@ -286,6 +284,12 @@ where
                 panic!("Take care: Will not verify specified test result in this test, since run_all was called, which will mess with the line numbers.");
             }
         }
+    }
+
+    pub async fn async_verify(mut self) {
+        self.verify().await;
+        // Make sure we don't Drop
+        std::mem::forget(self)
     }
 
     fn check_result(
@@ -367,7 +371,11 @@ where
 
 impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
-        self.verify()
+        if tokio::runtime::Handle::try_current().is_ok() {
+            panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
+        } else {
+            futures::executor::block_on(self.verify());
+        }
     }
 }
 

@@ -35,17 +35,18 @@ fn default_config() -> ServerConfig {
 }
 
 async fn run_test(
-    f: impl Fn(TestBuilder<NoOpLoader, DefaultDispatcher>) -> () + Send + 'static,
+    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) -> () + Send + Sync + 'static,
     config: ServerConfig,
 ) {
     // Acquire the global lock to prevent multiple
     // tests from opening a server at the same time.
     let _guard = LOCK.lock();
     let server = tokio::spawn(run_server(config));
-    let client = tokio::task::spawn_blocking(move || {
+    let client = tokio::spawn(async move {
         std::thread::sleep(Duration::from_millis(200));
-        let t = TestBuilder::default();
-        f(t)
+        let mut t = TestBuilder::default();
+        f(&mut t);
+        t.async_verify().await;
     });
     // Simply wait for whatever the test does on the client side
     let res = client.await;
@@ -69,7 +70,7 @@ async fn run_server(config: ServerConfig) {
 #[tokio::test]
 async fn ssh_connect() {
     run_test(
-        |mut t| {
+        |t| {
             t.ok(
                 format!(r#"id = ssh_connect(port:{});"#, PORT),
                 MIN_SESSION_ID,
