@@ -41,13 +41,8 @@ async fn run_test(
     // Acquire the global lock to prevent multiple
     // tests from opening a server at the same time.
     let _guard = LOCK.lock();
-    let server = tokio::spawn(run_server(config));
-    let client = tokio::spawn(async move {
-        std::thread::sleep(Duration::from_millis(200));
-        let mut t = TestBuilder::default();
-        f(&mut t);
-        t.async_verify().await;
-    });
+    let server = tokio::task::spawn(async move { run_server(config).await });
+    let client = tokio::task::spawn_blocking(move || run_client(f));
     // Simply wait for whatever the test does on the client side
     let res = client.await;
     // and then abort the server, to make sure we do not run it for
@@ -59,6 +54,16 @@ async fn run_test(
     // since we aborted).
     let _ = server.await;
     res.unwrap()
+}
+
+#[tokio::main]
+async fn run_client(
+    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) -> () + Send + Sync + 'static,
+) {
+    std::thread::sleep(Duration::from_millis(100));
+    let mut t = TestBuilder::default();
+    f(&mut t);
+    t.async_verify().await;
 }
 
 async fn run_server(config: ServerConfig) {
