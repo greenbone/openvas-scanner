@@ -262,7 +262,7 @@ where
         }
     }
 
-    async fn verify(&mut self) {
+    async fn verify(&mut self) -> Result<(), String> {
         if self.should_verify {
             let mut references_iter = self.results.iter().enumerate();
             let code = self.code();
@@ -270,7 +270,7 @@ where
             let mut results = self.results_stream(&code, &context);
             while let Some(result) = results.next().await {
                 let (line_count, reference) = references_iter.next().unwrap();
-                self.check_result(&result, reference, line_count);
+                self.check_result(&result, reference, line_count)?;
             }
             assert!(references_iter.next().is_none());
         } else {
@@ -281,15 +281,20 @@ where
                 .iter()
                 .any(|res| !matches!(res.result, TestResult::None))
             {
-                panic!("Take care: Will not verify specified test result in this test, since run_all was called, which will mess with the line numbers.");
+                return Err("Take care: Will not verify specified test result in this test, since run_all was called, which will mess with the line numbers.".to_string());
             }
         }
+        Ok(())
     }
 
     pub async fn async_verify(mut self) {
-        self.verify().await;
-        // Make sure we don't Drop
-        std::mem::forget(self)
+        if let Err(err) = self.verify().await {
+            // Drop first so we don't call the destructor, which would panic.
+            std::mem::forget(self);
+            panic!("{}", err)
+        } else {
+            std::mem::forget(self)
+        }
     }
 
     fn check_result(
@@ -297,31 +302,32 @@ where
         result: &Result<NaslValue, FnError>,
         reference: &TracedTestResult,
         line_count: usize,
-    ) {
+    ) -> Result<(), String> {
         if !self.compare_result(result, &reference.result) {
             match &reference.result {
                 TestResult::Ok(reference_result) => {
-                    panic!(
+                    Err(format!(
                         "Mismatch at {}.\nIn code \"{}\":\nExpected: {:?}\nFound:    {:?}",
                         reference.location,
                         self.lines[line_count],
                         Ok::<_, FnError>(reference_result),
                         result,
-                    );
+                    ))?;
                 }
                 TestResult::GenericCheck(_, expected) => match expected {
-                    Some(expected) => panic!(
+                    Some(expected) => Err(format!(
                         "Mismatch at {}.\nIn code \"{}\":\nExpected: {}\nFound:    {:?}",
                         reference.location, self.lines[line_count], expected, result
-                    ),
-                    None => panic!(
+                    ))?,
+                    None => Err(format!(
                         "Check failed at {}.\nIn code \"{}\". Found result: {:?}",
                         reference.location, self.lines[line_count], result
-                    ),
+                    ))?,
                 },
                 TestResult::None => unreachable!(),
             }
         }
+        Ok(())
     }
 
     fn compare_result(&self, result: &Result<NaslValue, FnError>, reference: &TestResult) -> bool {
@@ -370,7 +376,9 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
         } else {
-            futures::executor::block_on(self.verify());
+            if let Err(err) = futures::executor::block_on(self.verify()) {
+                panic!("{}", err)
+            }
         }
     }
 }
