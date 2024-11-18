@@ -446,6 +446,39 @@ mod rpm_tests {
             full_version: "1.2.3-5.x86_64".to_string(),
         };
         assert!(package1 < package2);
+
+        let package1 = Rpm {
+            name: "vim-minimal".to_string(),
+            epoch: 0,
+            version: PackageVersion("9.0.2092".to_string()),
+            release: PackageVersion("8.oe2403".to_string()),
+            arch: "x86_64".to_string(),
+            full_name: "vim-minimal-9.0.2092-8.oe2403.x86_64".to_string(),
+            full_version: "9.0.2092-8.oe2403.x86_64".to_string(),
+        };
+
+        let package2 = Rpm {
+            name: "vim-minimal".to_string(),
+            epoch: 0,
+            version: PackageVersion("4294967296.0.2092".to_string()),
+            release: PackageVersion("8.oe2403".to_string()),
+            arch: "x86_64".to_string(),
+            full_name: "vim-minimal-4294967296.0.2092-8.oe2403.x86_64".to_string(),
+            full_version: "4294967296.0.2092-8.oe2403.x86_64".to_string(),
+        };
+        assert!(package1 < package2);
+
+        let package2 = Rpm {
+            name: "vim-minimal".to_string(),
+            epoch: 0,
+            version: PackageVersion("429496729542949672954294967295.0.2092".to_string()),
+            release: PackageVersion("8.oe2403".to_string()),
+            arch: "x86_64".to_string(),
+            full_name: "vim-minimal-429496729542949672954294967295.0.2092-8.oe2403.x86_64"
+                .to_string(),
+            full_version: "429496729542949672954294967295.0.2092-8.oe2403.x86_64".to_string(),
+        };
+        assert!(package1 < package2);
     }
 
     #[test]
