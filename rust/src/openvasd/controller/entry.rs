@@ -10,6 +10,7 @@ use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use super::{context::Context, ClientIdentifier};
 
+use http::StatusCode;
 use hyper::{Method, Request};
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use scannerlib::models::{scanner::*, Action, Phase, Scan, ScanAction};
@@ -192,7 +193,7 @@ where
             let kp = KnownPaths::from_path(req.uri().path(), &ctx.mode);
             // on head requests we just return an empty response, except for /scans
             if req.method() == Method::HEAD && kp != KnownPaths::Scans(None) {
-                return Ok(ctx.response.empty(hyper::StatusCode::OK));
+                return Ok(ctx.response.empty(StatusCode::OK));
             }
             let cid: Option<ClientHash> = {
                 match &*cid {
@@ -259,19 +260,17 @@ where
                 "process call",
             );
             match (req.method(), kp) {
-                (&Method::HEAD, Scans(None)) => {
-                    Ok(ctx.response.empty(hyper::StatusCode::NO_CONTENT))
-                }
+                (&Method::HEAD, Scans(None)) => Ok(ctx.response.empty(StatusCode::NO_CONTENT)),
                 (&Method::GET, Health(HealthOpts::Alive))
                 | (&Method::GET, Health(HealthOpts::Started)) => {
-                    Ok(ctx.response.empty(hyper::StatusCode::OK))
+                    Ok(ctx.response.empty(StatusCode::OK))
                 }
                 (&Method::GET, Health(HealthOpts::Ready)) => {
                     let oids = ctx.scheduler.oids().await?;
                     if oids.count() == 0 {
-                        Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE))
+                        Ok(ctx.response.empty(StatusCode::SERVICE_UNAVAILABLE))
                     } else {
-                        Ok(ctx.response.empty(hyper::StatusCode::OK))
+                        Ok(ctx.response.empty(StatusCode::OK))
                     }
                 }
                 (&Method::GET, Notus(None)) => match &ctx.notus {
@@ -279,7 +278,7 @@ where
                         Ok(result) => Ok(ctx.response.ok(&result)),
                         Err(err) => Ok(ctx.response.internal_server_error(&err)),
                     },
-                    None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+                    None => Ok(ctx.response.empty(StatusCode::SERVICE_UNAVAILABLE)),
                 },
 
                 (&Method::POST, Notus(Some(os))) => {
@@ -297,7 +296,7 @@ where
                                     _ => Ok(ctx.response.internal_server_error(&err)),
                                 },
                             },
-                            None => Ok(ctx.response.empty(hyper::StatusCode::SERVICE_UNAVAILABLE)),
+                            None => Ok(ctx.response.empty(StatusCode::SERVICE_UNAVAILABLE)),
                         },
                         Err(resp) => Ok(resp),
                     }
@@ -429,7 +428,7 @@ where
                     };
 
                     match ctx.scheduler.get_results(&id, begin, end).await {
-                        Ok(results) => Ok(ctx.response.ok_byte_stream(results).await),
+                        Ok(results) => Ok(ctx.response.byte_stream(StatusCode::OK, results).await),
                         Err(crate::storage::Error::NotFound) => {
                             Ok(ctx.response.not_found("scans/results", &id))
                         }
@@ -470,6 +469,7 @@ where
 pub mod client {
     use std::sync::Arc;
 
+    use http::StatusCode;
     use http_body_util::{BodyExt, Empty, Full};
     use hyper::{
         body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
@@ -482,6 +482,7 @@ pub mod client {
     };
     use serde::Deserialize;
 
+    use crate::storage::inmemory;
     use crate::{
         controller::{ClientIdentifier, Context},
         storage::{file::Storage, NVTStorer, UserNASLStorageForKBandVT},
@@ -506,11 +507,7 @@ pub mod client {
             >,
             FSPluginLoader,
         )>,
-        Arc<
-            UserNASLStorageForKBandVT<
-                crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
-            >,
-        >,
+        Arc<UserNASLStorageForKBandVT<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage = crate::storage::inmemory::Storage::default();
@@ -549,6 +546,24 @@ pub mod client {
             .unwrap();
         let nasl_feed_path = nasl_root().await;
         let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        Client::authenticated(scanner, storage)
+    }
+
+    pub async fn fails_to_fetch_results() -> Client<
+        scannerlib::scanner::fake::LambdaScanner,
+        Arc<UserNASLStorageForKBandVT<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
+    > {
+        use crate::file::tests::example_feeds;
+        let storage = crate::storage::inmemory::Storage::default();
+        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        storage
+            .synchronize_feeds(example_feeds().await)
+            .await
+            .unwrap();
+
+        let scanner = scannerlib::scanner::fake::LambdaScannerBuilder::new()
+            .with_fetch_results(|_| Err(scanner::Error::Unexpected("no results".to_string())))
+            .build();
         Client::authenticated(scanner, storage)
     }
 
@@ -648,7 +663,7 @@ pub mod client {
             let result = self
                 .request_empty(Method::GET, KnownPaths::ScanStatus(id.to_string()))
                 .await;
-            self.parsed(result).await
+            self.parsed(result, StatusCode::OK).await
         }
 
         pub async fn header(&self) -> TypeResult<HeaderMap<HeaderValue>> {
@@ -662,14 +677,18 @@ pub mod client {
             let result = self
                 .request_empty(Method::GET, KnownPaths::Scans(Some(id.to_string())))
                 .await;
-            self.parsed(result).await
+            self.parsed(result, StatusCode::OK).await
         }
 
-        pub async fn scan_results(&self, id: &str) -> TypeResult<Vec<models::Result>> {
+        pub async fn scan_results(
+            &self,
+            id: &str,
+            status: StatusCode,
+        ) -> TypeResult<Vec<models::Result>> {
             let result = self
                 .request_empty(Method::GET, KnownPaths::ScanResults(id.to_string(), None))
                 .await;
-            self.parsed(result).await
+            self.parsed(result, status).await
         }
         pub async fn scan_delete(&self, id: &str) -> TypeResult<()> {
             let result = self
@@ -705,7 +724,7 @@ pub mod client {
             let result = self
                 .request_empty(Method::GET, KnownPaths::Scans(None))
                 .await;
-            self.parsed(result).await
+            self.parsed(result, StatusCode::OK).await
         }
 
         // TODO: deal with that static stuff that prevents deserializiation based on Bytes
@@ -731,12 +750,12 @@ pub mod client {
             let result = self
                 .request_json(Method::POST, KnownPaths::Scans(None), scan)
                 .await;
-            self.parsed(result).await
+            self.parsed(result, StatusCode::CREATED).await
         }
 
         pub async fn vts(&self) -> TypeResult<Vec<String>> {
             let result = self.request_empty(Method::GET, KnownPaths::Vts(None)).await;
-            self.parsed(result).await
+            self.parsed(result, StatusCode::OK).await
         }
 
         /// Starts a scan and wait until is finished and returns it status and results
@@ -770,14 +789,19 @@ pub mod client {
             }
         }
 
-        pub async fn parsed<'a, T>(&self, result: HttpResult) -> TypeResult<T>
+        pub async fn parsed<'a, T>(
+            &self,
+            result: HttpResult,
+            expected_status: StatusCode,
+        ) -> TypeResult<T>
         where
             T: for<'de> Deserialize<'de>,
         {
             let resp = result?;
-            if resp.status() != 200 && resp.status() != 201 {
+            if resp.status() != expected_status {
                 return Err(scanner::Error::Unexpected(format!(
-                    "Expected 200 for a body response but got {}",
+                    "Expected {} for a body response but got {}",
+                    expected_status,
                     resp.status()
                 )));
             }
@@ -792,6 +816,7 @@ pub mod client {
 
 #[cfg(test)]
 pub(super) mod tests {
+    use http::StatusCode;
     use scannerlib::models::{Scan, VT};
 
     #[tokio::test]
@@ -820,8 +845,22 @@ pub(super) mod tests {
         assert!(vts.len() > 2);
         let (id, status) = client.scan_finish(&scan).await.unwrap();
         assert_eq!(status.status, scannerlib::models::Phase::Succeeded);
-        let results = client.scan_results(&id).await.unwrap();
+        let results = client.scan_results(&id, StatusCode::OK).await.unwrap();
         assert_eq!(3, results.len());
+        client.scan_delete(&id).await.unwrap();
+    }
+
+    #[tokio::test]
+    #[tracing_test::traced_test]
+    async fn status_of_internal_error_should_be_reflects() {
+        let client = super::client::fails_to_fetch_results().await;
+
+        let mut scan: Scan = Scan::default();
+        scan.target.hosts.push("localhost".to_string());
+        let (id, status) = client.scan_finish(&scan).await.unwrap();
+        assert_eq!(status.status, scannerlib::models::Phase::Failed);
+        let results = client.scan_results(&id, StatusCode::OK).await.unwrap();
+        assert_eq!(0, results.len());
         client.scan_delete(&id).await.unwrap();
     }
 }

@@ -19,15 +19,25 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt update || true
-      - run: sudo apt-get install -y libpcap-dev
-      - run: rustup update stable && rustup default stable || rustup default stable 
-      - run: cargo install cargo-audit
+      - uses: ./.github/actions/setup-rust
+      - run: cargo clippy -- -D warnings
+      - run: cargo fmt --check
+  Rust-Typos:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust
       - run: cargo install typos-cli
-      - name: Clippy
-        run: cargo clippy -- -D warnings
-      - name: Audit
-        run: cargo audit
       - run: typos
-      - name: Formatting
-        run: cargo fmt --check
+  Rust-Audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo install cargo-audit
+      - run: cargo audit

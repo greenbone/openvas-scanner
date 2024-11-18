@@ -7,11 +7,11 @@ To build and run the tests a Makefile is provided:
 - make run - runs a scan against an scanner API listening on http://127.0.0.1:3000.
 
 ## Configuration
-Usage of api-key is optional. For details on how to configure it, see the [openvasd documentation](../openvasd/README.md).
+Usage of api-key is optional. For details on how to configure it, see the [openvasd documentation](../../src/openvasd/README.md).
 
-In case of running the test against a mTLS enabled `openvasd`, you need to configure the client key and cert as well in the smoke test environment. For details on how to configure it, see the [openvasd documentation](../openvasd/README.md).
+In case of running the test against a mTLS enabled `openvasd`, you need to configure the client key and cert as well in the smoke test environment. For details on how to configure it, see the [openvasd documentation](../../src/openvasd/README.md).
 
-For creation of the key/cert pair for mTLS authentication, see the tls section in the [openvasd documentation](../openvasd/README.md). Also, you find certificate generators in the [examples](../examples/tls)
+For creation of the key/cert pair for mTLS authentication, see the tls section in the [openvasd documentation](../../src/openvasd/README.md). Also, you find certificate generators in the [examples](../../examples/tls/)
 
 For authenticated scans, you can set a custom target (default is 127.0.0.1), username and password.
 

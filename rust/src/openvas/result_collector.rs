@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::openvas::openvas_redis::{KbAccess, VtHelper};
-use crate::osp::{OspResultType, OspScanResult, StringF32};
+use crate::osp::{OspResultType, OspScanResult};
 use crate::storage::redis::RedisStorageResult;
 
 /// Structure to hold the results retrieve from redis main kb
@@ -111,62 +111,29 @@ where
                     }
                 };
             }
+            let mut push_result = |x| {
+                scan_results.push(OspScanResult {
+                    result_type: x,
+                    host: Some(current_host.clone()),
+                    hostname: Some(host_name.clone()),
+                    port: Some(port.clone()),
+                    test_id: Some(roid.to_string()),
+                    description: value.clone(),
+                    severity: None,
+                    name: rname.clone(),
+                });
+            };
 
             if error_msg {
-                scan_results.push(OspScanResult {
-                    result_type: OspResultType::Error,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
+                push_result(OspResultType::Error);
             } else if result_type == "LOG" {
-                scan_results.push(OspScanResult {
-                    result_type: OspResultType::Log,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
+                push_result(OspResultType::Log);
             } else if result_type == "HOST_START" {
-                scan_results.push(OspScanResult {
-                    result_type: OspResultType::HostStart,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
+                push_result(OspResultType::HostStart);
             } else if result_type == "HOST_END" {
-                scan_results.push(OspScanResult {
-                    result_type: OspResultType::HostEnd,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
+                push_result(OspResultType::HostEnd);
             } else if result_type == "ALARM" {
-                scan_results.push(OspScanResult {
-                    result_type: OspResultType::Alarm,
-                    host: current_host,
-                    hostname: host_name,
-                    port,
-                    test_id: roid.to_string(),
-                    description: value,
-                    severity: StringF32::from(0.0),
-                    name: rname,
-                });
+                push_result(OspResultType::Alarm);
             } else if result_type == "DEADHOST" {
                 new_dead += i64::from_str(&value).expect("Valid amount of dead hosts");
             } else if host_count {

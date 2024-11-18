@@ -74,7 +74,7 @@ scan_progress = (12 + 75 + 100 * 1) / (12 - 2) = 18.7 %
 
 ## Special case for resume task
 
-When a resume task, the finished hosts should not be scanned again. Therefore they are sent in the list of excluded hosts. Please read the documentation for [resume scan](resume-scan.md).
+When a resume task, the finished hosts should not be scanned again. Therefore they are sent in the list of excluded hosts. Please read the documentation for [resume scan](../faq/resume-scan.md).
 In this case, a resume scan with some finished hosts, should not start with a progress with 0%, but a progress according with the already finished hosts.
 
 Then, imagine that the scan of example above, with an initial target of 15 hosts, was stopped/interrupted and you want to resume it. It has an already finished hosts. This hosts is added to the list of `excluded hosts`.
@@ -111,4 +111,3 @@ Then, the scan progress for a resume task will start from:
 ```
 scan_progress = (0 + 100 * (0 + 1) / (11 + 1 - 2) = 10 %
 ```
-

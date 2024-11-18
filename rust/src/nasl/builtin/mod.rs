@@ -51,6 +51,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(cryptographic::Cryptographic)
         .add_set(description::Description)
         .add_set(isotime::NaslIsotime)
+        .add_set(cryptographic::rc4::CipherHandlers::default())
         .add_set(ssh::Ssh::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
