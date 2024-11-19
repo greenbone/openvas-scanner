@@ -58,6 +58,11 @@ impl Sys {
         let stdout = String::from_utf8(out.stdout).unwrap();
         Ok(stdout)
     }
+
+    #[nasl_function]
+    async fn fread(&self, path: &str) -> Result<String, FnError> {
+        std::fs::read_to_string(path).map_err(|e| SysError::ReadFile(e).into())
+    }
 }
 
 function_set! {
@@ -65,6 +70,7 @@ function_set! {
     async_stateful,
     (
         (Sys::pread, "pread"),
+        (Sys::fread, "fread"),
     )
 }
 
