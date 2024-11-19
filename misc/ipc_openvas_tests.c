@@ -70,10 +70,8 @@ Ensure (ipc_openvas, ipc_data_from_json_hostname_ok)
 Ensure (ipc_openvas, ipc_data_from_json_parse_error)
 {
   ipc_data_t *data_r = NULL;
-  char *json_fake = NULL;
-
   // malformed json string
-  json_fake = g_strdup (
+  char json_fake[1024] =
     "{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
     "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
     "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
@@ -90,7 +88,7 @@ Ensure (ipc_openvas, ipc_data_from_json_parse_error)
     "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
     "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
     "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 "
-    "[en] (X11, U; Greenbone OS 22.04.4)\"}{\"type\":");
+    "[en] (X11, U; Greenbone OS 22.04.4)\"}{\"type\":";
 
   // Read received data
   data_r = g_malloc0 (sizeof (ipc_data_t));
@@ -103,28 +101,26 @@ Ensure (ipc_openvas, ipc_data_from_json_parse_error)
 Ensure (ipc_openvas, ipc_data_from_json_parse_many_objects)
 {
   ipc_data_t *data_r = NULL;
-  char *json_fake = NULL;
   int len = 0;
   int pos = 0;
 
   // json string with more than one objects
-  json_fake =
-    g_strdup ("{\"type\":1,\"source\":\"TLS "
-              "certificate\",\"hostname\":\"localhost\"}{\"type\":2,\"user-"
-              "agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
-              "22.04.4)\"}");
+  char json_fake[256] =
+    "{\"type\":1,\"source\":\"TLS "
+    "certificate\",\"hostname\":\"localhost\"}{\"type\":2,\"user-agent\":"
+    "\"Mozilla/5.0 [en] (X11, U; Greenbone OS 22.04.4)\"}";
 
-  for (int j = 0; json_fake[j] != '\0'; j++)
+  for (int i = 0; json_fake[i] != '\0'; i++)
     {
-      if (json_fake[j] == '}')
+      if (json_fake[i] == '}')
         {
           gchar *message = NULL;
-          len = j - pos + 1;
+          len = i - pos + 1;
 
           message = g_malloc0 (sizeof (gchar) * (len + 1));
           memcpy (message, &json_fake[pos], len);
           printf ("\n\nel mensaje %s\n\n", message);
-          pos = j + 1;
+          pos = i + 1;
           len = 0;
           data_r = g_malloc0 (sizeof (ipc_data_t));
           data_r = ipc_data_from_json (message, strlen (message));
