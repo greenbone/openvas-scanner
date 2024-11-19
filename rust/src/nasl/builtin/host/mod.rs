@@ -14,12 +14,25 @@ use dns_lookup::lookup_addr;
 
 use crate::function_set;
 use crate::nasl::utils::{error::FunctionErrorKind, hosts::resolve, lookup_keys::TARGET};
+use crate::nasl::utils::error::FunctionErrorKind;
 
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::{Context, ContextType, Register};
 
+/// Get a list of found hostnames or a IP of the current target in case no hostnames were found yet.
+fn get_host_names(_register: &Register, context: &Context) -> Result<NaslValue, FunctionErrorKind> {
+    if let Some(hns) = context.target_vhosts() {
+        let hns = hns
+            .into_iter()
+            .map(|(h, _s)| NaslValue::String(h))
+            .collect::<Vec<_>>();
+        return Ok(NaslValue::Array(hns));
+    };
+    Ok(NaslValue::String(context.target().to_string()))
+}
+
 /// Return the target's IP address as IpAddr.
-pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
+fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = match context.target() {
         x if !x.is_empty() => IpAddr::from_str(x),
@@ -35,6 +48,9 @@ pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
     }
 }
 
+///Expands the vHosts list with the given hostname.
+///The mandatory parameter hostname is of type string. It contains the hostname which should be added to the list of vHosts
+///Additionally a source, how the hostname was detected can be added with the named argument source as a string. If it is not given, the value NASL is set as default.
 pub fn add_host_name(
     register: &Register,
     context: &Context,
@@ -54,24 +70,7 @@ pub fn add_host_name(
     Ok(NaslValue::Null)
 }
 
-pub fn get_host_names(
-    _register: &Register,
-    context: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
-    if context.target_vhosts().is_none() {
-        return Ok(NaslValue::Array(vec![NaslValue::String(
-            context.target_ip().to_string(),
-        )]));
-    }
-
-    let vhosts = context
-        .target_vhosts()
-        .unwrap()
-        .iter()
-        .map(|(h, _s)| NaslValue::String(h.to_string()))
-        .collect();
-    Ok(NaslValue::Array(vhosts))
-}
+/// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
 pub fn get_host_name(
     _register: &Register,
     context: &Context,
@@ -83,7 +82,9 @@ pub fn get_host_name(
             .map(|(v, _s)| NaslValue::String(v))
             .collect::<Vec<_>>();
     }
-
+    //TODO: store the current hostname being forked.
+    //TODO: don't fork if expand_vhost is disabled.
+    //TODO: don't fork if already in a vhost
     if !v.is_empty() {
         return Ok(NaslValue::Fork(v));
     }
@@ -98,6 +99,10 @@ pub fn get_host_name(
     }
 }
 
+/// This function returns the source of detection of a given hostname.
+/// The named parameter hostname is a string containing the hostname.
+/// When no hostname is given, the current scanned host is taken.
+/// If no virtual hosts are found yet this function always returns IP-address.
 pub fn get_host_name_source(
     register: &Register,
     context: &Context,
@@ -110,15 +115,14 @@ pub fn get_host_name_source(
     };
 
     if let Some(vh) = context.target_vhosts() {
-        if let Some(source) =
-            vh.into_iter()
-                .find_map(|(v, s)| if v == hostname { Some(s) } else { None })
+        if let Some(source) = vh
+            .into_iter()
+            .find_map(|(v, s)| if v == hostname { Some(s) } else { None })
         {
             return Ok(NaslValue::String(source));
         };
     }
-
-    Ok(NaslValue::Null)
+    Ok(NaslValue::String(context.target().to_string()))
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
@@ -302,7 +306,6 @@ function_set! {
     Host,
     sync_stateless,
     (
-        get_host_name,
         get_host_names,
         (nasl_get_host_ip, "get_host_ip"),
         resolve_host_name,
@@ -310,6 +313,7 @@ function_set! {
         (target_is_ipv6, "TARGET_IS_IPV6"),
         same_host,
         add_host_name,
+        get_host_name,
         get_host_name_source
     )
 }

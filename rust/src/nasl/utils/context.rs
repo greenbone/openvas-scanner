@@ -475,8 +475,8 @@ impl<'a> Context<'a> {
         Some(self.target.vhosts.lock().unwrap().clone())
     }
 
-    pub fn set_target(&mut self, ori_target: String) {
-        self.target.target = ori_target;
+    pub fn set_target(&mut self, target: String) {
+        self.target.target = target;
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) {
