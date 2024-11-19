@@ -150,150 +150,139 @@ impl<'a> Interpreter<'a> {
 
 #[cfg(test)]
 mod tests {
-    // use crate::*;
-    //
-    // #[test]
-    // fn for_loop_test() {
-    //     let code = r###"
-    //     a = 0;
-    //     for ( i = 1; i < 5; i++) {
-    //         a += i;
-    //     }
-    //     a;
-    //     "###;
-    //     let binding = ContextFactory::default();
-    //     let context = binding.build(Default::default());
-    //     let register = Register::default();
-    //     let mut interpreter = Interpreter::new(register, &context);
-    //     let mut interpreter =
-    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
-    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-    //     assert_eq!(interpreter.next(), Some(Ok(10.into())));
-    // }
+    use crate::nasl::test_prelude::*;
 
-    // #[test]
-    // fn for_loop_without_update() {
-    //     let code = r###"
-    //     a = 0;
-    //     for (; a < 5; ) {
-    //         a += 1;
-    //     }
-    //     a;
-    //     "###;
-    //     let register = Register::default();
-    //     let binding = ContextFactory::default();
-    //     let context = binding.build(Default::default());
-    //     let mut interpreter = Interpreter::new(register, &context);
-    //     let mut interpreter =
-    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
-    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-    //     assert_eq!(interpreter.next(), Some(Ok(5.into())));
-    // }
+    #[test]
+    fn for_loop_test() {
+        let code = r###"
+        a = 0;
+        for ( i = 1; i < 5; i++) {
+            a += i;
+        }
+        a;
+        "###;
+        let mut t = TestBuilder::default();
+        t.run_all(code);
+        let mut results = t.results();
+        assert_eq!(results.remove(0).unwrap(), 0.into());
+        assert_eq!(results.remove(0).unwrap(), NaslValue::Null);
+        assert_eq!(results.remove(0).unwrap(), 10.into());
+    }
 
-    // #[test]
-    // fn for_each_loop_test() {
-    //     let code = r###"
-    //     arr[0] = 3;
-    //     arr[1] = 5;
-    //     a = 0;
-    //     foreach i (arr) {
-    //         a += i;
-    //     }
-    //     a;
-    //     "###;
-    //     let register = Register::default();
-    //     let binding = ContextFactory::default();
-    //     let context = binding.build(Default::default());
-    //     let mut interpreter = Interpreter::new(register, &context);
-    //     let mut interpreter =
-    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
-    //     assert_eq!(interpreter.next(), Some(Ok(3.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(5.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-    //     assert_eq!(interpreter.next(), Some(Ok(8.into())));
-    // }
+    #[test]
+    fn for_loop_without_update() {
+        let code = r###"
+        a = 0;
+        for (; a < 5; ) {
+            a += 1;
+        }
+        a;
+        "###;
+        let mut t = TestBuilder::default();
+        t.run_all(code);
+        let mut results = t.results();
+        assert_eq!(results.remove(0).unwrap(), 0.into());
+        assert_eq!(results.remove(0).unwrap(), NaslValue::Null);
+        assert_eq!(results.remove(0).unwrap(), 5.into());
+    }
 
-    // #[test]
-    // fn while_loop_test() {
-    //     let code = r###"
-    //     i = 4;
-    //     a = 0;
-    //     i > 0;
-    //     while(i > 0) {
-    //         a += i;
-    //         i--;
-    //     }
-    //     a;
-    //     i;
-    //     "###;
-    //     let register = Register::default();
-    //     let binding = ContextFactory::default();
-    //     let context = binding.build(Default::default());
-    //     let mut interpreter = Interpreter::new(register, &context);
-    //     let mut interpreter =
-    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
-    //     assert_eq!(interpreter.next(), Some(Ok(4.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Boolean(true))));
-    // }
+    #[test]
+    fn for_each_loop_test() {
+        let code = r###"
+        arr[0] = 3;
+        arr[1] = 5;
+        a = 0;
+        foreach i (arr) {
+            a += i;
+        }
+        a;
+        "###;
+        let mut t = TestBuilder::default();
+        t.run_all(code);
+        let mut results = t.results();
 
-    // #[test]
-    // fn repeat_loop_test() {
-    //     let code = r###"
-    //     i = 10;
-    //     a = 0;
-    //     repeat {
-    //         a += i;
-    //         i--;
-    //     } until (i > 0);
-    //     a;
-    //     i;
-    //     "###;
-    //     let register = Register::default();
-    //     let binding = ContextFactory::default();
-    //     let context = binding.build(Default::default());
-    //     let mut interpreter = Interpreter::new(register, &context);
-    //     let mut interpreter =
-    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
-    //     assert_eq!(interpreter.next(), Some(Ok(10.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-    //     assert_eq!(interpreter.next(), Some(Ok(10.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(9.into())));
-    // }
+        assert_eq!(results.remove(0).unwrap(), 3.into());
+        assert_eq!(results.remove(0).unwrap(), 5.into());
+        assert_eq!(results.remove(0).unwrap(), 0.into());
+        assert_eq!(results.remove(0).unwrap(), NaslValue::Null);
+        assert_eq!(results.remove(0).unwrap(), 8.into());
+    }
 
-    // #[test]
-    // fn control_flow() {
-    //     let code = r###"
-    //     a = 0;
-    //     i = 5;
-    //     while(i > 0) {
-    //         if(i == 4) {
-    //             i--;
-    //             continue;
-    //         }
-    //         if (i == 1) {
-    //             break;
-    //         }
-    //         a += i;
-    //         i--;
-    //     }
-    //     a;
-    //     i;
-    //     "###;
-    //     let register = Register::default();
-    //     let binding = ContextFactory::default();
-    //     let context = binding.build(Default::default());
-    //     let mut interpreter = Interpreter::new(register, &context);
-    //     let mut interpreter =
-    //         parse(code).map(|x| interpreter.resolve(&x.expect("unexpected parse error")));
-    //     assert_eq!(interpreter.next(), Some(Ok(0.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(5.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(NaslValue::Null)));
-    //     assert_eq!(interpreter.next(), Some(Ok(10.into())));
-    //     assert_eq!(interpreter.next(), Some(Ok(1.into())));
-    // }
+    #[test]
+    fn while_loop_test() {
+        let code = r###"
+        i = 4;
+        a = 0;
+        i > 0;
+        while(i > 0) {
+            a += i;
+            i--;
+        }
+        a;
+        i;
+        "###;
+
+        let mut t = TestBuilder::default();
+        t.run_all(code);
+        let mut results = t.results();
+
+        assert_eq!(results.remove(0).unwrap(), 4.into());
+        assert_eq!(results.remove(0).unwrap(), 0.into());
+        assert_eq!(results.remove(0).unwrap(), NaslValue::Boolean(true));
+    }
+
+    #[test]
+    fn repeat_loop_test() {
+        let code = r###"
+        i = 10;
+        a = 0;
+        repeat {
+            a += i;
+            i--;
+        } until (i > 0);
+        a;
+        i;
+        "###;
+
+        let mut t = TestBuilder::default();
+        t.run_all(code);
+        let mut results = t.results();
+
+        assert_eq!(results.remove(0).unwrap(), 10.into());
+        assert_eq!(results.remove(0).unwrap(), 0.into());
+        assert_eq!(results.remove(0).unwrap(), NaslValue::Null);
+        assert_eq!(results.remove(0).unwrap(), 10.into());
+        assert_eq!(results.remove(0).unwrap(), 9.into());
+    }
+
+    #[test]
+    fn control_flow() {
+        let code = r###"
+        a = 0;
+        i = 5;
+        while(i > 0) {
+            if(i == 4) {
+                i--;
+                continue;
+            }
+            if (i == 1) {
+                break;
+            }
+            a += i;
+            i--;
+        }
+        a;
+        i;
+        "###;
+
+        let mut t = TestBuilder::default();
+        t.run_all(code);
+        let mut results = t.results();
+
+        assert_eq!(results.remove(0).unwrap(), 0.into());
+        assert_eq!(results.remove(0).unwrap(), 5.into());
+        assert_eq!(results.remove(0).unwrap(), NaslValue::Null);
+        assert_eq!(results.remove(0).unwrap(), 10.into());
+        assert_eq!(results.remove(0).unwrap(), 1.into());
+    }
 }
