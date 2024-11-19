@@ -44,7 +44,7 @@ impl Error {
                 "Specific type specified in receiver argument. Currently, only `&self` is supported."
             }
             ErrorKind::WrongArgumentOrder => {
-                "Argument in wrong position. Order of arguments should be: Context/Register, Positionals, Named"
+                "Argument in wrong position. Order of arguments should be: Context/Register, Positionals, Named, *Positional list"
             }
         }.into()
     }

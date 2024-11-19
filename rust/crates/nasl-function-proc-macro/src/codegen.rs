@@ -28,7 +28,7 @@ impl<'a> ArgsStruct<'a> {
         self.args.iter().any(|arg| {
             matches!(
                 arg.kind,
-                ArgKind::PositionalIterator | ArgKind::CheckedPositionalIterator
+                ArgKind::PositionalIterator(_) | ArgKind::CheckedPositionalIterator(_)
             )
         })
     }
@@ -84,14 +84,16 @@ impl<'a> ArgsStruct<'a> {
                             _register
                         }
                     },
-                    ArgKind::PositionalIterator => {
+                    ArgKind::PositionalIterator(arg) => {
+                        let position = arg.position;
                         quote! {
-                            crate::nasl::utils::function::Positionals::new(_register)
+                            crate::nasl::utils::function::Positionals::new(_register, #position)
                         }
                     }
-                    ArgKind::CheckedPositionalIterator => {
+                    ArgKind::CheckedPositionalIterator(arg) => {
+                        let position = arg.position;
                         quote! {
-                            crate::nasl::utils::function::CheckedPositionals::new(_register)?
+                            crate::nasl::utils::function::CheckedPositionals::new(_register, #position)?
                         }
                     }
                 };

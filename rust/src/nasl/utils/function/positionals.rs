@@ -9,14 +9,16 @@ use super::FromNaslValue;
 /// over the positional arguments of a given type `T`.
 pub struct Positionals<'a, T> {
     register: &'a Register,
+    start_position: usize,
     _marker: PhantomData<T>,
 }
 
 impl<'a, T: FromNaslValue<'a>> Positionals<'a, T> {
     /// Create a new `Positionals` from the register.
-    pub fn new(register: &'a Register) -> Self {
+    pub fn new(register: &'a Register, start_position: usize) -> Self {
         Self {
             register,
+            start_position,
             _marker: PhantomData,
         }
     }
@@ -28,6 +30,7 @@ impl<'a, T: FromNaslValue<'a>> Positionals<'a, T> {
         self.register
             .positional()
             .iter()
+            .skip(self.start_position)
             .map(|val| T::from_nasl_value(val))
     }
 }
@@ -45,10 +48,11 @@ pub struct CheckedPositionals<T> {
 
 impl<'a, T: FromNaslValue<'a>> CheckedPositionals<T> {
     /// Create a new `CheckedPositionals` from the register.
-    pub fn new(register: &'a Register) -> Result<Self, FnError> {
+    pub fn new(register: &'a Register, start_position: usize) -> Result<Self, FnError> {
         let data = register
             .positional()
             .iter()
+            .skip(start_position)
             .map(T::from_nasl_value)
             .collect::<Result<Vec<_>, FnError>>()?;
         Ok(Self {
