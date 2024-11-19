@@ -18,7 +18,7 @@ mod tests;
 pub use error::SshError;
 pub use sessions::SshSessions as Ssh;
 
-use std::{borrow::BorrowMut, time::Duration};
+use std::time::Duration;
 
 use ::russh::{cipher, Preferred};
 use russh_keys::key;

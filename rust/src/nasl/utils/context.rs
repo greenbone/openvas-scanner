@@ -290,7 +290,7 @@ impl Default for Register {
     }
 }
 use std::collections::HashMap;
-use std::net::{AddrParseError, IpAddr};
+use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::Mutex;
 
@@ -363,19 +363,10 @@ impl Target {
         // Store the IpAddr if possible, else default to localhost
         if let Ok(host) = resolve(self.target.clone()) {
             let t = match host {
-                Some(mut a) => {
-                    let address = a.next().map_or_else(String::new, |x| x.to_string());
-                    address[..(address.len() - 5)].to_string()
-                }
+                Some(mut a) => a.next().map_or_else(String::new, |x| x.ip().to_string()),
                 None => "127.0.0.1".to_string(),
             };
-
-            self.ip_addr = match t {
-                x if !x.is_empty() => x.to_string(),
-                _ => "127.0.0.1".to_string(),
-            }
-            .parse()
-            .unwrap();
+            self.ip_addr = IpAddr::from_str(t.as_str()).unwrap();
         }
         self
     }

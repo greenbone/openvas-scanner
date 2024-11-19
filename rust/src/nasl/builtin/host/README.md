@@ -1,10 +1,5 @@
 ## Implements
 
-- get_host_name
-- get_host_names
-
-## Missing
-
 - TARGET_IS_IPV6
 - add_host_name
 - get_host_name

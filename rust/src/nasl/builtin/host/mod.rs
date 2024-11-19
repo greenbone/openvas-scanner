@@ -6,15 +6,14 @@
 mod tests;
 
 use std::{
-    net::{IpAddr, SocketAddr, ToSocketAddrs},
+    net::{IpAddr, ToSocketAddrs},
     str::FromStr,
 };
 
 use dns_lookup::lookup_addr;
 
 use crate::function_set;
-use crate::nasl::utils::{error::FunctionErrorKind, hosts::resolve, lookup_keys::TARGET};
-use crate::nasl::utils::error::FunctionErrorKind;
+use crate::nasl::utils::{error::FunctionErrorKind, hosts::resolve};
 
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::{Context, ContextType, Register};
