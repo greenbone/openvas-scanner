@@ -43,13 +43,7 @@ fn to_comma_separated_string<T: AsRef<str>>(items: &[T]) -> Option<String> {
     if items.is_empty() {
         None
     } else {
-        Some(
-            items
-                .iter()
-                .map(|name| name.as_ref().to_string())
-                .collect::<Vec<_>>()
-                .join(","),
-        )
+        Some(itertools::join(items.iter().map(|name| name.as_ref()), ","))
     }
 }
 
