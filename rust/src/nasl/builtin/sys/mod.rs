@@ -18,6 +18,8 @@ pub enum SysError {
     ReadFileMetadata(io::Error),
     #[error("Unable to write file. {0}")]
     WriteFile(io::Error),
+    #[error("Unable to remove file. {0}")]
+    RemoveFile(io::Error),
     #[error("Error while trying to find the path for the command '{0}'")]
     FindCommandPath(String),
     #[error("Command '{0}' not found.")]
@@ -95,8 +97,17 @@ async fn fwrite(data: &str, file: &Path) -> Result<usize, FnError> {
 
 #[nasl_function]
 async fn file_stat(path: &Path) -> Result<u64, FnError> {
-    let metadata = std::fs::metadata(path).map_err(|e| SysError::ReadFileMetadata(e))?;
+    let metadata = tokio::fs::metadata(path)
+        .await
+        .map_err(|e| SysError::ReadFileMetadata(e))?;
     Ok(metadata.len())
+}
+
+#[nasl_function]
+async fn unlink(path: &Path) -> Result<(), FnError> {
+    tokio::fs::remove_file(path)
+        .await
+        .map_err(|e| SysError::RemoveFile(e).into())
 }
 
 #[nasl_function]
@@ -108,18 +119,19 @@ function_set! {
     Sys,
     async_stateless,
     (
-        (pread, "pread"),
-        (fread, "fread"),
-        (file_stat, "file_stat"),
-        (find_in_path, "find_in_path"),
-        (fwrite, "fwrite"),
-        (get_tmp_dir, "get_tmp_dir"),
+        pread,
+        fread,
+        file_stat,
+        find_in_path,
+        fwrite,
+        get_tmp_dir,
+        unlink,
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::test_prelude::*;
+    use crate::nasl::{builtin::sys::SysError, test_prelude::*};
 
     #[tokio::test]
     async fn pread() {
@@ -146,6 +158,8 @@ mod tests {
         t.ok(r#"fwrite(file: file, data: "foo");"#, 3);
         t.ok(r#"fread(file);"#, "foo");
         t.ok(r#"file_stat(file);"#, 3);
+        t.run(r#"unlink(file);"#);
+        check_err_matches!(t, r#"file_stat(file);"#, SysError::ReadFileMetadata(_));
         t.async_verify().await;
     }
 }
