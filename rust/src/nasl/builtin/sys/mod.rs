@@ -16,6 +16,8 @@ pub enum SysError {
     ReadFile(io::Error),
     #[error("Unable to read file metadata. {0}")]
     ReadFileMetadata(io::Error),
+    #[error("Unable to write file. {0}")]
+    WriteFile(io::Error),
     #[error("Error while trying to find the path for the command '{0}'")]
     FindCommandPath(String),
     #[error("Command '{0}' not found.")]
@@ -79,7 +81,18 @@ impl Sys {
 
     #[nasl_function]
     async fn fread(&self, path: &Path) -> Result<String, FnError> {
-        std::fs::read_to_string(path).map_err(|e| SysError::ReadFile(e).into())
+        tokio::fs::read_to_string(path)
+            .await
+            .map_err(|e| SysError::ReadFile(e).into())
+    }
+
+    #[nasl_function(named(data, file))]
+    async fn fwrite(&self, data: &str, file: &Path) -> Result<usize, FnError> {
+        tokio::fs::write(file, data)
+            .await
+            .map_err(|e| SysError::WriteFile(e))?;
+        let num_bytes = data.len();
+        Ok(num_bytes)
     }
 
     #[nasl_function]
@@ -97,6 +110,7 @@ function_set! {
         (Sys::fread, "fread"),
         (Sys::file_stat, "file_stat"),
         (Sys::find_in_path, "find_in_path"),
+        (Sys::fwrite, "fwrite"),
     )
 }
 
