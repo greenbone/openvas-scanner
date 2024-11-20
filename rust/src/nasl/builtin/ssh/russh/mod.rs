@@ -19,7 +19,7 @@ pub type Socket = i32;
 
 // This is a 'clone' of the libssh::AuthMethods, so
 // the capital case names are intentional.
-#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
+#[allow(non_camel_case_types, clippy::upper_case_acronyms, unused)]
 pub enum AuthMethods {
     PASSWORD,
     INTERACTIVE,
