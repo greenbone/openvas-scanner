@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::{FnError, NaslResult};
+use crate::nasl::{ArgumentError, FnError, NaslResult};
 
 /// A type that can be converted to a NaslResult.
 /// The conversion is fallible to make it possible to convert from other Result
@@ -101,6 +102,16 @@ impl<T: ToNaslResult> ToNaslResult for HashMap<String, T> {
 impl ToNaslResult for bool {
     fn to_nasl_result(self) -> NaslResult {
         Ok(NaslValue::Boolean(self))
+    }
+}
+
+impl ToNaslResult for PathBuf {
+    fn to_nasl_result(self) -> NaslResult {
+        self.to_str()
+            .ok_or_else(|| {
+                ArgumentError::WrongArgument("Expected valid UTF8 in path.".to_string()).into()
+            })
+            .map(|s| NaslValue::String(s.to_string()))
     }
 }
 

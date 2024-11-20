@@ -1,5 +1,5 @@
 use std::{
-    io,
+    env, io,
     path::{Path, PathBuf},
 };
 
@@ -42,75 +42,78 @@ async fn find_path_of_command(cmd: &str) -> Result<PathBuf, SysError> {
     }
 }
 
-impl Sys {
-    #[nasl_function(named(cd))]
-    async fn pread(
-        &self,
-        cmd: &str,
-        cd: Option<bool>,
-        argv: CheckedPositionals<String>,
-    ) -> Result<String, FnError> {
-        let mut real_cmd = Command::new(cmd);
-        if let Some(true) = cd {
-            // If `cd` is true, we need to change the cwd to
-            // the path in which the executable that will be
-            // run resides.
-            let dir = find_path_of_command(cmd).await?;
-            real_cmd.current_dir(dir);
-        };
-        for arg in argv.iter() {
-            real_cmd.arg(arg);
-        }
-        let out = real_cmd
-            .output()
-            .await
-            .map_err(|e| SysError::SpawnProcess(e))?;
-        let stdout = String::from_utf8(out.stdout).unwrap();
-        Ok(stdout)
+#[nasl_function(named(cd))]
+async fn pread(
+    cmd: &str,
+    cd: Option<bool>,
+    argv: CheckedPositionals<String>,
+) -> Result<String, FnError> {
+    let mut real_cmd = Command::new(cmd);
+    if let Some(true) = cd {
+        // If `cd` is true, we need to change the cwd to
+        // the path in which the executable that will be
+        // run resides.
+        let dir = find_path_of_command(cmd).await?;
+        real_cmd.current_dir(dir);
+    };
+    for arg in argv.iter() {
+        real_cmd.arg(arg);
     }
+    let out = real_cmd
+        .output()
+        .await
+        .map_err(|e| SysError::SpawnProcess(e))?;
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    Ok(stdout)
+}
 
-    #[nasl_function]
-    async fn find_in_path(&self, cmd: &str) -> Result<bool, FnError> {
-        let result = find_path_of_command(cmd).await;
-        match result {
-            Ok(_) => Ok(true),
-            Err(SysError::CommandNotFound(_)) => Ok(false),
-            Err(e) => Err(e.into()),
-        }
+#[nasl_function]
+async fn find_in_path(cmd: &str) -> Result<bool, FnError> {
+    let result = find_path_of_command(cmd).await;
+    match result {
+        Ok(_) => Ok(true),
+        Err(SysError::CommandNotFound(_)) => Ok(false),
+        Err(e) => Err(e.into()),
     }
+}
 
-    #[nasl_function]
-    async fn fread(&self, path: &Path) -> Result<String, FnError> {
-        tokio::fs::read_to_string(path)
-            .await
-            .map_err(|e| SysError::ReadFile(e).into())
-    }
+#[nasl_function]
+async fn fread(path: &Path) -> Result<String, FnError> {
+    tokio::fs::read_to_string(path)
+        .await
+        .map_err(|e| SysError::ReadFile(e).into())
+}
 
-    #[nasl_function(named(data, file))]
-    async fn fwrite(&self, data: &str, file: &Path) -> Result<usize, FnError> {
-        tokio::fs::write(file, data)
-            .await
-            .map_err(|e| SysError::WriteFile(e))?;
-        let num_bytes = data.len();
-        Ok(num_bytes)
-    }
+#[nasl_function(named(data, file))]
+async fn fwrite(data: &str, file: &Path) -> Result<usize, FnError> {
+    tokio::fs::write(file, data)
+        .await
+        .map_err(|e| SysError::WriteFile(e))?;
+    let num_bytes = data.len();
+    Ok(num_bytes)
+}
 
-    #[nasl_function]
-    async fn file_stat(&self, path: &Path) -> Result<u64, FnError> {
-        let metadata = std::fs::metadata(path).map_err(|e| SysError::ReadFileMetadata(e))?;
-        Ok(metadata.len())
-    }
+#[nasl_function]
+async fn file_stat(path: &Path) -> Result<u64, FnError> {
+    let metadata = std::fs::metadata(path).map_err(|e| SysError::ReadFileMetadata(e))?;
+    Ok(metadata.len())
+}
+
+#[nasl_function]
+async fn get_tmp_dir() -> PathBuf {
+    env::temp_dir()
 }
 
 function_set! {
     Sys,
-    async_stateful,
+    async_stateless,
     (
-        (Sys::pread, "pread"),
-        (Sys::fread, "fread"),
-        (Sys::file_stat, "file_stat"),
-        (Sys::find_in_path, "find_in_path"),
-        (Sys::fwrite, "fwrite"),
+        (pread, "pread"),
+        (fread, "fread"),
+        (file_stat, "file_stat"),
+        (find_in_path, "find_in_path"),
+        (fwrite, "fwrite"),
+        (get_tmp_dir, "get_tmp_dir"),
     )
 }
 
