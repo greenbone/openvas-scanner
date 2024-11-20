@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/statement.rs
+expression: stmt
+snapshot_kind: text
+---
+for (i = 0; i < 10; i++) { a }
