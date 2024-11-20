@@ -12,8 +12,10 @@ use crate::nasl::prelude::*;
 pub enum SysError {
     #[error("Failed to spawn process. {0}")]
     SpawnProcess(io::Error),
-    #[error("Unable to open file. {0}")]
+    #[error("Unable to read file. {0}")]
     ReadFile(io::Error),
+    #[error("Unable to read file metadata. {0}")]
+    ReadFileMetadata(io::Error),
     #[error("Unable to find the path for the command '{0}'")]
     FindCommandPath(String),
 }
@@ -60,8 +62,14 @@ impl Sys {
     }
 
     #[nasl_function]
-    async fn fread(&self, path: &str) -> Result<String, FnError> {
+    async fn fread(&self, path: &Path) -> Result<String, FnError> {
         std::fs::read_to_string(path).map_err(|e| SysError::ReadFile(e).into())
+    }
+
+    #[nasl_function]
+    async fn file_stat(&self, path: &Path) -> Result<u64, FnError> {
+        let metadata = std::fs::metadata(path).map_err(|e| SysError::ReadFileMetadata(e))?;
+        Ok(metadata.len())
     }
 }
 
@@ -71,6 +79,7 @@ function_set! {
     (
         (Sys::pread, "pread"),
         (Sys::fread, "fread"),
+        (Sys::file_stat, "file_stat"),
     )
 }
 

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use crate::nasl::prelude::*;
 
@@ -44,6 +44,18 @@ impl<'a> FromNaslValue<'a> for &'a [u8] {
         match value {
             NaslValue::Data(bytes) => Ok(bytes),
             _ => Err(ArgumentError::WrongArgument("Expected byte data.".to_string()).into()),
+        }
+    }
+}
+
+impl<'a> FromNaslValue<'a> for &'a Path {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
+        match value {
+            NaslValue::String(s) => Ok(Path::new(s)),
+            _ => Err(ArgumentError::WrongArgument(
+                "Expected a string specifying a path.".to_string(),
+            )
+            .into()),
         }
     }
 }
