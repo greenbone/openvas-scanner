@@ -127,4 +127,25 @@ mod tests {
         t.ok(r#"pread("basename", "/a/b/c");"#, "c\n");
         t.async_verify().await;
     }
+
+    #[tokio::test]
+    async fn find_in_path() {
+        let mut t = TestBuilder::default();
+        t.ok(r#"find_in_path("basename");"#, true);
+        // Cannot think of a way to construct a command name here
+        // that is very unlikely to exist without it sounding ridiculous
+        t.ok(r#"find_in_path("foobarbaz");"#, false);
+        t.async_verify().await;
+    }
+
+    #[tokio::test]
+    async fn write_read_to_tmpdir() {
+        let mut t = TestBuilder::default();
+        t.run(r#"path = get_tmp_dir();"#);
+        t.run(r#"file = path + "/write_read_to_tmpdir";"#);
+        t.ok(r#"fwrite(file: file, data: "foo");"#, 3);
+        t.ok(r#"fread(file);"#, "foo");
+        t.ok(r#"file_stat(file);"#, 3);
+        t.async_verify().await;
+    }
 }
