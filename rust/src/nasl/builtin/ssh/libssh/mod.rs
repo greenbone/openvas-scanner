@@ -65,6 +65,7 @@ impl Ssh {
 
     /// Create a new session, but only add it to the list of active sessions
     /// if the given closure which modifies the session returns Ok(...).
+    #[allow(clippy::too_many_arguments)]
     pub async fn connect(
         &mut self,
         socket: Option<Socket>,
