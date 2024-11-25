@@ -6,15 +6,15 @@ use super::{Package, PackageVersion};
 use lazy_regex::{lazy_regex, Lazy, Regex};
 use std::cmp::Ordering;
 
+/// Used for parsing the full name of a package
 static RE: Lazy<Regex> = lazy_regex!(r"^(.*)-(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
+/// Used for parsing the full version of a package
 static RE_VERSION: Lazy<Regex> = lazy_regex!(r"^(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
 
 /// Represent a based Redhat package
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rpm {
     name: String,
-    full_name: String,
-    full_version: String,
     epoch: u64,
     version: PackageVersion,
     release: PackageVersion,
@@ -22,6 +22,15 @@ pub struct Rpm {
 }
 
 static EXCEPTIONS: [&str; 2] = ["_fips", ".ksplice"];
+
+fn find_any_exception(name: &str) -> String {
+    for exception in EXCEPTIONS.iter() {
+        if name.contains(exception) {
+            return exception.to_string();
+        }
+    }
+    "".to_string()
+}
 
 impl PartialOrd for Rpm {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -31,16 +40,8 @@ impl PartialOrd for Rpm {
         if self.arch != other.arch {
             return None;
         }
-        for e in EXCEPTIONS {
-            let a = self.full_version.find(e);
-            let b = other.full_version.find(e);
-            if a.is_some() != b.is_some() {
-                return None;
-            }
-        }
-
-        if self.full_version == other.full_version {
-            return Some(Ordering::Equal);
+        if find_any_exception(&self.release.0) != find_any_exception(&other.release.0) {
+            return None;
         }
 
         if self.epoch != other.epoch {
@@ -68,7 +69,7 @@ impl Package for Rpm {
         let full_name = full_name.trim();
 
         // Get all fields
-        let (name, epochstr, version, release, arch) = match RE.captures(full_name) {
+        let (name, epoch_str, version, release, arch) = match RE.captures(full_name) {
             None => {
                 return None;
             }
@@ -81,9 +82,9 @@ impl Package for Rpm {
             ),
         };
         // parse epoch to u64. If should never fail. Therefore I let it panic
-        let epoch = epochstr.parse::<u64>().unwrap();
+        let epoch = epoch_str.parse::<u64>().unwrap();
 
-        let mut full_version = epochstr.to_owned();
+        let mut full_version = epoch_str.to_owned();
         full_version.push(':');
         full_version.push_str(version);
         full_version.push('-');
@@ -93,8 +94,6 @@ impl Package for Rpm {
 
         Some(Rpm {
             name: name.to_string(),
-            full_name: full_name.to_string(),
-            full_version,
             epoch,
             version: PackageVersion(version.to_string()),
             release: PackageVersion(release.to_string()),
@@ -111,7 +110,7 @@ impl Package for Rpm {
         let full_version = full_version.trim();
 
         // Get all fields
-        let (epochstr, version, release, arch) = match RE_VERSION.captures(full_version) {
+        let (epoch_str, version, release, arch) = match RE_VERSION.captures(full_version) {
             None => {
                 return None;
             }
@@ -124,7 +123,7 @@ impl Package for Rpm {
         };
 
         // parse epoch to u64. If should never fail. Therefore I let it panic
-        let epoch = epochstr.parse::<u64>().unwrap();
+        let epoch = epoch_str.parse::<u64>().unwrap();
 
         let mut full_name = name.to_owned();
         full_name.push('-');
@@ -132,8 +131,6 @@ impl Package for Rpm {
 
         Some(Rpm {
             name: name.to_string(),
-            full_name: full_name.to_string(),
-            full_version: full_version.to_string(),
             epoch,
             version: PackageVersion(version.to_string()),
             release: PackageVersion(release.to_string()),
@@ -146,7 +143,17 @@ impl Package for Rpm {
     }
 
     fn get_version(&self) -> String {
-        self.full_version.clone()
+        let mut ret = "".to_string();
+        if self.epoch > 0 {
+            ret.push_str(&self.epoch.to_string());
+            ret.push(':');
+        }
+        ret.push_str(&self.version.0);
+        ret.push('-');
+        ret.push_str(&self.release.0);
+        ret.push('.');
+        ret.push_str(&self.arch);
+        ret
     }
 }
 
@@ -176,70 +183,70 @@ mod rpm_tests {
         assert_eq!(package.name, "mesa-libgbm");
         assert_eq!(package.version, PackageVersion("11.2.2".to_string()));
         assert_eq!(package.release, PackageVersion("2.20160614".to_string()));
-        assert_eq!(package.full_name, "mesa-libgbm-11.2.2-2.20160614.x86_64");
+        assert_eq!(package.get_version(), "11.2.2-2.20160614.x86_64");
 
         let package = Rpm::from_full_name("keyutils-1.5.8-3.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "keyutils");
         assert_eq!(package.version, PackageVersion("1.5.8".to_string()));
         assert_eq!(package.release, PackageVersion("3".to_string()));
-        assert_eq!(package.full_name, "keyutils-1.5.8-3.x86_64");
+        assert_eq!(package.get_version(), "1.5.8-3.x86_64");
 
         let package = Rpm::from_full_name("httpd-manual-2.4.6-45.0.1.4.h10.noarch").unwrap();
         assert_eq!(package.arch, "noarch");
         assert_eq!(package.name, "httpd-manual");
         assert_eq!(package.version, PackageVersion("2.4.6".to_string()));
         assert_eq!(package.release, PackageVersion("45.0.1.4.h10".to_string()));
-        assert_eq!(package.full_name, "httpd-manual-2.4.6-45.0.1.4.h10.noarch");
+        assert_eq!(package.get_version(), "2.4.6-45.0.1.4.h10.noarch");
 
         let package = Rpm::from_full_name("cups-libs-1.6.3-26.h1.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "cups-libs");
         assert_eq!(package.version, PackageVersion("1.6.3".to_string()));
         assert_eq!(package.release, PackageVersion("26.h1".to_string()));
-        assert_eq!(package.full_name, "cups-libs-1.6.3-26.h1.x86_64");
+        assert_eq!(package.get_version(), "1.6.3-26.h1.x86_64");
 
         let package = Rpm::from_full_name("GConf2-3.2.6-8.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "GConf2");
         assert_eq!(package.version, PackageVersion("3.2.6".to_string()));
         assert_eq!(package.release, PackageVersion("8".to_string()));
-        assert_eq!(package.full_name, "GConf2-3.2.6-8.x86_64");
+        assert_eq!(package.get_version(), "3.2.6-8.x86_64");
 
         let package = Rpm::from_full_name("libtool-ltdl-2.4.2-21.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "libtool-ltdl");
         assert_eq!(package.version, PackageVersion("2.4.2".to_string()));
         assert_eq!(package.release, PackageVersion("21".to_string()));
-        assert_eq!(package.full_name, "libtool-ltdl-2.4.2-21.x86_64");
+        assert_eq!(package.get_version(), "2.4.2-21.x86_64");
 
         let package = Rpm::from_full_name("microcode_ctl-2.1-22.6.h2.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "microcode_ctl");
         assert_eq!(package.version, PackageVersion("2.1".to_string()));
         assert_eq!(package.release, PackageVersion("22.6.h2".to_string()));
-        assert_eq!(package.full_name, "microcode_ctl-2.1-22.6.h2.x86_64");
+        assert_eq!(package.get_version(), "2.1-22.6.h2.x86_64");
 
         let package = Rpm::from_full_name("postgresql-libs-9.2.23-3.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "postgresql-libs");
         assert_eq!(package.version, PackageVersion("9.2.23".to_string()));
         assert_eq!(package.release, PackageVersion("3".to_string()));
-        assert_eq!(package.full_name, "postgresql-libs-9.2.23-3.x86_64");
+        assert_eq!(package.get_version(), "9.2.23-3.x86_64");
 
         let package = Rpm::from_full_name("NetworkManager-1.8.0-9.h2.x86_64").unwrap();
         assert_eq!(package.arch, "x86_64");
         assert_eq!(package.name, "NetworkManager");
         assert_eq!(package.version, PackageVersion("1.8.0".to_string()));
         assert_eq!(package.release, PackageVersion("9.h2".to_string()));
-        assert_eq!(package.full_name, "NetworkManager-1.8.0-9.h2.x86_64");
+        assert_eq!(package.get_version(), "1.8.0-9.h2.x86_64");
 
         let package = Rpm::from_full_name("perl-Pod-Escapes-1.04-285.h2.noarch").unwrap();
         assert_eq!(package.arch, "noarch");
         assert_eq!(package.name, "perl-Pod-Escapes");
         assert_eq!(package.version, PackageVersion("1.04".to_string()));
         assert_eq!(package.release, PackageVersion("285.h2".to_string()));
-        assert_eq!(package.full_name, "perl-Pod-Escapes-1.04-285.h2.noarch");
+        assert_eq!(package.get_version(), "1.04-285.h2.noarch");
 
         let package = Rpm::from_full_name(" libtool-ltdl-2.4.2-21.x86_64\r\n").unwrap();
         assert_eq!(package.arch, "x86_64");
@@ -248,11 +255,7 @@ mod rpm_tests {
             Rpm::from_full_name("docker-engine-1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64")
                 .unwrap();
         assert_eq!(
-            package.full_name,
-            "docker-engine-1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64",
-        );
-        assert_eq!(
-            package.full_version,
+            package.get_version(),
             "1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64"
         );
         assert_eq!(package.epoch, 1);
@@ -262,6 +265,14 @@ mod rpm_tests {
             PackageVersion("200.h62.33.19.eulerosv2r10".to_string())
         );
         assert_eq!(package.arch, "x86_64");
+
+        let package = Rpm::from_full_name("libaspell15-0.60.6.1-18.3.1.x86_64").unwrap();
+        assert_eq!(package.epoch, 0);
+        assert_eq!(package.arch, "x86_64");
+        assert_eq!(package.name, "libaspell15");
+        assert_eq!(package.version, PackageVersion("0.60.6.1".to_string()));
+        assert_eq!(package.release, PackageVersion("18.3.1".to_string()));
+        assert_eq!(package.get_version(), "0.60.6.1-18.3.1.x86_64");
     }
 
     #[test]
@@ -294,8 +305,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
-            full_version: "1.2.3-4.x86_64".to_string(),
         };
         let package2 = Rpm {
             name: "foo-bar".to_string(),
@@ -303,8 +312,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.4".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.4-4.x86_64".to_string(),
-            full_version: "1.2.4-4.x86_64".to_string(),
         };
         assert!(package2 > package1);
 
@@ -314,8 +321,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("5".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-5.x86_64".to_string(),
-            full_version: "1.2.3-5.x86_64".to_string(),
         };
         assert!(package2 > package1);
     }
@@ -328,8 +333,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
-            full_version: "1.2.3-4.x86_64".to_string(),
         };
         let package2 = Rpm {
             name: "foo-bar".to_string(),
@@ -337,8 +340,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "aarch64".to_string(),
-            full_name: "foo-bar-1.2.3-4.aarch64".to_string(),
-            full_version: "1.2.3-4.aarch64".to_string(),
         };
         let package3 = Rpm {
             name: "foo-bar".to_string(),
@@ -346,8 +347,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.4".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "aarch64".to_string(),
-            full_name: "foo-bar-1.2.4-4.aarch64".to_string(),
-            full_version: "1.2.4-4.aarch64".to_string(),
         };
         let package4 = Rpm {
             name: "foo-bar".to_string(),
@@ -355,8 +354,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("5".to_string()),
             arch: "aarch64".to_string(),
-            full_name: "foo-bar-1.2.3-5.aarch64".to_string(),
-            full_version: "1.2.3-5.aarch64".to_string(),
         };
         //Not comparable, because different archs. Compare returns None.
         assert!(package2.partial_cmp(&package1).is_none());
@@ -375,8 +372,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
-            full_version: "1.2.3-4.x86_64".to_string(),
         };
         let package2 = Rpm {
             name: "foo-bar".to_string(),
@@ -384,8 +379,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
-            full_version: "1:1.2.3-4.x86_64".to_string(),
         };
         assert!(package2 > package1);
     }
@@ -398,8 +391,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-1.2.3-4.x86_64".to_string(),
-            full_version: "1.2.3-4.x86_64".to_string(),
         };
         let package2 = Rpm {
             name: "bar".to_string(),
@@ -407,8 +398,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "bar-1.2.3-4.x86_64".to_string(),
-            full_version: "1.2.3-4.x86_64".to_string(),
         };
         assert!(package2.partial_cmp(&package1).is_none());
         assert!(package1.partial_cmp(&package2).is_none());
@@ -422,8 +411,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-4.x86_64".to_string(),
-            full_version: "1.2.3-4.x86_64".to_string(),
         };
         let package2 = Rpm {
             name: "foo-bar".to_string(),
@@ -431,8 +418,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.4".to_string()),
             release: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.4-4.x86_64".to_string(),
-            full_version: "1.2.4-4.x86_64".to_string(),
         };
         assert!(package1 < package2);
 
@@ -442,8 +427,6 @@ mod rpm_tests {
             version: PackageVersion("1.2.3".to_string()),
             release: PackageVersion("5".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "foo-bar-1.2.3-5.x86_64".to_string(),
-            full_version: "1.2.3-5.x86_64".to_string(),
         };
         assert!(package1 < package2);
 
@@ -453,8 +436,6 @@ mod rpm_tests {
             version: PackageVersion("9.0.2092".to_string()),
             release: PackageVersion("8.oe2403".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "vim-minimal-9.0.2092-8.oe2403.x86_64".to_string(),
-            full_version: "9.0.2092-8.oe2403.x86_64".to_string(),
         };
 
         let package2 = Rpm {
@@ -463,8 +444,6 @@ mod rpm_tests {
             version: PackageVersion("4294967296.0.2092".to_string()),
             release: PackageVersion("8.oe2403".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "vim-minimal-4294967296.0.2092-8.oe2403.x86_64".to_string(),
-            full_version: "4294967296.0.2092-8.oe2403.x86_64".to_string(),
         };
         assert!(package1 < package2);
 
@@ -474,9 +453,6 @@ mod rpm_tests {
             version: PackageVersion("429496729542949672954294967295.0.2092".to_string()),
             release: PackageVersion("8.oe2403".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "vim-minimal-429496729542949672954294967295.0.2092-8.oe2403.x86_64"
-                .to_string(),
-            full_version: "429496729542949672954294967295.0.2092-8.oe2403.x86_64".to_string(),
         };
         assert!(package1 < package2);
     }
@@ -489,8 +465,6 @@ mod rpm_tests {
             version: PackageVersion("18.09.0.200".to_string()),
             release: PackageVersion("20.h47.28.15.eulerosv2r10".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "docker-engine-18.09.0.200-200.h47.28.15.eulerosv2r10.x86_64".to_string(),
-            full_version: "18.09.0.200-200.h47.28.15.eulerosv2r10.x86_64".to_string(),
         };
         let package2 = Rpm {
             name: "docker-engine".to_string(),
@@ -498,8 +472,6 @@ mod rpm_tests {
             version: PackageVersion("18.09.0".to_string()),
             release: PackageVersion("20.h62.33.19.eulerosv2r10".to_string()),
             arch: "x86_64".to_string(),
-            full_name: "docker-engine-1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64".to_string(),
-            full_version: "1:18.09.0-200.h62.33.19.eulerosv2r10.x86_64".to_string(),
         };
 
         assert!(package2 > package1)
@@ -515,6 +487,6 @@ mod rpm_tests {
         assert_eq!(package.name, "cups-libs");
         assert_eq!(package.version, PackageVersion("1.6.3".to_string()));
         assert_eq!(package.release, PackageVersion("26.h1".to_string()));
-        assert_eq!(package.full_name, "cups-libs-1.6.3-26.h1.x86_64");
+        assert_eq!(package.get_version(), "1.6.3-26.h1.x86_64");
     }
 }
