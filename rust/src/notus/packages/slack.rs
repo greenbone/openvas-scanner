@@ -13,8 +13,6 @@ static RE_VERSION: Lazy<Regex> = lazy_regex!(r"(..*)-(..*)-(\d)(?:_slack(..*))?"
 #[derive(Debug, PartialEq, Clone)]
 pub struct Slack {
     name: String,
-    full_name: String,
-    full_version: String,
     build: PackageVersion,
     target: PackageVersion,
     version: PackageVersion,
@@ -29,10 +27,6 @@ impl PartialOrd for Slack {
 
         if self.arch != other.arch {
             return None;
-        }
-
-        if self.full_version == other.full_version {
-            return Some(Ordering::Equal);
         }
 
         if let Some(comp) = self.version.partial_cmp(&other.version) {
@@ -85,8 +79,6 @@ impl Package for Slack {
 
         Some(Slack {
             name: name.to_string(),
-            full_name: full_name.to_string(),
-            full_version,
             target: PackageVersion(target.to_string()),
             build: PackageVersion(build.to_string()),
             version: PackageVersion(version.to_string()),
@@ -121,8 +113,6 @@ impl Package for Slack {
 
         Some(Slack {
             name: name.to_string(),
-            full_name,
-            full_version: full_version.to_string(),
             target: PackageVersion(target.to_string()),
             build: PackageVersion(build.to_string()),
             version: PackageVersion(version.to_string()),
@@ -135,7 +125,12 @@ impl Package for Slack {
     }
 
     fn get_version(&self) -> String {
-        self.full_version.clone()
+        let mut ret = format!("{}-{}-{}", self.version.0, self.arch, self.build.0);
+        if !self.target.0.is_empty() {
+            ret.push_str("_slack");
+            ret.push_str(&self.target.0);
+        }
+        ret
     }
 }
 
@@ -153,8 +148,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
         let package2 = Slack {
             name: "foo-bar".to_string(),
@@ -162,8 +155,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.4-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.4-x86_64-4_slack15.0".to_string(),
         };
         assert!(package2 > package1);
 
@@ -173,8 +164,6 @@ mod slack_tests {
             build: PackageVersion("5".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-5_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-5_slack15.0".to_string(),
         };
         assert!(package2 > package1);
 
@@ -184,8 +173,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.1".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.1".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.1".to_string(),
         };
         assert!(package2 > package1);
     }
@@ -198,8 +185,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
         let package2 = Slack {
             name: "foo-bar".to_string(),
@@ -207,8 +192,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "aarch64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-aarch64-4_slack15.0".to_string(),
-            full_version: "1.2.3-aarch64-4_slack15.0".to_string(),
         };
         let package3 = Slack {
             name: "foo-bar".to_string(),
@@ -216,8 +199,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "aarch64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.4-aarch64-4_slack15.0".to_string(),
-            full_version: "1.2.4-aarch64-4_slack15.0".to_string(),
         };
         let package4 = Slack {
             name: "foo-bar".to_string(),
@@ -225,8 +206,6 @@ mod slack_tests {
             build: PackageVersion("5".to_string()),
             arch: "aarch64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-aarch64-5_slack15.0".to_string(),
-            full_version: "1.2.3-aarch64-5_slack15.0".to_string(),
         };
         let package5 = Slack {
             name: "foo-bar".to_string(),
@@ -234,8 +213,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "aarch64".to_string(),
             target: PackageVersion("15.1".to_string()),
-            full_name: "foo-bar-1.2.3-aarch64-4_slack15.1".to_string(),
-            full_version: "1.2.3-aarch64-4_slack15.1".to_string(),
         };
 
         assert!(package2.partial_cmp(&package1).is_none());
@@ -256,8 +233,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
         let package2 = Slack {
             name: "bar".to_string(),
@@ -265,8 +240,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "bar-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
 
         assert!(package2.partial_cmp(&package1).is_none());
@@ -281,8 +254,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
         let package2 = Slack {
             name: "foo-bar".to_string(),
@@ -290,8 +261,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.4-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.4-x86_64-4_slack15.0".to_string(),
         };
         assert!(package1 < package2);
 
@@ -301,8 +270,6 @@ mod slack_tests {
             build: PackageVersion("5".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-5_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-5_slack15.0".to_string(),
         };
         assert!(package1 < package2);
 
@@ -312,8 +279,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.1".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.1".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.1".to_string(),
         };
         assert!(package1 < package2);
     }
@@ -326,8 +291,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
         let package2 = Slack {
             name: "foo-bar".to_string(),
@@ -335,8 +298,6 @@ mod slack_tests {
             build: PackageVersion("4".to_string()),
             arch: "x86_64".to_string(),
             target: PackageVersion("15.0".to_string()),
-            full_name: "foo-bar-1.2.3-x86_64-4_slack15.0".to_string(),
-            full_version: "1.2.3-x86_64-4_slack15.0".to_string(),
         };
         assert!(package1 == package2);
     }
@@ -354,8 +315,7 @@ mod slack_tests {
         assert_eq!(package.version, PackageVersion("1.3.4".to_string()));
         assert_eq!(package.build, PackageVersion("1".to_string()));
         assert_eq!(package.target, PackageVersion("15.0".to_string()));
-        assert_eq!(package.full_version, "1.3.4-x86_64-1_slack15.0");
-        assert_eq!(package.full_name, "flac-1.3.4-x86_64-1_slack15.0");
+        assert_eq!(package.get_version(), "1.3.4-x86_64-1_slack15.0");
 
         let package = Slack::from_full_name("kernel-source-5.15.27-noarch-1").unwrap();
         assert_eq!(package.arch, "noarch");
@@ -363,8 +323,7 @@ mod slack_tests {
         assert_eq!(package.version, PackageVersion("5.15.27".to_string()));
         assert_eq!(package.build, PackageVersion("1".to_string()));
         assert_eq!(package.target, PackageVersion("".to_string()));
-        assert_eq!(package.full_version, "5.15.27-noarch-1");
-        assert_eq!(package.full_name, "kernel-source-5.15.27-noarch-1");
+        assert_eq!(package.get_version(), "5.15.27-noarch-1");
 
         let package = Slack::from_full_name("libjpeg-v8a-x86_64-2").unwrap();
         assert_eq!(package.arch, "x86_64");
@@ -372,8 +331,7 @@ mod slack_tests {
         assert_eq!(package.version, PackageVersion("v8a".to_string()));
         assert_eq!(package.build, PackageVersion("2".to_string()));
         assert_eq!(package.target, PackageVersion("".to_string()));
-        assert_eq!(package.full_version, "v8a-x86_64-2");
-        assert_eq!(package.full_name, "libjpeg-v8a-x86_64-2");
+        assert_eq!(package.get_version(), "v8a-x86_64-2");
 
         let package = Slack::from_full_name(" libjpeg-v8a-x86_64-2\r\n").unwrap();
         assert_eq!(package.arch, "x86_64");
@@ -381,8 +339,7 @@ mod slack_tests {
         assert_eq!(package.version, PackageVersion("v8a".to_string()));
         assert_eq!(package.build, PackageVersion("2".to_string()));
         assert_eq!(package.target, PackageVersion("".to_string()));
-        assert_eq!(package.full_version, "v8a-x86_64-2");
-        assert_eq!(package.full_name, "libjpeg-v8a-x86_64-2");
+        assert_eq!(package.get_version(), "v8a-x86_64-2");
 
         let package = Slack::from_full_name("libjpeg-v8a-x86_64");
         assert!(package.is_none());
@@ -402,8 +359,7 @@ mod slack_tests {
         assert_eq!(package.version, PackageVersion("1.3.4".to_string()));
         assert_eq!(package.build, PackageVersion("1".to_string()));
         assert_eq!(package.target, PackageVersion("15.0".to_string()));
-        assert_eq!(package.full_version, "1.3.4-x86_64-1_slack15.0");
-        assert_eq!(package.full_name, "flac-1.3.4-x86_64-1_slack15.0");
+        assert_eq!(package.get_version(), "1.3.4-x86_64-1_slack15.0");
 
         let package = Slack::from_name_and_full_version("flac", "1.3.4-x86_64");
         assert!(package.is_none());
