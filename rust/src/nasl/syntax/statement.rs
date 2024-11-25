@@ -5,12 +5,16 @@
 use core::fmt;
 use std::ops::Range;
 
+#[cfg(test)]
+use serde::{Deserialize, Serialize};
+
 use crate::unexpected_statement;
 
 use super::{SyntaxError, Token, TokenCategory};
 
 /// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum AssignOrder {
     /// Assign first than return
     AssignReturn,
@@ -20,6 +24,7 @@ pub enum AssignOrder {
 
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum StatementKind {
     /// Either a Number, String, Boolean or Null
     Primitive,
@@ -27,7 +32,7 @@ pub enum StatementKind {
     AttackCategory,
     /// Is a variable
     Variable,
-    /// Is a array variable, it contains the lookup token as well as an optional lookup statement
+    /// Is an array variable, it contains the lookup token as well as an optional lookup statement
     Array(Option<Box<Statement>>),
     /// Is a call of a function
     Call(Box<Statement>),
@@ -89,10 +94,11 @@ pub enum StatementKind {
 /// start returns a token of the beginning of that statement while end contains
 /// the end of the statement. So as an example of the statement:
 /// 'my_function(1);' start will point to 'my_function' and end to ';'.
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub struct Statement {
-    kind: StatementKind,
     start: Token,
     end: Option<Token>,
+    kind: StatementKind,
 }
 impl Statement {
     /// Returns the StatementKind.
@@ -408,7 +414,7 @@ impl std::fmt::Display for Statement {
             StatementKind::Return(x) => write!(f, "return {x};"),
             StatementKind::Include(x) => write!(f, "include({x});"),
             StatementKind::Declare(y) => {
-                write!(f, "{x} {}", as_str_list(y),)
+                write!(f, "{} {}", x.category(), as_str_list(y),)
             }
             StatementKind::Parameter(x) => write!(f, "({})", as_str_list(x),),
             StatementKind::NamedParameter(s) => write!(f, "{}: {s}", x.category()),
@@ -473,11 +479,13 @@ impl StatementKind {
 }
 
 #[cfg(test)]
-mod position {
+mod tests {
+    use insta::assert_snapshot;
+
     use super::super::parse;
 
     #[test]
-    fn assignment() {
+    fn position() {
         let code = r#"
         a = 1 + 1;
         b = 2 * 2;
@@ -535,5 +543,154 @@ mod position {
         }
 
         assert_eq!(tests, expected.len());
+    }
+
+    #[track_caller]
+    fn test_statement(name: &str, code: &str) {
+        insta::with_settings!({ prepend_module_to_snapshot => false }, {
+            let mut parser = parse(code);
+            let stmt = parser.next().unwrap().unwrap();
+            assert_snapshot!(format!("statement_{name}"), stmt);
+        });
+    }
+
+    #[test]
+    fn primitive() {
+        test_statement("primitive", "1;");
+    }
+
+    #[test]
+    fn variable() {
+        test_statement("variable", "a;");
+    }
+
+    #[test]
+    fn array() {
+        test_statement("array", "a[1];");
+    }
+
+    #[test]
+    fn call() {
+        test_statement("call", "a();");
+    }
+
+    #[test]
+    fn exit() {
+        test_statement("exit", "exit(0);");
+    }
+
+    #[test]
+    fn return_stmt() {
+        test_statement("return", "return 0;");
+    }
+
+    #[test]
+    fn break_stmt() {
+        test_statement("break", "break;");
+    }
+
+    #[test]
+    fn continue_stmt() {
+        test_statement("continue", "continue;");
+    }
+
+    #[test]
+    fn include() {
+        test_statement("include", "include(\"test.inc\");");
+    }
+
+    #[test]
+    fn declare() {
+        test_statement("declare", "local_var a;");
+    }
+
+    #[test]
+    fn parameter() {
+        test_statement("parameter", "[a, b];");
+    }
+
+    #[test]
+    fn named_parameter() {
+        test_statement("named_parameter", "a: b;");
+    }
+
+    #[test]
+    fn assign() {
+        test_statement("assign", "a = 1;");
+    }
+
+    #[test]
+    fn add() {
+        test_statement("add", "a + 1;");
+    }
+
+    #[test]
+    fn sub() {
+        test_statement("sub", "a - 1;");
+    }
+
+    #[test]
+    fn mul() {
+        test_statement("mul", "a * 1;");
+    }
+
+    #[test]
+    fn div() {
+        test_statement("div", "a / 1;");
+    }
+
+    #[test]
+    fn modulo() {
+        test_statement("modulo", "a % 1;");
+    }
+
+    #[test]
+    fn return_assign() {
+        test_statement("return_assign", "a++;");
+    }
+
+    #[test]
+    fn assign_return() {
+        test_statement("assign_return", "--a;");
+    }
+
+    #[test]
+    fn if_stmt() {
+        test_statement("if", "if (a) b; else c;");
+    }
+
+    #[test]
+    fn for_stmt() {
+        test_statement("for", "for (i = 0; i < 10; i++) a;");
+    }
+
+    #[test]
+    fn while_stmt() {
+        test_statement("while", "while (a) b;");
+    }
+
+    #[test]
+    fn repeat() {
+        test_statement("repeat", "repeat a; until b;");
+    }
+
+    #[test]
+    fn foreach() {
+        test_statement("foreach", "foreach a(b) c;");
+    }
+
+    #[test]
+    fn block() {
+        test_statement("block", "{ a; }");
+    }
+
+    #[test]
+    fn function_declaration() {
+        test_statement("function_declaration", "function a(b) {c;}");
+    }
+
+    #[test]
+    fn no_op() {
+        test_statement("no_op", ";");
     }
 }
