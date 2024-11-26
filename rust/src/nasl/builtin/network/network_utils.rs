@@ -4,9 +4,11 @@
 
 //! This module provides utility functions for IP handling.
 use std::{
+    io,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket},
     ptr,
     str::FromStr,
+    time::Duration,
 };
 
 use crate::nasl::prelude::*;
@@ -22,15 +24,18 @@ pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FunctionErrorKind> {
     }
 }
 
+/// Convert timeout
+pub fn convert_timeout(timeout: Option<i64>) -> Option<Duration> {
+    timeout
+        .filter(|timeout| *timeout >= 1)
+        .map(|timeout| Duration::from_secs(timeout as u64))
+}
+
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, FunctionErrorKind> {
-    let fe = Err(FunctionErrorKind::Diagnostic(
-        "Error binding".to_string(),
-        None,
-    ));
+pub fn bind_local_socket(dst: &SocketAddr) -> io::Result<UdpSocket> {
     match dst {
-        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
-        SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or(fe),
+        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),
+        SocketAddr::V6(_) => UdpSocket::bind("[::]:0"),
     }
 }
 

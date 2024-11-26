@@ -1051,22 +1051,25 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
             {
               g_string_printf (res,
                                "\nVulnerable package: %s\n"
-                               "Installed version:    %s\n"
-                               "Fixed version:      <=%s\n"
-                               "Fixed version:      >=%s\n",
-                               pkg->pkg_name, pkg->install_version,
-                               pkg->range->start, pkg->range->stop);
+                               "Installed version:    %s-%s\n"
+                               "Fixed version:      <=%s-%s\n"
+                               "Fixed version:      >=%s-%s\n",
+                               pkg->pkg_name, pkg->pkg_name,
+                               pkg->install_version, pkg->pkg_name,
+                               pkg->range->start, pkg->pkg_name,
+                               pkg->range->stop);
             }
           else if (pkg->type == SINGLE)
             {
               int spec_len = 8 - (int) strlen (pkg->version->specifier);
               g_string_printf (res,
                                "\nVulnerable package:%*s%s\n"
-                               "Installed version:%*s%s\n"
-                               "Fixed version:%*s%s%s\n",
-                               3, "", pkg->pkg_name, 4, "",
+                               "Installed version:%*s%s-%s\n"
+                               "Fixed version:%*s%s%s-%s\n",
+                               3, "", pkg->pkg_name, 4, "", pkg->pkg_name,
                                pkg->install_version, spec_len, "",
-                               pkg->version->specifier, pkg->version->version);
+                               pkg->version->specifier, pkg->pkg_name,
+                               pkg->version->version);
             }
           else
             {
