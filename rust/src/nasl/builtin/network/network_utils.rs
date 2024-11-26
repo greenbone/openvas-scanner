@@ -7,9 +7,8 @@ use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket},
     ptr,
     str::FromStr,
+    time::Duration,
 };
-
-use crate::nasl::prelude::*;
 
 use super::socket::SocketError;
 
@@ -17,16 +16,23 @@ use super::socket::SocketError;
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, SocketError> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(SocketError::Diagnostic(
-            format!("Invalid IP address ({})", ip_addr),
-            Some(NaslValue::Null),
-        )),
+        Err(_) => Err(SocketError::Diagnostic(format!(
+            "Invalid IP address ({})",
+            ip_addr
+        ))),
     }
+}
+
+/// Convert timeout
+pub fn convert_timeout(timeout: Option<i64>) -> Option<Duration> {
+    timeout
+        .filter(|timeout| *timeout >= 1)
+        .map(|timeout| Duration::from_secs(timeout as u64))
 }
 
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
 pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, SocketError> {
-    let fe = Err(SocketError::Diagnostic("Error binding".to_string(), None));
+    let fe = Err(SocketError::Diagnostic("Error binding".to_string()));
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
         SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or(fe),
@@ -43,7 +49,7 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, SocketError> {
         .ok()
         .and_then(|_| local_socket.local_addr().ok())
         .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
-        .ok_or_else(|| SocketError::Diagnostic("No route to destination".to_string(), None))
+        .ok_or_else(|| SocketError::Diagnostic("No route to destination".to_string()))
 }
 
 /// Tests whether a packet sent to IP is LIKELY to route through the
@@ -67,7 +73,6 @@ pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, 
     if ret < 0 {
         return Err(SocketError::Diagnostic(
             "Error getting interfaces".to_string(),
-            None,
         ));
     }
 
@@ -127,6 +132,5 @@ pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, 
     }
     Err(SocketError::Diagnostic(
         "No route to destination".to_string(),
-        None,
     ))
 }

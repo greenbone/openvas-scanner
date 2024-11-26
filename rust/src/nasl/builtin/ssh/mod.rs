@@ -311,15 +311,6 @@ impl Ssh {
                 return Ok(());
             }
         }
-        // If we have a private key, try public key authentication.
-        if session.auth_method_allowed(AuthMethods::PUBLIC_KEY).await? {
-            if let Some(private_key) = privatekey {
-                let passphrase = passphrase.unwrap_or_default();
-                session
-                    .auth_public_key(login, private_key, passphrase)
-                    .await?;
-            }
-        }
         Ok(())
     }
 

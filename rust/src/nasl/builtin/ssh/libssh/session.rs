@@ -204,26 +204,6 @@ impl SshSession {
         }
     }
 
-    pub async fn auth_public_key(
-        &mut self,
-        login: &str,
-        private_key: &str,
-        passphrase: &str,
-    ) -> Result<()> {
-        self.ensure_user_set(Some(login))?;
-        let key = SshKey::from_privkey_base64(private_key, Some(passphrase))
-            .map_err(|_| SshErrorKind::ConvertPrivateKey.with(self.id))?;
-        let status = self.userauth_try_publickey(None, &key)?;
-        if let AuthStatus::Success = status {
-            return Ok(());
-        }
-        let status = self.userauth_publickey(None, &key)?;
-        if let AuthStatus::Success = status {
-            return Ok(());
-        }
-        Ok(())
-    }
-
     fn get_authmethods(&mut self) -> Result<AuthMethods> {
         let authmethods = match self.userauth_none(None)? {
             AuthStatus::Success => {
@@ -273,8 +253,6 @@ impl SshSession {
     inherit_method!(userauth_password, AuthStatus, UserAuthPassword, username: Option<&str>, password: Option<&str>);
     inherit_method!(userauth_none, AuthStatus, UserAuthNone, username: Option<&str>);
     inherit_method!(userauth_list, AuthMethods, UserAuthList, username: Option<&str>);
-    inherit_method!(userauth_try_publickey, AuthStatus, UserAuthTryPublicKey, username: Option<&str>, key: &SshKey);
-    inherit_method!(userauth_publickey, AuthStatus, UserAuthPublicKey, username: Option<&str>, key: &SshKey);
     inherit_method!(
         userauth_keyboard_interactive_info,
         InteractiveAuthInfo,

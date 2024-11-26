@@ -166,22 +166,6 @@ impl SshSession {
             .map(|_| ())
     }
 
-    pub async fn auth_public_key(
-        &mut self,
-        _login: &str,
-        _private_key: &str,
-        _passphrase: &str,
-    ) -> Result<(), SshError> {
-        // TODO: Construct the key pair to provide publickey auth
-        error!("Public key auth not yet supported.");
-        Err(SshErrorKind::Unimplemented.into())
-        // self.session
-        //     .authenticate_publickey(login, key_pair)
-        //     .await
-        //     .map_err(|_| SshError::UserauthPassword(self.id))
-        //     .map(|_| ())
-    }
-
     pub async fn auth_keyboard_interactive(
         &mut self,
         login: &str,

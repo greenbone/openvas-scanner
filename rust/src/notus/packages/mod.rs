@@ -87,10 +87,27 @@ impl PartialOrd for PackageVersion {
             }
 
             // check if parts are numbers
-            match (a_part.parse::<u32>(), b_part.parse::<u32>()) {
-                (Ok(a), Ok(b)) => return a.partial_cmp(&b),
-                (Ok(_), _) => return Some(Ordering::Greater),
-                (_, Ok(_)) => return Some(Ordering::Less),
+            match (
+                a_part.chars().all(char::is_numeric),
+                b_part.chars().all(char::is_numeric),
+            ) {
+                (true, true) => {
+                    // Remove leading zeros
+                    let a_trimmed = a_part.trim_start_matches('0');
+                    let b_trimmed = b_part.trim_start_matches('0');
+                    // Compare the length of the numbers
+                    match a_trimmed.len().cmp(&b_trimmed.len()) {
+                        // If the length is the same, compare the numbers
+                        Ordering::Equal => match a_trimmed.cmp(b_trimmed) {
+                            // After trimming zeroes, the numbers could be the same
+                            Ordering::Equal => continue,
+                            ord => return Some(ord),
+                        },
+                        ord => return Some(ord),
+                    }
+                }
+                (true, _) => return Some(Ordering::Greater),
+                (_, true) => return Some(Ordering::Less),
                 _ => (),
             }
 

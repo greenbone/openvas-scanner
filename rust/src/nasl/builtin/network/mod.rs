@@ -7,10 +7,15 @@ use std::{fmt::Display, net::IpAddr};
 use crate::nasl::prelude::*;
 use crate::storage::{Field, Retrieve};
 
+use super::knowledge_base::KBError;
+
 #[allow(clippy::module_inception)]
 pub mod network;
 pub mod network_utils;
 pub mod socket;
+pub mod tcp;
+pub mod tls;
+pub mod udp;
 
 // 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
 // header contains 8 bytes, which must be subtracted from the max size for UDP packages.
@@ -74,6 +79,24 @@ impl Display for OpenvasEncaps {
     }
 }
 
+pub fn get_retry(context: &Context) -> u8 {
+    if let Ok(Some(val)) = get_kb_item(context, "timeout_retry") {
+        match val {
+            NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
+            NaslValue::Number(val) => {
+                if !(1..=255).contains(&val) {
+                    2
+                } else {
+                    val as u8
+                }
+            }
+            _ => 2,
+        }
+    } else {
+        2
+    }
+}
+
 pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FnError> {
     context
         .retriever()
@@ -86,6 +109,12 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, F
         })
         .map(|x| x.map(|x| x.into()))
         .map_err(|e| e.into())
+}
+
+pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FnError> {
+    get_kb_item(context, name)?
+        .map(|x| x.to_string())
+        .ok_or_else(|| KBError(format!("KB key {} is not set", name)).into())
 }
 
 pub fn verify_port(port: i64) -> Result<u16, ArgumentError> {

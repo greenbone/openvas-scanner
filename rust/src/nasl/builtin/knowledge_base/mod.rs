@@ -17,7 +17,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 #[error("{0}")]
-pub struct KBError(String);
+pub struct KBError(pub String);
 
 /// NASL function to set a value under name in a knowledge base
 /// Only pushes unique values for the given name.

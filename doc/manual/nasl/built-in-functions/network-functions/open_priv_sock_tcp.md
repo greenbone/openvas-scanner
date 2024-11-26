@@ -6,11 +6,13 @@
 
 ## SYNOPSIS
 
-*any* **open_priv_sock_tcp**(dport: *int*, sport: *int*);
+*any* **open_priv_sock_tcp**(dport: *int*, sport: *int*, timeout: *int*);
 
-**open_priv_sock_tcp** takes two named integer arguments:
+**open_priv_sock_tcp** takes three named integer arguments:
 - dport is the destination port
-- sport is the source port, which may be inferior to 1024.
+- sport is the source port, which may be inferior to 1024. This argument is optional.
+  If it is not set, the function will try to open a socket on any port from 1 to 1023.
+- timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 
 ## DESCRIPTION
 
