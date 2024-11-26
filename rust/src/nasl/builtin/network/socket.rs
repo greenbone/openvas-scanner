@@ -432,7 +432,7 @@ impl NaslSockets {
         // TODO: set timeout to global recv timeout * 2 when available
         let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
         // TODO: for every vhost
-        let vhosts = vec!["localhost"];
+        let vhosts = ["localhost"];
         let sockets: Vec<Option<NaslSocket>> = vhosts
             .iter()
             .map(|vhost| {
@@ -443,7 +443,7 @@ impl NaslSockets {
         Ok(NaslValue::Fork(
             sockets
                 .into_iter()
-                .filter_map(|socket| socket)
+                .flatten()
                 .map(|socket| {
                     let fd = self.add(socket);
                     NaslValue::Number(fd as i64)
