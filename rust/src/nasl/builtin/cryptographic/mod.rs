@@ -22,6 +22,7 @@ pub mod hmac;
 pub mod pem_to;
 pub mod rc4;
 pub mod rsa;
+pub mod smb;
 
 #[cfg(test)]
 mod tests;
@@ -139,6 +140,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(rsa::Rsa);
         set.add_set(bf_cbc::BfCbc);
         set.add_set(pem_to::PemTo);
+        set.add_set(smb::SMB);
         set
     }
 }
