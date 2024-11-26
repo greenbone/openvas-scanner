@@ -25,17 +25,30 @@ pub use session::SshSession;
 pub type SessionId = i32;
 pub type Socket = std::os::raw::c_int;
 
+// Currently, our tests are executed with a TRACE filter.  In a normal
+// run, this translates to a `LogLevel` of `Functions`, which is very
+// verbose.
+//
+// Since libssh prints its logs to stderr, its output is not filtered
+// out by `cargo test`, resulting in tons of annoying output, even if
+// the test passes.  To make sure this doesn't happen, we set
+// `NoLogging` in all test runs.
+#[cfg(test)]
 pub fn get_log_level() -> LogLevel {
-    let verbose = std::env::var("OPENVAS_LIBSSH_DEBUG")
-        .map(|x| x.parse::<i32>().unwrap_or_default())
-        .unwrap_or(0);
+    LogLevel::NoLogging
+}
 
-    match verbose {
-        0 => LogLevel::NoLogging,
-        1 => LogLevel::Warning,
-        2 => LogLevel::Protocol,
-        3 => LogLevel::Packet,
-        _ => LogLevel::Functions,
+#[cfg(not(test))]
+pub fn get_log_level() -> LogLevel {
+    use tracing::Level;
+    use tracing_subscriber::filter::LevelFilter;
+    let log_level = LevelFilter::current().into_level();
+    match log_level {
+        None => LogLevel::NoLogging,
+        Some(Level::ERROR) | Some(Level::WARN) => LogLevel::Warning,
+        Some(Level::INFO) => LogLevel::Protocol,
+        Some(Level::DEBUG) => LogLevel::Packet,
+        Some(Level::TRACE) => LogLevel::Functions,
     }
 }
 
