@@ -140,7 +140,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(rsa::Rsa);
         set.add_set(bf_cbc::BfCbc);
         set.add_set(pem_to::PemTo);
-        set.add_set(smb::SMB);
+        set.add_set(smb::Smb);
         set
     }
 }

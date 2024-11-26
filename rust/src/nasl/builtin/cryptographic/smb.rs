@@ -34,9 +34,9 @@ fn smb_gmac_aes_signature(key: &str, buf: &str, iv: &str) -> Result<NaslValue, F
     Ok(auth.into())
 }
 
-pub struct SMB;
+pub struct Smb;
 function_set! {
-    SMB,
+    Smb,
     sync_stateless,
     (
         (smb_gmac_aes_signature, "smb_gmac_aes_signature"),
