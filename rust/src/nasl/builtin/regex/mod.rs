@@ -168,7 +168,6 @@ pub struct RegularExpressions;
 
 function_set! {
     RegularExpressions,
-    sync_stateless,
     (
         ereg,
         egrep,

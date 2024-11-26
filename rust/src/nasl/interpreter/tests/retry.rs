@@ -31,7 +31,6 @@ impl Counter {
 
 function_set! {
     Counter,
-    sync_stateful_mut,
     (
         (Counter::check_counter_retry, "check_counter_retry"),
         (Counter::check_counter, "check_counter"),

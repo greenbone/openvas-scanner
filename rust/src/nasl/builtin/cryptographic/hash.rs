@@ -73,7 +73,6 @@ pub struct Hash;
 
 function_set! {
     Hash,
-    sync_stateless,
     (
         (hash_md2, "MD2"),
         (hash_md4, "MD4"),

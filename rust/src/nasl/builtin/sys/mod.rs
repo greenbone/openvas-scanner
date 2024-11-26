@@ -114,7 +114,6 @@ async fn get_tmp_dir() -> PathBuf {
 
 function_set! {
     Sys,
-    async_stateless,
     (
         pread,
         fread,

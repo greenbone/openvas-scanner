@@ -56,6 +56,7 @@ macro_rules! make_storage_function {
         )?
         ///
         /// Returns NaslValue::Null on success.
+        #[nasl_function]
         pub fn $name(
             registrat: &Register,
             ctxconfigs: &Context,
@@ -96,7 +97,6 @@ macro_rules! make_storage_function {
 
         function_set! {
             Description,
-            sync_stateless,
             (
                 $(
                     $name,

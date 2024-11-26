@@ -74,7 +74,8 @@ where
 /// The return value is an array a with a[0] being the encrypted data and
 /// a[1] the new initialization vector to use for the next part of the
 /// data.
-fn bf_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn bf_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Blowfish>(register, Crypt::Encrypt)
 }
 
@@ -88,7 +89,8 @@ fn bf_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError
 /// The return value is an array a with a[0] being the plaintext data
 /// and a[1] the new initialization vector to use for the next part of
 /// the data.
-fn bf_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn bf_cbc_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Blowfish>(register, Crypt::Decrypt)
 }
 
@@ -96,7 +98,6 @@ pub struct BfCbc;
 
 function_set! {
     BfCbc,
-    sync_stateless,
     (
         bf_cbc_encrypt,
         bf_cbc_decrypt,

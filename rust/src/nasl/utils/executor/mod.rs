@@ -235,18 +235,18 @@ pub trait IntoFunctionSet {
 
 #[macro_export]
 macro_rules! internal_call_expr {
-    ($method_name: ident, $set_name: ident $(,)?) => {
+    ($set_name: ident $(,)?) => {
     };
-    ($method_name: ident, $set_name: ident, ($fn_name: path, $name: literal) $(, $($tt: tt)*)?) => {
-        $set_name.$method_name($name, $fn_name);
+    ($set_name: ident, ($fn_name: path, $name: literal) $(, $($tt: tt)*)?) => {
+        $fn_name(&mut $set_name, $name);
         $(
-            $crate::internal_call_expr!($method_name, $set_name, $($tt)*);
+            $crate::internal_call_expr!($set_name, $($tt)*);
         )?
     };
-    ($method_name: ident, $set_name: ident, $fn_name: path $(, $($tt: tt)*)?) => {
-        $set_name.$method_name(stringify!($fn_name), $fn_name);
+    ($set_name: ident, $fn_name: path $(, $($tt: tt)*)?) => {
+        $fn_name(&mut $set_name, stringify!($fn_name));
         $(
-            $crate::internal_call_expr!($method_name, $set_name, $($tt)*);
+            $crate::internal_call_expr!($set_name, $($tt)*);
         )?
     };
 }
@@ -268,7 +268,6 @@ macro_rules! internal_call_expr {
 ///
 /// function_set! {
 ///    Foo,
-///    sync_stateless,
 ///    (
 ///        foo,
 ///        bar,
@@ -278,51 +277,8 @@ macro_rules! internal_call_expr {
 ///
 /// This will implement `IntoFunctionSet` for `Foo`, so that it can be
 /// used within the executor.
-///
-/// Depending on the asyncness and statefulness of the NASL functions
-/// that one wants to add, the second argument should be one of the following
-/// four:
-///
-/// 1. `async_stateful` (for `async fn(&S, &Register, &Context)`)
-/// 2. `sync_stateful` (for `fn(&S, &Register, &Context)`)
-/// 3. `async_stateless` (for `async fn(&Register, &Context)`)
-/// 4. `sync_stateless` (for `fn(&Register, &Context)`)
 #[macro_export]
 macro_rules! function_set {
-    ($ty: ty, $method_name: ident, ($($tt: tt)*)) => {
-        impl $crate::nasl::utils::IntoFunctionSet for $ty {
-            type State = $ty;
-
-            #[allow(unused_mut)]
-            fn into_function_set(self) -> $crate::nasl::utils::StoredFunctionSet<Self::State> {
-                let mut set = $crate::nasl::utils::StoredFunctionSet::new(self);
-                $crate::internal_call_expr!($method_name, set, $($tt)*);
-                set
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! internal_call_expr_2 {
-    ($set_name: ident $(,)?) => {
-    };
-    ($set_name: ident, ($fn_name: path, $name: literal) $(, $($tt: tt)*)?) => {
-        $fn_name(&mut $set_name, $name);
-        $(
-            $crate::internal_call_expr_2!($set_name, $($tt)*);
-        )?
-    };
-    ($set_name: ident, $fn_name: path $(, $($tt: tt)*)?) => {
-        $fn_name(&mut $set_name, stringify!($fn_name));
-        $(
-            $crate::internal_call_expr_2!($set_name, $($tt)*);
-        )?
-    };
-}
-
-#[macro_export]
-macro_rules! function_set_2 {
     ($ty: ty, ($($tt: tt)*)) => {
         impl $crate::nasl::utils::IntoFunctionSet for $ty {
             type State = $ty;
@@ -330,7 +286,7 @@ macro_rules! function_set_2 {
             #[allow(unused_mut)]
             fn into_function_set(self) -> $crate::nasl::utils::StoredFunctionSet<Self::State> {
                 let mut set = $crate::nasl::utils::StoredFunctionSet::new(self);
-                $crate::internal_call_expr_2!(set, $($tt)*);
+                $crate::internal_call_expr!(set, $($tt)*);
                 set
             }
         }

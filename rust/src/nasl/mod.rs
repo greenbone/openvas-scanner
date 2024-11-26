@@ -29,9 +29,7 @@ pub mod prelude {
     pub use super::utils::NaslResult;
     pub use super::utils::Register;
     pub use crate::function_set;
-    pub use crate::function_set_2;
     pub use nasl_function_proc_macro::nasl_function;
-    pub use nasl_function_proc_macro::nasl_function_2;
 }
 
 pub use prelude::*;

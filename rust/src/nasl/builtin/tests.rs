@@ -24,7 +24,6 @@ struct Foo;
 
 function_set! {
     Foo,
-    sync_stateless,
     (foo1, foo2, add_positionals)
 }
 
@@ -48,38 +47,38 @@ fn variadic_positionals_start_at_correct_index() {
 struct Bar;
 
 impl Bar {
-    #[nasl_function_2]
+    #[nasl_function]
     fn sync_stateful_ref(&self) -> usize {
         1
     }
 
-    #[nasl_function_2]
+    #[nasl_function]
     fn sync_stateful_mut(&mut self) -> usize {
         2
     }
 
-    #[nasl_function_2]
+    #[nasl_function]
     async fn async_stateful_ref(&self) -> usize {
         3
     }
 
-    #[nasl_function_2]
+    #[nasl_function]
     async fn async_stateful_mut(&mut self) -> usize {
         4
     }
 }
 
-#[nasl_function_2]
+#[nasl_function]
 async fn sync_stateless() -> usize {
     5
 }
 
-#[nasl_function_2]
+#[nasl_function]
 async fn async_stateless() -> usize {
     6
 }
 
-function_set_2! {
+function_set! {
     Bar,
     (
         (Bar::sync_stateful_ref, "sync_stateful_ref"),

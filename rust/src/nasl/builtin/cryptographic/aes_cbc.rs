@@ -71,7 +71,8 @@ where
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes128_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes128_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes128>(register, Crypt::Encrypt)
 }
 
@@ -83,7 +84,8 @@ fn aes128_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes128_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes128_cbc_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes128>(register, Crypt::Decrypt)
 }
 
@@ -94,7 +96,8 @@ fn aes128_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes192_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes192_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes192>(register, Crypt::Encrypt)
 }
 
@@ -106,7 +109,8 @@ fn aes192_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes192_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes192_cbc_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes192>(register, Crypt::Decrypt)
 }
 
@@ -117,7 +121,8 @@ fn aes192_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes256_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes256_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes256>(register, Crypt::Encrypt)
 }
 
@@ -129,7 +134,8 @@ fn aes256_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 ///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
-fn aes256_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes256_cbc_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes256>(register, Crypt::Decrypt)
 }
 
@@ -137,7 +143,6 @@ pub struct AesCbc;
 
 function_set! {
     AesCbc,
-    sync_stateless,
     (
         aes128_cbc_encrypt,
         aes128_cbc_decrypt,
