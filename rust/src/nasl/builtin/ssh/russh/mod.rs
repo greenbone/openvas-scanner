@@ -14,7 +14,6 @@ use super::sessions::SshSessions;
 
 pub type SessionId = i32;
 pub type Port = u16;
-// TODO: Fix this
 pub type Socket = i32;
 
 // This is a 'clone' of the libssh::AuthMethods, so
