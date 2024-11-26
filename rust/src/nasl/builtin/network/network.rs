@@ -27,7 +27,9 @@ fn this_host(context: &Context) -> Result<String, FunctionErrorKind> {
 
     let port: u16 = DEFAULT_PORT;
 
-    get_source_ip(dst, port).map(|ip| ip.to_string())
+    get_source_ip(dst, port)
+        .map(|ip| ip.to_string())
+        .map_err(|_| FunctionErrorKind::Diagnostic("No route to destination".to_string(), None))
 }
 
 /// Get the host name of the current (attacking) machine

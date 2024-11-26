@@ -1,7 +1,9 @@
 ## Implements
 - open_sock_kdc
 - open_sock_tcp
+- open_priv_sock_tcp
 - open_sock_udp
+- open_priv_sock_udp
 - close
 - send
 - recv
@@ -26,8 +28,6 @@
 - get_udp_port_state
 - join_multicast_group
 - leave_multicast_group
-- open_priv_sock_tcp
-- open_priv_sock_udp
 - scanner_get_port
 - start_denial
 - end_denial

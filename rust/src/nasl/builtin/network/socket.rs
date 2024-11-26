@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use std::{
-    io::{BufRead, Read, Write},
+    io::{self, BufRead, Read, Write},
     net::IpAddr,
     sync::RwLock,
     thread::sleep,
@@ -26,12 +26,15 @@ use super::{
     verify_port, OpenvasEncaps,
 };
 
-pub struct Interval {
+/// Interval used for timing tcp requests. Any tcp request has to wait at least
+/// the time defined by this interval after the last request has been sent.
+struct Interval {
     interval: Duration,
     last_tick: SystemTime,
 }
 
 impl Interval {
+    /// Check the time since the last tick and wait if necessary.
     pub fn tick(&mut self) {
         if let Ok(since) = SystemTime::now().duration_since(self.last_tick) {
             if since < self.interval {
@@ -42,6 +45,7 @@ impl Interval {
     }
 }
 
+/// A small configuration Struct to store TLS relevant information
 struct TlsConfig {
     cert_path: String,
     key_path: String,
@@ -49,6 +53,8 @@ struct TlsConfig {
     cafile_path: String,
 }
 
+/// Representation of a NASL socket. A NASL socket can be either TCP (including TLS),
+/// UDP or Closed
 enum NaslSocket {
     // The TCP Connection is boxed, because it uses a lot of space
     // This way the size of the enum is reduced
@@ -57,12 +63,16 @@ enum NaslSocket {
     Closed,
 }
 
+/// Struct storing handles for socket operations as well as a List of Closed sockets
+/// to override next.
 #[derive(Default)]
 struct Handles {
     handles: Vec<NaslSocket>,
     closed_fd: Vec<usize>,
 }
 
+/// The Top level struct storing all NASL sockets as well as the interval for tcp
+/// requests.
 #[derive(Default)]
 pub struct NaslSockets {
     handles: RwLock<Handles>,
@@ -70,6 +80,8 @@ pub struct NaslSockets {
 }
 
 impl NaslSockets {
+    /// Adds a given NASL socket. It returns the position of the socket within the
+    /// list.
     fn add(&self, socket: NaslSocket) -> usize {
         let mut handles = self
             .handles
@@ -109,6 +121,7 @@ impl NaslSockets {
         Ok(NaslValue::Null)
     }
 
+    /// Check if a new tcp request can be sent and waits if necessary.
     fn wait_before_next_probe(&self) {
         if let Some(interval) = &self.interval {
             interval.write().unwrap().tick();
@@ -156,13 +169,16 @@ impl NaslSockets {
             NaslSocket::Tcp(conn) => {
                 self.wait_before_next_probe();
 
-                if !conn.is_tls() {
-                    if let Some(flags) = option {
-                        conn.set_flags(flags as i32);
+                if let Some(flags) = option {
+                    if flags < 0 || flags > i32::MAX as i64 {
+                        return Err(FunctionErrorKind::WrongArgument(
+                            "the given flags value is out of range".to_string(),
+                        ));
                     }
+                    Ok(conn.send_with_flags(data, flags as i32)?)
+                } else {
+                    Ok(conn.write(data)?)
                 }
-
-                Ok(conn.write(data)?)
             }
             NaslSocket::Udp(conn) => {
                 if let Some(flags) = option {
@@ -180,7 +196,14 @@ impl NaslSockets {
     /// suppose that the last sent datagram was lost and will sent it again a couple of time.
     /// Args:
     /// - socket which was returned by an open sock function
-    /// - length the number of bytes that you want to read at most. recv may return before length bytes have been read: as soon as at least one byte has been received, the timeout is lowered to 1 second. If no data is received during that time, the function returns the already read data; otherwise, if the full initial timeout has not been reached, a 1 second timeout is re-armed and the script tries to receive more data from the socket. This special feature was implemented to get a good compromise between reliability and speed when openvas-scanner talks to unknown or complex protocols. Two other optional named integer arguments can twist this behavior:
+    /// - length the number of bytes that you want to read at most. recv may return before length
+    ///   bytes have been read: as soon as at least one byte has been received, the timeout is
+    ///   lowered to 1 second. If no data is received during that time, the function returns the
+    ///   already read data; otherwise, if the full initial timeout has not been reached, a
+    ///   1 second timeout is re-armed and the script tries to receive more data from the socket.
+    ///   This special feature was implemented to get a good compromise between reliability and
+    ///   speed when openvas-scanner talks to unknown or complex protocols. Two other optional
+    ///   named integer arguments can twist this behavior:
     /// - min is the minimum number of data that must be read in case the “magic read function” is activated and the timeout is lowered. By default this is 0. It works together with length. More info https://lists.archive.carbon60.com/nessus/devel/13796
     /// - timeout can be changed from the default.
     #[nasl_function(named(socket, length, min, timeout))]
@@ -206,12 +229,17 @@ impl NaslSockets {
                 "the given socket FD {socket} does not exist"
             )))? {
             NaslSocket::Tcp(conn) => {
-                let mut pos = 0;
+                let mut pos = match convert_timeout(timeout) {
+                    Some(timeout) => conn.read_with_timeout(&mut data, timeout),
+                    None => conn.read(&mut data),
+                }?;
+                let timeout = Duration::from_secs(1);
                 while pos < min {
-                    pos += match convert_timeout(timeout) {
-                        Some(timeout) => conn.read_with_timeout(&mut data[pos..], timeout),
-                        None => conn.read(&mut data[pos..]),
-                    }?;
+                    match conn.read_with_timeout(&mut data[pos..], timeout) {
+                        Ok(n) => pos += n,
+                        Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
+                        Err(e) => return Err(e.into()),
+                    }
                 }
                 Ok(NaslValue::Data(data[..pos].to_vec()))
             }
@@ -229,6 +257,11 @@ impl NaslSockets {
         }
     }
 
+    /// Receives a line from a TCP response. Note that this only works for NASL sockets
+    /// of type TCP.
+    /// Args:
+    /// - socket which was returned by an open sock function
+    /// - timeout can be changed from the default.
     #[nasl_function(named(socket, length, timeout))]
     fn recv_line(
         &self,
@@ -432,7 +465,7 @@ impl NaslSockets {
         // TODO: set timeout to global recv timeout * 2 when available
         let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
         // TODO: for every vhost
-        let vhosts = vec!["localhost"];
+        let vhosts = ["localhost"];
         let sockets: Vec<Option<NaslSocket>> = vhosts
             .iter()
             .map(|vhost| {
@@ -443,7 +476,7 @@ impl NaslSockets {
         Ok(NaslValue::Fork(
             sockets
                 .into_iter()
-                .filter_map(|socket| socket)
+                .flatten()
                 .map(|socket| {
                     let fd = self.add(socket);
                     NaslValue::Number(fd as i64)
@@ -452,6 +485,8 @@ impl NaslSockets {
         ))
     }
 
+    /// Reads the information necessary for a TLS connection from the KB and
+    /// return a TlsConfig on success.
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FunctionErrorKind> {
         let cert_path = get_kb_item_str(context, "SSL/cert")?;
         let key_path = get_kb_item_str(context, "SSL/key")?;
@@ -478,6 +513,100 @@ impl NaslSockets {
         Ok(NaslValue::Number(fd as i64))
     }
 
+    fn connect_priv_sock(
+        &self,
+        addr: IpAddr,
+        sport: u16,
+        dport: u16,
+        tcp: bool,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        if tcp {
+            // TODO: set timeout to global recv timeout when available
+            let timeout = Duration::from_secs(10);
+            self.wait_before_next_probe();
+            let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
+            Ok(NaslValue::Number(
+                self.add(NaslSocket::Tcp(Box::new(tcp))) as i64
+            ))
+        } else {
+            let udp = UdpConnection::new_priv(addr, sport, dport)?;
+            Ok(NaslValue::Number(self.add(NaslSocket::Udp(udp)) as i64))
+        }
+    }
+
+    fn open_priv_sock(
+        &self,
+        addr: IpAddr,
+        dport: i64,
+        sport: Option<i64>,
+        tcp: bool,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let dport = verify_port(dport)?;
+
+        if let Some(sport) = sport {
+            let sport = verify_port(sport)?;
+            return self.connect_priv_sock(addr, sport, dport as u16, tcp);
+        }
+
+        for sport in (1..=1023).rev() {
+            let fd = if tcp {
+                // TODO: set timeout to global recv timeout when available
+                let timeout = Duration::from_secs(10);
+                self.wait_before_next_probe();
+                if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport, timeout) {
+                    self.add(NaslSocket::Tcp(Box::new(tcp)))
+                } else {
+                    continue;
+                }
+            } else if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport) {
+                self.add(NaslSocket::Udp(udp))
+            } else {
+                continue;
+            };
+            return Ok(NaslValue::Number(fd as i64));
+        }
+        Err(FunctionErrorKind::Diagnostic(
+            format!(
+                "Unable to open priv socket to {} on any socket from 1-1023",
+                addr
+            ),
+            None,
+        ))
+    }
+
+    /// Open a privileged socket to the target host.
+    /// It takes three named integer arguments:
+    /// - dport is the destination port
+    /// - sport is the source port, which may be inferior to 1024. This argument is optional.
+    ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
+    /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
+    #[nasl_function(named(dport, sport))]
+    fn open_priv_sock_tcp(
+        &self,
+        context: &Context,
+        dport: i64,
+        sport: Option<i64>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let addr = ipstr2ipaddr(context.target())?;
+        self.open_priv_sock(addr, dport, sport, true)
+    }
+
+    /// Open a privileged UDP socket to the target host.
+    /// It takes three named integer arguments:
+    /// - dport is the destination port
+    /// - sport is the source port, which may be inferior to 1024. This argument is optional.
+    ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
+    #[nasl_function(named(dport, sport))]
+    fn open_priv_sock_udp(
+        &self,
+        context: &Context,
+        dport: i64,
+        sport: Option<i64>,
+    ) -> Result<NaslValue, FunctionErrorKind> {
+        let addr = ipstr2ipaddr(context.target())?;
+        self.open_priv_sock(addr, dport, sport, false)
+    }
+
     /// Get the source port of a open socket
     #[nasl_function]
     fn get_source_port(&self, socket: usize) -> Result<NaslValue, FunctionErrorKind> {
@@ -500,6 +629,9 @@ impl NaslSockets {
         Ok(NaslValue::Number(port as i64))
     }
 
+    /// Receive a response of a FTP server and checks the status code of it.
+    /// This status code is compared to a list of expected status codes and
+    /// returned, if it is contained in that list.
     pub fn check_ftp_response(
         mut conn: impl BufRead,
         expected_code: &[usize],
@@ -537,8 +669,6 @@ impl NaslSockets {
             ))
         }
     }
-
-    /// *any* **ftp_log_in**(user: *string*, pass: *string*, socket: *int*);
 
     /// **ftp_log_in** takes three named arguments:
     /// - user: is the user name (it has no default value like “anonymous” or “ftp”)
@@ -585,7 +715,9 @@ function_set! {
     (
         (NaslSockets::open_sock_kdc, "open_sock_kdc"),
         (NaslSockets::open_sock_tcp, "open_sock_tcp"),
+        (NaslSockets::open_priv_sock_tcp, "open_priv_sock_tcp"),
         (NaslSockets::open_sock_udp, "open_sock_udp"),
+        (NaslSockets::open_priv_sock_udp, "open_priv_sock_udp"),
         (NaslSockets::close, "close"),
         (NaslSockets::send, "send"),
         (NaslSockets::recv, "recv"),
