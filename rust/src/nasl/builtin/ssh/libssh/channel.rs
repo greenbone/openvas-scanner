@@ -4,6 +4,8 @@ use crate::nasl::builtin::ssh::error::SshErrorKind;
 
 use super::{super::error::Result, SessionId};
 
+/// Wrapper around a `libssh_rs::Channel`. Exposes the
+/// methods of the inner channel and performs error conversions.
 pub struct Channel {
     channel: libssh_rs::Channel,
     session_id: SessionId,
