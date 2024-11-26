@@ -8,6 +8,8 @@
 //!    the functions take two arguments (`Context` and `Register`), which makes them stateless,
 //!    or three arguments (some `State`, `Context` and `Register`), which makes them stateful.
 //!    Typically, stateful functions are implemented as methods on the state struct.
+//!    Stateful functions come in two flavors that differ in whether they take `&mut State` or
+//!    `&State` as the first argument.
 //!
 //! In order to create new sets of NASL functions, the `function_set!` macro is provided.
 mod nasl_function;
@@ -15,7 +17,8 @@ mod nasl_function;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use nasl_function::{AsyncDoubleArgFn, AsyncTripleArgFn, NaslFunction};
+pub use nasl_function::NaslFunction;
+use nasl_function::{AsyncDoubleArgFn, AsyncTripleArgFn};
 use tokio::sync::RwLock;
 
 use crate::nasl::prelude::*;
@@ -135,6 +138,10 @@ impl<State> StoredFunctionSet<State> {
     pub fn sync_stateless(&mut self, k: &str, v: fn(&Register, &Context) -> NaslResult) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStateless(v));
+    }
+
+    pub fn add_nasl_function(&mut self, k: &str, f: NaslFunction<State>) {
+        self.fns.insert(k.to_string(), f);
     }
 
     /// Add a set of functions to this set.  This is useful in order
@@ -290,6 +297,40 @@ macro_rules! function_set {
             fn into_function_set(self) -> $crate::nasl::utils::StoredFunctionSet<Self::State> {
                 let mut set = $crate::nasl::utils::StoredFunctionSet::new(self);
                 $crate::internal_call_expr!($method_name, set, $($tt)*);
+                set
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! internal_call_expr_2 {
+    ($set_name: ident $(,)?) => {
+    };
+    ($set_name: ident, ($fn_name: path, $name: literal) $(, $($tt: tt)*)?) => {
+        $fn_name(&mut $set_name, $name);
+        $(
+            $crate::internal_call_expr_2!($set_name, $($tt)*);
+        )?
+    };
+    ($set_name: ident, $fn_name: path $(, $($tt: tt)*)?) => {
+        $fn_name(&mut $set_name, stringify!($fn_name));
+        $(
+            $crate::internal_call_expr_2!($set_name, $($tt)*);
+        )?
+    };
+}
+
+#[macro_export]
+macro_rules! function_set_2 {
+    ($ty: ty, ($($tt: tt)*)) => {
+        impl $crate::nasl::utils::IntoFunctionSet for $ty {
+            type State = $ty;
+
+            #[allow(unused_mut)]
+            fn into_function_set(self) -> $crate::nasl::utils::StoredFunctionSet<Self::State> {
+                let mut set = $crate::nasl::utils::StoredFunctionSet::new(self);
+                $crate::internal_call_expr_2!(set, $($tt)*);
                 set
             }
         }

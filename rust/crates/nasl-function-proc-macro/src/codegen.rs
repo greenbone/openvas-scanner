@@ -210,4 +210,97 @@ impl<'a> ArgsStruct<'a> {
             }
         }
     }
+
+    fn impl_add_to_set(
+        &self,
+        ident: &Ident,
+        fn_name: &Ident,
+        asyncness: Option<Async>,
+    ) -> TokenStream {
+        let nasl_function_expr = match (asyncness, &self.receiver_type) {
+            (Some(_), ReceiverType::None) => {
+                quote! { AsyncStateless(Box::new(#fn_name)) }
+            }
+            (Some(_), ReceiverType::RefSelf) => {
+                quote! { AsyncStateful(Box::new(Self::#fn_name)) }
+            }
+            (Some(_), ReceiverType::RefMutSelf) => {
+                quote! { AsyncStatefulMut(Box::new(Self::#fn_name)) }
+            }
+            (None, ReceiverType::None) => quote! { SyncStateless(#fn_name) },
+            (None, ReceiverType::RefSelf) => {
+                quote! { SyncStateful(Self::#fn_name) }
+            }
+            (None, ReceiverType::RefMutSelf) => {
+                quote! { SyncStatefulMut(Self::#fn_name) }
+            }
+        };
+
+        let (generics, state_type) = match &self.receiver_type {
+            ReceiverType::None => (quote! { < S > }, quote! { S }),
+            ReceiverType::RefSelf | ReceiverType::RefMutSelf => (quote! {}, quote! { Self }),
+        };
+
+        quote! {
+            fn #ident #generics (set: &mut crate::nasl::utils::StoredFunctionSet<#state_type>, name: &str) {
+                set.add_nasl_function(name, crate::nasl::utils::NaslFunction::#nasl_function_expr);
+            }
+        }
+    }
+
+    pub fn impl_nasl_function_args_2(&self) -> TokenStream {
+        let ItemFn {
+            attrs,
+            vis,
+            sig,
+            block,
+        } = self.function;
+        let stmts = &block.stmts;
+        let get_args = self.get_args();
+        let fn_args = &sig.inputs;
+        let Signature {
+            fn_token,
+            ident,
+            generics,
+            output,
+            ..
+        } = sig;
+        let self_arg = match self.receiver_type {
+            ReceiverType::None => quote! {},
+            ReceiverType::RefSelf => quote! {&self,},
+            ReceiverType::RefMutSelf => quote! {&mut self,},
+        };
+        let inputs = quote! {
+            #self_arg
+            _register: &crate::nasl::Register,
+            _context: &crate::nasl::Context<'_>,
+        };
+        let output_ty = match output {
+            syn::ReturnType::Default => quote! { () },
+            syn::ReturnType::Type(_, ty) => quote! { #ty },
+        };
+        let asyncness = sig.asyncness;
+        let checks = self.gen_checks();
+        let mangled_ident_original_fn = Ident::new(&format!("_internal_{}", ident), ident.span());
+        let mangled_ident_transformed_fn =
+            Ident::new(&(format!("_internal_convert_{}", ident)), ident.span());
+        let inner_call = self.get_inner_call_expr(&mangled_ident_original_fn, asyncness);
+        let add_to_set = self.impl_add_to_set(ident, &mangled_ident_transformed_fn, asyncness);
+
+        quote! {
+            #[allow(clippy::too_many_arguments)]
+            #asyncness fn #mangled_ident_original_fn #generics ( #fn_args ) -> #output_ty {
+                #(#stmts)*
+            }
+
+            #(#attrs)* #vis #asyncness #fn_token #mangled_ident_transformed_fn #generics ( #inputs ) -> crate::nasl::NaslResult {
+                #checks
+                #get_args
+                let _result = #inner_call;
+                <#output_ty as crate::nasl::ToNaslResult>::to_nasl_result(_result)
+            }
+
+            #add_to_set
+        }
+    }
 }

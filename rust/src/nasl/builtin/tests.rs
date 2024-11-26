@@ -44,3 +44,60 @@ fn variadic_positionals_start_at_correct_index() {
     let mut t = TestBuilder::default().with_executor(Executor::single(Foo));
     t.ok("add_positionals(1, 2, 3, 4);", 7);
 }
+
+struct Bar;
+
+impl Bar {
+    #[nasl_function_2]
+    fn sync_stateful_ref(&self) -> usize {
+        1
+    }
+
+    #[nasl_function_2]
+    fn sync_stateful_mut(&mut self) -> usize {
+        2
+    }
+
+    #[nasl_function_2]
+    async fn async_stateful_ref(&self) -> usize {
+        3
+    }
+
+    #[nasl_function_2]
+    async fn async_stateful_mut(&mut self) -> usize {
+        4
+    }
+}
+
+#[nasl_function_2]
+async fn sync_stateless() -> usize {
+    5
+}
+
+#[nasl_function_2]
+async fn async_stateless() -> usize {
+    6
+}
+
+function_set_2! {
+    Bar,
+    (
+        (Bar::sync_stateful_ref, "sync_stateful_ref"),
+        (Bar::sync_stateful_mut, "sync_stateful_mut"),
+        (Bar::async_stateful_ref, "async_stateful_ref"),
+        (Bar::async_stateful_mut, "async_stateful_mut"),
+        sync_stateless,
+        async_stateless,
+    )
+}
+
+#[test]
+fn functions_added_properly() {
+    let mut t = TestBuilder::default().with_executor(Executor::single(Bar));
+    t.ok("sync_stateful_ref();", 1);
+    t.ok("sync_stateful_mut();", 2);
+    t.ok("async_stateful_ref();", 3);
+    t.ok("async_stateful_mut();", 4);
+    t.ok("sync_stateless();", 5);
+    t.ok("async_stateless();", 6);
+}
