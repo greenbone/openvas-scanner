@@ -141,6 +141,7 @@ jobs:
         org.opencontainers.image.base.name=greenbone/gvm-libs
       artifact-name: rs-binaries
       artifact-path: assets
+      service: openvas-scanner
     secrets:
       COSIGN_KEY_OPENSIGHT: ${{ secrets.cosign_key_opensight }}
       COSIGN_KEY_PASSWORD_OPENSIGHT: ${{ secrets.cosign_password_opensight }}
