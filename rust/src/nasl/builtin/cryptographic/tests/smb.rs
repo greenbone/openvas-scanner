@@ -12,5 +12,22 @@ mod tests {
     #[test]
     fn smb_cmac_aes_signature() {
         let mut t = TestBuilder::default();
+        t.run(r#"key = "1274637383948293";"#);
+        t.run(r#"buf = "1274637383948293";"#);
+        t.ok(
+            r#"smb_cmac_aes_signature(key:key,buf:buf);"#,
+            NaslValue::Data(decode_hex("73C1B26E84FFC51037E057734B8AC8E2").unwrap()),
+        );
+    }
+    #[test]
+    fn smb_gmac_aes_signature() {
+        let mut t = TestBuilder::default();
+        t.run(r#"key = "1274637383948293";"#);
+        t.run(r#"buf = "1274637383948293";"#);
+        t.run(r#"iv = "28374928";"#);
+        t.ok(
+            r#"smb_gmac_aes_signature(key:key,buf:buf,iv:iv);"#,
+            NaslValue::Data(decode_hex("73C1B26E84FFC51037E057734B8AC8E2").unwrap()),
+        );
     }
 }
