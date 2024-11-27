@@ -36,9 +36,9 @@ pub enum CryptographicError {
     #[error("Invalid length of key in AesCmac {0}.")]
     AesCmacInvalidLength(digest::InvalidLength),
     #[error("Error in RSA: {0}.")]
-    RSA(String),
+    Rsa(String),
     #[error("Error in RC4: {0}.")]
-    RC4(String),
+    Rc4(String),
 }
 
 enum Crypt {
@@ -62,7 +62,7 @@ fn get_required_named_data<'a>(
             "a String or Data Value",
             format!("{:?}", x).as_str(),
         )),
-        _ => Err(ArgumentError::MissingNamed(vec![key.into()]).into()),
+        _ => Err(ArgumentError::MissingNamed(vec![key.into()])),
     }
 }
 

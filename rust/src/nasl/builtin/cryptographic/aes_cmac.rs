@@ -20,8 +20,8 @@ fn aes_cmac(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     let key = get_key(register)?;
     let data = get_data(register)?;
 
-    let mut mac = Cmac::<Aes128>::new_from_slice(key)
-        .map_err(|e| CryptographicError::AesCmacInvalidLength(e))?;
+    let mut mac =
+        Cmac::<Aes128>::new_from_slice(key).map_err(CryptographicError::AesCmacInvalidLength)?;
     mac.update(data);
 
     Ok(mac.finalize().into_bytes().to_vec().into())

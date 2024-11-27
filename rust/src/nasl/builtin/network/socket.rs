@@ -179,8 +179,7 @@ impl NaslSockets {
                     if flags < 0 || flags > i32::MAX as i64 {
                         return Err(SocketError::WrongArgument(
                             "the given flags value is out of range".to_string(),
-                        )
-                        .into());
+                        ));
                     }
                     Ok(conn.send_with_flags(data, flags as i32)?)
                 } else {
@@ -245,7 +244,7 @@ impl NaslSockets {
                     match conn.read_with_timeout(&mut data[pos..], timeout) {
                         Ok(n) => pos += n,
                         Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
-                        Err(e) => return Err(SocketError::from(e).into()),
+                        Err(e) => return Err(SocketError::from(e)),
                     }
                 }
                 Ok(NaslValue::Data(data[..pos].to_vec()))
@@ -295,12 +294,10 @@ impl NaslSockets {
             }
             NaslSocket::Udp(_) => Err(SocketError::Diagnostic(
                 "This function is only available for TCP connections".to_string(),
-            )
-            .into()),
+            )),
             NaslSocket::Closed => Err(SocketError::WrongArgument(
                 "the given socket FD is already closed".to_string(),
-            )
-            .into()),
+            )),
         }
     }
 
@@ -335,9 +332,9 @@ impl NaslSockets {
             Some(_) => Err(SocketError::Diagnostic(
                 "KB key 'Secret/kdc_port' has wrong type".to_string(),
             )),
-            None => Err(
-                SocketError::Diagnostic("KB key 'Secret/kdc_port' is not set".to_string()).into(),
-            ),
+            None => Err(SocketError::Diagnostic(
+                "KB key 'Secret/kdc_port' is not set".to_string(),
+            )),
         }?;
 
         let use_tcp: bool = get_kb_item(context, "Secret/kdc_use_tcp")?

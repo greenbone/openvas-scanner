@@ -65,7 +65,7 @@ impl CipherHandlers {
     ) -> Result<NaslValue, FnError> {
         let hd = match register.named("hd") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
-            _ => return Err(CryptographicError::RC4("Handler ID not found".to_string()).into()),
+            _ => return Err(CryptographicError::Rc4("Handler ID not found".to_string()).into()),
         };
 
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
@@ -74,7 +74,7 @@ impl CipherHandlers {
                 handlers.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(CryptographicError::RC4(format!("Handler ID {} not found", hd)).into()),
+            _ => Err(CryptographicError::Rc4(format!("Handler ID {} not found", hd)).into()),
         }
     }
 
@@ -89,7 +89,7 @@ impl CipherHandlers {
 
         let key = match get_key(register) {
             Ok(k) if !k.is_empty() => k.to_vec(),
-            _ => return Err(CryptographicError::RC4("Missing Key argument".to_string()).into()),
+            _ => return Err(CryptographicError::Rc4("Missing Key argument".to_string()).into()),
         };
 
         let rc_handler = Rc4Key::build_handler_from_key(key.to_vec())?;
@@ -116,7 +116,7 @@ impl CipherHandlers {
     pub fn rc4_encrypt(&self, register: &Register, _: &Context) -> Result<NaslValue, FnError> {
         let data = match get_data(register) {
             Ok(d) if !d.is_empty() => d.to_vec(),
-            _ => return Err(CryptographicError::RC4("Missing data argument".to_string()).into()),
+            _ => return Err(CryptographicError::Rc4("Missing data argument".to_string()).into()),
         };
 
         let hd = match register.named("hd") {
@@ -135,7 +135,7 @@ impl CipherHandlers {
 
         let key = match get_key(register) {
             Ok(k) if !k.is_empty() => k.to_vec(),
-            _ => return Err(CryptographicError::RC4("Missing Key argument".to_string()).into()),
+            _ => return Err(CryptographicError::Rc4("Missing Key argument".to_string()).into()),
         };
 
         let mut rc_handler = Rc4Key::build_handler_from_key(key.to_vec())?;
@@ -156,7 +156,7 @@ macro_rules! build_rc4key_enum {
             fn build_handler_from_key(bl: Vec<u8>) -> Result<Self, FnError> {
                 match bl.len() {
                     $($l => Ok(Self::$i(Rc4::new_from_slice(bl.as_slice()).unwrap())),)*
-                    _ => {return Err(CryptographicError::RC4("RC4 Key size not supported".into()).into())}
+                    _ => {return Err(CryptographicError::Rc4("RC4 Key size not supported".into()).into())}
                 }
             }
 

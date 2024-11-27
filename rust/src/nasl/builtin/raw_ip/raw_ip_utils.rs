@@ -76,7 +76,7 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),
         SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0"),
     }
-    .map_err(|e| RawIpError::FailedToBind(e))
+    .map_err(RawIpError::FailedToBind)
 }
 
 /// Return the source IP address given the destination IP address

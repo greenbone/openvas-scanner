@@ -52,7 +52,7 @@ pub fn get_named_parameter<'a>(
     match registrat.named(key) {
         None => {
             if required {
-                Err(ArgumentError::MissingNamed(vec![key.to_owned()]).into())
+                Err(ArgumentError::MissingNamed(vec![key.to_owned()]))
             } else {
                 // we use exit because a named value can be intentionally set to null and may be
                 // treated differently when it is not set compared to set but null.

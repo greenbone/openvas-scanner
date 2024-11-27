@@ -2074,7 +2074,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
 
         let sock_str = format!("{}:{}", &packet.get_destination().to_string().as_str(), 0);
         let sockaddr =
-            SocketAddr::from_str(&sock_str).map_err(|e| PacketForgeryError::ParseSocketAddr(e))?;
+            SocketAddr::from_str(&sock_str).map_err(PacketForgeryError::ParseSocketAddr)?;
         let sockaddr = socket2::SockAddr::from(sockaddr);
 
         match soc.send_to(packet_raw, &sockaddr) {
