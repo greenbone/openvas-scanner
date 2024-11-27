@@ -73,3 +73,15 @@ impl TryFrom<u8> for AliveTestMethods {
         }
     }
 }
+
+impl ToString for AliveTestMethods {
+    fn to_string(&self) -> String {
+        match self {
+            AliveTestMethods::TcpAck => "tcp_ack".to_string(),
+            AliveTestMethods::Icmp => "icmp".to_string(),
+            AliveTestMethods::Arp => "arp".to_string(),
+            AliveTestMethods::ConsiderAlive => "consider_alive".to_string(),
+            AliveTestMethods::TcpSyn => "tcp_syn".to_string(),
+        }
+    }
+}

@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
+#[cfg(feature = "nasl-builtin-raw-ip")]
+mod alivetest;
 mod error;
 mod execute;
 mod feed;
@@ -65,7 +67,10 @@ async fn main() {
     let matches = osp::extend_args(matches);
     let matches = execute::extend_args(matches);
     let matches = notusupdate::scanner::extend_args(matches);
-    let matches = feed::extend_args(matches).get_matches();
+    let matches = feed::extend_args(matches);
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    let matches = alivetest::extend_args(matches);
+    let matches = matches.get_matches();
     let result = run(&matches).await;
 
     match result {
@@ -101,6 +106,10 @@ async fn run(matches: &ArgMatches) -> Result<(), CliError> {
         return result;
     }
     if let Some(result) = osp::run(matches).await {
+        return result;
+    }
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    if let Some(result) = alivetest::run(matches).await {
         return result;
     }
     Err(CliError {

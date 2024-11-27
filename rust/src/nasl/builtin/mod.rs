@@ -16,7 +16,7 @@ mod knowledge_base;
 mod misc;
 mod network;
 #[cfg(feature = "nasl-builtin-raw-ip")]
-mod raw_ip;
+pub mod raw_ip;
 mod regex;
 mod report_functions;
 mod ssh;
