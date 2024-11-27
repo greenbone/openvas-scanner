@@ -5,7 +5,7 @@
 use std::{
     io::{self, BufRead, Read, Write},
     net::IpAddr,
-    sync::RwLock,
+    sync::Mutex,
     thread::sleep,
     time::{Duration, SystemTime},
 };
@@ -36,18 +36,19 @@ pub enum SocketError {
 /// the time defined by this interval after the last request has been sent.
 struct Interval {
     interval: Duration,
-    last_tick: SystemTime,
+    last_tick: Mutex<SystemTime>,
 }
 
 impl Interval {
     /// Check the time since the last tick and wait if necessary.
-    pub fn tick(&mut self) {
-        if let Ok(since) = SystemTime::now().duration_since(self.last_tick) {
+    pub fn tick(&self) {
+        let mut last_tick = self.last_tick.lock().unwrap();
+        if let Ok(since) = SystemTime::now().duration_since(*last_tick) {
             if since < self.interval {
                 sleep(self.interval - since);
             }
         }
-        self.last_tick = SystemTime::now();
+        *last_tick = SystemTime::now();
     }
 }
 
@@ -60,77 +61,81 @@ struct TlsConfig {
 }
 
 /// Representation of a NASL socket. A NASL socket can be either TCP (including TLS),
-/// UDP or Closed
+/// or UDP.
 enum NaslSocket {
     // The TCP Connection is boxed, because it uses a lot of space
     // This way the size of the enum is reduced
     Tcp(Box<TcpConnection>),
     Udp(UdpConnection),
-    Closed,
 }
 
-/// Struct storing handles for socket operations as well as a List of Closed sockets
-/// to override next.
-#[derive(Default)]
-struct Handles {
-    handles: Vec<NaslSocket>,
-    closed_fd: Vec<usize>,
-}
-
-/// The Top level struct storing all NASL sockets as well as the interval for tcp
-/// requests.
+/// The Top level struct storing all NASL sockets, a list of the
+/// closed sockets which should be overwritten next, as well as the
+/// interval for TCP requests.
 #[derive(Default)]
 pub struct NaslSockets {
-    handles: RwLock<Handles>,
-    interval: Option<RwLock<Interval>>,
+    handles: Vec<Option<NaslSocket>>,
+    closed_fd: Vec<usize>,
+    interval: Option<Interval>,
 }
 
 impl NaslSockets {
+    fn get_socket(&self, fd: usize) -> Result<&Option<NaslSocket>, SocketError> {
+        self.handles
+            .get(fd)
+            .ok_or_else(|| SocketError::WrongArgument("Socket does not exist".into()))
+    }
+
+    fn get_socket_mut(&mut self, fd: usize) -> Result<&mut Option<NaslSocket>, SocketError> {
+        self.handles
+            .get_mut(fd)
+            .ok_or_else(|| SocketError::WrongArgument("Socket does not exist".into()))
+    }
+
+    fn get_open_socket(&self, fd: usize) -> Result<&NaslSocket, SocketError> {
+        self.get_socket(fd)?
+            .as_ref()
+            .ok_or_else(|| SocketError::WrongArgument("Socket already closed".into()))
+    }
+
+    fn get_open_socket_mut(&mut self, fd: usize) -> Result<&mut NaslSocket, SocketError> {
+        self.get_socket_mut(fd)?
+            .as_mut()
+            .ok_or_else(|| SocketError::WrongArgument("Socket already closed".into()))
+    }
+
     /// Adds a given NASL socket. It returns the position of the socket within the
     /// list.
-    fn add(&self, socket: NaslSocket) -> usize {
-        let mut handles = self
-            .handles
-            .write()
-            .expect("Unable to access socket handles");
-        if let Some(free) = handles.closed_fd.pop() {
-            handles.handles.insert(free, socket);
+    fn add(&mut self, socket: NaslSocket) -> usize {
+        if let Some(free) = self.closed_fd.pop() {
+            self.handles.insert(free, Some(socket));
             free
         } else {
-            handles.handles.push(socket);
-            handles.handles.len() - 1
+            self.handles.push(Some(socket));
+            self.handles.len() - 1
         }
     }
 
     /// Close a given file descriptor taken as an unnamed argument.
     #[nasl_function]
-    fn close(&self, socket_fd: usize) -> Result<NaslValue, FnError> {
-        let mut handles = self.handles.write().unwrap();
-        match handles.handles.get_mut(socket_fd) {
-            Some(NaslSocket::Closed) => {
-                return Err(SocketError::Diagnostic(
-                    "the given socket FD is already closed".to_string(),
-                )
-                .into())
-            }
-            Some(socket) => {
-                *socket = NaslSocket::Closed;
-                handles.closed_fd.push(socket_fd);
-            }
-            None => {
-                return Err(SocketError::Diagnostic(
-                    "the given socket FD does not exist".to_string(),
-                )
-                .into())
-            }
-        }
-        Ok(NaslValue::Null)
+    fn close(&mut self, socket_fd: usize) -> Result<(), FnError> {
+        let socket = self.get_socket_mut(socket_fd)?;
+        if socket.is_none() {
+            return Err(SocketError::Diagnostic(
+                "the given socket FD is already closed".to_string(),
+            )
+            .into());
+        } else {
+            *socket = None;
+        };
+        self.closed_fd.push(socket_fd);
+        Ok(())
     }
 
     /// Check if a new tcp request can be sent and waits if necessary.
     fn wait_before_next_probe(&self) {
         if let Some(interval) = &self.interval {
-            interval.write().unwrap().tick();
+            interval.tick();
         }
     }
 
@@ -145,7 +150,7 @@ impl NaslSockets {
     /// On success the number of sent bytes is returned.
     #[nasl_function(named(socket, data, option, len))]
     fn send(
-        &self,
+        &mut self,
         socket: usize,
         data: &[u8],
         option: Option<i64>,
@@ -163,18 +168,13 @@ impl NaslSockets {
 
         let data = &data[0..len];
 
-        match self
-            .handles
-            .write()
-            .unwrap()
-            .handles
-            .get_mut(socket)
-            .ok_or(SocketError::WrongArgument(format!(
-                "the given socket FD {socket} does not exist"
-            )))? {
+        // Do this before we borrow the socket mutably to make the
+        // borrow checker happy. Please give me partial borrows.
+        if let NaslSocket::Tcp(_) = self.get_open_socket(socket)? {
+            self.wait_before_next_probe();
+        }
+        match self.get_open_socket_mut(socket)? {
             NaslSocket::Tcp(conn) => {
-                self.wait_before_next_probe();
-
                 if let Some(flags) = option {
                     if flags < 0 || flags > i32::MAX as i64 {
                         return Err(SocketError::WrongArgument(
@@ -192,9 +192,6 @@ impl NaslSockets {
                 }
                 Ok(conn.write(data)?)
             }
-            NaslSocket::Closed => Err(SocketError::WrongArgument(
-                "the given socket FD is already closed".to_string(),
-            )),
         }
     }
 
@@ -214,7 +211,7 @@ impl NaslSockets {
     /// - timeout can be changed from the default.
     #[nasl_function(named(socket, length, min, timeout))]
     fn recv(
-        &self,
+        &mut self,
         socket: usize,
         length: usize,
         min: Option<i64>,
@@ -225,15 +222,7 @@ impl NaslSockets {
             .unwrap_or(length);
         let mut data = vec![0; length];
 
-        match self
-            .handles
-            .write()
-            .unwrap()
-            .handles
-            .get_mut(socket)
-            .ok_or(SocketError::WrongArgument(format!(
-                "the given socket FD {socket} does not exist"
-            )))? {
+        match self.get_open_socket_mut(socket)? {
             NaslSocket::Tcp(conn) => {
                 let mut pos = match convert_timeout(timeout) {
                     Some(timeout) => conn.read_with_timeout(&mut data, timeout),
@@ -257,9 +246,6 @@ impl NaslSockets {
 
                 Ok(NaslValue::Data(data[..pos].to_vec()))
             }
-            NaslSocket::Closed => Err(SocketError::WrongArgument(
-                "the given socket FD is already closed".to_string(),
-            )),
         }
     }
 
@@ -270,21 +256,13 @@ impl NaslSockets {
     /// - timeout can be changed from the default.
     #[nasl_function(named(socket, length, timeout))]
     fn recv_line(
-        &self,
+        &mut self,
         socket: usize,
         #[allow(unused_variables)] length: usize,
         timeout: Option<i64>,
     ) -> Result<NaslValue, SocketError> {
         let mut data = String::new();
-        match self
-            .handles
-            .write()
-            .unwrap()
-            .handles
-            .get_mut(socket)
-            .ok_or(SocketError::WrongArgument(format!(
-                "the given socket FD {socket} does not exist"
-            )))? {
+        match self.get_open_socket_mut(socket)? {
             NaslSocket::Tcp(conn) => {
                 let pos = match convert_timeout(timeout) {
                     Some(timeout) => conn.read_line_with_timeout(&mut data, timeout),
@@ -294,10 +272,8 @@ impl NaslSockets {
             }
             NaslSocket::Udp(_) => Err(SocketError::Diagnostic(
                 "This function is only available for TCP connections".to_string(),
-            )),
-            NaslSocket::Closed => Err(SocketError::WrongArgument(
-                "the given socket FD is already closed".to_string(),
-            )),
+            )
+            .into()),
         }
     }
 
@@ -306,7 +282,7 @@ impl NaslSockets {
     /// - Secret/kdc_port
     /// - Secret/kdc_use_tcp
     #[nasl_function]
-    fn open_sock_kdc(&self, context: &Context) -> Result<NaslValue, FnError> {
+    fn open_sock_kdc(&mut self, context: &Context) -> Result<NaslValue, FnError> {
         let hostname = get_kb_item_str(context, "Secret/kdc_hostname")?;
 
         let ip = lookup_host(&hostname)
@@ -439,7 +415,7 @@ impl NaslSockets {
     ///   encapsulation.
     #[nasl_function(named(timeout, transport, bufsz))]
     fn open_sock_tcp(
-        &self,
+        &mut self,
         context: &Context,
         port: i64,
         timeout: Option<i64>,
@@ -501,7 +477,7 @@ impl NaslSockets {
 
     /// Open a UDP socket to the target host
     #[nasl_function]
-    fn open_sock_udp(&self, context: &Context, port: i64) -> Result<NaslValue, FnError> {
+    fn open_sock_udp(&mut self, context: &Context, port: i64) -> Result<NaslValue, FnError> {
         let port = verify_port(port)?;
         let addr = ipstr2ipaddr(context.target())?;
 
@@ -512,7 +488,7 @@ impl NaslSockets {
     }
 
     fn connect_priv_sock(
-        &self,
+        &mut self,
         addr: IpAddr,
         sport: u16,
         dport: u16,
@@ -533,7 +509,7 @@ impl NaslSockets {
     }
 
     fn open_priv_sock(
-        &self,
+        &mut self,
         addr: IpAddr,
         dport: i64,
         sport: Option<i64>,
@@ -578,7 +554,7 @@ impl NaslSockets {
     /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
     #[nasl_function(named(dport, sport))]
     fn open_priv_sock_tcp(
-        &self,
+        &mut self,
         context: &Context,
         dport: i64,
         sport: Option<i64>,
@@ -594,7 +570,7 @@ impl NaslSockets {
     ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
     #[nasl_function(named(dport, sport))]
     fn open_priv_sock_udp(
-        &self,
+        &mut self,
         context: &Context,
         dport: i64,
         sport: Option<i64>,
@@ -606,21 +582,10 @@ impl NaslSockets {
     /// Get the source port of a open socket
     #[nasl_function]
     fn get_source_port(&self, socket: usize) -> Result<NaslValue, SocketError> {
-        let handles = self.handles.read().unwrap();
-        let socket = handles
-            .handles
-            .get(socket)
-            .ok_or(SocketError::WrongArgument(
-                "the given socket FD does not exist".to_string(),
-            ))?;
+        let socket = self.get_open_socket(socket)?;
         let port = match socket {
             NaslSocket::Tcp(conn) => conn.local_addr()?.port(),
             NaslSocket::Udp(conn) => conn.local_addr()?.port(),
-            NaslSocket::Closed => {
-                return Err(SocketError::WrongArgument(
-                    "the given socket FD is already closed".to_string(),
-                ))
-            }
         };
         Ok(NaslValue::Number(port as i64))
     }
@@ -670,16 +635,8 @@ impl NaslSockets {
     /// - pass: is the password (again, no default value like the user e-mail address)
     /// - socket: an open socket.
     #[nasl_function(named(user, pass, socket))]
-    fn ftp_log_in(&self, user: &str, pass: &str, socket: usize) -> Result<bool, SocketError> {
-        match self
-            .handles
-            .write()
-            .unwrap()
-            .handles
-            .get_mut(socket)
-            .ok_or(SocketError::WrongArgument(format!(
-                "the given socket FD {socket} does not exist"
-            )))? {
+    fn ftp_log_in(&mut self, user: &str, pass: &str, socket: usize) -> Result<bool, SocketError> {
+        match self.get_open_socket_mut(socket)? {
             NaslSocket::Tcp(conn) => {
                 Self::check_ftp_response(&mut *conn, &[220])?;
                 let data = format!("USER {}\r\n", user);
@@ -695,9 +652,6 @@ impl NaslSockets {
             }
             NaslSocket::Udp(_) => Err(SocketError::Diagnostic(
                 "This function is only available for TCP connections".to_string(),
-            )),
-            NaslSocket::Closed => Err(SocketError::WrongArgument(
-                "the given socket FD is already closed".to_string(),
             )),
         }
     }
