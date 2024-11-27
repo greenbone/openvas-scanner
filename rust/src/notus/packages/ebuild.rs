@@ -10,8 +10,7 @@ use super::{Package, PackageVersion};
 #[derive(Debug, PartialEq, Clone)]
 pub struct EBuild {
     name: String,
-    full_name: String,
-    full_version: PackageVersion,
+    version: PackageVersion,
 }
 
 impl PartialOrd for EBuild {
@@ -20,11 +19,7 @@ impl PartialOrd for EBuild {
             return None;
         }
 
-        if self.full_version == other.full_version {
-            return Some(Ordering::Equal);
-        }
-
-        self.full_version.partial_cmp(&other.full_version)
+        self.version.partial_cmp(&other.version)
     }
 }
 
@@ -54,8 +49,7 @@ impl Package for EBuild {
 
         Some(EBuild {
             name,
-            full_name: full_name.to_string(),
-            full_version: PackageVersion(full_version),
+            version: PackageVersion(full_version),
         })
     }
 
@@ -65,14 +59,10 @@ impl Package for EBuild {
         }
         let name = name.trim();
         let full_version = full_version.trim();
-        let mut full_name = name.to_owned();
-        full_name.push('-');
-        full_name.push_str(full_version);
 
         Some(EBuild {
             name: name.to_string(),
-            full_name,
-            full_version: PackageVersion(full_version.to_string()),
+            version: PackageVersion(full_version.to_string()),
         })
     }
 
@@ -81,7 +71,7 @@ impl Package for EBuild {
     }
 
     fn get_version(&self) -> String {
-        self.full_version.0.clone()
+        self.version.0.clone()
     }
 }
 

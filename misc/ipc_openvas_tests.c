@@ -23,7 +23,7 @@ Ensure (ipc_openvas, ipc_data_from_json_ua_ok)
   gchar *ua = "localhost";
 
   // Preapre data to be sent
-  data_s = g_malloc0 (sizeof (ipc_data_t *));
+  data_s = g_malloc0 (sizeof (ipc_data_t));
   data_s = ipc_data_type_from_user_agent (ua, strlen (ua));
 
   const char *json = ipc_data_to_json (data_s);
@@ -48,7 +48,7 @@ Ensure (ipc_openvas, ipc_data_from_json_hostname_ok)
   gchar *hns = "TLS certificate";
 
   // Preapre data to be sent
-  data_s = g_malloc0 (sizeof (ipc_data_t *));
+  data_s = g_malloc0 (sizeof (ipc_data_t));
   data_s = ipc_data_type_from_hostname (hns, strlen (hns), hn, strlen (hn));
 
   const char *json = ipc_data_to_json (data_s);
@@ -70,10 +70,8 @@ Ensure (ipc_openvas, ipc_data_from_json_hostname_ok)
 Ensure (ipc_openvas, ipc_data_from_json_parse_error)
 {
   ipc_data_t *data_r = NULL;
-  char *json_fake = NULL;
-
   // malformed json string
-  json_fake = g_strdup (
+  char json_fake[1024] =
     "{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
     "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
     "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
@@ -90,10 +88,10 @@ Ensure (ipc_openvas, ipc_data_from_json_parse_error)
     "22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] (X11, U; "
     "Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 [en] "
     "(X11, U; Greenbone OS 22.04.4)\"}{\"type\":2,\"user-agent\":\"Mozilla/5.0 "
-    "[en] (X11, U; Greenbone OS 22.04.4)\"}{\"type\":");
+    "[en] (X11, U; Greenbone OS 22.04.4)\"}{\"type\":";
 
   // Read received data
-  data_r = g_malloc0 (sizeof (ipc_data_t *));
+  data_r = g_malloc0 (sizeof (ipc_data_t));
   data_r = ipc_data_from_json (json_fake, strlen (json_fake));
   assert_that (ipc_get_hostname_from_data (data_r), is_null);
   assert_that (ipc_get_hostname_source_from_data (data_r), is_null);
@@ -103,25 +101,49 @@ Ensure (ipc_openvas, ipc_data_from_json_parse_error)
 Ensure (ipc_openvas, ipc_data_from_json_parse_many_objects)
 {
   ipc_data_t *data_r = NULL;
-  char *json_fake = NULL;
+  int len = 0;
+  int pos = 0;
 
-  // malformed json string
-  json_fake =
-    g_strdup ("{\"type\":1,\"source\":\"TLS "
-              "certificate\",\"hostname\":\"localhost\"}{\"type\":2,\"user-"
-              "agent\":\"Mozilla/5.0 [en] (X11, U; Greenbone OS "
-              "22.04.4)\"}");
+  // json string with more than one objects
+  char json_fake[256] =
+    "{\"type\":1,\"source\":\"TLS "
+    "certificate\",\"hostname\":\"localhost\"}{\"type\":2,\"user-agent\":"
+    "\"Mozilla/5.0 [en] (X11, U; Greenbone OS 22.04.4)\"}";
 
-  // Read received data
-  data_r = g_malloc0 (sizeof (ipc_data_t *));
-  data_r = ipc_data_from_json (json_fake, strlen (json_fake));
+  for (int i = 0; json_fake[i] != '\0'; i++)
+    {
+      if (json_fake[i] == '}')
+        {
+          gchar *message = NULL;
+          len = i - pos + 1;
 
-  assert_that (ipc_get_hostname_from_data (data_r),
-               is_equal_to_string ("localhost"));
-  assert_that (ipc_get_hostname_source_from_data (data_r),
-               is_equal_to_string ("TLS certificate"));
+          message = g_malloc0 (sizeof (gchar) * (len + 1));
+          memcpy (message, &json_fake[pos], len);
+          printf ("\n\nel mensaje %s\n\n", message);
+          pos = i + 1;
+          len = 0;
+          data_r = g_malloc0 (sizeof (ipc_data_t));
+          data_r = ipc_data_from_json (message, strlen (message));
+          if (ipc_get_data_type_from_data (data_r) == IPC_DT_HOSTNAME)
+            {
+              assert_that (ipc_get_hostname_from_data (data_r),
+                           is_equal_to_string ("localhost"));
+              assert_that (ipc_get_hostname_source_from_data (data_r),
+                           is_equal_to_string ("TLS certificate"));
 
-  ipc_data_destroy (&data_r);
+              ipc_data_destroy (&data_r);
+            }
+          else
+            {
+              assert_that (
+                ipc_get_user_agent_from_data (data_r),
+                is_equal_to_string (
+                  "Mozilla/5.0 [en] (X11, U; Greenbone OS 22.04.4)"));
+              ipc_data_destroy (&data_r);
+            }
+          g_free (message);
+        }
+    }
   assert_that (data_r, is_null);
 }
 
