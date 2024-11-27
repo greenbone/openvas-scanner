@@ -10,6 +10,7 @@ use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
 
+use super::super::builtin::SshError;
 use super::ContextType;
 
 /// Reuses the StorageError definitions as they should fit most cases.
@@ -62,6 +63,9 @@ pub enum FunctionErrorKind {
     /// An example would be that there is no free memory left in the system
     #[error("{0}")]
     Dirty(String),
+    /// An Error originating from an SSH-specific NASL function
+    #[error("SSH error: {0}")]
+    Ssh(SshError),
 }
 
 // It would be nicer to derive this using #[from] from

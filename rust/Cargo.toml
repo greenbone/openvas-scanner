@@ -53,6 +53,8 @@ redis = "0.22.3"
 regex = "1.10.6"
 ripemd = "0.1.3"
 rsa = { version = "0.9.6", features = ["hazmat"] }
+russh = "0.45.0"
+russh-keys = "0.45.0"
 rustls = "0.23.5"
 rustls-pemfile = "2.1.2"
 rustls-pemfile-old = { version = "1.0.2", package = "rustls-pemfile" }
@@ -102,6 +104,7 @@ members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
 [dev-dependencies]
 tracing-test = "0.2.5"
 criterion = "0"
+once_cell = "1.20.1"
 
 [features]
 dep-graph-parallel = ["rayon", "crossbeam-channel"]
@@ -121,8 +124,8 @@ nasl-builtin-raw-ip = [
   "pnet_macros",
   "pnet_macros_support",
 ]
-nasl-builtin-ssh = ["libssh-rs"]
-experimental = ["nasl-builtin-raw-ip", "nasl-builtin-ssh", "nasl-c-lib"]
+nasl-builtin-libssh = ["libssh-rs"]
+experimental = ["nasl-builtin-raw-ip", "nasl-builtin-libssh", "nasl-c-lib"]
 
 enforce-no-trailing-arguments = []
 

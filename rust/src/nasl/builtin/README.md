@@ -62,19 +62,3 @@ and then extend the register builder within the [nasl_std_variables] with the im
 builder = builder.push_register(nasl_builtin_raw_ip::RawIp)
 
 ```
-
-
-### Mark as experimental
-
-When you have to mark your functions as experimental than you have to declare that crate as optional and add it to the experimental feature.
-
-
-```toml
-
-nasl-builtin-ssh = {path = "../nasl-builtin-ssh", optional = true}
-
-[features]
-experimental = ["nasl-builtin-ssh"]
-```
-
-It is recommended to toggle on the crate name and not on experimental to also enable toggling those without using experimental.
