@@ -15,6 +15,7 @@ use crate::nasl::interpreter::{CodeInterpreter, Interpreter};
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
+use crate::nasl::utils::context::Target;
 use crate::nasl::ContextType;
 use crate::storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
@@ -48,7 +49,7 @@ pub async fn feed_version(
     let register = Register::default();
     let k = ContextKey::default();
     let fr = NoOpRetriever::default();
-    let target = String::default();
+    let target = Target::default();
     // TODO add parameter to struct
     let functions = nasl_std_functions();
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
@@ -147,9 +148,8 @@ where
 
         let register = Register::root_initial(&self.initial);
         let fr = NoOpRetriever::default();
-        let target = String::default();
+        let target = Target::default();
         let functions = nasl_std_functions();
-
         let context = Context::new(
             key.clone(),
             target,

@@ -1,5 +1,6 @@
 use crate::models::{Host, Parameter, Protocol, ScanId};
 use crate::nasl::syntax::{Loader, NaslValue};
+use crate::nasl::utils::context::Target;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::item::Nvt;
@@ -193,10 +194,12 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
+        let mut target = Target::default();
+        target.set_target(self.target.clone());
 
         let context = Context::new(
             self.generate_key(),
-            self.target.clone(),
+            target,
             self.storage.as_dispatcher(),
             self.storage.as_retriever(),
             self.loader,

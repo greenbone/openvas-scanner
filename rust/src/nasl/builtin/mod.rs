@@ -30,6 +30,8 @@ use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
 use crate::storage::{ContextKey, DefaultDispatcher, Storage};
 
+use super::utils::context::Target;
+
 /// Creates a new Executor and adds all the functions to it.
 ///
 /// When you have a function that is considered experimental due to either dependencies on
@@ -137,11 +139,12 @@ where
 
     /// Creates a new Context with the shared loader, logger and function register
     pub fn build(&self, key: ContextKey) -> Context {
-        let target = match &key {
+        let mut target = Target::default();
+        target.set_target(match &key {
             ContextKey::Scan(_, Some(target)) => target.clone(),
             ContextKey::Scan(_, None) => String::default(),
             ContextKey::FileName(target) => target.clone(),
-        };
+        });
         Context::new(
             key,
             target,

@@ -7,6 +7,7 @@
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::storage::{ContextKey, Dispatcher, Retriever};
 
+use super::hosts::resolve;
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -290,6 +291,9 @@ impl Default for Register {
 }
 use std::collections::HashMap;
 use std::net::{AddrParseError, IpAddr};
+use std::str::FromStr;
+use std::sync::Mutex;
+
 type Named = HashMap<String, ContextType>;
 
 /// NaslContext is a struct to contain variables and if root declared functions
@@ -329,6 +333,68 @@ impl NaslContext {
     }
 }
 
+#[derive(Debug)]
+pub struct Target {
+    /// The original target. IP or hostname
+    target: String,
+    /// The IP address. Always has a valid IP. It defaults to 127.0.0.1 if not possible to resolve target.
+    ip_addr: IpAddr,
+    // The shared state is guarded by a mutex. This is a `std::sync::Mutex` and
+    // not a Tokio mutex. This is because there are no asynchronous operations
+    // being performed while holding the mutex. Additionally, the critical
+    // sections are very small.
+    //
+    // A Tokio mutex is mostly intended to be used when locks need to be held
+    // across `.await` yield points. All other cases are **usually** best
+    // served by a std mutex. If the critical section does not include any
+    // async operations but is long (CPU intensive or performing blocking
+    // operations), then the entire operation, including waiting for the mutex,
+    // is considered a "blocking" operation and `tokio::task::spawn_blocking`
+    // should be used.
+    /// vhost list which resolve to the IP address and their sources.
+    vhosts: Mutex<Vec<(String, String)>>,
+}
+
+impl Target {
+    pub fn set_target(&mut self, target: String) -> &Target {
+        // Target can be an ip address or a hostname
+        self.target = target;
+
+        // Store the IpAddr if possible, else default to localhost
+        if let Ok(host) = resolve(self.target.clone()) {
+            let t = match host {
+                Some(mut a) => {
+                    let address = a.next().map_or_else(String::new, |x| x.to_string());
+                    address[..(address.len() - 5)].to_string()
+                }
+                None => "127.0.0.1".to_string(),
+            };
+
+            self.ip_addr = match t {
+                x if !x.is_empty() => x.to_string(),
+                _ => "127.0.0.1".to_string(),
+            }
+            .parse()
+            .unwrap();
+        }
+        self
+    }
+
+    pub fn add_hostname(&self, hostname: String, source: String) -> &Target {
+        self.vhosts.lock().unwrap().push((hostname, source));
+        self
+    }
+}
+
+impl Default for Target {
+    fn default() -> Self {
+        Self {
+            target: String::new(),
+            ip_addr: IpAddr::from_str("127.0.0.1").unwrap(),
+            vhosts: Mutex::new(vec![]),
+        }
+    }
+}
 /// Configurations
 ///
 /// This struct includes all objects that a nasl function requires.
@@ -337,7 +403,7 @@ pub struct Context<'a> {
     /// key for this context. A file name or a scan id
     key: ContextKey,
     /// target to run a scan against
-    target: String,
+    target: Target,
     /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher,
     /// Default Retriever
@@ -352,7 +418,7 @@ impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
         key: ContextKey,
-        target: String,
+        target: Target,
         dispatcher: &'a dyn Dispatcher,
         retriever: &'a dyn Retriever,
         loader: &'a dyn Loader,
@@ -394,18 +460,27 @@ impl<'a> Context<'a> {
         &self.key
     }
 
-    /// Get the target host
+    /// Get the target IP as string
     pub fn target(&self) -> &str {
-        &self.target
+        &self.target.target
     }
 
-    /// Get the target host
-    pub fn target_ip(&self) -> Result<IpAddr, AddrParseError> {
-        match self.target() {
-            x if !x.is_empty() => x.to_string(),
-            _ => "127.0.0.1".to_string(),
-        }
-        .parse()
+    /// Get the target host as IpAddr enum member
+    pub fn target_ip(&self) -> IpAddr {
+        self.target.ip_addr
+    }
+
+    /// Get the target VHost list
+    pub fn target_vhosts(&self) -> Option<Vec<(String, String)>> {
+        Some(self.target.vhosts.lock().unwrap().clone())
+    }
+
+    pub fn set_target(&mut self, ori_target: String) {
+        self.target.target = ori_target;
+    }
+
+    pub fn add_hostname(&self, hostname: String, source: String) {
+        self.target.add_hostname(hostname, source);
     }
 
     /// Get the storage

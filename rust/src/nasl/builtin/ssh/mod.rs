@@ -18,7 +18,7 @@ mod tests;
 pub use error::SshError;
 pub use sessions::SshSessions as Ssh;
 
-use std::time::Duration;
+use std::{borrow::BorrowMut, time::Duration};
 
 use ::russh::{cipher, Preferred};
 use russh_keys::key;
@@ -153,9 +153,7 @@ impl Ssh {
         let port = port
             .filter(|_| socket.is_none())
             .unwrap_or(DEFAULT_SSH_PORT);
-        let ip = ctx.target_ip().map_err(|e| {
-            SshError::from(SshErrorKind::InvalidIpAddr(ctx.target().to_string(), e))
-        })?;
+        let ip = ctx.target_ip();
         let timeout = timeout.map(Duration::from_secs);
         let keytype = keytype
             .map(|keytype| keytype.0)
