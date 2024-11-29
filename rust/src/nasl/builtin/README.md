@@ -6,7 +6,7 @@ To use the std functions it is recommended to use the defined `ContextFactory` a
 
 All you have to do as a user is to create the builder
 
-```
+```rust
 let cb = scannerlib::nasl::ContextFactory::default();
 ```
 
@@ -14,7 +14,7 @@ and set all but the functions. This will use the DefaultDispatcher as well as an
 
 For production use cases it is recommended to use new method and include a key and a storage:
 
-```
+```rust
 let loader = scannerlib::nasl::FSPluginLoader::new("/feed");
 let storage = scannerlib::storage::DefaultDispatcher::default();
 let cb = scannerlib::nasl::ContextFactory::new(loader, storage);
@@ -46,7 +46,7 @@ For this purpose, it is possible to add predefined variables to the Register. Th
 
 All you have to do is to create a builder for the register:
 
-```
+```rust
 let mut register = scannerlib::nasl::RegisterBuilder::build();
 ```
 

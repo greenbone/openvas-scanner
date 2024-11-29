@@ -9,7 +9,7 @@ Each statement is self contained and it is expected to be executed iteratively a
 
 ## Usage
 
-```
+```rust
 use scannerlib::nasl::syntax::{Statement, SyntaxError};
 let statements =
 scannerlib::nasl::syntax::parse("a = 23;b = 1;")
