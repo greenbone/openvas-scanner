@@ -361,13 +361,10 @@ impl Target {
         self.target = target;
 
         // Store the IpAddr if possible, else default to localhost
-        if let Ok(host) = resolve(self.target.clone()) {
-            let t = match host {
-                Some(mut a) => a.next().map_or_else(String::new, |x| x.ip().to_string()),
-                None => "127.0.0.1".to_string(),
-            };
-            self.ip_addr = IpAddr::from_str(t.as_str()).unwrap();
-        }
+        self.ip_addr = match resolve(self.target.clone()) {
+            Ok(a) => *a.first().unwrap_or(&IpAddr::from_str("127.0.0.1").unwrap()),
+            Err(_) => IpAddr::from_str("127.0.0.1").unwrap(),
+        };
         self
     }
 
@@ -462,8 +459,8 @@ impl<'a> Context<'a> {
     }
 
     /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Option<Vec<(String, String)>> {
-        Some(self.target.vhosts.lock().unwrap().clone())
+    pub fn target_vhosts(&self) -> Vec<(String, String)> {
+        self.target.vhosts.lock().unwrap().clone()
     }
 
     pub fn set_target(&mut self, target: String) {
