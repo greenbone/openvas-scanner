@@ -2,7 +2,7 @@
 
 The required information for the progress calculation will be always provided by `openvasd`, via the route `scan/{scan-id}/status`.
 You get a json object which looks like as following:
-```
+```json
 {
   "start_time": 1709111465,
   "end_time": 1709111496,
@@ -42,7 +42,7 @@ In this case, a resume scan with some finished hosts, should not start with a pr
 Then, imagine that the scan of example above, with an initial target of 15 hosts, was stopped/interrupted and you want to resume it. It has an already finished hosts. This hosts is added to the list of `excluded hosts`.
 At the beginning of the resumed scan you have:
 
-```
+```json
 {
   "start_time": 1709111465,
   "end_time": 1709111496,
