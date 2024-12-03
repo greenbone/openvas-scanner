@@ -7,11 +7,12 @@ pub mod context;
 pub mod error;
 mod executor;
 pub mod function;
+pub mod hosts;
 pub mod lookup_keys;
 
 use std::collections::HashMap;
 
-pub use context::{Context, ContextType, Register};
+pub use context::{Context, ContextType, Register, Target};
 pub use error::FunctionErrorKind;
 
 pub use executor::{Executor, IntoFunctionSet, StoredFunctionSet};
