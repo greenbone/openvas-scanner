@@ -133,6 +133,7 @@ static init_func libfuncs[] = {
   {"http2_put", nasl_http2_put},
   {"add_host_name", add_hostname},
   {"get_host_name", get_hostname},
+  {"ip_reverse_lookup", host_reverse_lookup},
   {"get_host_names", get_hostnames},
   {"get_host_name_source", get_hostname_source},
   {"resolve_host_name", resolve_hostname},

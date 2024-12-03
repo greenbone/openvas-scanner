@@ -9,17 +9,17 @@
 #include "nasl_var.h"
 
 #include <stdio.h>
-// TODO: add string function for result
-#define nasl_print_krb_error(lexic, credential, result)                       \
-  do                                                                          \
-    {                                                                         \
-      char *error_str = okrb5_error_code_to_string (result);                  \
-      nasl_perror (lexic,                                                     \
-                   "%s[config_path: '%s' realm: '%s' user: '%s'] => %s (%d)", \
-                   __func__, credential.config_path.data,                     \
-                   credential.realm.data, credential.user.user.data, result); \
-      free (error_str);                                                       \
-    }                                                                         \
+
+#define nasl_print_krb_error(lexic, credential, result)                   \
+  do                                                                      \
+    {                                                                     \
+      char *error_str = okrb5_error_code_to_string (result);              \
+      nasl_perror (                                                       \
+        lexic, "%s[config_path: '%s' realm: '%s' user: '%s'] => %s (%d)", \
+        __func__, credential.config_path.data, credential.realm.data,     \
+        credential.user.user.data, error_str, result);                    \
+      free (error_str);                                                   \
+    }                                                                     \
   while (0)
 
 OKrb5ErrorCode last_okrb5_result;
@@ -50,11 +50,10 @@ OKrb5ErrorCode last_okrb5_result;
 static OKrb5Credential
 build_krb5_credential (lex_ctxt *lexic)
 {
-  OKrb5Credential credential;
+  OKrb5Credential credential = {0};
   OKrb5ErrorCode code;
 
   char *kdc = NULL;
-  memset (&credential, 0, sizeof (OKrb5Credential));
 
   set_slice_from_lex_or_env (lexic, credential.config_path, "config_path",
                              "KRB5_CONFIG");
@@ -78,7 +77,7 @@ build_krb5_credential (lex_ctxt *lexic)
 
   if ((code = o_krb5_find_kdc (&credential, &kdc)))
     {
-      if (code != O_KRB5_REALM_NOT_FOUND)
+      if (code != O_KRB5_REALM_NOT_FOUND && code != O_KRB5_CONF_NOT_FOUND)
         {
           nasl_print_krb_error (lexic, credential, code);
         }

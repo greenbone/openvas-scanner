@@ -534,6 +534,7 @@ okrb5_error_code_to_string (const OKrb5ErrorCode code)
   do                                    \
     {                                   \
       var = calloc (1, strlen (s) + 1); \
+      snprintf (var, strlen (s) + 1, s);    \
       goto result;                      \
     }                                   \
   while (0)
@@ -575,7 +576,6 @@ okrb5_error_code_to_string (const OKrb5ErrorCode code)
         }
       else
         {
-          result = NULL;
           goto result;
         }
     }
