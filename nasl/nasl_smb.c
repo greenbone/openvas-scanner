@@ -386,8 +386,15 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
   /* wmiexec.py uses domain/username format. */
   if ((c = strchr (username, '\\')))
     *c = '/';
-  // if no / or \ is found, add realm to username?
-  snprintf (target, sizeof (target), "%s:%s@%s", username, password, host);
+  if (strchr (username, '/') == NULL)
+    {
+      snprintf (target, sizeof (target), "%s/%s:%s@%s", realm, username,
+                password, host);
+    }
+  else
+    {
+      snprintf (target, sizeof (target), "%s:%s@%s", username, password, host);
+    }
   if (calculate_host)
     g_free (host);
 
