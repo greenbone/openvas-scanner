@@ -9,6 +9,7 @@
  */
 
 #include "scanneraux.h"
+
 #include "../nasl/nasl_krb5.h"
 
 void
