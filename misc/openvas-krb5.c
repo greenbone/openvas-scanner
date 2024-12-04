@@ -1,5 +1,6 @@
 #include "openvas-krb5.h"
 
+#include <ctype.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
 #include <krb5/krb5.h>
@@ -178,6 +179,65 @@ result:
         }                                         \
     }                                             \
   while (0)
+
+#define CHECK_FPRINT(result, writer, fmt)  \
+  do                                       \
+    {                                      \
+      if (fprintf (writer, fmt) < 0)       \
+        {                                  \
+          result = O_KRB5_UNABLE_TO_WRITE; \
+          goto result;                     \
+        }                                  \
+    }                                      \
+  while (0)
+
+static OKrb5ErrorCode
+o_krb5_write_trimmed (FILE *file, const char *prefix, const char *start,
+                      const char *end)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  while (start < end && isspace ((unsigned char) *start))
+    start++;
+  while (end > start && isspace ((unsigned char) *(end - 1)))
+    end--;
+  CHECK_FPRINTF (result, file, "%s = %.*s\n", prefix, (int) (end - start),
+                 start);
+
+result:
+  return result;
+}
+
+static OKrb5ErrorCode
+o_krb5_write_realm (FILE *file, const OKrb5Credential *creds, const char *kdc)
+{
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  CHECK_FPRINTF (result, file, "%s = {\n", (char *) creds->realm.data);
+  const char *kdc_delimiter = strchr (kdc, ',');
+  const char *kdc_start = kdc;
+  const char *kdc_first_start = kdc_start;
+  const char *kdc_first_end =
+    kdc_delimiter != NULL ? kdc_delimiter : kdc + strlen (kdc);
+
+  o_krb5_write_trimmed (file, "  kdc", kdc_first_start, kdc_first_end);
+  if (kdc_delimiter != NULL)
+    {
+      kdc_start = kdc_delimiter + 1;
+      while ((kdc_delimiter = strchr (kdc_start, ',')) != NULL)
+        {
+          o_krb5_write_trimmed (file, "  kdc", kdc_start, kdc_delimiter);
+          kdc_start = kdc_delimiter + 1;
+        }
+
+      o_krb5_write_trimmed (file, "  kdc", kdc_start, kdc + strlen (kdc));
+    }
+  o_krb5_write_trimmed (file, "  admin_server", kdc_first_start, kdc_first_end);
+  o_krb5_write_trimmed (file, "  master_kdc", kdc_first_start, kdc_first_end);
+  CHECK_FPRINT (result, file, "\n}\n");
+
+result:
+  return result;
+}
+
 // Adds realm with the given kdc into krb5.conf
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
@@ -188,7 +248,7 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
   char tmpfn[MAX_LINE_LENGTH] = {0};
   int state, i;
   char *cp = (char *) creds->config_path.data;
-  char *realm = (char *) creds->realm.data;
+
   if ((file = fopen (cp, "r")) == NULL)
     {
       if ((file = fopen (cp, "w")) == NULL)
@@ -196,8 +256,8 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
           result = O_KRB5_CONF_NOT_CREATED;
           goto result;
         }
-      CHECK_FPRINTF (result, file, "[realms]\n%s = {\n  kdc = %s\n}\n", realm,
-                     kdc);
+      CHECK_FPRINT (result, file, "[realms]\n");
+      o_krb5_write_realm (file, creds, kdc);
       goto result;
     }
   snprintf (tmpfn, MAX_LINE_LENGTH, "%s.tmp", cp);
@@ -215,8 +275,8 @@ o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
           SKIP_WS (line, MAX_LINE_LENGTH, 0, i);
           if (IS_STR_EQUAL (line, MAX_LINE_LENGTH, i, "[realms]", 8) == 1)
             {
-              CHECK_FPRINTF (result, tmp, "%s = {\n  kdc = %s\n}\n", realm,
-                             kdc);
+              o_krb5_write_realm (file, creds, kdc);
+
               state = 1;
             }
         }
@@ -530,13 +590,13 @@ result:
 char *
 okrb5_error_code_to_string (const OKrb5ErrorCode code)
 {
-#define HEAP_STRING(var, s)             \
-  do                                    \
-    {                                   \
-      var = calloc (1, strlen (s) + 1); \
-      snprintf (var, strlen (s) + 1, s);    \
-      goto result;                      \
-    }                                   \
+#define HEAP_STRING(var, s)              \
+  do                                     \
+    {                                    \
+      var = calloc (1, strlen (s) + 1);  \
+      snprintf (var, strlen (s) + 1, s); \
+      goto result;                       \
+    }                                    \
   while (0)
 
   char *result = NULL;
