@@ -346,13 +346,15 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
   GError *err = NULL;
   bool krb5 = false;
   bool calculate_host = false;
+  char first_kdc[INET6_ADDRSTRLEN] = {0};
+  const char *delimiter;
 
   IMPORT (host);
   IMPORT (username);
   IMPORT (password);
   IMPORT (realm);
-  (void) realm;
   IMPORT (kdc);
+
   IMPORT (cmd);
   krb5 = kdc != NULL;
 
@@ -407,9 +409,18 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
     }
   else
     {
+      delimiter = strchr (kdc, ',');
+      if (delimiter != NULL)
+        {
+          strncpy (first_kdc, kdc, delimiter - kdc);
+        }
+      else
+        {
+          strncpy (first_kdc, kdc, sizeof (first_kdc) - 1);
+        }
       argv[1] = "-k";
       argv[2] = "-dc-ip";
-      argv[3] = kdc;
+      argv[3] = first_kdc;
       argv[4] = target;
       argv[5] = cmd;
       argv[6] = NULL;
