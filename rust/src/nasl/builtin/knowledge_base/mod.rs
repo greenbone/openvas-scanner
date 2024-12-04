@@ -6,6 +6,7 @@
 mod tests;
 
 use std::time::{SystemTime, UNIX_EPOCH};
+use thiserror::Error;
 
 use crate::function_set;
 use crate::nasl::syntax::NaslValue;
@@ -13,11 +14,14 @@ use crate::nasl::utils::error::FnError;
 use crate::nasl::utils::Context;
 use crate::storage::{Field, Kb, Retrieve};
 use nasl_function_proc_macro::nasl_function;
-use thiserror::Error;
 
 #[derive(Debug, Error)]
-#[error("{0}")]
-pub struct KBError(pub String);
+pub enum KBError {
+    #[error("Knowledge base item does not exist: {0}")]
+    ItemNotFound(String),
+    #[error("Multiple entries found for knowledge base item {0} where a single one was expected.")]
+    MultipleItemsFound(String),
+}
 
 /// NASL function to set a value under name in a knowledge base
 /// Only pushes unique values for the given name.
@@ -26,17 +30,9 @@ fn set_kb_item(
     c: &Context,
     name: NaslValue,
     value: NaslValue,
-    expires: Option<NaslValue>,
+    expires: Option<u64>,
 ) -> Result<NaslValue, FnError> {
-    let expires = match expires {
-        Some(NaslValue::Number(x)) => Some(x),
-        Some(NaslValue::Exit(0)) => None,
-        None => None,
-        Some(x) => {
-            return Err(KBError(format!("expected expires to be a number but is {x}.")).into())
-        }
-    }
-    .map(|seconds| {
+    let expires = expires.map(|seconds| {
         let start = SystemTime::now();
         match start.duration_since(UNIX_EPOCH) {
             Ok(x) => x.as_secs() + seconds as u64,

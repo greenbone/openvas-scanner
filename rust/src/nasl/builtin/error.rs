@@ -8,8 +8,8 @@ use super::cryptographic::CryptographicError;
 use super::host::HostError;
 use super::http::HttpError;
 use super::isotime::IsotimeError;
-use super::knowledge_base::KBError;
 use super::regex::RegexError;
+use super::KBError;
 use super::sys::SysError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 

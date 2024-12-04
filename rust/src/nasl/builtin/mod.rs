@@ -27,6 +27,7 @@ mod sys;
 mod tests;
 
 pub use error::BuiltinError;
+pub use knowledge_base::KBError;
 pub use host::HostError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
