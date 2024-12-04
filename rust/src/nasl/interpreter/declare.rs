@@ -18,7 +18,7 @@ pub(crate) trait DeclareFunctionExtension {
     ) -> InterpretResult;
 }
 
-impl<'a> DeclareFunctionExtension for Interpreter<'a> {
+impl DeclareFunctionExtension for Interpreter<'_> {
     fn declare_function(
         &mut self,
         name: &Token,
@@ -46,7 +46,7 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl<'a> DeclareVariableExtension for Interpreter<'a> {
+impl DeclareVariableExtension for Interpreter<'_> {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);

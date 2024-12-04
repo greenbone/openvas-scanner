@@ -76,7 +76,6 @@ where
 /// The return value is an array a with a[0] being the encrypted data and
 /// a[1] the new initialization vector to use for the next part of the
 /// data.
-
 fn bf_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
     cbc::<Blowfish>(register, Crypt::Encrypt)
 }

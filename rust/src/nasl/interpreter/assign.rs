@@ -39,7 +39,7 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl<'a> Interpreter<'a> {
+impl Interpreter<'_> {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
         self.register_mut()
             .add_to_index(idx, key, ContextType::Value(value));

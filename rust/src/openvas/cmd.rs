@@ -7,9 +7,10 @@ use std::{
     io::Result,
     process::{Child, Command},
 };
+
 /// This module provides functions to call the openvas executable for different
 /// purposes, e.g. start or stopping a scan.
-
+///
 /// Check if it is possible to start openvas.
 pub fn check() -> bool {
     Command::new("openvas").spawn().is_ok()
