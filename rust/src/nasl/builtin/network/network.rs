@@ -30,7 +30,7 @@ fn this_host(context: &Context) -> Result<String, SocketError> {
 
     get_source_ip(dst, port)
         .map(|ip| ip.to_string())
-        .map_err(|_| SocketError::Diagnostic("No route to destination".to_string()))
+        .map_err(|_| SocketError::NoRouteToDestination(dst))
 }
 
 /// Get the host name of the current (attacking) machine

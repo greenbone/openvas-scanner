@@ -4,7 +4,7 @@
 
 use std::{
     io::{self, BufRead, Read, Write},
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     sync::Mutex,
     thread::sleep,
     time::{Duration, SystemTime},
@@ -52,6 +52,12 @@ pub enum SocketError {
     FailedToParseResponseCode(std::num::ParseIntError),
     #[error("Expected code {0:?}, got response: {1}")]
     ResponseCodeMismatch(Vec<usize>, String),
+    #[error("String is not an IP address: {0}")]
+    InvalidIpAddress(String),
+    #[error("Failed to bind socket to {1}. {0}")]
+    FailedToBindSocket(io::Error, SocketAddr),
+    #[error("No route to destination: {0}.")]
+    NoRouteToDestination(IpAddr),
 }
 
 /// Interval used for timing tcp requests. Any tcp request has to wait at least
