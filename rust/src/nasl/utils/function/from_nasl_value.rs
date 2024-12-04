@@ -21,7 +21,7 @@ impl<'a> FromNaslValue<'a> for &'a NaslValue {
     }
 }
 
-impl<'a> FromNaslValue<'a> for String {
+impl FromNaslValue<'_> for String {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, FunctionErrorKind> {
         match value {
             NaslValue::String(string) => Ok(string.to_string()),

@@ -81,7 +81,7 @@ impl<'de> Deserialize<'de> for StringF32 {
         D: serde::Deserializer<'de>,
     {
         struct MyVisitor;
-        impl<'de> Visitor<'de> for MyVisitor {
+        impl Visitor<'_> for MyVisitor {
             type Value = StringF32;
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("string")
@@ -107,7 +107,7 @@ impl<'de> Deserialize<'de> for StringU64 {
         D: serde::Deserializer<'de>,
     {
         struct MyVisitor;
-        impl<'de> Visitor<'de> for MyVisitor {
+        impl Visitor<'_> for MyVisitor {
             type Value = StringU64;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

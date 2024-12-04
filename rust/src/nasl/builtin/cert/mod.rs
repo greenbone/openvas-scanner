@@ -286,7 +286,7 @@ impl NaslCerts {
     ///
     /// - issuer Returns the issuer.  The returned value is a string in
     ///             rfc-2253 format.
-
+    ///
     /// - subject Returns the subject. The returned value is a string in
     ///              rfc-2253 format.  To query the subjectAltName the
     ///              named parameters @a idx with values starting at 1 can

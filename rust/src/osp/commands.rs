@@ -27,7 +27,7 @@ pub enum ScanCommand<'a> {
 type Result<T> = std::result::Result<T, Error>;
 type Writer = quick_xml::Writer<Cursor<Vec<u8>>>;
 
-impl<'a> ScanCommand<'a> {
+impl ScanCommand<'_> {
     fn as_byte_response(
         scan_id: &str,
         element_name: &str,

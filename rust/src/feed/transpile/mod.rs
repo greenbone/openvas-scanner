@@ -160,7 +160,7 @@ struct FunctionNameMatcher<'a> {
     parameter: Option<&'a [FindParameter]>,
 }
 
-impl<'a> FunctionNameMatcher<'a> {
+impl FunctionNameMatcher<'_> {
     fn is_function(&self, s: &Statement) -> bool {
         match s.kind() {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
@@ -190,7 +190,7 @@ impl<'a> FunctionNameMatcher<'a> {
     }
 }
 
-impl<'a> Matcher for FunctionNameMatcher<'a> {
+impl Matcher for FunctionNameMatcher<'_> {
     fn matches(&self, s: &Statement) -> bool {
         if !self.is_function(s) {
             return false;
@@ -644,9 +644,9 @@ pub struct FeedReplacer<'a> {
     replace: &'a [ReplaceCommand],
 }
 
-impl<'a> FeedReplacer<'a> {
+impl FeedReplacer<'_> {
     /// Creates a new FeedReplacer
-    pub fn new<S>(root: S, replace: &'a [ReplaceCommand]) -> FeedReplacer<'_>
+    pub fn new<S>(root: S, replace: &[ReplaceCommand]) -> FeedReplacer
     where
         S: AsRef<str>,
     {
@@ -670,7 +670,7 @@ impl<'a> FeedReplacer<'a> {
     }
 }
 
-impl<'a> Iterator for FeedReplacer<'a> {
+impl Iterator for FeedReplacer<'_> {
     type Item = Result<Option<(String, String)>, TranspileError>;
 
     fn next(&mut self) -> Option<Self::Item> {

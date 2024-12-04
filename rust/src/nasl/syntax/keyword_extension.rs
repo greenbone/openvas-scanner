@@ -22,7 +22,7 @@ pub(crate) trait Keywords {
     ) -> Result<(End, Statement), SyntaxError>;
 }
 
-impl<'a> Lexer<'a> {
+impl Lexer<'_> {
     fn parse_declaration(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let (end, params) = self.parse_comma_group(Category::Semicolon)?;
         match end {
@@ -425,7 +425,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl<'a> Keywords for Lexer<'a> {
+impl Keywords for Lexer<'_> {
     fn parse_keyword(
         &mut self,
         keyword: IdentifierType,

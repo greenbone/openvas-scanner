@@ -250,7 +250,7 @@ impl Ssh {
     /// If the private key is protected, its passphrase is taken from the
     /// named argument "passphrase" or, if not given, taken from the KB
     /// ("Secret/SSH/passphrase").
-
+    ///
     /// Note that the named argument "publickey" and the KB item
     /// ("Secret/SSH/publickey") are ignored - they are not longer required
     /// because they can be derived from the private key.

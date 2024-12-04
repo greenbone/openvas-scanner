@@ -34,7 +34,7 @@ fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
     }
 }
 
-impl<'a> Lexer<'a> {
+impl Lexer<'_> {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         if !matches!(
             token.category(),
@@ -110,7 +110,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl<'a> Prefix for Lexer<'a> {
+impl Prefix for Lexer<'_> {
     fn prefix_statement(
         &mut self,
         token: Token,

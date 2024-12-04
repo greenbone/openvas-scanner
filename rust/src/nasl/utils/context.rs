@@ -11,7 +11,7 @@ use super::hosts::resolve;
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
-
+///
 /// Represents a Value within the NaslContext
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ContextType {
@@ -171,7 +171,7 @@ impl Register {
     }
 
     /// Finds a named ContextType
-    pub fn named<'a>(&'a self, name: &'a str) -> Option<&ContextType> {
+    pub fn named<'a>(&'a self, name: &'a str) -> Option<&'a ContextType> {
         self.blocks
             .last()
             .and_then(|x| x.named(self, name))
@@ -179,7 +179,7 @@ impl Register {
     }
 
     /// Finds a named ContextType with index
-    pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &ContextType)> {
+    pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &'a ContextType)> {
         self.blocks.last().and_then(|x| x.named(self, name))
     }
 
@@ -321,7 +321,7 @@ impl NaslContext {
         &'a self,
         registrat: &'a Register,
         name: &'a str,
-    ) -> Option<(usize, &ContextType)> {
+    ) -> Option<(usize, &'a ContextType)> {
         // first check local
         match self.defined.get(name) {
             Some(ctx) => Some((self.id, ctx)),
