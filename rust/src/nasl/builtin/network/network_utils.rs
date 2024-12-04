@@ -16,10 +16,7 @@ use super::socket::SocketError;
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, SocketError> {
     match IpAddr::from_str(ip_addr) {
         Ok(ip) => Ok(ip),
-        Err(_) => Err(SocketError::Diagnostic(format!(
-            "Invalid IP address ({})",
-            ip_addr
-        ))),
+        Err(_) => Err(SocketError::InvalidIpAddress(ip_addr.into())),
     }
 }
 
@@ -32,10 +29,10 @@ pub fn convert_timeout(timeout: Option<i64>) -> Option<Duration> {
 
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
 pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, SocketError> {
-    let fe = Err(SocketError::Diagnostic("Error binding".to_string()));
+    let fe = |e| Err(SocketError::FailedToBindSocket(e, dst.clone()));
     match dst {
-        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or(fe),
-        SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or(fe),
+        SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or_else(fe),
+        SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or_else(fe),
     }
 }
 
@@ -49,7 +46,7 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, SocketError> {
         .ok()
         .and_then(|_| local_socket.local_addr().ok())
         .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
-        .ok_or_else(|| SocketError::Diagnostic("No route to destination".to_string()))
+        .ok_or_else(|| SocketError::NoRouteToDestination(dst))
 }
 
 /// Tests whether a packet sent to IP is LIKELY to route through the
@@ -130,7 +127,5 @@ pub fn get_netmask_by_local_ip(local_address: IpAddr) -> Result<Option<IpAddr>, 
     unsafe {
         libc::freeifaddrs(interfaces);
     }
-    Err(SocketError::Diagnostic(
-        "No route to destination".to_string(),
-    ))
+    Err(SocketError::NoRouteToDestination(local_address))
 }
