@@ -25,11 +25,33 @@ use super::{
 };
 
 #[derive(Debug, Error)]
-#[error("{0}")]
 pub enum SocketError {
+    #[error("{0}")]
     IO(#[from] std::io::Error),
+    #[error("Socket {0} already closed.")]
+    SocketClosed(usize),
+    #[error("{0}")]
     Diagnostic(String),
+    #[error("{0}")]
     WrongArgument(String),
+    #[error("Function {0} only supported on TCP sockets.")]
+    SupportedOnlyOnTcp(String),
+    #[error("Unable to lookup hostname {0}.")]
+    HostnameLookupFailed(String),
+    #[error("No IP found for hostname {0}.")]
+    HostnameNoIpFound(String),
+    #[error("Unsupported transport layer {0} (unknown).")]
+    UnsupportedTransportLayerUnknown(i64),
+    #[error("Unsupported transport layer {0} (tls_version).")]
+    UnsupportedTransportLayerTlsVersion(i64),
+    #[error("Unable to open privileged socket for address {0}.")]
+    UnableToOpenPrivSocket(IpAddr),
+    #[error("Failed to read response code.")]
+    FailedToReadResponseCode,
+    #[error("Failed to parse response code. {0}")]
+    FailedToParseResponseCode(std::num::ParseIntError),
+    #[error("Expected code {0:?}, got response: {1}")]
+    ResponseCodeMismatch(Vec<usize>, String),
 }
 
 /// Interval used for timing tcp requests. Any tcp request has to wait at least
@@ -121,10 +143,7 @@ impl NaslSockets {
     fn close(&mut self, socket_fd: usize) -> Result<(), FnError> {
         let socket = self.get_socket_mut(socket_fd)?;
         if socket.is_none() {
-            return Err(SocketError::Diagnostic(
-                "the given socket FD is already closed".to_string(),
-            )
-            .into());
+            return Err(SocketError::SocketClosed(socket_fd).into());
         } else {
             *socket = None;
         };
@@ -270,10 +289,7 @@ impl NaslSockets {
                 }?;
                 Ok(NaslValue::Data(data.as_bytes()[..pos].to_vec()))
             }
-            NaslSocket::Udp(_) => Err(SocketError::Diagnostic(
-                "This function is only available for TCP connections".to_string(),
-            )
-            .into()),
+            NaslSocket::Udp(_) => Err(SocketError::SupportedOnlyOnTcp("recv_line".into()).into()),
         }
     }
 
@@ -286,12 +302,10 @@ impl NaslSockets {
         let hostname = get_kb_item_str(context, "Secret/kdc_hostname")?;
 
         let ip = lookup_host(&hostname)
-            .map_err(|_| SocketError::Diagnostic(format!("unable to lookup hostname {hostname}")))?
+            .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
             .into_iter()
             .next()
-            .ok_or(SocketError::Diagnostic(format!(
-                "No IP found for hostname {hostname}"
-            )))?;
+            .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
         let port = get_kb_item(context, "Secret/kdc_port")?;
 
@@ -374,20 +388,14 @@ impl NaslSockets {
             Some(OpenvasEncaps::Ip) => None,
             // Unsupported transport layer
             None | Some(OpenvasEncaps::Max) => {
-                return Err(SocketError::Diagnostic(format!(
-                    "unsupported transport layer: {transport} (unknown)"
-                )))
+                return Err(SocketError::UnsupportedTransportLayerUnknown(transport))
             }
             // TLS/SSL
             Some(tls_version) => match tls_version {
                 OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
                     Self::make_tls_client_connection(context, vhost)
                 }
-                _ => {
-                    return Err(SocketError::Diagnostic(format!(
-                        "unsupported transport layer: {transport} {tls_version}"
-                    )))
-                }
+                _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport)),
             },
         };
         Ok(
@@ -539,11 +547,7 @@ impl NaslSockets {
             };
             return Ok(NaslValue::Number(fd as i64));
         }
-        Err(SocketError::Diagnostic(format!(
-            "Unable to open priv socket to {} on any socket from 1-1023",
-            addr
-        ))
-        .into())
+        Err(SocketError::UnableToOpenPrivSocket(addr).into())
     }
 
     /// Open a privileged socket to the target host.
@@ -595,20 +599,18 @@ impl NaslSockets {
     /// returned, if it is contained in that list.
     pub fn check_ftp_response(
         mut conn: impl BufRead,
-        expected_code: &[usize],
+        expected_codes: &[usize],
     ) -> Result<usize, SocketError> {
         let mut line = String::with_capacity(5);
         conn.read_line(&mut line)?;
 
         if line.len() < 5 {
-            return Err(SocketError::Diagnostic(
-                "could not read reply code".to_owned(),
-            ));
+            return Err(SocketError::FailedToReadResponseCode);
         }
 
-        let code: usize = line[0..3].parse().map_err(|err| {
-            SocketError::Diagnostic(format!("could not parse reply code: {}", err))
-        })?;
+        let code: usize = line[0..3]
+            .parse()
+            .map_err(|err| SocketError::FailedToParseResponseCode(err))?;
 
         // multiple line reply
         // loop while the line does not begin with the code and a space
@@ -620,13 +622,13 @@ impl NaslSockets {
 
         line = String::from(line.trim());
 
-        if expected_code.iter().any(|ec| code == *ec) {
+        if expected_codes.iter().any(|ec| code == *ec) {
             Ok(code)
         } else {
-            Err(SocketError::Diagnostic(format!(
-                "Expected code {:?}, got response: {}",
-                expected_code, line
-            )))
+            Err(SocketError::ResponseCodeMismatch(
+                expected_codes.to_vec(),
+                line,
+            ))
         }
     }
 
@@ -650,9 +652,7 @@ impl NaslSockets {
                 }
                 Ok(true)
             }
-            NaslSocket::Udp(_) => Err(SocketError::Diagnostic(
-                "This function is only available for TCP connections".to_string(),
-            )),
+            NaslSocket::Udp(_) => Err(SocketError::SupportedOnlyOnTcp("ftp_log_in".into())),
         }
     }
 }
