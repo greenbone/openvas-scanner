@@ -134,11 +134,8 @@ where
             .build(ContextKey::Scan(self.scan_id.clone(), target));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
-        let results: Vec<_> = CodeInterpreter::new(&code, register, &context)
-            .stream()
-            .collect()
-            .await;
-        for result in results {
+        let mut results = CodeInterpreter::new(&code, register, &context).stream();
+        while let Some(result) = results.next().await {
             let r = match result {
                 Ok(x) => x,
                 Err(e) => match &e.kind {
