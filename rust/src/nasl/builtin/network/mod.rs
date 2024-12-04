@@ -117,12 +117,19 @@ pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FnError>
         .ok_or_else(|| KBError(format!("KB key {} is not set", name)).into())
 }
 
-pub fn verify_port(port: i64) -> Result<u16, ArgumentError> {
-    if !(0..=65535).contains(&port) {
-        return Err(ArgumentError::WrongArgument(format!(
-            "{} is not a valid port number",
-            port
-        )));
+struct Port(u16);
+
+impl FromNaslValue<'_> for Port {
+    fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {
+        let port = i64::from_nasl_value(value)?;
+        if !(0..=65535).contains(&port) {
+            return Err(ArgumentError::WrongArgument(format!(
+                "{} is not a valid port number",
+                port
+            ))
+            .into());
+        } else {
+            Ok(Port(port as u16))
+        }
     }
-    Ok(port as u16)
 }

@@ -21,7 +21,7 @@ use super::{
     tcp::TcpConnection,
     tls::create_tls_client,
     udp::UdpConnection,
-    verify_port, OpenvasEncaps,
+    OpenvasEncaps, Port,
 };
 
 #[derive(Debug, Error)]
@@ -431,7 +431,7 @@ impl NaslSockets {
     fn open_sock_tcp(
         &mut self,
         context: &Context,
-        port: i64,
+        port: Port,
         timeout: Option<i64>,
         transport: Option<i64>,
         bufsz: Option<i64>,
@@ -439,7 +439,6 @@ impl NaslSockets {
         // priority: Option<&str>,
     ) -> Result<NaslValue, FnError> {
         // Get port
-        let port = verify_port(port)?;
         let transport = transport.unwrap_or(-1);
 
         let addr = ipstr2ipaddr(context.target())?;
@@ -457,7 +456,7 @@ impl NaslSockets {
         let sockets: Vec<Option<NaslSocket>> = vhosts
             .iter()
             .map(|vhost| {
-                Self::open_sock_tcp_vhost(context, addr, timeout, bufsz, port, vhost, transport)
+                Self::open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport)
             })
             .collect::<Result<_, _>>()?;
 
@@ -491,11 +490,10 @@ impl NaslSockets {
 
     /// Open a UDP socket to the target host
     #[nasl_function]
-    fn open_sock_udp(&mut self, context: &Context, port: i64) -> Result<NaslValue, FnError> {
-        let port = verify_port(port)?;
+    fn open_sock_udp(&mut self, context: &Context, port: Port) -> Result<NaslValue, FnError> {
         let addr = ipstr2ipaddr(context.target())?;
 
-        let socket = NaslSocket::Udp(UdpConnection::new(addr, port)?);
+        let socket = NaslSocket::Udp(UdpConnection::new(addr, port.0)?);
         let fd = self.add(socket);
 
         Ok(NaslValue::Number(fd as i64))
@@ -525,15 +523,12 @@ impl NaslSockets {
     fn open_priv_sock(
         &mut self,
         addr: IpAddr,
-        dport: i64,
-        sport: Option<i64>,
+        dport: Port,
+        sport: Option<Port>,
         tcp: bool,
     ) -> Result<NaslValue, FnError> {
-        let dport = verify_port(dport)?;
-
         if let Some(sport) = sport {
-            let sport = verify_port(sport)?;
-            return Ok(self.connect_priv_sock(addr, sport, dport as u16, tcp)?);
+            return Ok(self.connect_priv_sock(addr, sport.0, dport.0 as u16, tcp)?);
         }
 
         for sport in (1..=1023).rev() {
@@ -541,12 +536,12 @@ impl NaslSockets {
                 // TODO: set timeout to global recv timeout when available
                 let timeout = Duration::from_secs(10);
                 self.wait_before_next_probe();
-                if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport, timeout) {
+                if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
                     self.add(NaslSocket::Tcp(Box::new(tcp)))
                 } else {
                     continue;
                 }
-            } else if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport) {
+            } else if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport.0) {
                 self.add(NaslSocket::Udp(udp))
             } else {
                 continue;
@@ -566,8 +561,8 @@ impl NaslSockets {
     fn open_priv_sock_tcp(
         &mut self,
         context: &Context,
-        dport: i64,
-        sport: Option<i64>,
+        dport: Port,
+        sport: Option<Port>,
     ) -> Result<NaslValue, FnError> {
         let addr = ipstr2ipaddr(context.target())?;
         self.open_priv_sock(addr, dport, sport, true)
@@ -582,8 +577,8 @@ impl NaslSockets {
     fn open_priv_sock_udp(
         &mut self,
         context: &Context,
-        dport: i64,
-        sport: Option<i64>,
+        dport: Port,
+        sport: Option<Port>,
     ) -> Result<NaslValue, FnError> {
         let addr = ipstr2ipaddr(context.target())?;
         self.open_priv_sock(addr, dport, sport, false)
