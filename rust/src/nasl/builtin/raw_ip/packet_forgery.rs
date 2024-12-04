@@ -2300,7 +2300,7 @@ fn nasl_send_capture(
             let frame = EthernetPacket::new(packet.data).ok_or_else(|| {
                 FunctionErrorKind::Dirty("No possible to create a packet from buffer".to_string())
             })?;
-            return Ok(NaslValue::Data(frame.payload().to_vec()));
+            Ok(NaslValue::Data(frame.payload().to_vec()))
         }
         Err(_) => Ok(NaslValue::Null),
     }
