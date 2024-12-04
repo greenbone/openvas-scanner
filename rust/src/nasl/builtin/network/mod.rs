@@ -5,9 +5,6 @@
 use std::{fmt::Display, net::IpAddr};
 
 use crate::nasl::prelude::*;
-use crate::storage::{Field, Retrieve};
-
-use super::knowledge_base::KBError;
 
 #[allow(clippy::module_inception)]
 pub mod network;
@@ -80,7 +77,7 @@ impl Display for OpenvasEncaps {
 }
 
 pub fn get_retry(context: &Context) -> u8 {
-    if let Ok(Some(val)) = get_kb_item(context, "timeout_retry") {
+    if let Ok(val) = context.get_single_kb_item("timeout_retry") {
         match val {
             NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
             NaslValue::Number(val) => {
@@ -95,26 +92,6 @@ pub fn get_retry(context: &Context) -> u8 {
     } else {
         2
     }
-}
-
-pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FnError> {
-    context
-        .retriever()
-        .retrieve(context.key(), Retrieve::KB(name.to_string()))
-        .map(|r| {
-            r.into_iter().find_map(|x| match x {
-                Field::KB(kb) => kb.value.into(),
-                _ => None,
-            })
-        })
-        .map(|x| x.map(|x| x.into()))
-        .map_err(|e| e.into())
-}
-
-pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FnError> {
-    get_kb_item(context, name)?
-        .map(|x| x.to_string())
-        .ok_or_else(|| KBError(format!("KB key {} is not set", name)).into())
 }
 
 struct Port(u16);

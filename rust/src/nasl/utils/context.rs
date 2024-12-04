@@ -4,10 +4,16 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use itertools::Itertools;
+
+use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
-use crate::storage::{ContextKey, Dispatcher, Retriever};
+use crate::nasl::{FromNaslValue, WithErrorInfo};
+use crate::storage::{ContextKey, Dispatcher, Field, Retrieve, Retriever};
 
 use super::hosts::resolve;
+use super::error::ReturnBehavior;
+use super::FnError;
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -484,6 +490,40 @@ impl<'a> Context<'a> {
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
+    }
+
+    /// Return a single item from the knowledge base.
+    /// If multiple entries are found (which would result
+    /// in forking the interpreter), return an error.
+    /// This function automatically converts the item
+    /// to a specific type via its `FromNaslValue` impl
+    /// and returns the appropriate error if necessary.
+    pub fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
+        &self,
+        name: &str,
+    ) -> Result<T, FnError> {
+        // If we find multiple or no items at all, return an error that
+        // exits the script instead of continuing execution with a return
+        // value, since this is most likely an error in the feed.
+        let val = self
+            .get_single_kb_item_inner(name)
+            .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
+        T::from_nasl_value(&val)
+    }
+
+    fn get_single_kb_item_inner<'kb>(&self, name: &str) -> Result<NaslValue, FnError> {
+        let result = self
+            .retriever()
+            .retrieve(&self.key, Retrieve::KB(name.to_string()))?;
+        let single_item = result
+            .filter_map(|field| match field {
+                Field::KB(kb) => Some(kb.value.into()),
+                _ => None,
+            })
+            .at_most_one()
+            .map_err(|_| KBError::MultipleItemsFound(name.to_string()))?
+            .ok_or_else(|| KBError::ItemNotFound(name.to_string()))?;
+        Ok(single_item)
     }
 }
 

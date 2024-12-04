@@ -16,7 +16,7 @@ use rustls::ClientConnection;
 use thiserror::Error;
 
 use super::{
-    get_kb_item, get_kb_item_str, get_retry,
+    get_retry,
     network_utils::{convert_timeout, ipstr2ipaddr},
     tcp::TcpConnection,
     tls::create_tls_client,
@@ -305,7 +305,7 @@ impl NaslSockets {
     /// - Secret/kdc_use_tcp
     #[nasl_function]
     fn open_sock_kdc(&mut self, context: &Context) -> Result<NaslValue, FnError> {
-        let hostname = get_kb_item_str(context, "Secret/kdc_hostname")?;
+        let hostname: String = context.get_single_kb_item("Secret/kdc_hostname")?;
 
         let ip = lookup_host(&hostname)
             .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
@@ -313,29 +313,9 @@ impl NaslSockets {
             .next()
             .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
-        let port = get_kb_item(context, "Secret/kdc_port")?;
+        let port = context.get_single_kb_item::<Port>("Secret/kdc_port")?.0;
 
-        let port = match port {
-            Some(NaslValue::Number(x)) => {
-                if x <= 0 || x > 65535 {
-                    Err(SocketError::Diagnostic(
-                        "KB key 'Secret/kdc_port' out of range".to_string(),
-                    ))
-                } else {
-                    Ok(x as u16)
-                }
-            }
-            Some(_) => Err(SocketError::Diagnostic(
-                "KB key 'Secret/kdc_port' has wrong type".to_string(),
-            )),
-            None => Err(SocketError::Diagnostic(
-                "KB key 'Secret/kdc_port' is not set".to_string(),
-            )),
-        }?;
-
-        let use_tcp: bool = get_kb_item(context, "Secret/kdc_use_tcp")?
-            .map(|x| x.into())
-            .unwrap_or(false);
+        let use_tcp: bool = context.get_single_kb_item("Secret/kdc_use_tcp")?;
 
         let socket = if use_tcp {
             let tcp = TcpConnection::connect(
@@ -475,10 +455,10 @@ impl NaslSockets {
     /// Reads the information necessary for a TLS connection from the KB and
     /// return a TlsConfig on success.
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
-        let cert_path = get_kb_item_str(context, "SSL/cert")?;
-        let key_path = get_kb_item_str(context, "SSL/key")?;
-        let password = get_kb_item_str(context, "SSL/password")?;
-        let cafile_path = get_kb_item_str(context, "SSL/CA")?;
+        let cert_path = context.get_single_kb_item("SSL/cert")?;
+        let key_path = context.get_single_kb_item("SSL/key")?;
+        let password = context.get_single_kb_item("SSL/password")?;
+        let cafile_path = context.get_single_kb_item("SSL/CA")?;
 
         Ok(TlsConfig {
             cert_path,

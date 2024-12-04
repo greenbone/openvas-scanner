@@ -186,6 +186,16 @@ impl<T: Into<NaslValue>, E: Into<FnError>> WithErrorInfo<ReturnValue<T>> for E {
     }
 }
 
+impl<E: Into<FnError>> WithErrorInfo<ReturnBehavior> for E {
+    type Error = FnError;
+
+    fn with(self, val: ReturnBehavior) -> Self::Error {
+        let mut e = self.into();
+        e.return_behavior = val;
+        e
+    }
+}
+
 impl ArgumentError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
