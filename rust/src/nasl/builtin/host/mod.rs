@@ -48,7 +48,7 @@ fn get_host_names(context: &Context) -> Result<NaslValue, FunctionErrorKind> {
 }
 
 /// Return the target's IP address as IpAddr.
-fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = match context.target() {
         x if !x.is_empty() => IpAddr::from_str(x),
