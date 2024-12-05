@@ -78,6 +78,7 @@ static init_func libfuncs[] = {
   {"script_xref", script_xref},
   {"script_tag", script_tag},
   {"vendor_version", nasl_vendor_version},
+  {"collect_host_stats", nasl_collect_host_stats},
   {"update_table_driven_lsc_data", nasl_update_table_driven_lsc_data},
   {"get_preference", nasl_get_preference},
   {"safe_checks", safe_checks},
