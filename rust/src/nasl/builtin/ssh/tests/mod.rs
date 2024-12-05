@@ -13,7 +13,7 @@ use server::TestServer;
 use crate::check_err_matches;
 use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::builtin::ssh::sessions::MIN_SESSION_ID;
-use crate::nasl::builtin::SshError;
+use crate::nasl::builtin::ssh::SshError;
 use crate::nasl::test_prelude::*;
 use crate::nasl::NoOpLoader;
 use crate::storage::DefaultDispatcher;
@@ -83,16 +83,16 @@ async fn ssh_connect() {
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "foo");"#, PORT),
-                FunctionErrorKind::WrongArgument(_)
+                ArgumentError::WrongArgument(_)
             );
             // Without a matching key algorithm, we should not be able to connect
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{}, keytype: "ssh-rsa");"#, PORT),
-                FunctionErrorKind::Ssh(SshError {
+                SshError {
                     kind: SshErrorKind::Connect,
                     ..
-                })
+                }
             );
         },
         default_config(),
@@ -121,10 +121,10 @@ async fn ssh_userauth() {
             check_err_matches!(
                 t,
                 r#"ssh_userauth(session_id);"#,
-                FunctionErrorKind::Ssh(SshError {
+                SshError {
                     kind: SshErrorKind::NoAuthenticationGiven,
                     ..
-                }),
+                },
             );
             userauth(&mut t);
         },

@@ -12,15 +12,12 @@ use blowfish::{
 };
 use cbc::{Decryptor, Encryptor};
 
-use crate::function_set;
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::error::FunctionErrorKind;
-use crate::nasl::utils::{Context, Register};
+use crate::nasl::prelude::*;
 
 use super::{get_data, get_iv, get_key, get_len, Crypt};
 
 /// Base function for en- and decrypting Cipher Block Chaining (CBC) mode
-fn cbc<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FunctionErrorKind>
+fn cbc<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FnError>
 where
     D: BlockCipher + BlockEncrypt + BlockDecrypt + KeyInit,
 {
@@ -35,7 +32,7 @@ where
             let res = Encryptor::<D>::new_from_slices(key, iv);
             match res {
                 Ok(encryptor) => Ok(encryptor.encrypt_padded_vec_mut::<ZeroPadding>(data).into()),
-                Err(e) => Err(FunctionErrorKind::WrongArgument(e.to_string())),
+                Err(e) => Err(ArgumentError::WrongArgument(e.to_string()).into()),
             }
         }
         Crypt::Decrypt => {
@@ -47,20 +44,21 @@ where
 
             // len should not be more than the length of the data
             if len > data.len() {
-                return Err(FunctionErrorKind::wrong_argument(
+                return Err(ArgumentError::wrong_argument(
                     "len",
                     format!("<={:?}", data.len()).as_str(),
                     len.to_string().as_str(),
-                ));
+                )
+                .into());
             }
             let res = Decryptor::<D>::new_from_slices(key, iv);
             match res {
                 Ok(decryptor) => Ok(decryptor
                     .decrypt_padded_vec_mut::<NoPadding>(data)
-                    .map_err(|e| FunctionErrorKind::WrongArgument(e.to_string()))?[..len]
+                    .map_err(|e| ArgumentError::WrongArgument(e.to_string()))?[..len]
                     .to_vec()
                     .into()),
-                Err(e) => Err(FunctionErrorKind::WrongArgument(e.to_string())),
+                Err(e) => Err(ArgumentError::WrongArgument(e.to_string()).into()),
             }
         }
     }
@@ -76,7 +74,7 @@ where
 /// The return value is an array a with a[0] being the encrypted data and
 /// a[1] the new initialization vector to use for the next part of the
 /// data.
-fn bf_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn bf_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     cbc::<Blowfish>(register, Crypt::Encrypt)
 }
 
@@ -90,7 +88,7 @@ fn bf_cbc_encrypt(register: &Register, _: &Context) -> Result<NaslValue, Functio
 /// The return value is an array a with a[0] being the plaintext data
 /// and a[1] the new initialization vector to use for the next part of
 /// the data.
-fn bf_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn bf_cbc_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
     cbc::<Blowfish>(register, Crypt::Decrypt)
 }
 

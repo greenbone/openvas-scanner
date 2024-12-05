@@ -33,7 +33,7 @@ use sequoia_ipc::keybox::{Keybox, KeyboxRecord};
 use sequoia_openpgp as openpgp;
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 /// Defines error cases that can happen while verifying
 pub enum Error {
     #[error("Incorrect feed.")]

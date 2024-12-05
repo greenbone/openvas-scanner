@@ -9,7 +9,7 @@ use crate::nasl::prelude::*;
 pub fn get_optional_positional_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     position: usize,
-) -> Result<Option<T>, FunctionErrorKind> {
+) -> Result<Option<T>, FnError> {
     register
         .positional()
         .get(position)
@@ -23,11 +23,11 @@ pub fn get_positional_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     position: usize,
     num_required_positional_args: usize,
-) -> Result<T, FunctionErrorKind> {
+) -> Result<T, FnError> {
     let positional = register.positional();
     let arg = positional.get(position).ok_or_else(|| {
         let num_given = positional.len();
-        FunctionErrorKind::MissingPositionalArguments {
+        ArgumentError::MissingPositionals {
             expected: num_required_positional_args,
             got: num_given,
         }
@@ -38,9 +38,9 @@ pub fn get_positional_arg<'a, T: FromNaslValue<'a>>(
 fn context_type_as_nasl_value<'a>(
     context_type: &'a ContextType,
     arg_name: &str,
-) -> Result<&'a NaslValue, FunctionErrorKind> {
+) -> Result<&'a NaslValue, ArgumentError> {
     match context_type {
-        ContextType::Function(_, _) => Err(FunctionErrorKind::WrongArgument(format!(
+        ContextType::Function(_, _) => Err(ArgumentError::WrongArgument(format!(
             "Wrong argument for {}, expected a value, found a function.",
             arg_name
         ))),
@@ -53,7 +53,7 @@ fn context_type_as_nasl_value<'a>(
 pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
-) -> Result<Option<T>, FunctionErrorKind> {
+) -> Result<Option<T>, FnError> {
     register
         .named(name)
         .map(|arg| context_type_as_nasl_value(arg, name))
@@ -67,10 +67,10 @@ pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
 pub fn get_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
-) -> Result<T, FunctionErrorKind> {
+) -> Result<T, FnError> {
     let arg = register
         .named(name)
-        .ok_or_else(|| FunctionErrorKind::MissingArguments(vec![name.to_string()]))?;
+        .ok_or_else(|| ArgumentError::MissingNamed(vec![name.to_string()]))?;
     <T as FromNaslValue>::from_nasl_value(context_type_as_nasl_value(arg, name)?)
 }
 
@@ -80,7 +80,7 @@ pub fn get_optional_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
     position: usize,
-) -> Result<Option<T>, FunctionErrorKind> {
+) -> Result<Option<T>, FnError> {
     let via_position = get_optional_positional_arg::<T>(register, position)?;
     if let Some(via_position) = via_position {
         Ok(Some(via_position))
@@ -95,7 +95,7 @@ pub fn get_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
     position: usize,
-) -> Result<T, FunctionErrorKind> {
+) -> Result<T, FnError> {
     let via_position = get_optional_positional_arg(register, position)?;
     if let Some(via_position) = via_position {
         Ok(via_position)
@@ -114,7 +114,7 @@ fn check_named_args(
     _nasl_fn_name: &str,
     named: &[&str],
     maybe_named: &[&str],
-) -> Result<usize, FunctionErrorKind> {
+) -> Result<usize, FnError> {
     let mut num_maybe_named = 0;
     for arg_name in register.iter_named_args().unwrap() {
         if arg_name == FC_ANON_ARGS || named.contains(&arg_name) {
@@ -123,7 +123,7 @@ fn check_named_args(
             num_maybe_named += 1;
         } else {
             #[cfg(feature = "enforce-no-trailing-arguments")]
-            return Err(FunctionErrorKind::UnexpectedArgument(arg_name.into()));
+            return Err(ArgumentError::UnexpectedArgument(arg_name.into()).into());
             #[cfg(not(feature = "enforce-no-trailing-arguments"))]
             tracing::debug!(
                 "Unexpected named argument '{arg_name}' in NASL function {_nasl_fn_name}."
@@ -142,17 +142,18 @@ pub fn check_args(
     named: &[&str],
     maybe_named: &[&str],
     max_num_expected_positional: Option<usize>,
-) -> Result<(), FunctionErrorKind> {
+) -> Result<(), FnError> {
     let num_maybe_named_given = check_named_args(register, _nasl_fn_name, named, maybe_named)?;
     let num_positional_given = register.positional().len();
     if let Some(max_num_expected_positional) = max_num_expected_positional {
         let num_positional_expected = max_num_expected_positional - num_maybe_named_given;
         if num_positional_given > num_positional_expected {
             #[cfg(feature = "enforce-no-trailing-arguments")]
-            return Err(FunctionErrorKind::TrailingPositionalArguments {
+            return Err(ArgumentError::TrailingPositionals {
                 expected: num_positional_expected,
                 got: num_positional_given,
-            });
+            }
+            .into());
             #[cfg(not(feature = "enforce-no-trailing-arguments"))]
             tracing::debug!(
                 "Trailing positional arguments in NASL function {_nasl_fn_name}. Expected {num_positional_expected}, found {num_positional_given}"

@@ -2,143 +2,213 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-//! Defines function error kinds
-use std::io;
 use thiserror::Error;
 
+use crate::nasl::builtin::BuiltinError;
 use crate::nasl::prelude::NaslValue;
 
 use crate::storage::StorageError;
 
-use super::super::builtin::SshError;
-use super::ContextType;
-
-/// Reuses the StorageError definitions as they should fit most cases.
-pub type GeneralErrorType = StorageError;
-
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-/// Descriptive kind of error that can occur while calling a function
-pub enum FunctionErrorKind {
-    /// Function called with insufficient arguments
-    #[error("Expected {expected} but got {got}")]
-    MissingPositionalArguments {
-        /// Expected amount of arguments
-        expected: usize,
-        /// Actual amount of arguments
-        got: usize,
-    },
-    /// Function called with trailing positional arguments
-    #[error("Expected {expected} but got {got}")]
-    TrailingPositionalArguments {
-        /// Expected amount of arguments
-        expected: usize,
-        /// Actual amount of arguments
-        got: usize,
-    },
-    /// Function called without required named arguments
-    #[error("Missing arguments: {}", .0.join(", "))]
-    MissingArguments(Vec<String>),
-    /// Function called with additional, unexpected named arguments
-    #[error("Unknown named argument given to function: {}", .0)]
-    UnexpectedArgument(String),
-    /// Wraps formatting error
-    #[error("Formatting error: {0}")]
-    FMTError(#[from] std::fmt::Error),
-    /// Wraps io::Error
-    #[error("IOError: {0}")]
-    IOError(io::ErrorKind),
-    /// Function was called with wrong arguments
-    #[error("Function was called with wrong arguments: {0}")]
-    WrongArgument(String),
-    /// Authentication failed
-    #[error("Authentication failed.")]
-    Authentication,
-    /// Diagnostic string is informational and the second arg is the return value for the user
-    #[error("{0}")]
-    Diagnostic(String, Option<NaslValue>),
-    /// Generic error
-    #[error("Generic error: {0}")]
-    GeneralError(#[from] GeneralErrorType),
-    /// There is a deeper problem
-    /// An example would be that there is no free memory left in the system
-    #[error("{0}")]
-    Dirty(String),
-    /// An Error originating from an SSH-specific NASL function
-    #[error("SSH error: {0}")]
-    Ssh(SshError),
+#[derive(Debug, Error)]
+#[error("{kind}")]
+pub struct FnError {
+    #[source]
+    pub kind: FnErrorKind,
+    return_behavior: ReturnBehavior,
+    retryable: bool,
 }
 
-// It would be nicer to derive this using #[from] from
-// thiserror, but io::Error does not impl `PartialEq`,
-// `Eq` or `Clone`, so we wrap `io::ErrorKind` instead, which
-// does not impl `Error` which is why this `From` impl exists.
-impl From<io::Error> for FunctionErrorKind {
-    fn from(e: io::Error) -> Self {
-        Self::IOError(e.kind())
+#[derive(Debug)]
+pub enum ReturnBehavior {
+    ExitScript,
+    ReturnValue(NaslValue),
+}
+
+impl FnError {
+    pub fn return_behavior(&self) -> &ReturnBehavior {
+        &self.return_behavior
+    }
+
+    pub fn retryable(&self) -> bool {
+        self.retryable
+    }
+
+    fn from_kind(kind: FnErrorKind) -> FnError {
+        Self {
+            kind,
+            return_behavior: ReturnBehavior::ExitScript,
+            retryable: false,
+        }
     }
 }
 
-impl FunctionErrorKind {
+impl From<FnErrorKind> for FnError {
+    fn from(kind: FnErrorKind) -> Self {
+        FnError::from_kind(kind)
+    }
+}
+
+impl From<ArgumentError> for FnError {
+    fn from(kind: ArgumentError) -> Self {
+        FnError::from_kind(FnErrorKind::Argument(kind))
+    }
+}
+
+impl From<BuiltinError> for FnError {
+    fn from(kind: BuiltinError) -> Self {
+        FnError {
+            kind: FnErrorKind::Builtin(kind),
+            retryable: false,
+            return_behavior: ReturnBehavior::ReturnValue(NaslValue::Null),
+        }
+    }
+}
+
+impl From<InternalError> for FnError {
+    fn from(kind: InternalError) -> Self {
+        let retryable = kind.retryable();
+        Self {
+            kind: FnErrorKind::Internal(kind),
+            retryable,
+            return_behavior: ReturnBehavior::ExitScript,
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum FnErrorKind {
+    #[error("{0}")]
+    Argument(ArgumentError),
+    #[error("{0}")]
+    Builtin(BuiltinError),
+    #[error("{0}")]
+    Internal(InternalError),
+}
+
+#[derive(Debug, Clone, PartialEq, Error)]
+pub enum ArgumentError {
+    #[error("Missing positional arguments. Expected {expected} but got {got}.")]
+    MissingPositionals { expected: usize, got: usize },
+    #[error("Trailing positional arguments. Expected {expected} but got {got}.")]
+    TrailingPositionals { expected: usize, got: usize },
+    #[error("Missing named arguments: {}", .0.join(", "))]
+    MissingNamed(Vec<String>),
+    #[error("Unknown named argument given: {}", .0)]
+    UnexpectedArgument(String),
+    #[error("Wrong arguments given: {0}")]
+    WrongArgument(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Error)]
+pub enum InternalError {
+    #[error("{0}")]
+    Storage(#[from] StorageError),
+}
+
+impl InternalError {
+    fn retryable(&self) -> bool {
+        // Keep this match exhaustive without a catchall
+        // to make sure we implement future internal errors
+        // properly.
+        match self {
+            InternalError::Storage(StorageError::Retry(_)) => true,
+            InternalError::Storage(_) => false,
+        }
+    }
+}
+
+impl From<StorageError> for FnError {
+    fn from(value: StorageError) -> Self {
+        FnErrorKind::Internal(InternalError::Storage(value)).into()
+    }
+}
+
+impl<'a> TryFrom<&'a FnError> for &'a ArgumentError {
+    type Error = ();
+
+    fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+        match &value.kind {
+            FnErrorKind::Argument(e) => Ok(e),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a FnError> for &'a InternalError {
+    type Error = ();
+
+    fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+        match &value.kind {
+            FnErrorKind::Internal(e) => Ok(e),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a FnError> for &'a BuiltinError {
+    type Error = ();
+
+    fn try_from(value: &'a FnError) -> Result<Self, Self::Error> {
+        match &value.kind {
+            FnErrorKind::Builtin(e) => Ok(e),
+            _ => Err(()),
+        }
+    }
+}
+
+pub trait WithErrorInfo<Info> {
+    type Error;
+    fn with(self, e: Info) -> Self::Error;
+}
+
+pub struct Retryable;
+
+impl<E: Into<FnError>> WithErrorInfo<Retryable> for E {
+    type Error = FnError;
+
+    fn with(self, _: Retryable) -> Self::Error {
+        let mut e = self.into();
+        e.retryable = true;
+        e
+    }
+}
+
+pub struct ReturnValue<T>(pub T);
+
+impl<T: Into<NaslValue>, E: Into<FnError>> WithErrorInfo<ReturnValue<T>> for E {
+    type Error = FnError;
+
+    fn with(self, val: ReturnValue<T>) -> Self::Error {
+        let mut e = self.into();
+        let val = val.0.into();
+        e.return_behavior = ReturnBehavior::ReturnValue(val);
+        e
+    }
+}
+
+impl ArgumentError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
     pub fn wrong_argument(key: &str, expected: &str, got: &str) -> Self {
-        Self::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
+        ArgumentError::WrongArgument(format!("Expected {key} to be {expected} but it is {got}"))
     }
+}
 
+impl FnError {
     /// Helper function to quickly construct a `WrongArgument` variant
     /// containing the name of the argument, the expected value and
     /// the actual value.
     pub fn wrong_unnamed_argument(expected: &str, got: &str) -> Self {
-        Self::WrongArgument(format!("Expected {expected} but {got}"))
+        FnErrorKind::Argument(ArgumentError::WrongArgument(format!(
+            "Expected {expected} but {got}"
+        )))
+        .into()
     }
 
     /// Helper function to quickly construct a `MissingArguments` variant
     /// for a single missing argument.
     pub fn missing_argument(val: &str) -> Self {
-        Self::MissingArguments(vec![val.to_string()])
-    }
-
-    /// Helper function to quickly construct a `MissingArguments` variant
-    /// for a single missing argument and returning a NaslValue::Null
-    pub fn diagnostic_ret_null(val: &str) -> Self {
-        Self::Diagnostic(val.to_string(), Some(NaslValue::Null))
-    }
-}
-
-impl From<(&str, &str, &NaslValue)> for FunctionErrorKind {
-    fn from(value: (&str, &str, &NaslValue)) -> Self {
-        let (key, expected, got) = value;
-        let got: &str = &got.to_string();
-        FunctionErrorKind::wrong_argument(key, expected, got)
-    }
-}
-
-impl From<(&str, &str, Option<&NaslValue>)> for FunctionErrorKind {
-    fn from(value: (&str, &str, Option<&NaslValue>)) -> Self {
-        match value {
-            (key, expected, Some(x)) => (key, expected, x).into(),
-            (key, expected, None) => FunctionErrorKind::wrong_argument(key, expected, "NULL"),
-        }
-    }
-}
-
-impl From<(&str, &str, Option<&ContextType>)> for FunctionErrorKind {
-    fn from(value: (&str, &str, Option<&ContextType>)) -> Self {
-        match value {
-            (key, expected, Some(ContextType::Value(x))) => (key, expected, x).into(),
-            (key, expected, Some(ContextType::Function(_, _))) => {
-                FunctionErrorKind::wrong_argument(key, expected, "function")
-            }
-            (key, expected, None) => FunctionErrorKind::wrong_argument(key, expected, "NULL"),
-        }
-    }
-}
-
-impl From<(&str, &NaslValue)> for FunctionErrorKind {
-    fn from(value: (&str, &NaslValue)) -> Self {
-        let (expected, got) = value;
-        let got: &str = &got.to_string();
-        FunctionErrorKind::wrong_unnamed_argument(expected, got)
+        FnErrorKind::Argument(ArgumentError::MissingNamed(vec![val.to_string()])).into()
     }
 }

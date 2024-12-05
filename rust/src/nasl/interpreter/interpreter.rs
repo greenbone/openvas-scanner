@@ -2,17 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{collections::HashMap, io};
-
-use crate::nasl::syntax::{
-    IdentifierType, LoadError, NaslValue, Statement, StatementKind::*, SyntaxError, Token,
-    TokenCategory,
-};
-use crate::storage::StorageError;
+use std::collections::HashMap;
 
 use crate::nasl::interpreter::{
     declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    InterpretError, InterpretErrorKind,
+    InterpretError,
+};
+use crate::nasl::syntax::{
+    IdentifierType, NaslValue, Statement, StatementKind::*, SyntaxError, Token, TokenCategory,
 };
 
 use crate::nasl::utils::{Context, ContextType, Register};
@@ -214,13 +211,10 @@ impl<'a> Interpreter<'a> {
             Ok(x) => Ok(x),
             Err(e) => {
                 if max_attempts > 0 {
-                    match e.kind {
-                        InterpretErrorKind::LoadError(LoadError::Retry(_))
-                        | InterpretErrorKind::IOError(io::ErrorKind::Interrupted)
-                        | InterpretErrorKind::StorageError(StorageError::Retry(_)) => {
-                            Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
-                        }
-                        _ => Err(e),
+                    if e.retryable() {
+                        Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
+                    } else {
+                        Err(e)
                     }
                 } else {
                     Err(e)
@@ -248,10 +242,10 @@ impl<'a> Interpreter<'a> {
     pub(crate) async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         self.position_mut().up();
         let span = tracing::span!(tracing::Level::WARN, "resolve", 
-            statement=statement.to_string(), 
-            index=self.index, 
-            position=%self.position(), 
-            run_specific_len=self.run_specific.len(), 
+            statement=statement.to_string(),
+            index=self.index,
+            position=%self.position(),
+            run_specific_len=self.run_specific.len(),
             skipped_value_pos=?self.skip_until_return(), );
         let _enter = span.enter();
         if let Some(val) = self.may_return_value() {
@@ -283,9 +277,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Primitive => self.resolve_primitive(statement),
                 Variable => self.resolve_variable(statement),
-                Call(arguments) => {
-                    Box::pin(self.call(statement.as_token(), arguments.children())).await
-                }
+                Call(arguments) => Box::pin(self.call(statement, arguments.children())).await,
                 Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
                 Parameter(x) => self.resolve_parameter(x).await,
                 Assign(cat, order, left, right) => {
@@ -466,5 +458,4 @@ impl<'a> Interpreter<'a> {
             ),
         }
     }
-
 }

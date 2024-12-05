@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use super::{mtu, network_utils::bind_local_socket};
+use super::{mtu, network_utils::bind_local_socket, socket::SocketError};
 
 pub struct UdpConnection {
     socket: UdpSocket,
@@ -69,7 +69,7 @@ impl Write for UdpConnection {
 }
 
 impl UdpConnection {
-    pub fn new(addr: IpAddr, port: u16) -> io::Result<Self> {
+    pub fn new(addr: IpAddr, port: u16) -> Result<Self, SocketError> {
         let sock_addr = SocketAddr::new(addr, port);
         let socket = bind_local_socket(&sock_addr)?;
         socket.connect(sock_addr)?;

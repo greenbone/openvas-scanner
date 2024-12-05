@@ -10,6 +10,7 @@ use tracing::{error, warn};
 
 use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::builtin::ssh::Output;
+use crate::nasl::utils::error::WithErrorInfo;
 use crate::nasl::utils::function::bytes_to_str;
 
 use super::super::error::SshError;

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 #[cfg(test)]
 mod tests {
-    use crate::nasl::test_prelude::*;
-    use FunctionErrorKind::*;
+    use crate::nasl::{test_prelude::*, utils::error::ArgumentError};
+    use ArgumentError::*;
     use NaslValue::*;
 
     #[test]
@@ -12,7 +12,7 @@ mod tests {
         check_code_result("hexstr('foo');", "666f6f");
         check_err_matches!(
             "hexstr('foo', 'I will be ignored');",
-            TrailingPositionalArguments { .. },
+            TrailingPositionals { .. },
         );
         check_code_result("hexstr(6);", Null);
         check_code_result("hexstr();", Null);
@@ -82,7 +82,7 @@ mod tests {
         check_code_result("chomp('abc\n');", "abc");
         check_code_result("chomp('abc  ');", "abc");
         check_code_result("chomp('abc\n\t\r ');", "abc");
-        check_err_matches!("chomp();", MissingPositionalArguments { .. });
+        check_err_matches!("chomp();", MissingPositionals { .. });
     }
 
     #[test]
@@ -123,7 +123,7 @@ mod tests {
         check_code_result(r#"ord("c");"#, 99);
         check_code_result(r#"ord("");"#, Null);
         check_code_result("ord(1);", 49);
-        check_err_matches!("ord();", MissingPositionalArguments { .. });
+        check_err_matches!("ord();", MissingPositionals { .. });
     }
 
     #[test]
@@ -141,8 +141,8 @@ mod tests {
         // g_pattern_spec allows globs to match slashes, make sure we do too
         check_code_result(r#"match(string: "a///", pattern: "a*");"#, true);
         check_code_result(r#"match(string: "///a", pattern: "*a");"#, true);
-        check_err_matches!(r#"match(string: "abcd");"#, MissingArguments { .. });
-        check_err_matches!(r#"match(pattern: "ab");"#, MissingArguments { .. });
+        check_err_matches!(r#"match(string: "abcd");"#, MissingNamed { .. });
+        check_err_matches!(r#"match(pattern: "ab");"#, MissingNamed { .. });
     }
 
     #[test]
@@ -153,7 +153,7 @@ mod tests {
         check_code_result(r#"hex(256);"#, "0x00");
         check_code_result(r#"hex(257);"#, "0x01");
         check_code_result(r#"hex(-2);"#, "0xfe");
-        check_err_matches!(r#"hex();"#, MissingPositionalArguments { .. });
+        check_err_matches!(r#"hex();"#, MissingPositionals { .. });
     }
 
     #[test]
@@ -210,7 +210,7 @@ mod tests {
             r#"split("a;b;c", sep: ";");"#,
             vec!["a;".to_string(), "b;".to_string(), "c".to_string()],
         );
-        check_err_matches!(r#"split();"#, MissingPositionalArguments { .. });
+        check_err_matches!(r#"split();"#, MissingPositionals { .. });
     }
 
     #[test]
@@ -219,8 +219,8 @@ mod tests {
             r#"str_replace(string: "abc", find: "b", replace: "foo");"#,
             "afooc",
         );
-        check_err_matches!(r#"str_replace();"#, MissingArguments { .. });
-        check_err_matches!(r#"str_replace(string: "abc");"#, MissingArguments { .. });
+        check_err_matches!(r#"str_replace();"#, MissingNamed { .. });
+        check_err_matches!(r#"str_replace(string: "abc");"#, MissingNamed { .. });
         check_code_result(r#"str_replace(string: "abc", find: "b");"#, "ac");
         check_code_result(
             r#"str_replace(string: "abcbd", find: "b", count: 1);"#,
@@ -236,7 +236,7 @@ mod tests {
         check_code_result(r#"strstr("abc", "b");"#, "bc");
         check_code_result(r#"strstr("abcbd", "b");"#, "bcbd");
         check_code_result(r#"strstr('a\rbcbd', '\rb');"#, "\rbcbd");
-        check_err_matches!(r#"strstr();"#, MissingPositionalArguments { .. });
-        check_err_matches!(r#"strstr("a");"#, MissingPositionalArguments { .. });
+        check_err_matches!(r#"strstr();"#, MissingPositionals { .. });
+        check_err_matches!(r#"strstr("a");"#, MissingPositionals { .. });
     }
 }

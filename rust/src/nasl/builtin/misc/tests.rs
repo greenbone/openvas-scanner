@@ -38,7 +38,7 @@ mod tests {
         check_err_matches!(
             t,
             r#"typeof(23,76);"#,
-            FunctionErrorKind::TrailingPositionalArguments { .. }
+            ArgumentError::TrailingPositionals { .. }
         );
         t.ok("d['test'] = 2;", 2);
         t.ok("typeof(d);", "array");
@@ -72,22 +72,12 @@ mod tests {
     #[test]
     fn gunzip() {
         let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-        z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);
-        gunzip(data: z);
-        # With Header Format and data is data
-        gz = gzip(data: 'gz', headformat: "gzip");
-        gunzip(data: gz);
-        # Without Header format and data is a string
-        ngz = gzip(data: "ngz");
-        gunzip(data: ngz);
-        "#,
-        );
-        let results = t.results();
-        assert_eq!(results[1], Ok(NaslValue::String("z".into())));
-        assert_eq!(results[3], Ok(NaslValue::String("gz".into())));
-        assert_eq!(results[5], Ok(NaslValue::String("ngz".into())));
+        t.run(r#"z = raw_string (0x78, 0x9c, 0xab, 0x02, 0x00, 0x00, 0x7b, 0x00, 0x7b);"#);
+        t.ok(r#"gunzip(data: z);"#, "z");
+        t.run(r#"gz = gzip(data: 'gz', headformat: "gzip");"#);
+        t.ok(r#"gunzip(data: gz);"#, "gz");
+        t.run(r#"ngz = gzip(data: "ngz");"#);
+        t.ok(r#"gunzip(data: ngz);"#, "ngz");
     }
 
     #[test]

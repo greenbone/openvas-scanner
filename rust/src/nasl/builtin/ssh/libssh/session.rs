@@ -7,6 +7,7 @@ use super::super::error::{Result, SshErrorKind};
 use super::super::Output;
 use super::SessionId;
 use super::{channel::Channel, Socket};
+use crate::nasl::utils::error::WithErrorInfo;
 
 /// Structure to hold an SSH Session
 pub struct SshSession {

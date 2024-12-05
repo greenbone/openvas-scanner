@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::{Statement, StatementKind::*, Token};
+use crate::nasl::syntax::{Statement, StatementKind::*};
 use crate::nasl::utils::lookup_keys::FC_ANON_ARGS;
 
 use crate::nasl::interpreter::{
-    error::{FunctionError, InterpretError},
+    error::{FunctionCallError, InterpretError},
     interpreter::{InterpretResult, RunSpecific},
     Interpreter,
 };
@@ -15,8 +15,15 @@ use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
 use std::collections::HashMap;
 
+use super::InterpretErrorKind;
+
 impl<'a> Interpreter<'a> {
-    pub async fn call(&mut self, name: &Token, arguments: &[Statement]) -> InterpretResult {
+    pub async fn call(
+        &mut self,
+        statement: &Statement,
+        arguments: &[Statement],
+    ) -> InterpretResult {
+        let name = statement.as_token();
         let name = &Self::identifier(name)?;
         // get the context
         let mut named = HashMap::new();
@@ -76,14 +83,17 @@ impl<'a> Interpreter<'a> {
                 Ok(x[0].clone())
             }
 
-            Some(Ok(NaslValue::Fork(x))) if self.index == 0 && x.is_empty() => {
-                Ok(NaslValue::Null)
-            }
+            Some(Ok(NaslValue::Fork(x))) if self.index == 0 && x.is_empty() => Ok(NaslValue::Null),
 
             Some(Ok(NaslValue::Fork(_))) => {
                 unreachable!("NaslValue::Fork must only occur on root instance, all other cases should return a value within run_specific")
             }
-            Some(r) => r.map_err(|x| FunctionError::new(name, x).into()),
+            Some(r) => r.map_err(|e| {
+                InterpretError::new(
+                    InterpretErrorKind::FunctionCallError(FunctionCallError::new(name, e)),
+                    Some(statement.clone()),
+                )
+            }),
             None => {
                 let found = self
                     .register()
@@ -176,16 +186,9 @@ get_kb_item("port") + ":" + get_kb_item("host");
 "#,
         );
 
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .filter_map(|x| x.ok())
-            .collect();
+        let results: Vec<_> = t.results().into_iter().filter_map(|x| x.ok()).collect();
 
-        assert_eq!(
-            results,
-            vec!["\0:\0".into()]
-        );
+        assert_eq!(results, vec!["\0:\0".into()]);
     }
 
     #[test]

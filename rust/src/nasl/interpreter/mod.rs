@@ -20,7 +20,7 @@ mod operator;
 mod tests;
 
 pub use code_interpreter::*;
-pub use error::FunctionError;
+pub use error::FunctionCallError;
 pub use error::InterpretError;
 pub use error::InterpretErrorKind;
 pub use interpreter::Interpreter;

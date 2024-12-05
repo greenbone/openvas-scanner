@@ -7,18 +7,25 @@ pub mod utils;
 pub mod test_utils;
 
 pub mod prelude {
+    pub use super::builtin::BuiltinError;
     pub use super::builtin::ContextFactory;
     pub use super::builtin::RegisterBuilder;
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::syntax::NaslValue;
+    pub use super::utils::error::FnErrorKind;
+    pub use super::utils::error::Retryable;
+    pub use super::utils::error::ReturnValue;
+    pub use super::utils::error::WithErrorInfo;
     pub use super::utils::function::CheckedPositionals;
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;
     pub use super::utils::function::ToNaslResult;
+    pub use super::utils::ArgumentError;
     pub use super::utils::Context;
     pub use super::utils::ContextType;
-    pub use super::utils::FunctionErrorKind;
+    pub use super::utils::FnError;
+    pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
     pub use super::utils::Register;
     pub use crate::function_set;

@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use crate::feed::{verify, VerifyError};
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 /// Errors within feed handling
 pub enum ErrorKind {
     /// An InterpretError occurred while interpreting
@@ -32,7 +32,7 @@ pub enum ErrorKind {
     VerifyError(#[from] verify::Error),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 #[error("Error with key '{key}': {kind}")]
 /// ErrorKind and key of error
 pub struct Error {

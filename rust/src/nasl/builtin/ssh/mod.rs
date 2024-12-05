@@ -42,7 +42,7 @@ mod libssh_uses {
 #[cfg(feature = "nasl-builtin-libssh")]
 pub use libssh_uses::*;
 
-type Result<T> = std::result::Result<T, FunctionErrorKind>;
+type Result<T> = std::result::Result<T, FnError>;
 
 const DEFAULT_SSH_PORT: u16 = 22;
 
@@ -522,13 +522,12 @@ impl Ssh {
                 }
                 AuthStatus::Success => break,
                 status => {
-                    return Err(FunctionErrorKind::Diagnostic(
-                        format!(
-                            "Unexpected authentication status for session_id {}: {:?}",
-                            session_id, status
-                        ),
-                        Some(NaslValue::Number(-1)),
-                    ));
+                    return Err(SshErrorKind::UnexpectedAuthenticationStatus(format!(
+                        "{:?}",
+                        status
+                    ))
+                    .with(session_id)
+                    .with(ReturnValue(-1)));
                 }
             }
         }

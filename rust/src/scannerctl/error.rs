@@ -16,7 +16,7 @@ use scannerlib::{
     scanner::ExecuteError,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum CliErrorKind {
     WrongAction,
 
@@ -52,7 +52,7 @@ impl CliErrorKind {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CliError {
     pub filename: String,
     pub kind: CliErrorKind,

@@ -2,12 +2,12 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::nasl::FunctionErrorKind;
+use crate::nasl::utils::error::WithErrorInfo;
 
 use super::SessionId;
 
 /// A cloneable representation of the Error type of the underlying SSH lib
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, Error)]
 #[error("{0}")]
 pub struct LibError(String);
 
@@ -25,7 +25,7 @@ impl From<russh::Error> for LibError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub struct SshError {
     pub kind: SshErrorKind,
     id: Option<SessionId>,
@@ -48,7 +48,7 @@ impl fmt::Display for SshError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, Error)]
 pub enum SshErrorKind {
     #[error("Failed to open new SSH session.")]
     NewSession,
@@ -112,30 +112,34 @@ pub enum SshErrorKind {
     ConvertPrivateKey,
     #[error("Not yet implemented.")]
     Unimplemented,
+    #[error("Unexpected authentication status")]
+    UnexpectedAuthenticationStatus(String),
 }
 
-pub trait AttachErrorInfo<Info> {
-    fn attach_error_info(self, e: Info) -> Self;
-}
+impl WithErrorInfo<SessionId> for SshError {
+    type Error = SshError;
 
-impl AttachErrorInfo<SessionId> for SshError {
-    fn attach_error_info(mut self, id: SessionId) -> SshError {
+    fn with(mut self, id: SessionId) -> SshError {
         self.id = Some(id);
         self
     }
 }
 
 #[cfg(feature = "nasl-builtin-libssh")]
-impl AttachErrorInfo<libssh_rs::Error> for SshError {
-    fn attach_error_info(mut self, source: libssh_rs::Error) -> SshError {
+impl WithErrorInfo<libssh_rs::Error> for SshError {
+    type Error = SshError;
+
+    fn with(mut self, source: libssh_rs::Error) -> SshError {
         self.source = Some(source.into());
         self
     }
 }
 
 #[cfg(not(feature = "nasl-builtin-libssh"))]
-impl AttachErrorInfo<russh::Error> for SshError {
-    fn attach_error_info(mut self, source: russh::Error) -> SshError {
+impl WithErrorInfo<russh::Error> for SshError {
+    type Error = SshError;
+
+    fn with(mut self, source: russh::Error) -> SshError {
         self.source = Some(source.into());
         self
     }
@@ -152,26 +156,11 @@ impl From<SshErrorKind> for SshError {
 }
 
 impl SshErrorKind {
-    pub fn with<Info>(self, m: Info) -> SshError
+    pub fn with<Info>(self, m: Info) -> <SshError as WithErrorInfo<Info>>::Error
     where
-        SshError: AttachErrorInfo<Info>,
+        SshError: WithErrorInfo<Info>,
     {
         let e: SshError = self.into();
-        e.attach_error_info(m)
-    }
-}
-
-impl SshError {
-    pub fn with<Info>(self, m: Info) -> SshError
-    where
-        SshError: AttachErrorInfo<Info>,
-    {
-        self.attach_error_info(m)
-    }
-}
-
-impl From<SshError> for FunctionErrorKind {
-    fn from(e: SshError) -> Self {
-        FunctionErrorKind::Ssh(e)
+        e.with(m)
     }
 }

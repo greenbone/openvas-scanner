@@ -4,9 +4,10 @@
 
 use std::{fmt::Display, net::IpAddr};
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, FunctionErrorKind};
+use crate::nasl::prelude::*;
 use crate::storage::{Field, Retrieve};
+
+use super::knowledge_base::KBError;
 
 #[allow(clippy::module_inception)]
 pub mod network;
@@ -96,7 +97,7 @@ pub fn get_retry(context: &Context) -> u8 {
     }
 }
 
-pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
+pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FnError> {
     context
         .retriever()
         .retrieve(context.key(), Retrieve::KB(name.to_string()))
@@ -110,15 +111,15 @@ pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, F
         .map_err(|e| e.into())
 }
 
-pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FunctionErrorKind> {
+pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FnError> {
     get_kb_item(context, name)?
         .map(|x| x.to_string())
-        .ok_or_else(|| FunctionErrorKind::Diagnostic(format!("KB key {} is not set", name), None))
+        .ok_or_else(|| KBError(format!("KB key {} is not set", name)).into())
 }
 
-pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {
+pub fn verify_port(port: i64) -> Result<u16, ArgumentError> {
     if !(0..=65535).contains(&port) {
-        return Err(FunctionErrorKind::WrongArgument(format!(
+        return Err(ArgumentError::WrongArgument(format!(
             "{} is not a valid port number",
             port
         )));

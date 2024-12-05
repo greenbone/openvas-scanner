@@ -8,6 +8,7 @@ mod array;
 mod cert;
 mod cryptographic;
 mod description;
+mod error;
 mod host;
 mod http;
 mod isotime;
@@ -24,7 +25,8 @@ mod string;
 #[cfg(test)]
 mod tests;
 
-pub use ssh::SshError;
+pub use error::BuiltinError;
+pub use host::HostError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};

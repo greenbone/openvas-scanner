@@ -8,7 +8,7 @@ use rustls::{ClientConnection, Stream};
 
 use socket2::{self, Socket};
 
-use super::network_utils::get_source_ip;
+use super::{network_utils::get_source_ip, socket::SocketError};
 
 struct TcpDataStream {
     sock: Socket,
@@ -127,7 +127,7 @@ impl TcpConnection {
         sport: u16,
         dport: u16,
         timeout: Duration,
-    ) -> io::Result<Self> {
+    ) -> Result<Self, SocketError> {
         let sock = match addr {
             IpAddr::V4(_) => socket2::Socket::new_raw(
                 socket2::Domain::IPV4,

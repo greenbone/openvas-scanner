@@ -11,20 +11,27 @@ use std::{
 };
 
 use dns_lookup::lookup_addr;
-use nasl_function_proc_macro::nasl_function;
+use thiserror::Error;
 
-use crate::nasl::utils::{error::FunctionErrorKind, hosts::resolve};
-use crate::{function_set, nasl::FromNaslValue};
+use crate::nasl::prelude::*;
+use crate::nasl::utils::hosts::resolve;
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, Register};
+#[derive(Debug, Error)]
+pub enum HostError {
+    #[error("Empty hostname.")]
+    EmptyHostname,
+    #[error("Empty address.")]
+    EmptyAddress,
+    #[error("Target is not a hostname.")]
+    TargetIsNotAHostname,
+}
 
 struct Hostname(String);
 impl<'a> FromNaslValue<'a> for Hostname {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         let str = String::from_nasl_value(value)?;
         if str.is_empty() {
-            Err(FunctionErrorKind::diagnostic_ret_null("Empty hostname."))
+            Err(HostError::EmptyHostname.into())
         } else {
             Ok(Self(str))
         }
@@ -33,7 +40,7 @@ impl<'a> FromNaslValue<'a> for Hostname {
 
 /// Get a list of found hostnames or a IP of the current target in case no hostnames were found yet.
 #[nasl_function]
-fn get_host_names(context: &Context) -> Result<NaslValue, FunctionErrorKind> {
+fn get_host_names(context: &Context) -> Result<NaslValue, FnError> {
     let hns = context.target_vhosts();
     if !hns.is_empty() {
         let hns = hns
@@ -48,7 +55,7 @@ fn get_host_names(context: &Context) -> Result<NaslValue, FunctionErrorKind> {
 }
 
 /// Return the target's IP address as IpAddr.
-pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
+pub fn get_host_ip(context: &Context) -> Result<IpAddr, FnError> {
     let default_ip = "127.0.0.1";
     let r_sock_addr = match context.target() {
         x if !x.is_empty() => IpAddr::from_str(x),
@@ -57,7 +64,7 @@ pub fn get_host_ip(context: &Context) -> Result<IpAddr, FunctionErrorKind> {
 
     match r_sock_addr {
         Ok(x) => Ok(x),
-        Err(e) => Err(FunctionErrorKind::wrong_unnamed_argument(
+        Err(e) => Err(FnError::wrong_unnamed_argument(
             "IP address",
             e.to_string().as_str(),
         )),
@@ -72,17 +79,14 @@ pub fn add_host_name(
     context: &Context,
     hostname: Hostname,
     source: Option<&str>,
-) -> Result<NaslValue, FunctionErrorKind> {
+) -> Result<NaslValue, FnError> {
     let source = source.filter(|x| !x.is_empty()).unwrap_or("NASL");
     context.add_hostname(hostname.0, source.into());
     Ok(NaslValue::Null)
 }
 
 /// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
-pub fn get_host_name(
-    _register: &Register,
-    context: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValue, FnError> {
     let vh = context.target_vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
@@ -125,10 +129,7 @@ pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
-fn nasl_get_host_ip(
-    _register: &Register,
-    context: &Context,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn nasl_get_host_ip(_register: &Register, context: &Context) -> Result<NaslValue, FnError> {
     let ip = get_host_ip(context)?;
     Ok(NaslValue::String(ip.to_string()))
 }
@@ -144,7 +145,7 @@ fn resolve_host_name(hostname: Hostname) -> String {
 
 /// Resolve a hostname to all found addresses and return them in an NaslValue::Array
 #[nasl_function(named(hostname))]
-fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, FunctionErrorKind> {
+fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, FnError> {
     let ips = resolve(hostname.0)?
         .into_iter()
         .map(|x| NaslValue::String(x.to_string()))
@@ -155,10 +156,10 @@ fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, Fun
 /// Check if the currently scanned target is an IPv6 address.
 /// Return TRUE if the current target is an IPv6 address, else FALSE. In case of an error, NULL is returned.
 #[nasl_function]
-fn target_is_ipv6(context: &Context) -> Result<bool, FunctionErrorKind> {
+fn target_is_ipv6(context: &Context) -> Result<bool, FnError> {
     let target = match context.target().is_empty() {
         true => {
-            return Err(FunctionErrorKind::diagnostic_ret_null("Address is NULL!"));
+            return Err(HostError::EmptyAddress.into());
         }
         false => context.target(),
     };
@@ -169,7 +170,7 @@ fn target_is_ipv6(context: &Context) -> Result<bool, FunctionErrorKind> {
 /// The first two unnamed arguments are string containing the host to compare
 /// If the named argument cmp_hostname is set to TRUE, the given hosts are resolved into their hostnames
 #[nasl_function(named(cmp_hostname))]
-fn same_host(h1: &str, h2: &str, cmp_hostname: Option<bool>) -> Result<bool, FunctionErrorKind> {
+fn same_host(h1: &str, h2: &str, cmp_hostname: Option<bool>) -> Result<bool, FnError> {
     let h1 = resolve(h1.to_string())?;
     let h2 = resolve(h2.to_string())?;
 

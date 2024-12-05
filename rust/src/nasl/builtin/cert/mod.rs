@@ -6,15 +6,23 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 
 use nasl_function_proc_macro::nasl_function;
+use thiserror::Error;
 use x509_certificate::X509Certificate;
 use x509_parser::prelude::GeneralName;
 
-use crate::{
-    function_set,
-    nasl::{FunctionErrorKind, NaslValue},
-};
+use crate::nasl::prelude::*;
 
 use super::string::encode_hex;
+
+#[derive(Debug, Error)]
+pub enum CertError {
+    #[error("Unable to calculate SHA256 fingerprint")]
+    UnableToCalculateSHA256Fingerprint,
+    #[error("Unable to calculate SHA1 fingerprint")]
+    UnableToCalculateSHA1Fingerprint,
+    #[error("Query parameter 'all' not implemented yet.")]
+    QueryParamAllNotImplemented,
+}
 
 fn sign_alg_oid_to_name(oid: &str) -> &str {
     match oid {
@@ -118,7 +126,7 @@ pub enum CertCommands {
 }
 
 impl TryFrom<&str> for CertCommands {
-    type Error = FunctionErrorKind;
+    type Error = FnError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -138,9 +146,9 @@ impl TryFrom<&str> for CertCommands {
             "modulus" => Ok(Self::Modulus),
             "exponent" => Ok(Self::Exponent),
             "key-size" => Ok(Self::KeySize),
-            _ => Err(FunctionErrorKind::WrongArgument(
-                "The given query is not valid.".to_string(),
-            )),
+            _ => Err(
+                ArgumentError::WrongArgument("The given query is not valid.".to_string()).into(),
+            ),
         }
     }
 }
@@ -176,7 +184,7 @@ impl NaslCerts {
     /// On success the function returns a cert identifier that can be used
     /// for further operations.
     #[nasl_function]
-    fn cert_open(&self, cert: &[u8]) -> Result<usize, FunctionErrorKind> {
+    fn cert_open(&self, cert: &[u8]) -> Result<usize, FnError> {
         if let Ok(cert) = X509Certificate::from_der(cert) {
             return Ok(self.insert(cert));
         }
@@ -187,10 +195,11 @@ impl NaslCerts {
             return Ok(self.insert(cert));
         }
 
-        Err(FunctionErrorKind::WrongArgument(
+        Err(ArgumentError::WrongArgument(
             "The given string is not a valid DER, BER or PEM encoded X.509 certificate."
                 .to_string(),
-        ))
+        )
+        .into())
     }
 
     /// Release a certificate object.
@@ -358,12 +367,12 @@ impl NaslCerts {
         cert_handle: usize,
         query: &str,
         idx: Option<usize>,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let idx = idx.unwrap_or(0);
         let handle = self.0.read().unwrap();
 
         let cert = handle.certs.get(&cert_handle).ok_or_else(|| {
-            FunctionErrorKind::WrongArgument("The given file descriptor is not valid.".to_string())
+            ArgumentError::WrongArgument("The given file descriptor is not valid.".to_string())
         })?;
         let result = match CertCommands::try_from(query)? {
             CertCommands::Serial => {
@@ -387,27 +396,12 @@ impl NaslCerts {
             CertCommands::FprSha256 => cert
                 .sha256_fingerprint()
                 .map(|fpr| NaslValue::String(encode_hex(fpr.as_ref())))
-                .map_err(|_| {
-                    FunctionErrorKind::Diagnostic(
-                        "Unable to calculate SHA256 fingerprint".to_string(),
-                        None,
-                    )
-                })?,
+                .map_err(|_| CertError::UnableToCalculateSHA256Fingerprint)?,
             CertCommands::FprSha1 => cert
                 .sha1_fingerprint()
                 .map(|fpr| NaslValue::String(encode_hex(fpr.as_ref())))
-                .map_err(|_| {
-                    FunctionErrorKind::Diagnostic(
-                        "Unable to calculate SHA1 fingerprint".to_string(),
-                        None,
-                    )
-                })?,
-            CertCommands::All => {
-                return Err(FunctionErrorKind::Diagnostic(
-                    "Query parameter 'all' is not implemented yet".to_string(),
-                    None,
-                ))
-            }
+                .map_err(|_| CertError::UnableToCalculateSHA1Fingerprint)?,
+            CertCommands::All => return Err(CertError::QueryParamAllNotImplemented.into()),
             CertCommands::Hostnames => NaslValue::Array(
                 Self::hostnames(cert)
                     .into_iter()
