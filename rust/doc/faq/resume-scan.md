@@ -6,7 +6,7 @@ To do that, you start a scan, collect all results with the type `host_end`, and 
 
 As an example, we create a scan to scan the hosts `127.0.0.1`, `localhost` with the following `scan.json`:
 
-```
+```json
 {
   "target": {
     "hosts": [
@@ -45,14 +45,14 @@ As an example, we create a scan to scan the hosts `127.0.0.1`, `localhost` with 
 
 we create the scan and start it:
 
-```
+```sh
 curl -k --cert $CERT --key $KEY "https://localhost/scans" -d @scan.json
 curl -k --cert $CERT --key $KEY "https://localhost/scans/$ID" -d "{ \"action\": \"start\"}"
 curl -k --cert $CERT --key $KEY "https://localhost/scans/$ID" 
 ```
 
 The results contain something like:
-```
+```json
 ...
   {
     "id": 2,
@@ -67,13 +67,13 @@ The type `host_end` indicates that a host was scanned.
 
 
 Then we stop it:
-```
+```sh
 curl -k --cert $CERT --key $KEY "https://localhost/scans/$ID" -d "{ \"action\": \"stop\"}"
 ```
 
 We assume that when we stopped it, it just scanned `127.0.0.1`, so we create a scan with it excluded in hosts:
 
-```
+```json
 {
   "target": {
     "hosts": [
@@ -114,7 +114,7 @@ We assume that when we stopped it, it just scanned `127.0.0.1`, so we create a s
 
 when creating the new scan and starting it, it should not scan `127.0.0.1` again.
 
-```
+```sh
 curl -k --cert $CERT --key $KEY "https://localhost/scans" -d @scan.json
 curl -k --cert $CERT --key $KEY "https://localhost/scans/$ID" -d "{ \"action\": \"start\"}"
 curl -k --cert $CERT --key $KEY "https://localhost/scans/$ID" 
