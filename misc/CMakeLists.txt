@@ -15,6 +15,8 @@ pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GLIB_JSON REQUIRED json-glib-1.0>=1.4.4)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 pkg_check_modules (CURL REQUIRED libcurl>=7.74.0)
+pkg_check_modules (KRB5 REQUIRED krb5)
+pkg_check_modules (KRB5_GSSAPI REQUIRED krb5-gssapi)
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
@@ -69,13 +71,13 @@ add_definitions (-DOPENVAS_MISC_VERSION="${PROJECT_VERSION_STRING}")
 
 include_directories (${GLIB_INCLUDE_DIRS} ${GLIB_JSON_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
-                     ${GNUTLS_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS})
+                     ${GNUTLS_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${KRB5_INCLUDE_DIRS} ${KRB5_GSSAPI_INCLUDE_DIRS})
 
 # Library
 
 set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
      scan_id.c strutils.c table_driven_lsc.c ipc.c ipc_openvas.c ipc_pipe.c
-     user_agent.c scanneraux.c kb_cache.c heartbeat.c)
+     user_agent.c scanneraux.c kb_cache.c heartbeat.c openvas-krb5.c)
 
 # On windows we are always PIC and stack-protector is replaces by DEP
 # Also stack protection needs a shared library to work
@@ -93,7 +95,7 @@ set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION
 target_link_libraries (openvas_misc_shared LINK_PRIVATE
                        ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS}
-                       ${PCAP_LDFLAGS} ${LIBGVM_BOREAS_LDFLAGS} ${CURL_LDFLAGS}
+                       ${PCAP_LDFLAGS} ${LIBGVM_BOREAS_LDFLAGS} ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 if (OPENVAS_STATE_DIR)
@@ -136,7 +138,7 @@ set (LINK_LIBS_FOR_TESTS cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS}
                        ${PCAP_LDFLAGS}
-                       ${CURL_LDFLAGS}
+                       ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
 
@@ -163,7 +165,7 @@ target_include_directories (ipc-openvas-test PRIVATE ${CGREEN_INCLUDE_DIRS})
 target_link_libraries (ipc-openvas-test cgreen
                        ${GLIB_LDFLAGS}
                        ${GLIB_JSON_LDFLAGS}
-                       ${CURL_LDFLAGS}
+                       ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 add_custom_target (tests-ipc-openvas
@@ -178,7 +180,7 @@ target_link_libraries (lsc-test cgreen
                        ${LIBGVM_UTIL_LDFLAGS}
                        ${GLIB_LDFLAGS}
                        ${GLIB_JSON_LDFLAGS}
-                       ${CURL_LDFLAGS}
+                       ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 add_custom_target (tests-lsc

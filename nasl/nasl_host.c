@@ -20,6 +20,7 @@
 #include "../misc/network.h"
 #include "../misc/pcap_openvas.h" /* for v6_is_local_ip */
 #include "../misc/plugutils.h"    /* for plug_get_host_fqdn */
+#include "base/hosts.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -232,6 +233,51 @@ get_host_open_port (lex_ctxt *lexic)
   retc->x.i_val = port;
 
   return retc;
+}
+
+tree_cell *
+host_reverse_lookup (lex_ctxt *lexic)
+{
+  char *t = get_str_var_by_num (lexic, 0);
+  gvm_host_t *target = NULL;
+  tree_cell *retc;
+
+  if (t == NULL)
+    {
+      t = plug_get_host_ip_str (lexic->script_infos);
+    }
+  else
+    {
+      // we need to duplicate it as get_str_var_by_name does store it within
+      // string_form which is released with the lex_ctxt release.
+      t = g_strdup (t);
+    }
+  if (t == NULL)
+    {
+      nasl_perror (lexic, "Empty target\n");
+      goto fail;
+    }
+  target = gvm_host_from_str (t);
+  if (target == NULL)
+    {
+      nasl_perror (lexic, "%s: Invalid target\n", t);
+      goto fail;
+    }
+  g_free (t);
+
+  t = gvm_host_reverse_lookup (target);
+  if (t == NULL)
+    {
+      goto fail;
+    }
+
+  retc = alloc_typed_cell (CONST_STR);
+  retc->x.str_val = t;
+  retc->size = strlen (t);
+
+  return retc;
+fail:
+  return FAKE_CELL;
 }
 
 tree_cell *
