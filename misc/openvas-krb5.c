@@ -85,7 +85,7 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc)
   int state = 0;
   size_t last_element;
   size_t i, j;
-  FILE *file;
+  FILE *file = NULL;
 
   // we don't know if we should free it or just override it.
   // aborting instead.
@@ -162,7 +162,7 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc)
     }
 
 result:
-  if (result != O_KRB5_CONF_NOT_FOUND)
+  if (file != NULL)
     {
       fclose (file);
     }
