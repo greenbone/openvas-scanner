@@ -2175,7 +2175,7 @@ fn nasl_send_capture(register: &Register, configs: &Context) -> Result<NaslValue
             // Remove all from lower layer
             let frame = EthernetPacket::new(packet.data)
                 .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
-            return Ok(NaslValue::Data(frame.payload().to_vec()));
+            Ok(NaslValue::Data(frame.payload().to_vec()))
         }
         Err(_) => Ok(NaslValue::Null),
     }

@@ -5,6 +5,7 @@
 #![doc = include_str!("README.md")]
 
 mod array;
+mod cert;
 mod cryptographic;
 mod description;
 mod error;
@@ -25,10 +26,13 @@ mod string;
 mod tests;
 
 pub use error::BuiltinError;
+pub use host::HostError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
 use crate::storage::{ContextKey, DefaultDispatcher, Storage};
+
+use super::utils::context::Target;
 
 /// Creates a new Executor and adds all the functions to it.
 ///
@@ -53,7 +57,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(description::Description)
         .add_set(isotime::NaslIsotime)
         .add_set(cryptographic::rc4::CipherHandlers::default())
-        .add_set(ssh::Ssh::default());
+        .add_set(ssh::Ssh::default())
+        .add_set(cert::NaslCerts::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_set(raw_ip::RawIp);
@@ -136,11 +141,12 @@ where
 
     /// Creates a new Context with the shared loader, logger and function register
     pub fn build(&self, key: ContextKey) -> Context {
-        let target = match &key {
+        let mut target = Target::default();
+        target.set_target(match &key {
             ContextKey::Scan(_, Some(target)) => target.clone(),
             ContextKey::Scan(_, None) => String::default(),
             ContextKey::FileName(target) => target.clone(),
-        };
+        });
         Context::new(
             key,
             target,

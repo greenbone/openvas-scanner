@@ -118,6 +118,7 @@ pub(super) mod tests {
     use crate::models::Target;
     use crate::models::VT;
     use crate::nasl::syntax::NaslValue;
+    use crate::nasl::utils::context::Target as ContextTarget;
     use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
@@ -320,7 +321,7 @@ exit({rc});
         let storage = DefaultDispatcher::new();
 
         let register = Register::root_initial(&initial);
-        let target = String::default();
+        let target = ContextTarget::default();
         let functions = nasl_std_functions();
         let loader = |_: &str| code.to_string();
         let key = ContextKey::FileName(id.to_string());

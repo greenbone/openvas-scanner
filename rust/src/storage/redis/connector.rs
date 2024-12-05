@@ -278,7 +278,7 @@ pub trait RedisAddAdvisory: RedisWrapper {
     /// Add an NVT in the redis cache.
     ///
     /// The NVT metadata is stored in two different keys:
-
+    ///
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
@@ -479,11 +479,11 @@ pub trait RedisAddNvt: RedisWrapper {
         // The string ", " is not accepted as reference value, since it will misunderstood
         // as ref separator.
 
-        return (
+        (
             cves.iter().as_ref().join(", "),
             bids.iter().as_ref().join(", "),
             xrefs.iter().as_ref().join(", "),
-        );
+        )
     }
 
     /// Transforms prefs to string representation {id}:{name}:{id}:{default} so that it can be stored into redis
@@ -509,7 +509,7 @@ pub trait RedisAddNvt: RedisWrapper {
     /// Add an NVT in the redis cache.
     ///
     /// The NVT metadata is stored in two different keys:
-
+    ///
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)

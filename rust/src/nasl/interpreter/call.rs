@@ -48,41 +48,52 @@ impl<'a> Interpreter<'a> {
         );
         self.register_mut().create_root_child(named);
         let result = match self.ctxconfigs.nasl_fn_execute(name, self.register()).await {
-            Some(r) => {
-                if let Ok(NaslValue::Fork(mut x)) = r {
-                    Ok(if let Some(r) = x.pop() {
-                        // this is a proposal for the case that the caller is immediately executing
-                        // if not the position needs to be reset
-                        if self.index == 0 {
-                            let position = self.position().current_init_statement();
-                            for i in x {
-                                tracing::trace!(return_value=?i, return_position=?self.position(), interpreter_position=?position, "creating interpreter instance" );
-                                self.run_specific.push(RunSpecific {
-                                    register: self.register().clone(),
-                                    position: position.clone(),
-                                    skip_until_return: Some((self.position().clone(), i)),
-                                });
-                            }
+            Some(Ok(NaslValue::Fork(x))) if self.index == 0 && !x.is_empty() => {
+                let mut additional = Vec::with_capacity(x.len() - 1);
+                let root_pos = self.run_specific[0].position.clone();
+
+                for (vi, v) in x.iter().enumerate() {
+                    for (rsi, rs) in self.run_specific.iter_mut().enumerate() {
+                        let mut pos = root_pos.clone();
+                        // needs to be reduced because a previous down statement enhanced the number
+                        pos.reduce_last();
+
+                        if vi == 0 {
+                            rs.skip_until_return.push((pos, v.clone()));
                         } else {
-                            tracing::trace!(
-                                index = self.index,
-                                "we only allow expanding of executions (fork) on root instance"
-                            );
+                            let position = pos.current_init_statement();
+                            let mut skip_until_return = rs
+                                .skip_until_return
+                                .iter()
+                                .filter(|(p, _)| p != &pos)
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            skip_until_return.push((pos.clone(), v.clone()));
+                            tracing::trace!(run_specific_index=rsi, value_index=vi, value=?v, ?pos, ?skip_until_return, ?rs.skip_until_return, "new fork");
+
+                            additional.push(RunSpecific {
+                                register: rs.register.clone(),
+                                position: position.clone(),
+                                skip_until_return,
+                            });
                         }
-                        tracing::trace!(return_value=?r, "returning interpreter instance" );
-                        r
-                    } else {
-                        NaslValue::Null
-                    })
-                } else {
-                    r.map_err(|x| {
-                        InterpretError::new(
-                            InterpretErrorKind::FunctionCallError(FunctionCallError::new(name, x)),
-                            Some(statement.clone()),
-                        )
-                    })
+                    }
                 }
+                self.run_specific.extend(additional);
+                Ok(x[0].clone())
             }
+
+            Some(Ok(NaslValue::Fork(x))) if self.index == 0 && x.is_empty() => Ok(NaslValue::Null),
+
+            Some(Ok(NaslValue::Fork(_))) => {
+                unreachable!("NaslValue::Fork must only occur on root instance, all other cases should return a value within run_specific")
+            }
+            Some(r) => r.map_err(|e| {
+                InterpretError::new(
+                    InterpretErrorKind::FunctionCallError(FunctionCallError::new(name, e)),
+                    Some(statement.clone()),
+                )
+            }),
             None => {
                 let found = self
                     .register()
@@ -128,5 +139,82 @@ mod tests {
         t.ok("test(a: 1, b: 2);", 3);
         t.ok("test(a: 1);", 1);
         t.ok("test();", 0);
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn multiple_forks() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+set_kb_item(name: "port", value: 1);
+set_kb_item(name: "port", value: 2);
+set_kb_item(name: "host", value: "a");
+set_kb_item(name: "host", value: "b");
+get_kb_item("port");
+get_kb_item("host");
+"#,
+        );
+
+        assert_eq!(t.results().len(), 10);
+        let results: Vec<_> = t
+            .results()
+            .into_iter()
+            .skip(4)
+            .filter_map(|x| x.ok())
+            .collect();
+
+        assert_eq!(
+            results,
+            vec![
+                1.into(),
+                2.into(),
+                "a".into(),
+                "a".into(),
+                "b".into(),
+                "b".into(),
+            ]
+        );
+    }
+    #[test]
+    #[tracing_test::traced_test]
+    fn empty_fork() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+get_kb_item("port") + ":" + get_kb_item("host");
+"#,
+        );
+
+        let results: Vec<_> = t.results().into_iter().filter_map(|x| x.ok()).collect();
+
+        assert_eq!(results, vec!["\0:\0".into()]);
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn multiple_forks_on_one_line() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+set_kb_item(name: "port", value: 1);
+set_kb_item(name: "port", value: 2);
+set_kb_item(name: "host", value: "a");
+set_kb_item(name: "host", value: "b");
+get_kb_item("port") + ":" + get_kb_item("host");
+"#,
+        );
+
+        let results: Vec<_> = t
+            .results()
+            .into_iter()
+            .skip(4)
+            .filter_map(|x| x.ok())
+            .collect();
+
+        assert_eq!(
+            results,
+            vec!["1:a".into(), "2:a".into(), "1:b".into(), "2:b".into(),]
+        );
     }
 }

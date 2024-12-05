@@ -743,7 +743,7 @@ macro_rules! two_symbol_token {
     };
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
+impl Iterator for Tokenizer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {

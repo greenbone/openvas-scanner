@@ -3,7 +3,9 @@ use thiserror::Error;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::error::FnErrorKind;
 
+use super::cert::CertError;
 use super::cryptographic::CryptographicError;
+use super::host::HostError;
 use super::http::HttpError;
 use super::isotime::IsotimeError;
 use super::knowledge_base::KBError;
@@ -30,6 +32,10 @@ pub enum BuiltinError {
     Isotime(IsotimeError),
     #[error("{0}")]
     KB(KBError),
+    #[error("{0}")]
+    Host(HostError),
+    #[error("{0}")]
+    Cert(CertError),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
     RawIp(super::raw_ip::RawIpError),
@@ -73,6 +79,8 @@ builtin_error_variant!(HttpError, Http);
 builtin_error_variant!(IsotimeError, Isotime);
 builtin_error_variant!(RegexError, Regex);
 builtin_error_variant!(KBError, KB);
+builtin_error_variant!(HostError, Host);
+builtin_error_variant!(CertError, Cert);
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(super::raw_ip::RawIpError, RawIp);

@@ -22,6 +22,20 @@ pub(crate) struct Position {
     index: Vec<usize>,
 }
 
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.index
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(".")
+        )
+    }
+}
+
 impl Position {
     pub fn new(index: usize) -> Self {
         Self { index: vec![index] }
@@ -31,8 +45,20 @@ impl Position {
         self.index.push(0);
     }
 
+    pub fn reduce_last(&mut self) {
+        if let Some(last) = self.index.last_mut() {
+            if *last > 0 {
+                *last -= 1;
+            }
+        }
+    }
+
     pub fn down(&mut self) -> Option<usize> {
-        self.index.pop()
+        let result = self.index.pop();
+        if let Some(last) = self.index.last_mut() {
+            *last += 1;
+        }
+        result
     }
 
     pub fn current_init_statement(&self) -> Self {
@@ -54,7 +80,7 @@ impl Position {
 pub(crate) struct RunSpecific {
     pub(crate) register: Register,
     pub(crate) position: Position,
-    pub(crate) skip_until_return: Option<(Position, NaslValue)>,
+    pub(crate) skip_until_return: Vec<(Position, NaslValue)>,
 }
 
 /// Used to interpret a Statement
@@ -75,7 +101,7 @@ impl<'a> Interpreter<'a> {
         let root_run = RunSpecific {
             register,
             position: Position::new(0),
-            skip_until_return: None,
+            skip_until_return: Vec::new(),
         };
         Interpreter {
             run_specific: vec![root_run],
@@ -162,9 +188,6 @@ impl<'a> Interpreter<'a> {
         stmt: &Statement,
         max_attempts: usize,
     ) -> InterpretResult {
-        if let Some(last) = self.position_mut().index.last_mut() {
-            *last += 1;
-        }
         self.index = 0;
         self.retry_resolve(stmt, max_attempts).await
     }
@@ -200,28 +223,37 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    //// Checks for skip_until_return and returns the value if the current position is in the list
+    /// if the root index is smaller than the current position it will return None this is done to
+    /// prevent unnecessary statement execution and has to be seen as guardian functionality.
+    fn may_return_value(&mut self) -> Option<NaslValue> {
+        for (cp, value) in self.skip_until_return().iter() {
+            if self.position().root_index() < cp.root_index() {
+                return Some(NaslValue::Null);
+            }
+            if cp == self.position() {
+                return Some(value.clone());
+            }
+        }
+        None
+    }
+
     /// Interprets a Statement
     pub(crate) async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         self.position_mut().up();
-        tracing::trace!(position=?self.position(), statement=statement.to_string(), "executing");
-        // On a fork statement run we skip until the root index is reached. Between the root index
-        // of the return value and the position of the return value the interpretation is
-        // continued. This is done because the client just executes higher statements.
-        if let Some((cp, rv)) = &self.skip_until_return() {
-            tracing::trace!(check_position=?cp);
-            if self.position().root_index() < cp.root_index() {
-                tracing::trace!("skip execution");
-                self.position_mut().down();
-                return Ok(NaslValue::Null);
-            }
-            if cp == self.position() {
-                tracing::trace!(return=?rv, "skip execution and returning");
-                let rv = rv.clone();
-                self.set_skip_until_return(None);
-                self.position_mut().down();
-                return Ok(rv);
-            }
+        let span = tracing::span!(tracing::Level::WARN, "resolve", 
+            statement=statement.to_string(),
+            index=self.index,
+            position=%self.position(),
+            run_specific_len=self.run_specific.len(),
+            skipped_value_pos=?self.skip_until_return(), );
+        let _enter = span.enter();
+        if let Some(val) = self.may_return_value() {
+            tracing::trace!(returns=?val, "skipped" );
+            self.position_mut().down();
+            return Ok(val);
         }
+        tracing::trace!("executing");
 
         let results = {
             match statement.kind() {
@@ -331,13 +363,8 @@ impl<'a> Interpreter<'a> {
         rs.register = val;
     }
 
-    pub(crate) fn set_skip_until_return(&mut self, val: Option<(Position, NaslValue)>) {
-        let rs = &mut self.run_specific[self.index];
-        rs.skip_until_return = val;
-    }
-
-    pub(crate) fn skip_until_return(&self) -> Option<&(Position, NaslValue)> {
-        self.run_specific[self.index].skip_until_return.as_ref()
+    pub(crate) fn skip_until_return(&self) -> &[(Position, NaslValue)] {
+        &self.run_specific[self.index].skip_until_return
     }
 
     async fn resolve_exit(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {

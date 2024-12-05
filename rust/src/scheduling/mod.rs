@@ -147,7 +147,7 @@ pub type ConcurrentVTResult = Result<ConcurrentVT, VTError>;
 /// data.
 /// See: issues/63063 impl Trait in type aliases is unstable
 /// type ExecutionPlanerResult = Result<impl Iterator<Item = ConcurrentVTResult>, VTError>;
-
+///
 /// Is used by a ExecutionPlaner to order VTs in a specific manner and be returned.
 ///
 /// It is meant to be used as an Iterator by the caller of ExecutionPlaner while the

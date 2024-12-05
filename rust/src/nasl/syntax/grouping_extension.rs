@@ -20,7 +20,7 @@ pub(crate) trait Grouping {
     fn parse_grouping(&mut self, token: Token) -> Result<(End, Statement), SyntaxError>;
 }
 
-impl<'a> Grouping for Lexer<'a> {
+impl Grouping for Lexer<'_> {
     fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let (end, right) = self.statement(0, &|cat| cat == &Category::RightParen)?;
 

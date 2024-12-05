@@ -7,6 +7,7 @@ pub mod context;
 pub mod error;
 mod executor;
 pub mod function;
+pub mod hosts;
 pub mod lookup_keys;
 
 use std::collections::HashMap;
