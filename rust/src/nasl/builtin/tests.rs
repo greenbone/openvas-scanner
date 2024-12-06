@@ -15,12 +15,17 @@ fn foo2(_register: &Register, x: usize) -> usize {
     x
 }
 
+#[nasl_function]
+fn add_positionals(_x: usize, _y: usize, argv: CheckedPositionals<usize>) -> usize {
+    argv.iter().sum()
+}
+
 struct Foo;
 
 function_set! {
     Foo,
     sync_stateless,
-    (foo1, foo2)
+    (foo1, foo2, add_positionals)
 }
 
 /// Tests that the `Context` and `Register` arguments,
@@ -32,4 +37,10 @@ fn context_and_register_are_ignored_in_positional_index() {
     let mut t = TestBuilder::default().with_executor(Executor::single(Foo));
     t.ok("foo1(5);", 5);
     t.ok("foo2(5);", 5);
+}
+
+#[test]
+fn variadic_positionals_start_at_correct_index() {
+    let mut t = TestBuilder::default().with_executor(Executor::single(Foo));
+    t.ok("add_positionals(1, 2, 3, 4);", 7);
 }

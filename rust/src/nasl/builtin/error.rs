@@ -10,6 +10,7 @@ use super::http::HttpError;
 use super::isotime::IsotimeError;
 use super::knowledge_base::KBError;
 use super::regex::RegexError;
+use super::sys::SysError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
 #[derive(Debug, Error)]
@@ -36,6 +37,8 @@ pub enum BuiltinError {
     Host(HostError),
     #[error("{0}")]
     Cert(CertError),
+    #[error("{0}")]
+    Sys(SysError),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
     RawIp(super::raw_ip::RawIpError),
@@ -81,6 +84,7 @@ builtin_error_variant!(RegexError, Regex);
 builtin_error_variant!(KBError, KB);
 builtin_error_variant!(HostError, Host);
 builtin_error_variant!(CertError, Cert);
+builtin_error_variant!(SysError, Sys);
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(super::raw_ip::RawIpError, RawIp);

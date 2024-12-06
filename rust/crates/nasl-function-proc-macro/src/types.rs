@@ -41,8 +41,8 @@ pub enum ArgKind {
     MaybeNamed(PositionalArg, NamedArg),
     Context,
     Register,
-    PositionalIterator,
-    CheckedPositionalIterator,
+    PositionalIterator(PositionalsArg),
+    CheckedPositionalIterator(PositionalsArg),
 }
 
 impl ArgKind {
@@ -69,8 +69,8 @@ impl ArgKind {
             ArgKind::Positional(_) => 1,
             ArgKind::MaybeNamed(_, _) => 2,
             ArgKind::Named(_) => 3,
-            ArgKind::PositionalIterator => 4,
-            ArgKind::CheckedPositionalIterator => 4,
+            ArgKind::PositionalIterator(_) => 4,
+            ArgKind::CheckedPositionalIterator(_) => 4,
         }
     }
 }
@@ -80,5 +80,10 @@ pub struct NamedArg {
 }
 
 pub struct PositionalArg {
+    pub position: usize,
+}
+
+pub struct PositionalsArg {
+    /// The position of the first argument in the iterator
     pub position: usize,
 }
