@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::utils::error::FnError;
 use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
 use aes::{Aes128, Aes192, Aes256};
 use ccm::{
@@ -12,10 +11,7 @@ use ccm::{
 };
 use digest::generic_array::ArrayLength;
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, Register};
-
-use crate::function_set;
+use crate::nasl::prelude::*;
 
 use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt, CryptographicError};
 
@@ -71,7 +67,8 @@ where
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes128_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes128>(register, Crypt::Encrypt, false)
 }
 
@@ -82,7 +79,8 @@ fn aes128_ccm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes128_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes128>(register, Crypt::Encrypt, true)
 }
 
@@ -93,7 +91,8 @@ fn aes128_ccm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes128_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes128>(register, Crypt::Decrypt, false)
 }
 
@@ -104,7 +103,8 @@ fn aes128_ccm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes128_ccm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes128_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes128>(register, Crypt::Decrypt, true)
 }
 
@@ -115,7 +115,8 @@ fn aes128_ccm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes192_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes192>(register, Crypt::Encrypt, false)
 }
 
@@ -126,7 +127,8 @@ fn aes192_ccm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes192_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes192>(register, Crypt::Encrypt, true)
 }
 
@@ -137,7 +139,8 @@ fn aes192_ccm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes192_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes192>(register, Crypt::Decrypt, false)
 }
 
@@ -148,7 +151,8 @@ fn aes192_ccm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes192_ccm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes192_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes192>(register, Crypt::Decrypt, true)
 }
 
@@ -159,7 +163,8 @@ fn aes192_ccm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes256_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes256>(register, Crypt::Encrypt, false)
 }
 
@@ -170,7 +175,8 @@ fn aes256_ccm_encrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes256_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes256>(register, Crypt::Encrypt, true)
 }
 
@@ -181,7 +187,8 @@ fn aes256_ccm_encrypt_auth(register: &Register, _: &Context) -> Result<NaslValue
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes256_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes256>(register, Crypt::Decrypt, false)
 }
 
@@ -192,7 +199,8 @@ fn aes256_ccm_decrypt(register: &Register, _: &Context) -> Result<NaslValue, FnE
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-fn aes256_ccm_decrypt_auth(register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn aes256_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
     ccm::<Aes256>(register, Crypt::Decrypt, true)
 }
 
@@ -234,7 +242,6 @@ pub struct AesCcm;
 
 function_set! {
     AesCcm,
-    sync_stateless,
     (
         aes128_ccm_encrypt,
         aes128_ccm_encrypt_auth,

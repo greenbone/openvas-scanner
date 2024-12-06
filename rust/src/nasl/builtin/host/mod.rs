@@ -86,6 +86,7 @@ pub fn add_host_name(
 }
 
 /// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
+#[nasl_function]
 pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValue, FnError> {
     let vh = context.target_vhosts();
     let v = if !vh.is_empty() {
@@ -129,7 +130,8 @@ pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
-fn nasl_get_host_ip(_register: &Register, context: &Context) -> Result<NaslValue, FnError> {
+#[nasl_function]
+fn nasl_get_host_ip(context: &Context) -> Result<NaslValue, FnError> {
     let ip = get_host_ip(context)?;
     Ok(NaslValue::String(ip.to_string()))
 }
@@ -194,7 +196,6 @@ pub struct Host;
 
 function_set! {
     Host,
-    sync_stateless,
     (
         get_host_names,
         (nasl_get_host_ip, "get_host_ip"),

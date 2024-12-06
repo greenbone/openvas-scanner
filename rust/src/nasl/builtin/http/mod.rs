@@ -277,31 +277,32 @@ impl NaslHttp {
     }
 
     /// Wrapper function for GET request. See http2_req
-    async fn get<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn get(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::GET).await
     }
 
     /// Wrapper function for POST request. See http2_req
-    async fn post<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn post(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::POST).await
     }
 
     /// Wrapper function for PUT request. See http2_req
-    async fn put<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn put(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::PUT).await
     }
 
     /// Wrapper function for HEAD request. See http2_req
-    async fn head<'a>(&self, register: &Register, ctx: &Context<'a>) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn head(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::HEAD).await
     }
 
     /// Wrapper function for DELETE request. See http2_req
-    async fn delete<'a>(
-        &self,
-        register: &Register,
-        ctx: &Context<'a>,
-    ) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn delete(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::DELETE).await
     }
 
@@ -353,11 +354,8 @@ impl NaslHttp {
     ///
     /// On success the function returns an integer
     /// representing the http code response. Null on error.
-    async fn get_response_code(
-        &self,
-        register: &Register,
-        _: &Context<'_>,
-    ) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn get_response_code(&self, register: &Register) -> Result<NaslValue, FnError> {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => {
@@ -382,11 +380,8 @@ impl NaslHttp {
     ///   - header_item A string to add to the header
     ///
     /// On success the function returns an integer. 0 on success. Null on error.
-    async fn set_custom_header(
-        &self,
-        register: &Register,
-        _: &Context<'_>,
-    ) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    async fn set_custom_header(&self, register: &Register) -> Result<NaslValue, FnError> {
         let header_item = match register.named("header_item") {
             Some(ContextType::Value(NaslValue::String(x))) => x,
             _ => return Err(FnError::missing_argument("No command passed")),
@@ -418,7 +413,6 @@ impl NaslHttp {
 
 function_set! {
     NaslHttp,
-    async_stateful,
     (
         (NaslHttp::handle, "http2_handle"),
         (NaslHttp::close_handle, "http2_close_handle"),

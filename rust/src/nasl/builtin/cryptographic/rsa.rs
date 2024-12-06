@@ -123,7 +123,6 @@ fn rsa_public_decrypt(sign: &[u8], n: &[u8], e: &[u8]) -> Result<NaslValue, FnEr
 pub struct Rsa;
 function_set! {
     Rsa,
-    sync_stateless,
     (
         (rsa_public_encrypt, "rsa_public_encrypt"),
         (rsa_private_decrypt, "rsa_private_decrypt"),

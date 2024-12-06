@@ -120,7 +120,6 @@ pub struct NaslIsotime;
 
 function_set! {
     NaslIsotime,
-    sync_stateless,
     (
         isotime_add,
         isotime_is_valid,

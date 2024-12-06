@@ -110,7 +110,6 @@ pub struct KnowledgeBase;
 
 function_set! {
     KnowledgeBase,
-    sync_stateless,
     (
         set_kb_item,
         get_kb_item,

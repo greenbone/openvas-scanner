@@ -154,7 +154,6 @@ pub struct Network;
 
 function_set! {
     Network,
-    sync_stateless,
     (
         scanner_add_port,
         islocalnet,

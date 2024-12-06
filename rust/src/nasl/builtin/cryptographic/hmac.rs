@@ -92,7 +92,6 @@ pub struct HmacFns;
 
 function_set! {
     HmacFns,
-    sync_stateless,
     (
         (hmac_md2, "HMAC_MD2"),
         (hmac_md5, "HMAC_MD5"),

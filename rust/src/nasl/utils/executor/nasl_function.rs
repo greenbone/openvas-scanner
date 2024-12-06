@@ -135,7 +135,7 @@ where
     }
 }
 
-/// Represents one of the four types of NaslFunctions.
+/// Represents one of the six types of NaslFunctions.
 /// This type exists in order to make it possible to
 /// store a collection of different NASL functions inside
 /// a single function set.
