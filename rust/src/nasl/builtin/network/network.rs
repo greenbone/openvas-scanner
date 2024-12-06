@@ -4,11 +4,11 @@
 
 use std::{net::IpAddr, process::Command};
 
-use super::mtu;
 use super::socket::SocketError;
+use super::{mtu, Port};
 use super::{
     network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
-    verify_port, DEFAULT_PORT,
+    DEFAULT_PORT,
 };
 use crate::function_set;
 use crate::nasl::utils::{Context, FnError};
@@ -30,7 +30,7 @@ fn this_host(context: &Context) -> Result<String, SocketError> {
 
     get_source_ip(dst, port)
         .map(|ip| ip.to_string())
-        .map_err(|_| SocketError::Diagnostic("No route to destination".to_string()))
+        .map_err(|_| SocketError::NoRouteToDestination(dst))
 }
 
 /// Get the host name of the current (attacking) machine
@@ -134,14 +134,13 @@ fn islocalnet(context: &Context) -> Result<bool, SocketError> {
 
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
-fn scanner_add_port(context: &Context, port: i64, proto: Option<&str>) -> Result<(), FnError> {
-    let port = verify_port(port)?;
+fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Result<(), FnError> {
     let protocol = proto.unwrap_or("tcp");
 
     context.dispatcher().dispatch(
         context.key(),
         Field::KB(Kb {
-            key: format!("Port/{}/{}", protocol, port),
+            key: format!("Port/{}/{}", protocol, port.0),
             value: Primitive::Number(1),
             expire: None,
         }),
