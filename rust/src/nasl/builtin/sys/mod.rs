@@ -37,7 +37,7 @@ async fn find_path_of_command(cmd: &str) -> Result<PathBuf, SysError> {
     if output.status.success() {
         let stdout = String::from_utf8(output.stdout).map_err(|_| make_err())?;
         let path = Path::new(&stdout);
-        let dir = path.parent().ok_or_else(|| make_err())?.to_owned();
+        let dir = path.parent().ok_or_else(make_err)?.to_owned();
         Ok(dir)
     } else {
         Err(SysError::CommandNotFound(cmd.to_string()))
@@ -61,10 +61,7 @@ async fn pread(
     for arg in argv.iter() {
         real_cmd.arg(arg);
     }
-    let out = real_cmd
-        .output()
-        .await
-        .map_err(|e| SysError::SpawnProcess(e))?;
+    let out = real_cmd.output().await.map_err(SysError::SpawnProcess)?;
     let stdout = String::from_utf8(out.stdout).unwrap();
     Ok(stdout)
 }
@@ -90,7 +87,7 @@ async fn fread(path: &Path) -> Result<String, FnError> {
 async fn fwrite(data: &str, file: &Path) -> Result<usize, FnError> {
     tokio::fs::write(file, data)
         .await
-        .map_err(|e| SysError::WriteFile(e))?;
+        .map_err(SysError::WriteFile)?;
     let num_bytes = data.len();
     Ok(num_bytes)
 }
@@ -99,7 +96,7 @@ async fn fwrite(data: &str, file: &Path) -> Result<usize, FnError> {
 async fn file_stat(path: &Path) -> Result<u64, FnError> {
     let metadata = tokio::fs::metadata(path)
         .await
-        .map_err(|e| SysError::ReadFileMetadata(e))?;
+        .map_err(SysError::ReadFileMetadata)?;
     Ok(metadata.len())
 }
 
