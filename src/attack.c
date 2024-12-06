@@ -1172,7 +1172,6 @@ attack_network (struct scan_globals *globals)
   gvm_host_t *host;
   plugins_scheduler_t sched;
   int fork_retries = 0;
-  GHashTable *files;
   struct timeval then, now;
   gvm_hosts_t *hosts;
   const gchar *port_range;
@@ -1383,7 +1382,7 @@ attack_network (struct scan_globals *globals)
           if (rc < 0 && rc != -2)
             {
               report_kb_failure (rc);
-              goto scan_stop;
+              goto stop;
             }
           else if (rc == -2)
             {
@@ -1400,7 +1399,7 @@ attack_network (struct scan_globals *globals)
         {
           kb_delete (arg_host_kb);
           g_free (host_str);
-          goto scan_stop;
+          goto stop;
         }
 
       if (scan_is_stopped ())
@@ -1512,12 +1511,6 @@ attack_network (struct scan_globals *globals)
       killpg (getpid (), SIGUSR1);
 
   g_debug ("Test complete");
-
-scan_stop:
-  /* Free the memory used by the files uploaded by the user, if any. */
-  files = globals->files_translation;
-  if (files)
-    g_hash_table_destroy (files);
 
 stop:
 
