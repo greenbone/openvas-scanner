@@ -21,6 +21,7 @@ mod regex;
 mod report_functions;
 mod ssh;
 mod string;
+mod find_service;
 
 #[cfg(test)]
 mod tests;
@@ -58,6 +59,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(isotime::NaslIsotime)
         .add_set(cryptographic::rc4::CipherHandlers::default())
         .add_set(ssh::Ssh::default())
+        .add_set(find_service::FindService::default())
         .add_set(cert::NaslCerts::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
