@@ -117,6 +117,12 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), StringErro
 /// NASL function to parse values into string representations
 #[nasl_function]
 fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, BuiltinError> {
+    combine_positionals_to_string(positional)
+}
+
+fn combine_positionals_to_string(
+    positional: CheckedPositionals<&NaslValue>,
+) -> Result<NaslValue, BuiltinError> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
         write_nasl_string_value(&mut s, p)?;
@@ -290,8 +296,9 @@ fn stridx(haystack: NaslValue, needle: NaslValue, offset: Option<usize>) -> i64 
 /// NASL function to display any number of NASL values
 ///
 /// Internally the string function is used to concatenate the given parameters
-fn display(register: &Register, configs: &Context) -> Result<NaslValue, FnError> {
-    println!("{}", &string(register, configs)?);
+#[nasl_function]
+fn display(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, BuiltinError> {
+    println!("{}", &combine_positionals_to_string(positional)?);
     Ok(NaslValue::Null)
 }
 
@@ -480,7 +487,6 @@ pub struct NaslString;
 
 function_set! {
     NaslString,
-    sync_stateless,
     (
         hexstr,
         hex,

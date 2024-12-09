@@ -70,6 +70,7 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
+    #[nasl_function]
     fn log_message(&self, register: &Register, context: &Context) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Log, register, context)
     }
@@ -81,6 +82,7 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
+    #[nasl_function]
     fn security_message(
         &self,
         register: &Register,
@@ -96,6 +98,7 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
+    #[nasl_function]
     fn error_message(&self, register: &Register, context: &Context) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Error, register, context)
     }
@@ -103,7 +106,6 @@ impl Reporting {
 
 function_set! {
     Reporting,
-    sync_stateful,
     (
         (Reporting::log_message, "log_message"),
         (Reporting::security_message, "security_message"),

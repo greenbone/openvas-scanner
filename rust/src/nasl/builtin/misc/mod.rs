@@ -254,7 +254,6 @@ pub struct Misc;
 
 function_set! {
     Misc,
-    sync_stateless,
     (
         rand,
         get_byte_order,

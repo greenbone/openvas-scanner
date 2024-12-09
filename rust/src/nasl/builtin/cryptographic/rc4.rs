@@ -7,8 +7,6 @@ use rc4::{consts::*, KeyInit, StreamCipher};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::nasl::prelude::*;
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, Register};
 
 use super::{get_data, get_key, CryptographicError};
 
@@ -58,11 +56,8 @@ pub struct CipherHandlers {
 
 impl CipherHandlers {
     /// Closes a stream cipher.
-    pub fn close_stream_cipher(
-        &self,
-        register: &Register,
-        _: &Context,
-    ) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    pub fn close_stream_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
         let hd = match register.named("hd") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => return Err(CryptographicError::Rc4("Handler ID not found".to_string()).into()),
@@ -84,7 +79,8 @@ impl CipherHandlers {
     /// -key: the key used for encryption
     ///  
     /// Returns the id of the encrypted data cipher handler on success.
-    pub fn open_rc4_cipher(&self, register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    pub fn open_rc4_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
         // Get Arguments
 
         let key = match get_key(register) {
@@ -113,7 +109,8 @@ impl CipherHandlers {
     ///  -hd: the handler index. (mandatory if not key and iv is given)
     ///  -iv: string Initialization vector (mandatory if no handler is given).
     ///  -key: string key (mandatory if no handler is given).
-    pub fn rc4_encrypt(&self, register: &Register, _: &Context) -> Result<NaslValue, FnError> {
+    #[nasl_function]
+    pub fn rc4_encrypt(&self, register: &Register) -> Result<NaslValue, FnError> {
         let data = match get_data(register) {
             Ok(d) if !d.is_empty() => d.to_vec(),
             _ => return Err(CryptographicError::Rc4("Missing data argument".to_string()).into()),
@@ -255,7 +252,6 @@ build_rc4key_enum! {
 
 function_set! {
     CipherHandlers,
-    sync_stateful,
     (
         (CipherHandlers::close_stream_cipher, "close_stream_cipher"),
         (CipherHandlers::open_rc4_cipher, "open_rc4_cipher"),

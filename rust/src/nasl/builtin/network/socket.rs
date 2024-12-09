@@ -705,7 +705,6 @@ impl NaslSockets {
 
 function_set! {
     NaslSockets,
-    sync_stateful,
     (
         (NaslSockets::open_sock_kdc, "open_sock_kdc"),
         (NaslSockets::open_sock_tcp, "open_sock_tcp"),

@@ -17,7 +17,7 @@ pub use error::ArgumentError;
 pub use error::FnError;
 pub use error::InternalError;
 
-pub use executor::{Executor, IntoFunctionSet, StoredFunctionSet};
+pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 
 /// The result of a function call.
 pub type NaslResult = Result<crate::nasl::syntax::NaslValue, FnError>;

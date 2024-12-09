@@ -23,10 +23,7 @@ use std::time::Duration;
 use ::russh::{cipher, Preferred};
 use russh_keys::key;
 
-use crate::nasl::{
-    prelude::*,
-    utils::{IntoFunctionSet, StoredFunctionSet},
-};
+use crate::nasl::prelude::*;
 
 use error::SshErrorKind;
 use utils::CommaSeparated;
@@ -67,43 +64,41 @@ impl Output {
     }
 }
 
-impl IntoFunctionSet for Ssh {
-    type State = Ssh;
-    fn into_function_set(self) -> StoredFunctionSet<Self::State> {
-        let mut set = StoredFunctionSet::new(self);
-        set.async_stateful_mut("ssh_connect", Ssh::nasl_ssh_connect);
-        set.async_stateful("ssh_request_exec", Ssh::nasl_ssh_request_exec);
-        set.async_stateful("ssh_userauth", Ssh::nasl_ssh_userauth);
-        set.async_stateful_mut("ssh_disconnect", Ssh::nasl_ssh_disconnect);
-        #[cfg(feature = "nasl-builtin-libssh")]
-        {
-            set.async_stateful(
-                "ssh_session_id_from_sock",
-                Ssh::nasl_ssh_session_id_from_sock,
-            );
-            set.async_stateful("ssh_get_sock", Ssh::nasl_ssh_get_sock);
-            set.async_stateful("ssh_set_login", Ssh::nasl_ssh_set_login);
-            set.async_stateful("ssh_shell_open", Ssh::nasl_ssh_shell_open);
-            set.async_stateful("ssh_shell_read", Ssh::nasl_ssh_shell_read);
-            set.async_stateful("ssh_shell_write", Ssh::nasl_ssh_shell_write);
-            set.async_stateful("ssh_shell_close", Ssh::nasl_ssh_shell_close);
-            set.async_stateful("ssh_login_interactive", Ssh::nasl_ssh_login_interactive);
-            set.async_stateful(
-                "ssh_login_interactive_pass",
-                Ssh::nasl_ssh_login_interactive_pass,
-            );
-            set.async_stateful("ssh_get_issue_banner", Ssh::nasl_ssh_get_issue_banner);
-            set.async_stateful("ssh_get_server_banner", Ssh::nasl_ssh_get_server_banner);
-            set.async_stateful("ssh_get_auth_methods", Ssh::nasl_ssh_get_auth_methods);
-            set.async_stateful("ssh_get_host_key", Ssh::nasl_ssh_get_host_key);
-            set.async_stateful("sftp_enabled_check", Ssh::nasl_sftp_enabled_check);
-            set.async_stateful(
-                "ssh_execute_netconf_subsystem",
-                Ssh::nasl_ssh_execute_netconf_subsystem,
-            );
-        }
-        set
-    }
+#[cfg(feature = "nasl-builtin-libssh")]
+function_set! {
+    Ssh,
+    (
+        (Ssh::nasl_ssh_connect, "ssh_connect"),
+        (Ssh::nasl_ssh_request_exec, "ssh_request_exec"),
+        (Ssh::nasl_ssh_userauth, "ssh_userauth"),
+        (Ssh::nasl_ssh_disconnect, "ssh_disconnect"),
+        (Ssh::nasl_ssh_session_id_from_sock, "ssh_session_id_from_sock"),
+        (Ssh::nasl_ssh_get_sock, "ssh_get_sock"),
+        (Ssh::nasl_ssh_set_login, "ssh_set_login"),
+        (Ssh::nasl_ssh_shell_open, "ssh_shell_open"),
+        (Ssh::nasl_ssh_shell_read, "ssh_shell_read"),
+        (Ssh::nasl_ssh_shell_write, "ssh_shell_write"),
+        (Ssh::nasl_ssh_shell_close, "ssh_shell_close"),
+        (Ssh::nasl_ssh_login_interactive, "ssh_login_interactive"),
+        (Ssh::nasl_ssh_login_interactive_pass, "ssh_login_interactive_pass"),
+        (Ssh::nasl_ssh_get_issue_banner, "ssh_get_issue_banner"),
+        (Ssh::nasl_ssh_get_server_banner, "ssh_get_server_banner"),
+        (Ssh::nasl_ssh_get_auth_methods, "ssh_get_auth_methods"),
+        (Ssh::nasl_ssh_get_host_key, "ssh_get_host_key"),
+        (Ssh::nasl_sftp_enabled_check, "sftp_enabled_check"),
+        (Ssh::nasl_ssh_execute_netconf_subsystem, "ssh_execute_netconf_subsystem"),
+    )
+}
+
+#[cfg(not(feature = "nasl-builtin-libssh"))]
+function_set! {
+    Ssh,
+    (
+        (Ssh::nasl_ssh_connect, "ssh_connect"),
+        (Ssh::nasl_ssh_request_exec, "ssh_request_exec"),
+        (Ssh::nasl_ssh_userauth, "ssh_userauth"),
+        (Ssh::nasl_ssh_disconnect, "ssh_disconnect"),
+    )
 }
 
 impl Ssh {

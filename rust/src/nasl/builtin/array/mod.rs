@@ -84,7 +84,6 @@ pub struct Array;
 
 function_set! {
     Array,
-    sync_stateless,
     (
         make_array,
         make_list,

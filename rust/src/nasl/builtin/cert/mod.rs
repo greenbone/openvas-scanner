@@ -437,7 +437,6 @@ impl NaslCerts {
 
 function_set! {
     NaslCerts,
-    sync_stateful,
     (
         (NaslCerts::cert_open, "cert_open"),
         (NaslCerts::cert_close, "cert_close"),
