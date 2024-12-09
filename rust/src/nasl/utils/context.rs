@@ -11,8 +11,8 @@ use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
 use crate::storage::{ContextKey, Dispatcher, Field, Retrieve, Retriever};
 
-use super::hosts::resolve;
 use super::error::ReturnBehavior;
+use super::hosts::resolve;
 use super::FnError;
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
@@ -511,7 +511,7 @@ impl<'a> Context<'a> {
         T::from_nasl_value(&val)
     }
 
-    fn get_single_kb_item_inner<'kb>(&self, name: &str) -> Result<NaslValue, FnError> {
+    fn get_single_kb_item_inner(&self, name: &str) -> Result<NaslValue, FnError> {
         let result = self
             .retriever()
             .retrieve(&self.key, Retrieve::KB(name.to_string()))?;

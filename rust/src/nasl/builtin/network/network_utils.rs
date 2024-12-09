@@ -29,7 +29,7 @@ pub fn convert_timeout(timeout: Option<i64>) -> Option<Duration> {
 
 /// Bind a local UDP socket to a V4 or V6 address depending on the given destination address
 pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, SocketError> {
-    let fe = |e| Err(SocketError::FailedToBindSocket(e, dst.clone()));
+    let fe = |e| Err(SocketError::FailedToBindSocket(e, *dst));
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0").or_else(fe),
         SocketAddr::V6(_) => UdpSocket::bind("[::]:0").or_else(fe),
@@ -46,7 +46,7 @@ pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, SocketError> {
         .ok()
         .and_then(|_| local_socket.local_addr().ok())
         .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
-        .ok_or_else(|| SocketError::NoRouteToDestination(dst))
+        .ok_or(SocketError::NoRouteToDestination(dst))
 }
 
 /// Tests whether a packet sent to IP is LIKELY to route through the

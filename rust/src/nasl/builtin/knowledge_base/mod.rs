@@ -35,7 +35,7 @@ fn set_kb_item(
     let expires = expires.map(|seconds| {
         let start = SystemTime::now();
         match start.duration_since(UNIX_EPOCH) {
-            Ok(x) => x.as_secs() + seconds as u64,
+            Ok(x) => x.as_secs() + seconds,
             Err(_) => 0,
         }
     });

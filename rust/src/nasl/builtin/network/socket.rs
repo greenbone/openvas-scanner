@@ -295,7 +295,7 @@ impl NaslSockets {
                 }?;
                 Ok(NaslValue::Data(data.as_bytes()[..pos].to_vec()))
             }
-            NaslSocket::Udp(_) => Err(SocketError::SupportedOnlyOnTcp("recv_line".into()).into()),
+            NaslSocket::Udp(_) => Err(SocketError::SupportedOnlyOnTcp("recv_line".into())),
         }
     }
 
@@ -508,7 +508,7 @@ impl NaslSockets {
         tcp: bool,
     ) -> Result<NaslValue, FnError> {
         if let Some(sport) = sport {
-            return Ok(self.connect_priv_sock(addr, sport.0, dport.0 as u16, tcp)?);
+            return Ok(self.connect_priv_sock(addr, sport.0, dport.0, tcp)?);
         }
 
         for sport in (1..=1023).rev() {
@@ -591,7 +591,7 @@ impl NaslSockets {
 
         let code: usize = line[0..3]
             .parse()
-            .map_err(|err| SocketError::FailedToParseResponseCode(err))?;
+            .map_err(SocketError::FailedToParseResponseCode)?;
 
         // multiple line reply
         // loop while the line does not begin with the code and a space
