@@ -156,7 +156,7 @@ fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
 
 #[nasl_function]
 fn get_host_open_port(context: &ScanCtx) -> i64 {
-    context.get_host_open_port().unwrap_or_default() as i64
+    context.get_random_open_tcp_port().unwrap_or_default() as i64
 }
 
 #[nasl_function(named(asstring))]
