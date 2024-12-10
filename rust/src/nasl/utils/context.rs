@@ -358,7 +358,7 @@ pub struct Target {
     // is considered a "blocking" operation and `tokio::task::spawn_blocking`
     // should be used.
     /// vhost list which resolve to the IP address and their sources.
-    vhosts: Mutex<Vec<(String, String)>>,
+    vhosts: Mutex<Vec<VHost>>,
 }
 
 impl Target {
@@ -375,7 +375,7 @@ impl Target {
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) -> &Target {
-        self.vhosts.lock().unwrap().push((hostname, source));
+        self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
     }
 }
@@ -389,6 +389,23 @@ impl Default for Target {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct VHost {
+    source: String,
+    hostname: String,
+}
+
+impl VHost {
+    pub fn hostname(&self) -> &str {
+        &self.hostname
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+}
+
 /// Configurations
 ///
 /// This struct includes all objects that a nasl function requires.
@@ -465,7 +482,7 @@ impl<'a> Context<'a> {
     }
 
     /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Vec<(String, String)> {
+    pub fn target_vhosts(&self) -> Vec<VHost> {
         self.target.vhosts.lock().unwrap().clone()
     }
 
