@@ -23,6 +23,7 @@
 #include "nasl_http.h"
 #include "nasl_http2.h"
 #include "nasl_isotime.h"
+#include "nasl_krb5.h"
 #include "nasl_lex_ctxt.h"
 #include "nasl_misc_funcs.h"
 #include "nasl_packet_forgery.h"
@@ -89,7 +90,7 @@ static init_func libfuncs[] = {
   {"get_host_kb_index", get_host_kb_index},
   {"security_message", security_message},
   {"log_message", log_message},
-  {"error_message", error_message},
+  {"error_message", error_message2},
   {"open_sock_tcp", nasl_open_sock_tcp},
   {"open_sock_udp", nasl_open_sock_udp},
   {"open_priv_sock_tcp", nasl_open_priv_sock_tcp},
@@ -132,6 +133,7 @@ static init_func libfuncs[] = {
   {"http2_put", nasl_http2_put},
   {"add_host_name", add_hostname},
   {"get_host_name", get_hostname},
+  {"ip_reverse_lookup", host_reverse_lookup},
   {"get_host_names", get_hostnames},
   {"get_host_name_source", get_hostname_source},
   {"resolve_host_name", resolve_hostname},
@@ -414,6 +416,18 @@ static init_func libfuncs[] = {
   {"isotime_scan", nasl_isotime_scan},
   {"isotime_print", nasl_isotime_print},
   {"isotime_add", nasl_isotime_add},
+  // krb5
+  {"krb5_find_kdc", nasl_okrb5_find_kdc},
+  {"krb5_is_success", nasl_okrb5_is_success},
+  {"krb5_is_failure", nasl_okrb5_is_failure},
+  {"krb5_gss_init", nasl_okrb5_gss_init},
+  {"krb5_gss_prepare_context", nasl_okrb5_gss_prepare_context},
+  {"krb5_gss_update_context", nasl_okrb5_gss_update_context},
+  {"krb5_gss_update_context_needs_more",
+   nasl_okrb5_gss_update_context_needs_more},
+  {"krb5_gss_update_context_out", nasl_okrb5_gss_update_context_out},
+  {"krb5_gss_session_key", nasl_okrb5_gss_session_key_context},
+  {"krb5_error_code_to_string", nasl_okrb5_error_code_to_string},
   {NULL, NULL}};
 
 /* String variables */
