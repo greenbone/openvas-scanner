@@ -6,7 +6,7 @@ It is part of the std lib which is proven by the tests.
 
 To use this module you have to initiate Cryptographic and look for the function:
 
-```
+```rs
 let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
     .push_register(nasl_builtin_cryptographic::Cryptographic)
     .build();
