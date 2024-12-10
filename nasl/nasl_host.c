@@ -248,8 +248,9 @@ host_reverse_lookup (lex_ctxt *lexic)
     }
   else
     {
-      // we need to duplicate it as get_str_var_by_name does store it within
-      // string_form which is released with the lex_ctxt release.
+      // we need to duplicate t because plug_get_host_ip_from_str allocates
+      // memory and to have the same behavior for both we simply duplicate the
+      // memory here
       t = g_strdup (t);
     }
   if (t == NULL)
@@ -261,6 +262,7 @@ host_reverse_lookup (lex_ctxt *lexic)
   if (target == NULL)
     {
       nasl_perror (lexic, "%s: Invalid target\n", t);
+      g_free (t);
       goto fail;
     }
   g_free (t);

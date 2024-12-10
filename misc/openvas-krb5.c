@@ -318,7 +318,7 @@ static OKrb5ErrorCode
 okrb5_gss_authenticate (const OKrb5Credential *creds,
                         struct OKrb5GSSContext *gss_creds)
 {
-#define check_major_stat()              \
+#define CHECK_MAJOR_STAT()              \
   if (maj_stat != GSS_S_COMPLETE)       \
     {                                   \
       result = O_KRB5_ERROR + maj_stat; \
@@ -365,18 +365,18 @@ okrb5_gss_authenticate (const OKrb5Credential *creds,
 
   maj_stat =
     gss_import_name (&min_stat, &userbuf, GSS_C_NT_USER_NAME, &gss_username);
-  check_major_stat ();
+  CHECK_MAJOR_STAT ();
 
   maj_stat = gss_acquire_cred_with_password (&min_stat, gss_username, &pwbuf, 0,
                                              &creds_mechs, GSS_C_INITIATE,
                                              &cred, NULL, NULL);
 
   (void) gss_release_name (&min_stat, &gss_username);
-  check_major_stat ();
+  CHECK_MAJOR_STAT ();
 
   // let spnego only use the desired mechs
   maj_stat = gss_set_neg_mechs (&min_stat, cred, &spnego_mechs);
-  check_major_stat ();
+  CHECK_MAJOR_STAT ();
   gss_creds->gss_creds = cred;
 result:
   if (user_principal != NULL)
@@ -506,13 +506,12 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
   gss_context->gss_time_rec = 0;
   gss_context->gss_actual_mech_type = NULL;
 result:
-  // TODO: cleanup target_principal_str on failure?
+  if (target_principal_str != NULL)
+    free (target_principal_str);
 
   return result;
 }
 
-// TODO: this signature feels unintuitive based on the mix of in and out and
-// changed gss_context as well...
 OKrb5ErrorCode
 o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
                            const struct OKrb5Slice *in_data,
