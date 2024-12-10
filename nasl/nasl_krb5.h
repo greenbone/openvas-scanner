@@ -47,21 +47,6 @@ tree_cell *
 nasl_okrb5_add_realm (lex_ctxt *lexic);
 
 /**
- * @brief Returns the last result of the krb5 functions as a string
- *
- * The nasl function has one optional parameter:
- * - retval: the return value of the krb5 function. If the value is not defined,
- * the return value of the last krb5 function is used.
- *
- *
- * @param[in] lexic     NASL lexer.
- *
- * @return lex cell containing a number indicating success or failure.
- */
-tree_cell *
-nasl_okrb5_result (lex_ctxt *lexic);
-
-/**
  * @brief Returns 1 if the krb5 function was successful 0 otherwise
  *
  * The nasl function has one optional parameter:
