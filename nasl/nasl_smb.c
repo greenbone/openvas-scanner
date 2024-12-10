@@ -16,6 +16,7 @@
 #include "nasl_smb.h"
 
 #include "../misc/plugutils.h"
+#include "base/hosts.h"
 #include "openvas_smb_interface.h"
 
 #include <arpa/inet.h>
@@ -23,6 +24,7 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/networking.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -335,43 +337,96 @@ tree_cell *
 nasl_win_cmd_exec (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
-  struct in6_addr *host = plug_get_host_ip (script_infos);
-  char *ip, *argv[4], *unicode, target[2048], *c;
+  struct in6_addr *host_ip = plug_get_host_ip (script_infos);
+  gvm_host_t *gvm_host = NULL;
+  char *argv[7], *unicode, target[2048], *c;
   tree_cell *retc;
   GString *string = NULL;
   int sout, ret;
   GError *err = NULL;
+  bool krb5 = false;
+  bool calculate_host = false;
+  char first_kdc[INET6_ADDRSTRLEN] = {0};
+  const char *delimiter;
 
+  IMPORT (host);
   IMPORT (username);
   IMPORT (password);
-  IMPORT (cmd);
+  IMPORT (realm);
+  IMPORT (kdc);
 
-  if ((host == NULL) || (username == NULL) || (password == NULL)
-      || (cmd == NULL))
+  IMPORT (cmd);
+  krb5 = kdc != NULL;
+
+  if ((username == NULL) || (password == NULL) || (cmd == NULL))
     {
       g_message ("win_cmd_exec: Invalid input arguments");
       return NULL;
     }
 
-  ip = addr6_as_str (host);
-  if ((strlen (password) == 0) || (strlen (username) == 0) || strlen (ip) == 0)
+  if (host == NULL)
+    {
+      calculate_host = true;
+      host = addr6_as_str (host_ip);
+      if (krb5)
+        {
+          gvm_host = gvm_host_from_str (host);
+          g_free (host);
+          host = gvm_host_reverse_lookup (gvm_host);
+          g_free (gvm_host);
+        }
+    }
+  if ((strlen (password) == 0) || (strlen (username) == 0)
+      || strlen (host) == 0)
     {
       g_message ("win_cmd_exec: Invalid input arguments");
-      g_free (ip);
+      if (calculate_host)
+        g_free (host);
       return NULL;
     }
 
   /* wmiexec.py uses domain/username format. */
   if ((c = strchr (username, '\\')))
     *c = '/';
+  if (strchr (username, '/') == NULL)
+    {
+      snprintf (target, sizeof (target), "%s/%s:%s@%s", realm, username,
+                password, host);
+    }
+  else
+    {
+      snprintf (target, sizeof (target), "%s:%s@%s", username, password, host);
+    }
+  if (calculate_host)
+    g_free (host);
+
   argv[0] = "impacket-wmiexec";
-  snprintf (target, sizeof (target), "%s:%s@%s", username, password, ip);
-  argv[1] = target;
-  argv[2] = cmd;
-  argv[3] = NULL;
+  if (krb5 == false)
+    {
+      argv[1] = target;
+      argv[2] = cmd;
+      argv[3] = NULL;
+    }
+  else
+    {
+      delimiter = strchr (kdc, ',');
+      if (delimiter != NULL)
+        {
+          strncpy (first_kdc, kdc, delimiter - kdc);
+        }
+      else
+        {
+          strncpy (first_kdc, kdc, sizeof (first_kdc) - 1);
+        }
+      argv[1] = "-k";
+      argv[2] = "-dc-ip";
+      argv[3] = first_kdc;
+      argv[4] = target;
+      argv[5] = cmd;
+      argv[6] = NULL;
+    }
   ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
                                   NULL, NULL, NULL, &sout, NULL, &err);
-  g_free (ip);
   if (ret == FALSE)
     {
       g_warning ("win_cmd_exec: %s", err ? err->message : "Error");
