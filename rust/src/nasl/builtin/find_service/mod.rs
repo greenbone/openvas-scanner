@@ -25,8 +25,14 @@ enum SpecialBehavior {
     // TODO fill this in for services
 }
 
+fn scan_port(port: u16) -> Option<Service> {
+    None
+}
+
 #[nasl_function]
-fn plugin_run_find_service() -> () {}
+fn plugin_run_find_service(context: &Context) -> () {
+    for port in context.port_range() {}
+}
 
 #[derive(Default)]
 pub struct FindService {
