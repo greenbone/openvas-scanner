@@ -235,6 +235,11 @@ get_host_open_port (lex_ctxt *lexic)
   return retc;
 }
 
+/**
+ * @brief implements ip_reverse_lookup
+ *
+ */
+
 tree_cell *
 host_reverse_lookup (lex_ctxt *lexic)
 {
