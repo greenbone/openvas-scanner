@@ -18,12 +18,18 @@ on:
         required: true
       cosign_password_opensight:
         required: true
+      greenbone_bot_token:
+        required: true
       greenbone_registry:
         required: true
       greenbone_registry_user:
         required: true
       greenbone_registry_token:
         required: true
+      greenbone_registry_replication_user:
+        required: false
+      greenbone_registry_replication_token:
+        required: false
       mattermost_webhook_url:
         required: true
 
@@ -147,7 +153,10 @@ jobs:
       COSIGN_KEY_PASSWORD_OPENSIGHT: ${{ secrets.cosign_password_opensight }}
       DOCKERHUB_USERNAME: ${{ secrets.dockerhub_user }}
       DOCKERHUB_TOKEN: ${{ secrets.dockerhub_token }}
+      GREENBONE_BOT_TOKEN: ${{ secrets.greenbone_bot_token }}
       GREENBONE_REGISTRY: ${{ secrets.greenbone_registry }}
       GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
       GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
+      GREENBONE_REGISTRY_REPLICATION_USER: ${{ secrets.greenbone_registry_replication_user }}
+      GREENBONE_REGISTRY_REPLICATION_TOKEN: ${{ secrets.greenbone_registry_replication_token }}
       MATTERMOST_WEBHOOK_URL: ${{ secrets.mattermost_webhook_url }}
