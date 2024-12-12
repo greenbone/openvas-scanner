@@ -2,7 +2,7 @@
 
 ## NAME
 
-**krb5_gss_prepare_context** - Creates tne initial ticket request for the krb5 GSS-API library and prepares the context for further use.
+**krb5_gss_prepare_context** - Creates the initial ticket request for the krb5 GSS-API library and prepares the context for further use.
 
 ## SYNOPSIS
 
