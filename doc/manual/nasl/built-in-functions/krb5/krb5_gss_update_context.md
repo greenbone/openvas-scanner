@@ -8,7 +8,7 @@
 
 *int* **krb5_gss_update_context**(str);
 
-Has an optional positional argument that contains the byte arrary to send to the KDC.
+Has an optional positional argument that contains the byte array to send to the KDC.
 
 ## DESCRIPTION
 

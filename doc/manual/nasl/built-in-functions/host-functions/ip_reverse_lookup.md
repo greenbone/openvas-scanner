@@ -2,7 +2,7 @@
 
 ## NAME
 
-**ip_reverse_lookup** - gets the host name of the either the given IP address or the current target
+**ip_reverse_lookup** - gets the host name of either the given IP address or the current target
 
 ## SYNOPSIS
 
