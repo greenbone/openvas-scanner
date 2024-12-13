@@ -113,7 +113,7 @@ where
                         let value_aux: String = if class == *"checkbox" {
                             bool_to_str(&pref.value)
                         } else {
-                            value
+                            pref.value.to_string()
                         };
 
                         pref_list.insert(
