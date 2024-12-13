@@ -206,7 +206,7 @@ impl NaslSockets {
 
 /// Close a given file descriptor taken as an unnamed argument.
 #[nasl_function]
-fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
+async fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
     let socket = sockets.get_socket_mut(socket_fd)?;
     if socket.is_none() {
         return Err(SocketError::SocketClosed(socket_fd).into());
@@ -227,7 +227,7 @@ fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
 ///
 /// On success the number of sent bytes is returned.
 #[nasl_function(named(socket, data, option, len))]
-fn send(
+async fn send(
     sockets: &mut NaslSockets,
     socket: usize,
     data: &[u8],
@@ -288,7 +288,7 @@ fn send(
 /// - min is the minimum number of data that must be read in case the “magic read function” is activated and the timeout is lowered. By default this is 0. It works together with length. More info https://lists.archive.carbon60.com/nessus/devel/13796
 /// - timeout can be changed from the default.
 #[nasl_function(named(socket, length, min, timeout))]
-fn recv(
+async fn recv(
     sockets: &mut NaslSockets,
     socket: usize,
     length: usize,
@@ -333,7 +333,7 @@ fn recv(
 /// - socket which was returned by an open sock function
 /// - timeout can be changed from the default.
 #[nasl_function(named(socket, length, timeout))]
-fn recv_line(
+async fn recv_line(
     sockets: &mut NaslSockets,
     socket: usize,
     #[allow(unused_variables)] length: usize,
@@ -357,7 +357,10 @@ fn recv_line(
 /// - Secret/kdc_port
 /// - Secret/kdc_use_tcp
 #[nasl_function]
-fn open_sock_kdc(context: &Context, sockets: &mut NaslSockets) -> Result<NaslValue, FnError> {
+async fn open_sock_kdc(
+    context: &Context<'_>,
+    sockets: &mut NaslSockets,
+) -> Result<NaslValue, FnError> {
     let hostname: String = context.get_single_kb_item("Secret/kdc_hostname")?;
 
     let ip = lookup_host(&hostname)
@@ -391,7 +394,7 @@ fn open_sock_kdc(context: &Context, sockets: &mut NaslSockets) -> Result<NaslVal
     Ok(NaslValue::Number(ret as i64))
 }
 
-fn make_tls_client_connection(context: &Context, vhost: &str) -> Option<ClientConnection> {
+fn make_tls_client_connection(context: &Context<'_>, vhost: &str) -> Option<ClientConnection> {
     get_tls_conf(context).ok().and_then(|conf| {
         create_tls_client(
             vhost,
@@ -405,7 +408,7 @@ fn make_tls_client_connection(context: &Context, vhost: &str) -> Option<ClientCo
 }
 
 fn open_sock_tcp_vhost(
-    context: &Context,
+    context: &Context<'_>,
     addr: IpAddr,
     timeout: Duration,
     bufsz: Option<usize>,
@@ -461,8 +464,8 @@ fn open_sock_tcp_vhost(
 ///   priority string see the GNUTLS manual. This argument is only used in ENCAPS_TLScustom
 ///   encapsulation.
 #[nasl_function(named(timeout, transport, bufsz))]
-fn open_sock_tcp(
-    context: &Context,
+async fn open_sock_tcp(
+    context: &Context<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -521,8 +524,8 @@ fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
 
 /// Open a UDP socket to the target host
 #[nasl_function]
-fn open_sock_udp(
-    context: &Context,
+async fn open_sock_udp(
+    context: &Context<'_>,
     sockets: &mut NaslSockets,
     port: Port,
 ) -> Result<NaslValue, FnError> {
@@ -541,8 +544,8 @@ fn open_sock_udp(
 ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
 /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 #[nasl_function(named(dport, sport))]
-fn open_priv_sock_tcp(
-    context: &Context,
+async fn open_priv_sock_tcp(
+    context: &Context<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
@@ -557,8 +560,8 @@ fn open_priv_sock_tcp(
 /// - sport is the source port, which may be inferior to 1024. This argument is optional.
 ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
 #[nasl_function(named(dport, sport))]
-fn open_priv_sock_udp(
-    context: &Context,
+async fn open_priv_sock_udp(
+    context: &Context<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
@@ -569,7 +572,7 @@ fn open_priv_sock_udp(
 
 /// Get the source port of a open socket
 #[nasl_function]
-fn get_source_port(sockets: &NaslSockets, socket: usize) -> Result<NaslValue, SocketError> {
+async fn get_source_port(sockets: &NaslSockets, socket: usize) -> Result<NaslValue, SocketError> {
     let socket = sockets.get_open_socket(socket)?;
     let port = match socket {
         NaslSocket::Tcp(conn) => conn.local_addr()?.port(),
@@ -621,7 +624,7 @@ pub fn check_ftp_response(
 /// - pass: is the password (again, no default value like the user e-mail address)
 /// - socket: an open socket.
 #[nasl_function(named(user, pass, socket))]
-fn ftp_log_in(
+async fn ftp_log_in(
     sockets: &mut NaslSockets,
     user: &str,
     pass: &str,

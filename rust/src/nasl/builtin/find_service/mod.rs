@@ -42,12 +42,10 @@ async fn scan_port(target: IpAddr, port: u16) -> Result<Option<Service>, FindSer
 
     let mut buf: &mut [u8] = &mut [0; 10];
     let result = timeout(Duration::from_millis(TIMEOUT_MILLIS), async move {
-        // let mut buffer: Vec<u8> = vec![];
         let result = stream
             .read(&mut buf)
             .await
             .map_err(|e| FindServiceError::TcpStreamRead(e));
-        dbg!(result?);
         Ok::<_, FindServiceError>(buf)
     })
     .await;
@@ -64,14 +62,6 @@ async fn scan_port(target: IpAddr, port: u16) -> Result<Option<Service>, FindSer
         }
     }
     Ok(None)
-
-    // # open socket
-    //             socket.connect(( str(sys.argv[1] + '.' + str(host)), int(port) ))
-    //             print('Connecting to' + str(sys.argv[1]) + 'on the port' + str(port))
-    //             # segs until timeout
-    //             socket.settimeout(1)
-    //             # getting the banner from the server
-    //             banner = socket.recv(1024)
 }
 
 #[nasl_function]
