@@ -22,6 +22,21 @@ pub fn ty_is_register(ty: &Type) -> bool {
     }
 }
 
+pub fn ty_is_nasl_sockets(ty: &Type) -> Option<bool> {
+    if let Type::Reference(TypeReference {
+        elem, mutability, ..
+    }) = ty
+    {
+        if ty_name_is(elem, "NaslSockets") {
+            Some(mutability.is_some())
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 pub fn get_subty_if_name_is<'a>(ty: &'a Type, name: &str) -> Option<&'a Type> {
     get_last_segment(ty)
         .filter(|segment| segment.ident == name)
