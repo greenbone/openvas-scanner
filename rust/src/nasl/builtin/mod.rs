@@ -39,6 +39,8 @@ use crate::storage::inmemory::InMemoryStorage;
 
 use super::utils::context::{ContextStorage, Target};
 
+pub use network::socket::NaslSockets;
+
 /// Creates a new Executor and adds all the functions to it.
 ///
 /// When you have a function that is considered experimental due to either dependencies on

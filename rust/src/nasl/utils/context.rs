@@ -4,10 +4,11 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use std::sync::RwLock;
 use rand::seq::SliceRandom;
 
 use crate::models::PortRange;
-use crate::nasl::builtin::KBError;
+use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
@@ -476,10 +477,8 @@ impl<T> ContextStorage for RedisStorage<T> where
 }
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
-/// Configurations
-///
+
 /// This struct includes all objects that a nasl function requires.
-/// New objects must be added here in
 pub struct Context<'a> {
     /// key for this context. A file name or a scan id
     scan: ScanID,
@@ -495,6 +494,7 @@ pub struct Context<'a> {
     executor: &'a Executor,
     /// NVT object, which is put into the storage, when set
     nvt: Mutex<Option<Nvt>>,
+    sockets: RwLock<NaslSockets>,
 }
 
 impl<'a> Context<'a> {
@@ -515,6 +515,7 @@ impl<'a> Context<'a> {
             loader,
             executor,
             nvt: Mutex::new(None),
+            sockets: RwLock::new(NaslSockets::default()),
         }
     }
 
@@ -750,6 +751,16 @@ impl<'a> Context<'a> {
             0
         };
         Ok(ret)
+    }
+
+    pub fn read_sockets(&self) -> std::sync::RwLockReadGuard<'_, NaslSockets> {
+        // TODO do not unwrap?
+        self.sockets.read().unwrap()
+    }
+
+    pub fn write_sockets(&self) -> std::sync::RwLockWriteGuard<'_, NaslSockets> {
+        // TODO do not unwrap?
+        self.sockets.write().unwrap()
     }
 }
 
