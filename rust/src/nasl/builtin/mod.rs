@@ -37,6 +37,8 @@ use crate::storage::{ContextKey, DefaultDispatcher, Storage};
 
 use super::utils::context::Target;
 
+pub use network::socket::NaslSockets;
+
 /// Creates a new Executor and adds all the functions to it.
 ///
 /// When you have a function that is considered experimental due to either dependencies on

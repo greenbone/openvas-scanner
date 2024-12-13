@@ -5,9 +5,10 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use itertools::Itertools;
+use std::sync::RwLock;
 
 use crate::models::PortRange;
-use crate::nasl::builtin::KBError;
+use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
 use crate::storage::{ContextKey, Dispatcher, Field, Retrieve, Retriever};
@@ -407,23 +408,15 @@ impl VHost {
     }
 }
 
-/// Configurations
-///
 /// This struct includes all objects that a nasl function requires.
-/// New objects must be added here in
 pub struct Context<'a> {
-    /// key for this context. A file name or a scan id
     key: ContextKey,
-    /// target to run a scan against
     target: Target,
-    /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher,
-    /// Default Retriever
     retriever: &'a dyn Retriever,
-    /// Default Loader
     loader: &'a dyn Loader,
-    /// Default function executor.
     executor: &'a Executor,
+    sockets: RwLock<NaslSockets>,
 }
 
 impl<'a> Context<'a> {
@@ -443,6 +436,7 @@ impl<'a> Context<'a> {
             retriever,
             loader,
             executor,
+            sockets: RwLock::new(NaslSockets::default()),
         }
     }
 
@@ -550,6 +544,16 @@ impl<'a> Context<'a> {
             .map_err(|_| KBError::MultipleItemsFound(name.to_string()))?
             .ok_or_else(|| KBError::ItemNotFound(name.to_string()))?;
         Ok(single_item)
+    }
+
+    pub fn read_sockets(&self) -> std::sync::RwLockReadGuard<'_, NaslSockets> {
+        // TODO do not unwrap?
+        self.sockets.read().unwrap()
+    }
+
+    pub fn write_sockets(&self) -> std::sync::RwLockWriteGuard<'_, NaslSockets> {
+        // TODO do not unwrap?
+        self.sockets.write().unwrap()
     }
 }
 
