@@ -90,6 +90,18 @@ impl<'a> ArgsStruct<'a> {
                             _register
                         }
                     },
+                    ArgKind::NaslSockets(arg) => {
+                        if arg.mutable {
+                            quote! {
+                                &mut *_context.write_sockets()
+                            }
+                        }
+                        else {
+                            quote! {
+                                &*_context.read_sockets()
+                            }
+                        }
+                    },
                     ArgKind::PositionalIterator(arg) => {
                         let position = arg.position;
                         quote! {
