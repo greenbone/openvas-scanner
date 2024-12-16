@@ -97,7 +97,7 @@ where
 
                 // prepare vt preferences
                 for pref in &vt.parameters {
-                    if let Some((prefid, class, name, value)) =
+                    if let Some((prefid, class, name, _value)) =
                         nvt.preferences.iter().find_map(|p| {
                             if let Some(i) = p.id {
                                 if i as u16 == pref.id {
