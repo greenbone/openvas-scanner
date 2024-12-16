@@ -139,7 +139,7 @@ jobs:
 
   greenbone_reg_debian_stable:
     name: greenbone-reg:debian:stable
-    uses: greenbone/workflows/.github/workflows/container-build-push-2nd-gen.yml@main
+    uses: greenbone/workflows/.github/workflows/container-build-push-2nd-gen.yml@greenbone-bot-token
     with:
       image-url: community/openvas-scanner
       image-labels: |
