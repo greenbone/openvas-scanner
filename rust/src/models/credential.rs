@@ -99,6 +99,20 @@ impl AsRef<str> for Service {
     }
 }
 
+impl TryFrom<&str> for Service {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(match value {
+            "ssh" => Service::SSH,
+            "smb" => Service::SMB,
+            "esxi" => Service::ESXi,
+            "snmp" => Service::SNMP,
+            value => return Err(value.to_string()),
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",

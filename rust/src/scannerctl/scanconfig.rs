@@ -300,7 +300,7 @@ where
             });
             acc
         });
-        
+
     let oid_to_vt = |oid: &String| -> Result<VT, Error> {
         let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
         Ok(VT {
