@@ -1,4 +1,4 @@
-# Openvasd contains several modes to control the behaviour of it.
+# Openvasd contains several modes to control the behavior of it.
 # Service enables nasl and notus feed observations all endpoints.
 mode = "service"
 # Notus disables /scan endpoints and just observes the notus feed.
@@ -7,7 +7,7 @@ mode = "service"
 [feed]
 # Path to the openvas feed. This is required for the /vts endpoint.
 path = "/var/lib/openvas/plugins"
-# Disables or enables the signnature check
+# Disables or enables the signature check
 signature_check = true
 
 [feed.check_interval]
@@ -88,7 +88,7 @@ url = "redis://localhost:6379"
 [storage.fs]
 # Sets the storage root directory if the storage.type is set to `fs`.
 path = "/var/lib/openvasd/storage"
-# Sets the key used to ecrypt the storage data. It is recommended to set it via the `STORAGE_KEY` environment variable.
+# Sets the key used to encrypt the storage data. It is recommended to set it via the `STORAGE_KEY` environment variable.
 #key = "changeme"
 
 [scheduler]
