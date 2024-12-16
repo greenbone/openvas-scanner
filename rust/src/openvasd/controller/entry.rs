@@ -302,6 +302,7 @@ where
                     }
                 }
                 (&Method::POST, Scans(None)) => {
+                    // We could enhance the API to accept a list of scans as well.
                     match crate::request::json_request::<Scan, _>(&ctx.response, req).await {
                         Ok(mut scan) => {
                             let id = if !scan.scan_id.is_empty() {
