@@ -74,7 +74,7 @@ pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FnErro
 pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),
-        SocketAddr::V6(_) => UdpSocket::bind(" 0:0:0:0:0:0:0:0:0"),
+        SocketAddr::V6(_) => UdpSocket::bind("[0:0:0:0:0:0:0:0]:0"),
     }
     .map_err(RawIpError::FailedToBind)
 }
