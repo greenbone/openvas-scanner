@@ -297,4 +297,31 @@ mod tests {
         let _r = safe_copy_from_slice(&mut a, 0, 2, &b, 0, 2);
         assert_eq!(a, [b'a', b'b', 3u8, 4u8]);
     }
+
+    #[test]
+    fn forge_icmp_v6_packet() {
+        let mut t = setup();
+        t.ok(
+            r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6, # IP6_v,
+                                ip6_p: 0x3a, #ICMPv6
+                                ip6_plen:40,
+                                ip6_hlim:IP6_HLIM,
+                                ip6_src: "5858::1",
+                                ip6_dst: "5858::2");"#,
+            vec![6, 0, 0, 58, 40, 58, 58, 0, 0, 0, 0, 0, 1, 58,58, 0, 0, 0, 0, 0, 2],
+        );
+        t.ok(
+            r#"icmp = forge_icmp_v6_packet( ip6:ip6_packet,
+                             icmp_type:128,
+                             icmp_code:1,
+                             icmp_seq:2,
+                             icmp_id: 1,
+                             icmp_cksum: 0
+                             );"#,
+            vec![
+                6, 0, 0, 58, 40, 58, 58, 0, 0, 0, 0, 0, 1, 58, 58, 0, 0, 0, 0, 0, 2,
+                128, 1, 64, 38, 140, 227, 2, 0
+            ],
+        );
+    }
 }
