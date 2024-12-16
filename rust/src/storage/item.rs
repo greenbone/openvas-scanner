@@ -431,7 +431,7 @@ impl From<QodType> for i64 {
 pub type TagValue = types::Primitive;
 
 impl TagValue {
-    /// Parhse the given Value based on the key to TagValue
+    /// Parse the given Value based on the key to TagValue
     // TODO move naslvalue out of syntax to own crate so we can use it here
     pub fn parse<V: ToString>(key: TagKey, value: V) -> Result<Self, StorageError> {
         let error = || StorageError::UnexpectedData(format!("{key:?} => {}", value.to_string()));
