@@ -7,7 +7,7 @@
 #    sudo openvas-nasl -X -d -i $PLUGINSPATH ~/my_nasl/forge_tcp_v6.nasl -t 5858::2
 #    sudo target/debug/scannerctl execute script ~/my_nasl/forge_tcp_v6.nasl -t 5858::2
 #
-# Set the correct IPv6 addresses and routes in the origin and destination hosts with the right address on each.
+# Set the correct IPv6 addresses and routes in the orgin and destination hosts with the right address on each.
 #    sudo ip addr add 5858::1/64 dev wlp6s0 
 #    sudo ip -6 route add 5858::1 dev wlp6s0 
 

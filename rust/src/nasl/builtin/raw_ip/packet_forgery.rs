@@ -3122,7 +3122,7 @@ fn insert_tcp_v6_options(register: &Register, _configs: &Context) -> Result<Nasl
     ori_tcp = packet::tcp::MutableTcpPacket::new(&mut new_buf)
         .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
 
-    // At this point, opts len is a 4bytes multiple and the ofset is expressed in 32bits words
+    // At this point, opts len is a 4bytes multiple and the offset is expressed in 32bits words
     ori_tcp.set_data_offset(5 + opts_len as u8 / 4);
     if !opts.is_empty() {
         ori_tcp.set_options(&opts);
@@ -3398,15 +3398,16 @@ fn set_udp_v6_elements(register: &Register) -> Result<NaslValue, FnError> {
     let chksum = match register.named("uh_sum") {
         Some(ContextType::Value(NaslValue::Number(x))) if *x != 0 => (*x as u16).to_be(),
         _ => {
-            let pkt = packet::ipv6::Ipv6Packet::new(&buf)
-                .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
-            let udp_aux = UdpPacket::new(ori_udp.packet())
-                .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            let pkt = packet::ipv6::Ipv6Packet::new(&buf).ok_or_else(|| {
+                error("No possible to create an IPv6 segment from buffer".to_string())
+            })?;
+            let udp_aux = UdpPacket::new(ori_udp.packet()).ok_or_else(|| {
+                error("No possible to create an UDP datagram from buffer".to_string())
+            })?;
             pnet::packet::udp::ipv6_checksum(&udp_aux, &pkt.get_source(), &pkt.get_destination())
         }
     };
     ori_udp.set_checksum(chksum);
-
     // Create a owned copy of the final udp segment, which will be appended as payload to the IP packet.
     let mut fin_udp_buf: Vec<u8> = vec![0u8; udp_total_length];
     let buf_aux = <&[u8]>::clone(&ori_udp.packet()).to_owned();
@@ -3415,13 +3416,18 @@ fn set_udp_v6_elements(register: &Register) -> Result<NaslValue, FnError> {
     // Create a new IP packet with the original IP header, and the new UDP payload
     let mut new_ip_buf = vec![0u8; iph_len];
     //new_ip_buf[..].copy_from_slice(&buf[..iph_len]);
-    safe_copy_from_slice(&mut new_ip_buf[..], 0, iph_len, &buf, 0, iph_len)?;
-    new_ip_buf.append(&mut fin_udp_buf.to_vec());
+    safe_copy_from_slice(
+        &mut new_ip_buf[..],
+        0,
+        buf.len() - 1,
+        &buf,
+        0,
+        buf.len() - 1,
+    )?;
 
-    let l = new_ip_buf.len();
+    let l = fin_udp_buf.len();
     let mut pkt = packet::ipv6::MutableIpv6Packet::new(&mut new_ip_buf)
         .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
-
     pkt.set_payload_length(l as u16);
     pkt.set_payload(&fin_udp_buf);
 
