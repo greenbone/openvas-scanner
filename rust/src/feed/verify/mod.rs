@@ -164,7 +164,8 @@ where
     let helper = VHelper::new(gnupghome);
 
     let sign_path = path.as_ref().to_path_buf().join("sha256sums.asc");
-    let mut sig_file = File::open(sign_path).unwrap();
+    let mut sig_file = File::open(&sign_path)
+        .unwrap_or_else(|e| panic!("Could not find signature at {sign_path:?}. {e}"));
     let mut signature = Vec::new();
     let _ = sig_file.read_to_end(&mut signature);
 
