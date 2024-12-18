@@ -62,11 +62,18 @@ fn smb3kdf(
             lvalue.to_string().as_str(),
         ));
     }
-    let concat = [label_bytes, ctx_bytes].concat();
-    Mac::update(&mut mac_obj, &concat);
-    let output = mac_obj.finalize().into_bytes();
-    let return_key = &output[..lvalue.min(output.len())];
-    Ok(return_key.into())
+    let buflen = 4 + label_bytes.len() + 1 + ctx_bytes.len();
+    let mut buf = Vec::with_capacity(buflen);
+
+    buf.extend_from_slice(&1u32.to_be_bytes());
+    buf.extend_from_slice(label_bytes);
+    buf.push(0);
+    buf.extend_from_slice(ctx_bytes);
+    buf.extend_from_slice(&lvalue.to_be_bytes());
+    mac_obj.update(&buf);
+    let result = mac_obj.finalize().into_bytes();
+    let resultlen = (lvalue / 8) as usize;
+    Ok(result[..resultlen].into())
 }
 
 pub struct Smb;
