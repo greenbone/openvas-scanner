@@ -112,7 +112,7 @@ pub fn display_packet(vector: &[u8]) {
 }
 
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
-fn safe_copy_from_slice(
+pub fn safe_copy_from_slice(
     d_buf: &mut [u8],
     d_init: usize,
     d_fin: usize,

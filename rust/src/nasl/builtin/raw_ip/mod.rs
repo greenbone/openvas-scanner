@@ -13,6 +13,9 @@ use packet_forgery::PacketForgery;
 pub use packet_forgery::PacketForgeryError;
 use thiserror::Error;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Error)]
 pub enum RawIpError {
     #[error("Failed to get local MAC address.")]
