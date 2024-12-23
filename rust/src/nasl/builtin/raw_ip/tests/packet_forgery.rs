@@ -7,9 +7,9 @@
 use rustls::pki_types::{IpAddr, Ipv6Addr};
 
 use crate::nasl::builtin::raw_ip;
-use crate::nasl::{nasl_std_functions, test_prelude::*};
-use crate::nasl::builtin::raw_ip::{PacketForgeryError, packet_forgery::safe_copy_from_slice};
+use crate::nasl::builtin::raw_ip::{packet_forgery::safe_copy_from_slice, PacketForgeryError};
 use crate::nasl::utils::context::Target;
+use crate::nasl::{nasl_std_functions, test_prelude::*};
 use crate::storage::DefaultDispatcher;
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
 
@@ -72,8 +72,8 @@ fn forge_packet() {
                                 th_sum:   0,
                                 th_urp:   0);"#,
         vec![
-            69u8, 0, 0, 40, 210, 4, 0, 0, 255, 6, 104, 109, 192, 168, 0, 1, 192, 168, 0, 12,
-            19, 216, 0, 80, 0, 0, 3, 232, 0, 0, 0, 0, 80, 33, 0, 0, 22, 86, 0, 0,
+            69u8, 0, 0, 40, 210, 4, 0, 0, 255, 6, 104, 109, 192, 168, 0, 1, 192, 168, 0, 12, 19,
+            216, 0, 80, 0, 0, 3, 232, 0, 0, 0, 0, 80, 33, 0, 0, 22, 86, 0, 0,
         ],
     );
 }
@@ -184,8 +184,8 @@ fn forge_udp() {
                                         th_sum:   0,
                                         data: "1234");"#,
         vec![
-            69u8, 0, 0, 32, 210, 4, 0, 0, 255, 17, 104, 108, 192, 168, 0, 1, 192, 168, 0, 10,
-            19, 216, 0, 80, 0, 8, 5, 240, 49, 50, 51, 52,
+            69u8, 0, 0, 32, 210, 4, 0, 0, 255, 17, 104, 108, 192, 168, 0, 1, 192, 168, 0, 10, 19,
+            216, 0, 80, 0, 8, 5, 240, 49, 50, 51, 52,
         ],
     );
 }
@@ -213,8 +213,8 @@ fn forge_icmp() {
                     icmp_id:   1,
                     data: "1234");"#,
         vec![
-            69u8, 0, 0, 32, 210, 4, 0, 0, 255, 1, 104, 124, 192, 168, 0, 1, 192, 168, 0, 10, 8,
-            0, 145, 153, 1, 0, 1, 0, 49, 50, 51, 52,
+            69u8, 0, 0, 32, 210, 4, 0, 0, 255, 1, 104, 124, 192, 168, 0, 1, 192, 168, 0, 10, 8, 0,
+            145, 153, 1, 0, 1, 0, 49, 50, 51, 52,
         ],
     );
 }
@@ -242,8 +242,8 @@ fn forge_igmp() {
                     group: 224.0.0.1,
                     );"#,
         vec![
-            69u8, 0, 0, 28, 210, 4, 0, 0, 255, 2, 104, 127, 192, 168, 0, 1, 192, 168, 0, 10,
-            17, 10, 14, 244, 224, 0, 0, 1,
+            69u8, 0, 0, 28, 210, 4, 0, 0, 255, 2, 104, 127, 192, 168, 0, 1, 192, 168, 0, 10, 17,
+            10, 14, 244, 224, 0, 0, 1,
         ],
     );
 }
@@ -270,7 +270,7 @@ fn copy_from_slice_panic() {
 //            "Error copying from slice. Index out of range".to_string()
 //        ))
 //    );
-// 
+//
 //    // different range size between origin and destination
 //    assert_eq!(
 //        safe_copy_from_slice(&mut a, 0, alen, &b, 0, 2),
@@ -278,7 +278,7 @@ fn copy_from_slice_panic() {
 //            "Error copying from slice. Index out of range".to_string()
 //        ))
 //    );
-// 
+//
 //    // out of index in the destination range
 //    assert_eq!(
 //        safe_copy_from_slice(&mut a, 1, alen + 1, &b, 0, b.len()),
@@ -286,40 +286,26 @@ fn copy_from_slice_panic() {
 //            "Error copying from slice. Index out of range".to_string()
 //        ))
 //    );
-// 
+//
 //    let _r = safe_copy_from_slice(&mut a, 0, 2, &b, 0, 2);
 //    assert_eq!(a, [b'a', b'b', 3u8, 4u8]);
 //}
 
 #[test]
 fn forge_icmp_v6_packet() {
-//    let initial = vec![
-//            ("description".to_owned(), true.into()),
-//            ("OPENVAS_VERSION".to_owned(), "testus".into()),
-//    ];
-//    let storage = DefaultDispatcher::new();
-//    let register = Register::root_initial(&initial);
-//    let target = Target::default();
-//    let functions = nasl_std_functions();
-//    let loader = |_: &str| "".to_string();
-//    let key = crate::storage::ContextKey::Scan("1".to_string(), Some("::1".to_string()));
-//    
-//    let mut context = Context::new(key, target, &storage, &storage, &loader, &functions);
-//    context.set_target("5858::2".to_string());
-// 
-//    let mut t = TestBuilder::default().with_context(context);
-//    let dst = t.context();
-//    let a = dst.target();
-    //    assert_eq!(a, "5858::2");
-    let mut t = TestBuilder::default();
+    let key = crate::storage::ContextKey::Scan(String::default(), Some("5858::2".to_string()));
+    let mut t = TestBuilder::default().with_context_key(key);
     t.ok(
-        r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6, # IP6_v,
-                                ip6_p: 0x3a, #ICMPv6
+        r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
+                                ip6_p: 0x3a,
                                 ip6_plen:40,
-                                ip6_hlim:IP6_HLIM,
+                                ip6_hlim: 128,
                                 ip6_src: "5858::1",
                                 ip6_dst: "5858::2");"#,
-        vec![6, 0, 0, 58, 40, 58, 58, 0, 0, 0, 0, 0, 1, 58,58, 0, 0, 0, 0, 0, 2],
+        vec![
+            96u8, 0, 0, 0, 0, 0, 58, 128, 88, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 88, 88,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        ],
     );
     t.ok(
         r#"icmp = forge_icmp_v6_packet( ip6:ip6_packet,
@@ -330,9 +316,8 @@ fn forge_icmp_v6_packet() {
                              icmp_cksum: 0
                              );"#,
         vec![
-            6, 0, 0, 58, 40, 58, 58, 0, 0, 0, 0, 0, 1, 58, 58, 0, 0, 0, 0, 0, 2,
-            128, 1, 64, 38, 140, 227, 2, 0
+            96u8, 0, 0, 0, 0, 8, 58, 128, 88, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 88, 88,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 128, 1, 204, 8, 1, 0, 2, 0,
         ],
     );
 }
-
