@@ -58,4 +58,3 @@ fn send_frame() {
         NaslValue::Null,
     );
 }
-
