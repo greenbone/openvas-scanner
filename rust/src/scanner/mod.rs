@@ -40,7 +40,6 @@ use running_scan::{RunningScan, RunningScanHandle};
 use scanner_stack::DefaultScannerStack;
 
 // This is a fake implementation of the ScannerStack trait and is only used for testing purposes.
-#[cfg(debug_assertions)]
 pub mod fake {
     use super::*;
 

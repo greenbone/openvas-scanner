@@ -19,6 +19,7 @@ pub use update::Update;
 pub use verify::check_signature;
 pub use verify::Error as VerifyError;
 pub use verify::FileNameLoader;
+pub use verify::HashSumFileItem;
 pub use verify::HashSumNameLoader;
 pub use verify::Hasher;
 pub use verify::NaslFileFinder;
