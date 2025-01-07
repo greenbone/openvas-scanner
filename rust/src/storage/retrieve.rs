@@ -101,6 +101,22 @@ impl Retrieve {
 /// Result of a heap stored iterator or StorageError
 pub type FieldResult = Result<Box<dyn Iterator<Item = Field>>, StorageError>;
 
+fn retry<T, F>(f: F, max: u64) -> Result<T, StorageError>
+where
+    F: Fn() -> Result<T, StorageError>,
+{
+    if max == 0 {
+        return Err(StorageError::RetryExhausted);
+    }
+    let result = f();
+    if let Err(StorageError::Retry(reason)) = result {
+        tracing::debug!(reason, "retriever implementation returned retry error");
+        retry(f, max - 1)
+    } else {
+        result
+    }
+}
+
 /// Result of a heap stored iterator or StorageError
 pub type FieldKeyResult = Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError>;
 /// Retrieves fields based on a key and scope.
@@ -111,6 +127,16 @@ pub trait Retriever: Send + Sync {
         key: &ContextKey,
         scope: Retrieve,
     ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
+
+    /// Calls retrieve and retries for max_tries time on StorageError::Retry
+    fn retry_retrieve(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+        max_tries: u64,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        retry(|| self.retrieve(key, scope.clone()), max_tries)
+    }
 
     /// Returns all vts as an iterator
     fn vts(&self) -> Result<Box<dyn Iterator<Item = Nvt>>, StorageError> {
@@ -151,8 +177,34 @@ pub trait Retriever: Send + Sync {
     /// Gets Fields find by field and scope.
     fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult;
 
+    /// Calls retrieve_by_field and retries for max_tries time on StorageError::Retry
+    fn retry_retrieve_by_field(
+        &self,
+        field: Field,
+        scope: Retrieve,
+        max_tries: u64,
+    ) -> FieldKeyResult {
+        retry(
+            || self.retrieve_by_field(field.clone(), scope.clone()),
+            max_tries,
+        )
+    }
+
     /// Gets Fields find by field and scope.
     fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult;
+
+    /// Calls retrieve_by_fields and retries for max_tries time on StorageError::Retry
+    fn retry_retrieve_by_fields(
+        &self,
+        field: Vec<Field>,
+        scope: Retrieve,
+        max_tries: u64,
+    ) -> FieldKeyResult {
+        retry(
+            || self.retrieve_by_fields(field.clone(), scope.clone()),
+            max_tries,
+        )
+    }
 }
 
 /// A NoOpRetriever is for cases that don't require a retriever but it is needed due to contract.
