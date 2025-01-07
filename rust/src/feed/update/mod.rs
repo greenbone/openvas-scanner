@@ -16,6 +16,7 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::utils::context::Target;
+use crate::nasl::utils::Executor;
 use crate::nasl::ContextType;
 use crate::storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
 
@@ -37,6 +38,7 @@ pub struct Update<'a, S, L, V> {
     max_retry: usize,
     verifier: V,
     feed_version_set: bool,
+    executor: Executor,
 }
 
 /// Loads the plugin_feed_info and returns the feed version
@@ -106,6 +108,7 @@ where
             dispatcher: storage,
             verifier,
             feed_version_set: false,
+            executor: nasl_std_functions(),
         }
     }
 
@@ -149,14 +152,13 @@ where
         let register = Register::root_initial(&self.initial);
         let fr = NoOpRetriever::default();
         let target = Target::default();
-        let functions = nasl_std_functions();
         let context = Context::new(
             key.clone(),
             target,
             self.dispatcher,
             &fr,
             self.loader,
-            &functions,
+            &self.executor,
         );
         let mut results = Box::pin(CodeInterpreter::new(&code, register, &context).stream());
         while let Some(stmt) = results.next().await {
