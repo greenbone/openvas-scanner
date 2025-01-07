@@ -40,4 +40,10 @@ store_file (struct scan_globals *globals, const char *file,
 
 int
 check_host_still_alive (kb_t, const char *);
+
+void
+write_script_stats (const char *, const char *, int);
+
+void
+write_host_stats (kb_t, const char *, const char *);
 #endif
