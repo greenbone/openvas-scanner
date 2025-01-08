@@ -32,10 +32,10 @@ pub enum LoadError {
 impl LoadError {
     pub fn filename(&self) -> &str {
         match self {
-            LoadError::Retry(x) => &x,
-            LoadError::NotFound(x) => &x,
-            LoadError::PermissionDenied(x) => &x,
-            LoadError::Dirty(x) => &x,
+            LoadError::Retry(x) => x,
+            LoadError::NotFound(x) => x,
+            LoadError::PermissionDenied(x) => x,
+            LoadError::Dirty(x) => x,
         }
     }
 }

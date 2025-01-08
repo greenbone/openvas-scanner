@@ -24,13 +24,13 @@ pub struct Target {
     pub credentials: Option<Credentials>,
 }
 
-impl Into<models::Target> for Target {
-    fn into(self) -> models::Target {
-        let credentials = self
+impl From<Target> for models::Target {
+    fn from(val: Target) -> Self {
+        let credentials = val
             .credentials
             .into_iter()
             .flat_map(|x| {
-                x.credential.into_iter().flat_map(|x| x).map(|x| {
+                x.credential.into_iter().flatten().map(|x| {
                     fn find_key(key: &str, x: &[(String, String)]) -> Option<String> {
                         x.iter().find(|(k, _)| k == key).map(|(_, v)| v.to_string())
                     }
@@ -69,7 +69,7 @@ impl Into<models::Target> for Target {
                     };
                     models::Credential {
                         service: (&x.service as &str).try_into().ok().unwrap_or(Service::SSH),
-                        port: x.port.map(|x| x.parse().ok()).flatten(),
+                        port: x.port.and_then(|x| x.parse().ok()),
                         credential_type: kind,
                     }
                 })
@@ -77,14 +77,14 @@ impl Into<models::Target> for Target {
             .collect();
 
         models::Target {
-            hosts: self.hosts,
-            ports: self.ports.unwrap_or_default(),
-            excluded_hosts: self.exclude_hosts.unwrap_or_default(),
+            hosts: val.hosts,
+            ports: val.ports.unwrap_or_default(),
+            excluded_hosts: val.exclude_hosts.unwrap_or_default(),
             credentials,
-            alive_test_ports: self.alive_test_ports.unwrap_or_default(),
-            alive_test_methods: self.alive_test_methods.unwrap_or_default(),
-            reverse_lookup_unify: self.reverse_lookup_unify,
-            reverse_lookup_only: self.reverse_lookup_only,
+            alive_test_ports: val.alive_test_ports.unwrap_or_default(),
+            alive_test_methods: val.alive_test_methods.unwrap_or_default(),
+            reverse_lookup_unify: val.reverse_lookup_unify,
+            reverse_lookup_only: val.reverse_lookup_only,
         }
     }
 }
@@ -160,10 +160,7 @@ fn ports_to_ospd_string(ports: Option<&[models::Port]>) -> Option<String> {
 }
 
 fn ospd_string_to_bool(v: &str) -> bool {
-    match &v.to_lowercase() as &str {
-        "1" | "true" | "yes" => true,
-        _ => false,
-    }
+    matches!(&v.to_lowercase() as &str, "1" | "true" | "yes")
 }
 
 fn bool_to_ospd_string(v: bool) -> &'static str {
@@ -292,7 +289,7 @@ impl<'de> Deserialize<'de> for Target {
                             }
                         }
                         "alive_test" => {
-                            if let Some(at) = map.next_value::<String>().ok() {
+                            if let Ok(at) = map.next_value::<String>() {
                                 if let Ok(at) = at.parse::<u8>() {
                                     if let Ok(at) = models::AliveTestMethods::try_from(at) {
                                         result.alive_test_methods = Some(vec![at]);
@@ -303,11 +300,11 @@ impl<'de> Deserialize<'de> for Target {
                             }
                         }
                         "alive_test_methods" => {
-                            if let Some(at) = map.next_value::<HashMap<String, String>>().ok() {
+                            if let Ok(at) = map.next_value::<HashMap<String, String>>() {
                                 let alive_test_methods = at
                                     .iter()
                                     .filter_map(|(k, v)| {
-                                        if ospd_string_to_bool(&v) {
+                                        if ospd_string_to_bool(v) {
                                             match &k.to_lowercase() as &str {
                                                 "icmp" => Some(models::AliveTestMethods::Icmp),
                                                 "tcp_syn" => Some(models::AliveTestMethods::TcpSyn),
@@ -503,15 +500,11 @@ impl<'de> Deserialize<'de> for ScannerParameter {
                 let mut values = Vec::new();
 
                 while let Some(key) = map.next_key::<String>()? {
-                    match key.as_str() {
-                        key => {
-                            let value: String = map.next_value()?;
-                            values.push(models::ScanPreference {
-                                id: key.to_string(),
-                                value,
-                            });
-                        }
-                    }
+                    let value: String = map.next_value()?;
+                    values.push(models::ScanPreference {
+                        id: key.to_string(),
+                        value,
+                    });
                 }
 
                 Ok(ScannerParameter { values })
@@ -729,7 +722,7 @@ mod test {
     </scanner_params>
 </start_scan>
     "#;
-        let sc: StartScan = from_str(&input).unwrap();
+        let sc: StartScan = from_str(input).unwrap();
         insta::assert_snapshot!(sc);
     }
 
@@ -764,7 +757,7 @@ mod test {
     </scanner_params>
 </start_scan>
     "#;
-        let sc: StartScan = from_str(&input).unwrap();
+        let sc: StartScan = from_str(input).unwrap();
         insta::assert_snapshot!(sc);
     }
 
@@ -799,7 +792,7 @@ mod test {
     </scanner_params>
 </start_scan>
     "#;
-        let sc: StartScan = from_str(&input).unwrap();
+        let sc: StartScan = from_str(input).unwrap();
         insta::assert_snapshot!(sc);
     }
 
@@ -840,7 +833,7 @@ mod test {
     </scanner_params>
 </start_scan>
     "#;
-        let sc: StartScan = from_str(&input).unwrap();
+        let sc: StartScan = from_str(input).unwrap();
         insta::assert_snapshot!(sc);
     }
 }
