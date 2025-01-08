@@ -13,6 +13,7 @@ pub struct CodeInterpreter<'a, 'b> {
     lexer: Lexer<'b>,
     interpreter: Interpreter<'a>,
     statement: Option<Statement>,
+    exited: bool,
 }
 
 impl<'a, 'b> CodeInterpreter<'a, 'b> {
@@ -29,6 +30,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
             lexer,
             interpreter,
             statement: None,
+            exited: false,
         }
     }
 
@@ -46,15 +48,22 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         }
     }
 
-    async fn next_(&mut self) -> Option<InterpretResult> {
-        if let Some(stmt) = self.statement.as_ref() {
+    async fn next(&mut self) -> Option<InterpretResult> {
+        if self.exited {
+            return None;
+        }
+        let statement = if let Some(stmt) = self.statement.as_ref() {
             match self.interpreter.next_interpreter() {
                 Some(inter) => Some(inter.retry_resolve(stmt, 5).await),
                 None => self.next_statement().await,
             }
         } else {
             self.next_statement().await
+        }?;
+        if let Ok(NaslValue::Exit(_)) = statement {
+            self.exited = true;
         }
+        Some(statement)
     }
 
     /// Creates a stream over the results of the statements
@@ -63,7 +72,7 @@ impl<'a, 'b> CodeInterpreter<'a, 'b> {
         'a: 'b,
     {
         Box::pin(stream::unfold(self, |mut s| async move {
-            s.next_().await.map(|x| (x, s))
+            s.next().await.map(|x| (x, s))
         }))
     }
 
