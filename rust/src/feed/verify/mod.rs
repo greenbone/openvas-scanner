@@ -39,7 +39,7 @@ pub enum Error {
     #[error("Incorrect feed.")]
     /// Corrupt sums file
     SumsFileCorrupt(Hasher),
-    #[error("Unable to load the file.")]
+    #[error("Unable to load file: {0}")]
     /// Unable to load the file
     LoadError(#[from] LoadError),
     #[error("Invalid hash for file with key '{key}'. Expected '{expected}', found '{actual}'.")]
