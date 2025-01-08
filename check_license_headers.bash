@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 any_missing_headers=0
 
 for folder in src misc rust/src; do

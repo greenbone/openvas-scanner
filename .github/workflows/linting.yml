@@ -47,4 +47,4 @@ jobs:
       - name: Check out openvas-scanner
         uses: actions/checkout@v4
       - name: Check license headers
-        run: bash ./check_license_headers.sh
+        run: bash ./check_license_headers.bash
