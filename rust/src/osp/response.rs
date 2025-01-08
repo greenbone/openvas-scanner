@@ -5,11 +5,7 @@
 //! # Responses of OSPD commands
 use std::{collections::HashMap, fmt};
 
-use redis::ToRedisArgs;
-use serde::{
-    de::{IntoDeserializer, Visitor},
-    Deserialize, Serializer,
-};
+use serde::{de::Visitor, Deserialize};
 
 use super::commands::Error;
 

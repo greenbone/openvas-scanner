@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};

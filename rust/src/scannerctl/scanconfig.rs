@@ -293,7 +293,7 @@ where
         .iter()
         .fold(HashMap::new(), |mut acc, p| {
             let oid = p.nvt.oid.clone();
-            let parameters = acc.entry(oid).or_insert(vec![]);
+            let parameters = acc.entry(oid).or_default();
             parameters.push(Parameter {
                 id: p.id,
                 value: p.value.clone(),

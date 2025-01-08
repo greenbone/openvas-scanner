@@ -42,7 +42,7 @@ where
     }
 }
 
-impl<'a> Clone for Box<dyn 'a + CloneableFn> {
+impl Clone for Box<dyn '_ + CloneableFn> {
     fn clone(&self) -> Self {
         (**self).clone_box()
     }
@@ -238,7 +238,7 @@ where
         // let code = self.lines.join("\n");
         // let context = self.context();
 
-        let parser = CodeInterpreter::new(&code, register, &context);
+        let parser = CodeInterpreter::new(code, register, context);
         parser.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpretErrorKind::FunctionCallError(f) => f.kind,
@@ -375,10 +375,8 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else {
-            if let Err(err) = futures::executor::block_on(self.verify()) {
-                panic!("{}", err)
-            }
+        } else if let Err(err) = futures::executor::block_on(self.verify()) {
+            panic!("{}", err)
         }
     }
 }

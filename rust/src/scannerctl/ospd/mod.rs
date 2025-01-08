@@ -7,7 +7,7 @@ use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use scannerlib::models::{Parameter, Scan, VT};
-use scannerlib::storage::{self, DefaultDispatcher, Retriever, StorageError};
+use scannerlib::storage::{self, DefaultDispatcher, StorageError};
 use start_scan::StartScan;
 
 use crate::{CliError, CliErrorKind};
@@ -66,13 +66,13 @@ where
         .vt_selection
         .vt_single
         .into_iter()
-        .flat_map(|x| x)
+        .flatten()
         .map(|x| VT {
             oid: x.id,
             parameters: x
                 .vt_value
                 .into_iter()
-                .flat_map(|x| x)
+                .flatten()
                 .filter_map(|x| x.id.parse().ok().map(|y| (y, x.text)))
                 .filter_map(|(id, x)| x.map(|v| Parameter { id, value: v }))
                 .collect(),
@@ -82,7 +82,7 @@ where
         .vt_selection
         .vt_group
         .into_iter()
-        .flat_map(|x| x)
+        .flatten()
         .filter_map(
             |x| match x.filter.split_once('=').map(|(k, v)| (k.trim(), v.trim())) {
                 Some(("family", v)) => Some(v.to_string()),
@@ -172,7 +172,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         }),
         None => Err(CliError {
             filename: config.cloned().unwrap_or_default(),
-            kind: CliErrorKind::Corrupt(format!("Unknown ospd command.")),
+            kind: CliErrorKind::Corrupt("Unknown ospd command.".to_string()),
         }),
     };
 
@@ -183,9 +183,8 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 mod tests {
     use std::io::Cursor;
 
-    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field, Storage};
+    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field};
     use storage::Dispatcher;
-    use x509_parser::nom::ExtendInto;
 
     use super::*;
 
