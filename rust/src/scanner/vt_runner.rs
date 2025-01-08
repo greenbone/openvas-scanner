@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use crate::models::{Host, Parameter, Protocol, ScanId};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::Target;
