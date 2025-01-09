@@ -1,3 +1,4 @@
+use serde::ser::SerializeMap;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 
@@ -24,57 +25,61 @@ pub struct Target {
     pub credentials: Option<Credentials>,
 }
 
+impl Into<Vec<models::Credential>> for Credentials {
+    fn into(self) -> Vec<models::Credential> {
+        self.credential
+            .into_iter()
+            .flatten()
+            .map(|x| {
+                fn find_key(key: &str, x: &[(String, String)]) -> Option<String> {
+                    x.iter().find(|(k, _)| k == key).map(|(_, v)| v.to_string())
+                }
+                fn key(key: &str, x: &[(String, String)]) -> String {
+                    find_key(key, x).unwrap_or_default()
+                }
+                let username = key("username", &x.credentials);
+                let password = key("password", &x.credentials);
+
+                let privilege = find_key("priv_username", &x.credentials).map(|y| {
+                    models::PrivilegeInformation {
+                        username: y,
+                        password: key("priv_password", &x.credentials),
+                    }
+                });
+                let kind = match &x.kind as &str {
+                    "usk" => CredentialType::USK {
+                        username,
+                        password,
+                        private_key: key("private", &x.credentials),
+                        privilege,
+                    },
+                    "snmp" => CredentialType::SNMP {
+                        username,
+                        password,
+                        community: key("community", &x.credentials),
+                        auth_algorithm: key("auth_algorithm", &x.credentials),
+                        privacy_password: key("privacy_password", &x.credentials),
+                        privacy_algorithm: key("privacy_algorithm", &x.credentials),
+                    },
+                    _ => CredentialType::UP {
+                        username,
+                        password,
+                        privilege,
+                    },
+                };
+                models::Credential {
+                    service: (&x.service as &str).try_into().ok().unwrap_or(Service::SSH),
+                    port: x.port.and_then(|x| x.parse().ok()),
+                    credential_type: kind,
+                }
+            })
+            .collect()
+    }
+}
+
 impl From<Target> for models::Target {
     fn from(val: Target) -> Self {
-        let credentials = val
-            .credentials
-            .into_iter()
-            .flat_map(|x| {
-                x.credential.into_iter().flatten().map(|x| {
-                    fn find_key(key: &str, x: &[(String, String)]) -> Option<String> {
-                        x.iter().find(|(k, _)| k == key).map(|(_, v)| v.to_string())
-                    }
-                    fn key(key: &str, x: &[(String, String)]) -> String {
-                        find_key(key, x).unwrap_or_default()
-                    }
-                    let username = key("username", &x.credentials);
-                    let password = key("password", &x.credentials);
-
-                    let privilege = find_key("priv_username", &x.credentials).map(|y| {
-                        models::PrivilegeInformation {
-                            username: y,
-                            password: key("priv_password", &x.credentials),
-                        }
-                    });
-                    let kind = match &x.kind as &str {
-                        "usk" => CredentialType::USK {
-                            username,
-                            password,
-                            private_key: key("private", &x.credentials),
-                            privilege,
-                        },
-                        "snmp" => CredentialType::SNMP {
-                            username,
-                            password,
-                            community: key("community", &x.credentials),
-                            auth_algorithm: key("auth_algorithm", &x.credentials),
-                            privacy_password: key("privacy_password", &x.credentials),
-                            privacy_algorithm: key("privacy_algorithm", &x.credentials),
-                        },
-                        _ => CredentialType::UP {
-                            username,
-                            password,
-                            privilege,
-                        },
-                    };
-                    models::Credential {
-                        service: (&x.service as &str).try_into().ok().unwrap_or(Service::SSH),
-                        port: x.port.and_then(|x| x.parse().ok()),
-                        credential_type: kind,
-                    }
-                })
-            })
-            .collect();
+        let credentials = val.credentials.map(|x| x.into()).unwrap_or_default();
 
         models::Target {
             hosts: val.hosts,
@@ -376,7 +381,6 @@ pub struct Credential {
     /// transform it to models::Credential
     pub credentials: Vec<(String, String)>,
 }
-use serde::ser::SerializeMap;
 
 impl Serialize for Credential {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

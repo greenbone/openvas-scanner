@@ -64,9 +64,6 @@ impl CliErrorKind {
 #[derive(Debug, thiserror::Error)]
 #[error("{kind} ({filename})")]
 pub struct CliError {
-    // FIXME: unlike previous assumptions most cases don't have a clear filename
-    // associated to it. This information should be in specific unter categories
-    // of CliErrorKind instead.
     pub filename: String,
     pub kind: CliErrorKind,
 }
