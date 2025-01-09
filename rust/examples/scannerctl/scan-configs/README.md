@@ -19,7 +19,7 @@ As an example create a skeleton.json file with the following entry:
 }
 ```
 
-This is used by the examples to generrate a scan targeting the localhost.
+This is used by the examples to generate a scan targeting the localhost.
 
 To transform a scan configuration to a scan JSON file, use the following command:
 
