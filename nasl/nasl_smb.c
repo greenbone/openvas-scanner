@@ -376,6 +376,11 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
           g_free (gvm_host);
         }
     }
+  if (host == NULL)
+    {
+      g_message ("win_cmd_exec: host must not be empty.");
+      return NULL;
+    }
   if ((strlen (password) == 0) || (strlen (username) == 0)
       || strlen (host) == 0)
     {
