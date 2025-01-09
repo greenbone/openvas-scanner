@@ -51,8 +51,6 @@ where
                 });
             }
         }
-    } else {
-        tracing::warn!("Signature check disabled");
     }
 
     // Get the all products files and process

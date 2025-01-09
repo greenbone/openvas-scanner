@@ -47,7 +47,7 @@ impl From<RedisError> for DbError {
             | ErrorKind::InvalidClientConfig
             | ErrorKind::Moved
             | ErrorKind::Ask => DbError::ConfigurationError(err.to_string()),
-            ErrorKind::IoError => DbError::PoisonedLock(err.to_string()),
+            ErrorKind::IoError => DbError::IoError(err.to_string()),
             ErrorKind::TypeError
             | ErrorKind::ClientError
             | ErrorKind::CrossSlot
