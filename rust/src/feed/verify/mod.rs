@@ -39,7 +39,7 @@ pub enum Error {
     #[error("Incorrect feed.")]
     /// Corrupt sums file
     SumsFileCorrupt(Hasher),
-    #[error("Unable to load the file.")]
+    #[error("Unable to load file: {0}")]
     /// Unable to load the file
     LoadError(#[from] LoadError),
     #[error("Invalid hash for file with key '{key}'. Expected '{expected}', found '{actual}'.")]
@@ -164,7 +164,8 @@ where
     let helper = VHelper::new(gnupghome);
 
     let sign_path = path.as_ref().to_path_buf().join("sha256sums.asc");
-    let mut sig_file = File::open(sign_path).unwrap();
+    let mut sig_file = File::open(&sign_path)
+        .unwrap_or_else(|e| panic!("Could not find signature at {sign_path:?}. {e}"));
     let mut signature = Vec::new();
     let _ = sig_file.read_to_end(&mut signature);
 

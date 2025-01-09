@@ -333,9 +333,10 @@ impl Config {
 
     fn from_file<P>(path: P) -> Self
     where
-        P: AsRef<std::path::Path> + std::fmt::Display,
+        P: AsRef<std::path::Path> + std::fmt::Display + std::fmt::Debug,
     {
-        let config = std::fs::read_to_string(path).unwrap();
+        let config = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("Failed to read openvasd config from file: {path:?}. {e}"));
         toml::from_str(&config).unwrap()
     }
 
