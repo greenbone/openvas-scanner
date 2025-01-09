@@ -8,7 +8,7 @@ mod execute;
 mod feed;
 mod interpret;
 mod notusupdate;
-mod ospd;
+mod osp;
 mod scanconfig;
 mod syntax;
 
@@ -62,7 +62,7 @@ async fn main() {
     );
     let matches = syntax::extend_args(matches);
     let matches = scanconfig::extend_args(matches);
-    let matches = ospd::extend_args(matches);
+    let matches = osp::extend_args(matches);
     let matches = execute::extend_args(matches);
     let matches = notusupdate::scanner::extend_args(matches);
     let matches = feed::extend_args(matches).get_matches();
@@ -100,7 +100,7 @@ async fn run(matches: &ArgMatches) -> Result<(), CliError> {
     if let Some(result) = notusupdate::scanner::run(matches).await {
         return result;
     }
-    if let Some(result) = ospd::run(matches).await {
+    if let Some(result) = osp::run(matches).await {
         return result;
     }
     Err(CliError {

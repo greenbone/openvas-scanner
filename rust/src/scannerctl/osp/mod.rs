@@ -6,9 +6,9 @@ use std::io::BufRead;
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
-use scannerlib::models::{Parameter, Scan, VT};
+use scannerlib::models::{self, Parameter, Scan, VT};
 use scannerlib::storage::{self, DefaultDispatcher, StorageError};
-use start_scan::StartScan;
+use start_scan::{StartScan, VtSelection};
 
 use crate::{CliError, CliErrorKind};
 use scannerlib::storage::item::{NVTField, NVTKey};
@@ -18,8 +18,8 @@ mod start_scan;
 
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(crate::add_verbose(
-        Command::new("ospd")
-            .about("Transforms a ospd-start-scan xml to a scan json for openvasd. ")
+        Command::new("osp")
+            .about("Transforms a osp start-scan xml to a scan json for openvasd. ")
             .arg(
                 arg!(-p --path <FILE> "Path to the feed.")
                     .required(false)
@@ -37,7 +37,7 @@ pub fn extend_args(cmd: Command) -> Command {
     ))
 }
 
-pub async fn may_start_scan<R, S>(
+pub async fn may_transform_start_scan<R, S>(
     print_back: bool,
     feed: Option<S>,
     reader: R,
@@ -48,7 +48,7 @@ where
 {
     match quick_xml::de::from_reader(reader) {
         Ok(x) if print_back => Some(Ok(format!("{x}"))),
-        Ok(x) if feed.is_some() => Some(start_scan(feed.unwrap(), x).await),
+        Ok(x) if feed.is_some() => Some(transform_start_scan(feed.unwrap(), x).await),
         Ok(_) => Some(Err(CliErrorKind::MissingArguments(
             vec!["path".to_string()],
         ))),
@@ -56,14 +56,11 @@ where
     }
 }
 
-async fn start_scan<S>(feed: S, sc: StartScan) -> Result<String, CliErrorKind>
+async fn transform_vts<S>(feed: S, vts: VtSelection) -> Result<Vec<models::VT>, CliErrorKind>
 where
     S: storage::Retriever,
 {
-    // currently we ignore the previous order as the scanner will reorder
-    // when scheduling internally anyway.
-    let svts = sc
-        .vt_selection
+    let mut result: Vec<_> = vts
         .vt_single
         .into_iter()
         .flatten()
@@ -78,26 +75,16 @@ where
                 .collect(),
         })
         .collect();
-    let gvts = sc
-        .vt_selection
-        .vt_group
-        .into_iter()
-        .flatten()
-        .filter_map(
-            |x| match x.filter.split_once('=').map(|(k, v)| (k.trim(), v.trim())) {
-                Some(("family", v)) => Some(v.to_string()),
-                filter => {
-                    tracing::warn!(?filter, "only family is supported, ignoring entry");
-                    None
-                }
-            },
-        );
-    let mut scan = Scan {
-        scan_id: sc.id.unwrap_or_default(),
-        scan_preferences: sc.scanner_params.values,
-        target: sc.targets.target.into(),
-        vts: svts,
-    };
+    let gvts = vts.vt_group.into_iter().flatten().filter_map(|x| {
+        match x.filter.split_once('=').map(|(k, v)| (k.trim(), v.trim())) {
+            Some(("family", v)) => Some(v.to_string()),
+            filter => {
+                tracing::warn!(?filter, "only family is supported, ignoring entry");
+                None
+            }
+        }
+    });
+
     // we iterate here to return an error when storage is behaving in an unexpected fashion
     for family in gvts {
         let fvts: Vec<VT> = match feed.retry_retrieve_by_field(
@@ -120,9 +107,24 @@ where
             }
             Err(e) => return Err(e.into()),
         };
-        scan.vts.extend(fvts);
+        result.extend(fvts);
     }
-    scan.vts.sort();
+    result.sort();
+    Ok(result)
+}
+
+async fn transform_start_scan<S>(feed: S, sc: StartScan) -> Result<String, CliErrorKind>
+where
+    S: storage::Retriever,
+{
+    // currently we ignore the previous order as the scanner will reorder
+    // when scheduling internally anyway.
+    let scan = Scan {
+        scan_id: sc.id.unwrap_or_default(),
+        scan_preferences: sc.scanner_params.values,
+        target: sc.targets.target.into(),
+        vts: transform_vts(feed, sc.vt_selection).await?,
+    };
     let scan_json = match serde_json::to_string_pretty(&scan) {
         Ok(s) => s,
         Err(e) => return Err(e.into()),
@@ -160,7 +162,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     };
     let print_back = args.get_one::<bool>("back").cloned().unwrap_or_default();
     // currently we just support start scan if that changes chain the options.
-    let output = may_start_scan(print_back, feed, &mut bufreader).await;
+    let output = may_transform_start_scan(print_back, feed, &mut bufreader).await;
     let result = match output {
         Some(Ok(x)) => {
             println!("{x}");
@@ -241,7 +243,7 @@ mod tests {
         dispatch("2", "A");
         dispatch("3", "A");
 
-        let output = may_start_scan(false, Some(d), reader)
+        let output = may_transform_start_scan(false, Some(d), reader)
             .await
             .unwrap()
             .unwrap();
@@ -287,7 +289,7 @@ mod tests {
 </start_scan>
     "#;
         let reader = BufReader::new(Cursor::new(input));
-        let output = may_start_scan::<_, DefaultDispatcher>(true, None, reader)
+        let output = may_transform_start_scan::<_, DefaultDispatcher>(true, None, reader)
             .await
             .unwrap()
             .unwrap();
