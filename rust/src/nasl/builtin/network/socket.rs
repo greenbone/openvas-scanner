@@ -666,7 +666,7 @@ async fn ftp_log_in(
 /// Args:
 /// - socket: an open socket.
 #[nasl_function(named(socket))]
-fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u16, SocketError> {
+async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u16, SocketError> {
     let conn = sockets.get_open_socket_mut(socket)?;
     let conn = match conn {
         NaslSocket::Tcp(conn) => conn,
@@ -700,8 +700,10 @@ fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u16, So
     Ok((p1 << 8) | p2)
 }
 
+pub struct SocketFns;
+
 function_set! {
-    NaslSockets,
+    SocketFns,
     (
         (open_sock_kdc, "open_sock_kdc"),
         (open_sock_tcp, "open_sock_tcp"),

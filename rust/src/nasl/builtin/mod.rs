@@ -57,7 +57,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(string::NaslString)
         .add_set(host::Host)
         .add_set(http::NaslHttp::default())
-        .add_set(network::socket::NaslSockets::default())
+        .add_set(network::socket::SocketFns)
         .add_set(network::network::Network)
         .add_set(regex::RegularExpressions)
         .add_set(cryptographic::Cryptographic)
