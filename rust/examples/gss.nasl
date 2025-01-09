@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Greenbone AG
+#
+# SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 #display('do more hate-driven-development');
 #result = krb5_gss_init();
 #if (krb5_is_failure(result)) {
