@@ -1357,7 +1357,13 @@ attack_network (struct scan_globals *globals)
       alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
     }
 
-  write_script_stats ("{\"hosts\": {", globals->scan_id, 2);
+  if (prefs_get ("report_scripts"))
+    {
+      char *path = g_strdup_printf (
+        "%s/%s-stats.json", prefs_get ("report_scripts"), globals->scan_id);
+      write_script_stats ("{\"hosts\": {", path, 2);
+      g_free (path);
+    }
   /*
    * Start the attack !
    */
@@ -1549,23 +1555,29 @@ stop:
   gettimeofday (&now, NULL);
   if (test_alive_hosts_only)
     {
-      char *buff;
       g_message ("Vulnerability scan %s finished in %ld seconds: "
                  "%d alive hosts of %d",
                  globals->scan_id, now.tv_sec - then.tv_sec,
                  gvm_hosts_count (alive_hosts_list), gvm_hosts_count (hosts));
-
-      buff =
-        g_strdup_printf ("},\"scan_time\":  {\"start\": %ld, \"stop\": %ld}}",
-                         then.tv_sec, now.tv_sec);
-      write_script_stats (buff, globals->scan_id, 1);
-
-      g_free (buff);
     }
   else
     g_message ("Vulnerability scan %s finished in %ld seconds: %d hosts",
                globals->scan_id, now.tv_sec - then.tv_sec,
                gvm_hosts_count (hosts));
+
+  if (prefs_get ("report_scripts"))
+    {
+      char *buff =
+        g_strdup_printf ("},\"scan_time\":  {\"start\": %ld, \"stop\": %ld}}",
+                         then.tv_sec, now.tv_sec);
+      char *path = g_strdup_printf (
+        "%s/%s-stats.json", prefs_get ("report_scripts"), globals->scan_id);
+
+      write_script_stats (buff, globals->scan_id, 1);
+
+      g_free (buff);
+      g_free (path);
+    }
 
   gvm_hosts_free (hosts);
   if (alive_hosts_list)

@@ -119,6 +119,6 @@ tree_cell *
 nasl_update_table_driven_lsc_data (lex_ctxt *);
 
 tree_cell *
-nasl_collect_host_stats (lex_ctxt *);
+nasl_generate_host_stats (lex_ctxt *);
 
 #endif

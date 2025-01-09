@@ -1055,7 +1055,7 @@ nasl_get_preference (lex_ctxt *lexic)
 }
 
 tree_cell *
-nasl_collect_host_stats (lex_ctxt *lexic)
+nasl_generate_host_stats (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct script_infos *script_infos = lexic->script_infos;

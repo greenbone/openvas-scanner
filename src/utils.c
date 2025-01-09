@@ -261,30 +261,24 @@ is_scanner_only_pref (const char *pref)
 /** @brief Writes scripts stats into a file.
  *
  * @param buf String to write.
- * @param scan_id Scan ID for the file name.
+ * @param path Path to the file to write into.
  * @param mode 2 to create the file, 0 to append text to the file,
  *             1 to finish the json list removing the trailing comma before
  *             appending the last text in the buffer.
  *
  */
 void
-write_script_stats (const char *buf, const char *scan_id, int mode)
+write_script_stats (const char *buf, const char *path, int mode)
 {
-  char *p = NULL;
-  FILE *path = NULL;
-  if (!prefs_get ("report_scripts"))
-    return;
-  p =
-    g_strdup_printf ("%s/%s-stats.json", prefs_get ("report_scripts"), scan_id);
+  FILE *pd = NULL;
 
-  if (mode == 0)
-    path = fopen (p, "a");
-  else if (mode == 1)
-    path = fopen (p, "r+");
-  else if (mode == 2)
-    path = fopen (p, "w");
-
-  if (path == NULL)
+  if (mode < 0 || mode > 2)
+    {
+      g_warning ("%s: invalid mode %d", __func__, mode);
+      return;
+    }
+  pd = fopen (path, mode == 0 ? "a" : mode == 1 ? "r+" : "w");
+  if (pd == NULL)
     {
       g_warning ("%s: Error opening FILE for script stats: %d - %s", __func__,
                  errno, strerror (errno));
@@ -294,16 +288,13 @@ write_script_stats (const char *buf, const char *scan_id, int mode)
   if (mode == 1)
     {
       int ch;
-      while ((ch = fgetc (path)) != EOF)
+      while ((ch = fgetc (pd)) != EOF)
         ;
-
-      fseek (path, -1, SEEK_CUR);
-      long end = ftell (path);
-      g_message ("CURRENT POSITION : %ld", end);
+      fseek (pd, -1, SEEK_CUR);
     }
-  fprintf (path, "%s", buf);
-  fflush (path);
-  fclose (path);
+  fprintf (pd, "%s", buf);
+  fflush (pd);
+  fclose (pd);
 }
 
 /** @brief Reads the script stats from the kb and generate a string in json
@@ -319,6 +310,10 @@ write_host_stats (kb_t kb, const char *scan_id, const char *ip)
   GString *data = g_string_new ("");
   struct kb_item *stats = NULL, *stats_tmp = NULL;
   int firstvt = 1;
+  char *path = NULL;
+
+  if (!prefs_get ("report_scripts"))
+    return;
 
   stats = kb_item_get_pattern (kb, "general/script_stats*");
   stats_tmp = stats;
@@ -345,7 +340,11 @@ write_host_stats (kb_t kb, const char *scan_id, const char *ip)
     }
   g_string_append (data, "],");
 
+  path =
+    g_strdup_printf ("%s/%s-stats.json", prefs_get ("report_scripts"), scan_id);
+
   kb_item_free (stats);
-  write_script_stats (data->str, scan_id, 0);
+  write_script_stats (data->str, path, 0);
+  g_free (path);
   g_string_free (data, TRUE);
 }
