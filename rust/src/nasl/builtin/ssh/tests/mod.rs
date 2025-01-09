@@ -26,7 +26,7 @@ const PORT: u16 = 2223;
 
 fn default_config() -> ServerConfig {
     ServerConfig {
-        keys: vec![KeyPair::generate_ed25519().unwrap()],
+        keys: vec![KeyPair::generate_ed25519()],
         inactivity_timeout: Some(std::time::Duration::from_secs(3600)),
         auth_rejection_time: std::time::Duration::from_secs(3),
         auth_rejection_time_initial: Some(std::time::Duration::from_secs(0)),
@@ -77,7 +77,10 @@ async fn ssh_connect() {
     run_test(
         |t| {
             t.ok(
-                format!(r#"id = ssh_connect(port:{});"#, PORT),
+                format!(
+                    r#"id = ssh_connect(port:{}, keytype: "ssh-ed25519");"#,
+                    PORT
+                ),
                 MIN_SESSION_ID,
             );
             check_err_matches!(
@@ -115,7 +118,10 @@ async fn ssh_userauth() {
     run_test(
         |mut t| {
             t.ok(
-                format!(r#"session_id = ssh_connect(port: {});"#, PORT),
+                format!(
+                    r#"session_id = ssh_connect(port: {}, keytype: "ssh-ed25519");"#,
+                    PORT
+                ),
                 MIN_SESSION_ID,
             );
             check_err_matches!(
@@ -145,7 +151,7 @@ async fn ssh_request_exec() {
     run_test(
         |mut t| {
             t.ok(
-                format!(r#"session_id = ssh_connect(port: {});"#, PORT),
+                format!(r#"session_id = ssh_connect(port: {}, keytype: "ssh-ed25519");"#, PORT),
                 MIN_SESSION_ID,
             );
             userauth(&mut t);
