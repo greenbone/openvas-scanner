@@ -648,8 +648,10 @@ async fn ftp_log_in(
     }
 }
 
+pub struct SocketFns;
+
 function_set! {
-    NaslSockets,
+    SocketFns,
     (
         (open_sock_kdc, "open_sock_kdc"),
         (open_sock_tcp, "open_sock_tcp"),
