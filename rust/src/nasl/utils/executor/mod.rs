@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 //! This module contains the `Executor` type, as well as utility functions and macros
 //! to conveniently build sets of functions for a particular purpose.
 //!

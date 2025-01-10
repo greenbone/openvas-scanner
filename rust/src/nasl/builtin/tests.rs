@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 //! This module contains tests for the nasl_function proc macro.
 //! It would be nicer to have this within the proc_macro crate itself,
 //! but testing proc_macros comes with a lot of difficulties and the tests
