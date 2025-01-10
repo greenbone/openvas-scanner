@@ -183,6 +183,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                       processes[i].start.tv_sec++;
                       now.tv_usec += 1000000;
                     }
+
                   if (log_whole)
                     {
                       char *name = nvticache_get_filename (oid);
@@ -193,6 +194,14 @@ update_running_processes (kb_t main_kb, kb_t kb)
                         (long) ((now.tv_usec - processes[i].start.tv_usec)
                                 / 1000));
                       g_free (name);
+
+                      char msg[2048];
+                      g_snprintf (msg, sizeof (msg), "%s/%ld/%ld", oid,
+                                  (long) ((now.tv_sec * 1000)
+                                          + (long) (now.tv_usec / 1000)),
+                                  (long) (processes[i].start.tv_sec * 1000
+                                          + processes[i].start.tv_usec / 1000));
+                      kb_item_push_str (kb, "general/script_stats", msg);
                     }
                   now = old_now;
                   do

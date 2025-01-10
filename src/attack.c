@@ -44,6 +44,7 @@
 #include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <pthread.h>
 #include <signal.h>
+#include <stdio.h>
 #include <string.h>   /* for strlen() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for close() */
@@ -702,6 +703,7 @@ host_died:
   pluginlaunch_stop ();
   plugins_scheduler_free (args->sched);
   host_set_time (get_main_kb (), ip_str, "HOST_END");
+  write_host_stats (args->host_kb, globals->scan_id, ip_str);
 }
 
 /*
@@ -1355,6 +1357,13 @@ attack_network (struct scan_globals *globals)
       alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
     }
 
+  if (prefs_get ("report_scripts"))
+    {
+      char *path = g_strdup_printf (
+        "%s/%s-stats.json", prefs_get ("report_scripts"), globals->scan_id);
+      write_script_stats ("{\"hosts\": {", path, 2);
+      g_free (path);
+    }
   /*
    * Start the attack !
    */
@@ -1545,14 +1554,30 @@ stop:
 
   gettimeofday (&now, NULL);
   if (test_alive_hosts_only)
-    g_message ("Vulnerability scan %s finished in %ld seconds: "
-               "%d alive hosts of %d",
-               globals->scan_id, now.tv_sec - then.tv_sec,
-               gvm_hosts_count (alive_hosts_list), gvm_hosts_count (hosts));
+    {
+      g_message ("Vulnerability scan %s finished in %ld seconds: "
+                 "%d alive hosts of %d",
+                 globals->scan_id, now.tv_sec - then.tv_sec,
+                 gvm_hosts_count (alive_hosts_list), gvm_hosts_count (hosts));
+    }
   else
     g_message ("Vulnerability scan %s finished in %ld seconds: %d hosts",
                globals->scan_id, now.tv_sec - then.tv_sec,
                gvm_hosts_count (hosts));
+
+  if (prefs_get ("report_scripts"))
+    {
+      char *buff =
+        g_strdup_printf ("},\"scan_time\":  {\"start\": %ld, \"stop\": %ld}}",
+                         then.tv_sec, now.tv_sec);
+      char *path = g_strdup_printf (
+        "%s/%s-stats.json", prefs_get ("report_scripts"), globals->scan_id);
+
+      write_script_stats (buff, globals->scan_id, 1);
+
+      g_free (buff);
+      g_free (path);
+    }
 
   gvm_hosts_free (hosts);
   if (alive_hosts_list)
