@@ -293,14 +293,14 @@ where
         .iter()
         .fold(HashMap::new(), |mut acc, p| {
             let oid = p.nvt.oid.clone();
-            let parameters = acc.entry(oid).or_insert(vec![]);
+            let parameters = acc.entry(oid).or_default();
             parameters.push(Parameter {
                 id: p.id,
                 value: p.value.clone(),
             });
             acc
         });
-        
+
     let oid_to_vt = |oid: &String| -> Result<VT, Error> {
         let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
         Ok(VT {

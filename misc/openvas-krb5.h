@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 #include <krb5/krb5.h>
 #include <stdbool.h>
 #ifndef OPENVAS_KRB5

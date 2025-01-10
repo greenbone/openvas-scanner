@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 //! Overview of the structure of this module: The `Scanner` is the
 //! single instance managing all scans during a run with Openvasd
 //! scanner type.  To do so, it starts a number of `RunningScan`s,

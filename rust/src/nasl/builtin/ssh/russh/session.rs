@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::borrow::Cow;
 use std::time::Duration;
 use std::{net::IpAddr, sync::Arc};

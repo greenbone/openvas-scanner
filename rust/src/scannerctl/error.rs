@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
@@ -16,20 +13,32 @@ use scannerlib::{
     scanner::ExecuteError,
 };
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
+
 pub enum CliErrorKind {
+    #[error("Wrong action")]
     WrongAction,
 
+    #[error("Plugin path ({0}) is not a directory.")]
     PluginPathIsNotADir(PathBuf),
+    #[error("openvas ({args:?}) failed: {err_msg}.")]
     Openvas {
         args: Option<String>,
         err_msg: String,
     },
+    #[error("{0}")]
     InterpretError(InterpretError),
+    #[error("{0}")]
     ExecuteError(ExecuteError),
+    #[error("{0}")]
     LoadError(LoadError),
+    #[error("{0}")]
     StorageError(StorageError),
+    #[error("{0}")]
     SyntaxError(SyntaxError),
+    #[error("Missing arguments: {0:?}")]
+    MissingArguments(Vec<String>),
+    #[error("{0}")]
     Corrupt(String),
 }
 
@@ -52,7 +61,8 @@ impl CliErrorKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
+#[error("{kind} ({filename})")]
 pub struct CliError {
     pub filename: String,
     pub kind: CliErrorKind,
@@ -67,41 +77,6 @@ impl CliError {
     }
 }
 
-impl Display for CliErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CliErrorKind::WrongAction => write!(f, "wrong action."),
-            CliErrorKind::PluginPathIsNotADir(e) => write!(f, "expected {e:?} to be a dir."),
-            CliErrorKind::Openvas { args, err_msg } => write!(
-                f,
-                "openvas {} failed with: {err_msg}",
-                args.clone().unwrap_or_default()
-            ),
-            CliErrorKind::InterpretError(e) => write!(f, "{e}"),
-            CliErrorKind::LoadError(e) => write!(f, "{e}"),
-            CliErrorKind::StorageError(e) => write!(f, "{e}"),
-            CliErrorKind::SyntaxError(e) => write!(f, "{e}"),
-            CliErrorKind::Corrupt(x) => write!(f, "Corrupt: {x}"),
-            CliErrorKind::ExecuteError(x) => write!(f, "{x}"),
-        }
-    }
-}
-
-impl Display for CliError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}: {}",
-            self.filename,
-            self.kind
-                .as_token()
-                .map(|x| { format!(", line: {}, col: {}", x.line_column.0, x.line_column.1) })
-                .unwrap_or_default(),
-            self.kind
-        )
-    }
-}
-
 impl From<std::io::Error> for CliError {
     fn from(value: std::io::Error) -> Self {
         CliError {
@@ -111,11 +86,17 @@ impl From<std::io::Error> for CliError {
     }
 }
 
+impl From<serde_json::Error> for CliErrorKind {
+    fn from(value: serde_json::Error) -> Self {
+        CliErrorKind::Corrupt(value.to_string())
+    }
+}
+
 impl From<serde_json::Error> for CliError {
     fn from(value: serde_json::Error) -> Self {
         CliError {
             filename: Default::default(),
-            kind: CliErrorKind::Corrupt(value.to_string()),
+            kind: value.into(),
         }
     }
 }
@@ -177,6 +158,15 @@ impl From<StorageError> for CliErrorKind {
 impl From<SyntaxError> for CliErrorKind {
     fn from(value: SyntaxError) -> Self {
         Self::SyntaxError(value)
+    }
+}
+
+impl From<LoadError> for CliError {
+    fn from(value: LoadError) -> Self {
+        Self {
+            filename: value.filename().to_string(),
+            kind: value.into(),
+        }
     }
 }
 

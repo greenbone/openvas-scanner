@@ -458,7 +458,7 @@ exit({rc});
     }
 
     fn make_test_dispatcher(vts: &[(String, Nvt)]) -> DefaultDispatcher {
-        let dispatcher = prepare_vt_storage(&vts);
+        let dispatcher = prepare_vt_storage(vts);
         dispatcher
             .dispatch(
                 &ContextKey::Scan("sid".into(), Some("test.host".into())),

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 mod server;
 
 use std::sync::Arc;
@@ -35,7 +39,7 @@ fn default_config() -> ServerConfig {
 }
 
 async fn run_test(
-    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) -> () + Send + Sync + 'static,
+    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) + Send + Sync + 'static,
     config: ServerConfig,
 ) {
     // Acquire the global lock to prevent multiple
@@ -58,7 +62,7 @@ async fn run_test(
 
 #[tokio::main]
 async fn run_client(
-    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) -> () + Send + Sync + 'static,
+    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) + Send + Sync + 'static,
 ) {
     std::thread::sleep(Duration::from_millis(100));
     let mut t = TestBuilder::default();
@@ -126,7 +130,7 @@ async fn ssh_userauth() {
                     ..
                 },
             );
-            userauth(&mut t);
+            userauth(t);
         },
         default_config(),
     )
@@ -148,7 +152,7 @@ async fn ssh_request_exec() {
                 format!(r#"session_id = ssh_connect(port: {});"#, PORT),
                 MIN_SESSION_ID,
             );
-            userauth(&mut t);
+            userauth(t);
             t.ok(
                 r#"auth = ssh_request_exec(session_id, stdout: 1, stderr: 0, cmd: "write_foo_stdout");"#,
                 "foo",

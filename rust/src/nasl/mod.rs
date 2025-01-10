@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 mod builtin;
 pub mod interpreter;
 pub mod syntax;
@@ -34,6 +38,10 @@ pub mod prelude {
 
 pub use prelude::*;
 
+pub use builtin::nasl_std_functions;
+
+pub use syntax::NoOpLoader;
+
 #[cfg(test)]
 pub mod test_prelude {
     pub use super::prelude::*;
@@ -43,7 +51,3 @@ pub mod test_prelude {
     pub use crate::check_code_result_matches;
     pub use crate::check_err_matches;
 }
-
-pub use builtin::nasl_std_functions;
-
-pub use syntax::NoOpLoader;
