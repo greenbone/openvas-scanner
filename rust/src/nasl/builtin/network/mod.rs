@@ -94,7 +94,7 @@ pub fn get_retry(context: &Context) -> u8 {
     }
 }
 
-struct Port(u16);
+pub struct Port(u16);
 
 impl FromNaslValue<'_> for Port {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {

@@ -9,6 +9,7 @@ mod cert;
 mod cryptographic;
 mod description;
 mod error;
+mod find_service;
 mod host;
 mod http;
 mod isotime;
@@ -36,6 +37,8 @@ use crate::storage::{ContextKey, DefaultDispatcher, Storage};
 
 use super::utils::context::Target;
 
+pub use network::socket::NaslSockets;
+
 /// Creates a new Executor and adds all the functions to it.
 ///
 /// When you have a function that is considered experimental due to either dependencies on
@@ -52,7 +55,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(string::NaslString)
         .add_set(host::Host)
         .add_set(http::NaslHttp::default())
-        .add_set(network::socket::NaslSockets::default())
+        .add_set(network::socket::SocketFns)
         .add_set(network::network::Network)
         .add_set(regex::RegularExpressions)
         .add_set(cryptographic::Cryptographic)
@@ -61,6 +64,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(cryptographic::rc4::CipherHandlers::default())
         .add_set(sys::Sys)
         .add_set(ssh::Ssh::default())
+        .add_set(find_service::FindService::default())
         .add_set(cert::NaslCerts::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]

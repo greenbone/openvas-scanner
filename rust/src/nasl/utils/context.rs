@@ -5,8 +5,10 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use itertools::Itertools;
+use tokio::sync::RwLock;
 
-use crate::nasl::builtin::KBError;
+use crate::models::PortRange;
+use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
 use crate::storage::{ContextKey, Dispatcher, Field, Retrieve, Retriever};
@@ -358,7 +360,7 @@ pub struct Target {
     // is considered a "blocking" operation and `tokio::task::spawn_blocking`
     // should be used.
     /// vhost list which resolve to the IP address and their sources.
-    vhosts: Mutex<Vec<(String, String)>>,
+    vhosts: Mutex<Vec<VHost>>,
 }
 
 impl Target {
@@ -375,7 +377,7 @@ impl Target {
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) -> &Target {
-        self.vhosts.lock().unwrap().push((hostname, source));
+        self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
     }
 }
@@ -389,23 +391,32 @@ impl Default for Target {
         }
     }
 }
-/// Configurations
-///
+
+#[derive(Debug, Clone)]
+pub struct VHost {
+    source: String,
+    hostname: String,
+}
+
+impl VHost {
+    pub fn hostname(&self) -> &str {
+        &self.hostname
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+}
+
 /// This struct includes all objects that a nasl function requires.
-/// New objects must be added here in
 pub struct Context<'a> {
-    /// key for this context. A file name or a scan id
     key: ContextKey,
-    /// target to run a scan against
     target: Target,
-    /// Default Dispatcher
     dispatcher: &'a dyn Dispatcher,
-    /// Default Retriever
     retriever: &'a dyn Retriever,
-    /// Default Loader
     loader: &'a dyn Loader,
-    /// Default function executor.
     executor: &'a Executor,
+    sockets: RwLock<NaslSockets>,
 }
 
 impl<'a> Context<'a> {
@@ -425,6 +436,7 @@ impl<'a> Context<'a> {
             retriever,
             loader,
             executor,
+            sockets: RwLock::new(NaslSockets::default()),
         }
     }
 
@@ -465,7 +477,7 @@ impl<'a> Context<'a> {
     }
 
     /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Vec<(String, String)> {
+    pub fn target_vhosts(&self) -> Vec<VHost> {
         self.target.vhosts.lock().unwrap().clone()
     }
 
@@ -475,6 +487,14 @@ impl<'a> Context<'a> {
 
     pub fn add_hostname(&self, hostname: String, source: String) {
         self.target.add_hostname(hostname, source);
+    }
+
+    pub fn port_range(&self) -> PortRange {
+        // TODO Get this from the scan prefs
+        PortRange {
+            start: 0,
+            end: None,
+        }
     }
 
     /// Get the storage
@@ -524,6 +544,16 @@ impl<'a> Context<'a> {
             .map_err(|_| KBError::MultipleItemsFound(name.to_string()))?
             .ok_or_else(|| KBError::ItemNotFound(name.to_string()))?;
         Ok(single_item)
+    }
+
+    pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
+        // TODO do not unwrap?
+        self.sockets.read().await
+    }
+
+    pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
+        // TODO do not unwrap?
+        self.sockets.write().await
     }
 }
 
