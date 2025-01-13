@@ -11,6 +11,7 @@ use futures::{stream, Stream, StreamExt};
 use std::fs::File;
 use tracing::trace;
 
+use crate::nasl::builtin::Description;
 use crate::nasl::interpreter::{CodeInterpreter, Interpreter};
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
@@ -108,7 +109,7 @@ where
             dispatcher: storage,
             verifier,
             feed_version_set: false,
-            executor: nasl_std_functions(),
+            executor: Executor::single(Description),
         }
     }
 
