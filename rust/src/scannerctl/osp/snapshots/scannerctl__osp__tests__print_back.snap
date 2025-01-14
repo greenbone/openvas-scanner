@@ -1,0 +1,38 @@
+---
+source: src/scannerctl/osp/mod.rs
+expression: output
+---
+<start_scan parallel="20" scan_id="36389b56-f5a0-11e9-bba4-482ae354ac4c">
+  <targets>
+    <target>
+      <hosts>127.0.0.1</hosts>
+      <ports>T:80-80,443-443</ports>
+      <alive_test_ports>T:80-80,443-443</alive_test_ports>
+      <alive_test_methods>
+        <icmp>1</icmp>
+      </alive_test_methods>
+      <exclude_hosts>localhost</exclude_hosts>
+      <credentials>
+        <credential type="up" service="ssh" port="22">
+          <password>PASSWORD</password>
+          <username>USER</username>
+        </credential>
+      </credentials>
+    </target>
+  </targets>
+  <vt_selection>
+    <vt_group filter="family=AIX Local Security Checks"/>
+    <vt_single id="1.3.6.1.4.1.25623.1.0.100151">
+      <vt_value id="1">postgres</vt_value>
+      <vt_value id="2"/>
+    </vt_single>
+  </vt_selection>
+  <scanner_params>
+    <use_mac_addr>0</use_mac_addr>
+    <checks_read_timeout>5</checks_read_timeout>
+    <cgi_path>/cgi-bin:/scripts</cgi_path>
+    <time_between_request>0</time_between_request>
+    <vhosts_ip/>
+    <vhosts/>
+  </scanner_params>
+</start_scan>
