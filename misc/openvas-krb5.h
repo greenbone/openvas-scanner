@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#include <krb5/krb5.h>
-#include <stdbool.h>
 #ifndef OPENVAS_KRB5
 #define OPENVAS_KRB5 1
-#include <krb5.h>
+#include <stdbool.h>
+#include <stddef.h>
+// #include <krb5/krb5.h>
 // Enables or disables the cache implementation.
 //
 // When using the cached functions it will store each credential in a memory
@@ -65,12 +65,6 @@ typedef struct
   struct OKrb5User user;
   struct OKrb5Target target;
 } OKrb5Credential;
-
-typedef struct
-{
-  krb5_data data;
-  krb5_auth_context auth_context;
-} OKrb5Data;
 
 // Finds the kdc defined for the given realm.
 //
