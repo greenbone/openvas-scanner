@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::net::IpAddr;
+use std::{io, net::IpAddr, time::Duration};
 
 use thiserror::Error;
 
@@ -34,29 +34,36 @@ enum SpecialBehavior {
     // TODO fill this in for services
 }
 
-async fn scan_port(target: IpAddr, port: u16) -> Result<Option<Service>, FindServiceError> {
-    let socket = make_tcp_socket(target, port, 0)?;
+enum ReadResult {
+    Data(String),
+    Timeout,
+}
 
-    let mut buf: &mut [u8] = &mut [0; 10];
-    todo!()
-    // let result = timeout(Duration::from_millis(TIMEOUT_MILLIS), async move {
-    //     let result = socket.read_line();
-    //     Ok::<_, FindServiceError>(buf)
-    // })
-    // .await;
-    // match result {
-    //     Ok(Ok(buf)) => {
-    //         println!("{}", String::from_utf8(buf.to_vec()).unwrap());
-    //     }
-    //     Ok(Err(_)) => {
-    //         println!("err");
-    //     }
-    //     Err(_) => {
-    //         println!("{}", port);
-    //         println!("timeout");
-    //     }
-    // }
-    // Ok(None)
+async fn read_from_tcp_at_port(target: IpAddr, port: u16) -> Result<ReadResult, FindServiceError> {
+    let mut socket = make_tcp_socket(target, port, 0)?;
+    let mut buf: &mut [u8] = &mut [0; 100];
+    let result = socket.read_with_timeout(buf, Duration::from_millis(TIMEOUT_MILLIS));
+    match result {
+        Ok(pos) => Ok(ReadResult::Data(
+            String::from_utf8(buf[0..pos].to_vec()).unwrap(),
+        )),
+        Err(e) if e.kind() == io::ErrorKind::TimedOut => Ok(ReadResult::Timeout),
+        Err(e) => Err(SocketError::IO(e).into()),
+    }
+}
+
+async fn scan_port(target: IpAddr, port: u16) -> Result<Option<Service>, FindServiceError> {
+    let result = read_from_tcp_at_port(target, port).await?;
+    match result {
+        ReadResult::Data(data) => {
+            println!("{}", data);
+        }
+        ReadResult::Timeout => {
+            println!("{}", port);
+            println!("timeout");
+        }
+    }
+    Ok(None)
 }
 
 #[nasl_function]
