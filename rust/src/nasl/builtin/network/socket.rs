@@ -10,7 +10,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::nasl::prelude::*;
+use crate::nasl::{prelude::*, utils::function::Seconds};
 use dns_lookup::lookup_host;
 use rustls::ClientConnection;
 use thiserror::Error;
@@ -90,11 +90,27 @@ struct TlsConfig {
 
 /// Representation of a NASL socket. A NASL socket can be either TCP (including TLS),
 /// or UDP.
-enum NaslSocket {
+pub enum NaslSocket {
     // The TCP Connection is boxed, because it uses a lot of space
     // This way the size of the enum is reduced
     Tcp(Box<TcpConnection>),
     Udp(UdpConnection),
+}
+
+impl NaslSocket {
+    pub fn read_with_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> io::Result<usize> {
+        match self {
+            NaslSocket::Tcp(tcp_connection) => tcp_connection.read_with_timeout(buf, timeout),
+            NaslSocket::Udp(udp_connetion) => udp_connetion.read_with_timeout(buf, timeout),
+        }
+    }
+
+    pub fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            NaslSocket::Tcp(tcp_connection) => tcp_connection.read(buf),
+            NaslSocket::Udp(udp_connetion) => udp_connetion.read(buf),
+        }
+    }
 }
 
 /// The Top level struct storing all NASL sockets, a list of the
@@ -293,38 +309,29 @@ async fn recv(
     socket: usize,
     length: usize,
     min: Option<i64>,
-    timeout: Option<i64>,
+    timeout: Option<Seconds>,
 ) -> Result<NaslValue, SocketError> {
     let min = min
         .map(|min| if min < 0 { length } else { min as usize })
         .unwrap_or(length);
     let mut data = vec![0; length];
 
-    match sockets.get_open_socket_mut(socket)? {
-        NaslSocket::Tcp(conn) => {
-            let mut pos = match convert_timeout(timeout) {
-                Some(timeout) => conn.read_with_timeout(&mut data, timeout),
-                None => conn.read(&mut data),
-            }?;
-            let timeout = Duration::from_secs(1);
-            while pos < min {
-                match conn.read_with_timeout(&mut data[pos..], timeout) {
-                    Ok(n) => pos += n,
-                    Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
-                    Err(e) => return Err(SocketError::from(e)),
-                }
+    let socket = sockets.get_open_socket_mut(socket)?;
+    let mut pos = match timeout {
+        Some(timeout) => socket.read_with_timeout(&mut data, timeout.as_duration())?,
+        None => socket.read(&mut data)?,
+    };
+    if let NaslSocket::Tcp(conn) = socket {
+        let timeout = Duration::from_secs(1);
+        while pos < min {
+            match conn.read_with_timeout(&mut data[pos..], timeout) {
+                Ok(n) => pos += n,
+                Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
+                Err(e) => return Err(SocketError::from(e)),
             }
-            Ok(NaslValue::Data(data[..pos].to_vec()))
         }
-        NaslSocket::Udp(conn) => {
-            let pos = match convert_timeout(timeout) {
-                Some(timeout) => conn.read_with_timeout(&mut data, timeout),
-                None => conn.read(&mut data),
-            }?;
-
-            Ok(NaslValue::Data(data[..pos].to_vec()))
-        }
-    }
+    };
+    Ok(NaslValue::Data(data[..pos].to_vec()))
 }
 
 /// Receives a line from a TCP response. Note that this only works for NASL sockets
@@ -352,6 +359,12 @@ async fn recv_line(
     }
 }
 
+pub fn make_tcp_socket(ip: IpAddr, port: u16, retry: u8) -> Result<NaslSocket, SocketError> {
+    let tcp = TcpConnection::connect(ip, port, None, Duration::from_secs(30), None, retry)
+        .map_err(SocketError::from)?;
+    Ok(NaslSocket::Tcp(Box::new(tcp)))
+}
+
 /// Open a KDC socket. This function takes no arguments, but it is mandatory that keys are set. The following keys are required:
 /// - Secret/kdc_hostname
 /// - Secret/kdc_port
@@ -374,16 +387,7 @@ async fn open_sock_kdc(
     let use_tcp: bool = context.get_single_kb_item("Secret/kdc_use_tcp")?;
 
     let socket = if use_tcp {
-        let tcp = TcpConnection::connect(
-            ip,
-            port,
-            None,
-            Duration::from_secs(30),
-            None,
-            get_retry(context),
-        )
-        .map_err(SocketError::from)?;
-        NaslSocket::Tcp(Box::new(tcp))
+        make_tcp_socket(ip, port, get_retry(context))?
     } else {
         let udp = UdpConnection::new(ip, port)?;
         NaslSocket::Udp(udp)
