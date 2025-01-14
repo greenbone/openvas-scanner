@@ -7,4 +7,8 @@ cd $WORKD_DIR
 set -ex
 cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build --target install
-sudo ldconfig
+LDCONFIG="ldconfig"
+if [ "$(id -u)" -ne 0 ]; then
+    LDCONFIG="sudo ldconfig"
+fi
+$LDCONFIG
