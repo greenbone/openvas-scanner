@@ -25,7 +25,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libbsd-dev \
     libgnutls30 \
     libgssapi3-heimdal \
-    libkrb5-dev \
+    krb5-multidev \
     libasn1-8-heimdal \
     libroken19-heimdal \
     libhdb9-heimdal \
