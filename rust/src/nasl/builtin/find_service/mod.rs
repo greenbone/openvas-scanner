@@ -39,6 +39,11 @@ enum ReadResult {
     Timeout,
 }
 
+enum ScanPortResult {
+    Service(Service),
+    Timeout,
+}
+
 async fn read_from_tcp_at_port(target: IpAddr, port: u16) -> Result<ReadResult, FindServiceError> {
     let mut socket = make_tcp_socket(target, port, 0)?;
     let mut buf: &mut [u8] = &mut [0; 100];
@@ -52,18 +57,16 @@ async fn read_from_tcp_at_port(target: IpAddr, port: u16) -> Result<ReadResult, 
     }
 }
 
-async fn scan_port(target: IpAddr, port: u16) -> Result<Option<Service>, FindServiceError> {
+async fn scan_port(target: IpAddr, port: u16) -> Result<ScanPortResult, FindServiceError> {
     let result = read_from_tcp_at_port(target, port).await?;
     match result {
-        ReadResult::Data(data) => {
-            println!("{}", data);
-        }
-        ReadResult::Timeout => {
-            println!("{}", port);
-            println!("timeout");
-        }
+        ReadResult::Data(data) => Ok(ScanPortResult::Service(find_service(data))),
+        ReadResult::Timeout => Ok(ScanPortResult::Timeout),
     }
-    Ok(None)
+}
+
+fn find_service(data: String) -> Service {
+    todo!()
 }
 
 #[nasl_function]
