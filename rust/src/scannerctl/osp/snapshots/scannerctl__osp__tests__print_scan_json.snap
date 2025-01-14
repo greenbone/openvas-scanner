@@ -1,0 +1,123 @@
+---
+source: src/scannerctl/osp/mod.rs
+expression: output
+---
+{
+  "scan_id": "36389b56-f5a0-11e9-bba4-482ae354ac4c",
+  "target": {
+    "hosts": [
+      "127.0.0.1"
+    ],
+    "ports": [
+      {
+        "protocol": "tcp",
+        "range": [
+          {
+            "start": 80,
+            "end": 80
+          }
+        ]
+      },
+      {
+        "protocol": "tcp",
+        "range": [
+          {
+            "start": 443,
+            "end": 443
+          }
+        ]
+      }
+    ],
+    "excluded_hosts": [
+      "localhost"
+    ],
+    "credentials": [
+      {
+        "service": "ssh",
+        "port": 22,
+        "up": {
+          "username": "USER",
+          "password": "PASSWORD"
+        }
+      }
+    ],
+    "alive_test_ports": [
+      {
+        "protocol": "tcp",
+        "range": [
+          {
+            "start": 80,
+            "end": 80
+          }
+        ]
+      },
+      {
+        "protocol": "tcp",
+        "range": [
+          {
+            "start": 443,
+            "end": 443
+          }
+        ]
+      }
+    ],
+    "alive_test_methods": [
+      "icmp"
+    ],
+    "reverse_lookup_unify": null,
+    "reverse_lookup_only": null
+  },
+  "scan_preferences": [
+    {
+      "id": "use_mac_addr",
+      "value": "0"
+    },
+    {
+      "id": "checks_read_timeout",
+      "value": "5"
+    },
+    {
+      "id": "cgi_path",
+      "value": "/cgi-bin:/scripts"
+    },
+    {
+      "id": "time_between_request",
+      "value": "0"
+    },
+    {
+      "id": "vhosts_ip",
+      "value": ""
+    },
+    {
+      "id": "vhosts",
+      "value": ""
+    }
+  ],
+  "vts": [
+    {
+      "oid": "0",
+      "parameters": []
+    },
+    {
+      "oid": "1",
+      "parameters": []
+    },
+    {
+      "oid": "1.3.6.1.4.1.25623.1.0.100151",
+      "parameters": [
+        {
+          "id": 1,
+          "value": "postgres"
+        }
+      ]
+    },
+    {
+      "oid": "2",
+      "parameters": []
+    },
+    {
+      "oid": "3",
+      "parameters": []
+    }
+  ]
+}
