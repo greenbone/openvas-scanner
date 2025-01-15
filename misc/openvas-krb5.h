@@ -6,7 +6,6 @@
 #define OPENVAS_KRB5 1
 #include <stdbool.h>
 #include <stddef.h>
-// #include <krb5/krb5.h>
 // Enables or disables the cache implementation.
 //
 // When using the cached functions it will store each credential in a memory
