@@ -138,6 +138,13 @@ pub trait Retriever: Send + Sync {
         retry(|| self.retrieve(key, scope.clone()), max_tries)
     }
 
+    /// Get all items with a given pattern
+    fn retrieve_pattern(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError>;
+
     /// Returns all vts as an iterator
     fn vts(&self) -> Result<Box<dyn Iterator<Item = Nvt>>, StorageError> {
         Ok(Box::new(
@@ -225,6 +232,14 @@ impl Retriever for NoOpRetriever {
     }
 
     fn retrieve_by_fields(&self, _: Vec<Field>, _: Retrieve) -> FieldKeyResult {
+        Ok(Box::new(vec![].into_iter()))
+    }
+
+    fn retrieve_pattern(
+        &self,
+        _: &ContextKey,
+        _: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
         Ok(Box::new(vec![].into_iter()))
     }
 }

@@ -5,11 +5,13 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use itertools::Itertools;
+use rand::seq::SliceRandom;
 
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::storage::{ContextKey, Dispatcher, Field, Retrieve, Retriever};
+use crate::storage::types::Primitive;
+use crate::storage::{ContextKey, Dispatcher, Field, Kb, Retrieve, Retriever};
 
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
@@ -359,6 +361,10 @@ pub struct Target {
     // should be used.
     /// vhost list which resolve to the IP address and their sources.
     vhosts: Mutex<Vec<(String, String)>>,
+    // List of tcp Ports
+    ports_tcp: Vec<u16>,
+    // List of udp Ports
+    ports_udp: Vec<u16>,
 }
 
 impl Target {
@@ -386,6 +392,8 @@ impl Default for Target {
             target: String::new(),
             ip_addr: IpAddr::from_str("127.0.0.1").unwrap(),
             vhosts: Mutex::new(vec![]),
+            ports_tcp: vec![],
+            ports_udp: vec![],
         }
     }
 }
@@ -504,6 +512,23 @@ impl<'a> Context<'a> {
         self.loader
     }
 
+    pub fn set_single_kb_item<T: Into<Primitive>>(
+        &self,
+        name: &str,
+        value: T,
+    ) -> Result<(), FnError> {
+        self.dispatcher
+            .dispatch_replace(
+                &self.key,
+                Field::KB(Kb {
+                    key: name.to_string(),
+                    value: value.into(),
+                    expire: None,
+                }),
+            )
+            .map_err(|e| e.into())
+    }
+
     /// Return a single item from the knowledge base.
     /// If multiple entries are found (which would result
     /// in forking the interpreter), return an error.
@@ -520,22 +545,85 @@ impl<'a> Context<'a> {
         let val = self
             .get_single_kb_item_inner(name)
             .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
-        T::from_nasl_value(&val)
+        T::from_nasl_value(&val.into())
     }
 
-    fn get_single_kb_item_inner(&self, name: &str) -> Result<NaslValue, FnError> {
+    fn get_single_kb_item_inner(&self, name: &str) -> Result<Primitive, FnError> {
         let result = self
             .retriever()
             .retrieve(&self.key, Retrieve::KB(name.to_string()))?;
         let single_item = result
             .filter_map(|field| match field {
-                Field::KB(kb) => Some(kb.value.into()),
+                Field::KB(kb) => Some(kb.value),
                 _ => None,
             })
             .at_most_one()
             .map_err(|_| KBError::MultipleItemsFound(name.to_string()))?
             .ok_or_else(|| KBError::ItemNotFound(name.to_string()))?;
         Ok(single_item)
+    }
+
+    fn get_kb_item_pattern(&self, pattern: &str) -> Result<Vec<Kb>, FnError> {
+        let result = self
+            .retriever()
+            .retrieve_pattern(&self.key, Retrieve::KB(pattern.to_string()))?;
+        let items = result
+            .filter_map(|field| match field {
+                Field::KB(kb) => Some(kb),
+                _ => None,
+            })
+            .collect();
+        Ok(items)
+    }
+
+    /// Sets the state of a port
+    pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
+        self.set_single_kb_item(&format!("Port/TCP/{}", port), transport)
+    }
+
+    pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
+        self.get_single_kb_item_inner(&format!("Port/TCP/{}", port))
+            .map(|x| match x {
+                Primitive::Number(n) => Some(n),
+                _ => None,
+            })
+    }
+
+    /// Don't always return the first open port, otherwise
+    /// we might get bitten by OSes doing active SYN flood
+    /// countermeasures. Also, avoid returning 80 and 21 as
+    /// open ports, as many transparent proxies are acting for these...
+    pub fn get_host_open_port(&self) -> Result<u16, FnError> {
+        let mut open21 = false;
+        let mut open80 = false;
+        let ports: Vec<u16> = self
+            .get_kb_item_pattern("Ports/tcp/*")?
+            .iter()
+            .filter_map(|x| {
+                x.key.split('/').last().and_then(|x| {
+                    if x == "21" {
+                        open21 = true;
+                        None
+                    } else if x == "80" {
+                        open80 = true;
+                        None
+                    } else {
+                        x.parse::<u16>().ok()
+                    }
+                })
+            })
+            .collect();
+
+        let ret = if ports.len() != 0 {
+            *ports.choose(&mut rand::thread_rng()).unwrap()
+        } else if open21 {
+            21
+        } else if open80 {
+            80
+        } else {
+            0
+        };
+        Ok(ret)
     }
 }
 

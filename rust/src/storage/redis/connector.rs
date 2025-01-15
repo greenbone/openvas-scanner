@@ -763,6 +763,26 @@ where
         })
     }
 
+    fn retrieve_pattern(
+        &self,
+        _: &ContextKey,
+        scope: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
+        match scope {
+            storage::Retrieve::KB(s) => {
+                let kbs = self.kbs.lock().map_err(StorageError::from)?;
+                let ret = kbs
+                    .clone()
+                    .into_iter()
+                    .filter(move |x| storage::match_pattern(&x.key, &s))
+                    .map(|x| storage::Field::KB(x.clone()));
+                let ret = Box::new(ret);
+                Ok(ret)
+            }
+            _ => unimplemented!(),
+        }
+    }
+
     fn retrieve_by_field(
         &self,
         _field: Field,
