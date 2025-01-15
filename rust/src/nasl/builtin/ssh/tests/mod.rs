@@ -117,7 +117,7 @@ fn userauth(t: &mut DefaultTestBuilder) {
 #[tokio::test]
 async fn ssh_userauth() {
     run_test(
-        |mut t| {
+        |t| {
             t.ok(
                 format!(r#"session_id = ssh_connect(port: {});"#, PORT),
                 MIN_SESSION_ID,
@@ -147,7 +147,7 @@ async fn ssh_userauth() {
 #[cfg_attr(feature = "nasl-builtin-libssh", ignore)]
 async fn ssh_request_exec() {
     run_test(
-        |mut t| {
+        |t| {
             t.ok(
                 format!(r#"session_id = ssh_connect(port: {});"#, PORT),
                 MIN_SESSION_ID,
