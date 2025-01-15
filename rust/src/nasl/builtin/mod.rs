@@ -26,7 +26,6 @@ mod sys;
 #[cfg(test)]
 mod tests;
 
-pub use description::Description;
 pub use error::BuiltinError;
 pub use host::HostError;
 pub use knowledge_base::KBError;
