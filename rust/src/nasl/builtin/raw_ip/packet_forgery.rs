@@ -165,8 +165,8 @@ fn forge_ip_packet(register: &Register, configs: &Context) -> Result<NaslValue, 
 
     let total_length = 20 + data.len();
     let mut buf = vec![0; total_length];
-    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf)
-        .ok_or_else(|| PacketForgeryError::CreatePacket)?;
+    let mut pkt =
+        packet::ipv4::MutableIpv4Packet::new(&mut buf).ok_or(PacketForgeryError::CreatePacket)?;
 
     pkt.set_total_length(total_length as u16);
 
@@ -293,8 +293,8 @@ fn set_ip_elements(register: &Register, _configs: &Context) -> Result<NaslValue,
         }
     };
 
-    let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut buf)
-        .ok_or_else(|| PacketForgeryError::CreatePacket)?;
+    let mut pkt =
+        packet::ipv4::MutableIpv4Packet::new(&mut buf).ok_or(PacketForgeryError::CreatePacket)?;
 
     let ip_hl = match register.named("ip_hl") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as u8,
@@ -420,8 +420,8 @@ fn dump_ip_packet(register: &Register) -> Result<NaslValue, FnError> {
     for ip in positional.iter() {
         match ip {
             NaslValue::Data(data) => {
-                let pkt = packet::ipv4::Ipv4Packet::new(data)
-                    .ok_or_else(|| PacketForgeryError::CreatePacket)?;
+                let pkt =
+                    packet::ipv4::Ipv4Packet::new(data).ok_or(PacketForgeryError::CreatePacket)?;
 
                 println!("\tip_hl={}", pkt.get_header_length());
                 println!("\tip_v={}", pkt.get_version());
@@ -1685,6 +1685,12 @@ fn dump_icmp_packet(register: &Register) -> Result<NaslValue, FnError> {
 }
 
 // IGMP
+//
+// Due to this line in libpnet, the #[packet] macro results in a clippy lint.
+// The line just tries to allow another linting rule, so disabling the `unexpected_cfg` lint
+// here should be reasonably safe.
+// https://github.com/libpnet/libpnet/blob/a01aa493e2ecead4c45e7322b6c5f7ab29e8a985/pnet_macros/src/decorator.rs#L1138
+#[allow(unexpected_cfgs)]
 pub mod igmp {
     use std::net::Ipv4Addr;
 
@@ -1821,7 +1827,7 @@ fn forge_igmp_packet(register: &Register, _configs: &Context) -> Result<NaslValu
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = packet::ipv4::MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| PacketForgeryError::CreatePacket)?;
+        .ok_or(PacketForgeryError::CreatePacket)?;
     pkt.set_total_length(l as u16);
     match register.named("update_ip_len") {
         Some(ContextType::Value(NaslValue::Boolean(l))) if !(*l) => {
@@ -1872,7 +1878,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fn
     }
 
     let soc = new_raw_socket()?;
-    if let Err(e) = soc.set_header_included(true) {
+    if let Err(e) = soc.set_header_included_v4(true) {
         return Err(error(format!("Not possible to create a raw socket: {}", e)));
     };
 
@@ -2040,7 +2046,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
 
     let soc = new_raw_socket()?;
 
-    if let Err(e) = soc.set_header_included(true) {
+    if let Err(e) = soc.set_header_included_v4(true) {
         return Err(error(format!("Not possible to create a raw socket: {}", e)));
     };
 
