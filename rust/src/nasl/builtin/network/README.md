@@ -17,13 +17,13 @@
 - recv_line
 - get_source_port
 - ftp_log_in
+- get_port_transport
+- get_host_open_port
 
 ## Missing
 
 - ftp_get_pasv_port
-- get_host_open_port
 - get_port_state
-- get_port_transport
 - get_tcp_port_state
 - get_udp_port_state
 - join_multicast_group

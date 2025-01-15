@@ -361,8 +361,24 @@ impl NaslSockets {
         transport: i64,
     ) -> Result<Option<NaslSocket>, SocketError> {
         if transport < 0 {
-            // TODO: Get port transport and open connection depending on it
-            todo!()
+            let transport = context
+                .get_port_transport(port)
+                .map_err(|e| {
+                    SocketError::Diagnostic(format!(
+                        "Unable to get transport for port {}: {}",
+                        port, e
+                    ))
+                })?
+                .unwrap_or_default();
+            return Self::open_sock_tcp_vhost(
+                context,
+                addr,
+                timeout,
+                bufsz,
+                port,
+                vhost,
+                transport as i64,
+            );
         }
         let tls = match OpenvasEncaps::from_i64(transport) {
             // Auto Detection
@@ -384,6 +400,9 @@ impl NaslSockets {
                 _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport)),
             },
         };
+        if tls.is_some() {
+            let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
+        }
         Ok(
             TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
                 .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
@@ -418,7 +437,6 @@ impl NaslSockets {
         // TODO: Extract information from custom priority string
         // priority: Option<&str>,
     ) -> Result<NaslValue, FnError> {
-        // Get port
         let transport = transport.unwrap_or(-1);
 
         let addr = ipstr2ipaddr(context.target())?;

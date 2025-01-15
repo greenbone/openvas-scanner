@@ -139,7 +139,7 @@ where
             // currently not supported
             storage::Retrieve::NVT(_)
             | storage::Retrieve::NotusAdvisory(_)
-            | storage::Retrieve::Result(_) => Box::new([].into_iter()),
+            | storage::Retrieve::Result(_) => unimplemented!(),
             storage::Retrieve::KB(s) => Box::new({
                 let kbs = self.kbs.lock().map_err(StorageError::from)?;
                 let kbs = kbs.clone();
@@ -164,6 +164,26 @@ where
         _: storage::Retrieve,
     ) -> storage::FieldKeyResult {
         Ok(Box::new([].into_iter()))
+    }
+
+    fn retrieve_pattern(
+        &self,
+        _: &ContextKey,
+        scope: storage::Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
+        match scope {
+            storage::Retrieve::KB(s) => {
+                let kbs = self.kbs.lock().map_err(StorageError::from)?;
+                let ret = kbs
+                    .clone()
+                    .into_iter()
+                    .filter(move |x| storage::match_pattern(&x.key, &s))
+                    .map(|x| storage::Field::KB(x.clone()));
+                let ret = Box::new(ret);
+                Ok(ret)
+            }
+            _ => unimplemented!(),
+        }
     }
 }
 
