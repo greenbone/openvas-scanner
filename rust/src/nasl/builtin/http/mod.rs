@@ -199,10 +199,10 @@ impl NaslHttp {
     }
 
     /// Perform request with the given method.
-    async fn http2_req<'a>(
+    async fn http2_req(
         &self,
         register: &Register,
-        ctx: &Context<'a>,
+        ctx: &Context<'_>,
         method: Method,
     ) -> Result<NaslValue, FnError> {
         let handle_id = match register.named("handle") {

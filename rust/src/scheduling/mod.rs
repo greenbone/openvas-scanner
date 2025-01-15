@@ -116,9 +116,9 @@ pub trait ExecutionPlaner {
     ///
     /// If the second value (parameter) is None it indicates that this script in indirectly loaded
     /// and was not explicitly mentioned in the Scan.
-    fn execution_plan<'a, E>(
+    fn execution_plan<E>(
         &self,
-        ids: &'a Scan,
+        ids: &Scan,
     ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
     where
         E: ExecutionPlan;
@@ -208,9 +208,9 @@ impl<T> ExecutionPlaner for T
 where
     T: Retriever + ?Sized,
 {
-    fn execution_plan<'a, E>(
+    fn execution_plan<E>(
         &self,
-        scan: &'a Scan,
+        scan: &Scan,
     ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
     where
         E: ExecutionPlan,

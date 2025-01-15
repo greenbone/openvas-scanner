@@ -171,7 +171,7 @@ impl Interpreter<'_> {
     }
 }
 
-impl<'a> Interpreter<'a> {
+impl Interpreter<'_> {
     /// Assign a right value to a left value. Return either the
     /// previous or the new value, based on the order.
     pub async fn assign(

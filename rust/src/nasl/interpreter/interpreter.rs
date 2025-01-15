@@ -137,10 +137,10 @@ impl<'a> Interpreter<'a> {
         Some(self)
     }
 
-    async fn execute_statements<'b>(
+    async fn execute_statements(
         &self,
         key: &str,
-        inter: &mut Interpreter<'b>,
+        inter: &mut Interpreter<'_>,
         stmt: Result<Statement, SyntaxError>,
     ) -> InterpretResult {
         match stmt {
