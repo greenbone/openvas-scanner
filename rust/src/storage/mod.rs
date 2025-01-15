@@ -126,6 +126,15 @@ where
     }
 }
 
+pub fn match_pattern(s: &str, p: &str) -> bool {
+    let (p1, p2) = match p.split_once('*') {
+        Some((p1, p2)) => (p1, p2),
+        None => return s == p,
+    };
+
+    s.starts_with(p1) && s.ends_with(p2)
+}
+
 /// Redefine Vulnerability so that other libraries using that don't have to include models
 pub type NotusAdvisory = VulnerabilityData;
 
@@ -366,6 +375,14 @@ where
 
     fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
         self.as_ref().retrieve_by_fields(field, scope)
+    }
+
+    fn retrieve_pattern(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        self.as_ref().retrieve_pattern(key, scope)
     }
 }
 
@@ -744,6 +761,34 @@ impl Retriever for DefaultDispatcher {
                         .map(|x| Field::Result(x.into())),
                 ))
             }
+        }
+    }
+
+    fn retrieve_pattern(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        match scope {
+            Retrieve::KB(pattern) => {
+                let kbs = self.kbs.as_ref().read()?;
+                // TODO: maybe return all when x is empty?
+                if let Some(kbs) = kbs.get(key) {
+                    let mut ret = vec![];
+                    for (_, kbs) in kbs
+                        .iter()
+                        .filter(|(kb_id, _)| match_pattern(*kb_id, &pattern))
+                    {
+                        ret.extend(kbs.clone());
+                    }
+                    let data = InMemoryDataWrapper {
+                        inner: Box::new(ret.into_iter().map(|x| x.into())),
+                    };
+                    return Ok(Box::new(data.into_iter()));
+                }
+                Ok(Box::new(vec![].into_iter()))
+            }
+            _ => unimplemented!(),
         }
     }
 

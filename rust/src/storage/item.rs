@@ -956,6 +956,14 @@ where
         self.dispatcher.retrieve(key, scope)
     }
 
+    fn retrieve_pattern(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        self.dispatcher.retrieve_pattern(key, scope)
+    }
+
     fn retrieve_by_field(
         &self,
         field: Field,

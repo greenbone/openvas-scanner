@@ -488,6 +488,14 @@ where
         self.underlying_storage().retrieve(key, scope)
     }
 
+    fn retrieve_pattern(
+        &self,
+        key: &ContextKey,
+        scope: Retrieve,
+    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        self.underlying_storage().retrieve_pattern(key, scope)
+    }
+
     fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult {
         // We should never try to return results without an ID
         self.underlying_storage().retrieve_by_field(field, scope)
