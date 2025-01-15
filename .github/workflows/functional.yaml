@@ -7,6 +7,21 @@ on:
 # It depends on build.yml that is controlled via control.yml
 #
 jobs:
+  # Tests that gvm-libs, openvas-smb and openvas dependencies work together and
+  # that openvas is buildable and integrates openvas-smb when available
+  distributed-monolith-railguard:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        system:
+          - debian_stable
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t test -f .docker/railguards/${{matrix.system}}.Dockerfile .
+      - run: docker run --rm test ldd /usr/local/sbin/openvas
+      - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
+      - run: docker rmi test || true
   # TESTS that are possible before pushing an image
   tests:
     runs-on: ubuntu-latest
