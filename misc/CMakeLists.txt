@@ -16,12 +16,8 @@ pkg_check_modules (GLIB_JSON REQUIRED json-glib-1.0>=1.4.4)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 pkg_check_modules (CURL REQUIRED libcurl>=7.74.0)
 
-# Set the custom path for krb5-multidev
 pkg_check_modules (KRB5 REQUIRED mit-krb5)
 pkg_check_modules (KRB5_GSSAPI REQUIRED mit-krb5-gssapi)
-message(STATUS "KRB5_INCLUDE_DIRS: ${KRB5_INCLUDE_DIRS}")
-
-
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
