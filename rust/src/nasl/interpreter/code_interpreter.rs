@@ -103,4 +103,64 @@ mod tests {
         check_code_result(r#"set_kb_item(name: "test", value: 2);"#, NaslValue::Null);
         check_code_result(r#"display(get_kb_item("test"));"#, NaslValue::Null);
     }
+
+    #[test]
+    fn forked_interpreter_statements() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+        set_kb_item(name: "test", value: 1);
+        set_kb_item(name: "test", value: 2);
+        if (get_kb_item("test") == 1) {
+             return 1;
+        }
+        else {
+            return 2;
+        }
+        "#,
+        );
+        let mut results = t.results();
+        let mut next_result = || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(1)))
+        );
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(2)))
+        );
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn forked_interpreter_with_trailing_statements() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+        set_kb_item(name: "test", value: 1);
+        set_kb_item(name: "test", value: 2);
+        if (get_kb_item("test") == 1) {
+            return 1;
+        }
+        else {
+        }
+        return 2;
+        "#,
+        );
+        let mut results = t.results();
+        let mut next_result = || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(1)))
+        );
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(2)))
+        );
+        assert!(results.is_empty());
+    }
 }
