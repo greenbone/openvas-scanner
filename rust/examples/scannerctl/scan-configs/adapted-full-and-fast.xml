@@ -9,7 +9,7 @@
       <nvt oid="1.3.6.1.4.1.25623.1.0.100315">
         <name>Ping Host</name>
       </nvt>
-      <name>Mark unrechable Hosts as dead (not scanning)</name>
+      <name>Mark unreachable Hosts as dead (not scanning)</name>
       <type>checkbox</type>
       <value>yes</value>
       <id>5</id>

@@ -1,6 +1,6 @@
 # Scan-Configs
 
-This directoy contains scan configurations, similiar to the ones provided by GVMD.
+This directory contains scan configurations, similar to the ones provided by GVMD.
 
 In the examples we asumme that a skeleton scan configuration is created prior to executing the commands.
 

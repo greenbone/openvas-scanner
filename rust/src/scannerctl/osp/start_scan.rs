@@ -377,7 +377,7 @@ pub struct Credential {
     /// - username
     /// - password
     ///
-    /// This is done so that we don't have to explicitely create fields for all
+    /// This is done so that we don't have to explicitly create fields for all
     /// credential types as there is an explicit verification later on when we
     /// transform it to models::Credential
     pub credentials: Vec<(String, String)>,
