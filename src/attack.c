@@ -1573,7 +1573,7 @@ stop:
       char *path = g_strdup_printf (
         "%s/%s-stats.json", prefs_get ("report_scripts"), globals->scan_id);
 
-      write_script_stats (buff, globals->scan_id, 1);
+      write_script_stats (buff, path, 1);
 
       g_free (buff);
       g_free (path);
