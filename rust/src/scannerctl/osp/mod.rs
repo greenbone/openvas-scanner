@@ -133,7 +133,7 @@ where
 }
 
 pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
-    let (args, _) = crate::get_args_set_logging(root, "ospd")?;
+    let (args, _) = crate::get_args_set_logging(root, "osp")?;
 
     let feed = match args.get_one::<PathBuf>("path") {
         Some(feed) => {
