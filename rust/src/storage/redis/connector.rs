@@ -692,7 +692,7 @@ impl CacheDispatcher<RedisCtx> {
 
     /// Creates a dispatcher to be used to update the feed for a ospd service
     ///
-    /// Initializes a redis cache based on the given selecter and url and clears the namespace
+    /// Initializes a redis cache based on the given selector and url and clears the namespace
     /// before returning the underlying cache as a Dispatcher.
     pub fn as_dispatcher(
         redis_url: &str,
