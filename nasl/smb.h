@@ -81,7 +81,7 @@ typedef struct _smb_iconv_t
                   char **outbuf, size_t *outbytesleft);
   void *cd_direct, *cd_pull, *cd_push;
   char *from_name, *to_name;
-} * smb_iconv_t;
+} *smb_iconv_t;
 
 /* string manipulation flags - see clistr.c and srvstr.c */
 #define STR_TERMINATE 1

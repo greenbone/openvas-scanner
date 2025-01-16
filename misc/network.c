@@ -116,7 +116,7 @@ static struct csc_hook_s *csc_hooks;
 /**
  * determine the openvas_connection* from the openvas fd
  */
-#define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) -OPENVAS_FD_OFF))
+#define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) - OPENVAS_FD_OFF))
 
 /**
  * Same as perror(), but prefixes the data by our pid.
