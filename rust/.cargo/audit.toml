@@ -1,0 +1,4 @@
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071" # This cannot currently be patched. For more information, see: https://rustsec.org/advisories/RUSTSEC-2023-0071
+]
