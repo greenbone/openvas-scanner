@@ -113,7 +113,7 @@ impl<S: ScannerStack> RunningScan<S> {
         .map_err(make_scheduling_error)
     }
 
-    async fn run_to_completion<'a>(&self, runner: ScanRunner<'a, S>) -> Phase {
+    async fn run_to_completion(&self, runner: ScanRunner<'_, S>) -> Phase {
         let mut end_phase = Phase::Succeeded;
         let mut stream = Box::pin(runner.stream());
         while let Some(it) = stream.next().await {

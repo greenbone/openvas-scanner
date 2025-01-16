@@ -25,9 +25,10 @@ pub struct Target {
     pub credentials: Option<Credentials>,
 }
 
-impl Into<Vec<models::Credential>> for Credentials {
-    fn into(self) -> Vec<models::Credential> {
-        self.credential
+impl From<Credentials> for Vec<models::Credential> {
+    fn from(other: Credentials) -> Self {
+        other
+            .credential
             .into_iter()
             .flatten()
             .map(|x| {

@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 use super::InterpretErrorKind;
 
-impl<'a> Interpreter<'a> {
+impl Interpreter<'_> {
     pub async fn call(
         &mut self,
         statement: &Statement,
