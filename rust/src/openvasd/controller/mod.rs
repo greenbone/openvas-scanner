@@ -97,23 +97,23 @@ where
             let tls_acceptor = tls_acceptor.clone();
             let identifier = tls_config.client_identifier.clone();
             let ctx = controller.clone();
-            tokio::spawn(async move {
-                let tls_stream = match tls_acceptor.accept(tcp_stream).await {
-                    Ok(tls_stream) => tls_stream,
-                    Err(err) => {
-                        tracing::debug!("failed to perform tls handshake: {err:#}");
-                        return;
+            //tokio::spawn(async move {
+            match tls_acceptor.accept(tcp_stream).await {
+                Ok(tls_stream) => {
+                    let cci = retrieve_and_reset(identifier);
+                    let service = entry::EntryPoint::new(ctx, Arc::new(cci));
+                    if let Err(err) = Builder::new(TokioExecutor::new())
+                        .serve_connection(TokioIo::new(tls_stream), service)
+                        .await
+                    {
+                        tracing::debug!("failed to serve connection: {err:#}");
                     }
-                };
-                let cci = retrieve_and_reset(identifier);
-                let service = entry::EntryPoint::new(ctx, Arc::new(cci));
-                if let Err(err) = Builder::new(TokioExecutor::new())
-                    .serve_connection(TokioIo::new(tls_stream), service)
-                    .await
-                {
-                    tracing::debug!("failed to serve connection: {err:#}");
                 }
-            });
+                Err(err) => {
+                    tracing::debug!("failed to perform tls handshake: {err:#}");
+                }
+            };
+            //});
         }
     } else {
         use hyper::server::conn::http1::Builder;
