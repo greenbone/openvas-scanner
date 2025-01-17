@@ -1956,9 +1956,9 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
       if (log_count < 3)
         {
           g_message ("open_sock_tcp: %s:%d time-out.", ip_str, port);
-          log_count++;
-          kb_item_set_int_with_main_kb_check (kb, buffer, log_count);
         }
+      log_count++;
+      kb_item_set_int_with_main_kb_check (kb, buffer, log_count);
       if ((log_count >= attempts) && (attempts != 0))
         {
           /* After some unsuccessfully attempts, the port is set to closed to
