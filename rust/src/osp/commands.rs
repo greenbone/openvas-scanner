@@ -188,13 +188,12 @@ fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
     for p in &scan.scan_preferences {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
-        let mut value = p.value.as_str();
-        if value == "yes" {
-          value = "1";
-        } else if value == "no" {
-          value = "0";
-        }
-        writer.write_event(Event::Text(BytesText::new(&value)))?;
+        let value = match p.value.as_ref() {
+          "yes" => "1",
+          "no" => "0",
+          v => v,
+        };
+        writer.write_event(Event::Text(BytesText::new(value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;
     }
 
