@@ -11,6 +11,3 @@ pub mod osp;
 pub mod scanner;
 pub mod scheduling;
 pub mod storage;
-
-#[allow(unused)]
-mod plugin_scheduler;
