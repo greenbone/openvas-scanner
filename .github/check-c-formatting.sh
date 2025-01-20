@@ -8,6 +8,7 @@
 
 git fetch origin $merge_base:refs/remotes/origin/$merge_base
 
+echo "$(clang-format --version)"
 (git diff --name-only "origin/$merge_base") | while read filename; do
     extension="${filename##*.}"
     if [ "$extension" = "c" ] || [ "$extension" = "h" ]; then
