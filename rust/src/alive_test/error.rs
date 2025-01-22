@@ -8,20 +8,20 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
     /// Not possible to create a socket
-    #[error("Not possible to create a socket")]
+    #[error("Not possible to create a socket: {0}")]
     NoSocket(String),
-    #[error("Not possible to create an ICMP packet")]
-    CreateIcmpPacket(String),
-    #[error("Invalid destination Address")]
-    InvalidDestinationAddr(String),
-    #[error("Route unavailable")]
-    UnavailableRoute(String),
-    #[error("There was an error")]
-    Custom(String),
-    #[error("pcap error")]
-    PcapError(String),
-    #[error("send_packet")]
+    #[error("Wrong buffer size. Not possible to create an ICMP packet")]
+    CreateIcmpPacket,
+    #[error("It was not possible to parse the destination Address")]
+    InvalidDestinationAddr,
+    #[error("Error sending a packet: {0}")]
     SendPacket(String),
     #[error("Invalid EtherType")]
-    InvalidEtherType(String),
+    InvalidEtherType,
+    #[error("Wrong packet length")]
+    WrongPacketLength,
+    #[error("Pcap: No valid interface {0}")]
+    NoValidInterface(String),
+    #[error("Fail spawning the task {0}")]
+    JoinError(String),
 }

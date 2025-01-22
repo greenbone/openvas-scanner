@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::fmt::{Display, Formatter};
+
 use super::{credential::Credential, port::Port};
 
 pub type Host = String;
@@ -74,14 +76,14 @@ impl TryFrom<u8> for AliveTestMethods {
     }
 }
 
-impl ToString for AliveTestMethods {
-    fn to_string(&self) -> String {
+impl Display for AliveTestMethods {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            AliveTestMethods::TcpAck => "tcp_ack".to_string(),
-            AliveTestMethods::Icmp => "icmp".to_string(),
-            AliveTestMethods::Arp => "arp".to_string(),
-            AliveTestMethods::ConsiderAlive => "consider_alive".to_string(),
-            AliveTestMethods::TcpSyn => "tcp_syn".to_string(),
+            AliveTestMethods::TcpAck => write!(f, "tcp_ack"),
+            AliveTestMethods::Icmp => write!(f, "icmp"),
+            AliveTestMethods::Arp => write!(f, "arp"),
+            AliveTestMethods::ConsiderAlive => write!(f, "consider_alive"),
+            AliveTestMethods::TcpSyn => write!(f, "tcp_syn"),
         }
     }
 }
