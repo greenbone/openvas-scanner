@@ -280,8 +280,8 @@ write_script_stats (const char *buf, const char *path, int mode)
   pd = fopen (path, mode == 0 ? "a" : mode == 1 ? "r+" : "w");
   if (pd == NULL)
     {
-      g_warning ("%s: Error opening FILE '%s' for script stats: %d - %s", __func__,
-                 path, errno, strerror (errno));
+      g_warning ("%s: Error opening FILE '%s' for script stats: %d - %s",
+                 __func__, path, errno, strerror (errno));
       return;
     }
 
