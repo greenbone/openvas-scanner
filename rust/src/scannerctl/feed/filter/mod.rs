@@ -3,10 +3,12 @@ mod all_builtins;
 use all_builtins::ALL_BUILTINS;
 use regex::Regex;
 use scannerlib::nasl::nasl_std_functions;
+use std::io::{self, Write};
+use std::path::PathBuf;
 use std::{
     collections::{HashMap, HashSet},
-    fs,
-    path::{Path, PathBuf},
+    fs::{self, OpenOptions},
+    path::Path,
 };
 use tracing::error;
 use walkdir::WalkDir;
@@ -16,12 +18,51 @@ use crate::CliError;
 #[derive(clap::Parser)]
 pub struct FilterArgs {
     feed_path: PathBuf,
+    output_file: PathBuf,
 }
 
-pub type Builtins<'a> = &'a [String];
+struct Builtins {
+    builtins: Vec<String>,
+    counts: HashMap<String, usize>,
+}
+
+impl Builtins {
+    fn unimplemented() -> Self {
+        let exec = nasl_std_functions();
+        let implemented: Vec<_> = exec.iter().collect();
+        let mut unimplemented: HashSet<_> = ALL_BUILTINS.iter().map(|x| x.to_string()).collect();
+        for f in implemented {
+            unimplemented.remove(f);
+        }
+        let counts = unimplemented.iter().map(|name| (name.clone(), 0)).collect();
+        Self {
+            builtins: unimplemented.into_iter().collect(),
+            counts,
+        }
+    }
+
+    fn script_is_runnable(&mut self, contents: &str) -> bool {
+        let mut is_runnable = true;
+        for builtin in self.builtins.iter() {
+            if contents.contains(builtin) {
+                is_runnable = false;
+                *self.counts.get_mut(builtin).unwrap() += 1;
+            }
+        }
+        is_runnable
+    }
+
+    fn print_counts(&self) {
+        let mut sorted: Vec<_> = self.counts.iter().collect();
+        sorted.sort_by_key(|(_, count)| **count);
+        for (builtin, count) in sorted.iter() {
+            println!("{builtin} {count}");
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Script {
+enum Script {
     Runnable,
     NotRunnable,
     Includes(Vec<ScriptPath>),
@@ -38,7 +79,7 @@ impl ScriptPath {
 }
 
 impl Script {
-    fn new(builtins: Builtins, path: &Path) -> Option<Self> {
+    fn new(builtins: &mut Builtins, path: &Path) -> Option<Self> {
         let contents = fs::read_to_string(path);
         match contents {
             Err(e) => {
@@ -49,8 +90,8 @@ impl Script {
         }
     }
 
-    pub fn from_contents(builtins: Builtins, contents: &str) -> Self {
-        let is_runnable = builtins.iter().all(|builtin| !contents.contains(builtin));
+    pub fn from_contents(builtins: &mut Builtins, contents: &str) -> Self {
+        let is_runnable = builtins.script_is_runnable(contents);
         let includes = get_includes(contents);
         if !is_runnable {
             Self::NotRunnable
@@ -92,6 +133,43 @@ fn parse_include(line: &str) -> Option<ScriptPath> {
     None
 }
 
+fn write_scripts(
+    output_file: &Path,
+    resolved: HashMap<ScriptPath, Script>,
+) -> Result<(), io::Error> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(output_file)
+        .unwrap();
+    for (path, script) in resolved.into_iter() {
+        if matches!(script, Script::Runnable) {
+            writeln!(file, "{:?}", &path.0)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn run(args: FilterArgs) -> Result<(), CliError> {
+    let mut scripts = HashMap::new();
+    let mut builtins = Builtins::unimplemented();
+    for entry in WalkDir::new(&args.feed_path).into_iter() {
+        let entry = entry.unwrap();
+        if entry.file_type().is_file() {
+            let path = entry.path();
+            if let Some(script) = Script::new(&mut builtins, path) {
+                let script_path = ScriptPath::new(&args.feed_path, path);
+                scripts.insert(script_path, script);
+            }
+        }
+    }
+    let resolved = resolve_includes(scripts);
+    write_scripts(&args.output_file, resolved)?;
+    builtins.print_counts();
+    Ok(())
+}
+
 fn resolve_includes(mut unresolved: HashMap<ScriptPath, Script>) -> HashMap<ScriptPath, Script> {
     let mut resolved: HashMap<ScriptPath, Script> = HashMap::default();
     loop {
@@ -124,38 +202,6 @@ fn resolve_includes(mut unresolved: HashMap<ScriptPath, Script>) -> HashMap<Scri
             *v = Script::Runnable;
         }
     }
-}
-
-fn get_unimplemented_builtins() -> Vec<String> {
-    let exec = nasl_std_functions();
-    let implemented: Vec<_> = exec.iter().collect();
-    let mut unimplemented: HashSet<_> = ALL_BUILTINS.iter().map(|x| x.to_string()).collect();
-    for f in implemented {
-        unimplemented.remove(f);
-    }
-    unimplemented.into_iter().collect()
-}
-
-pub fn run(args: FilterArgs) -> Result<(), CliError> {
-    let mut scripts = HashMap::new();
-    let builtins = get_unimplemented_builtins();
-    for entry in WalkDir::new(&args.feed_path).into_iter() {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() {
-            let path = entry.path();
-            if let Some(script) = Script::new(&builtins, path) {
-                let script_path = ScriptPath::new(&args.feed_path, path);
-                scripts.insert(script_path, script);
-            }
-        }
-    }
-    let resolved = resolve_includes(scripts);
-    for (path, script) in resolved.into_iter() {
-        if matches!(script, Script::Runnable) {
-            println!("{:?}", &path.0);
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]
