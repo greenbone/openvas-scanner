@@ -3,11 +3,11 @@ mod all_builtins;
 use all_builtins::ALL_BUILTINS;
 use regex::Regex;
 use scannerlib::nasl::nasl_std_functions;
-use std::io::{self, Write};
+use std::io::{self};
 use std::path::PathBuf;
 use std::{
     collections::{HashMap, HashSet},
-    fs::{self, OpenOptions},
+    fs,
     path::Path,
 };
 use tracing::error;
@@ -133,19 +133,18 @@ fn parse_include(line: &str) -> Option<ScriptPath> {
     None
 }
 
-fn write_scripts(
-    output_file: &Path,
+fn copy_feed(
+    feed_path: &Path,
+    output_path: &Path,
     resolved: HashMap<ScriptPath, Script>,
 ) -> Result<(), io::Error> {
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(output_file)
-        .unwrap();
-    for (path, script) in resolved.into_iter() {
+    fs::create_dir(output_path)?;
+    for (path, script) in resolved {
         if matches!(script, Script::Runnable) {
-            writeln!(file, "{:?}", &path.0)?;
+            let src = feed_path.join(&path.0);
+            let dst = output_path.join(&path.0);
+            fs::create_dir_all(dst.parent().unwrap())?;
+            std::fs::copy(src, dst)?;
         }
     }
     Ok(())
@@ -165,7 +164,7 @@ pub fn run(args: FilterArgs) -> Result<(), CliError> {
         }
     }
     let resolved = resolve_includes(scripts);
-    write_scripts(&args.output_file, resolved)?;
+    copy_feed(&args.feed_path, &args.output_file, resolved)?;
     builtins.print_counts();
     Ok(())
 }
