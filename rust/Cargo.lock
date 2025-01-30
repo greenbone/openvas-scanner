@@ -3472,6 +3472,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "openssl",
+ "parking_lot",
  "pbkdf2 0.12.2",
  "pcap",
  "pkcs8",
