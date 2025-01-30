@@ -129,7 +129,6 @@ pub const ALL_BUILTINS: &'static [&'static str] = &[
     "dec2str",
     "defined_func",
     "dump_ctxt",
-    "exit",
     "get_byte_order",
     "gettimeofday",
     "gunzip",
