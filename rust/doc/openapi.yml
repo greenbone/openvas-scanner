@@ -895,10 +895,7 @@ components:
           type: "integer"
           format: "int32"
         scanning:
-          description: "The IP Addresses of the currently scanned hosts."
-          type: "array"
-          items:
-            type: "string"
+          $ref: "#/components/schemas/Scanning"
 
       required:
         - all
@@ -907,6 +904,30 @@ components:
         - alive
         - queued
         - finished
+
+    SingleHostProgress: {
+      type: "object",
+      description: "Additional information about the scanned host",
+      properties: {
+        finished_tests: {
+          description: "The number of vulnerability test alredy run for the host",
+          type: "integer",
+          format: "int32"
+        },
+        total_tests: {
+          description: "The total amount of vulnerability test to be run for the host",
+          type: "integer",
+          format: "int32"
+        }
+      }
+    }
+
+    Scanning:
+      description: "The IP Addresses of the currently scanned hosts."
+      type: "object"
+      additionalProperties: {
+        $ref: "#/components/schemas/SingleHostProgress"
+      }
 
     ScanAction:
       description: "An action to perform on a scan"
@@ -1228,16 +1249,24 @@ components:
         {
           "start_time": 1679649183,
           "status": "running",
-          "host_info":
-            {
-              "all": 14,
-              "excluded": 0,
-              "dead": 4,
-              "alive": 6,
-              "queued": 1,
-              "finished": 1,
-              "scanning": ["127.0.0.1", "10.0.5.1", "10.0.5.2", "10.0.5.3"],
+          "host_info": {
+            "all": 14,
+            "excluded": 0,
+            "dead": 4,
+            "alive": 6,
+            "queued": 1,
+            "finished": 1,
+            "scanning": {
+              "192.168.0.1": {
+                "finished_tests": 456,
+                "total_tests": 1000
+              },
+              "192.168.0.2": {
+                "finished_tests": 456,
+                "total_tests": 1000
+              }
             },
+          },
         }
 
     scan_status_success:
