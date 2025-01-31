@@ -27,7 +27,7 @@ use scannerlib::{
     },
 };
 
-use crate::{CliError, CliErrorKind, Db};
+use crate::{CliError, CliErrorKind, Db, Filename};
 
 struct Run<L, S> {
     context_builder: ContextFactory<L, S>,
@@ -184,14 +184,15 @@ where
 
 fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), CliError> {
     tracing::info!(path=?path, "loading feed via json. This may take a while.");
-    let buf = fs::read_to_string(path).map_err(|e| CliError::load_error(e, path))?;
+    let buf = fs::read_to_string(path).map_err(|e| {
+        CliErrorKind::LoadError(LoadError::Dirty(format!("{e}"))).with(Filename(path))
+    })?;
     let vts: Vec<Nvt> = serde_json::from_str(&buf)?;
     let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
 
-    store.set_vts(all_vts).map_err(|e| CliError {
-        filename: path.to_owned().to_string_lossy().to_string(),
-        kind: e.into(),
-    })?;
+    store
+        .set_vts(all_vts)
+        .map_err(|e| CliErrorKind::StorageError(e).with(Filename(path)))?;
     tracing::info!("loaded feed.");
     Ok(())
 }
@@ -236,8 +237,5 @@ pub async fn run(
         }
     };
 
-    result.map_err(|e| CliError {
-        filename: script.to_string(),
-        kind: e,
-    })
+    Ok(result?)
 }

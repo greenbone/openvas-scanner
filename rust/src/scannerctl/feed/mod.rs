@@ -12,7 +12,7 @@ use clap::{arg, value_parser, ArgAction, Command};
 // re-export to work around name conflict
 
 use scannerlib::{
-    nasl::syntax::LoadError,
+    nasl::{syntax::LoadError, WithErrorInfo},
     storage::{
         json::{ArrayWrapper, ItemDispatcher},
         redis::{
@@ -24,7 +24,9 @@ use scannerlib::{
 use scannerlib::feed::{FeedReplacer, ReplaceCommand};
 use scannerlib::storage::{item::PerItemDispatcher, StorageError};
 
-use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
+use crate::{
+    get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind, Filename,
+};
 
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(
@@ -65,10 +67,7 @@ fn get_dispatcher(
 ) -> Result<PerItemDispatcher<CacheDispatcher<RedisCtx>>, CliError> {
     CacheDispatcher::as_dispatcher(redis, selector)
         .map_err(StorageError::from)
-        .map_err(|e| CliError {
-            kind: e.into(),
-            filename: format!("{path:?}"),
-        })
+        .map_err(|e| CliErrorKind::from(e).with(Filename(Path::new(&format!("{path:?}")))))
 }
 
 pub async fn update_vts(
@@ -89,12 +88,10 @@ pub async fn update_notus(
     let path = match args.get_one::<PathBuf>("notus-path") {
         Some(p) => p.to_path_buf(),
         None => {
-            return Err(CliError {
-                filename: "".to_string(),
-                kind: CliErrorKind::LoadError(LoadError::Dirty(
-                    "Path to the notus advisories is mandatory".to_string(),
-                )),
-            });
+            return Err(CliErrorKind::LoadError(LoadError::Dirty(
+                "Path to the notus advisories is mandatory".to_string(),
+            ))
+            .into());
         }
     };
 
@@ -131,12 +128,10 @@ pub async fn update(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let loadup_vts_only = args.get_one::<bool>("vts-only").cloned().unwrap_or(false);
 
     match (loadup_notus_only, loadup_vts_only) {
-        (true, true) => Some(Err(CliError {
-            filename: "".to_string(),
-            kind: CliErrorKind::LoadError(LoadError::Dirty(
-                "Please do not use --notus-only and --vts-only together".to_string(),
-            )),
-        })),
+        (true, true) => Some(Err(CliErrorKind::LoadError(LoadError::Dirty(
+            "Please do not use --notus-only and --vts-only together".to_string(),
+        ))
+        .into())),
         (false, true) => Some(update_vts(&redis, signature_check, args).await),
         (true, false) => Some(update_notus(&redis, signature_check, args).await),
         (false, false) => {
@@ -165,10 +160,10 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             let mut o = ArrayWrapper::new(io::stdout());
             let dispatcher = ItemDispatcher::as_dispatcher(&mut o);
             Some(match update::run(dispatcher, &path, false).await {
-                Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
-                    filename: "".to_string(),
-                    kind: se.into(),
-                }),
+                Ok(_) => o
+                    .end()
+                    .map_err(StorageError::from)
+                    .map_err(|e| CliErrorKind::from(e).into()),
                 Err(e) => Err(e),
             })
         }
@@ -189,8 +184,8 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             let rules: Wrapper = toml::from_str(&rules).unwrap();
             let rules = rules.cmds;
             let base = path.to_str().unwrap_or_default();
-            for r in FeedReplacer::new(base, &rules) {
-                let name = r.unwrap();
+            for name in FeedReplacer::new(base, &rules) {
+                let name = name.unwrap();
                 if let Some((name, content)) = name {
                     use std::io::Write;
                     let f = std::fs::OpenOptions::new()
@@ -198,20 +193,13 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
                         .truncate(true)
                         .open(&name)
                         .map_err(|e| {
-                            let kind = CliErrorKind::Corrupt(format!("unable to open {name}: {e}"));
-                            CliError {
-                                filename: name.clone(),
-                                kind,
-                            }
+                            CliErrorKind::Corrupt(format!("unable to open {name}: {e}"))
+                                .with(Filename(Path::new(&name)))
                         });
                     match f.and_then(|mut f| {
                         f.write_all(content.as_bytes()).map_err(|e| {
-                            let kind =
-                                CliErrorKind::Corrupt(format!("unable to write {name}: {e}"));
-                            CliError {
-                                filename: name.clone(),
-                                kind,
-                            }
+                            CliErrorKind::Corrupt(format!("unable to write to {name}: {e}"))
+                                .with(Filename(Path::new(&name)))
                         })
                     }) {
                         Ok(_) => {}

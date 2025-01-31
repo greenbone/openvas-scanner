@@ -134,12 +134,7 @@ pub async fn run(args: OspArgs) -> Result<(), CliError> {
         }
     };
     // currently we just support start scan if that changes chain the options.
-    let output = may_transform_start_scan(args.print_back, feed, &mut bufreader)
-        .await
-        .map_err(|kind| CliError {
-            kind,
-            filename: "doesnt_matter".into(),
-        })?;
+    let output = may_transform_start_scan(args.print_back, feed, &mut bufreader).await?;
     println!("{output}");
     Ok(())
 }

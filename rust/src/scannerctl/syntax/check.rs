@@ -6,9 +6,10 @@ use std::path::{Path, PathBuf};
 
 use scannerlib::nasl::syntax::load_non_utf8_path;
 use scannerlib::nasl::syntax::{parse, Statement, SyntaxError};
+use scannerlib::nasl::WithErrorInfo;
 use walkdir::WalkDir;
 
-use crate::{CliError, CliErrorKind};
+use crate::{CliError, CliErrorKind, Filename};
 
 fn read_errors<P: AsRef<Path>>(path: P) -> Result<Vec<SyntaxError>, CliErrorKind> {
     let code = load_non_utf8_path(path.as_ref())?;
@@ -26,14 +27,11 @@ fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, 
 }
 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
-    let mut errors = 0;
+    let mut num_errors = 0;
 
     if verbose {
         println!("# {path:?}");
-        let results = read(path).map_err(|kind| CliError {
-            kind,
-            filename: format!("{path:?}"),
-        })?;
+        let results = read(path).map_err(|e| e.with(Filename(path)))?;
         for r in results {
             match r {
                 Ok(stmt) => println!("{stmt:?}"),
@@ -41,17 +39,14 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
             }
         }
     } else {
-        let err = read_errors(path).map_err(|kind| CliError {
-            kind,
-            filename: format!("{path:?}"),
-        })?;
-        if !err.is_empty() {
+        let errors = read_errors(path).map_err(|e| e.with(Filename(path)))?;
+        if !errors.is_empty() {
             eprintln!("# Error in {path:?}");
         }
-        errors += err.len();
-        err.iter().for_each(|r| eprintln!("{r}"));
+        num_errors += errors.len();
+        errors.iter().for_each(|r| eprintln!("{r}"));
     }
-    Ok(errors)
+    Ok(num_errors)
 }
 
 pub fn run(path: &PathBuf, verbose: bool, no_progress: bool) -> Result<(), CliError> {

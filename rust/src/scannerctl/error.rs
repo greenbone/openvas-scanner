@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
 use quick_xml::DeError;
+use scannerlib::nasl::WithErrorInfo;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
 use scannerlib::storage::StorageError;
 use scannerlib::{feed, notus};
@@ -30,7 +32,9 @@ pub enum CliErrorKind {
     #[error("{0}")]
     InterpretError(InterpretError),
     #[error("{0}")]
-    ExecuteError(ExecuteError),
+    ExecuteError(#[from] ExecuteError),
+    #[error("{0}")]
+    VerifyError(VerifyError),
     #[error("{0}")]
     LoadError(LoadError),
     #[error("{0}")]
@@ -45,9 +49,47 @@ pub enum CliErrorKind {
     InvalidXML(#[from] DeError),
 }
 
-impl From<ExecuteError> for CliErrorKind {
-    fn from(value: ExecuteError) -> Self {
-        Self::ExecuteError(value)
+pub struct Filename<T>(pub T);
+
+impl From<CliErrorKind> for CliError {
+    fn from(kind: CliErrorKind) -> Self {
+        CliError {
+            kind,
+            filename: None,
+        }
+    }
+}
+
+impl WithErrorInfo<Filename<&PathBuf>> for CliErrorKind {
+    type Error = CliError;
+
+    fn with(self, filename: Filename<&PathBuf>) -> Self::Error {
+        CliError {
+            filename: Some(filename.0.to_owned()),
+            kind: self,
+        }
+    }
+}
+
+impl WithErrorInfo<Filename<&'_ Path>> for CliErrorKind {
+    type Error = CliError;
+
+    fn with(self, filename: Filename<&Path>) -> Self::Error {
+        CliError {
+            filename: Some(filename.0.to_owned()),
+            kind: self,
+        }
+    }
+}
+
+impl WithErrorInfo<Filename<PathBuf>> for CliErrorKind {
+    type Error = CliError;
+
+    fn with(self, filename: Filename<PathBuf>) -> Self::Error {
+        CliError {
+            filename: Some(filename.0.to_owned()),
+            kind: self,
+        }
     }
 }
 
@@ -65,16 +107,25 @@ impl CliErrorKind {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("{kind} ({filename})")]
 pub struct CliError {
-    pub filename: String,
+    pub filename: Option<PathBuf>,
     pub kind: CliErrorKind,
+}
+
+impl fmt::Display for CliError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.kind)?;
+        if let Some(filename) = &self.filename {
+            write!(f, " filename: {:?}", filename)?;
+        }
+        Ok(())
+    }
 }
 
 impl CliError {
     pub fn load_error(err: std::io::Error, path: &Path) -> Self {
         Self {
-            filename: path.to_owned().to_string_lossy().to_string(),
+            filename: Some(path.to_owned()),
             kind: CliErrorKind::LoadError(LoadError::Dirty(err.to_string())),
         }
     }
@@ -113,23 +164,14 @@ impl From<notus::NotusError> for CliError {
     }
 }
 impl From<VerifyError> for CliError {
-    fn from(value: VerifyError) -> Self {
-        let filename = match &value {
-            VerifyError::SumsFileCorrupt(e) => e.sum_file(),
-            VerifyError::LoadError(_) => "",
-            VerifyError::HashInvalid {
-                expected: _,
-                actual: _,
-                key,
-            } => key,
-            VerifyError::MissingKeyring => {
-                "Signature check enabled but missing keyring. Set GNUPGHOME environment variable."
-            }
-            VerifyError::BadSignature(_) => "Bad signature",
+    fn from(error: VerifyError) -> Self {
+        let filename = match &error {
+            VerifyError::SumsFileCorrupt(e) => Some(Path::new(e.sum_file()).to_owned()),
+            _ => None,
         };
         Self {
-            filename: filename.to_string(),
-            kind: CliErrorKind::Corrupt(value.to_string()),
+            filename: filename,
+            kind: CliErrorKind::VerifyError(error),
         }
     }
 }
@@ -167,7 +209,7 @@ impl From<SyntaxError> for CliErrorKind {
 impl From<LoadError> for CliError {
     fn from(value: LoadError) -> Self {
         Self {
-            filename: value.filename().to_string(),
+            filename: Some(Path::new(value.filename()).to_owned()),
             kind: value.into(),
         }
     }
@@ -185,10 +227,7 @@ impl From<feed::UpdateError> for CliError {
             }
             feed::UpdateErrorKind::VerifyError(e) => CliErrorKind::Corrupt(e.to_string()),
         };
-        CliError {
-            filename: value.key,
-            kind,
-        }
+        kind.into()
     }
 }
 

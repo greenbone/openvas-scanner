@@ -29,23 +29,20 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 }
 
 async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
+    // TODO
     let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
     let scan: Scan = if stdin {
         tracing::debug!("reading scan config from stdin");
-        serde_json::from_reader(std::io::stdin()).map_err(|e| CliError {
-            filename: "".to_string(),
-            kind: CliErrorKind::Corrupt(format!("{e:?}")),
-        })?
+        serde_json::from_reader(std::io::stdin())
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?
     } else {
         let path = args
             .get_one::<PathBuf>("json")
             .cloned()
             .expect("when stdin is set to false a json file is required.");
         tracing::debug!(?path, "reading scan config");
-        serde_json::from_reader(fs::File::open(path)?).map_err(|e| CliError {
-            filename: "".to_string(),
-            kind: CliErrorKind::Corrupt(format!("{e:?}")),
-        })?
+        serde_json::from_reader(fs::File::open(path)?)
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?
     };
     let schedule_only = args
         .get_one::<bool>("schedule")

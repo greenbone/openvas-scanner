@@ -6,10 +6,11 @@ use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
+use scannerlib::nasl::WithErrorInfo;
 use scannerlib::storage::{ContextKey, DefaultDispatcher, Retriever, StorageError};
 use serde::Deserialize;
 
-use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
+use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind, Filename};
 use scannerlib::storage::item::{NVTField, NVTKey};
 use scannerlib::storage::Field;
 use scannerlib::storage::Retrieve;
@@ -55,15 +56,11 @@ async fn execute(
     port_list: Option<&PathBuf>,
     stdin: bool,
 ) -> Result<(), CliError> {
-    let map_error = |f: &PathBuf, e: Error| CliError {
-        filename: f.to_string_lossy().to_string(),
-        kind: CliErrorKind::Corrupt(format!("{e:?}")),
-    };
+    let map_error =
+        |f: &PathBuf, e: Error| CliErrorKind::Corrupt(format!("{e:?}")).with(Filename(f));
     let as_bufreader = |f: &PathBuf| {
-        let file = std::fs::File::open(f).map_err(|e| CliError {
-            filename: f.to_string_lossy().to_string(),
-            kind: CliErrorKind::Corrupt(format!("{e:?}")),
-        })?;
+        let file = std::fs::File::open(f)
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")).with(Filename(f)))?;
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
@@ -71,10 +68,8 @@ async fn execute(
     let mut scan = {
         if stdin {
             tracing::debug!("reading scan config from stdin");
-            serde_json::from_reader(std::io::stdin()).map_err(|e| CliError {
-                filename: "".to_string(),
-                kind: CliErrorKind::Corrupt(format!("{e:?}")),
-            })?
+            serde_json::from_reader(std::io::stdin())
+                .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?
         } else {
             Scan::default()
         }
@@ -83,10 +78,7 @@ async fn execute(
         Some(feed) => feed.to_owned(),
         None => read_openvas_config()
             .map(get_path_from_openvas)
-            .map_err(|e| CliError {
-                filename: "".to_string(),
-                kind: CliErrorKind::Corrupt(format!("{e:?}")),
-            })?,
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?,
     };
 
     tracing::info!("loading feed. This may take a while.");
@@ -110,14 +102,8 @@ async fn execute(
     }
     scan.vts.extend(vts);
     scan.target.ports = ports;
-    let out = serde_json::to_string_pretty(&scan).map_err(|e| CliError {
-        filename: config
-            .into_iter()
-            .map(|x| x.to_string_lossy().to_owned())
-            .collect::<Vec<_>>()
-            .join(","),
-        kind: CliErrorKind::Corrupt(format!("{e:?}")),
-    })?;
+    let out =
+        serde_json::to_string_pretty(&scan).map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?;
     println!("{}", out);
     Ok(())
 }

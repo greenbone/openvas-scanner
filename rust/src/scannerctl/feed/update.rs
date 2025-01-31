@@ -10,6 +10,7 @@ use scannerlib::{
     nasl::{syntax::LoadError, FSPluginLoader},
 };
 
+use crate::notusupdate::update::signature_error;
 use crate::{CliError, CliErrorKind};
 
 pub async fn run<S>(storage: S, path: &Path, signature_check: bool) -> Result<(), CliError>
@@ -32,17 +33,11 @@ where
             }
             Err(feed::VerifyError::BadSignature(e)) => {
                 tracing::warn!("{}", e);
-                return Err(CliError {
-                    filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: CliErrorKind::LoadError(LoadError::Dirty(e)),
-                });
+                return Err(signature_error(e));
             }
             Err(e) => {
                 tracing::warn!("Unexpected error during signature verification: {e}");
-                return Err(CliError {
-                    filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: CliErrorKind::LoadError(LoadError::Dirty(e.to_string())),
-                });
+                return Err(signature_error(e));
             }
         }
     }
