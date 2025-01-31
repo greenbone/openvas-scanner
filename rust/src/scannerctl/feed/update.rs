@@ -5,13 +5,10 @@
 use std::path::Path;
 
 use scannerlib::storage::Dispatcher;
-use scannerlib::{
-    feed,
-    nasl::{syntax::LoadError, FSPluginLoader},
-};
+use scannerlib::{feed, nasl::FSPluginLoader};
 
-use crate::notusupdate::update::signature_error;
-use crate::{CliError, CliErrorKind};
+use crate::notus_update::update::signature_error;
+use crate::CliError;
 
 pub async fn run<S>(storage: S, path: &Path, signature_check: bool) -> Result<(), CliError>
 where

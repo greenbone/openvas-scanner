@@ -11,19 +11,11 @@ use scannerlib::nasl::WithErrorInfo;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
 use scannerlib::storage::StorageError;
 use scannerlib::{feed, notus};
-use scannerlib::{
-    nasl::syntax::{SyntaxError, Token},
-    scanner::ExecuteError,
-};
+use scannerlib::{nasl::syntax::SyntaxError, scanner::ExecuteError};
 
 #[derive(Debug, thiserror::Error)]
 
 pub enum CliErrorKind {
-    #[error("Wrong action")]
-    WrongAction,
-
-    #[error("Plugin path ({0}) is not a directory.")]
-    PluginPathIsNotADir(PathBuf),
     #[error("openvas ({args:?}) failed: {err_msg}.")]
     Openvas {
         args: Option<String>,
@@ -41,8 +33,6 @@ pub enum CliErrorKind {
     StorageError(StorageError),
     #[error("{0}")]
     SyntaxError(SyntaxError),
-    #[error("Missing arguments: {0:?}")]
-    MissingArguments(Vec<String>),
     #[error("{0}")]
     Corrupt(String),
     #[error("Invalid XML: {0}")]
@@ -93,19 +83,6 @@ impl WithErrorInfo<Filename<PathBuf>> for CliErrorKind {
     }
 }
 
-impl CliErrorKind {
-    pub fn as_token(&self) -> Option<&Token> {
-        match self {
-            CliErrorKind::InterpretError(e) => match &e.origin {
-                Some(s) => Some(s.as_token()),
-                None => None,
-            },
-            CliErrorKind::SyntaxError(e) => e.as_token(),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub struct CliError {
     pub filename: Option<PathBuf>,
@@ -119,15 +96,6 @@ impl fmt::Display for CliError {
             write!(f, " filename: {:?}", filename)?;
         }
         Ok(())
-    }
-}
-
-impl CliError {
-    pub fn load_error(err: std::io::Error, path: &Path) -> Self {
-        Self {
-            filename: Some(path.to_owned()),
-            kind: CliErrorKind::LoadError(LoadError::Dirty(err.to_string())),
-        }
     }
 }
 

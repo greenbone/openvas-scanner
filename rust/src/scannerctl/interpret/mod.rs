@@ -4,7 +4,7 @@
 
 use std::{
     fs::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use futures::StreamExt;
@@ -15,13 +15,12 @@ use scannerlib::nasl::{
     syntax::{load_non_utf8_path, LoadError},
     Loader, NoOpLoader,
 };
-use scannerlib::storage::redis::FEEDUPDATE_SELECTOR;
 use scannerlib::storage::{ContextKey, DefaultDispatcher};
 use scannerlib::{
     feed,
     storage::{
-        item::{NVTField, Nvt, PerItemDispatcher},
-        redis, Dispatcher,
+        item::{NVTField, Nvt},
+        Dispatcher,
         Field::NVT,
         Retrieve, Storage,
     },
@@ -100,12 +99,12 @@ where
     L: Loader,
     S: Storage,
 {
-    fn load(&self, script: &str) -> Result<String, CliErrorKind> {
+    fn load(&self, script: &Path) -> Result<String, CliErrorKind> {
         match load_non_utf8_path(&script) {
             Ok(x) => Ok(x),
             Err(LoadError::NotFound(_)) => {
                 let iter = self.context_builder.storage.retrieve_by_field(
-                    NVT(NVTField::Oid(script.into())),
+                    NVT(NVTField::Oid(script.to_string_lossy().to_string())),
                     // TODO: maybe NvtField::FileName would be better?
                     Retrieve::NVT(None),
                 )?;
@@ -117,14 +116,14 @@ where
                     .next();
                 match results {
                     Some(f) => Ok(self.context_builder.loader.load(&f)?),
-                    None => Err(LoadError::NotFound(script.to_string()).into()),
+                    None => Err(LoadError::NotFound(script.to_string_lossy().to_string()).into()),
                 }
             }
             Err(e) => Err(e.into()),
         }
     }
 
-    async fn run(&self, script: &str) -> Result<(), CliErrorKind> {
+    async fn run(&self, script: &Path) -> Result<(), CliErrorKind> {
         let target = match self.target.is_empty() {
             true => None,
             false => Some(self.target.clone()),
@@ -164,10 +163,6 @@ where
     }
 }
 
-fn create_redis_storage(url: &str) -> PerItemDispatcher<redis::CacheDispatcher<redis::RedisCtx>> {
-    redis::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
-}
-
 async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
 where
     S: Dispatcher,
@@ -200,28 +195,14 @@ fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), Cl
 pub async fn run(
     db: &Db,
     feed: Option<PathBuf>,
-    script: &str,
+    script: &Path,
     target: Option<String>,
 ) -> Result<(), CliError> {
     let builder = RunBuilder::default()
         .target(target.unwrap_or_default())
-        .scan_id(format!("scannerctl-{script}"));
+        .scan_id(format!("scannerctl-{script:?}"));
     let result = match (db, feed) {
-        (Db::Redis(url), None) => {
-            builder
-                .storage(create_redis_storage(url))
-                .build()
-                .run(script)
-                .await
-        }
         (Db::InMemory, None) => builder.build().run(script).await,
-        (Db::Redis(url), Some(path)) => {
-            let storage = create_redis_storage(url);
-            let loader = FSPluginLoader::new(path);
-            load_feed_by_exec(&storage, &loader).await?;
-            let builder = RunBuilder::default().loader(loader);
-            builder.storage(storage).build().run(script).await
-        }
         (Db::InMemory, Some(path)) => {
             let storage = DefaultDispatcher::new();
             let guessed_feed_json = path.join("feed.json");

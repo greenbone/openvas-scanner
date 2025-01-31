@@ -12,14 +12,8 @@ pub mod check;
 pub struct SyntaxArgs {
     /// The directory of the NASL files for which to check the syntax.
     path: PathBuf,
-    /// Print more details while running
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub verbose: u8,
-    /// Print only error output.
-    #[arg(short, long)]
-    pub quiet: bool,
 }
 
 pub async fn run(args: SyntaxArgs) -> Result<(), CliError> {
-    check::run(&args.path, args.verbose > 0, args.quiet)
+    check::run(&args.path)
 }
