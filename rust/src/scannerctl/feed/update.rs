@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use scannerlib::storage::Dispatcher;
 use scannerlib::{
@@ -12,7 +12,7 @@ use scannerlib::{
 
 use crate::{CliError, CliErrorKind};
 
-pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
+pub async fn run<S>(storage: S, path: &Path, signature_check: bool) -> Result<(), CliError>
 where
     S: Sync + Send + Dispatcher,
 {

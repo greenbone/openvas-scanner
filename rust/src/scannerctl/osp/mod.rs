@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::io::BufRead;
+use std::path::Path;
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
 use scannerlib::models::{self, Parameter, Scan, VT};
 use scannerlib::storage::{self, DefaultDispatcher, StorageError};
 use start_scan::{StartScan, VtSelection};
@@ -16,43 +16,33 @@ use scannerlib::storage::Field;
 use scannerlib::storage::Retrieve;
 mod start_scan;
 
-pub fn extend_args(cmd: Command) -> Command {
-    cmd.subcommand(crate::add_verbose(
-        Command::new("osp")
-            .about("Transforms a osp start-scan xml to a scan json for openvasd. ")
-            .arg(
-                arg!(-p --path <FILE> "Path to the feed.")
-                    .required(false)
-                    .value_parser(value_parser!(PathBuf)),
-            )
-            .arg(
-                Arg::new("ospd_xml")
-                    .required(false),
-            )
-            .arg(
-                arg!(-b --back "Serializes start scan command and pretty prints it back to stdout.")
-                    .required(false)
-                    .action(ArgAction::SetTrue),
-            ),
-    ))
+#[derive(clap::Parser)]
+/// Transforms a osp start-scan xml to a scan json for openvasd.
+pub struct OspArgs {
+    /// Path to the feed.
+    feed_path: PathBuf,
+    /// Path to the OSP XML file.
+    ospd_xml: Option<PathBuf>,
+    /// Serialize the start scan command and pretty print it
+    /// back to stdout.
+    #[clap(short, long)]
+    print_back: bool,
 }
 
 pub async fn may_transform_start_scan<R, S>(
     print_back: bool,
     feed: Option<S>,
     reader: R,
-) -> Option<Result<String, CliErrorKind>>
+) -> Result<String, CliErrorKind>
 where
     R: BufRead,
     S: storage::Retriever,
 {
-    match quick_xml::de::from_reader(reader) {
-        Ok(x) if print_back => Some(Ok(format!("{x}"))),
-        Ok(x) if feed.is_some() => Some(transform_start_scan(feed.unwrap(), x).await),
-        Ok(_) => Some(Err(CliErrorKind::MissingArguments(
-            vec!["path".to_string()],
-        ))),
-        Err(_) => None,
+    let xml = quick_xml::de::from_reader(reader)?;
+    if print_back {
+        Ok(format!("{xml}"))
+    } else {
+        transform_start_scan(feed.unwrap(), xml).await
     }
 }
 
@@ -132,53 +122,36 @@ where
     Ok(scan_json)
 }
 
-pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
-    let (args, _) = crate::get_args_set_logging(root, "osp")?;
+pub async fn run(args: OspArgs) -> Result<(), CliError> {
+    let feed = load_feed(&args.feed_path).await;
 
-    let feed = match args.get_one::<PathBuf>("path") {
-        Some(feed) => {
-            tracing::info!("loading feed. This may take a while.");
-            let storage = Arc::new(DefaultDispatcher::new());
-            crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false)
-                .await
-                .unwrap();
-            tracing::info!("feed loaded.");
-            Some(storage)
-        }
-        None => None,
-    };
-
-    let config = args.get_one::<String>("ospd_xml");
     let mut bufreader: BufReader<Box<dyn std::io::Read>> = {
-        if let Some(config) = config {
-            let file = match std::fs::File::open(config) {
-                Ok(x) => x,
-                Err(e) => return Some(Err(e.into())),
-            };
+        if let Some(config) = args.ospd_xml {
+            let file = std::fs::File::open(config)?;
             BufReader::new(Box::new(file))
         } else {
             BufReader::new(Box::new(std::io::stdin()))
         }
     };
-    let print_back = args.get_one::<bool>("back").cloned().unwrap_or_default();
     // currently we just support start scan if that changes chain the options.
-    let output = may_transform_start_scan(print_back, feed, &mut bufreader).await;
-    let result = match output {
-        Some(Ok(x)) => {
-            println!("{x}");
-            Ok(())
-        }
-        Some(Err(e)) => Err(CliError {
-            filename: config.cloned().unwrap_or_default(),
-            kind: e,
-        }),
-        None => Err(CliError {
-            filename: config.cloned().unwrap_or_default(),
-            kind: CliErrorKind::Corrupt("Unknown ospd command.".to_string()),
-        }),
-    };
+    let output = may_transform_start_scan(args.print_back, feed, &mut bufreader)
+        .await
+        .map_err(|kind| CliError {
+            kind,
+            filename: "doesnt_matter".into(),
+        })?;
+    println!("{output}");
+    Ok(())
+}
 
-    Some(result)
+async fn load_feed(path: &Path) -> Option<Arc<DefaultDispatcher>> {
+    tracing::info!("loading feed. This may take a while.");
+    let storage = Arc::new(DefaultDispatcher::new());
+    crate::feed::update::run(Arc::clone(&storage), path, false)
+        .await
+        .unwrap();
+    tracing::info!("feed loaded.");
+    Some(storage)
 }
 
 #[cfg(test)]
@@ -245,7 +218,6 @@ mod tests {
 
         let output = may_transform_start_scan(false, Some(d), reader)
             .await
-            .unwrap()
             .unwrap();
         insta::assert_snapshot!(output);
     }
@@ -291,7 +263,6 @@ mod tests {
         let reader = BufReader::new(Cursor::new(input));
         let output = may_transform_start_scan::<_, DefaultDispatcher>(true, None, reader)
             .await
-            .unwrap()
             .unwrap();
         insta::assert_snapshot!(output);
     }

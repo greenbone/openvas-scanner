@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
+use quick_xml::DeError;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
 use scannerlib::storage::StorageError;
 use scannerlib::{feed, notus};
@@ -40,6 +41,8 @@ pub enum CliErrorKind {
     MissingArguments(Vec<String>),
     #[error("{0}")]
     Corrupt(String),
+    #[error("Invalid XML: {0}")]
+    InvalidXML(#[from] DeError),
 }
 
 impl From<ExecuteError> for CliErrorKind {

@@ -9,16 +9,19 @@ mod feed;
 mod interpret;
 mod notusupdate;
 mod osp;
-mod scanconfig;
+mod scan_config;
 mod syntax;
 
 use configparser::ini::Ini;
 pub use error::*;
 
+use osp::OspArgs;
+use scan_config::ScanConfigArgs;
 use scannerlib::storage::StorageError;
 use std::{path::PathBuf, process};
+use syntax::SyntaxArgs;
 
-use clap::{arg, ArgAction, ArgMatches, Command};
+use clap::{arg, ArgAction, ArgMatches, Command, Parser};
 
 #[derive(Debug, Clone)]
 pub enum Db {
@@ -52,21 +55,31 @@ fn get_path_from_openvas(config: Ini) -> PathBuf {
     )
 }
 
+#[derive(clap::Parser)]
+enum Args {
+    Syntax(SyntaxArgs),
+    ScanConfig(ScanConfigArgs),
+    Osp(OspArgs),
+    // Execute(ExecuteArgs),
+    // Notusupdate(NotusupdateArgs),
+    // Feed(FeedArgs),
+}
+
 #[tokio::main]
 async fn main() {
-    let matches = add_verbose(
-        Command::new("scannerctl")
-            .version("1.0")
-            .about("Is a CLI tool around NASL.")
-            .subcommand_required(true),
-    );
-    let matches = syntax::extend_args(matches);
-    let matches = scanconfig::extend_args(matches);
-    let matches = osp::extend_args(matches);
-    let matches = execute::extend_args(matches);
-    let matches = notusupdate::scanner::extend_args(matches);
-    let matches = feed::extend_args(matches).get_matches();
-    let result = run(&matches).await;
+    let args = Args::parse();
+    // let matches = add_verbose(
+    //     Command::new("scannerctl")
+    //         .version("1.0")
+    //         .about("Is a CLI tool around NASL.")
+    //         .subcommand_required(true),
+    // );
+    // let matches = scan_config::extend_args(matches);
+    // let matches = osp::extend_args(matches);
+    // let matches = execute::extend_args(matches);
+    // let matches = notusupdate::scanner::extend_args(matches);
+    // let matches = feed::extend_args(matches).get_matches();
+    let result = run(args).await;
 
     match result {
         Ok(_) => {}
@@ -84,32 +97,43 @@ async fn main() {
     }
 }
 
-async fn run(matches: &ArgMatches) -> Result<(), CliError> {
-    if let Some(result) = feed::run(matches).await {
-        return result;
+async fn run(args: Args) -> Result<(), CliError> {
+    let sub_verbosity = match &args {
+        Args::Syntax(args) => Some(args.verbose),
+        Args::ScanConfig(args) => Some(args.verbose),
+        Args::Osp(args) => None,
+    };
+    match args {
+        Args::Syntax(args) => syntax::run(args).await?,
+        Args::ScanConfig(args) => scan_config::run(args).await?,
+        Args::Osp(args) => osp::run(args).await?,
     }
-    if let Some(result) = syntax::run(matches).await {
-        return result;
-    }
-    if let Some(result) = execute::run(matches).await {
-        return result;
-    }
-    if let Some(result) = scanconfig::run(matches).await {
-        return result;
-    }
-    if let Some(result) = notusupdate::scanner::run(matches).await {
-        return result;
-    }
-    if let Some(result) = osp::run(matches).await {
-        return result;
-    }
-    Err(CliError {
-        filename: "".to_string(),
-        kind: CliErrorKind::Corrupt(format!(
-            "No valid subcommand found: {:?}",
-            matches.subcommand()
-        )),
-    })
+    // if let Some(result) = feed::run(matches).await {
+    //     return result;
+    // }
+    // if let Some(result) =  {
+    //     return result;
+    // }
+    // if let Some(result) = execute::run(matches).await {
+    //     return result;
+    // }
+    // if let Some(result) = scan_config::run(matches).await {
+    //     return result;
+    // }
+    // if let Some(result) = notusupdate::scanner::run(matches).await {
+    //     return result;
+    // }
+    // if let Some(result) = osp::run(matches).await {
+    //     return result;
+    // }
+    todo!()
+    // Err(CliError {
+    //     filename: "".to_string(),
+    //     kind: CliErrorKind::Corrupt(format!(
+    //         "No valid subcommand found: {:?}",
+    //         matches.subcommand()
+    //     )),
+    // })
 }
 
 pub fn set_logging(level: u8) {

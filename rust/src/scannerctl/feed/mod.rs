@@ -78,7 +78,7 @@ pub async fn update_vts(
 ) -> Result<(), CliError> {
     let path = get_vts_path("vts-path", args);
     let dispatcher = get_dispatcher(redis, &path, FEEDUPDATE_SELECTOR)?;
-    update::run(dispatcher, path, signature_check).await
+    update::run(dispatcher, &path, signature_check).await
 }
 
 pub async fn update_notus(
@@ -164,7 +164,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 
             let mut o = ArrayWrapper::new(io::stdout());
             let dispatcher = ItemDispatcher::as_dispatcher(&mut o);
-            Some(match update::run(dispatcher, path, false).await {
+            Some(match update::run(dispatcher, &path, false).await {
                 Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                     filename: "".to_string(),
                     kind: se.into(),
