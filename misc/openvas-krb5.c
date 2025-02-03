@@ -525,7 +525,6 @@ o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
   OM_uint32 maj_stat;
   OM_uint32 min_stat;
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
-  // TODO: validate in data
   gss_buffer_desc in_buf = {
     .length = in_data->len,
     .value = in_data->data,
@@ -543,12 +542,18 @@ o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
       result = O_KRB5_ERROR + maj_stat;
       goto result;
     }
-  *out_data = malloc (sizeof (struct OKrb5Slice));
-  (*out_data)->data = calloc (1, out_buf.length);
-  memcpy ((*out_data)->data, out_buf.value, out_buf.length);
+  if ((*out_data = malloc (sizeof (struct OKrb5Slice))) == NULL)
+    {
+      result = O_KRB5_NOMEM;
+      gss_release_buffer (&min_stat, &out_buf);
+      goto result;
+    }
+  // transfers ownership of out_buf.value into out_data->data.
+  // This simplifies the code as we don't have to alloc and check if the system
+  // had sufficient memory and don't have to memcpy.
+  (*out_data)->data = out_buf.value;
   (*out_data)->len = out_buf.length;
 
-  gss_release_buffer (&min_stat, &out_buf);
   *more = maj_stat == GSS_S_CONTINUE_NEEDED;
 result:
   return result;
