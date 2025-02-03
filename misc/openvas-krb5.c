@@ -636,6 +636,14 @@ okrb5_error_code_to_string (const OKrb5ErrorCode code)
 
           (void) gss_display_status (&min_stat, maj_stat, GSS_C_GSS_CODE,
                                      GSS_C_NULL_OID, &msg_ctx, &msg);
+          // Instead of calling gss_release_buffer, we transfer ownership of
+          // msg.value (a heap-allocated string) directly to result.
+          // The caller is responsible for freeing result later, this conforms
+          // to other values as well.
+          //
+          // msg itself is stack-allocated, but msg.value is dynamically
+          // allocated, so we must not call gss_release_buffer on msg after
+          // ownership transfer.
           result = msg.value;
         }
       else
