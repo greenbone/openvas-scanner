@@ -38,24 +38,49 @@ impl HostInfoBuilder {
     derive(serde::Serialize, serde::Deserialize)
 )]
 pub struct SingleHostScanInfo {
-    finished_tests: i32,
-    total_tests: i32,
+    finished_tests: AmountOfTests,
+    total_tests: AmountOfTests,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+enum AmountOfTests {
+    AmountOfTests(i32),
+    DeadHost,
+}
+
+impl Default for AmountOfTests {
+    fn default() -> Self {
+        AmountOfTests::AmountOfTests(0)
+    }
 }
 
 impl SingleHostScanInfo {
     pub fn new(finished_tests: i32, total_tests: i32) -> Self {
         Self {
-            finished_tests,
-            total_tests,
+            finished_tests: AmountOfTests::AmountOfTests(finished_tests),
+            total_tests: if total_tests == -1 {
+                AmountOfTests::DeadHost
+            } else {
+                AmountOfTests::AmountOfTests(total_tests)
+            },
         }
     }
 
-    pub fn finished_tests(&self) -> i32 {
-        self.finished_tests
+    pub fn is_finished(&self) -> bool {
+        if let AmountOfTests::AmountOfTests(f) = self.finished_tests {
+            if let AmountOfTests::AmountOfTests(t) = self.total_tests {
+                return f == t;
+            }
+        }
+        false
     }
 
-    pub fn total_tests(&self) -> i32 {
-        self.total_tests
+    pub fn is_dead(&self) -> bool {
+        matches!(self.total_tests, AmountOfTests::DeadHost)
     }
 }
 
@@ -118,9 +143,6 @@ impl HostInfo {
     }
 
     pub fn update_with(mut self, other: &HostInfo) -> Self {
-        enum ScanProgress {
-            DeadHost = -1,
-        }
         // total hosts value is sent once and only once must be updated
         if other.all != 0 {
             self.all = other.all;
@@ -141,9 +163,7 @@ impl HostInfo {
         // and never completely replaced.
         let mut hs = other.scanning.clone().unwrap_or_default();
         for (host, progress) in self.scanning.clone().unwrap_or_default().iter() {
-            if progress.finished_tests() == progress.total_tests()
-                || progress.total_tests == ScanProgress::DeadHost as i32
-            {
+            if progress.is_finished() || progress.is_dead() {
                 hs.remove(host);
             } else {
                 hs.insert(host.to_string(), progress.clone());

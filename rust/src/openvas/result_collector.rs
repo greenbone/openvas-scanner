@@ -138,11 +138,12 @@ where
             } else if result_type == "ALARM" {
                 push_result(OspResultType::Alarm);
             } else if result_type == "DEADHOST" {
-                new_dead += i64::from_str(&value).expect("Valid amount of dead hosts");
+                new_dead += i64::from_str(&value).expect("Expected a valid amount of dead hosts");
             } else if host_count {
-                count_total = i64::from_str(&value).expect("Valid amount of dead hosts");
+                count_total = i64::from_str(&value).expect("Expected a valid amount of dead hosts");
             } else if excluded_hosts {
-                count_excluded = i64::from_str(&value).expect("Valid amount of excluded hosts");
+                count_excluded =
+                    i64::from_str(&value).expect("Expected a valid amount of excluded hosts");
             }
         }
         if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
@@ -163,17 +164,14 @@ where
     }
 
     fn process_status(&self, redis_status: Vec<String>) -> RedisStorageResult<()> {
-        enum ScanProgress {
-            DeadHost = -1,
-        }
         let mut new_dead = 0;
         let mut new_alive = 0;
         let mut all_hosts: HashMap<String, SingleHostScanInfo> = HashMap::new();
         for res in redis_status {
             let mut fields = res.splitn(3, '/');
-            let current_host = fields.next().expect("Valid status value");
-            let launched = fields.next().expect("Valid status value");
-            let total = fields.next().expect("Valid status value");
+            let current_host = fields.next().expect("Expected a valid status value");
+            let launched = fields.next().expect("Expected a valid status value");
+            let total = fields.next().expect("Expected a valid status value");
 
             let total = match i32::from_str(total) {
                 // No plugins
@@ -181,21 +179,21 @@ where
                     continue;
                 }
                 // Host Dead
-                Ok(-1) => ScanProgress::DeadHost as i32,
+                Ok(-1) => -1,
                 Ok(n) => n,
                 _ => {
                     continue;
                 }
             };
 
-            let launched = i32::from_str(launched).expect("Integer");
-
+            let launched = i32::from_str(launched).expect("Expected a valid integer value");
             let host_progress = ((launched as f32 / total as f32) * 100.0) as i32;
-            if host_progress == -1 {
+            if total == -1 {
                 new_dead += 1;
             } else if host_progress == 100 {
                 new_alive += 1;
             }
+
             all_hosts.insert(
                 current_host.to_string(),
                 SingleHostScanInfo::new(launched, total),

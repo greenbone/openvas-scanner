@@ -910,12 +910,12 @@ components:
       description: "Additional information about the scanned host",
       properties: {
         finished_tests: {
-          description: "The number of vulnerability test alredy run for the host",
+          description: "The number of vulnerability tests already run for the host",
           type: "integer",
           format: "int32"
         },
         total_tests: {
-          description: "The total amount of vulnerability test to be run for the host",
+          description: "The total amount of vulnerability tests to be run for the host",
           type: "integer",
           format: "int32"
         }
