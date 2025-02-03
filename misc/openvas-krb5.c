@@ -404,37 +404,38 @@ okrb5_gss_init_context (void)
 void
 okrb5_gss_free_context (struct OKrb5GSSContext *context)
 {
+  OM_uint32 min_stat;
   if (context != NULL)
     {
       if (context->gss_creds != GSS_C_NO_CREDENTIAL)
         {
-          gss_release_cred (NULL, &context->gss_creds);
+          gss_release_cred (&min_stat, &context->gss_creds);
         }
       if (context->gss_ctx != GSS_C_NO_CONTEXT)
         {
-          gss_delete_sec_context (NULL, &context->gss_ctx, GSS_C_NO_BUFFER);
+          gss_delete_sec_context (&min_stat, &context->gss_ctx, GSS_C_NO_BUFFER);
         }
       if (context->gss_target != GSS_C_NO_NAME)
         {
-          gss_release_name (NULL, &context->gss_target);
+          gss_release_name (&min_stat, &context->gss_target);
         }
       if (context->gss_mech != NULL)
         {
-          gss_release_oid (NULL, &context->gss_mech);
+          gss_release_oid (&min_stat, &context->gss_mech);
         }
       if (context->gss_channel_bindings != GSS_C_NO_CHANNEL_BINDINGS)
         {
           gss_release_buffer (
             NULL, &context->gss_channel_bindings->initiator_address);
-          gss_release_buffer (NULL,
+          gss_release_buffer (&min_stat,
                               &context->gss_channel_bindings->acceptor_address);
-          gss_release_buffer (NULL,
+          gss_release_buffer (&min_stat,
                               &context->gss_channel_bindings->application_data);
           free (context->gss_channel_bindings);
         }
       if (context->gss_actual_mech_type != NULL)
         {
-          gss_release_oid (NULL, &context->gss_actual_mech_type);
+          gss_release_oid (&min_stat, &context->gss_actual_mech_type);
         }
       free (context);
     }
