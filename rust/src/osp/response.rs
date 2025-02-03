@@ -7,6 +7,8 @@ use std::{collections::HashMap, fmt};
 
 use serde::{de::Visitor, Deserialize};
 
+use crate::models::SingleHostScanInfo;
+
 use super::commands::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
@@ -602,10 +604,10 @@ impl From<Scan> for crate::models::Status {
             ScanStatus::Interrupted => crate::models::Phase::Failed,
         };
 
-        let mut scanning: HashMap<String, i32> = HashMap::new();
+        let mut scanning: HashMap<String, SingleHostScanInfo> = HashMap::new();
         if let Some(i) = &value.host_info {
             for host in &i.host {
-                scanning.insert(host.name.clone(), 0);
+                scanning.insert(host.name.clone(), SingleHostScanInfo::new(0, 0));
             }
         }
         crate::models::Status {

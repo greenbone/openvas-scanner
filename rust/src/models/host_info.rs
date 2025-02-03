@@ -14,7 +14,7 @@ pub struct HostInfoBuilder {
     pub alive: u64,
     pub queued: u64,
     pub finished: u64,
-    pub scanning: Option<HashMap<String, i32>>,
+    pub scanning: Option<HashMap<String, SingleHostScanInfo>>,
 }
 
 impl HostInfoBuilder {
@@ -29,6 +29,33 @@ impl HostInfoBuilder {
             scanning: self.scanning,
             remaining_vts_per_host: HashMap::new(),
         }
+    }
+}
+
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct SingleHostScanInfo {
+    finished_tests: i32,
+    total_tests: i32,
+}
+
+impl SingleHostScanInfo {
+    pub fn new(finished_tests: i32, total_tests: i32) -> Self {
+        Self {
+            finished_tests,
+            total_tests,
+        }
+    }
+
+    pub fn finished_tests(&self) -> i32 {
+        self.finished_tests
+    }
+
+    pub fn total_tests(&self) -> i32 {
+        self.total_tests
     }
 }
 
@@ -51,9 +78,8 @@ pub struct HostInfo {
         feature = "serde_support",
         serde(skip_serializing_if = "Option::is_none")
     )]
-    scanning: Option<HashMap<String, i32>>,
-    // Hosts that are currently being scanned. The second entry is the number of
-    // remaining VTs for this host.
+    scanning: Option<HashMap<String, SingleHostScanInfo>>,
+    #[cfg_attr(feature = "serde_support", serde(skip))]
     remaining_vts_per_host: HashMap<String, usize>,
 }
 
@@ -92,6 +118,9 @@ impl HostInfo {
     }
 
     pub fn update_with(mut self, other: &HostInfo) -> Self {
+        enum ScanProgress {
+            DeadHost = -1,
+        }
         // total hosts value is sent once and only once must be updated
         if other.all != 0 {
             self.all = other.all;
@@ -112,10 +141,12 @@ impl HostInfo {
         // and never completely replaced.
         let mut hs = other.scanning.clone().unwrap_or_default();
         for (host, progress) in self.scanning.clone().unwrap_or_default().iter() {
-            if *progress == 100 || *progress == -1 {
+            if progress.finished_tests() == progress.total_tests()
+                || progress.total_tests == ScanProgress::DeadHost as i32
+            {
                 hs.remove(host);
             } else {
-                hs.insert(host.to_string(), *progress);
+                hs.insert(host.to_string(), progress.clone());
             }
         }
         self.scanning = Some(hs);

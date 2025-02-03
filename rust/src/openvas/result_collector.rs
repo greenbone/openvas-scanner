@@ -10,9 +10,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::openvas::openvas_redis::{KbAccess, VtHelper};
 use crate::osp::{OspResultType, OspScanResult};
 use crate::storage::redis::RedisStorageResult;
+use crate::{
+    models::SingleHostScanInfo,
+    openvas::openvas_redis::{KbAccess, VtHelper},
+};
 
 /// Structure to hold the results retrieve from redis main kb
 #[derive(Default, Debug, Clone)]
@@ -30,7 +33,7 @@ pub struct Results {
     /// during the scan    
     pub count_dead: i64,
     /// Current hosts status
-    pub host_status: HashMap<String, i32>,
+    pub host_status: HashMap<String, SingleHostScanInfo>,
     /// The scan status
     pub scan_status: String,
 }
@@ -165,32 +168,38 @@ where
         }
         let mut new_dead = 0;
         let mut new_alive = 0;
-        let mut all_hosts: HashMap<String, i32> = HashMap::new();
+        let mut all_hosts: HashMap<String, SingleHostScanInfo> = HashMap::new();
         for res in redis_status {
             let mut fields = res.splitn(3, '/');
             let current_host = fields.next().expect("Valid status value");
             let launched = fields.next().expect("Valid status value");
             let total = fields.next().expect("Valid status value");
 
-            let host_progress: i32 = match i32::from_str(total) {
+            let total = match i32::from_str(total) {
                 // No plugins
                 Ok(0) => {
                     continue;
                 }
                 // Host Dead
                 Ok(-1) => ScanProgress::DeadHost as i32,
-                Ok(n) => ((f32::from_str(launched).expect("Integer") / n as f32) * 100.0) as i32,
+                Ok(n) => n,
                 _ => {
                     continue;
                 }
             };
 
+            let launched = i32::from_str(launched).expect("Integer");
+
+            let host_progress = ((launched as f32 / total as f32) * 100.0) as i32;
             if host_progress == -1 {
                 new_dead += 1;
             } else if host_progress == 100 {
                 new_alive += 1;
             }
-            all_hosts.insert(current_host.to_string(), host_progress);
+            all_hosts.insert(
+                current_host.to_string(),
+                SingleHostScanInfo::new(launched, total),
+            );
 
             tracing::debug!("Host {} has progress: {}", current_host, host_progress);
         }
@@ -225,6 +234,7 @@ mod tests {
 
     use crate::models::{self, Protocol, Result, ResultType};
     use crate::openvas::openvas_redis::FakeRedis;
+    use crate::openvas::result_collector::SingleHostScanInfo;
     use std::collections::HashMap;
 
     use super::ResultHelper;
@@ -346,11 +356,11 @@ mod tests {
         resh.process_status(status).unwrap();
 
         let mut r = HashMap::new();
-        r.insert("127.0.0.1".to_string(), 12);
-        r.insert("127.0.0.3".to_string(), 75);
-        r.insert("127.0.0.4".to_string(), 100);
-        r.insert("127.0.0.2".to_string(), -1);
-        r.insert("127.0.0.5".to_string(), -1);
+        r.insert("127.0.0.1".to_string(), SingleHostScanInfo::new(128, 1000));
+        r.insert("127.0.0.3".to_string(), SingleHostScanInfo::new(750, 1000));
+        r.insert("127.0.0.4".to_string(), SingleHostScanInfo::new(1000, 1000));
+        r.insert("127.0.0.2".to_string(), SingleHostScanInfo::new(0, -1));
+        r.insert("127.0.0.5".to_string(), SingleHostScanInfo::new(0, -1));
 
         assert_eq!(resh.results.as_ref().lock().unwrap().host_status, r);
         assert_eq!(resh.results.as_ref().lock().unwrap().count_alive, 1);
