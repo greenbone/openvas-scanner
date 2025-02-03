@@ -2,6 +2,7 @@ mod all_builtins;
 
 use all_builtins::ALL_BUILTINS;
 use regex::Regex;
+use scannerlib::models::{Scan, VT};
 use scannerlib::nasl::nasl_std_functions;
 use std::io::{self};
 use std::path::PathBuf;
@@ -17,8 +18,17 @@ use crate::CliError;
 
 #[derive(clap::Parser)]
 pub struct FilterArgs {
+    /// Path to the feed that should be read and filtered.
     feed_path: PathBuf,
-    output_file: PathBuf,
+    /// Output path: If present, a copy of the feed containing only
+    /// the runnable scripts will be copied to this directory. If
+    /// the directory does not exist, it will be created.
+    #[clap(short, long)]
+    output_path: Option<PathBuf>,
+    /// If present, a template scan json containing the OIDs of all
+    /// runnable scripts will be written to this path.
+    #[clap(short, long)]
+    scan_config: Option<PathBuf>,
 }
 
 struct Builtins {
@@ -61,21 +71,13 @@ impl Builtins {
     }
 }
 
+type Scripts = HashMap<ScriptPath, Script>;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Script {
     Runnable,
     NotRunnable,
     Dependencies(Vec<ScriptPath>),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ScriptPath(String);
-
-impl ScriptPath {
-    fn new(feed_path: &Path, path: &Path) -> Self {
-        let relative = pathdiff::diff_paths(path, feed_path).unwrap();
-        Self(relative.as_os_str().to_str().unwrap().to_string())
-    }
 }
 
 impl Script {
@@ -88,27 +90,57 @@ impl Script {
     }
 }
 
-struct FeedFilter {
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ScriptPath(String);
+
+impl ScriptPath {
+    fn new(feed_path: &Path, path: &Path) -> Self {
+        let relative = pathdiff::diff_paths(path, feed_path).unwrap();
+        Self(relative.as_os_str().to_str().unwrap().to_string())
+    }
+}
+
+struct ScriptReader {
     builtins: Builtins,
     feed_path: PathBuf,
-    output_path: PathBuf,
     script_dependencies_regex: Regex,
     include_regex: Regex,
 }
 
-impl FeedFilter {
-    fn new(feed_path: PathBuf, output_path: PathBuf) -> Self {
+impl ScriptReader {
+    fn new(feed_path: PathBuf) -> Scripts {
         let builtins = Builtins::unimplemented();
         let include_regex = Regex::new(r#"\binclude\("([^"]+)"\)"#).unwrap();
         let script_dependencies_regex =
             Regex::new(r#"\bscript_dependencies\("([^"]+)"\)"#).unwrap();
-        Self {
+        let mut reader = Self {
             builtins,
             feed_path,
-            output_path,
             script_dependencies_regex,
             include_regex,
+        };
+        let scripts = reader.read_scripts();
+        reader.builtins.print_counts();
+        scripts
+    }
+
+    fn read_scripts(&mut self) -> Scripts {
+        let mut scripts = HashMap::default();
+        for entry in WalkDir::new(&self.feed_path).into_iter() {
+            let entry = entry.unwrap();
+            if entry.file_type().is_file() {
+                let path = entry.path();
+                let script_path = ScriptPath::new(&self.feed_path, path);
+                if let Some(script) = self.script_from_path(path) {
+                    scripts.insert(script_path, script);
+                } else {
+                    // If a script cant be read due to non-utf8, we assume
+                    // its not runnable.
+                    scripts.insert(script_path, Script::NotRunnable);
+                }
+            }
         }
+        scripts
     }
 
     fn script_from_path(&mut self, path: &Path) -> Option<Script> {
@@ -160,88 +192,140 @@ impl FeedFilter {
         }
         dependencies
     }
+}
 
-    fn copy_feed(&self, resolved: HashMap<ScriptPath, Script>) -> Result<(), io::Error> {
-        fs::create_dir_all(&self.output_path)?;
-        for (path, script) in resolved {
-            if matches!(script, Script::Runnable) {
-                let src = self.feed_path.join(&path.0);
-                let dst = self.output_path.join(&path.0);
-                fs::create_dir_all(dst.parent().unwrap())?;
-                std::fs::copy(src, dst)?;
+pub struct RunnableScripts(Scripts);
+
+impl RunnableScripts {
+    fn new(unresolved: Scripts) -> Self {
+        let resolved = Self::resolve(unresolved);
+        Self(
+            resolved
+                .into_iter()
+                .filter(|(_, script)| matches!(script, Script::Runnable))
+                .collect(),
+        )
+    }
+
+    fn resolve(mut unresolved: Scripts) -> Scripts {
+        let mut resolved: Scripts = HashMap::default();
+        loop {
+            let (newly_resolved, newly_unresolved) = unresolved
+                .into_iter()
+                .partition::<HashMap<_, _>, _>(|(_, script)| {
+                    matches!(script, Script::Runnable | Script::NotRunnable)
+                });
+            unresolved = newly_unresolved;
+            let new_length = newly_resolved.len();
+            resolved.extend(newly_resolved.into_iter());
+            if unresolved.is_empty() {
+                return resolved;
+            }
+            if new_length == 0 {
+                panic!("Unresolvable.");
+            }
+            for v in unresolved.values_mut() {
+                let any_not_runnable = v
+                    .iter_dependencies()
+                    .any(|include| matches!(resolved.get(include), Some(Script::NotRunnable)));
+                if any_not_runnable {
+                    *v = Script::NotRunnable;
+                    continue;
+                }
+                let all_resolved = v
+                    .iter_dependencies()
+                    .all(|include| resolved.contains_key(include));
+                if !all_resolved {
+                    continue;
+                }
+                *v = Script::Runnable;
             }
         }
-        Ok(())
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (&ScriptPath, &Script)> {
+        self.0.iter()
     }
 }
 
-fn resolve_includes(mut unresolved: HashMap<ScriptPath, Script>) -> HashMap<ScriptPath, Script> {
-    let mut resolved: HashMap<ScriptPath, Script> = HashMap::default();
-    loop {
-        let (newly_resolved, newly_unresolved) = unresolved
-            .into_iter()
-            .partition::<HashMap<_, _>, _>(|(_, script)| {
-                matches!(script, Script::Runnable | Script::NotRunnable)
-            });
-        unresolved = newly_unresolved;
-        let new_length = newly_resolved.len();
-        resolved.extend(newly_resolved.into_iter());
-        if unresolved.is_empty() {
-            return resolved;
-        }
-        if new_length == 0 {
-            panic!("Unresolvable.");
-        }
-        for v in unresolved.values_mut() {
-            let any_not_runnable = v
-                .iter_dependencies()
-                .any(|include| matches!(resolved.get(include), Some(Script::NotRunnable)));
-            if any_not_runnable {
-                *v = Script::NotRunnable;
-                continue;
-            }
-            let all_resolved = v
-                .iter_dependencies()
-                .all(|include| resolved.contains_key(include));
-            if !all_resolved {
-                continue;
-            }
-            *v = Script::Runnable;
-        }
+fn read_oid(feed_path: &Path, path: &ScriptPath) -> Option<String> {
+    // We already read this file at this point, so it's utf8, so
+    // unwrapping feels like the correct choice.
+    let oid_regex = Regex::new(r#"\bscript_oid\("([^"]+)"\)"#).unwrap();
+    let contents = fs::read_to_string(feed_path.join(&path.0)).unwrap();
+    let mut captures = oid_regex.captures_iter(&contents);
+    captures
+        .next()
+        .and_then(|capture| capture.get(1))
+        .map(|match_| match_.as_str().to_string())
+}
+
+fn copy_feed(
+    runnable: &RunnableScripts,
+    feed_path: &Path,
+    output_path: &Path,
+) -> Result<(), io::Error> {
+    fs::create_dir_all(&output_path)?;
+    for (path, _) in runnable.iter() {
+        let src = feed_path.join(&path.0);
+        let dst = output_path.join(&path.0);
+        fs::create_dir_all(dst.parent().unwrap())?;
+        std::fs::copy(src, dst)?;
+    }
+    Ok(())
+}
+
+fn print_scripts(runnable: &RunnableScripts) {
+    for (path, _) in runnable.iter() {
+        println!("{:?}", path);
+    }
+}
+
+fn write_scan_config(
+    runnable: &RunnableScripts,
+    feed_path: &Path,
+    scan_config: &PathBuf,
+) -> Result<(), io::Error> {
+    let scan = get_scan_config(feed_path, runnable);
+    fs::write(scan_config, serde_json::to_string(&scan).unwrap())
+}
+
+fn get_scan_config(feed_path: &Path, runnable: &RunnableScripts) -> Scan {
+    let vts: Vec<_> = runnable
+        .iter()
+        .filter_map(|(path, _)| {
+            read_oid(feed_path, path).map(|oid| VT {
+                oid,
+                parameters: vec![],
+            })
+        })
+        .collect();
+    Scan {
+        vts,
+        ..Default::default()
     }
 }
 
 pub fn run(args: FilterArgs) -> Result<(), CliError> {
-    let mut filter = FeedFilter::new(args.feed_path.to_owned(), args.output_file.to_owned());
-    let mut scripts = HashMap::new();
-    for entry in WalkDir::new(&args.feed_path).into_iter() {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() {
-            let path = entry.path();
-            let script_path = ScriptPath::new(&args.feed_path, path);
-            if let Some(script) = filter.script_from_path(path) {
-                scripts.insert(script_path, script);
-            } else {
-                // If a script cant be read due to non-utf8, we assume
-                // its not runnable.
-                scripts.insert(script_path, Script::NotRunnable);
-            }
-        }
+    let scripts = ScriptReader::new(args.feed_path.to_owned());
+    let runnable = RunnableScripts::new(scripts);
+    if let Some(ref output_path) = args.output_path {
+        copy_feed(&runnable, &args.feed_path, &output_path)?;
+    } else {
+        print_scripts(&runnable);
     }
-    let resolved = resolve_includes(scripts);
-    filter.copy_feed(resolved)?;
-    filter.builtins.print_counts();
+    if let Some(ref scan_config) = args.scan_config {
+        write_scan_config(&runnable, &args.feed_path, scan_config)?;
+    }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use crate::feed::filter::{RunnableScripts, ScriptPath};
 
-    use crate::feed::filter::{resolve_includes, ScriptPath};
-
-    use super::Script;
     use super::Script::*;
+    use super::{Script, Scripts};
 
     fn path(path_str: &str) -> ScriptPath {
         ScriptPath(path_str.to_string())
@@ -251,7 +335,7 @@ mod tests {
         Dependencies(paths.into_iter().map(|p| path(p)).collect())
     }
 
-    fn make_scripts(scripts: &[(&str, Script)]) -> HashMap<ScriptPath, Script> {
+    fn make_scripts(scripts: &[(&str, Script)]) -> Scripts {
         scripts
             .into_iter()
             .map(|(name, script)| (ScriptPath(name.to_string()), script.clone()))
@@ -266,7 +350,7 @@ mod tests {
             ("c", NotRunnable),
             ("d", includes(&["a", "b", "c"])),
         ];
-        let resolved = resolve_includes(make_scripts(&scripts));
+        let resolved = RunnableScripts::resolve(make_scripts(&scripts));
         assert_eq!(resolved[&path("a")], Runnable);
         assert_eq!(resolved[&path("b")], Runnable);
         assert_eq!(resolved[&path("c")], NotRunnable);
@@ -285,7 +369,7 @@ mod tests {
             ("c2", Dependencies(vec![path("b2")])),
             ("d2", Dependencies(vec![path("c2")])),
         ];
-        let resolved = resolve_includes(make_scripts(&scripts));
+        let resolved = RunnableScripts::resolve(make_scripts(&scripts));
         assert_eq!(resolved[&path("a1")], Runnable);
         assert_eq!(resolved[&path("b1")], Runnable);
         assert_eq!(resolved[&path("c1")], Runnable);
