@@ -34,11 +34,15 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libpopt0 \
   libcurl4-gnutls-dev \
   libcurl4 \
-  libcgreen1-dev \
+  # libcgreen1-dev \
   libhiredis-dev \
   libkrb5-dev \
   && rm -rf /var/lib/apt/lists/*
 
+RUN curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.3.tar.gz -k
+RUN tar -xzf cgreen.tar.gz && cd cgreen-1.6.3
+RUN make install
+RUN ldconfig
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
