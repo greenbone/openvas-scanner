@@ -86,11 +86,11 @@ pub fn get_optional_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     position: usize,
 ) -> Result<Option<T>, FnError> {
     let via_position = get_optional_positional_arg::<T>(register, position)?;
-    if let Some(via_position) = via_position {
+    match via_position { Some(via_position) => {
         Ok(Some(via_position))
-    } else {
+    } _ => {
         get_optional_named_arg(register, name)
-    }
+    }}
 }
 
 /// A convenience function to obtain an argument
@@ -101,11 +101,11 @@ pub fn get_maybe_named_arg<'a, T: FromNaslValue<'a>>(
     position: usize,
 ) -> Result<T, FnError> {
     let via_position = get_optional_positional_arg(register, position)?;
-    if let Some(via_position) = via_position {
+    match via_position { Some(via_position) => {
         Ok(via_position)
-    } else {
+    } _ => {
         get_named_arg(register, name)
-    }
+    }}
 }
 
 /// Check that named and maybe_named arguments account for

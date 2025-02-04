@@ -91,7 +91,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         // If this is changed, make sure to uphold the scheduling requirements in the
         // new implementation.
         stream::unfold(data, move |mut data| async move {
-            if let Some((stage, vt, param, host, scan_id)) = data.next() {
+            match data.next() { Some((stage, vt, param, host, scan_id)) => {
                 let result = VTRunner::<Stack>::run(
                     self.storage,
                     self.loader,
@@ -104,9 +104,9 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                 )
                 .await;
                 Some((result, data))
-            } else {
+            } _ => {
                 None
-            }
+            }}
         })
     }
 }

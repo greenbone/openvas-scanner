@@ -100,7 +100,7 @@ impl FromStr for ACT {
 }
 
 macro_rules! make_str_lookup_enum {
-    ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
+    ($enum_name:ident: $doc:expr_2021 => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd, Hash)]
         #[cfg_attr(feature = "serde_support",
@@ -215,7 +215,7 @@ make_str_lookup_enum! {
 
 macro_rules! make_nvt_fields {
 
-    ($($doc:expr => $name:ident $( ($($value:ident$(<$st:ident>)?),*) )?),* ) => {
+    ($($doc:expr_2021 => $name:ident $( ($($value:ident$(<$st:ident>)?),*) )?),* ) => {
         /// Fields are used to represent a NVT.
         ///
         /// NVTs are complex metadata about a plugin.

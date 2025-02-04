@@ -292,13 +292,13 @@ where
     }
 
     pub async fn async_verify(mut self) {
-        if let Err(err) = self.verify().await {
+        match self.verify().await { Err(err) => {
             // Drop first so we don't call the destructor, which would panic.
             std::mem::forget(self);
             panic!("{}", err)
-        } else {
+        } _ => {
             std::mem::forget(self)
-        }
+        }}
     }
 
     fn check_result(
@@ -379,9 +379,9 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else if let Err(err) = futures::executor::block_on(self.verify()) {
+        } else { match futures::executor::block_on(self.verify()) { Err(err) => {
             panic!("{}", err)
-        }
+        } _ => {}}}
     }
 }
 
@@ -403,7 +403,7 @@ pub fn check_code_result(code: &str, expected: impl ToNaslResult) {
 /// perform a check on the line of code using a new `TestBuilder`.
 #[macro_export]
 macro_rules! check_err_matches {
-    ($t: ident, $code: expr, $pat: pat $(,)?) => {
+    ($t: ident, $code: expr_2021, $pat: pat $(,)?) => {
         $t.check(
             $code,
             |e| {
@@ -427,7 +427,7 @@ macro_rules! check_err_matches {
             Some(stringify!($pat)),
         );
     };
-    ($code: expr, $pat: pat $(,)?) => {
+    ($code: expr_2021, $pat: pat $(,)?) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
         check_err_matches!(t, $code, $pat);
     };
@@ -437,7 +437,7 @@ macro_rules! check_err_matches {
 /// and that the inner value matches a pattern.
 #[macro_export]
 macro_rules! check_code_result_matches {
-    ($code: expr, $pat: pat) => {
+    ($code: expr_2021, $pat: pat) => {
         let mut t = $crate::nasl::test_utils::TestBuilder::default();
         t.check($code, |val| matches!(val, Ok($pat)), Some(stringify!($pat)));
     };

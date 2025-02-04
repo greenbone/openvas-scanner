@@ -166,7 +166,7 @@ impl FunctionNameMatcher<'_> {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
-                if let crate::nasl::syntax::TokenCategory::Identifier(
+                if let &crate::nasl::syntax::TokenCategory::Identifier(
                     crate::nasl::syntax::IdentifierType::Undefined(ref x),
                 ) = s.start().category()
                 {
@@ -176,7 +176,7 @@ impl FunctionNameMatcher<'_> {
                 }
             }
             StatementKind::FunctionDeclaration(id, ..) => {
-                if let crate::nasl::syntax::TokenCategory::Identifier(
+                if let &crate::nasl::syntax::TokenCategory::Identifier(
                     crate::nasl::syntax::IdentifierType::Undefined(ref x),
                 ) = id.category()
                 {
@@ -764,7 +764,7 @@ mod functions {
     use super::*;
 
     macro_rules! parameter_check {
-        ($name:expr, $code:expr, $params:expr, $expected:expr) => {{
+        ($name:expr_2021, $code:expr_2021, $params:expr_2021, $expected:expr_2021) => {{
             let name = $name.to_string();
             let replaces = [ReplaceCommand {
                 find: Find::FunctionByName(name),
@@ -774,7 +774,7 @@ mod functions {
 
             assert_eq!(&result, $expected);
         }};
-        ($code:expr, $params:expr, $expected:expr) => {{
+        ($code:expr_2021, $params:expr_2021, $expected:expr_2021) => {{
             if let Some((name, _)) = $code.rsplit_once("(") {
                 let name = name.replace("function ", "");
                 parameter_check!(name, $code, $params, $expected)

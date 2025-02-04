@@ -205,7 +205,7 @@ fn aes256_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 }
 
 macro_rules! ccm_call_typed {
-    ($(($t1s: expr, $t1: ty) => $(($t2s: expr, $t2: ty)),*);*) => {
+    ($(($t1s: expr_2021, $t1: ty) => $(($t2s: expr_2021, $t2: ty)),*);*) => {
         fn ccm_typed<D>(tag_size: usize, iv_size: usize, crypt: Crypt, key: &[u8], nonce: &[u8], data: &[u8], aad: &[u8]) -> Result<Result<Vec<u8>, aError>, FnError>
         where D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit
         {

@@ -9,7 +9,7 @@ mod tests {
     use crate::nasl::test_prelude::*;
 
     macro_rules! make_dict {
-        ($($key:expr => $val:expr),*) => {
+        ($($key:expr_2021 => $val:expr_2021),*) => {
             {
                 #[allow(unused_mut)]
                 let mut result: HashMap<String, NaslValue> = HashMap::new();

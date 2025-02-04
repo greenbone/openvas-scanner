@@ -280,12 +280,13 @@ where
 {
     let result = quick_xml::de::from_reader::<R, ScanConfig>(sc)
         .map_err(|e| Error::ParseError(format!("Error parsing vts: {}", e)))?;
+    let num_entries = result.preferences.preference.len();
     tracing::debug!(
         "transforming vts {} {} ({}) with {} entries.",
         &result.id,
         result.name.as_deref().unwrap_or(""),
         result.comment.as_deref().unwrap_or(""),
-        &result.preferences.preference.len()
+        num_entries,
     );
     let preference_lookup: HashMap<String, Vec<Parameter>> = result
         .preferences

@@ -84,7 +84,7 @@ where
     }
     tokio::spawn(crate::controller::feed::fetch(Arc::clone(&controller)));
 
-    if let Some(tls_config) = tls_config {
+    match tls_config { Some(tls_config) => {
         use hyper::server::conn::http2::Builder;
         tracing::info!("listening on https://{}", addr);
 
@@ -115,7 +115,7 @@ where
                 }
             });
         }
-    } else {
+    } _ => {
         use hyper::server::conn::http1::Builder;
         tracing::info!("listening on http://{}", addr);
         loop {
@@ -132,7 +132,7 @@ where
                 }
             });
         }
-    }
+    }}
 }
 
 #[cfg(test)]

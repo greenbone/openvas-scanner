@@ -85,7 +85,7 @@ impl SyntaxError {
 /// ```
 #[macro_export]
 macro_rules! syntax_error {
-    ($kind:expr) => {{
+    ($kind:expr_2021) => {{
         use $crate::nasl::syntax::SyntaxError;
         SyntaxError::new($kind, line!(), file!().to_string())
     }};
@@ -107,7 +107,7 @@ macro_rules! syntax_error {
 /// ```
 #[macro_export]
 macro_rules! unexpected_token {
-    ($token:expr) => {{
+    ($token:expr_2021) => {{
         use $crate::nasl::syntax::ErrorKind;
         use $crate::syntax_error;
         syntax_error!(ErrorKind::UnexpectedToken($token))
@@ -126,7 +126,7 @@ macro_rules! unexpected_token {
 /// ```
 #[macro_export]
 macro_rules! unexpected_statement {
-    ($statement:expr) => {{
+    ($statement:expr_2021) => {{
         use $crate::nasl::syntax::ErrorKind;
         use $crate::syntax_error;
         syntax_error!(ErrorKind::MissingSemicolon($statement))
@@ -145,7 +145,7 @@ macro_rules! unexpected_statement {
 /// ```
 #[macro_export]
 macro_rules! unclosed_statement {
-    ($statement:expr) => {{
+    ($statement:expr_2021) => {{
         use $crate::nasl::syntax::ErrorKind;
         use $crate::syntax_error;
 
@@ -169,7 +169,7 @@ macro_rules! unclosed_statement {
 /// ```
 #[macro_export]
 macro_rules! unclosed_token {
-    ($token:expr) => {{
+    ($token:expr_2021) => {{
         use $crate::nasl::syntax::ErrorKind;
         use $crate::syntax_error;
 
@@ -188,7 +188,7 @@ macro_rules! unclosed_token {
 /// ```
 #[macro_export]
 macro_rules! unexpected_end {
-    ($reason:expr) => {{
+    ($reason:expr_2021) => {{
         use $crate::nasl::syntax::ErrorKind;
         use $crate::syntax_error;
         syntax_error!(ErrorKind::EoF)
@@ -208,7 +208,7 @@ macro_rules! unexpected_end {
 /// ```
 #[macro_export]
 macro_rules! max_recursion {
-    ($reason:expr) => {{
+    ($reason:expr_2021) => {{
         use $crate::nasl::syntax::ErrorKind;
         use $crate::syntax_error;
         syntax_error!(ErrorKind::MaxRecursionDepth($reason))
