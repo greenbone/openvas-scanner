@@ -4,7 +4,7 @@
 
 use crate::nasl::interpreter::InterpretError;
 use crate::nasl::syntax::{LoadError, SyntaxError};
-use crate::storage::StorageError;
+use crate::storage::error::StorageError;
 use thiserror::Error;
 
 use crate::feed::{verify, VerifyError};

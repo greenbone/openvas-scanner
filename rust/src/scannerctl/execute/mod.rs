@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::sync::Arc;
 use std::{fs, path::PathBuf};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
@@ -11,6 +12,7 @@ use scannerlib::models::Scan;
 use scannerlib::nasl::{nasl_std_functions, FSPluginLoader};
 use scannerlib::scanner::ScanRunner;
 use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
+use scannerlib::storage::inmemory::InMemoryStorage;
 use tracing::{info, warn, warn_span};
 
 use crate::{interpret, CliError, CliErrorKind, Db};
@@ -56,7 +58,7 @@ async fn scan(args: &clap::ArgMatches) -> Result<(), CliError> {
         .get_one::<PathBuf>("path")
         .expect("A feed path is required to run a scan")
         .clone();
-    let storage = scannerlib::storage::DefaultDispatcher::new();
+    let storage = Arc::new(InMemoryStorage::new());
     info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(feed);

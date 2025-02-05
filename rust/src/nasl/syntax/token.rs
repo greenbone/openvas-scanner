@@ -10,7 +10,7 @@ use std::ops::Range;
 use serde::{Deserialize, Serialize};
 
 use super::cursor::Cursor;
-use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
+use crate::{nasl::interpreter::InterpretError, storage::items::nvt::ACT};
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -12,8 +12,7 @@ use super::{
 };
 use crate::function_set;
 use crate::nasl::utils::{Context, FnError};
-use crate::storage::{types::Primitive, Field, Kb};
-use chrono::format;
+use crate::storage::items::kb::{KbItem, KbKey};
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
@@ -138,13 +137,9 @@ fn islocalnet(context: &Context) -> Result<bool, SocketError> {
 fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Result<(), FnError> {
     let protocol = proto.unwrap_or("tcp");
 
-    context.dispatcher().dispatch(
-        context.key(),
-        Field::KB(Kb {
-            key: format!("Port/{}/{}", protocol, port.0),
-            value: Primitive::Number(1),
-            expire: None,
-        }),
+    context.set_single_kb_item(
+        KbKey::Port(protocol.to_string(), port.0.to_string()),
+        KbItem::Number(1),
     )?;
 
     Ok(())
@@ -177,7 +172,7 @@ fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<Na
         };
         NaslValue::String(transport_str)
     } else {
-        NaslValue::Number(transport as i64)
+        NaslValue::Number(transport)
     };
 
     Ok(ret)

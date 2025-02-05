@@ -4,7 +4,7 @@
 
 use std::{fmt::Display, net::IpAddr};
 
-use crate::nasl::prelude::*;
+use crate::{nasl::prelude::*, storage::items::kb::KbKey};
 
 #[allow(clippy::module_inception)]
 pub mod network;
@@ -77,7 +77,7 @@ impl Display for OpenvasEncaps {
 }
 
 pub fn get_retry(context: &Context) -> u8 {
-    if let Ok(val) = context.get_single_kb_item("timeout_retry") {
+    if let Ok(val) = context.get_single_kb_item(&KbKey::TimeoutRetry) {
         match val {
             NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
             NaslValue::Number(val) => {
