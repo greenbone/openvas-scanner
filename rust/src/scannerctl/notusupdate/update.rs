@@ -10,7 +10,7 @@ use scannerlib::feed;
 use scannerlib::models;
 use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
-use scannerlib::storage::{ContextKey, Dispatcher, Field};
+use scannerlib::storage::{ContextKey, Dispatcher, Content};
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
@@ -60,7 +60,7 @@ where
         for adv in advisories.advisories {
             let _ = storage.dispatch(
                 &ContextKey::FileName(filename.to_owned()),
-                Field::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
+                Content::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
                     adv,
                     family: advisories.family.clone(),
                     filename: filename.to_owned(),
@@ -70,7 +70,7 @@ where
     }
     let _ = storage.dispatch(
         &ContextKey::FileName("notuscache".to_string()),
-        Field::NotusAdvisory(Box::new(None)),
+        Content::NotusAdvisory(Box::new(None)),
     );
 
     Ok(())

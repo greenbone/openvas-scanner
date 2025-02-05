@@ -7,7 +7,7 @@ use std::{collections::HashSet, sync::RwLock};
 use super::*;
 use scannerlib::{
     models, notus,
-    storage::{item::Nvt, ContextKey, DefaultDispatcher, StorageError},
+    storage::{inmemory::InMemoryStorage, item::Nvt, ContextKey, StorageError},
 };
 use tokio::task::JoinSet;
 
@@ -28,7 +28,7 @@ pub struct Storage<E> {
     scans: Arc<RwLock<HashMap<String, Progress>>>,
     hash: Arc<RwLock<Vec<FeedHash>>>,
     client_id: Arc<RwLock<Vec<(ClientHash, String)>>>,
-    underlying: Arc<DefaultDispatcher>,
+    underlying: Arc<InMemoryStorage>,
     crypter: Arc<E>,
     feed_version: Arc<RwLock<String>>,
 }
@@ -43,7 +43,7 @@ where
             hash: RwLock::new(feeds).into(),
             client_id: RwLock::new(vec![]).into(),
             crypter: crypter.into(),
-            underlying: DefaultDispatcher::default().into(),
+            underlying: InMemoryStorage::default().into(),
             feed_version: Arc::new(RwLock::new(String::new())),
         }
     }
@@ -383,7 +383,7 @@ impl<C> super::ResultHandler for Storage<C>
 where
     C: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<InMemoryStorage> {
         &self.underlying
     }
 

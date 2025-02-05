@@ -7,13 +7,14 @@ use std::{path::PathBuf, sync::Arc};
 use async_trait::async_trait;
 use scannerlib::models::{self, Scan, Status, VulnerabilityData};
 use scannerlib::nasl::FSPluginLoader;
+use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::item::Nvt;
 use scannerlib::storage::redis::{
-    self, CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR,
+    self, RedisCtx, RedisGetNvt, RedisStorage, RedisWrapper, FEEDUPDATE_SELECTOR,
     NOTUSUPDATE_SELECTOR,
 };
-use scannerlib::storage::{item::PerItemDispatcher, Dispatcher, Field};
-use scannerlib::storage::{ContextKey, DefaultDispatcher, StorageError};
+use scannerlib::storage::{item::CacheDispatcher, Dispatcher, Content};
+use scannerlib::storage::{ContextKey, StorageError};
 use scannerlib::{
     feed,
     notus::{AdvisoryLoader, HashsumAdvisoryLoader},
@@ -51,9 +52,9 @@ impl<T> Storage<T> {
             let loader = FSPluginLoader::new(notus_feed_path);
             let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
 
-            let redis_cache: CacheDispatcher<RedisCtx> =
-                CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
-            let store = PerItemDispatcher::new(redis_cache);
+            let redis_cache: RedisStorage<RedisCtx> =
+                RedisStorage::init(&url, NOTUSUPDATE_SELECTOR)?;
+            let store = CacheDispatcher::new(redis_cache);
             for filename in advisories_files.get_advisories()?.iter() {
                 let advisories = advisories_files.load_advisory(filename)?;
 
@@ -65,11 +66,11 @@ impl<T> Storage<T> {
                     };
                     store.dispatch(
                         &Default::default(),
-                        Field::NotusAdvisory(Box::new(Some(data))),
+                        Content::NotusAdvisory(Box::new(Some(data))),
                     )?;
                 }
             }
-            store.dispatch(&Default::default(), Field::NotusAdvisory(Box::new(None)))?;
+            store.dispatch(&Default::default(), Content::NotusAdvisory(Box::new(None)))?;
             tracing::debug!("finished notus feed update");
             Ok(())
         })
@@ -87,9 +88,9 @@ impl<T> Storage<T> {
         let loader = FSPluginLoader::new(nasl_feed_path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
-        let redis_cache: CacheDispatcher<RedisCtx> =
-            redis::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
-        let store = PerItemDispatcher::new(redis_cache);
+        let redis_cache: RedisStorage<RedisCtx> =
+            redis::RedisStorage::init(&url, FEEDUPDATE_SELECTOR)?;
+        let store = CacheDispatcher::new(redis_cache);
         let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
         if !fu.feed_is_outdated(current_feed).await.unwrap() {
             return Ok(());
@@ -359,7 +360,7 @@ impl<S> super::ResultHandler for Storage<S>
 where
     S: super::ResultHandler,
 {
-    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<InMemoryStorage> {
         self.underlying.underlying_storage()
     }
 

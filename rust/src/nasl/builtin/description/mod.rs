@@ -2,14 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::str::FromStr;
-
 use crate::nasl::prelude::*;
-
-use crate::storage::{
-    item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
-    ContextKey, Field,
-};
 
 use crate::nasl::utils::get_named_parameter;
 

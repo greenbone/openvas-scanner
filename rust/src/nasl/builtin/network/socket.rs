@@ -400,14 +400,21 @@ impl NaslSockets {
                 _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport)),
             },
         };
-        if tls.is_some() {
-            let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
-        }
-        Ok(
+        let tls_bool = tls.is_some();
+        if let Some(connection) =
             TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
                 .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
-                .ok(),
-        )
+                .ok()
+        {
+            if tls_bool {
+                let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
+            } else {
+                let _ = context.set_port_transport(port, OpenvasEncaps::Ip as usize);
+            }
+            Ok(Some(connection))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Open a TCP socket to the target host.

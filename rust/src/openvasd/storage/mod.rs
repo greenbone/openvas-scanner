@@ -9,8 +9,8 @@ pub use scannerlib::storage::Storage as NaslStorage;
 use scannerlib::{
     models::{self, Scan, Status, VulnerabilityData},
     storage::{
-        item::Nvt, ContextKey, DefaultDispatcher, Dispatcher, Field, FieldKeyResult, Kb, Remover,
-        Retrieve, Retriever, StorageError,
+        inmemory::InMemoryStorage, item::Nvt, ContextKey, Dispatcher, Content, StorageResult,
+        KbItem, Remover, StorageItem, Retriever, StorageError,
     },
 };
 
@@ -365,7 +365,7 @@ pub trait FromConfigAndFeeds: ResultHandler + Storage + Sized {
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>;
 }
 
-async fn update_notus_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<(), Error> {
+async fn update_notus_feed(p: PathBuf, store: Arc<InMemoryStorage>) -> Result<(), Error> {
     let notus_advisories_path = p;
     store.clean_advisories()?;
 
@@ -385,7 +385,7 @@ async fn update_notus_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<
 
                 store.as_dispatcher().dispatch(
                     &ContextKey::FileName(filename.to_owned()),
-                    Field::NotusAdvisory(Some(data).into()),
+                    Content::NotusAdvisory(Some(data).into()),
                 )?;
             }
         }
@@ -396,7 +396,7 @@ async fn update_notus_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<
     .expect("notus handler to be executed.")
 }
 
-async fn update_nasl_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<(), Error> {
+async fn update_nasl_feed(p: PathBuf, store: Arc<InMemoryStorage>) -> Result<(), Error> {
     let nasl_feed_path = p;
     store.as_ref().clean_vts()?;
 
@@ -412,7 +412,7 @@ async fn update_nasl_feed(p: PathBuf, store: Arc<DefaultDispatcher>) -> Result<(
 }
 
 pub trait ResultHandler {
-    fn underlying_storage(&self) -> &Arc<DefaultDispatcher>;
+    fn underlying_storage(&self) -> &Arc<InMemoryStorage>;
     fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
     where
         E: From<StorageError>;
@@ -446,7 +446,7 @@ impl<T> ResultHandler for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
-    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<InMemoryStorage> {
         self.0.underlying_storage()
     }
     fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
@@ -475,8 +475,8 @@ where
     fn retrieve(
         &self,
         key: &ContextKey,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        scope: StorageItem,
+    ) -> Result<Box<dyn Iterator<Item = Content>>, StorageError> {
         // Although somebody may try to get a result through the Storage trait it is very
         // unlikely as this is a openvasd specific implementation and the results are fetched though
         // `get_results`. If that changes we need to:
@@ -491,17 +491,17 @@ where
     fn retrieve_pattern(
         &self,
         key: &ContextKey,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
+        scope: StorageItem,
+    ) -> Result<Box<dyn Iterator<Item = Content>>, StorageError> {
         self.underlying_storage().retrieve_pattern(key, scope)
     }
 
-    fn retrieve_by_field(&self, field: Field, scope: Retrieve) -> FieldKeyResult {
+    fn retrieve_by_field(&self, field: Content, scope: StorageItem) -> StorageResult {
         // We should never try to return results without an ID
         self.underlying_storage().retrieve_by_field(field, scope)
     }
 
-    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
+    fn retrieve_by_fields(&self, field: Vec<Content>, scope: StorageItem) -> StorageResult {
         // We should never try to return results without an ID
         self.underlying_storage().retrieve_by_fields(field, scope)
     }
@@ -511,9 +511,9 @@ impl<T> Dispatcher for UserNASLStorageForKBandVT<T>
 where
     T: Storage + ResultHandler + Sync + Send,
 {
-    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
+    fn dispatch(&self, key: &ContextKey, scope: Content) -> Result<(), StorageError> {
         match scope {
-            Field::Result(result) => {
+            Content::Result(result) => {
                 // we may already run in an specialized thread therefore we use current thread.
                 self.handle_result(key, *result)
             }
@@ -528,7 +528,7 @@ where
         self.underlying_storage().on_exit(key)
     }
 
-    fn dispatch_replace(&self, _: &ContextKey, _scope: Field) -> Result<(), StorageError> {
+    fn dispatch_replace(&self, _: &ContextKey, _scope: Content) -> Result<(), StorageError> {
         Ok(())
     }
 }
@@ -541,7 +541,7 @@ where
         &self,
         key: &ContextKey,
         kb_key: Option<String>,
-    ) -> Result<Option<Vec<Kb>>, StorageError> {
+    ) -> Result<Option<Vec<KbItem>>, StorageError> {
         self.underlying_storage().remove_kb(key, kb_key)
     }
 

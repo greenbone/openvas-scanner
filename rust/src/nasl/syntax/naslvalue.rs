@@ -4,9 +4,9 @@
 
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
-use crate::storage::types::Primitive;
+use crate::storage::items::{kb::KbItem, nvt::ACT};
 
-use super::{IdentifierType, Token, TokenCategory, ACT};
+use super::{IdentifierType, Token, TokenCategory};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -56,8 +56,8 @@ pub enum NaslValue {
 
 impl NaslValue {
     /// Transform NASLValue to storage::types::Primitive
-    pub fn as_primitive(self) -> Primitive {
-        use Primitive::*;
+    pub fn as_primitive(self) -> KbItem {
+        use KbItem::*;
         match self {
             Self::String(s) => String(s),
             Self::Data(x) => Data(x),
@@ -302,9 +302,9 @@ impl From<NaslValue> for Vec<NaslValue> {
     }
 }
 
-impl From<Primitive> for NaslValue {
-    fn from(value: Primitive) -> Self {
-        use Primitive::*;
+impl From<KbItem> for NaslValue {
+    fn from(value: KbItem) -> Self {
+        use KbItem::*;
         match value {
             String(x) => Self::String(x),
             Data(x) => Self::Data(x),

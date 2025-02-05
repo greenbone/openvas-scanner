@@ -8,7 +8,6 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnBehavior};
 use scannerlib::nasl::{
     interpreter::InterpretErrorKind,
     prelude::*,
@@ -16,15 +15,19 @@ use scannerlib::nasl::{
     Loader, NoOpLoader,
 };
 use scannerlib::storage::redis::FEEDUPDATE_SELECTOR;
-use scannerlib::storage::{ContextKey, DefaultDispatcher};
+use scannerlib::storage::ContextKey;
 use scannerlib::{
     feed,
     storage::{
-        item::{NVTField, Nvt, PerItemDispatcher},
+        item::{NVTField, Nvt, CacheDispatcher},
         redis, Dispatcher,
-        Field::NVT,
-        Retrieve, Storage,
+        Content::NVT,
+        StorageItem, Storage,
     },
+};
+use scannerlib::{
+    nasl::{interpreter::CodeInterpreter, utils::error::ReturnBehavior},
+    storage::inmemory::InMemoryStorage,
 };
 
 use crate::{CliError, CliErrorKind, Db};
@@ -42,10 +45,10 @@ struct RunBuilder<L, S> {
     scan_id: String,
 }
 
-impl Default for RunBuilder<NoOpLoader, DefaultDispatcher> {
+impl Default for RunBuilder<NoOpLoader, InMemoryStorage> {
     fn default() -> Self {
         Self {
-            storage: DefaultDispatcher::default(),
+            storage: InMemoryStorage::default(),
             loader: NoOpLoader::default(),
             target: String::default(),
             scan_id: "scannerctl".to_string(),
@@ -107,7 +110,7 @@ where
                 let iter = self.context_builder.storage.retrieve_by_field(
                     NVT(NVTField::Oid(script.into())),
                     // TODO: maybe NvtField::FileName would be better?
-                    Retrieve::NVT(None),
+                    StorageItem::NVT(None),
                 )?;
                 let results: Option<String> = iter
                     .filter_map(|(k, _)| match k {
@@ -164,8 +167,8 @@ where
     }
 }
 
-fn create_redis_storage(url: &str) -> PerItemDispatcher<redis::CacheDispatcher<redis::RedisCtx>> {
-    redis::CacheDispatcher::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
+fn create_redis_storage(url: &str) -> CacheDispatcher<redis::RedisStorage<redis::RedisCtx>> {
+    redis::RedisStorage::as_dispatcher(url, FEEDUPDATE_SELECTOR).unwrap()
 }
 
 async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
@@ -182,7 +185,7 @@ where
     Ok(())
 }
 
-fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), CliError> {
+fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliError> {
     tracing::info!(path=?path, "loading feed via json. This may take a while.");
     let buf = fs::read_to_string(path).map_err(|e| CliError::load_error(e, path))?;
     let vts: Vec<Nvt> = serde_json::from_str(&buf)?;
@@ -222,7 +225,7 @@ pub async fn run(
             builder.storage(storage).build().run(script).await
         }
         (Db::InMemory, Some(path)) => {
-            let storage = DefaultDispatcher::new();
+            let storage = InMemoryStorage::new();
             let guessed_feed_json = path.join("feed.json");
             let loader = FSPluginLoader::new(path.clone());
             if guessed_feed_json.exists() {

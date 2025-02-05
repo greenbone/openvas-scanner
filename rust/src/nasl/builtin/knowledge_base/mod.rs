@@ -12,7 +12,7 @@ use crate::function_set;
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::error::FnError;
 use crate::nasl::utils::Context;
-use crate::storage::{Field, Kb, Retrieve};
+use crate::storage::items::kb::KbKey;
 use nasl_function_proc_macro::nasl_function;
 
 #[derive(Debug, Error)]
@@ -31,75 +31,28 @@ fn set_kb_item(
     name: NaslValue,
     value: NaslValue,
     expires: Option<u64>,
-) -> Result<NaslValue, FnError> {
-    let expires = expires.map(|seconds| {
-        let start = SystemTime::now();
-        match start.duration_since(UNIX_EPOCH) {
-            Ok(x) => x.as_secs() + seconds,
-            Err(_) => 0,
-        }
-    });
-    c.dispatcher()
-        .dispatch(
-            c.key(),
-            Field::KB(Kb {
-                key: name.to_string(),
-                value: value.clone().as_primitive(),
-                expire: expires,
-            }),
-        )
-        .map(|_| NaslValue::Null)
-        .map_err(|e| e.into())
+) -> Result<(), FnError> {
+    c.set_kb_item(KbKey::Custom(name.to_string()), value)
 }
 
 /// NASL function to get a knowledge base
 #[nasl_function]
 fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FnError> {
-    c.retriever()
-        .retrieve(c.key(), Retrieve::KB(key.to_string()))
-        .map(|r| {
-            r.into_iter()
-                .filter_map(|x| match x {
-                    Field::NVT(_) | Field::NotusAdvisory(_) | Field::Result(_) => None,
-                    Field::KB(kb) => Some(kb.value.into()),
-                })
-                .collect::<Vec<_>>()
-        })
+    c.get_kb_item(&KbKey::Custom(key.to_string()))
         .map(NaslValue::Fork)
-        .map_err(|e| e.into())
 }
 
 /// NASL function to replace a kb list
 #[nasl_function(named(name, value))]
-fn replace_kb_item(c: &Context, name: NaslValue, value: NaslValue) -> Result<NaslValue, FnError> {
-    c.dispatcher()
-        .dispatch_replace(
-            c.key(),
-            Field::KB(Kb {
-                key: name.to_string(),
-                value: value.clone().as_primitive(),
-                expire: None,
-            }),
-        )
-        .map(|_| NaslValue::Null)
-        .map_err(|e| e.into())
+fn replace_kb_item(c: &Context, name: NaslValue, value: NaslValue) -> Result<(), FnError> {
+    c.set_single_kb_item(KbKey::Custom(name.to_string()), value)
 }
 
 /// NASL function to retrieve an item in a KB.
 #[nasl_function]
 fn get_kb_list(c: &Context, key: NaslValue) -> Result<NaslValue, FnError> {
-    c.retriever()
-        .retrieve(c.key(), Retrieve::KB(key.to_string()))
-        .map(|r| {
-            r.into_iter()
-                .filter_map(|x| match x {
-                    Field::NVT(_) | Field::NotusAdvisory(_) | Field::Result(_) => None,
-                    Field::KB(kb) => Some(kb.value.into()),
-                })
-                .collect::<Vec<_>>()
-        })
+    c.get_kb_item(&KbKey::Custom(key.to_string()))
         .map(NaslValue::Array)
-        .map_err(|e| e.into())
 }
 
 pub struct KnowledgeBase;

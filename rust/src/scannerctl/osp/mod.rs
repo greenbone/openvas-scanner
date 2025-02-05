@@ -7,13 +7,14 @@ use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use clap::{arg, value_parser, Arg, ArgAction, Command};
 use scannerlib::models::{self, Parameter, Scan, VT};
-use scannerlib::storage::{self, DefaultDispatcher, StorageError};
+use scannerlib::storage::inmemory::InMemoryStorage;
+use scannerlib::storage::{self, StorageError};
 use start_scan::{StartScan, VtSelection};
 
 use crate::{CliError, CliErrorKind};
 use scannerlib::storage::item::{NVTField, NVTKey};
-use scannerlib::storage::Field;
-use scannerlib::storage::Retrieve;
+use scannerlib::storage::Content;
+use scannerlib::storage::StorageItem;
 mod start_scan;
 
 pub fn extend_args(cmd: Command) -> Command {
@@ -88,13 +89,13 @@ where
     // we iterate here to return an error when storage is behaving in an unexpected fashion
     for family in gvts {
         let fvts: Vec<VT> = match feed.retry_retrieve_by_field(
-            Field::NVT(NVTField::Family(family.to_string())),
-            Retrieve::NVT(Some(NVTKey::Oid)),
+            Content::NVT(NVTField::Family(family.to_string())),
+            StorageItem::NVT(Some(NVTKey::Oid)),
             5,
         ) {
             Ok(x) => x
                 .flat_map(|(_, f)| match &f {
-                    Field::NVT(NVTField::Oid(oid)) => Some(VT {
+                    Content::NVT(NVTField::Oid(oid)) => Some(VT {
                         oid: oid.clone(),
                         ..Default::default()
                     }),
@@ -138,7 +139,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = match args.get_one::<PathBuf>("path") {
         Some(feed) => {
             tracing::info!("loading feed. This may take a while.");
-            let storage = Arc::new(DefaultDispatcher::new());
+            let storage = Arc::new(InMemoryStorage::new());
             crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false)
                 .await
                 .unwrap();
@@ -185,7 +186,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 mod tests {
     use std::io::Cursor;
 
-    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field};
+    use scannerlib::storage::{inmemory::InMemoryStorage, item::NVTField, ContextKey, Content};
     use storage::Dispatcher;
 
     use super::*;
@@ -229,13 +230,13 @@ mod tests {
 </start_scan>
     "#;
         let reader = BufReader::new(Cursor::new(input));
-        let d = DefaultDispatcher::new();
+        let d = InMemoryStorage::new();
         let dispatch = |k: &str, f: &str| {
             let key = ContextKey::FileName(format!("{k}.nasl"));
-            d.dispatch(&key, Field::NVT(NVTField::Family(f.into())))
+            d.dispatch(&key, Content::NVT(NVTField::Family(f.into())))
                 .unwrap();
 
-            d.dispatch(&key, Field::NVT(NVTField::Oid(k.into())))
+            d.dispatch(&key, Content::NVT(NVTField::Oid(k.into())))
                 .unwrap();
         };
         dispatch("0", "A");
@@ -289,7 +290,7 @@ mod tests {
 </start_scan>
     "#;
         let reader = BufReader::new(Cursor::new(input));
-        let output = may_transform_start_scan::<_, DefaultDispatcher>(true, None, reader)
+        let output = may_transform_start_scan::<_, InMemoryStorage>(true, None, reader)
             .await
             .unwrap()
             .unwrap();

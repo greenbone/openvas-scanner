@@ -4,14 +4,11 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use itertools::Itertools;
-use rand::seq::SliceRandom;
-
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::storage::types::Primitive;
-use crate::storage::{ContextKey, Dispatcher, Field, Kb, Retrieve, Retriever};
+use crate::storage::items::kb::{KbContextKey, KbItem, KbKey};
+use crate::storage::{ContextStorage, ScanID};
 
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
@@ -341,7 +338,7 @@ impl NaslContext {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Target {
     /// The original target. IP or hostname
     target: String,
@@ -361,10 +358,6 @@ pub struct Target {
     // should be used.
     /// vhost list which resolve to the IP address and their sources.
     vhosts: Mutex<Vec<(String, String)>>,
-    // List of tcp Ports
-    ports_tcp: Vec<u16>,
-    // List of udp Ports
-    ports_udp: Vec<u16>,
 }
 
 impl Target {
@@ -392,8 +385,6 @@ impl Default for Target {
             target: String::new(),
             ip_addr: IpAddr::from_str("127.0.0.1").unwrap(),
             vhosts: Mutex::new(vec![]),
-            ports_tcp: vec![],
-            ports_udp: vec![],
         }
     }
 }
@@ -403,13 +394,11 @@ impl Default for Target {
 /// New objects must be added here in
 pub struct Context<'a> {
     /// key for this context. A file name or a scan id
-    key: ContextKey,
+    scan: ScanID,
     /// target to run a scan against
     target: Target,
-    /// Default Dispatcher
-    dispatcher: &'a dyn Dispatcher,
-    /// Default Retriever
-    retriever: &'a dyn Retriever,
+    /// Storage
+    storage: &'a dyn ContextStorage,
     /// Default Loader
     loader: &'a dyn Loader,
     /// Default function executor.
@@ -419,18 +408,16 @@ pub struct Context<'a> {
 impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
-        key: ContextKey,
+        scan: ScanID,
         target: Target,
-        dispatcher: &'a dyn Dispatcher,
-        retriever: &'a dyn Retriever,
+        storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
         executor: &'a Executor,
     ) -> Self {
         Self {
-            key,
+            scan,
             target,
-            dispatcher,
-            retriever,
+            storage,
             loader,
             executor,
         }
@@ -458,8 +445,8 @@ impl<'a> Context<'a> {
     }
 
     /// Get the Key
-    pub fn key(&self) -> &ContextKey {
-        &self.key
+    pub fn scan(&self) -> &ScanID {
+        &self.scan
     }
 
     /// Get the target IP as string
@@ -486,35 +473,35 @@ impl<'a> Context<'a> {
     }
 
     /// Get the storage
-    pub fn dispatcher(&self) -> &dyn Dispatcher {
-        self.dispatcher
+    pub fn storage(&self) -> &dyn ContextStorage {
+        self.storage
     }
-
-    /// Get the storage
-    pub fn retriever(&self) -> &dyn Retriever {
-        self.retriever
-    }
-
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
     }
 
-    pub fn set_single_kb_item<T: Into<Primitive>>(
-        &self,
-        name: &str,
-        value: T,
-    ) -> Result<(), FnError> {
-        self.dispatcher
-            .dispatch_replace(
-                &self.key,
-                Field::KB(Kb {
-                    key: name.to_string(),
-                    value: value.into(),
-                    expire: None,
-                }),
-            )
-            .map_err(|e| e.into())
+    fn kb_key(&self, key: KbKey) -> KbContextKey {
+        ((self.scan, self.target), key)
+    }
+
+    pub fn set_kb_item<T: Into<KbItem>>(&self, key: KbKey, value: T) -> Result<(), FnError> {
+        self.storage.dispatch(self.kb_key(key), value.into())?;
+        Ok(())
+    }
+
+    pub fn get_kb_item<T: for<'b> FromNaslValue<'b>>(&self, key: &KbKey) -> Result<T, FnError> {
+        let result = self
+            .storage
+            .retrieve(&self.kb_key(key))?
+            .unwrap_or_default();
+        T::from_nasl_value(&result.into())
+    }
+
+    pub fn set_single_kb_item<T: Into<KbItem>>(&self, key: KbKey, value: T) -> Result<(), FnError> {
+        self.storage
+            .dispatch_replace(self.kb_key(key), value.into())?;
+        Ok(())
     }
 
     /// Return a single item from the knowledge base.
@@ -525,43 +512,24 @@ impl<'a> Context<'a> {
     /// and returns the appropriate error if necessary.
     pub fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
         &self,
-        name: &str,
+        key: &KbKey,
     ) -> Result<T, FnError> {
         // If we find multiple or no items at all, return an error that
         // exits the script instead of continuing execution with a return
         // value, since this is most likely an error in the feed.
         let val = self
-            .get_single_kb_item_inner(name)
+            .get_single_kb_item_inner(key)
             .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
         T::from_nasl_value(&val.into())
     }
 
-    fn get_single_kb_item_inner(&self, name: &str) -> Result<Primitive, FnError> {
-        let result = self
-            .retriever()
-            .retrieve(&self.key, Retrieve::KB(name.to_string()))?;
+    fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
+        let result = self.storage().retrieve(&self.kb_key(key.clone()))?;
         let single_item = result
-            .filter_map(|field| match field {
-                Field::KB(kb) => Some(kb.value),
-                _ => None,
-            })
+            .ok_or_else(|| KBError::ItemNotFound(key.to_string()))?
             .at_most_one()
-            .map_err(|_| KBError::MultipleItemsFound(name.to_string()))?
-            .ok_or_else(|| KBError::ItemNotFound(name.to_string()))?;
+            .map_err(|_| KBError::MultipleItemsFound(key.to_string()))?;
         Ok(single_item)
-    }
-
-    fn get_kb_item_pattern(&self, pattern: &str) -> Result<Vec<Kb>, FnError> {
-        let result = self
-            .retriever()
-            .retrieve_pattern(&self.key, Retrieve::KB(pattern.to_string()))?;
-        let items = result
-            .filter_map(|field| match field {
-                Field::KB(kb) => Some(kb),
-                _ => None,
-            })
-            .collect();
-        Ok(items)
     }
 
     /// Sets the state of a port
@@ -572,7 +540,7 @@ impl<'a> Context<'a> {
     pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
         self.get_single_kb_item_inner(&format!("Port/TCP/{}", port))
             .map(|x| match x {
-                Primitive::Number(n) => Some(n),
+                KbItem::Number(n) => Some(n),
                 _ => None,
             })
     }

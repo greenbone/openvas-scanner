@@ -6,7 +6,7 @@
 
 /// Is an extension to add as_timestamp method for various types
 pub trait AsUnixTimeStamp {
-    /// Returns a i64 unix time stamp when parseable otherwise None
+    /// Returns a i64 unix time stamp when parsable otherwise None
     fn as_timestamp(&self) -> Option<i64>;
 }
 

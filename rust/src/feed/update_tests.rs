@@ -4,10 +4,10 @@
 
 use std::{env, path::PathBuf};
 
-use crate::storage::DefaultDispatcher;
 use crate::{
     feed::{HashSumNameLoader, Update},
     nasl::syntax::FSPluginLoader,
+    storage::inmemory::InMemoryStorage,
 };
 use futures::StreamExt;
 
@@ -39,7 +39,7 @@ fn verify_hashsums() {
 #[tokio::test]
 async fn verify_feed() {
     let loader = loader();
-    let storage: DefaultDispatcher = DefaultDispatcher::new();
+    let storage: InMemoryStorage = InMemoryStorage::new();
     let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
     let updater = Update::init("1", 1, &loader, &storage, verifier);
     let files = updater

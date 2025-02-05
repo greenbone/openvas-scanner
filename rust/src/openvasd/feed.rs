@@ -11,7 +11,7 @@ use scannerlib::storage::{ContextKey, StorageError};
 use scannerlib::{
     feed::{self, HashSumNameLoader},
     nasl::FSPluginLoader,
-    storage::{item::NVTField, Dispatcher, Field},
+    storage::{item::NVTField, Dispatcher, Content},
 };
 
 #[derive(Debug, Default, Clone)]
@@ -93,15 +93,15 @@ impl FeedIdentifier {
 }
 
 impl Dispatcher for FeedIdentifier {
-    fn dispatch(&self, _: &ContextKey, scope: Field) -> Result<(), StorageError> {
-        if let Field::NVT(NVTField::Oid(x)) = scope {
+    fn dispatch(&self, _: &ContextKey, scope: Content) -> Result<(), StorageError> {
+        if let Content::NVT(NVTField::Oid(x)) = scope {
             let mut oids = self.oids.write()?;
             oids.push(x);
         }
         Ok(())
     }
 
-    fn dispatch_replace(&self, _: &ContextKey, _scope: Field) -> Result<(), StorageError> {
+    fn dispatch_replace(&self, _: &ContextKey, _scope: Content) -> Result<(), StorageError> {
         Ok(())
     }
 

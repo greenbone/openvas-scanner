@@ -9,20 +9,20 @@ use std::{
     panic::Location,
 };
 
-use crate::storage::ContextKey;
+use crate::storage::{inmemory::InMemoryStorage, ScanID};
 use crate::{
     nasl::{
         prelude::*,
         syntax::{Loader, NoOpLoader},
     },
-    storage::{DefaultDispatcher, Storage},
+    storage::ContextStorage,
 };
 use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
     interpreter::{CodeInterpreter, InterpretErrorKind},
-    utils::Executor,
+    utils::{context::Target, Executor},
 };
 
 // The following exists to trick the trait solver into
@@ -117,31 +117,33 @@ enum TestResult {
 /// If the `TestBuilder` is dropped, it will automatically verify that
 /// the given code fulfill the requirements (such as producing the right
 /// values or the right errors).
-pub struct TestBuilder<L: Loader, S: Storage> {
+pub struct TestBuilder<L: Loader, S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
     context: ContextFactory<L, S>,
-    context_key: ContextKey,
+    scan_id: ScanID,
+    target: Target,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
 }
 
-pub type DefaultTestBuilder = TestBuilder<NoOpLoader, DefaultDispatcher>;
+pub type DefaultTestBuilder = TestBuilder<NoOpLoader, InMemoryStorage>;
 
-impl Default for TestBuilder<NoOpLoader, DefaultDispatcher> {
+impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
     fn default() -> Self {
         Self {
             lines: vec![],
             results: vec![],
             context: ContextFactory::default(),
-            context_key: ContextKey::default(),
+            scan_id: ScanID("".to_string()),
+            target: Target::default(),
             variables: vec![],
             should_verify: true,
         }
     }
 }
 
-impl TestBuilder<NoOpLoader, DefaultDispatcher> {
+impl TestBuilder<NoOpLoader, InMemoryStorage> {
     /// Construct a `TestBuilder`, immediately run the
     /// given code on it and return it.
     pub fn from_code(code: impl AsRef<str>) -> Self {
@@ -154,7 +156,7 @@ impl TestBuilder<NoOpLoader, DefaultDispatcher> {
 impl<L, S> TestBuilder<L, S>
 where
     L: Loader,
-    S: Storage,
+    S: ContextStorage,
 {
     #[track_caller]
     fn add_line(&mut self, line: impl Into<String>, val: TestResult) -> &mut Self {
@@ -253,7 +255,8 @@ where
 
     /// Get the currently set `Context`.
     pub fn context(&self) -> Context {
-        self.context.build(self.context_key.clone())
+        self.context
+            .build(self.scan_id.clone(), self.target.clone())
     }
 
     /// Check that no errors were returned by any
@@ -343,7 +346,7 @@ where
     }
 
     /// Return a new `TestBuilder` with the given `Context`.
-    pub fn with_context<L2: Loader, S2: Storage>(
+    pub fn with_context<L2: Loader, S2: ContextStorage>(
         self,
         context: ContextFactory<L2, S2>,
     ) -> TestBuilder<L2, S2> {
@@ -353,13 +356,15 @@ where
             should_verify: self.should_verify,
             variables: self.variables.clone(),
             context,
-            context_key: self.context_key.clone(),
+            scan_id: self.scan_id.clone(),
+            target: self.target.clone(),
         }
     }
 
     /// Return a new `TestBuilder` with the given `ContextKey`.
-    pub fn with_context_key(mut self, key: ContextKey) -> Self {
-        self.context_key = key;
+    pub fn with_context_key(mut self, scan_id: ScanID, target: Target) -> Self {
+        self.scan_id = scan_id;
+        self.target = target;
         self
     }
 
@@ -375,7 +380,7 @@ where
     }
 }
 
-impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
+impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");

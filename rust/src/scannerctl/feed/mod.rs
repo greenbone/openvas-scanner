@@ -14,15 +14,15 @@ use clap::{arg, value_parser, ArgAction, Command};
 use scannerlib::{
     nasl::syntax::LoadError,
     storage::{
-        json::{ArrayWrapper, ItemDispatcher},
+        infisto::json::{ArrayWrapper, JsonStorage},
         redis::{
-            CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+            NameSpaceSelector, RedisCtx, RedisStorage, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
         },
     },
 };
 
 use scannerlib::feed::{FeedReplacer, ReplaceCommand};
-use scannerlib::storage::{item::PerItemDispatcher, StorageError};
+use scannerlib::storage::{item::CacheDispatcher, StorageError};
 
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
 
@@ -62,8 +62,8 @@ fn get_dispatcher(
     redis: &str,
     path: &Path,
     selector: &[NameSpaceSelector],
-) -> Result<PerItemDispatcher<CacheDispatcher<RedisCtx>>, CliError> {
-    CacheDispatcher::as_dispatcher(redis, selector)
+) -> Result<CacheDispatcher<RedisStorage<RedisCtx>>, CliError> {
+    RedisStorage::as_dispatcher(redis, selector)
         .map_err(StorageError::from)
         .map_err(|e| CliError {
             kind: e.into(),
@@ -163,7 +163,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             let path = get_vts_path("path", args);
 
             let mut o = ArrayWrapper::new(io::stdout());
-            let dispatcher = ItemDispatcher::as_dispatcher(&mut o);
+            let dispatcher = JsonStorage::as_dispatcher(&mut o);
             Some(match update::run(dispatcher, path, false).await {
                 Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                     filename: "".to_string(),

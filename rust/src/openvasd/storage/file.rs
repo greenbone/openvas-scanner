@@ -16,11 +16,12 @@ use scannerlib::{
     models,
     storage::{
         infisto::{
-            ChaCha20IndexFileStorer, Serialization,
-            {IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
+            ChaCha20IndexFileStorer, IndexedByteStorage, IndexedByteStorageIterator,
+            IndexedFileStorer, Range, Serialization,
         },
+        inmemory::InMemoryStorage,
         item::Nvt,
-        ContextKey, DefaultDispatcher, StorageError,
+        ContextKey, StorageError,
     },
 };
 use tokio::task::spawn_blocking;
@@ -430,7 +431,7 @@ impl<S> super::ResultHandler for Storage<S>
 where
     S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<InMemoryStorage> {
         self.underlying.underlying_storage()
     }
 

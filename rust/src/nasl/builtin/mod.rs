@@ -32,7 +32,8 @@ pub use knowledge_base::KBError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
-use crate::storage::{ContextKey, DefaultDispatcher, Storage};
+use crate::storage::inmemory::InMemoryStorage;
+use crate::storage::{ContextStorage, ScanID};
 
 use super::utils::context::Target;
 
@@ -110,12 +111,12 @@ pub struct ContextFactory<Loader, Storage> {
     pub functions: Executor,
 }
 
-impl Default for ContextFactory<NoOpLoader, DefaultDispatcher> {
+impl Default for ContextFactory<NoOpLoader, InMemoryStorage> {
     fn default() -> Self {
         Self {
             loader: NoOpLoader::default(),
             functions: nasl_std_functions(),
-            storage: DefaultDispatcher::default(),
+            storage: InMemoryStorage::default(),
         }
     }
 }
@@ -123,7 +124,7 @@ impl Default for ContextFactory<NoOpLoader, DefaultDispatcher> {
 impl<L, S> ContextFactory<L, S>
 where
     L: Loader,
-    S: Storage,
+    S: ContextStorage,
 {
     /// Creates a new ContextFactory with nasl_std_functions
     ///
@@ -143,18 +144,11 @@ where
     }
 
     /// Creates a new Context with the shared loader, logger and function register
-    pub fn build(&self, key: ContextKey) -> Context {
-        let mut target = Target::default();
-        target.set_target(match &key {
-            ContextKey::Scan(_, Some(target)) => target.clone(),
-            ContextKey::Scan(_, None) => String::default(),
-            ContextKey::FileName(target) => target.clone(),
-        });
+    pub fn build(&self, scan_id: ScanID, target: Target) -> Context {
         Context::new(
-            key,
+            scan_id,
             target,
-            self.storage.as_dispatcher(),
-            self.storage.as_retriever(),
+            &self.storage,
             &self.loader,
             &self.functions,
         )
