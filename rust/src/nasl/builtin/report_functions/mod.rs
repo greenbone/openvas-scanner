@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::models::{self, Protocol, ResultType};
 
-use crate::{nasl::prelude::*, storage::Field};
+use crate::nasl::prelude::*;
 
 #[cfg(test)]
 mod tests;
@@ -55,15 +55,15 @@ impl Reporting {
             ip_address: Some(context.target().to_string()),
             // TODO: where to get hostname? is it only vhost relevant?
             hostname: None,
-            oid: Some(context.key().value()),
+            oid: Some(context.scan().0.clone()),
             port,
             protocol: Some(protocol),
             message: data,
             detail: None,
         };
         context
-            .dispatcher()
-            .retry_dispatch(5, context.key(), Field::Result(result.into()))?;
+            .storage()
+            .retry_dispatch(context.scan().clone(), result, 5)?;
         Ok(NaslValue::Null)
     }
 

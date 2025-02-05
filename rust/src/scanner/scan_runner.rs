@@ -100,7 +100,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                     &vt,
                     stage,
                     param.as_ref(),
-                    &scan_id,
+                    scan_id,
                 )
                 .await;
                 Some((result, data))
@@ -113,6 +113,8 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
 
 #[cfg(test)]
 pub(super) mod tests {
+    use std::sync::Arc;
+
     use crate::models::Protocol;
     use crate::models::Scan;
     use crate::models::Target;
@@ -127,18 +129,16 @@ pub(super) mod tests {
     use crate::scanner::{
         error::{ExecuteError, ScriptResult},
         scan_runner::ScanRunner,
-        vt_runner::generate_port_kb_key,
     };
     use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
-    use crate::storage::item::NVTField;
-    use crate::storage::item::Nvt;
-    use crate::storage::ContextKey;
-    use crate::storage::DefaultDispatcher;
-    use crate::storage::Dispatcher;
-    use crate::storage::Field;
-    use crate::storage::Field::NVT;
-    use crate::storage::Retrieve;
+    use crate::storage::dispatch::Dispatcher;
+    use crate::storage::inmemory::InMemoryStorage;
+    use crate::storage::items::kb::KbItem;
+    use crate::storage::items::kb::KbKey;
+    use crate::storage::items::nvt::FileName;
+    use crate::storage::items::nvt::Nvt;
     use crate::storage::Retriever;
+    use crate::storage::ScanID;
     use futures::StreamExt;
 
     pub fn only_success() -> [(String, Nvt); 3] {
@@ -157,14 +157,11 @@ pub(super) mod tests {
 
     pub fn setup(
         scripts: &[(String, Nvt)],
-    ) -> ((DefaultDispatcher, fn(&str) -> String, Executor), Scan) {
-        let storage = DefaultDispatcher::new();
+    ) -> ((InMemoryStorage, fn(&str) -> String, Executor), Scan) {
+        let storage = InMemoryStorage::new();
         scripts.iter().map(|(_, v)| v).for_each(|n| {
             storage
-                .dispatch(
-                    &ContextKey::FileName(n.filename.clone()),
-                    NVT(NVTField::Nvt(n.clone())),
-                )
+                .dispatch(FileName(n.filename.clone()), n.clone())
                 .expect("sending")
         });
         let scan = Scan {
@@ -186,7 +183,7 @@ pub(super) mod tests {
         ((storage, loader, executor), scan)
     }
 
-    pub fn setup_success() -> ((DefaultDispatcher, fn(&str) -> String, Executor), Scan) {
+    pub fn setup_success() -> ((InMemoryStorage, fn(&str) -> String, Executor), Scan) {
         setup(&only_success())
     }
 
@@ -319,41 +316,33 @@ exit({rc});
             ("description".to_owned(), true.into()),
             ("OPENVAS_VERSION".to_owned(), "testus".into()),
         ];
-        let storage = DefaultDispatcher::new();
+        let storage = Arc::new(InMemoryStorage::new());
 
         let register = Register::root_initial(&initial);
         let target = ContextTarget::default();
         let functions = nasl_std_functions();
         let loader = |_: &str| code.to_string();
-        let key = ContextKey::FileName(id.to_string());
+        let key = ScanID(id.to_string());
 
-        let context = Context::new(key, target, &storage, &storage, &loader, &functions);
+        let context = Context::new(key, target, id.into(), &storage, &loader, &functions);
         let interpreter = ForkingInterpreter::new(code, register, &context);
         for stmt in interpreter.iter_blocking() {
             if let NaslValue::Exit(_) = stmt.expect("stmt success") {
-                storage.on_exit(context.key()).expect("result");
-                let result = storage
-                    .retrieve(&ContextKey::FileName(id.to_string()), Retrieve::NVT(None))
-                    .expect("nvt for id")
-                    .next();
-                if let Some(NVT(NVTField::Nvt(nvt))) = result {
-                    return Some(nvt);
-                } else {
-                    return None;
-                }
+                break;
             }
         }
-        None
+        drop(context);
+        let result = storage
+            .retrieve(&FileName(id.to_string()))
+            .expect("nvt for id");
+        return result;
     }
 
-    fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> DefaultDispatcher {
-        let dispatcher = DefaultDispatcher::new();
+    fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> InMemoryStorage {
+        let dispatcher = InMemoryStorage::new();
         scripts.iter().map(|(_, v)| v).for_each(|n| {
             dispatcher
-                .dispatch(
-                    &ContextKey::FileName(n.filename.clone()),
-                    NVT(NVTField::Nvt(n.clone())),
-                )
+                .dispatch(FileName(n.filename.clone()), n.clone())
                 .expect("sending")
         });
         dispatcher
@@ -361,7 +350,7 @@ exit({rc});
 
     async fn run(
         scripts: Vec<(String, Nvt)>,
-        storage: DefaultDispatcher,
+        storage: Arc<InMemoryStorage>,
     ) -> Result<Vec<Result<ScriptResult, ExecuteError>>, ExecuteError> {
         let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
         let loader_scripts = scripts.clone();
@@ -393,9 +382,9 @@ exit({rc});
 
     async fn get_all_results(
         vts: &[(String, Nvt)],
-        dispatcher: DefaultDispatcher,
+        storage: Arc<InMemoryStorage>,
     ) -> (Vec<ScriptResult>, Vec<ScriptResult>) {
-        let result = run(vts.to_vec(), dispatcher).await.expect("success run");
+        let result = run(vts.to_vec(), storage).await.expect("success run");
         let (success, rest): (Vec<_>, Vec<_>) = result
             .into_iter()
             .filter_map(|x| x.ok())
@@ -437,7 +426,7 @@ exit({rc});
             )
             .generate(),
         ];
-        let dispatcher = prepare_vt_storage(&vts);
+        let storage = Arc::new(prepare_vt_storage(&vts));
         [
             (Protocol::TCP, "20", 1),   // TCP 20 is considered enabled
             (Protocol::TCP, "22", 0),   // TCP 22 is considered disabled
@@ -446,27 +435,39 @@ exit({rc});
         ]
         .into_iter()
         .for_each(|(p, port, enabled)| {
-            dispatcher
+            storage
                 .dispatch(
-                    &ContextKey::Scan("sid".into(), Some("test.host".into())),
-                    Field::KB((&generate_port_kb_key(p, port), enabled).into()),
+                    (
+                        (
+                            ScanID("sid".to_string()),
+                            crate::storage::Target("test.host".to_string()),
+                        ),
+                        KbKey::Port(p.to_string(), port.parse().unwrap()),
+                    ),
+                    KbItem::Number(enabled),
                 )
                 .expect("store kb");
         });
-        let (success, failure) = get_all_results(&vts, dispatcher).await;
+        let (success, failure) = get_all_results(&vts, storage).await;
         assert_eq!(success.len(), 1);
         assert_eq!(failure.len(), 4);
     }
 
-    fn make_test_dispatcher(vts: &[(String, Nvt)]) -> DefaultDispatcher {
-        let dispatcher = prepare_vt_storage(vts);
-        dispatcher
+    fn make_test_storage(vts: &[(String, Nvt)]) -> Arc<InMemoryStorage> {
+        let storage = prepare_vt_storage(vts);
+        storage
             .dispatch(
-                &ContextKey::Scan("sid".into(), Some("test.host".into())),
-                Field::KB(("key/exists", 1).into()),
+                (
+                    (
+                        ScanID("sid".to_string()),
+                        crate::storage::Target("test.host".to_string()),
+                    ),
+                    KbKey::Custom("key/exists".to_string()),
+                ),
+                KbItem::Number(1),
             )
             .expect("store kb");
-        dispatcher
+        Arc::new(storage)
     }
 
     #[tokio::test]
@@ -477,8 +478,8 @@ exit({rc});
             GenerateScript::with_excluded_keys("1", &["key/not"]).generate(),
             GenerateScript::with_excluded_keys("2", &["key/exists"]).generate(),
         ];
-        let dispatcher = make_test_dispatcher(&only_success);
-        let (success, failure) = get_all_results(&only_success, dispatcher).await;
+        let storage = make_test_storage(&only_success);
+        let (success, failure) = get_all_results(&only_success, storage).await;
         assert_eq!(success.len(), 2);
         assert_eq!(failure.len(), 1);
     }
@@ -490,7 +491,7 @@ exit({rc});
             GenerateScript::with_required_keys("0", &["key/not"]).generate(),
             GenerateScript::with_required_keys("1", &["key/exists"]).generate(),
         ];
-        let dispatcher = make_test_dispatcher(&only_success);
+        let dispatcher = make_test_storage(&only_success);
         let (success, failure) = get_all_results(&only_success, dispatcher).await;
         assert_eq!(success.len(), 1);
         assert_eq!(failure.len(), 1);
@@ -503,7 +504,7 @@ exit({rc});
             GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
             GenerateScript::with_mandatory_keys("1", &["key/exists"]).generate(),
         ];
-        let dispatcher = make_test_dispatcher(&only_success);
+        let dispatcher = make_test_storage(&only_success);
         let (success, failure) = get_all_results(&only_success, dispatcher).await;
         assert_eq!(success.len(), 1);
         assert_eq!(failure.len(), 1);

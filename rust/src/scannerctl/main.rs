@@ -17,7 +17,7 @@ mod syntax;
 use configparser::ini::Ini;
 pub use error::*;
 
-use scannerlib::storage::StorageError;
+use scannerlib::storage::error::StorageError;
 use std::{path::PathBuf, process};
 
 use clap::{arg, ArgAction, ArgMatches, Command};

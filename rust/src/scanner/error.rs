@@ -6,13 +6,14 @@ use crate::models::{Host, Protocol};
 
 use crate::nasl::interpreter::InterpretError;
 use crate::scheduling::Stage;
+use crate::storage::error::StorageError;
 
 #[derive(thiserror::Error, Debug, Clone)]
 /// An error occurred while executing the script
 pub enum ExecuteError {
     #[error("storage error occurred: {0}")]
     /// Storage error
-    Storage(#[from] crate::storage::StorageError),
+    Storage(#[from] crate::storage::error::StorageError),
     #[error("Scheduling error occurred: {0}")]
     /// An error while scheduling
     Scheduling(#[from] crate::scheduling::VTError),
@@ -32,18 +33,28 @@ pub enum ScriptResultKind {
     ReturnCode(i64),
     /// Is missing a port
     MissingPort(Protocol, String),
+    /// Script did not run because of a invalid port
+    InvalidPort(Protocol, String),
     /// Script did not run because an excluded key is set
     ContainsExcludedKey(String),
     /// Script did not run because of missing required keys
     ///
     /// It contains the first not found key.
     MissingRequiredKey(String),
+    /// Script did not run because of a storage error
+    StorageError(StorageError),
     /// Script did not run because of missing mandatory keys
     ///
     /// It contains the first not found key.
     MissingMandatoryKey(String),
     /// Contains the error the script returned
     Error(InterpretError),
+}
+
+impl From<StorageError> for ScriptResultKind {
+    fn from(value: StorageError) -> Self {
+        Self::StorageError(value)
+    }
 }
 
 #[derive(Debug)]
