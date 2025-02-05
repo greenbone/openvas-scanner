@@ -6,10 +6,17 @@
 
 use std::{
     io::{self, Write},
-    sync::{Arc, Mutex},
+    sync::Mutex,
 };
 
-use crate::storage::{self, item::PerItemDispatcher, ContextKey, Kb, NotusAdvisory, StorageError};
+use crate::storage::{
+    self, inmemory::kb::InMemoryKbStorage, items::nvt::Nvt, ContextStorage, SchedulerStorage,
+    StorageError,
+};
+
+mod kbs;
+mod nvt;
+mod result;
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -65,14 +72,11 @@ where
 }
 
 /// It will transform a Nvt to json and write it into the given Writer.
-pub struct ItemDispatcher<W>
-where
-    W: Write,
-{
-    w: Arc<Mutex<W>>,
-    kbs: Arc<Mutex<Vec<Kb>>>,
+pub struct JsonStorage<W: Write> {
+    w: Mutex<W>,
+    kbs: InMemoryKbStorage,
 }
-impl<S> ItemDispatcher<S>
+impl<S> JsonStorage<S>
 where
     S: Write,
 {
@@ -80,118 +84,31 @@ where
     ///
     pub fn new(w: S) -> Self {
         Self {
-            w: Arc::new(Mutex::new(w)),
-            kbs: Arc::new(Mutex::new(Vec::new())),
+            w: Mutex::new(w),
+            kbs: Default::default(),
         }
     }
 
-    /// Returns a new instance as a Dispatcher
-    pub fn as_dispatcher(w: S) -> PerItemDispatcher<Self> {
-        PerItemDispatcher::new(Self::new(w))
-    }
-
-    fn as_json(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
-        let mut context = self.w.lock().map_err(StorageError::from)?;
+    fn as_json(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
+        let mut context = self.w.lock()?;
         serde_json::to_vec(&nvt)
             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
             .and_then(|x| context.write_all(&x).map_err(StorageError::from))
     }
 }
 
-impl<S> storage::item::ItemDispatcher for ItemDispatcher<S>
-where
-    S: Write,
-{
-    fn dispatch_nvt(&self, nvt: storage::item::Nvt) -> Result<(), storage::StorageError> {
-        self.as_json(nvt)
-    }
-
-    fn dispatch_feed_version(&self, _: String) -> Result<(), storage::StorageError> {
-        // the feed information are currently not within the output json
-        Ok(())
-    }
-
-    fn dispatch_kb(&self, _: &ContextKey, kb: Kb) -> Result<(), StorageError> {
-        let mut kbs = self.kbs.lock().map_err(StorageError::from)?;
-        let mut context = self.w.lock().map_err(StorageError::from)?;
-        serde_json::to_vec(&kb)
-            .map_err(|e| StorageError::Dirty(format!("{e:?}")))
-            .and_then(|x| context.write_all(&x).map_err(StorageError::from))?;
-        kbs.push(kb);
-        Ok(())
-    }
-
-    fn dispatch_advisory(&self, _: &str, _: Option<NotusAdvisory>) -> Result<(), StorageError> {
-        Ok(())
-    }
-}
-
-impl<S> storage::Retriever for ItemDispatcher<S>
-where
-    S: Write + Send,
-{
-    fn retrieve(
-        &self,
-        _: &ContextKey,
-        scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
-        Ok(match scope {
-            // currently not supported
-            storage::Retrieve::NVT(_)
-            | storage::Retrieve::NotusAdvisory(_)
-            | storage::Retrieve::Result(_) => unimplemented!(),
-            storage::Retrieve::KB(s) => Box::new({
-                let kbs = self.kbs.lock().map_err(StorageError::from)?;
-                let kbs = kbs.clone();
-                kbs.into_iter()
-                    .filter(move |x| x.key == s)
-                    .map(|x| storage::Field::KB(x.clone()))
-            }),
-        })
-    }
-
-    fn retrieve_by_field(
-        &self,
-        _: storage::Field,
-        _: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (ContextKey, storage::Field)>>, StorageError> {
-        Ok(Box::new([].into_iter()))
-    }
-
-    fn retrieve_by_fields(
-        &self,
-        _: Vec<storage::Field>,
-        _: storage::Retrieve,
-    ) -> storage::FieldKeyResult {
-        Ok(Box::new([].into_iter()))
-    }
-
-    fn retrieve_pattern(
-        &self,
-        _: &ContextKey,
-        scope: storage::Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = storage::Field>>, StorageError> {
-        match scope {
-            storage::Retrieve::KB(s) => {
-                let kbs = self.kbs.lock().map_err(StorageError::from)?;
-                let ret = kbs
-                    .clone()
-                    .into_iter()
-                    .filter(move |x| storage::match_pattern(&x.key, &s))
-                    .map(|x| storage::Field::KB(x.clone()));
-                let ret = Box::new(ret);
-                Ok(ret)
-            }
-            _ => unimplemented!(),
-        }
-    }
-}
+impl<W: Write> SchedulerStorage for JsonStorage<W> {}
+impl<W: Write + Send> ContextStorage for JsonStorage<W> {}
 
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
 
-    use storage::item::{Nvt, ACT};
+    use crate::storage::items::nvt::{
+        NvtPreference, NvtRef, PreferenceType,
+        TagKey::{self, *},
+        TagValue, ACT,
+    };
 
     use super::*;
 
@@ -203,9 +120,7 @@ mod tests {
             .join(".")
     }
 
-    fn generate_tags() -> BTreeMap<storage::item::TagKey, storage::item::TagValue> {
-        use storage::item::TagKey::*;
-        use storage::item::TagValue;
+    fn generate_tags() -> BTreeMap<TagKey, TagValue> {
         let ts = "2012-09-23 02:15:34 -0400";
         BTreeMap::from([
             (Affected, TagValue::parse(Affected, "Affected").unwrap()),
@@ -250,9 +165,7 @@ mod tests {
             (Vuldetect, TagValue::parse(Vuldetect, "Vuldetect").unwrap()),
         ])
     }
-    fn generate_preferences() -> Vec<storage::item::NvtPreference> {
-        use storage::item::NvtPreference;
-        use storage::item::PreferenceType;
+    fn generate_preferences() -> Vec<NvtPreference> {
         [
             PreferenceType::CheckBox,
             PreferenceType::Entry,
@@ -290,8 +203,7 @@ mod tests {
         }
     }
 
-    fn generate_references() -> Vec<storage::item::NvtRef> {
-        use storage::item::NvtRef;
+    fn generate_references() -> Vec<NvtRef> {
         vec![NvtRef {
             class: "URL".to_owned(),
             id: "unix:///var/lib/really.sock".to_owned(),
@@ -302,7 +214,7 @@ mod tests {
     fn single_json() {
         let nvt = generate_nvt("test", ACT::DestructiveAttack);
         let mut buf = Vec::with_capacity(1208);
-        let dispatcher = super::ItemDispatcher::new(&mut buf);
+        let dispatcher = JsonStorage::new(&mut buf);
         dispatcher.as_json(nvt.clone()).unwrap();
         let single_json = String::from_utf8(buf).unwrap();
         let result: Nvt = serde_json::from_str(&single_json).unwrap();
@@ -313,7 +225,7 @@ mod tests {
     fn array_wrapper() {
         let mut buf = Vec::with_capacity(1208 * 11);
         let mut ja = ArrayWrapper::new(&mut buf);
-        let dispatcher = super::ItemDispatcher::new(&mut ja);
+        let dispatcher = JsonStorage::new(&mut ja);
         for nvt in [
             ACT::Init,
             ACT::Scanner,

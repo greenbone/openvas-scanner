@@ -9,8 +9,9 @@ use std::ops::Range;
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 
+use crate::storage::items::nvt::ACT;
+
 use super::cursor::Cursor;
-use crate::storage::item::ACT;
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

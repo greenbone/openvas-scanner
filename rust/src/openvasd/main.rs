@@ -18,6 +18,7 @@ use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
 use scannerlib::scanner::ScannerStackWithStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
+use scannerlib::storage::ContextStorage;
 use storage::{FromConfigAndFeeds, Storage};
 use tls::tls_config;
 use tracing::{info, metadata::LevelFilter, warn};
@@ -92,7 +93,7 @@ fn make_openvasd_scanner<S>(
     storage: S,
 ) -> scannerlib::scanner::Scanner<ScannerStackWithStorage<S>>
 where
-    S: storage::NaslStorage + Send + 'static,
+    S: ContextStorage + Clone + 'static,
 {
     scannerlib::scanner::Scanner::with_storage(storage, &config.feed.path)
 }
@@ -161,8 +162,8 @@ where
             run_with_scanner_and_storage(scanner, storage, config).await
         }
         ScannerType::Openvasd => {
-            let storage = std::sync::Arc::new(storage::UserNASLStorageForKBandVT::new(storage));
-            let scanner = make_openvasd_scanner(config, storage.clone());
+            let storage = std::sync::Arc::new(storage);
+            let scanner = make_openvasd_scanner(config, storage.underlying_storage().clone());
             run_with_scanner_and_storage(scanner, storage, config).await
         }
     }

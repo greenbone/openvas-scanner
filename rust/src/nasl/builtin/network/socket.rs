@@ -10,7 +10,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::nasl::prelude::*;
+use crate::{nasl::prelude::*, storage::items::kb::KbKey};
 use dns_lookup::lookup_host;
 use rustls::ClientConnection;
 use thiserror::Error;
@@ -305,7 +305,7 @@ impl NaslSockets {
     /// - Secret/kdc_use_tcp
     #[nasl_function]
     fn open_sock_kdc(&mut self, context: &Context) -> Result<NaslValue, FnError> {
-        let hostname: String = context.get_single_kb_item("Secret/kdc_hostname")?;
+        let hostname: String = context.get_single_kb_item(&KbKey::SecretKdcHostname)?;
 
         let ip = lookup_host(&hostname)
             .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
@@ -313,9 +313,9 @@ impl NaslSockets {
             .next()
             .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
-        let port = context.get_single_kb_item::<Port>("Secret/kdc_port")?.0;
+        let port = context.get_single_kb_item::<Port>(&KbKey::SecretKdcPort)?.0;
 
-        let use_tcp: bool = context.get_single_kb_item("Secret/kdc_use_tcp")?;
+        let use_tcp: bool = context.get_single_kb_item(&KbKey::SecretKdcProtocol)?;
 
         let socket = if use_tcp {
             let tcp = TcpConnection::connect(
@@ -371,13 +371,7 @@ impl NaslSockets {
                 })?
                 .unwrap_or_default();
             return Self::open_sock_tcp_vhost(
-                context,
-                addr,
-                timeout,
-                bufsz,
-                port,
-                vhost,
-                transport as i64,
+                context, addr, timeout, bufsz, port, vhost, transport,
             );
         }
         let tls = match OpenvasEncaps::from_i64(transport) {
@@ -400,14 +394,20 @@ impl NaslSockets {
                 _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport)),
             },
         };
-        if tls.is_some() {
-            let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
-        }
-        Ok(
+        let tls_bool = tls.is_some();
+        if let Ok(connection) =
             TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
                 .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
-                .ok(),
-        )
+        {
+            if tls_bool {
+                let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
+            } else {
+                let _ = context.set_port_transport(port, OpenvasEncaps::Ip as usize);
+            }
+            Ok(Some(connection))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Open a TCP socket to the target host.
@@ -473,10 +473,10 @@ impl NaslSockets {
     /// Reads the information necessary for a TLS connection from the KB and
     /// return a TlsConfig on success.
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
-        let cert_path = context.get_single_kb_item("SSL/cert")?;
-        let key_path = context.get_single_kb_item("SSL/key")?;
-        let password = context.get_single_kb_item("SSL/password")?;
-        let cafile_path = context.get_single_kb_item("SSL/CA")?;
+        let cert_path = context.get_single_kb_item(&KbKey::SslCert)?;
+        let key_path = context.get_single_kb_item(&KbKey::SslKey)?;
+        let password = context.get_single_kb_item(&KbKey::SslPassword)?;
+        let cafile_path = context.get_single_kb_item(&KbKey::SslCa)?;
 
         Ok(TlsConfig {
             cert_path,

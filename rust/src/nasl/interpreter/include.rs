@@ -10,7 +10,7 @@ mod tests {
     use crate::nasl::{syntax::LoadError, Loader};
 
     use crate::nasl::{nasl_std_functions, prelude::*};
-    use crate::storage::DefaultDispatcher;
+    use crate::storage::inmemory::InMemoryStorage;
 
     struct FakeInclude {
         plugins: HashMap<String, String>,
@@ -49,9 +49,9 @@ mod tests {
         let context = ContextFactory {
             loader,
             functions: nasl_std_functions(),
-            storage: DefaultDispatcher::default(),
+            storage: InMemoryStorage::default(),
         };
-        let ctx = context.build(Default::default());
+        let ctx = context.build(Default::default(), Default::default(), Default::default());
         let mut interpreter = CodeInterpreter::new(code, register, &ctx);
         assert_eq!(
             interpreter.next_statement().await.unwrap().unwrap(),

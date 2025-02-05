@@ -38,8 +38,10 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 use crate::nasl::utils::Executor;
 use crate::scheduling::WaveExecutionPlan;
-use crate::storage::Storage;
-use crate::storage::{ContextKey, DefaultDispatcher};
+use crate::storage::inmemory::InMemoryStorage;
+use crate::storage::remove::Remover;
+use crate::storage::ContextStorage;
+use crate::storage::ScanID;
 use running_scan::{RunningScan, RunningScanHandle};
 use scanner_stack::DefaultScannerStack;
 
@@ -206,20 +208,20 @@ pub mod fake {
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
-    storage: Arc<S::Storage>,
+    storage: S::Storage,
     loader: Arc<S::Loader>,
     function_executor: Arc<Executor>,
 }
 
 impl<St, L> Scanner<(St, L)>
 where
-    St: Storage + Send + 'static,
-    L: Loader + Send + 'static,
+    St: ContextStorage + Sync + Send + Clone + 'static,
+    L: Loader + 'static,
 {
     pub fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
-            storage: Arc::new(storage),
+            storage,
             loader: Arc::new(loader),
             function_executor: Arc::new(executor),
         }
@@ -230,7 +232,7 @@ impl Scanner<DefaultScannerStack> {
     /// Create a new scanner with the default stack.
     /// Requires the root path for the loader.
     pub fn with_default_stack(root: &Path) -> Self {
-        let storage = DefaultDispatcher::new();
+        let storage = Arc::new(InMemoryStorage::new());
         let loader = FSPluginLoader::new(root);
         let executor = nasl_std_functions();
         Self::new(storage, loader, executor)
@@ -239,7 +241,7 @@ impl Scanner<DefaultScannerStack> {
 
 impl<S> Scanner<ScannerStackWithStorage<S>>
 where
-    S: Storage + Send + 'static,
+    S: ContextStorage + Send + Sync + Clone + 'static,
 {
     /// Creates a new scanner with a Storage and the rest based on the DefaultScannerStack.
     ///
@@ -294,11 +296,11 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
-        let ck = ContextKey::Scan(id.as_ref().to_string(), None);
+        let scan_id = ScanID(id.as_ref().to_string());
         self.stop_scan(id).await?;
         self.storage
-            .remove_scan(&ck)
-            .map_err(|_| Error::ScanNotFound(ck.as_ref().to_string()))?;
+            .remove(&scan_id)
+            .map_err(|_| Error::ScanNotFound(scan_id.0))?;
         Ok(())
     }
 }
