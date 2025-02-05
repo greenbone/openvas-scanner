@@ -138,7 +138,7 @@ impl From<VerifyError> for CliError {
             _ => None,
         };
         Self {
-            filename: filename,
+            filename,
             kind: CliErrorKind::VerifyError(error),
         }
     }
