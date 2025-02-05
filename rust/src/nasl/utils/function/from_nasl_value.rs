@@ -5,6 +5,28 @@
 use std::{collections::HashMap, path::Path};
 
 use crate::nasl::prelude::*;
+#[cfg(feature = "nasl-builtin-raw-ip")]
+use crate::nasl::builtin::{RawIp, RawIpError, PacketForgeryError};
+#[cfg(feature = "nasl-builtin-raw-ip")]
+use pnet::packet::{
+    self,
+    ethernet::EthernetPacket,
+    icmp::*,
+    icmpv6::{
+        echo_request::MutableEchoRequestPacket,
+        ndp::{
+            MutableNeighborAdvertPacket, MutableNeighborSolicitPacket, MutableRouterAdvertPacket,
+            MutableRouterSolicitPacket,
+        },
+        Icmpv6Types,
+    },
+    ip::{IpNextHeaderProtocol, IpNextHeaderProtocols},
+    ipv4::{checksum, Ipv4Packet, MutableIpv4Packet},
+    ipv6::MutableIpv6Packet,
+    tcp::{TcpOption, TcpOptionNumbers, TcpPacket, *},
+    udp::UdpPacket,
+    Packet, PrimitiveValues,
+};
 
 /// A type that can be converted from a NaslValue.
 /// The conversion may fail.
@@ -95,6 +117,25 @@ impl<'a> FromNaslValue<'a> for bool {
             NaslValue::Number(n) => Ok(*n != 0),
             _ => Err(ArgumentError::WrongArgument("Expected bool.".to_string()).into()),
         }
+    }
+}
+#[cfg(feature = "nasl-builtin-raw-ip")]
+impl<'a> FromNaslValue<'a> for Ipv4Packet<'a> {
+    fn from_nasl_value(val: &'a NaslValue) -> Result<Self, FnError> {
+        let buf: &[u8] = <&[u8]>::from_nasl_value(val)?;
+        let ip = Ipv4Packet::new(&buf)
+            .ok_or_else(|| BuiltinError::RawIp(RawIpError::PacketForgery(PacketForgeryError::CreatePacket)))?;
+        Ok(ip)
+    }
+}
+#[cfg(feature = "nasl-builtin-raw-ip")]
+impl<'a> FromNaslValue<'a> for UdpPacket<'a> {
+    fn from_nasl_value(val: &'a NaslValue) -> Result<Self, FnError> {
+        let ip: Ipv4Packet = Ipv4Packet::from_nasl_value(val)?;
+        let udp = UdpPacket::owned(ip.payload().to_vec())
+            .ok_or_else(|| BuiltinError::RawIp(RawIpError::PacketForgery(PacketForgeryError::CreatePacket)))?;
+
+        Ok(udp)
     }
 }
 

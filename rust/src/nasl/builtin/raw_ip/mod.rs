@@ -7,10 +7,9 @@ mod packet_forgery;
 pub mod raw_ip_utils;
 use std::io;
 
-use crate::nasl::utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};
+use crate::nasl::{utils::{IntoFunctionSet, NaslVars, StoredFunctionSet}, FnError};
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
-pub use packet_forgery::PacketForgeryError;
 use thiserror::Error;
 
 #[cfg(test)]
@@ -32,6 +31,23 @@ pub enum RawIpError {
     PacketForgery(PacketForgeryError),
 }
 
+#[derive(Debug, Error)]
+pub enum PacketForgeryError {
+    #[error("{0}")]
+    Custom(String),
+    #[error("Failed to parse socket address. {0}")]
+    ParseSocketAddr(std::net::AddrParseError),
+    #[error("Failed to send packet. {0}")]
+    SendPacket(std::io::Error),
+    #[error("Failed to create packet from buffer.")]
+    CreatePacket,
+}
+
+impl From<PacketForgeryError> for FnError {
+    fn from(e: PacketForgeryError) -> Self {
+        RawIpError::PacketForgery(e).into()
+    }
+}
 pub struct RawIp;
 
 impl crate::nasl::utils::NaslVarDefiner for RawIp {
