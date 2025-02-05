@@ -10,8 +10,7 @@ use std::{
 };
 
 use super::{
-    RawIpError,
-    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
+    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost}, PacketForgeryError, RawIpError
 };
 
 use super::super::host::get_host_ip;
@@ -42,26 +41,7 @@ use pnet::packet::{
 
 use pnet_macros_support::types::u9be;
 use socket2::{Domain, Protocol, Socket};
-use thiserror::Error;
 use tracing::debug;
-
-#[derive(Debug, Error)]
-pub enum PacketForgeryError {
-    #[error("{0}")]
-    Custom(String),
-    #[error("Failed to parse socket address. {0}")]
-    ParseSocketAddr(std::net::AddrParseError),
-    #[error("Failed to send packet. {0}")]
-    SendPacket(std::io::Error),
-    #[error("Failed to create packet from buffer.")]
-    CreatePacket,
-}
-
-impl From<PacketForgeryError> for FnError {
-    fn from(e: PacketForgeryError) -> Self {
-        RawIpError::PacketForgery(e).into()
-    }
-}
 
 fn error(s: String) -> FnError {
     PacketForgeryError::Custom(s).into()
@@ -1220,7 +1200,7 @@ fn dump_tcp_packet(register: &Register) -> Result<NaslValue, FnError> {
 
 /// Returns the modified IP datagram or NULL on error.
 #[nasl_function]
-fn forge_udp_packet(register: &Register) -> Result<NaslValue, FnError> {
+fn forge_udp_packet(register: &Register, ip: UdpPacket) -> Result<NaslValue, FnError> {
     let mut ip_buf = match register.named("ip") {
         Some(ContextType::Value(NaslValue::Data(d))) => d.clone(),
         _ => return Err(FnError::missing_argument("ip")),
