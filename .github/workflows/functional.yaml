@@ -45,6 +45,7 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- install
+      # TODO: build instead a x86_64 version
       - uses: actions/download-artifact@v4
         with:
           name: rs-binaries

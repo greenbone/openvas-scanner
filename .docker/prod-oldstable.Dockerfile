@@ -46,9 +46,9 @@ RUN ldconfig
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
+# TODO: add rust?
 
 FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION}
-ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
   libglib2.0-0 \
@@ -65,7 +65,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
   net-tools \
   # for openvas-smb support
-  # python3-impacket \
+  python3-impacket \
   libgnutls30 \
   libgssapi3-heimdal \
   libkrb5-26-heimdal \
@@ -79,11 +79,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   zlib1g\
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
-# must be pre built within the rust dir and moved to the bin dir
-# usually this image is created within in a ci ensuring that the
-# binary is available.
-COPY assets/$TARGETPLATFORM/scannerctl /usr/local/bin/scannerctl
-RUN chmod +x /usr/local/bin/scannerctl
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/

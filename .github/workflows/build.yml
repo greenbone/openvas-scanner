@@ -15,6 +15,9 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
           cmake --build build
+  # TODO: change that to cargo check to check if it would be buildable but
+  # move the actual when it is needed - mainly on release
+  # This could significantly improve the speed of the CI
   Rust:
     runs-on: "ubuntu-latest"
     steps:

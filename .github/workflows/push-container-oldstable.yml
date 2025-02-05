@@ -17,45 +17,30 @@ on:
 
 jobs:
   debian_oldstable:
-    name: debian:oldstable
-    runs-on: ubuntu-latest
+    name: ghcr:debian:oldstable
+    runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Container build and push 3rd gen
+        id: build-and-push
+        uses: greenbone/actions/container-build-push-generic@v3
         with:
-          name: rs-binaries
-          path: assets
-      - name: "Set labels and tags"
-        id: old_stable_meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ github.repository }}
-          labels: |
+          build-docker-file: .docker/prod.Dockerfile
+          build-args: |
+            REPOSITORY=${{ github.repository }}
+          cosign-key: ${{ secrets.cosign_key_opensight }}
+          cosign-key-password: ${{ secrets.cosign_password_opensight }}
+          # The tlog function does not currently support an ed25519 key.
+          cosign-tlog-upload: "false"
+          image-labels: |
             org.opencontainers.image.vendor=Greenbone
             org.opencontainers.image.base.name=greenbone/gvm-libs
-          flavor: latest=false # no auto latest container tag for git tags
-          tags: |
-            # for the images provided for debian:oldstable we just provide
-            # oldstable on an new version or oldstable-edge when it is on main.
-            # oldstable-branch-sha on a branch
+          image-tags: |
             type=raw,value=oldstable,enable=${{ inputs.is_latest_tag }}
             type=raw,value=oldstable-edge,enable=${{ github.ref_name == 'main' }}
             type=raw,value=oldstable-{{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
             type=ref,event=pr
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - name: Login to DockerHub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.dockerhub_user }}
-          password: ${{ secrets.dockerhub_token }}
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == 'main') }}
-          file: .docker/prod-oldstable.Dockerfile
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.old_stable_meta.outputs.tags }}
-          labels: ${{ steps.old_stable_meta.outputs.labels }}
+          registry: ${{ vars.IMAGE_REGISTRY }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
