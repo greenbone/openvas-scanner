@@ -31,9 +31,6 @@ pub struct NotusUpdateArgs {
     /// If '-' is given, the list will be read from stdin instead.
     #[clap(long)]
     pub pkg_list: ArgOrStdin<String>,
-    // TODO: Since, in the end, this seems to be a static list of supported OS
-    // anyways, we should introduce an enum to contain these instead of doing the
-    // parsing at the last possible point in time ...
     /// The OS to use.
     pub os: String,
 }
