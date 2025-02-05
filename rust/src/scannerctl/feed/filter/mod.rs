@@ -108,7 +108,7 @@ struct ScriptReader {
 }
 
 impl ScriptReader {
-    fn new(feed_path: PathBuf) -> Scripts {
+    fn read_scripts_from_path(feed_path: PathBuf) -> Scripts {
         let builtins = Builtins::unimplemented();
         let include_regex = Regex::new(r#"\binclude\("([^"]+)"\)"#).unwrap();
         let script_dependencies_regex =
@@ -148,7 +148,7 @@ impl ScriptReader {
         match contents {
             Err(e) => {
                 error!("Error reading file {path:?}: {e:?}");
-                return None;
+                None
             }
             Ok(contents) => Some(self.script_from_contents(&contents)),
         }
@@ -217,7 +217,7 @@ impl RunnableScripts {
                 });
             unresolved = newly_unresolved;
             let new_length = newly_resolved.len();
-            resolved.extend(newly_resolved.into_iter());
+            resolved.extend(newly_resolved);
             if unresolved.is_empty() {
                 return resolved;
             }
@@ -265,7 +265,7 @@ fn copy_feed(
     feed_path: &Path,
     output_path: &Path,
 ) -> Result<(), io::Error> {
-    fs::create_dir_all(&output_path)?;
+    fs::create_dir_all(output_path)?;
     for (path, _) in runnable.iter() {
         let src = feed_path.join(&path.0);
         let dst = output_path.join(&path.0);
@@ -277,7 +277,7 @@ fn copy_feed(
 
 fn print_scripts(runnable: &RunnableScripts) {
     for (path, _) in runnable.iter() {
-        println!("{:?}", path);
+        println!("{path:?}");
     }
 }
 
@@ -307,10 +307,10 @@ fn get_scan_config(feed_path: &Path, runnable: &RunnableScripts) -> Scan {
 }
 
 pub fn run(args: FilterArgs) -> Result<(), CliError> {
-    let scripts = ScriptReader::new(args.feed_path.to_owned());
+    let scripts = ScriptReader::read_scripts_from_path(args.feed_path.to_owned());
     let runnable = RunnableScripts::new(scripts);
     if let Some(ref output_path) = args.output_path {
-        copy_feed(&runnable, &args.feed_path, &output_path)?;
+        copy_feed(&runnable, &args.feed_path, output_path)?;
     } else {
         print_scripts(&runnable);
     }

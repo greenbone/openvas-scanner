@@ -1,4 +1,4 @@
-pub const ALL_BUILTINS: &'static [&'static str] = &[
+pub const ALL_BUILTINS: &[&str] = &[
     "plugin_run_find_service",
     "plugin_run_openvas_tcp_scanner",
     "plugin_run_synscan",
