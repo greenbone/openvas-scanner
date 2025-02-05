@@ -96,6 +96,7 @@ nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 openssl = { version = "0.10.66", features = ["vendored"] }
 blowfish = "0.9.1"
 rc4 = "0.1.0"
+pathdiff = "0.2.3"
 
 [workspace]
 resolver = "2"

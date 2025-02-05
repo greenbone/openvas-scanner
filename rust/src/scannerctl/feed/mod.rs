@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+mod filter;
 mod transpile;
 pub mod update;
 use std::{
@@ -12,6 +13,7 @@ use std::{
 // re-export to work around name conflict
 
 use clap::Subcommand;
+use filter::FilterArgs;
 use scannerlib::{
     nasl::{syntax::LoadError, WithErrorInfo},
     storage::{
@@ -42,6 +44,7 @@ enum Action {
     Update(UpdateArgs),
     Transform(TransformArgs),
     Transpile(TranspileArgs),
+    Filter(FilterArgs),
 }
 
 /// Runs nasl scripts in description mode and updates data into Redis
@@ -173,6 +176,7 @@ pub async fn run(args: FeedArgs) -> Result<(), CliError> {
         Action::Update(args) => update(args).await?,
         Action::Transform(args) => transform(args).await?,
         Action::Transpile(args) => transpile::run(args).await?,
+        Action::Filter(args) => filter::run(args)?,
     }
     Ok(())
 }
