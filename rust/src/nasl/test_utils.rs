@@ -292,13 +292,14 @@ where
     }
 
     pub async fn async_verify(mut self) {
-        match self.verify().await { Err(err) => {
-            // Drop first so we don't call the destructor, which would panic.
-            std::mem::forget(self);
-            panic!("{}", err)
-        } _ => {
-            std::mem::forget(self)
-        }}
+        match self.verify().await {
+            Err(err) => {
+                // Drop first so we don't call the destructor, which would panic.
+                std::mem::forget(self);
+                panic!("{}", err)
+            }
+            _ => std::mem::forget(self),
+        }
     }
 
     fn check_result(
@@ -379,9 +380,14 @@ impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else { match futures::executor::block_on(self.verify()) { Err(err) => {
-            panic!("{}", err)
-        } _ => {}}}
+        } else {
+            match futures::executor::block_on(self.verify()) {
+                Err(err) => {
+                    panic!("{}", err)
+                }
+                _ => {}
+            }
+        }
     }
 }
 

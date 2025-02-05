@@ -456,69 +456,79 @@ impl DefaultDispatcher {
 
     fn cache_nvt_field(&self, filename: &str, field: NVTField) -> Result<(), StorageError> {
         let mut data = self.vts.as_ref().write()?;
-        match data.get_mut(filename) { Some(vt) => {
-            if let Err(feed_version) = vt.set_from_field(field) {
-                let mut data = self.feed_version.as_ref().write()?;
-                *data = feed_version;
-            };
-        } _ => {
-            let mut nvt = item::Nvt::default();
-
-            if let Err(feed_version) = nvt.set_from_field(field) {
-                drop(data);
-                let mut data = self.feed_version.as_ref().write()?;
-                *data = feed_version;
-            } else {
-                if nvt.filename.is_empty() {
-                    nvt.filename = filename.to_string();
-                }
-                data.insert(nvt.filename.clone(), nvt);
+        match data.get_mut(filename) {
+            Some(vt) => {
+                if let Err(feed_version) = vt.set_from_field(field) {
+                    let mut data = self.feed_version.as_ref().write()?;
+                    *data = feed_version;
+                };
             }
-        }}
+            _ => {
+                let mut nvt = item::Nvt::default();
+
+                if let Err(feed_version) = nvt.set_from_field(field) {
+                    drop(data);
+                    let mut data = self.feed_version.as_ref().write()?;
+                    *data = feed_version;
+                } else {
+                    if nvt.filename.is_empty() {
+                        nvt.filename = filename.to_string();
+                    }
+                    data.insert(nvt.filename.clone(), nvt);
+                }
+            }
+        }
         Ok(())
     }
 
     fn cache_kb(&self, ck: ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut data = self.kbs.as_ref().write()?;
-        match data.get_mut(&ck) { Some(scan_entry) => {
-            if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
-                if !kb_entry.iter().any(|x| x.value == kb.value) {
-                    kb_entry.push(kb);
-                };
-            } else {
-                scan_entry.insert(kb.key.clone(), vec![kb]);
+        match data.get_mut(&ck) {
+            Some(scan_entry) => {
+                if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
+                    if !kb_entry.iter().any(|x| x.value == kb.value) {
+                        kb_entry.push(kb);
+                    };
+                } else {
+                    scan_entry.insert(kb.key.clone(), vec![kb]);
+                }
             }
-        } _ => {
-            let mut scan_entry = HashMap::new();
-            scan_entry.insert(kb.key.clone(), vec![kb]);
-            data.insert(ck, scan_entry);
-        }}
+            _ => {
+                let mut scan_entry = HashMap::new();
+                scan_entry.insert(kb.key.clone(), vec![kb]);
+                data.insert(ck, scan_entry);
+            }
+        }
         Ok(())
     }
 
     fn replace_kb(&self, ck: &ContextKey, kb: Kb) -> Result<(), StorageError> {
         let mut data = self.kbs.as_ref().write()?;
-        match data.get_mut(ck) { Some(scan_entry) => {
-            if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
-                *kb_entry = vec![kb];
-            } else {
-                scan_entry.insert(kb.key.clone(), vec![kb]);
+        match data.get_mut(ck) {
+            Some(scan_entry) => {
+                if let Some(kb_entry) = scan_entry.get_mut(&kb.key) {
+                    *kb_entry = vec![kb];
+                } else {
+                    scan_entry.insert(kb.key.clone(), vec![kb]);
+                }
             }
-        } _ => {
-            let mut scan_entry = HashMap::new();
-            scan_entry.insert(kb.key.clone(), vec![kb]);
-            data.insert(ck.clone(), scan_entry);
-        }}
+            _ => {
+                let mut scan_entry = HashMap::new();
+                scan_entry.insert(kb.key.clone(), vec![kb]);
+                data.insert(ck.clone(), scan_entry);
+            }
+        }
         Ok(())
     }
 
     fn cache_result(&self, scan_id: &str, result: models::Result) -> Result<(), StorageError> {
         let mut data = self.results.as_ref().write()?;
-        match data.get_mut(scan_id) { Some(entry) => {
-            entry.push(result)
-        } _ => {
-            data.insert(scan_id.to_string(), vec![result]);
-        }}
+        match data.get_mut(scan_id) {
+            Some(entry) => entry.push(result),
+            _ => {
+                data.insert(scan_id.to_string(), vec![result]);
+            }
+        }
         Ok(())
     }
     fn cache_notus_advisory(&self, adv: NotusAdvisory) -> Result<(), StorageError> {
@@ -567,13 +577,10 @@ impl Remover for DefaultDispatcher {
             None => kbs
                 .remove(key)
                 .map(|x| x.values().flat_map(|x| x.clone()).collect()),
-            Some(x) => {
-                match kbs.get_mut(key) { Some(kbs) => {
-                    kbs.remove(&x)
-                } _ => {
-                    None
-                }}
-            }
+            Some(x) => match kbs.get_mut(key) {
+                Some(kbs) => kbs.remove(&x),
+                _ => None,
+            },
         })
     }
 
@@ -717,26 +724,32 @@ impl Retriever for DefaultDispatcher {
             }
             Retrieve::Result(None) => {
                 let results = self.results.as_ref().read()?;
-                let results = match results.get(key.as_ref()) { Some(x) => {
-                    let mut y = Vec::with_capacity(x.len());
-                    x.clone_into(&mut y);
-                    y
-                } _ => {
-                    vec![]
-                }};
+                let results = match results.get(key.as_ref()) {
+                    Some(x) => {
+                        let mut y = Vec::with_capacity(x.len());
+                        x.clone_into(&mut y);
+                        y
+                    }
+                    _ => {
+                        vec![]
+                    }
+                };
                 Ok(Box::new(
                     results.into_iter().map(|x| Field::Result(x.into())),
                 ))
             }
             Retrieve::Result(Some(id)) => {
                 let results = self.results.as_ref().read()?;
-                let results = match results.get(key.as_ref()) { Some(x) => {
-                    let mut y = Vec::with_capacity(x.len());
-                    x.clone_into(&mut y);
-                    y
-                } _ => {
-                    vec![]
-                }};
+                let results = match results.get(key.as_ref()) {
+                    Some(x) => {
+                        let mut y = Vec::with_capacity(x.len());
+                        x.clone_into(&mut y);
+                        y
+                    }
+                    _ => {
+                        vec![]
+                    }
+                };
                 Ok(Box::new(
                     results
                         .into_iter()
