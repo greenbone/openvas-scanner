@@ -22,9 +22,14 @@ jobs:
       - run: docker run --rm test ldd /usr/local/sbin/openvas
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
       - run: docker rmi test || true
-  # TESTS that are possible before pushing an image
+  build-rs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/compile-x86_64
   tests:
     runs-on: ubuntu-latest
+    needs: [build-rs]
     services:
       redis:
         image: redis
@@ -45,7 +50,10 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- install
-      - uses: ./.github/actions/compile-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: rs-binaries
+          path: assets
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
