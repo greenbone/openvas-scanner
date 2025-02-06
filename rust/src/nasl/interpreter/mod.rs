@@ -19,6 +19,9 @@ mod operator;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod new_tests;
+
 pub use code_interpreter::*;
 pub use error::FunctionCallError;
 pub use error::InterpretError;

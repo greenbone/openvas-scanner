@@ -20,8 +20,7 @@ use crate::{
 use futures::{Stream, StreamExt};
 
 use super::{
-    builtin::ContextFactory,
-    interpreter::{CodeInterpreter, InterpretErrorKind},
+    builtin::ContextFactory, inter::ForkingInterpreter, interpreter::InterpretErrorKind,
     utils::Executor,
 };
 
@@ -239,11 +238,8 @@ where
             .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
             .collect();
         let register = Register::root_initial(&variables);
-        // let code = self.lines.join("\n");
-        // let context = self.context();
-
-        let parser = CodeInterpreter::new(code, register, context);
-        parser.stream().map(|res| {
+        let interpreter = ForkingInterpreter::new(code, register, context);
+        interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpretErrorKind::FunctionCallError(f) => f.kind,
                 e => panic!("Unknown error: {}", e),
