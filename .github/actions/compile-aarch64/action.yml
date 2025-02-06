@@ -1,0 +1,38 @@
+name: "Compile Rust aarch64"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          rust/target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - uses: ./.github/actions/setup-rust
+    - run: cargo install cross || true
+    - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
+      working-directory: rust
+    - name: "patch for debian stable"
+      working-directory: rust
+      run: |
+        find . -type f -name "scannerctl"
+        patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/scannerctl
+        patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/x86_64-unknown-linux-gnu/release/scannerctl
+        patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/scannerctl
+        patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release/scannerctl
+    - run: mkdir assets/
+    - run: mkdir -p assets/linux/arm64
+    - run: mv rust/target/aarch64-unknown-linux-gnu/release/openvasd assets/linux/arm64/openvasd
+    - run: mv rust/target/aarch64-unknown-linux-gnu/release/scannerctl assets/linux/arm64/scannerctl
+    - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/linux/arm64/feed-verifier
+    - name: archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: rs-binaries
+        path: assets/*
+        retention-days: 1

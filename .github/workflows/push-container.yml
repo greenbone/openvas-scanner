@@ -79,8 +79,6 @@ jobs:
           registry: ${{ vars.IMAGE_REGISTRY }}
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
-          scout-user: ${{ secrets.dockerhub_user }}
-          scout-password: ${{ secrets.dockerhub_token }}
   
   debian_stable:
     name: ghcr:debian:stable
