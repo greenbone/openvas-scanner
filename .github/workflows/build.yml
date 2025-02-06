@@ -19,16 +19,6 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            rust/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - uses: ./.github/actions/setup-rust
       # we just check if it is compilable, the actual compilation is now done in:
       # - in the Dockefiles

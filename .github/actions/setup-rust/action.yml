@@ -3,6 +3,15 @@ description: "Install necessary dependencies and set up Rust stable"
 runs:
   using: "composite"
   steps:
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          rust/target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
     - run: sudo apt update || true
       shell: bash
     - run: sudo apt-get install -y libpcap-dev

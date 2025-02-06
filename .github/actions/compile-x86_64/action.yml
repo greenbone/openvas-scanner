@@ -2,17 +2,6 @@ name: "Compile Rust x86_64"
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          rust/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    # TODO: probably the upload artifact is not actually needed
     - uses: ./.github/actions/setup-rust
     - run: cargo install cross || true
       shell: bash
