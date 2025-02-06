@@ -6,13 +6,22 @@
 mod tests;
 
 use std::time::{SystemTime, UNIX_EPOCH};
+use thiserror::Error;
 
 use crate::function_set;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::error::FunctionErrorKind;
+use crate::nasl::utils::error::FnError;
 use crate::nasl::utils::Context;
 use crate::storage::{Field, Kb, Retrieve};
 use nasl_function_proc_macro::nasl_function;
+
+#[derive(Debug, Error)]
+pub enum KBError {
+    #[error("Knowledge base item does not exist: {0}")]
+    ItemNotFound(String),
+    #[error("Multiple entries found for knowledge base item {0} where a single one was expected.")]
+    MultipleItemsFound(String),
+}
 
 /// NASL function to set a value under name in a knowledge base
 /// Only pushes unique values for the given name.
@@ -21,23 +30,12 @@ fn set_kb_item(
     c: &Context,
     name: NaslValue,
     value: NaslValue,
-    expires: Option<NaslValue>,
-) -> Result<NaslValue, FunctionErrorKind> {
-    let expires = match expires {
-        Some(NaslValue::Number(x)) => Some(x),
-        Some(NaslValue::Exit(0)) => None,
-        None => None,
-        Some(x) => {
-            return Err(FunctionErrorKind::Diagnostic(
-                format!("expected expires to be a number but is {x}."),
-                None,
-            ))
-        }
-    }
-    .map(|seconds| {
+    expires: Option<u64>,
+) -> Result<NaslValue, FnError> {
+    let expires = expires.map(|seconds| {
         let start = SystemTime::now();
         match start.duration_since(UNIX_EPOCH) {
-            Ok(x) => x.as_secs() + seconds as u64,
+            Ok(x) => x.as_secs() + seconds,
             Err(_) => 0,
         }
     });
@@ -56,7 +54,7 @@ fn set_kb_item(
 
 /// NASL function to get a knowledge base
 #[nasl_function]
-fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FunctionErrorKind> {
+fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FnError> {
     c.retriever()
         .retrieve(c.key(), Retrieve::KB(key.to_string()))
         .map(|r| {
@@ -73,11 +71,7 @@ fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FunctionErrorKind> {
 
 /// NASL function to replace a kb list
 #[nasl_function(named(name, value))]
-fn replace_kb_item(
-    c: &Context,
-    name: NaslValue,
-    value: NaslValue,
-) -> Result<NaslValue, FunctionErrorKind> {
+fn replace_kb_item(c: &Context, name: NaslValue, value: NaslValue) -> Result<NaslValue, FnError> {
     c.dispatcher()
         .dispatch_replace(
             c.key(),
@@ -93,7 +87,7 @@ fn replace_kb_item(
 
 /// NASL function to retrieve an item in a KB.
 #[nasl_function]
-fn get_kb_list(c: &Context, key: NaslValue) -> Result<NaslValue, FunctionErrorKind> {
+fn get_kb_list(c: &Context, key: NaslValue) -> Result<NaslValue, FnError> {
     c.retriever()
         .retrieve(c.key(), Retrieve::KB(key.to_string()))
         .map(|r| {
@@ -112,7 +106,6 @@ pub struct KnowledgeBase;
 
 function_set! {
     KnowledgeBase,
-    sync_stateless,
     (
         set_kb_item,
         get_kb_item,

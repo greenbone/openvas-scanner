@@ -29,6 +29,17 @@ pub enum LoadError {
     Dirty(String),
 }
 
+impl LoadError {
+    pub fn filename(&self) -> &str {
+        match self {
+            LoadError::Retry(x) => x,
+            LoadError::NotFound(x) => x,
+            LoadError::PermissionDenied(x) => x,
+            LoadError::Dirty(x) => x,
+        }
+    }
+}
+
 /// Loads the content of the path to String by parsing each byte to a character.
 ///
 /// Unfortunately the feed is not completely written in utf8 enforcing us to parse the content

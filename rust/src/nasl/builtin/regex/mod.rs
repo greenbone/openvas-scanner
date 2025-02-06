@@ -7,6 +7,13 @@ mod tests;
 
 use crate::nasl::prelude::*;
 use regex::{Regex, RegexBuilder};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum RegexError {
+    #[error("Error building regular expression pattern: {0}")]
+    BuildingError(regex::Error),
+}
 
 fn parse_search_string(mut s: &str, rnul: bool, multiline: bool) -> &str {
     if !rnul {
@@ -19,17 +26,14 @@ fn parse_search_string(mut s: &str, rnul: bool, multiline: bool) -> &str {
     s
 }
 
-fn make_regex(pattern: &str, icase: bool, multiline: bool) -> Result<Regex, FunctionErrorKind> {
+fn make_regex(pattern: &str, icase: bool, multiline: bool) -> Result<Regex, RegexError> {
     match RegexBuilder::new(pattern.to_string().as_str())
         .case_insensitive(icase)
         .multi_line(multiline)
         .build()
     {
         Ok(re) => Ok(re),
-        Err(e) => Err(FunctionErrorKind::Dirty(format!(
-            " Error building regular expression pattern: {}",
-            e
-        ))),
+        Err(e) => Err(RegexError::BuildingError(e)),
     }
 }
 
@@ -48,7 +52,7 @@ fn ereg(
     icase: Option<bool>,
     rnul: Option<bool>,
     multiline: Option<bool>,
-) -> Result<bool, FunctionErrorKind> {
+) -> Result<bool, FnError> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
     let multiline = multiline.unwrap_or(false);
@@ -75,7 +79,7 @@ fn ereg_replace(
     replace: NaslValue,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<String, FunctionErrorKind> {
+) -> Result<String, FnError> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
 
@@ -103,7 +107,7 @@ fn egrep(
     pattern: NaslValue,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<String, FunctionErrorKind> {
+) -> Result<String, FnError> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
 
@@ -137,7 +141,7 @@ fn eregmatch(
     find_all: Option<bool>,
     icase: Option<bool>,
     rnul: Option<bool>,
-) -> Result<NaslValue, FunctionErrorKind> {
+) -> Result<NaslValue, FnError> {
     let icase = icase.unwrap_or(false);
     let rnul = rnul.unwrap_or(true);
     let find_all = find_all.unwrap_or(false);
@@ -164,7 +168,6 @@ pub struct RegularExpressions;
 
 function_set! {
     RegularExpressions,
-    sync_stateless,
     (
         ereg,
         egrep,

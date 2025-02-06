@@ -62,4 +62,7 @@ nasl_same_host (lex_ctxt *);
 tree_cell *
 nasl_target_is_ipv6 (lex_ctxt *lexic);
 
+tree_cell *
+host_reverse_lookup (lex_ctxt *lexic);
+
 #endif

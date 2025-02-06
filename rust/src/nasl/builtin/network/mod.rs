@@ -4,9 +4,7 @@
 
 use std::{fmt::Display, net::IpAddr};
 
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::{Context, FunctionErrorKind};
-use crate::storage::{Field, Retrieve};
+use crate::nasl::prelude::*;
 
 #[allow(clippy::module_inception)]
 pub mod network;
@@ -79,7 +77,7 @@ impl Display for OpenvasEncaps {
 }
 
 pub fn get_retry(context: &Context) -> u8 {
-    if let Ok(Some(val)) = get_kb_item(context, "timeout_retry") {
+    if let Ok(val) = context.get_single_kb_item("timeout_retry") {
         match val {
             NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
             NaslValue::Number(val) => {
@@ -96,32 +94,15 @@ pub fn get_retry(context: &Context) -> u8 {
     }
 }
 
-pub fn get_kb_item(context: &Context, name: &str) -> Result<Option<NaslValue>, FunctionErrorKind> {
-    context
-        .retriever()
-        .retrieve(context.key(), Retrieve::KB(name.to_string()))
-        .map(|r| {
-            r.into_iter().find_map(|x| match x {
-                Field::KB(kb) => kb.value.into(),
-                _ => None,
-            })
-        })
-        .map(|x| x.map(|x| x.into()))
-        .map_err(|e| e.into())
-}
+struct Port(u16);
 
-pub fn get_kb_item_str(context: &Context, name: &str) -> Result<String, FunctionErrorKind> {
-    get_kb_item(context, name)?
-        .map(|x| x.to_string())
-        .ok_or_else(|| FunctionErrorKind::Diagnostic(format!("KB key {} is not set", name), None))
-}
-
-pub fn verify_port(port: i64) -> Result<u16, FunctionErrorKind> {
-    if !(0..=65535).contains(&port) {
-        return Err(FunctionErrorKind::WrongArgument(format!(
-            "{} is not a valid port number",
-            port
-        )));
+impl FromNaslValue<'_> for Port {
+    fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {
+        let port = i64::from_nasl_value(value)?;
+        if !(0..=65535).contains(&port) {
+            Err(ArgumentError::WrongArgument(format!("{} is not a valid port number", port)).into())
+        } else {
+            Ok(Port(port as u16))
+        }
     }
-    Ok(port as u16)
 }

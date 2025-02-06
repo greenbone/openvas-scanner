@@ -167,11 +167,13 @@ impl From<VulnerabilityData> for Field {
 }
 
 /// Defines abstract error cases
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, PartialEq, Error)]
 pub enum StorageError {
     /// Informs the caller to retry the call
     #[error("There was a temporary issue while reading: {0}")]
     Retry(String),
+    #[error("Retries exhausted")]
+    RetryExhausted,
     /// The connection to a DB was lost.
     ///
     /// The default solution in those cases are most of the times to try a reconnect.

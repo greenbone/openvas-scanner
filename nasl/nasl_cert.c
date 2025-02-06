@@ -65,7 +65,7 @@
    + xtoi_1 ((const unsigned char *) (p) + 1))
 
 /* Convert N to a hex digit.  N must be in the range 0..15.  */
-#define tohex(n) ((n) < 10 ? ((n) + '0') : (((n) -10) + 'A'))
+#define tohex(n) ((n) < 10 ? ((n) + '0') : (((n) - 10) + 'A'))
 
 /* This object is used to keep track of KSBA certificate objects.
    Because they are pointers they can't be mapped easily to the NASL

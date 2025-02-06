@@ -684,8 +684,6 @@ mod tests {
 
     #[test]
     fn empty_optional_fields() {
-        // types Alarm, Log Message, nn
-        // TODO write tests for Log Message, Error Message, Alarm
         let xml = r#"
      <get_scans_response status_text="OK"
                          status="200">
@@ -721,11 +719,11 @@ mod tests {
                 assert_eq!(status.text, "OK");
                 assert_eq!(status.code, 200.into());
                 if let Some(scan) = scan {
-                    assert_eq!(scan.results.result[0].severity, None);
+                    assert_eq!(scan.results.result[0].severity, Some(Default::default()));
                     assert_eq!(scan.results.result[1].severity, None);
                     assert_eq!(scan.results.result[1].hostname, None);
                     assert_eq!(scan.results.result[1].host, None);
-                    assert_eq!(scan.results.result[1].test_id, None);
+                    assert_eq!(scan.results.result[1].test_id, Some(Default::default()));
                 } else {
                     panic!("no scan");
                 }
@@ -815,10 +813,10 @@ mod tests {
                     assert_eq!(scan.status, "finished".into());
                     assert_eq!(scan.start_time, Some(1432824206.into()));
                     assert_eq!(scan.results.result[0].host, Some("192.168.1.252".into()));
-                    assert_eq!(scan.results.result[0].hostname, None);
+                    assert_eq!(scan.results.result[0].hostname, Some(Default::default()));
                     assert_eq!(scan.results.result[0].severity, Some(2.5.into()));
                     assert_eq!(scan.results.result[0].port, Some("443/tcp".into()));
-                    assert_eq!(scan.results.result[0].test_id, None);
+                    assert_eq!(scan.results.result[0].test_id, Some(Default::default()));
                     assert_eq!(scan.results.result[0].name, "Path disclosure vulnerability");
                     assert_eq!(scan.results.result[0].result_type, ResultType::Log);
                     assert_eq!(scan.results.result[0].description, "bla");

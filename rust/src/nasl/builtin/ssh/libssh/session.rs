@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use libssh_rs::{AuthMethods, AuthStatus, InteractiveAuthInfo, Session, Sftp, SshKey, SshOption};
 use std::{os::fd::AsRawFd, time::Duration};
 use tokio::sync::{Mutex, MutexGuard};
@@ -7,6 +11,7 @@ use super::super::error::{Result, SshErrorKind};
 use super::super::Output;
 use super::SessionId;
 use super::{channel::Channel, Socket};
+use crate::nasl::utils::error::WithErrorInfo;
 
 /// Structure to hold an SSH Session
 pub struct SshSession {

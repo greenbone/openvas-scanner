@@ -1024,8 +1024,9 @@ log_message (lex_ctxt *lexic)
   return security_something (lexic, proto_post_log, post_log_with_uri);
 }
 
+// FIXME: the name of the function is too broad, krb5 people also hate prefixes
 tree_cell *
-error_message (lex_ctxt *lexic)
+error_message2 (lex_ctxt *lexic)
 {
   return security_something (lexic, proto_post_error, post_error);
 }
@@ -1050,6 +1051,51 @@ nasl_get_preference (lex_ctxt *lexic)
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = strdup (value);
   retc->size = strlen (value);
+  return retc;
+}
+
+tree_cell *
+nasl_generate_host_stats (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  struct script_infos *script_infos = lexic->script_infos;
+  kb_t kb = script_infos->key;
+  GString *data = g_string_new ("");
+  struct kb_item *stats = NULL, *stats_tmp = NULL;
+  int first = 1;
+
+  stats = kb_item_get_pattern (kb, "general/script_stats*");
+  stats_tmp = stats;
+
+  g_string_append_c (data, '[');
+  while (stats_tmp)
+    {
+      char **spl = g_strsplit (stats_tmp->v_str, "/", 0);
+      char *buf = NULL;
+
+      if (!first)
+        g_string_append_c (data, ',');
+
+      buf = g_strdup_printf ("{\"%s\": {\"start\": %s, \"stop\": %s}}", spl[0],
+                             spl[1], spl[2]);
+
+      g_string_append (data, buf);
+      g_strfreev (spl);
+      g_free (buf);
+
+      stats_tmp = stats_tmp->next;
+      if (first)
+        first = 0;
+    }
+  g_string_append_c (data, ']');
+
+  kb_item_free (stats);
+
+  retc = alloc_typed_cell (CONST_STR);
+  retc->x.str_val = strdup (data->str);
+  retc->size = data->len;
+  g_string_free (data, TRUE);
+
   return retc;
 }
 

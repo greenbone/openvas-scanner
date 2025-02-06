@@ -14,14 +14,17 @@
 
 #include "../misc/plugutils.h"  /* for kb_item_set_int_with_main_kb_check */
 #include "../misc/scanneraux.h" /* for struct scan_globals */
+#include "base/networking.h"
 
-#include <errno.h>          /* for errno() */
+#include <errno.h> /* for errno() */
+#include <fcntl.h>
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/boreas/cli.h> /* for is_host_alive() */
-#include <stdlib.h>         /* for atoi() */
-#include <string.h>         /* for strcmp() */
-#include <sys/ioctl.h>      /* for ioctl() */
-#include <sys/wait.h>       /* for waitpid() */
+#include <stdio.h>
+#include <stdlib.h>    /* for atoi() */
+#include <string.h>    /* for strcmp() */
+#include <sys/ioctl.h> /* for ioctl() */
+#include <sys/wait.h>  /* for waitpid() */
 
 extern int global_max_hosts;
 extern int global_max_checks;
@@ -253,4 +256,95 @@ is_scanner_only_pref (const char *pref)
       || !strncmp (pref, "sys_", 4))
     return 1;
   return 0;
+}
+
+/** @brief Writes scripts stats into a file.
+ *
+ * @param buf String to write.
+ * @param path Path to the file to write into.
+ * @param mode 2 to create the file, 0 to append text to the file,
+ *             1 to finish the json list removing the trailing comma before
+ *             appending the last text in the buffer.
+ *
+ */
+void
+write_script_stats (const char *buf, const char *path, int mode)
+{
+  FILE *pd = NULL;
+
+  if (mode < 0 || mode > 2)
+    {
+      g_warning ("%s: invalid mode %d", __func__, mode);
+      return;
+    }
+  pd = fopen (path, mode == 0 ? "a" : mode == 1 ? "r+" : "w");
+  if (pd == NULL)
+    {
+      g_warning ("%s: Error opening FILE '%s' for script stats: %d - %s",
+                 __func__, path, errno, strerror (errno));
+      return;
+    }
+
+  if (mode == 1)
+    {
+      int ch;
+      while ((ch = fgetc (pd)) != EOF)
+        ;
+      fseek (pd, -1, SEEK_CUR);
+    }
+  fprintf (pd, "%s", buf);
+  fflush (pd);
+  fclose (pd);
+}
+
+/** @brief Reads the script stats from the kb and generate a string in json
+    format to be stored in the disk.
+ *
+ * @param kb the host knowledge base to get the information from.
+ * @param scan_id Scan ID for the file name.
+ * @param ip target IP address.
+ */
+void
+write_host_stats (kb_t kb, const char *scan_id, const char *ip)
+{
+  GString *data = g_string_new ("");
+  struct kb_item *stats = NULL, *stats_tmp = NULL;
+  int firstvt = 1;
+  char *path = NULL;
+
+  if (!prefs_get ("report_scripts"))
+    return;
+
+  stats = kb_item_get_pattern (kb, "general/script_stats*");
+  stats_tmp = stats;
+
+  g_string_append_printf (data, "\"%s\": [", ip);
+  while (stats_tmp)
+    {
+      char **spl = g_strsplit (stats_tmp->v_str, "/", 0);
+      char *buf = NULL;
+
+      if (!firstvt)
+        g_string_append_c (data, ',');
+
+      buf = g_strdup_printf ("{\"%s\": {\"start\": %s, \"stop\": %s}}", spl[0],
+                             spl[1], spl[2]);
+
+      g_string_append (data, buf);
+      g_strfreev (spl);
+      g_free (buf);
+
+      stats_tmp = stats_tmp->next;
+      if (firstvt)
+        firstvt = 0;
+    }
+  g_string_append (data, "],");
+
+  path =
+    g_strdup_printf ("%s/%s-stats.json", prefs_get ("report_scripts"), scan_id);
+
+  kb_item_free (stats);
+  write_script_stats (data->str, path, 0);
+  g_free (path);
+  g_string_free (data, TRUE);
 }

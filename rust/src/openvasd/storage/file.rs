@@ -591,7 +591,7 @@ pub(crate) mod tests {
         scan.scan_id = "aha".to_string();
         let tmp_path = "/tmp/openvasd/credential";
         clear_tmp_files(Path::new(tmp_path));
-        let storage = example_feed_file_storage(&tmp_path).await;
+        let storage = example_feed_file_storage(tmp_path).await;
         storage.insert_scan(scan.clone()).await.unwrap();
         let (scan2, _) = storage.get_scan("aha").await.unwrap();
         assert_eq!(scan, scan2);

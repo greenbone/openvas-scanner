@@ -116,7 +116,7 @@ static struct csc_hook_s *csc_hooks;
 /**
  * determine the openvas_connection* from the openvas fd
  */
-#define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) -OPENVAS_FD_OFF))
+#define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) - OPENVAS_FD_OFF))
 
 /**
  * Same as perror(), but prefixes the data by our pid.
@@ -1956,9 +1956,9 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
       if (log_count < 3)
         {
           g_message ("open_sock_tcp: %s:%d time-out.", ip_str, port);
-          log_count++;
-          kb_item_set_int_with_main_kb_check (kb, buffer, log_count);
         }
+      log_count++;
+      kb_item_set_int_with_main_kb_check (kb, buffer, log_count);
       if ((log_count >= attempts) && (attempts != 0))
         {
           /* After some unsuccessfully attempts, the port is set to closed to

@@ -107,8 +107,8 @@ mod tests {
         "#,
         );
         assert_eq!(
-            t.results()[1],
-            Ok(NaslValue::String("Pair 0\n        Pair 2\n".to_string()))
+            t.results()[1].as_ref().unwrap(),
+            &NaslValue::String("Pair 0\n        Pair 2\n".to_string())
         );
     }
 
@@ -124,8 +124,8 @@ mod tests {
         "#,
         );
         assert_eq!(
-            t.results()[1],
-            Ok(NaslValue::String("Pair 0\n        Pair 2\n".to_string()))
+            t.results()[1].as_ref().unwrap(),
+            &NaslValue::String("Pair 0\n        Pair 2\n".to_string())
         );
     }
 

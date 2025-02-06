@@ -54,16 +54,19 @@ mod tests {
         let ctx = context.build(Default::default());
         let mut interpreter = CodeInterpreter::new(code, register, &ctx);
         assert_eq!(
-            interpreter.next_statement().await,
-            Some(Ok(NaslValue::Null))
+            interpreter.next_statement().await.unwrap().unwrap(),
+            NaslValue::Null
         );
-        assert_eq!(interpreter.next_statement().await, Some(Ok(12.into())));
         assert_eq!(
-            interpreter.next_statement().await,
-            Some(Ok(NaslValue::Dict(HashMap::from([(
+            interpreter.next_statement().await.unwrap().unwrap(),
+            12.into()
+        );
+        assert_eq!(
+            interpreter.next_statement().await.unwrap().unwrap(),
+            NaslValue::Dict(HashMap::from([(
                 "hello".to_owned(),
                 NaslValue::Data("world".as_bytes().into())
-            )]))))
+            )]))
         );
     }
 }

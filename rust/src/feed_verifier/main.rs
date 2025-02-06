@@ -124,7 +124,7 @@ fn run_get(
 }
 
 fn print_error(t: &str) -> i32 {
-    eprintln!("{t}");
+    eprintln!("ERROR: {t}");
     1
 }
 
@@ -174,9 +174,7 @@ fn main() {
     .expect("results");
     let mut errors = 0;
     if ncd > od {
-        errors += print_error(&format!(
-            "openvas ({od:?}) was faster than scannerctl ({ncd:?})"
-        ));
+        eprintln!("openvas ({od:?}) was faster than scannerctl ({ncd:?})");
     }
 
     let (left, right) = {

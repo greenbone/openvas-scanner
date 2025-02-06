@@ -14,7 +14,7 @@ use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
 use scannerlib::storage::item::{NVTField, NVTKey};
 use scannerlib::storage::Field;
 use scannerlib::storage::Retrieve;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
 pub fn extend_args(cmd: Command) -> Command {
@@ -97,7 +97,7 @@ async fn execute(
         }
         None => vec![],
     };
-    let mut vts = vec![];
+    let mut vts = HashSet::new();
     for a in config.iter().map(|f| {
         as_bufreader(f)
             .map_err(CliError::from)
@@ -291,16 +291,16 @@ where
         .preferences
         .preference
         .iter()
-        .map(|p| {
-            (
-                p.nvt.oid.clone(),
-                vec![Parameter {
-                    id: p.id,
-                    value: p.value.clone(),
-                }],
-            )
-        })
-        .collect();
+        .fold(HashMap::new(), |mut acc, p| {
+            let oid = p.nvt.oid.clone();
+            let parameters = acc.entry(oid).or_default();
+            parameters.push(Parameter {
+                id: p.id,
+                value: p.value.clone(),
+            });
+            acc
+        });
+
     let oid_to_vt = |oid: &String| -> Result<VT, Error> {
         let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
         Ok(VT {

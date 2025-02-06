@@ -1,0 +1,3 @@
+[advisories]
+#  RUSTSEC-2023-0071 side channel attack; currently not fixable
+ignore = ["RUSTSEC-2023-0071"]

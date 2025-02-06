@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libcurl4 \
   libcgreen1-dev \
   libhiredis-dev \
+  libkrb5-dev \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/

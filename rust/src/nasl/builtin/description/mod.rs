@@ -25,7 +25,7 @@ use crate::nasl::utils::get_named_parameter;
 ///}
 /// ````
 /// The first parameter is the name of the function as well as the &str lookup key.
-/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FunctionErrorKind>` must be defined.
+/// Afterwards a method that transform `&[&NaslValue]` to `Result<NVTField, FnError>` must be defined.
 ///
 /// Parameter are separated from the definition by a `=>`.
 ///
@@ -56,16 +56,17 @@ macro_rules! make_storage_function {
         )?
         ///
         /// Returns NaslValue::Null on success.
+        #[nasl_function]
         pub fn $name(
             registrat: &Register,
             ctxconfigs: &Context,
-        ) -> Result<NaslValue, FunctionErrorKind> {
+        ) -> Result<NaslValue, FnError> {
             let mut variables = vec![];
             $(
             let positional = registrat.positional();
             if $len > 0 && positional.len() != $len{
                 return Err(
-                    FunctionErrorKind::MissingPositionalArguments { expected: $len, got: positional.len() }
+                    ArgumentError::MissingPositionals { expected: $len, got: positional.len() }.into()
                 );
             }
             for p in positional {
@@ -96,7 +97,6 @@ macro_rules! make_storage_function {
 
         function_set! {
             Description,
-            sync_stateless,
             (
                 $(
                     $name,
@@ -106,7 +106,7 @@ macro_rules! make_storage_function {
     };
 }
 
-type Transform = Result<Vec<NVTField>, FunctionErrorKind>;
+type Transform = Result<Vec<NVTField>, FnError>;
 
 fn as_timeout_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     Ok(vec![NVTField::Preference(NvtPreference {
@@ -120,7 +120,10 @@ fn as_timeout_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 fn as_category_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     match arguments[0] {
         NaslValue::AttackCategory(cat) => Ok(vec![NVTField::Category(*cat)]),
-        a => Err(("AttackCategory", a).into()),
+        a => Err(FnError::wrong_unnamed_argument(
+            "AttackCategory",
+            &a.to_string(),
+        )),
     }
 }
 
@@ -200,10 +203,7 @@ fn as_tag_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 
 fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() != 2 {
-        return Err(FunctionErrorKind::MissingArguments(vec![
-            "name".to_owned(),
-            "csv".to_owned(),
-        ]));
+        return Err(ArgumentError::MissingNamed(vec!["name".to_owned(), "csv".to_owned()]).into());
     }
     Ok(vec![NVTField::Reference(vec![NvtRef {
         class: arguments[1].to_string(),
@@ -213,10 +213,9 @@ fn as_xref_field(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
 
 fn as_preference(_: &ContextKey, arguments: &[&NaslValue]) -> Transform {
     if arguments.len() < 3 {
-        return Err(FunctionErrorKind::MissingArguments(vec![
-            "type".to_owned(),
-            "value".to_owned(),
-        ]));
+        return Err(
+            ArgumentError::MissingNamed(vec!["type".to_owned(), "value".to_owned()]).into(),
+        );
     }
     let name = arguments[0].to_string();
     let class = arguments[1].to_string();

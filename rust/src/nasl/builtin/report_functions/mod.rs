@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::sync::{Arc, RwLock};
 
 use crate::models::{self, Protocol, ResultType};
@@ -26,7 +30,7 @@ impl Reporting {
         typus: ResultType,
         register: &Register,
         context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         let data = register.named("data").map(|x| x.to_string());
         let port = register
             .named("port")
@@ -70,11 +74,8 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
-    fn log_message(
-        &self,
-        register: &Register,
-        context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    #[nasl_function]
+    fn log_message(&self, register: &Register, context: &Context) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Log, register, context)
     }
 
@@ -85,11 +86,12 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
+    #[nasl_function]
     fn security_message(
         &self,
         register: &Register,
         context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Alarm, register, context)
     }
 
@@ -100,18 +102,14 @@ impl Reporting {
     /// - port, optional TCP or UDP port number of the service
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
-    fn error_message(
-        &self,
-        register: &Register,
-        context: &Context,
-    ) -> Result<NaslValue, FunctionErrorKind> {
+    #[nasl_function]
+    fn error_message(&self, register: &Register, context: &Context) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Error, register, context)
     }
 }
 
 function_set! {
     Reporting,
-    sync_stateful,
     (
         (Reporting::log_message, "log_message"),
         (Reporting::security_message, "security_message"),

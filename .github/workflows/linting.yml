@@ -9,9 +9,7 @@ jobs:
       - name: Check out openvas-scanner
         uses: actions/checkout@v4
       - name: Formatting
-        run: |
-          clang-format -i -style=file {src,misc,nasl}/*.{c,h}
-          git diff --exit-code
+        run: sh .github/check-c-formatting.sh ${{ github.base_ref }}
   Rust:
     runs-on: ubuntu-latest
     defaults:
@@ -41,3 +39,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: cargo install cargo-audit
       - run: cargo audit
+  License-Headers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v4
+      - name: Check license headers
+        run: bash ./check_license_headers.bash

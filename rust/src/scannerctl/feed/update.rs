@@ -45,8 +45,6 @@ where
                 });
             }
         }
-    } else {
-        tracing::warn!("Signature check disabled");
     }
 
     updater.perform_update().await?;

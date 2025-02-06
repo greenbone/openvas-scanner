@@ -24,7 +24,7 @@ pub enum ExecuteError {
     Parameter(crate::models::Parameter),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 /// Contains the result of a executed script
 pub enum ScriptResultKind {
     /// Contains the code provided by exit call or 0 when script finished successful without exit
@@ -46,7 +46,7 @@ pub enum ScriptResultKind {
     Error(InterpretError),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 /// Contains meta data of the script and its result
 pub struct ScriptResult {
     /// Object identifier of the script
@@ -65,10 +65,6 @@ impl ScriptResult {
     /// Returns true when the return code of the script is 0.
     pub fn has_succeeded(&self) -> bool {
         matches!(&self.kind, ScriptResultKind::ReturnCode(0))
-    }
-    /// Returns true when the return code of the script not 0
-    pub fn has_failed(&self) -> bool {
-        !self.has_succeeded()
     }
 
     /// Returns true when the script didn't run

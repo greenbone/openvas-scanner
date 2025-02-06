@@ -5,13 +5,13 @@
 #[cfg(test)]
 mod tests {
     use crate::nasl::test_prelude::*;
-    use FunctionErrorKind::*;
+    use ArgumentError::*;
 
     #[test]
     fn set_kb_item() {
         check_code_result(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
-        check_err_matches!(r#"set_kb_item(name: "test");"#, MissingArguments { .. });
-        check_err_matches!(r#"set_kb_item(value: 1);"#, MissingArguments { .. });
+        check_err_matches!(r#"set_kb_item(name: "test");"#, MissingNamed { .. });
+        check_err_matches!(r#"set_kb_item(value: 1);"#, MissingNamed { .. });
     }
 
     #[test]
@@ -19,16 +19,8 @@ mod tests {
         let mut t = TestBuilder::default();
         t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
         t.ok(r#"get_kb_item("test");"#, 1);
-        check_err_matches!(
-            t,
-            r#"get_kb_item("test", 1);"#,
-            FunctionErrorKind::TrailingPositionalArguments { .. }
-        );
-        check_err_matches!(
-            t,
-            r#"get_kb_item();"#,
-            FunctionErrorKind::MissingPositionalArguments { .. }
-        );
+        check_err_matches!(t, r#"get_kb_item("test", 1);"#, TrailingPositionals { .. },);
+        check_err_matches!(t, r#"get_kb_item();"#, MissingPositionals { .. });
     }
 
     #[test]

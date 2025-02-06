@@ -6,11 +6,15 @@
 use std::fmt::Display;
 use std::ops::Range;
 
+#[cfg(test)]
+use serde::{Deserialize, Serialize};
+
 use super::cursor::Cursor;
 use crate::storage::item::ACT;
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum Base {
     /// Base 2: contains 01 is defined by 0b e.g.: `0b010101`
     Binary,
@@ -60,6 +64,7 @@ impl Base {
 
 /// Is used to identify which Category type is unclosed
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum UnclosedCategory {
     /// Is a unclosed String.
     String,
@@ -121,6 +126,7 @@ impl Display for IdentifierType {
 
 /// Unless Dynamic those are reserved words that cannot be reused otherwise.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum IdentifierType {
     /// function declaration
     Function,
@@ -201,6 +207,7 @@ make_keyword_matcher! {
 
 /// Is used to identify a Token
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum Category {
     /// `(`
     LeftParen,
@@ -396,6 +403,7 @@ impl Display for Category {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the TokenType as well as the position.
+#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub struct Token {
     /// The category or kind of a token
     pub category: Category,

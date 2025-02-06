@@ -44,10 +44,10 @@ impl Attrs {
             return ArgKind::Register;
         }
         if ty_name_is(ty, "Positionals") {
-            return ArgKind::PositionalIterator;
+            return ArgKind::PositionalIterator(PositionalsArg { position });
         }
         if ty_name_is(ty, "CheckedPositionals") {
-            return ArgKind::CheckedPositionalIterator;
+            return ArgKind::CheckedPositionalIterator(PositionalsArg { position });
         }
         let attr_kind = self
             .attrs

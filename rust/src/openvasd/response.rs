@@ -220,7 +220,7 @@ impl Response {
                     return;
                 };
             }
-            if value.map(|v| send(SendState::Bytes(false, v))).any(|x| x) {
+            if value.any(|v| send(SendState::Bytes(false, v))) {
                 return;
             }
 

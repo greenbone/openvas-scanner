@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use crate::models::{Host, Parameter, Protocol, ScanId};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::Target;
@@ -209,7 +213,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
-                Err(e) => return ScriptResultKind::Error(e.clone()),
+                Err(e) => return ScriptResultKind::Error(e),
                 Ok(x) => {
                     trace!(statement_result=?x);
                 }

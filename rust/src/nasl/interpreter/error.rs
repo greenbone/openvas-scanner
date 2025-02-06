@@ -2,38 +2,39 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::io;
-
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
-use crate::nasl::utils::error::FunctionErrorKind;
-use crate::storage::StorageError;
+use crate::nasl::utils::error::FnError;
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 /// An error that occurred while calling a function
 #[error("Error while calling function '{function}': {kind}")]
-pub struct FunctionError {
+pub struct FunctionCallError {
     /// Name of the function
     pub function: String,
     /// Kind of error
     #[source]
-    pub kind: FunctionErrorKind,
+    pub kind: FnError,
 }
 
-impl FunctionError {
+impl FunctionCallError {
     /// Creates a new FunctionError
-    pub fn new(function: &str, kind: FunctionErrorKind) -> Self {
+    pub fn new(function: &str, kind: FnError) -> Self {
         Self {
             function: function.to_owned(),
             kind,
         }
     }
+
+    fn retryable(&self) -> bool {
+        self.kind.retryable()
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 /// Is used to represent an error while interpreting
-#[error("{}{kind}", self.origin.clone().map(|e| format!("{e}: ")).unwrap_or_default())]
+#[error("{} {kind}", self.format_origin())]
 pub struct InterpretError {
     /// Defined the type of error that occurred.
     #[source]
@@ -42,7 +43,27 @@ pub struct InterpretError {
     pub origin: Option<Statement>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+impl InterpretError {
+    fn format_origin(&self) -> String {
+        if let Some(ref origin) = self.origin {
+            let line = self.line();
+            let col = self.column();
+            format!("Error in statement '{origin}' at {}:{}.", line, col)
+        } else {
+            "".into()
+        }
+    }
+
+    pub fn retryable(&self) -> bool {
+        match &self.kind {
+            InterpretErrorKind::LoadError(LoadError::Retry(_)) => true,
+            InterpretErrorKind::FunctionCallError(e) => e.retryable(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Error)]
 /// Is used to give hints to the user how to react on an error while interpreting
 pub enum InterpretErrorKind {
     /// When returned context is a function when a value is required.
@@ -74,22 +95,12 @@ pub enum InterpretErrorKind {
     /// When the given key was not found in the context
     #[error("Key not found: {0}")]
     NotFound(String),
-    /// A StorageError occurred
-    // FIXME rename to general error
-    #[error("{0}")]
-    StorageError(StorageError),
     /// A LoadError occurred
     #[error("{0}")]
     LoadError(LoadError),
-    /// A Formatting error occurred
-    #[error("{0}")]
-    FMTError(std::fmt::Error),
-    /// An IOError occurred
-    #[error("{0}")]
-    IOError(io::ErrorKind),
     /// An error occurred while calling a built-in function.
     #[error("{0}")]
-    FunctionCallError(FunctionError),
+    FunctionCallError(FunctionCallError),
 }
 
 impl InterpretError {
@@ -197,45 +208,14 @@ impl From<SyntaxError> for InterpretError {
     }
 }
 
-impl From<StorageError> for InterpretError {
-    fn from(se: StorageError) -> Self {
-        Self::new(InterpretErrorKind::StorageError(se), None)
-    }
-}
-
-impl From<io::ErrorKind> for InterpretError {
-    fn from(ie: io::ErrorKind) -> Self {
-        Self::new(InterpretErrorKind::IOError(ie), None)
-    }
-}
-
-impl From<io::Error> for InterpretError {
-    fn from(e: io::Error) -> Self {
-        e.kind().into()
-    }
-}
-
-impl From<std::fmt::Error> for InterpretError {
-    fn from(fe: std::fmt::Error) -> Self {
-        Self::new(InterpretErrorKind::FMTError(fe), None)
-    }
-}
-
 impl From<LoadError> for InterpretError {
     fn from(le: LoadError) -> Self {
         Self::new(InterpretErrorKind::LoadError(le), None)
     }
 }
 
-impl From<FunctionError> for InterpretError {
-    fn from(fe: FunctionError) -> Self {
-        match fe.kind {
-            FunctionErrorKind::FMTError(fe) => fe.into(),
-            FunctionErrorKind::IOError(ie) => ie.into(),
-            FunctionErrorKind::GeneralError(e) => {
-                Self::new(InterpretErrorKind::StorageError(e), None)
-            }
-            _ => Self::new(InterpretErrorKind::FunctionCallError(fe), None),
-        }
+impl From<FunctionCallError> for InterpretError {
+    fn from(fe: FunctionCallError) -> Self {
+        Self::new(InterpretErrorKind::FunctionCallError(fe), None)
     }
 }

@@ -97,23 +97,21 @@ where
 
                 // prepare vt preferences
                 for pref in &vt.parameters {
-                    if let Some((prefid, class, name, value)) =
-                        nvt.preferences.iter().find_map(|p| {
-                            if let Some(i) = p.id {
-                                if i as u16 == pref.id {
-                                    Some(p.into())
-                                } else {
-                                    None
-                                }
+                    if let Some((prefid, class, name, _)) = nvt.preferences.iter().find_map(|p| {
+                        if let Some(i) = p.id {
+                            if i as u16 == pref.id {
+                                Some(p.into())
                             } else {
                                 None
                             }
-                        })
-                    {
+                        } else {
+                            None
+                        }
+                    }) {
                         let value_aux: String = if class == *"checkbox" {
                             bool_to_str(&pref.value)
                         } else {
-                            value
+                            pref.value.to_string()
                         };
 
                         pref_list.insert(
@@ -293,30 +291,31 @@ where
     async fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut lookup_opts: Vec<String> = vec![];
 
-        if let Some(reverse_lookup_only) = self.scan_config.target.reverse_lookup_only {
-            if reverse_lookup_only {
-                lookup_opts.push("reverse_lookup_only|||yes".to_string());
-            } else {
-                lookup_opts.push("reverse_lookup_only|||no".to_string());
-            }
+        if self
+            .scan_config
+            .target
+            .reverse_lookup_only
+            .is_some_and(|x| x)
+        {
+            lookup_opts.push("reverse_lookup_only|||yes".to_string());
+        } else {
+            lookup_opts.push("reverse_lookup_only|||no".to_string());
         }
 
-        if let Some(reverse_lookup_unify) = self.scan_config.target.reverse_lookup_unify {
-            if reverse_lookup_unify {
-                lookup_opts.push("reverse_lookup_unify|||yes".to_string());
-            } else {
-                lookup_opts.push("reverse_lookup_unify|||no ".to_string());
-            }
+        if self
+            .scan_config
+            .target
+            .reverse_lookup_unify
+            .is_some_and(|x| x)
+        {
+            lookup_opts.push("reverse_lookup_unify|||yes".to_string());
+        } else {
+            lookup_opts.push("reverse_lookup_unify|||no".to_string());
         }
-
-        if !lookup_opts.is_empty() {
-            self.redis_connector.push_kb_item(
-                format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-                lookup_opts,
-            )?
-        }
-
-        Ok(())
+        self.redis_connector.push_kb_item(
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
+            lookup_opts,
+        )
     }
 
     async fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
@@ -549,6 +548,7 @@ mod tests {
             scan_id: "123-456".to_string(),
             ..Default::default()
         };
+        scan.target.hosts = vec!["127.0.0.1".to_string(), "10.0.0.1".to_string()];
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
         scan.target.credentials = vec![Credential {
             service: Service::SSH,
@@ -573,6 +573,29 @@ mod tests {
                 },
             ],
         }];
+        scan.scan_preferences = vec![
+            crate::models::ScanPreference {
+                id: "testParam1".to_string(),
+                value: "1".to_string(),
+            },
+            crate::models::ScanPreference {
+                id: "testParam2".to_string(),
+                value: "abc".to_string(),
+            },
+        ];
+        scan.vts = vec![crate::models::VT {
+            oid: "123".to_string(),
+            parameters: vec![
+                crate::models::Parameter {
+                    id: 1,
+                    value: "yes".to_string(),
+                },
+                crate::models::Parameter {
+                    id: 2,
+                    value: "abc".to_string(),
+                },
+            ],
+        }];
 
         let mut rc = FakeRedis {
             data: HashMap::new(),
@@ -580,27 +603,27 @@ mod tests {
 
         let mut prefh = PreferenceHandler::new(scan, &mut rc);
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
+        // Prepare and test Scan ID
         assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
             .item_exists("internal/scanid", "123-456"));
         assert!(prefh.redis_connector.item_exists("internal/123-456", "new"));
 
-        assert!(prefh.prepare_main_kbindex_for_openvas().await.is_ok());
+        // Prepare and test Target
+        assert!(prefh.prepare_target_for_openvas().await.is_ok());
         assert!(prefh
             .redis_connector
-            .item_exists("internal/123-456/scanprefs", "ov_maindbid|||3"));
+            .item_exists("internal/123-456/scanprefs", "TARGET|||127.0.0.1,10.0.0.1"));
 
-        assert!(prefh.prepare_boreas_alive_test().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||18"));
+        // Prepare and test Ports
+        assert!(prefh.prepare_ports_for_openvas().await.is_ok());
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "port_range|||T:22,23,24,25,80,"
+        ));
 
-        assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "exclude_hosts|||127.0.0.1"));
-
+        // Prepare and test Credentials
         assert!(prefh.prepare_credentials_for_openvas().await.is_ok());
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
@@ -611,10 +634,87 @@ mod tests {
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||user"
         ));
 
-        assert!(prefh.prepare_ports_for_openvas().await.is_ok());
+        // Prepare and test Plugins
+        assert!(prefh.prepare_plugins_for_openvas().await.is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "plugin_set|||123"));
+
+        // Prepare and test Main KB Index
+        assert!(prefh.prepare_main_kbindex_for_openvas().await.is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "ov_maindbid|||3"));
+
+        // Prepare and test Host Options
+        assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "exclude_hosts|||127.0.0.1"));
+
+        // Prepare and test Scan Params
+        assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "testParam1|||1"));
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "testParam2|||abc"));
+
+        // Prepare and test Reverse Lookup Options
+        assert!(prefh.prepare_reverse_lookup_opt_for_openvas().await.is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "reverse_lookup_only|||no"));
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "reverse_lookup_unify|||no"));
+
+        // Prepare Alive Test Options
+        // To test this options we have to call prepare_nvt_preferences first
+        assert!(prefh.prepare_alive_test_option_for_openvas().await.is_ok());
+
+        // Prepare NVT Preferences
+        assert!(prefh.prepare_nvt_preferences().await.is_ok());
+
+        // Test Alive Test Options
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
-            "port_range|||T:22,23,24,25,80,"
+            "1.3.6.1.4.1.25623.1.0.100315:1:checkbox:Do a TCP ping|||yes"
         ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:2:checkbox:TCP ping tries also TCP-SYN ping|||no"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:7:checkbox:TCP ping tries only TCP-SYN ping|||yes"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:3:checkbox:Do an ICMP ping|||yes"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:4:checkbox:Use ARP|||no"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:5:checkbox:Mark unreachable Hosts as dead (not scanning)|||yes"
+        ));
+
+        // Test NVT Preferences
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||yes"));
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc"));
+
+        // Prepare Boreas Alive Test
+        assert!(prefh.prepare_boreas_alive_test().await.is_ok());
+        assert!(prefh
+            .redis_connector
+            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||18"));
     }
 }

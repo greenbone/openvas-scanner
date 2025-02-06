@@ -8,7 +8,7 @@ mod tests {
 
     use nasl_builtin_raw_ip::RawIp;
     use nasl_builtin_std::ContextFactory;
-    use crate::nasl::utils::{error::FunctionErrorKind, Executor};
+    use crate::nasl::utils::{error::FnError, Executor};
     use crate::nasl::interpreter::test_utils::TestBuilder;
     use crate::nasl::syntax::NaslValue;
 
@@ -20,7 +20,7 @@ mod tests {
         o_buf: &[u8],
         o_init: usize,
         o_fin: usize,
-    ) -> Result<(), FunctionErrorKind> {
+    ) -> Result<(), FnError> {
         let o_range = o_fin - o_init;
         let d_range = d_fin - d_init;
         if d_buf.len() < d_range
@@ -29,7 +29,7 @@ mod tests {
             || d_buf.len() < d_fin
             || o_buf.len() < o_fin
         {
-            return Err(FunctionErrorKind::Diagnostic(
+            return Err(FnError::Diagnostic(
                 "Error copying from slice. Index out of range".to_string(),
                 Some(NaslValue::Null),
             ));
@@ -270,7 +270,7 @@ mod tests {
         // different range size between origin and destination
         assert_eq!(
             safe_copy_from_slice(&mut a, 0, 2, &b, 0, b.len()),
-            Err(FunctionErrorKind::Diagnostic(
+            Err(FnError::Diagnostic(
                 "Error copying from slice. Index out of range".to_string(),
                 Some(NaslValue::Null)
             ))
@@ -279,7 +279,7 @@ mod tests {
         // different range size between origin and destination
         assert_eq!(
             safe_copy_from_slice(&mut a, 0, alen, &b, 0, 2),
-            Err(FunctionErrorKind::Diagnostic(
+            Err(FnError::Diagnostic(
                 "Error copying from slice. Index out of range".to_string(),
                 Some(NaslValue::Null)
             ))
@@ -288,7 +288,7 @@ mod tests {
         // out of index in the destination range
         assert_eq!(
             safe_copy_from_slice(&mut a, 1, alen + 1, &b, 0, b.len()),
-            Err(FunctionErrorKind::Diagnostic(
+            Err(FnError::Diagnostic(
                 "Error copying from slice. Index out of range".to_string(),
                 Some(NaslValue::Null)
             ))

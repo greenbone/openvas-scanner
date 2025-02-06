@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::{future::Future, pin::Pin};
 
 use crate::nasl::{Context, NaslResult, Register};
@@ -135,7 +139,7 @@ where
     }
 }
 
-/// Represents one of the four types of NaslFunctions.
+/// Represents one of the six types of NaslFunctions.
 /// This type exists in order to make it possible to
 /// store a collection of different NASL functions inside
 /// a single function set.

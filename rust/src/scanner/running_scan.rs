@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -109,7 +113,7 @@ impl<S: ScannerStack> RunningScan<S> {
         .map_err(make_scheduling_error)
     }
 
-    async fn run_to_completion<'a>(&self, runner: ScanRunner<'a, S>) -> Phase {
+    async fn run_to_completion(&self, runner: ScanRunner<'_, S>) -> Phase {
         let mut end_phase = Phase::Succeeded;
         let mut stream = Box::pin(runner.stream());
         while let Some(it) = stream.next().await {
@@ -122,7 +126,7 @@ impl<S: ScannerStack> RunningScan<S> {
                     }
                     debug!(result=?result, "script finished");
 
-                    if result.has_failed() {
+                    if !result.has_succeeded() {
                         end_phase = Phase::Failed;
                     }
                 }

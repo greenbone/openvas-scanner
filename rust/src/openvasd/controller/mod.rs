@@ -58,7 +58,7 @@ fn retrieve_and_reset(id: Arc<RwLock<ClientIdentifier>>) -> ClientIdentifier {
     cci
 }
 
-pub async fn run<'a, S, DB>(
+pub async fn run<S, DB>(
     mut ctx: Context<S, DB>,
     config: &config::Config,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>

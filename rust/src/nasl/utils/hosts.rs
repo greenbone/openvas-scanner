@@ -4,9 +4,11 @@
 
 use std::net::{IpAddr, ToSocketAddrs};
 
-use crate::nasl::utils::error::FunctionErrorKind;
+use crate::nasl::builtin::HostError;
 
-pub fn resolve(mut hostname: String) -> Result<Vec<IpAddr>, FunctionErrorKind> {
+use super::FnError;
+
+pub fn resolve(mut hostname: String) -> Result<Vec<IpAddr>, FnError> {
     //std::net to_socket_addrs() requires a port. Therefore, using a dummy port
     hostname.push_str(":5000");
 
@@ -16,6 +18,6 @@ pub fn resolve(mut hostname: String) -> Result<Vec<IpAddr>, FunctionErrorKind> {
             Ok(ips)
         }
         // assumes that target is already a hostname
-        Err(_) => Err(FunctionErrorKind::diagnostic_ret_null("Missing Hostname")),
+        Err(_) => Err(HostError::TargetIsNotAHostname.into()),
     }
 }

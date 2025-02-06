@@ -7,17 +7,25 @@
 #[cfg(test)]
 mod tests;
 
-use crate::nasl::utils::{
-    function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
-    Context, FunctionErrorKind, Register,
+use crate::nasl::{
+    utils::{
+        function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
+        FnError,
+    },
+    ArgumentError,
 };
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};
-use nasl_function_proc_macro::nasl_function;
 use std::num::ParseIntError;
+use thiserror::Error;
 
-use crate::function_set;
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::*;
+
+use super::BuiltinError;
+
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct StringError(#[from] std::fmt::Error);
 
 /// Decodes given string as hex and returns the result as a byte array
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
@@ -74,7 +82,7 @@ fn raw_string(positional: CheckedPositionals<&NaslValue>) -> Vec<u8> {
     data
 }
 
-fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionErrorKind> {
+fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
     match value {
         NaslValue::String(x) => write!(s, "{x}"),
         NaslValue::Data(x) => {
@@ -108,7 +116,13 @@ fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), FunctionEr
 
 /// NASL function to parse values into string representations
 #[nasl_function]
-fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, FunctionErrorKind> {
+fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, BuiltinError> {
+    combine_positionals_to_string(positional)
+}
+
+fn combine_positionals_to_string(
+    positional: CheckedPositionals<&NaslValue>,
+) -> Result<NaslValue, BuiltinError> {
     let mut s = String::with_capacity(2 * positional.len());
     for p in positional {
         write_nasl_string_value(&mut s, p)?;
@@ -116,7 +130,7 @@ fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, Funct
     Ok(s.into())
 }
 
-fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), FunctionErrorKind> {
+fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
     match value {
         NaslValue::Array(x) => {
             for p in x {
@@ -219,11 +233,11 @@ fn hex(s: i64) -> String {
 ///
 /// The first positional argument must be a string, all other arguments are ignored. If either the no argument was given or the first positional is not a string, a error is returned.
 #[nasl_function]
-fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, FunctionErrorKind> {
+fn hexstr_to_data(s: NaslValue) -> Result<Vec<u8>, ArgumentError> {
     let s = s.to_string();
     let s = s.as_str();
     decode_hex(s).map_err(|_| {
-        FunctionErrorKind::WrongArgument(format!(
+        ArgumentError::WrongArgument(format!(
             "Expected an even-length string containing only 0-9a-fA-F, found '{}'",
             s
         ))
@@ -282,8 +296,9 @@ fn stridx(haystack: NaslValue, needle: NaslValue, offset: Option<usize>) -> i64 
 /// NASL function to display any number of NASL values
 ///
 /// Internally the string function is used to concatenate the given parameters
-fn display(register: &Register, configs: &Context) -> Result<NaslValue, FunctionErrorKind> {
-    println!("{}", &string(register, configs)?);
+#[nasl_function]
+fn display(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, BuiltinError> {
+    println!("{}", &combine_positionals_to_string(positional)?);
     Ok(NaslValue::Null)
 }
 
@@ -331,7 +346,7 @@ fn insstr(
     to_insert: NaslValue,
     start: usize,
     end: Option<usize>,
-) -> Result<String, FunctionErrorKind> {
+) -> Result<String, ArgumentError> {
     let mut s = s.to_string();
 
     let insb = to_insert.to_string();
@@ -339,7 +354,7 @@ fn insstr(
 
     let end = end.unwrap_or(s.len()).min(s.len());
     if start > end {
-        return Err(FunctionErrorKind::WrongArgument(format!(
+        return Err(ArgumentError::WrongArgument(format!(
             "start index ({}) larger than end ({}).",
             start, end
         )));
@@ -360,11 +375,7 @@ fn insstr(
 /// `pattern` contains the pattern to search for.
 /// The optional argument `icase` toggles case sensitivity. Default: false (case sensitive). If true, search is case insensitive.
 #[nasl_function(named(string, pattern, icase))]
-fn match_(
-    string: NaslValue,
-    pattern: NaslValue,
-    icase: Option<bool>,
-) -> Result<bool, FunctionErrorKind> {
+fn match_(string: NaslValue, pattern: NaslValue, icase: Option<bool>) -> Result<bool, FnError> {
     let options = MatchOptions {
         case_sensitive: !icase.unwrap_or(false),
         require_literal_separator: false,
@@ -377,7 +388,7 @@ fn match_(
 
     Ok(Pattern::new(pattern)
         .map_err(|err| {
-            FunctionErrorKind::WrongArgument(format!(
+            ArgumentError::WrongArgument(format!(
                 "Argument 'pattern' to 'match' is not a valid pattern: {}. {}",
                 pattern, err
             ))
@@ -476,7 +487,6 @@ pub struct NaslString;
 
 function_set! {
     NaslString,
-    sync_stateless,
     (
         hexstr,
         hex,

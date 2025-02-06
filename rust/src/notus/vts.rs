@@ -125,10 +125,7 @@ where
                 full_name,
             } => {
                 // Parse package from full name
-                let package = match P::from_full_name(full_name) {
-                    Some(pkg) => pkg,
-                    None => return None,
-                };
+                let package = P::from_full_name(full_name)?;
                 // Create Vulnerability Test Entry
                 Some((
                     package.get_name(),
@@ -147,10 +144,7 @@ where
                 name,
             } => {
                 // Parse package from name and full version
-                let package = match P::from_name_and_full_version(name, full_version) {
-                    Some(pkg) => pkg,
-                    None => return None,
-                };
+                let package = P::from_name_and_full_version(name, full_version)?;
                 // Create Vulnerability Test Entry
                 Some((
                     package.get_name(),
@@ -165,14 +159,8 @@ where
             }
             FixedPackage::ByRange { range, name } => {
                 // Parse both packages from name and full version
-                let start = match P::from_name_and_full_version(name, &range.start) {
-                    Some(pkg) => pkg,
-                    None => return None,
-                };
-                let end = match P::from_name_and_full_version(name, &range.end) {
-                    Some(pkg) => pkg,
-                    None => return None,
-                };
+                let start = P::from_name_and_full_version(name, &range.start)?;
+                let end = P::from_name_and_full_version(name, &range.end)?;
                 // Create Vulnerability Test Entry
                 Some((
                     start.get_name(),

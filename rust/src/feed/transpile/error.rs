@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use thiserror::Error;
 
 use crate::nasl::syntax::{LoadError, Statement};
@@ -5,7 +9,7 @@ use crate::nasl::syntax::{LoadError, Statement};
 use super::verify;
 use super::Replace;
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 /// Error during transpiling
 pub enum TranspileError {
     /// Loader is unable to handle operation
@@ -19,7 +23,7 @@ pub enum TranspileError {
     Replace(#[from] ReplaceError),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 /// Error cases on a replace operation
 pub enum ReplaceError {
     /// The replace operation is invalid on statement

@@ -8,6 +8,7 @@ mod array;
 mod cert;
 mod cryptographic;
 mod description;
+mod error;
 mod host;
 mod http;
 mod isotime;
@@ -20,11 +21,14 @@ mod regex;
 mod report_functions;
 mod ssh;
 mod string;
+mod sys;
 
 #[cfg(test)]
 mod tests;
 
-pub use ssh::SshError;
+pub use error::BuiltinError;
+pub use host::HostError;
+pub use knowledge_base::KBError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
@@ -55,6 +59,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(description::Description)
         .add_set(isotime::NaslIsotime)
         .add_set(cryptographic::rc4::CipherHandlers::default())
+        .add_set(sys::Sys)
         .add_set(ssh::Ssh::default())
         .add_set(cert::NaslCerts::default());
 

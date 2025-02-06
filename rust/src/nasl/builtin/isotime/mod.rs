@@ -9,6 +9,11 @@ mod tests;
 
 use crate::nasl::prelude::*;
 use chrono::{Datelike, Months, NaiveDate, NaiveDateTime, TimeDelta};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct IsotimeError(String);
 
 const ISOFORMAT: &str = "yyyymmddThhmmss";
 const READABLEFORMAT: &str = "yyyy-mm-dd hh:mm:ss";
@@ -41,20 +46,17 @@ fn parse_readable_time(time: &str) -> Option<NaiveDateTime> {
     None
 }
 
-fn parse_time(time: &str) -> Result<NaiveDateTime, FunctionErrorKind> {
+fn parse_time(time: &str) -> Result<NaiveDateTime, IsotimeError> {
     if let Some(time) = parse_isotime(time) {
         return Ok(time);
     }
     if let Some(time) = parse_readable_time(time) {
         return Ok(time);
     }
-    Err(FunctionErrorKind::Diagnostic(
-        format!(
-            "The given time is not in the correct isotime ({}) or readable time format ({}): {}",
-            ISOFORMAT, READABLEFORMAT, time
-        ),
-        None,
-    ))
+    Err(IsotimeError(format!(
+        "The given time is not in the correct isotime ({}) or readable time format ({}): {}",
+        ISOFORMAT, READABLEFORMAT, time
+    )))
 }
 
 #[nasl_function(named(years, days, seconds))]
@@ -63,7 +65,7 @@ fn isotime_add(
     years: Option<i64>,
     days: Option<i64>,
     seconds: Option<i64>,
-) -> Result<String, FunctionErrorKind> {
+) -> Result<String, IsotimeError> {
     let mut time = parse_time(time)?;
 
     if let Some(years) = years {
@@ -83,13 +85,10 @@ fn isotime_add(
     }
 
     if time.year() < 0 || time.year() > 9999 {
-        return Err(FunctionErrorKind::Diagnostic(
-            format!(
-                "The resulting year is out of range (0000-9999): {}.",
-                time.year()
-            ),
-            None,
-        ));
+        return Err(IsotimeError(format!(
+            "The resulting year is out of range (0000-9999): {}.",
+            time.year()
+        )));
     }
 
     Ok(time.format("%Y%m%dT%H%M%S").to_string())
@@ -106,12 +105,12 @@ fn isotime_now() -> String {
 }
 
 #[nasl_function]
-fn isotime_print(time: &str) -> Result<String, FunctionErrorKind> {
+fn isotime_print(time: &str) -> Result<String, FnError> {
     Ok(parse_time(time)?.format("%Y-%m-%d %H:%M:%S").to_string())
 }
 
 #[nasl_function]
-fn isotime_scan(time: &str) -> Result<String, FunctionErrorKind> {
+fn isotime_scan(time: &str) -> Result<String, FnError> {
     let time = parse_time(time)?;
 
     Ok(time.format("%Y%m%dT%H%M%S").to_string())
@@ -121,7 +120,6 @@ pub struct NaslIsotime;
 
 function_set! {
     NaslIsotime,
-    sync_stateless,
     (
         isotime_add,
         isotime_is_valid,

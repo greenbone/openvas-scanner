@@ -68,5 +68,8 @@ fn padding() {
         "#,
     );
     let results = t.results();
-    assert_eq!(results[results.len() - 2], results[results.len() - 1]);
+    assert_eq!(
+        results[results.len() - 2].as_ref().unwrap(),
+        results[results.len() - 1].as_ref().unwrap()
+    );
 }

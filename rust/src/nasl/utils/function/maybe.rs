@@ -1,6 +1,10 @@
+// SPDX-FileCopyrightText: 2025 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use crate::nasl::syntax::NaslValue;
 
-use crate::nasl::FunctionErrorKind;
+use crate::nasl::FnError;
 
 use super::FromNaslValue;
 
@@ -12,7 +16,7 @@ use super::FromNaslValue;
 pub struct Maybe<T>(Option<T>);
 
 impl<'a, T: FromNaslValue<'a>> FromNaslValue<'a> for Maybe<T> {
-    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FunctionErrorKind> {
+    fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         Ok(Self(T::from_nasl_value(value).ok()))
     }
 }

@@ -18,5 +18,8 @@ if (a) {
 a;
         "###,
     );
-    assert_eq!(t.results().last().unwrap(), &Ok(NaslValue::Number(1)));
+    assert!(matches!(
+        t.results().last().unwrap(),
+        &Ok(NaslValue::Number(1))
+    ));
 }
