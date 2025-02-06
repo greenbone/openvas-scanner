@@ -75,15 +75,14 @@ jobs:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
   build:
-    needs: [unittests]
     uses: ./.github/workflows/build.yml
   linting:
     uses: ./.github/workflows/linting.yml
   functional:
-    needs: [build]
+    needs: [unittests, build]
     uses: ./.github/workflows/functional.yaml
   container:
-    needs: [build, init, functional]
+    needs: [build, init]
     uses: ./.github/workflows/push-container.yml
     secrets:
       dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
