@@ -4,7 +4,7 @@
 # workflow.
 [ -z $FEED_DIR ] && FEED_DIR="/var/lib/openvas/plugins"
 DOCKER_CMD=docker
-FEED_IMAGE="greenbone/vulnerability-tests"
+FEED_IMAGE="registry.community.greenbone.net/community/vulnerability-tests"
 set -e
 printf "Copying feed $FEED_IMAGE "
 FEED_VERSION=$($DOCKER_CMD run --rm $FEED_IMAGE sh -c 'ls /var/lib/openvas/' | sort -r | head -n 1)
