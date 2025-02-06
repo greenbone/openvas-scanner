@@ -13,9 +13,7 @@ runs:
       shell: bash
       run: |
         find . -type f -name "scannerctl"
-        patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/scannerctl
         patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/x86_64-unknown-linux-gnu/release/scannerctl
-        patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/scannerctl
         patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release/scannerctl
     - run: mkdir assets/
       shell: bash
