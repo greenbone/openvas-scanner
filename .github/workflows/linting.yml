@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
-      - run: cargo install typos-cli
+      - run: cargo install typos-cli || true
       - run: typos
   Rust-Audit:
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install cargo-audit
+      - run: cargo install cargo-audit || true
       - run: cargo audit
   License-Headers:
     runs-on: ubuntu-latest

@@ -2,6 +2,7 @@ ARG VERSION=edge
 # this allows to work on forked repository
 ARG REPOSITORY=greenbone/openvas-scanner
 
+FROM rust AS rust
 FROM greenbone/openvas-smb AS openvas-smb
 
 FROM registry.community.greenbone.net/community/gvm-libs:${VERSION} AS build
@@ -10,9 +11,20 @@ RUN sh /source/.github/install-openvas-dependencies.sh
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
+WORKDIR /source/rust
+COPY --from=rust /usr/local/cargo/ /usr/local/cargo/
+COPY --from=rust /usr/local/rustup/ /usr/local/rustup/
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+RUN apt update && apt install -y ca-certificates
+RUN cargo build --release
+RUN cp target/release/openvasd /install/usr/local/bin
+RUN cp target/release/scannerctl /install/usr/local/bin
+# Do we want to copy feed verifier as well?
+# RUN cp release/feed-verifier /install/bin
 
 FROM registry.community.greenbone.net/community/gvm-libs:${VERSION}
-ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
   libglib2.0-0 \
@@ -42,13 +54,11 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libssh-4 \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
+
+
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
-COPY assets/$TARGETPLATFORM/scannerctl /usr/local/bin/scannerctl
-COPY assets/$TARGETPLATFORM/openvasd /usr/local/bin/openvasd
-RUN chmod +x /usr/local/bin/scannerctl
-RUN chmod +x /usr/local/bin/openvasd
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
