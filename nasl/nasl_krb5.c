@@ -245,10 +245,6 @@ tree_cell *
 nasl_okrb5_gss_init (lex_ctxt *lexic)
 {
   (void) lexic;
-  if (cached_gss_context != NULL)
-    {
-      okrb5_gss_free_context (cached_gss_context);
-    }
   cached_gss_context = okrb5_gss_init_context ();
   if (cached_gss_context == NULL)
     {
