@@ -14,6 +14,7 @@ dirs="
 /usr/local/share/man/man1/
 /usr/local/share/man/man8/
 /usr/local/include/gvm
+/usr/local/include/openvas
 /usr/local/share/openvas
 /usr/local/bin
 /usr/local/sbin
