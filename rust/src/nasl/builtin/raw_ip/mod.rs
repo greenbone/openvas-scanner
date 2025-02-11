@@ -7,7 +7,10 @@ mod packet_forgery;
 pub mod raw_ip_utils;
 use std::io;
 
-use crate::nasl::{utils::{IntoFunctionSet, NaslVars, StoredFunctionSet}, FnError};
+use crate::nasl::{
+    utils::{IntoFunctionSet, NaslVars, StoredFunctionSet},
+    FnError,
+};
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
 use thiserror::Error;
@@ -39,8 +42,16 @@ pub enum PacketForgeryError {
     ParseSocketAddr(std::net::AddrParseError),
     #[error("Failed to send packet. {0}")]
     SendPacket(std::io::Error),
-    #[error("Failed to create packet from buffer.")]
-    CreatePacket,
+    #[error("Failed to create an Ipv4 packet from invalid buffer size.")]
+    CreateIpv4Packet,
+    #[error("Failed to create an Ipv6 packet from invalid buffer size.")]
+    CreateIpv6Packet,
+    #[error("Failed to create a TCP packet from invalid buffer size.")]
+    CreateTcpPacket,
+    #[error("Failed to create a UDP packet from invalid buffer size.")]
+    CreateUdpPacket,
+    #[error("Failed to create a ICMP packet from invalid buffer size.")]
+    CreateIcmpPacket,
 }
 
 impl From<PacketForgeryError> for FnError {

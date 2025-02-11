@@ -30,7 +30,7 @@ pub use error::BuiltinError;
 pub use host::HostError;
 pub use knowledge_base::KBError;
 #[cfg(feature = "nasl-builtin-raw-ip")]
-pub use raw_ip::{RawIpError, RawIp, PacketForgeryError};
+pub use raw_ip::{PacketForgeryError, RawIpError};
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};

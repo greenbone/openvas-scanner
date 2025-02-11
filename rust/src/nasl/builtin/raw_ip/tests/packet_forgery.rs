@@ -4,42 +4,7 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use rustls::pki_types::{IpAddr, Ipv6Addr};
-
-use crate::nasl::builtin::raw_ip;
-use crate::nasl::builtin::raw_ip::{packet_forgery::safe_copy_from_slice, PacketForgeryError};
-use crate::nasl::utils::context::Target;
-use crate::nasl::{nasl_std_functions, test_prelude::*};
-use crate::storage::DefaultDispatcher;
-/// Copy from a slice in safe way, performing the necessary test to avoid panicking
-
-fn error(s: String) -> FnError {
-    PacketForgeryError::Custom(s).into()
-}
-
-//fn safe_copy_from_slice(
-//    d_buf: &mut [u8],
-//    d_init: usize,
-//    d_fin: usize,
-//    o_buf: &[u8],
-//    o_init: usize,
-//    o_fin: usize,
-//) -> Result<(), FnError> {
-//    let o_range = o_fin - o_init;
-//    let d_range = d_fin - d_init;
-//    if d_buf.len() < d_range
-//        || o_buf.len() < o_range
-//        || o_range != d_range
-//        || d_buf.len() < d_fin
-//        || o_buf.len() < o_fin
-//    {
-//        return Err(error(
-//            "Error copying from slice. Index out of range".to_string()
-//        ));
-//    }
-//    d_buf[d_init..d_fin].copy_from_slice(&o_buf[o_init..o_fin]);
-//    Ok(())
-//}
+use crate::nasl::test_prelude::*;
 
 #[test]
 fn forge_packet() {
@@ -143,6 +108,7 @@ fn tcp_opts() {
     );
     t.run(
         r#"tcp_packet = forge_tcp_packet(ip:       ip_packet,
+                                data:     1234,
                                 th_sport: 5080,
                                 th_dport: 80,
                                 th_seq:   1000,
@@ -154,8 +120,8 @@ fn tcp_opts() {
                                 th_sum:   0,
                                 th_urp:   0);"#,
     );
-    t.run("tcp_packet = insert_tcp_options(tcp: tcp_packet, 3, 2);");
-    t.ok("opt = get_tcp_option(tcp: tcp_packet, option: 3);", 2);
+    t.run("tcp_packet_opts = insert_tcp_options(tcp: tcp_packet, 3, 2);");
+    t.ok("opt = get_tcp_option(tcp: tcp_packet_opts, option: 3);", 2);
 }
 
 #[test]
@@ -180,8 +146,9 @@ fn forge_udp() {
         r#"udp_packet = forge_udp_packet(ip:       ip_packet,
                                         uh_sport: 5080,
                                         uh_dport: 80,
-                                        uh_len:   8,
-                                        th_sum:   0,
+                                        uh_ulen:   8,
+                                        uh_sum:   0,
+                                        update_ip_len: TRUE,
                                         data: "1234");"#,
         vec![
             69u8, 0, 0, 32, 210, 4, 0, 0, 255, 17, 104, 108, 192, 168, 0, 1, 192, 168, 0, 10, 19,
@@ -258,39 +225,6 @@ fn copy_from_slice_panic() {
     a[..2].copy_from_slice(&b[..b.len()]);
 }
 
-//#[test]
-//fn copy_from_slice_safe() {
-//    let mut a = [1u8, 2u8, 3u8, 4u8];
-//    let b = [b'a', b'b', b'c', b'd'];
-//    let alen = a.len();
-//    // different range size between origin and destination
-//    assert_eq!(
-//        safe_copy_from_slice(&mut a, 0, 2, &b, 0, b.len()),
-//        Err(error(
-//            "Error copying from slice. Index out of range".to_string()
-//        ))
-//    );
-//
-//    // different range size between origin and destination
-//    assert_eq!(
-//        safe_copy_from_slice(&mut a, 0, alen, &b, 0, 2),
-//        Err(error(
-//            "Error copying from slice. Index out of range".to_string()
-//        ))
-//    );
-//
-//    // out of index in the destination range
-//    assert_eq!(
-//        safe_copy_from_slice(&mut a, 1, alen + 1, &b, 0, b.len()),
-//        Err(error(
-//            "Error copying from slice. Index out of range".to_string()
-//        ))
-//    );
-//
-//    let _r = safe_copy_from_slice(&mut a, 0, 2, &b, 0, 2);
-//    assert_eq!(a, [b'a', b'b', 3u8, 4u8]);
-//}
-
 #[test]
 fn forge_icmp_v6_packet() {
     let key = crate::storage::ContextKey::Scan(String::default(), Some("5858::2".to_string()));
@@ -298,7 +232,6 @@ fn forge_icmp_v6_packet() {
     t.ok(
         r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
                                 ip6_p: 0x3a,
-                                ip6_plen:40,
                                 ip6_hlim: 128,
                                 ip6_src: "5858::1",
                                 ip6_dst: "5858::2");"#,
@@ -319,5 +252,113 @@ fn forge_icmp_v6_packet() {
             96u8, 0, 0, 0, 0, 8, 58, 128, 88, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 88, 88,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 128, 1, 204, 8, 1, 0, 2, 0,
         ],
+    );
+}
+
+#[test]
+fn modify_ipv6_elements() {
+    let mut t = TestBuilder::default();
+    t.context().set_target("5858::3".to_string());
+
+    t.run(
+        r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
+                                ip6_p: 0x3a,
+                                ip6_hlim: 128,
+                                ip6_src: "5858::1",
+                                ip6_dst: "5858::2");"#,
+    );
+    t.ok(
+        r#"elem = get_ip_v6_element(ip6: ip6_packet, element: "ip6_hlim");"#,
+        128,
+    );
+    t.run(
+        r#"ip6_packet = set_ip_v6_elements(ip6: ip6_packet, ip6_hlim: 127, ip6_src: "5858::3");"#,
+    );
+    t.ok(
+        r#"elem = get_ip_v6_element(ip6: ip6_packet, element: "ip6_hlim");"#,
+        127,
+    );
+}
+
+#[test]
+fn forge_udp_v6() {
+    let mut t = TestBuilder::default();
+    t.context().set_target("5858::3".to_string());
+
+    t.run(
+        r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
+                                ip6_p: 0x3a,
+                                ip6_hlim: 128,
+                                ip6_src: "5858::1",
+                                ip6_dst: "5858::2");"#,
+    );
+    t.ok(
+        r#"udp6_packet = forge_udp_v6_packet(ip6:       ip6_packet,
+                                        uh_sport: 5080,
+                                        uh_dport: 80,
+                                        uh_ulen:   8,
+                                        uh_sum:   0,
+                                        update_ip6_len: TRUE,
+                                        data: "1234");"#,
+        vec![
+            96u8, 0, 0, 0, 0, 12, 58, 128, 88, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 88,
+            88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 19, 216, 0, 80, 0, 8, 214, 152, 49, 50,
+            51, 52,
+        ],
+    );
+    t.ok(
+        r#"udp6_packet = set_udp_v6_elements(udp: udp6_packet, uh_sport: 33000);"#,
+        vec![
+            96u8, 0, 0, 0, 0, 12, 58, 128, 88, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 88,
+            88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 128, 232, 0, 80, 0, 8, 105, 136, 49, 50,
+            51, 52,
+        ],
+    );
+
+    t.ok(
+        r#"get_udp_v6_element(udp:udp6_packet, element:"uh_sport");"#,
+        33000,
+    );
+}
+
+#[test]
+fn forge_tcp_v6() {
+    let mut t = TestBuilder::default();
+    t.context().set_target("5858::3".to_string());
+
+    t.run(
+        r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
+                                ip6_p: 0x3a,
+                                ip6_hlim: 128,
+                                ip6_src: "5858::1",
+                                ip6_dst: "5858::2");"#,
+    );
+    t.ok(
+        r#"tcp6_packet = forge_tcp_v6_packet(ip6:       ip6_packet,
+                                th_sport: 5080,
+                                th_dport: 80,
+                                th_seq:   1000,
+                                th_ack:   0,
+                                th_x2:    0,
+                                th_off:   5,
+                                th_flags: 33,
+                                th_win:   0,
+                                th_sum:   0,
+                                th_urp:   0);"#,
+        vec![
+            96u8, 0, 0, 0, 0, 20, 58, 128, 88, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 88,
+            88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 19, 216, 0, 80, 0, 0, 3, 232, 0, 0, 0, 0,
+            80, 33, 0, 0, 231, 0, 0, 0,
+        ],
+    );
+    t.run(r#"tcp6_packet = set_tcp_v6_elements(tcp: tcp6_packet, th_sport: 33000);"#);
+    t.ok(
+        r#"get_tcp_v6_element(tcp:tcp6_packet, element:"th_sport");"#,
+        33000,
+    );
+    t.run("tcp_packet_opts = insert_tcp_v6_options(tcp: tcp6_packet, 3, 2);");
+    t.ok(
+        "opt = get_tcp_v6_option(tcp: tcp_packet_opts, option: 3);",
+        2,
     );
 }

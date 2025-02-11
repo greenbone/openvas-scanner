@@ -80,9 +80,10 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
 }
 
 /// Return the source IP address given the destination IP address
-pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, FnError> {
-    let socket = SocketAddr::new(dst, port);
-    let sd = format!("{}:{}", dst, port);
+pub fn get_source_ip(dst: IpAddr) -> Result<IpAddr, FnError> {
+    let fake_port = 50000u16;
+    let socket = SocketAddr::new(dst, fake_port);
+    let sd = format!("{}:{}", dst, fake_port);
     let local_socket = bind_local_socket(&socket)?;
     local_socket
         .connect(sd)

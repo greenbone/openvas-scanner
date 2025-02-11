@@ -12,13 +12,13 @@ use super::cryptographic::CryptographicError;
 use super::host::HostError;
 use super::http::HttpError;
 use super::isotime::IsotimeError;
+#[cfg(feature = "nasl-builtin-raw-ip")]
+use super::raw_ip::RawIpError;
 use super::regex::RegexError;
 use super::sys::SysError;
 use super::KBError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
-#[cfg(feature = "nasl-builtin-raw-ip")]
-use super::raw_ip::RawIpError;
-    
+
 #[derive(Debug, Error)]
 pub enum BuiltinError {
     #[error("{0}")]

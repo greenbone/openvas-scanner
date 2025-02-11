@@ -367,7 +367,7 @@ fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslV
             "IPv6 does not support ARP protocol.",
         ));
     }
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
+    let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
     let local_mac_address = get_local_mac_address(&iface.name)?;
 
@@ -501,7 +501,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
 
     let target_ip = get_host_ip(context)?;
 
-    let local_ip = get_source_ip(target_ip, 50000u16)?;
+    let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
     // send the frame and get a response if pcap_active enabled
