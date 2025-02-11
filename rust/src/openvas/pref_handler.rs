@@ -443,7 +443,7 @@ where
                         ));
                         credential_preferences.push(format!(
                             "{OID_SSH_AUTH}:2:password:SSH key passphrase:|||{}",
-                            password
+                            password.unwrap_or_default()
                         ));
                         credential_preferences.push(format!(
                             "{OID_SSH_AUTH}:4:file:SSH private key:|||{}",
