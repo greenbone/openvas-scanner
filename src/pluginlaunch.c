@@ -73,7 +73,7 @@ const char *hostname = NULL;
  * @return 1 if reached, 0 if not reached or no set.
  */
 static int
-max_nvt_timeouts_reached ()
+max_nvt_timeouts_reached (void)
 {
   static int vts_timeouts_counter = 0;
   int max_vts_timeouts = 0;
