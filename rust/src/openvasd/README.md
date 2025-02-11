@@ -11,7 +11,7 @@ Currently it is utilizing ospd-openvas.
     - [API Key](#api-key)
     - [Certificates](#certificates)
       - [How does mTLS works?](#how-does-mtls-works)
-      - [Certificate Authority for PKI mTLS Method](#certificate-authority-for-pki-mtls-method)
+      - [Certificate Authority for pki](#certificate-authority-for-pki-mtls-method)
       - [mTLS with self-signed client certificates.](#mtls-with-self-signed-client-certificates)
   - [Mode](#mode)
 - [Usage](#usage)
@@ -85,13 +85,13 @@ It is similar to the known TLS, but there are some extra steps. In the following
 6. **The server gives access to the client**
 7. Client and server exchange information through a encrypted TLS connexion.
 
-#### Certificate Authority for PKI mTLS Method
+#### Certificate Authority for pki
 
 Who implements mTLS is its own Certification Authority. This is a difference from standard TLS, where an external organization verifies and validates the TLS certificates.
 For mTLS is necessary a TLS root certificate which allows an organization to be its owns certificate authority. The root CA signs intermediate certificates forming a chain of trust. The intermediate CA is created for security reasons. then, the root certificate is used as less as possible and in case the intermediate key is compromised, the root CA can revoke the intermediate key and create a new one.
 Finally, the intermediate CA is used to sign client and server certificates.
 
-In the examples folder for a [PKI Mutual TLS](../examples/tls/PKI mTLS Method) you can find three scripts for creation of root and intermediate CA, client and server pairs (keys and certs).
+In the examples folder for a [PKI Mutual TLS](../examples/tls/pki) you can find three scripts for creation of root and intermediate CA, client and server pairs (keys and certs).
 
 Once you created the all key-certs pairs, you can use them for stablishing a mTLS secure connexion between `openvasd` and the clients.
 
@@ -114,7 +114,7 @@ This method is similar to the explained above, but differs in that the clients a
 Then, the clients have to register a single certificate with the authorization server, and there is no shared CA certificate.
 During authentication, the server checks if the client uses the same certificate for the TLS session as was configured or registered for that individual client. The server trusts the pinned certificate. The client's organization does not have to maintain any public key infrastructure and can simply use a self-signed certificate for authentication.
 
-The scripts for generating the self-signed certificate can be found in [Self-Signed mTLS Method](../examples/tls/Self-Signed mTLS Method) folder.
+The scripts for generating the self-signed certificate can be found in [self-signed](../examples/tls/self-signed) folder.
 
 Once you created the all key-certs pairs, you can use them for stablishing a mTLS secure connexion between `openvasd` and the clients.
 
