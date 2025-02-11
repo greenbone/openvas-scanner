@@ -189,9 +189,9 @@ fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     for p in &scan.scan_preferences {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
         let value = match p.value.as_ref() {
-          "yes" => "1",
-          "no" => "0",
-          v => v,
+            "yes" => "1",
+            "no" => "0",
+            v => v,
         };
         writer.write_event(Event::Text(BytesText::new(value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;
