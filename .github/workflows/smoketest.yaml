@@ -32,7 +32,7 @@ jobs:
           metrics-enabled: false
       - name: deploy openvasd
         run: |
-          cd rust/examples/tls/Self-Signed\ mTLS\ Method
+          cd rust/examples/tls/self-signed
           make delete deploy
           cd -
 
@@ -45,7 +45,7 @@ jobs:
         working-directory: rust/crates/smoketest
         env:
           SCAN_CONFIG: configs/simple_scan_ssh_only.json
-          CLIENT_KEY: ../examples/tls/Self-Signed mTLS Method/client.rsa
-          CLIENT_CERT: ../examples/tls/Self-Signed mTLS Method/client.pem
+          CLIENT_KEY: ../examples/tls/self-signed/client.rsa
+          CLIENT_CERT: ../examples/tls/self-signed/client.pem
         run: |
           make build run
