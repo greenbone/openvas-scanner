@@ -74,7 +74,7 @@ Transforms a NVT to the json structure:
 
 To create a single json element per dispatch you can use the ItemDispatcher with a writer of your choice:
 
-```
+```rs
 let mut buf = Vec::with_capacity(1208);
 let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut buf);
 ```
@@ -83,7 +83,7 @@ let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut b
 
 To create an array for elements per dispatch call:
 
-```
+```rs
 let mut buf = Vec::with_capacity(1208);
 let mut ja = scannerlib::storage::json::ArrayWrapper::new(&mut buf);
 let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut ja);
