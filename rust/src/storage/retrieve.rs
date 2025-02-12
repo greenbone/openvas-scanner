@@ -109,11 +109,12 @@ where
         return Err(StorageError::RetryExhausted);
     }
     let result = f();
-    if let Err(StorageError::Retry(reason)) = result {
-        tracing::debug!(reason, "retriever implementation returned retry error");
-        retry(f, max - 1)
-    } else {
-        result
+    match result {
+        Err(StorageError::Retry(reason)) => {
+            tracing::debug!(reason, "retriever implementation returned retry error");
+            retry(f, max - 1)
+        }
+        _ => result,
     }
 }
 

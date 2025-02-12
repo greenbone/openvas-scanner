@@ -449,7 +449,7 @@ mod infix {
     }
 
     macro_rules! calculated_test {
-        ($code:expr, $expected:expr) => {
+        ($code:expr_2021, $expected:expr_2021) => {
             let expr = parse($code).next().unwrap().unwrap();
             assert_eq!(resolve(&expr), $expected);
         };

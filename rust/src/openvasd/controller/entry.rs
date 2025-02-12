@@ -197,35 +197,33 @@ where
             }
             let cid: Option<ClientHash> = {
                 match &*cid {
-                    ClientIdentifier::Disabled => {
-                        if let Some(key) = ctx.api_key.as_ref() {
-                            match req.headers().get("x-api-key") {
-                                Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
-                                Some(v) => {
-                                    tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
-                                    None
-                                }
-                                None => None,
+                    ClientIdentifier::Disabled => match ctx.api_key.as_ref() {
+                        Some(key) => match req.headers().get("x-api-key") {
+                            Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
+                            Some(v) => {
+                                tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
+                                None
                             }
-                        } else {
-                            Some("disabled".into())
-                        }
-                    }
+                            None => None,
+                        },
+                        _ => Some("disabled".into()),
+                    },
                     ClientIdentifier::Known(cid) => Some(cid.clone()),
                     ClientIdentifier::Unknown => {
-                        if let Some(key) = ctx.api_key.as_ref() {
-                            match req.headers().get("x-api-key") {
+                        match ctx.api_key.as_ref() {
+                            Some(key) => match req.headers().get("x-api-key") {
                                 Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
                                 Some(v) => {
                                     tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
                                     None
                                 }
                                 None => None,
+                            },
+                            _ => {
+                                // We don't allow no api key and no client certs when we have a server
+                                // certificate to prevent accidental misconfiguration.
+                                None
                             }
-                        } else {
-                            // We don't allow no api key and no client certs when we have a server
-                            // certificate to prevent accidental misconfiguration.
-                            None
                         }
                     }
                 }

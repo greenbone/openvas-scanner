@@ -516,15 +516,19 @@ impl NaslSockets {
                 // TODO: set timeout to global recv timeout when available
                 let timeout = Duration::from_secs(10);
                 self.wait_before_next_probe();
-                if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
-                    self.add(NaslSocket::Tcp(Box::new(tcp)))
-                } else {
-                    continue;
+                match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
+                    Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),
+                    _ => {
+                        continue;
+                    }
                 }
-            } else if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport.0) {
-                self.add(NaslSocket::Udp(udp))
             } else {
-                continue;
+                match UdpConnection::new_priv(addr, sport, dport.0) {
+                    Ok(udp) => self.add(NaslSocket::Udp(udp)),
+                    _ => {
+                        continue;
+                    }
+                }
             };
             return Ok(NaslValue::Number(fd as i64));
         }

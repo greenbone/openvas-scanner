@@ -35,7 +35,7 @@ use crate::nasl::utils::get_named_parameter;
 /// Followed by required named parameter separated by `:` `(field1: field2)`.
 /// The third group indicated by `(?field1: field2)` are optional named parameter.
 macro_rules! make_storage_function {
-    ($($name:ident $transform:expr => $([$len:expr])? $(($($value:ident):+))? $(?($($optional_value:ident):+))?),+) => {
+    ($($name:ident $transform:expr_2021 => $([$len:expr_2021])? $(($($value:ident):+))? $(?($($optional_value:ident):+))?),+) => {
         $(
         $(
         /// Stores

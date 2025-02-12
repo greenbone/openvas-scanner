@@ -170,13 +170,16 @@ where
 
     pub async fn delete_scan_by_id(&self, id: &str) -> Result<(), Error> {
         let mut queued = self.queued.write().await;
-        if let Some(idx) = queued.iter().position(|x| x == id) {
-            queued.swap_remove(idx);
-        } else {
-            let mut running = self.running.write().await;
-            if let Some(idx) = running.iter().position(|x| x == id) {
-                self.scanner.stop_scan(id.to_string()).await?;
-                running.swap_remove(idx);
+        match queued.iter().position(|x| x == id) {
+            Some(idx) => {
+                queued.swap_remove(idx);
+            }
+            _ => {
+                let mut running = self.running.write().await;
+                if let Some(idx) = running.iter().position(|x| x == id) {
+                    self.scanner.stop_scan(id.to_string()).await?;
+                    running.swap_remove(idx);
+                }
             }
         }
 
@@ -204,40 +207,43 @@ where
 
         tracing::trace!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
-            if let Some(scan_id) = queued.pop() {
-                let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
-                if !self.scanner.can_start_scan(&scan).await {
-                    tracing::debug!(?status, %scan_id, "unable to start scan");
-                    queued.push(scan_id);
-                } else {
-                    tracing::debug!(?status, %scan_id, "starting scan");
-                    match self.scanner.start_scan(scan).await {
-                        Ok(_) => {
-                            tracing::debug!(%scan_id, "started");
-                            running.push(scan_id.clone());
-                        }
-                        Err(ScanError::Connection(e)) => {
-                            tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
-                            queued.push(scan_id);
-                        }
-                        Err(e) => {
-                            tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
-                            self.db
-                                .update_status(
-                                    &scan_id,
-                                    Status {
-                                        start_time: None,
-                                        end_time: None,
-                                        status: Phase::Failed,
-                                        host_info: None,
-                                    },
-                                )
-                                .await?;
-                        }
-                    };
+            match queued.pop() {
+                Some(scan_id) => {
+                    let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
+                    if !self.scanner.can_start_scan(&scan).await {
+                        tracing::debug!(?status, %scan_id, "unable to start scan");
+                        queued.push(scan_id);
+                    } else {
+                        tracing::debug!(?status, %scan_id, "starting scan");
+                        match self.scanner.start_scan(scan).await {
+                            Ok(_) => {
+                                tracing::debug!(%scan_id, "started");
+                                running.push(scan_id.clone());
+                            }
+                            Err(ScanError::Connection(e)) => {
+                                tracing::warn!(%scan_id, %e, "requeuing because of a connection error");
+                                queued.push(scan_id);
+                            }
+                            Err(e) => {
+                                tracing::warn!(%scan_id, %e, "unable to start, removing from queue and set status to failed. Verify that scan using the API");
+                                self.db
+                                    .update_status(
+                                        &scan_id,
+                                        Status {
+                                            start_time: None,
+                                            end_time: None,
+                                            status: Phase::Failed,
+                                            host_info: None,
+                                        },
+                                    )
+                                    .await?;
+                            }
+                        };
+                    }
                 }
-            } else {
-                break;
+                _ => {
+                    break;
+                }
             }
         }
         Ok(())

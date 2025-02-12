@@ -72,7 +72,7 @@ pub enum UnclosedCategory {
 }
 
 macro_rules! make_keyword_matcher {
-    ($($matcher:ident : $define:expr),+) => {
+    ($($matcher:ident : $define:expr_2021),+) => {
 
 impl IdentifierType {
     /// Creates a new keyword based on a string identifier
@@ -737,7 +737,7 @@ impl<'a> Tokenizer<'a> {
 //'+' => double_token!(self.cursor, start, '+', '+', PlusPlus, '=', PlusEqual),
 // within the Iterator implementation of Tokenizer
 macro_rules! two_symbol_token {
-    ($cursor:expr, $start:tt, $single_symbol:tt, $($matching_char:tt, $two_symbol_token:expr ), *) => {
+    ($cursor:expr_2021, $start:tt, $single_symbol:tt, $($matching_char:tt, $two_symbol_token:expr_2021 ), *) => {
         {
             let next = $cursor.peek(0);
             match next {
@@ -809,7 +809,7 @@ mod tests {
 
     // use macro instead of a method to have correct line numbers on failure
     macro_rules! verify_tokens {
-        ($code:expr, $expected:expr) => {{
+        ($code:expr_2021, $expected:expr_2021) => {{
             use std::string::String;
             let tokenizer = Tokenizer::new($code);
             let actual: Vec<String> = tokenizer.map(|t| t.category().to_string()).collect();

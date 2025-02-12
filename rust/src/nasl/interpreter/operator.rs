@@ -38,7 +38,7 @@ fn as_i64(left: NaslValue, right: Option<NaslValue>) -> (i64, i64) {
 }
 
 macro_rules! expr {
-    ($e:expr) => {
+    ($e:expr_2021) => {
         $e
     };
 }
@@ -50,7 +50,7 @@ macro_rules! num_expr {
         Ok(NaslValue::Number(result as i64))
         }
     };
-    ($op:expr => $left:ident $right:ident) => {
+    ($op:expr_2021 => $left:ident $right:ident) => {
         {
         let (left, right) = as_i64($left, $right);
         let result = $op(left, right);
@@ -288,7 +288,7 @@ impl Interpreter<'_> {
 mod tests {
     use crate::nasl::test_prelude::*;
     macro_rules! create_test {
-        ($($name:tt: $code:expr => $result:expr),*) => {
+        ($($name:tt: $code:expr_2021 => $result:expr_2021),*) => {
 
             $(
                 #[test]
