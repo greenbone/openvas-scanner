@@ -27,6 +27,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/compile-x86_64
+
+  smoketest:   
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start a local k8s cluster
+        uses: jupyterhub/action-k3s-helm@v4
+        with:
+          k3s-channel: latest
+          metrics-enabled: false
+          docker-enabled: true
+      - uses: actions/checkout@v4
+      - name: publish current docker image into k3s
+        run: |
+          docker build -t greenbone/openvas:pr -f .docker/prod.Dockerfile .
+      - name: 'Set openvas-scanner-image'
+        run: |
+          echo "openvas:" >> st.yaml
+          echo "  repository: greenbone/openvas" >> st.yaml
+          echo "  pullPolicy: Never" >> st.yaml
+          echo "  tag: \"pr\"" >> st.yaml
+          cat st.yaml
+      - name: deploy openvasd
+        run: |
+          cd rust/examples/tls/self-signed
+          make delete deploy
+          cd -
+
+          helm uninstall openvasd --namespace openvasd|| true
+          helm install --namespace openvasd --create-namespace openvasd charts/openvasd/ --values charts/openvasd/values.yaml --values charts/openvasd/mtls-wo-ingress.yaml --values st.yaml
+
+          kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd 
+          echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
+      - name: smoketest
+        working-directory: rust/crates/smoketest
+        env:
+          SCAN_CONFIG: configs/simple_scan_ssh_only.json
+          CLIENT_KEY: ../../../examples/tls/self-signed/client.rsa
+          CLIENT_CERT: ../../../examples/tls/self-signed/client.pem
+        run: |
+          make build run
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: /tmp/openvas.tar
+      #     key: openvas-cache-${{ github.run_id }}
   tests:
     runs-on: ubuntu-latest
     needs: [build-rs]

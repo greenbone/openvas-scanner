@@ -79,7 +79,7 @@ jobs:
   linting:
     uses: ./.github/workflows/linting.yml
   functional:
-    needs: [unittests, build]
+    # needs: [unittests, build]
     uses: ./.github/workflows/functional.yaml
   container:
     needs: [build, init]
