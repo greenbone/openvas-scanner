@@ -10,7 +10,7 @@ jobs:
   # Tests that gvm-libs, openvas-smb and openvas dependencies work together and
   # that openvas is buildable and integrates openvas-smb when available
   distributed-monolith-railguard:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     strategy:
       fail-fast: false
       matrix:
@@ -23,13 +23,13 @@ jobs:
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
       - run: docker rmi test || true
   build-rs:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/compile-x86_64
 
   smoketest:   
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - name: Start a local k8s cluster
         uses: jupyterhub/action-k3s-helm@v4
@@ -72,7 +72,7 @@ jobs:
       #     path: /tmp/openvas.tar
       #     key: openvas-cache-${{ github.run_id }}
   tests:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     needs: [build-rs]
     services:
       redis:

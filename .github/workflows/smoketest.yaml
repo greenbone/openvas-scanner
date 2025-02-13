@@ -15,7 +15,7 @@ on:
 #
 jobs:
   openvasd:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - uses: actions/checkout@v4
       - name: 'Set openvas-scanner-image'

@@ -45,7 +45,7 @@ on:
 
 jobs:
   init:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     outputs:
       is_latest_tag: ${{ steps.version.outputs.is_latest_tag }}
       is_version_tag: ${{ steps.version.outputs.is_version_tag }}
