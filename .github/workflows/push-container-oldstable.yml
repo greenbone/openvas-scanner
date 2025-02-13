@@ -18,7 +18,7 @@ on:
 jobs:
   debian_oldstable:
     name: ghcr:debian:oldstable
-    runs-on: "ubuntu-latest"
+    runs-on: "self-hosted-generic"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
