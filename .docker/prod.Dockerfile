@@ -1,11 +1,12 @@
 ARG VERSION=edge
-# this allows to work on forked repository
-ARG REPOSITORY=greenbone/openvas-scanner
+# this allows to override gvm-libs for e.g. smoketests
+ARG GVM_LIBS=registry.community.greenbone.net/community/gvm-libs
 
 FROM rust AS rust
+
 FROM greenbone/openvas-smb AS openvas-smb
 
-FROM registry.community.greenbone.net/community/gvm-libs:${VERSION} AS build
+FROM ${GVM_LIBS}:${VERSION} AS build
 COPY . /source
 RUN sh /source/.github/install-openvas-dependencies.sh
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
@@ -24,7 +25,7 @@ RUN cp target/release/scannerctl /install/usr/local/bin
 # Do we want to copy feed verifier as well?
 # RUN cp release/feed-verifier /install/bin
 
-FROM registry.community.greenbone.net/community/gvm-libs:${VERSION}
+FROM ${GVM_LIBS}:${VERSION}
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
   libglib2.0-0 \

@@ -42,35 +42,24 @@ openvasd:
       deploy_server: true
       deploy_client: true
 
-# Required for version checks 
-notus:
-  repository: registry.community.greenbone.net/community/notus-scanner
-  pullPolicy: Always
-  tag: "edge"
 
 # NASL scripts also known as feed
 vulnerabilitytests:
   # latest is the most current community feed.
   repository: registry.community.greenbone.net/community/vulnerability-tests
   pullPolicy: Always
-  tag: "latest"
+  tag: "community"
 
 # Notus description json also known as feed
 notusdata:
   # latest is the most current community feed.
   repository: registry.community.greenbone.net/community/notus-data
   pullPolicy: Always
-  tag: "latest"
-
-# Required by notus
-mqtt:
-  repository: registry.community.greenbone.net/community/mqtt-broker
-  pullPolicy: Always
-  tag: "latest"
+  tag: "community"
 
 # required by openvas and ospd
 redis:
-  repository: registry.community.greenbone.net/community/redis-server
+  repository: greenbone/redis-server
   pullPolicy: Always
   tag: "latest"
 

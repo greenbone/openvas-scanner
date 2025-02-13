@@ -83,6 +83,7 @@ spec:
         env:
           - name: MOUNT_PATH 
             value: "/mnt/notus" 
+
       {{- if eq .Values.openvasd.scanner_type "ospd" }}
       - name: ospd-disable-notus-hashsum-verification #since can mount local volumes which may be altered we have to disable hashsum verification for notus  
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
@@ -100,14 +101,6 @@ spec:
             mountPath: /mnt/ovc
         command: ['sh', '-c']
         args: ["touch /mnt/ovc/openvas.log && chown ospd-openvas:ospd-openvas /mnt/ovc/openvas.log"]
-      - name: mqtt-broker-openvas-fix
-        image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
-        imagePullPolicy: Always
-        volumeMounts:
-          - name: openvas-config
-            mountPath: /mnt/ovc
-        command: ['sh', '-c']
-        args: ["sed 's/mqtt-broker/localhost/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]
       {{ else }}
       - name: create-dummy-openvas-log
         image: "{{ .Values.openvas.repository }}:{{ .Values.openvas.tag }}"
@@ -117,6 +110,7 @@ spec:
             mountPath: /mnt/ovc
         command: ['sh', '-c']
         args: ["touch /mnt/ovc/openvas.log"]
+      {{ end }} 
       - name: mqtt-broker-openvas-fix
         image: "{{ .Values.ospd.repository }}:{{ .Values.ospd.tag }}"
         imagePullPolicy: Always
@@ -129,8 +123,6 @@ spec:
         {{ else }}
         args: ["sed 's/mqtt_server_uri = .*/openvasd_server = http:\\/\\/localhost:80/' /etc/openvas/openvas.conf > /mnt/ovc/openvas.conf; cp /etc/openvas/openvas_log.conf /mnt/ovc/"]          
         {{ end }}
-
-      {{ end }} 
       containers:
       - name: redis
         image: "{{ .Values.redis.repository }}:{{ .Values.redis.tag }}"
