@@ -73,11 +73,20 @@ jobs:
           docker image ls -a
       - name: 'do not, I repeat, do NOT pull that'
         run: |
+          # repository: registry.community.greenbone.net/community/openvas-scanner
+          # pullPolicy: Always
+          # tag: "edge"
           echo "openvas:" >> st.yaml
+          echo "  repository: registry.community.greenbone.net/community/openvas-scanner" >> st.yaml
+          echo "  tag: edge" >> st.yaml
           echo "  pullPolicy: Never" >> st.yaml
           echo "vulnerabilitytests:" >> st.yaml
+          echo "  repository: registry.community.greenbone.net/community/vulnerability-tests" >> st.yaml
+          echo "  tag: community" >> st.yaml
           echo "  pullPolicy: Never" >> st.yaml
           echo "notusdata:" >> st.yaml
+          echo "  repository: registry.community.greenbone.net/community/notus-data" >> st.yaml
+          echo "  tag: community" >> st.yaml
           echo "  pullPolicy: Never" >> st.yaml
           cat st.yaml
       - name: deploy openvasd
@@ -91,9 +100,10 @@ jobs:
             --values charts/openvasd/values.yaml \
             --values charts/openvasd/mtls-wo-ingress.yaml \
             --values st.yaml
-
           kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd 
           echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
+      - run: kubectl get pods -n openvasd -o=wide
+      - run: kubectl describe pod openvasd -n openvasd
       - name: smoketest
         working-directory: rust/crates/smoketest
         env:
