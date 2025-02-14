@@ -98,10 +98,10 @@ jobs:
         working-directory: rust/crates/smoketest
         env:
           SCAN_CONFIG: configs/simple_scan_ssh_only.json
-          CLIENT_KEY: ../../../examples/tls/self-signed/client.rsa
-          CLIENT_CERT: ../../../examples/tls/self-signed/client.pem
+          CLIENT_KEY: ../../examples/tls/self-signed/client.rsa
+          CLIENT_CERT: ../../examples/tls/self-signed/client.pem
         run: |
-          make build run
+          make build run || ls -las ../../
       # - uses: actions/cache@v4
       #   with:
       #     path: /tmp/openvas.tar
