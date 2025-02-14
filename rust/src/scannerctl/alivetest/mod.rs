@@ -76,6 +76,8 @@ async fn execute(
     methods: Vec<AliveTestMethods>,
 ) -> Result<(), CliError> {
     let s = Scanner::new(target, methods, timeout);
-    let _ = s.run_alive_test().await;
+    if let Err(e) = s.run_alive_test().await {
+        tracing::warn!("{e}");
+    }
     Ok(())
 }

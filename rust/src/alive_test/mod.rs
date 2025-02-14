@@ -5,7 +5,8 @@
 #![doc = include_str!("README.md")]
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
-pub mod alive_test;
+#[allow(clippy::module_inception)]
+mod alive_test;
 mod error;
 
 #[cfg(feature = "nasl-builtin-raw-ip")]

@@ -10,8 +10,10 @@ pub enum Error {
     /// Not possible to create a socket
     #[error("Not possible to create a socket: {0}")]
     NoSocket(String),
-    #[error("Wrong buffer size. Not possible to create an ICMP packet")]
-    CreateIcmpPacket,
+    #[error("Wrong buffer size {0}. Not possible to create an ICMP packet")]
+    CreateIcmpPacketFromWrongBufferSize(i64),
+    #[error("Wrong buffer size {0}. Not possible to create an IP packet")]
+    CreateIpPacketFromWrongBufferSize(i64),
     #[error("It was not possible to parse the destination Address")]
     InvalidDestinationAddr,
     #[error("Error sending a packet: {0}")]

@@ -3569,7 +3569,6 @@ dependencies = [
  "pnet_macros_support",
  "quick-xml",
  "rand",
- "rayon",
  "rc4",
  "redis",
  "regex",
