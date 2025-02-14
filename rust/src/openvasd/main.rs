@@ -68,7 +68,7 @@ fn check_redis_url(config: &mut Config) -> String {
 }
 
 fn make_osp_scanner(config: &Config) -> osp::Scanner {
-    if !config.scanner.ospd.socket.exists() {
+    if !config.scanner.ospd.socket.exists() && config.mode != Mode::ServiceNotus {
         warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.scanner.ospd.socket.display());
     }
     osp::Scanner::new(
