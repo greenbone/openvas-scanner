@@ -35,7 +35,10 @@ impl Credential {
     pub fn password(&self) -> &str {
         match &self.credential_type {
             CredentialType::UP { password, .. } => password,
-            CredentialType::USK { password, .. } => password,
+            CredentialType::USK { password, .. } => match password {
+                None => "",
+                Some(p) => p,
+            },
             CredentialType::SNMP { password, .. } => password,
         }
     }
@@ -140,7 +143,12 @@ pub enum CredentialType {
         /// The username for authentication.
         username: String,
         /// The password for authentication.
-        password: String,
+        // A key without passphrase can be expected
+        #[cfg_attr(
+            feature = "serde_support",
+            serde(default, flatten, skip_serializing_if = "Option::is_none")
+        )]
+        password: Option<String>,
         #[cfg_attr(feature = "serde_support", serde(rename = "private"))]
         /// The private key for authentication.
         private_key: String,
@@ -198,7 +206,10 @@ impl CredentialType {
                 privilege,
             } => CredentialType::USK {
                 username,
-                password: f(password)?,
+                password: match password {
+                    Some(p) => Some(f(p)?),
+                    None => None,
+                },
                 private_key: f(private_key)?,
                 privilege: match privilege {
                     Some(p) => Some(PrivilegeInformation {

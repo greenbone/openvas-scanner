@@ -419,7 +419,10 @@ where
                         ));
                         credential_preferences.push(format!(
                             "{OID_SSH_AUTH}:2:password:SSH key passphrase:|||{}",
-                            password
+                            match password {
+                                Some(p) => p,
+                                None => "".to_string(),
+                            }
                         ));
                         credential_preferences.push(format!(
                             "{OID_SSH_AUTH}:4:file:SSH private key:|||{}",
