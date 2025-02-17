@@ -10,7 +10,7 @@ jobs:
   # Tests that gvm-libs, openvas-smb and openvas dependencies work together and
   # that openvas is buildable and integrates openvas-smb when available
   distributed-monolith-railguard:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     strategy:
       fail-fast: false
       matrix:
@@ -23,12 +23,101 @@ jobs:
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
       - run: docker rmi test || true
   build-rs:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/compile-x86_64
-  tests:
+  build-image:
+    runs-on: self-hosted-generic
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          docker build -t registry.community.greenbone.net/community/openvas-scanner:edge -f .docker/prod.Dockerfile .
+          docker pull registry.community.greenbone.net/community/vulnerability-tests:community
+          docker pull registry.community.greenbone.net/community/notus-data:community
+          docker save -o ${{ runner.temp }}/vtc.tar registry.community.greenbone.net/community/vulnerability-tests:community
+          docker save -o ${{ runner.temp }}/nc.tar registry.community.greenbone.net/community/notus-data:community
+          docker save -o ${{ runner.temp }}/openvas.tar registry.community.greenbone.net/community/openvas-scanner:edge
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovimage
+          path: ${{ runner.temp }}/*.tar
+
+  smoketest:   
+    # currently we cannot use internal runner as they cannot start k3s until it
+    # is fixed we need to build the image in another job running on
+    # self-hosted-generic export it as a tar and import it here to work around
+    # the unreliability of registry.community.greenbone.net/community
+    # when called too often
     runs-on: ubuntu-latest
+    needs: [build-image]
+    steps:
+      - name: Start a local k8s cluster
+        uses: jupyterhub/action-k3s-helm@v4
+        with:
+          k3s-channel: latest
+          metrics-enabled: false
+          docker-enabled: true
+      - uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ovimage
+          path: ${{ runner.temp }}
+      - name: publish current docker image into k3s
+        run: |
+          docker load --input ${{ runner.temp }}/openvas.tar
+          docker load --input ${{ runner.temp }}/nc.tar
+          docker load --input ${{ runner.temp }}/vtc.tar
+          docker image ls -a
+      - name: 'do not, I repeat, do NOT pull that'
+        run: |
+          # repository: registry.community.greenbone.net/community/openvas-scanner
+          # pullPolicy: Always
+          # tag: "edge"
+          echo "openvas:" >> st.yaml
+          echo "  repository: registry.community.greenbone.net/community/openvas-scanner" >> st.yaml
+          echo "  tag: edge" >> st.yaml
+          echo "  pullPolicy: Never" >> st.yaml
+          echo "vulnerabilitytests:" >> st.yaml
+          echo "  repository: registry.community.greenbone.net/community/vulnerability-tests" >> st.yaml
+          echo "  tag: community" >> st.yaml
+          echo "  pullPolicy: Never" >> st.yaml
+          echo "notusdata:" >> st.yaml
+          echo "  repository: registry.community.greenbone.net/community/notus-data" >> st.yaml
+          echo "  tag: community" >> st.yaml
+          echo "  pullPolicy: Never" >> st.yaml
+          cat st.yaml
+      - name: deploy openvasd
+        run: |
+          cd rust/examples/tls/self-signed
+          make delete deploy
+          cd -
+
+          helm uninstall openvasd --namespace openvasd|| true
+          helm install --namespace openvasd --create-namespace openvasd charts/openvasd/ \
+            --values charts/openvasd/values.yaml \
+            --values charts/openvasd/mtls-wo-ingress.yaml \
+            --values st.yaml
+          kubectl rollout status --watch --timeout 600s deployment/openvasd --namespace openvasd 
+          echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
+      - run: kubectl get pods -n openvasd -o=wide
+      - run: kubectl describe pod openvasd -n openvasd
+      - name: smoketest
+        working-directory: rust/crates/smoketest
+        env:
+          SCAN_CONFIG: configs/simple_scan_ssh_only.json
+          CLIENT_KEY: ../../examples/tls/self-signed/client.rsa
+          CLIENT_CERT: ../../examples/tls/self-signed/client.pem
+        run: |
+          make build run || ls -las ../../
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: /tmp/openvas.tar
+      #     key: openvas-cache-${{ github.run_id }}
+  tests:
+    runs-on: self-hosted-generic
     needs: [build-rs]
     services:
       redis:

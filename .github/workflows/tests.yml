@@ -4,7 +4,7 @@ on: [workflow_call]
 
 jobs:
   C:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     container: greenbone/gvm-libs:stable
     steps:
       - uses: actions/checkout@v4
@@ -22,9 +22,7 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt update || true
-      - run: sudo apt-get install -y libpcap-dev
-      - run: rustup update stable && rustup default stable || rustup default stable 
+      - uses: ./.github/actions/setup-rust
       - name: unit-tests
         run: cargo test --lib --tests --workspace
       - name: experimental unit-tests

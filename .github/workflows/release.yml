@@ -53,7 +53,7 @@ on:
 jobs:
   release:
     name: release
-    runs-on: "ubuntu-latest"
+    runs-on: "self-hosted-generic"
     env:
       RELEASE_KIND: ${{inputs.release_kind}}
       RELEASE_REF: ${{inputs.release_ref}}
@@ -79,8 +79,17 @@ jobs:
           # get just the major version of latest version 
           export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
           git checkout -b "$BRANCH_NAME" && git push origin "$BRANCH_NAME" || true
-      # create branch of version
+      # create binaries
       - uses: greenbone/actions/setup-pontos@v3
+      - uses: ./.github/actions/compile-x86_64
+      - uses: ./.github/actions/compile-aarch64
+      - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
+      - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
+      - run: rm -rf assets/linux
+      - run: ls -las assets/
+      # create branch of version
       - name: prepare project version ${{ env.RELEASE_REF }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           # jump back for the case that we switched to a tag
@@ -104,10 +113,6 @@ jobs:
             git rebase origin/${{ env.RELEASE_REF}}
             git push origin ${{ env.RELEASE_REF }}
           fi
-      - uses: actions/download-artifact@v4
-        with:
-          name: rs-binaries
-          path: assets
       - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           pontos-changelog \
@@ -125,12 +130,6 @@ jobs:
           export nrn="v${{ env.NEW_VERSION }}"
           gh release create "$nrn" -F /tmp/changelog.md
 
-      - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
-      - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
-      - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
-      - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
-      - run: rm -rf assets/linux
-      - run: ls -las assets/
       - name: "sign ${{ env.PROJECT }}"
         run: |
           export nrn="v${{ env.NEW_VERSION }}"

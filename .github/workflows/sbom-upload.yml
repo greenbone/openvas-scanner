@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 jobs:
   SBOM-upload:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     permissions:
       id-token: write
       contents: write

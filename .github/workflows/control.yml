@@ -40,7 +40,7 @@ jobs:
   # this prevents us from having to pass down all labels, event_name, etc
   # to init.yml
   adapt_release:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     outputs:
       kind: ${{ steps.kind.outputs.kind}}
     steps:
@@ -79,7 +79,7 @@ jobs:
   linting:
     uses: ./.github/workflows/linting.yml
   functional:
-    needs: [unittests, build]
+    # needs: [unittests, build]
     uses: ./.github/workflows/functional.yaml
   container:
     needs: [build, init]
@@ -143,18 +143,11 @@ jobs:
       email: ${{ secrets.GREENBONE_BOT_MAIL }}
       gpg_key: ${{ secrets.GPG_KEY }}
       gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
-  smoketests:
-    if: github.event_name != 'pull_request'
-    needs: [container, init]
-    uses: ./.github/workflows/smoketest.yaml
-    with:
-      docker_repo: ${{ github.repository }}
-      docker_tag: ${{needs.init.outputs.docker_test_tag}}
   helm:
+    if: github.event_name != 'pull_request' && vars.IMAGE_REGISTRY != ''
+    needs: [container, init]
     permissions:
       packages: write
-    needs: [smoketests]
-    if: vars.IMAGE_REGISTRY != ''
     uses: ./.github/workflows/push-helm-chart.yml
     secrets:
       user: ${{ secrets.GREENBONE_BOT }}

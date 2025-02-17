@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   dependency-review:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - name: 'Dependency Review'
         uses: greenbone/actions/dependency-review@v3

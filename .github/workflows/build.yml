@@ -4,7 +4,7 @@ on: [workflow_call]
 
 jobs:
   C:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     container: greenbone/gvm-libs:stable
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,7 @@ jobs:
           cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
           cmake --build build
   Rust:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust

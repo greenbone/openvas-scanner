@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+
 set -xe
 
 openssl req -nodes \
@@ -11,11 +13,11 @@ openssl req -nodes \
           -out end.req \
           -sha256 \
           -batch \
-          -subj "/CN=testclient.com"
+          -subj "/CN=testserver.com"
 
 openssl rsa \
           -in end.key \
-          -out client.key
+          -out server.key
 
 openssl x509 -req \
             -in end.req \
@@ -25,6 +27,7 @@ openssl x509 -req \
             -sha256 \
             -days 2000 \
             -set_serial 456 \
-            -extensions v3_end -extfile ../openssl.cnf
+            -extensions v3_end -extfile "$dir/openssl.cnf"
 
-mv end.cert client.cert
+cp end.cert server.cert
+
