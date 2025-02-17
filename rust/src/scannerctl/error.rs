@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
@@ -62,10 +63,18 @@ impl CliErrorKind {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("{kind} ({filename})")]
 pub struct CliError {
     pub filename: String,
     pub kind: CliErrorKind,
+}
+
+impl Display for CliError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if !self.filename.is_empty() {
+            write!(f, "{}: ", self.filename)?;
+        }
+        write!(f, "{}", self.kind)
+    }
 }
 
 impl CliError {

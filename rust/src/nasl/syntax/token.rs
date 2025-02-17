@@ -436,11 +436,7 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}:{} {}",
-            self.line_column.0, self.line_column.1, self.category
-        )
+        write!(f, "'{}'", self.category,)
     }
 }
 
@@ -448,6 +444,16 @@ impl Token {
     /// Returns the Category
     pub fn category(&self) -> &Category {
         &self.category
+    }
+
+    /// Returns the line number of the token
+    pub fn line(&self) -> usize {
+        self.line_column.0
+    }
+
+    /// Returns the column number of the token
+    pub fn column(&self) -> usize {
+        self.line_column.1
     }
 
     /// Returns true when an Token is faulty
