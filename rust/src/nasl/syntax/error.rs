@@ -46,7 +46,7 @@ pub enum ErrorKind {
 #[error("{kind}")]
 pub struct SyntaxError {
     /// A human readable reason why this error is returned
-    kind: ErrorKind,
+    pub kind: ErrorKind,
     pub(crate) line: u32,
     pub(crate) file: String,
 }
