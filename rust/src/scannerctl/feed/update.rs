@@ -2,17 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use scannerlib::storage::Dispatcher;
-use scannerlib::{
-    feed,
-    nasl::{syntax::LoadError, FSPluginLoader},
-};
+use scannerlib::{feed, nasl::FSPluginLoader};
 
-use crate::{CliError, CliErrorKind};
+use crate::notus_update::update::signature_error;
+use crate::CliError;
 
-pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
+pub async fn run<S>(storage: S, path: &Path, signature_check: bool) -> Result<(), CliError>
 where
     S: Sync + Send + Dispatcher,
 {
@@ -32,17 +30,11 @@ where
             }
             Err(feed::VerifyError::BadSignature(e)) => {
                 tracing::warn!("{}", e);
-                return Err(CliError {
-                    filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: CliErrorKind::LoadError(LoadError::Dirty(e)),
-                });
+                return Err(signature_error(e));
             }
             Err(e) => {
                 tracing::warn!("Unexpected error during signature verification: {e}");
-                return Err(CliError {
-                    filename: feed::Hasher::Sha256.sum_file().to_string(),
-                    kind: CliErrorKind::LoadError(LoadError::Dirty(e.to_string())),
-                });
+                return Err(signature_error(e));
             }
         }
     }
