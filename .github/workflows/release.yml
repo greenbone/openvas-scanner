@@ -113,11 +113,6 @@ jobs:
             git rebase origin/${{ env.RELEASE_REF}}
             git push origin ${{ env.RELEASE_REF }}
           fi
-
-      # - uses: actions/download-artifact@v4
-      #   with:
-      #     name: rs-binaries
-      #     path: assets
       - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
           pontos-changelog \
