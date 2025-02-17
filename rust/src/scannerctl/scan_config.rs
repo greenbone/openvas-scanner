@@ -70,7 +70,6 @@ async fn execute(
         serde_json::from_reader(std::io::stdin())
             .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?
     } else {
-        // TODO: Shouldn't we read it from a file? If so, use FileOrStdin instead of boolean flag
         Scan::default()
     };
     let feed = match feed {
