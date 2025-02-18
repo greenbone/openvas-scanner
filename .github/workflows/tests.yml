@@ -16,7 +16,7 @@ jobs:
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test
   Rust:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     defaults:
       run:
         working-directory: rust
