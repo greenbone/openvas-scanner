@@ -27,6 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/compile-x86_64
+      - name: archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: rs-binaries
+          path: assets/*
+          retention-days: 1
   build-image:
     runs-on: self-hosted-generic
     steps:
