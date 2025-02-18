@@ -14,6 +14,6 @@ pub struct SyntaxArgs {
     path: PathBuf,
 }
 
-pub async fn run(args: SyntaxArgs) -> Result<(), CliError> {
-    check::run(&args.path)
+pub async fn run(args: SyntaxArgs, verbose: bool, quiet: bool) -> Result<(), CliError> {
+    check::run(&args.path, verbose, !quiet)
 }

@@ -87,7 +87,7 @@ enum Action {
 async fn main() {
     let args = Args::parse();
     set_logging(args.verbose, args.quiet);
-    let result = run(args.action).await;
+    let result = run(args.action, args.verbose > 0, args.quiet).await;
 
     match result {
         Ok(_) => {}
@@ -105,9 +105,9 @@ async fn main() {
     }
 }
 
-async fn run(action: Action) -> Result<(), CliError> {
+async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError> {
     match action {
-        Action::Syntax(args) => syntax::run(args).await,
+        Action::Syntax(args) => syntax::run(args, verbose, quiet).await,
         Action::ScanConfig(args) => scan_config::run(args).await,
         Action::Osp(args) => osp::run(args).await,
         Action::Execute(args) => execute::run(args).await,
