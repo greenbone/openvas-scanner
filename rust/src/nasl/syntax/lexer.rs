@@ -16,6 +16,7 @@ use super::{
 use crate::{max_recursion, unexpected_statement, unexpected_token};
 
 /// Is used to parse Token to Statement
+#[derive(Clone)]
 pub struct Lexer<'a> {
     // TODO: change to iterator of Token instead of Tokenizer
     // to allopw statements of a Vec

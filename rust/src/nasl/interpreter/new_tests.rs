@@ -1,19 +1,13 @@
 use crate::nasl::test_prelude::*;
 
 #[test]
-fn in_if() {
+fn forking_does_not_happen_twice() {
     let t = TestBuilder::from_code(
         r###"
-a = 1;
-if (a) {
-    local_var a;
-    a = 23;
-}
-a;
+        set_kb_item(name: "a", value: [1,2,3]);
+        foo1 = get_kb_item(name: "a");
+        foo2 = get_kb_item(name: "a");
         "###,
     );
-    assert!(matches!(
-        t.results().last().unwrap(),
-        &Ok(NaslValue::Number(1))
-    ));
+    todo!()
 }
