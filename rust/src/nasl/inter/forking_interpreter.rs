@@ -7,9 +7,21 @@ use crate::nasl::{
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
 
+#[derive(PartialEq, Eq)]
+pub enum InterpreterState {
+    Running,
+    Finished,
+}
+
+impl InterpreterState {
+    fn is_finished(&self) -> bool {
+        matches!(self, Self::Finished)
+    }
+}
+
 pub struct ForkingInterpreter<'code, 'ctx> {
     _context: &'ctx Context<'ctx>,
-    interpreters: Vec<Interpreter<'code>>,
+    interpreters: Vec<(InterpreterState, Interpreter<'code, 'ctx>)>,
     interpreter_index: usize,
 }
 
@@ -17,7 +29,10 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
     pub fn new(code: &'code str, register: Register, context: &'ctx Context<'ctx>) -> Self {
         let tokenizer = Tokenizer::new(code);
         let lexer = Lexer::new(tokenizer);
-        let interpreters = vec![Interpreter::new(register, lexer)];
+        let interpreters = vec![(
+            InterpreterState::Running,
+            Interpreter::new(register, lexer, context),
+        )];
         Self {
             _context: context,
             interpreters,
@@ -35,7 +50,11 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
     }
 
     async fn next(&mut self) -> Option<InterpretResult> {
-        while !self.interpreters.is_empty() {
+        while self
+            .interpreters
+            .iter()
+            .any(|(state, _)| !state.is_finished())
+        {
             let next_result = self.try_next().await;
             if next_result.is_some() {
                 return next_result;
@@ -46,24 +65,34 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
 
     async fn try_next(&mut self) -> Option<InterpretResult> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
-        let result = self.interpreters[self.interpreter_index].execute_next_statement();
-        if let Some(Ok(NaslValue::Fork(v))) = result {
-            return Some(self.handle_fork(v));
+        dbg!(self.interpreter_index);
+        let (state, interpreter) = &mut self.interpreters[self.interpreter_index];
+        if *state == InterpreterState::Running {
+            let result = interpreter.execute_next_statement().await;
+            if let Some(Ok(NaslValue::Fork(v))) = result {
+                return Some(self.handle_fork(v));
+            }
+            if result.is_none() {
+                *state = InterpreterState::Finished;
+            }
+            result
+        } else {
+            None
         }
-        result
     }
 
-    fn handle_fork(&mut self, values: Vec<NaslValue>) -> InterpretResult {
+    fn handle_fork(&mut self, mut values: Vec<NaslValue>) -> InterpretResult {
         // TODO check that we are on root interpreter (if its necessary)
-        let active_interpreter = &self.interpreters[self.interpreter_index];
+        let (_, active_interpreter) = &self.interpreters[self.interpreter_index];
         if values.is_empty() {
             return Ok(NaslValue::Null);
         }
+        let local_val = values.remove(0);
         let forks: Vec<_> = values
             .into_iter()
             .map(|val| active_interpreter.make_fork(val))
             .collect();
         self.interpreters.extend(forks);
-        todo!()
+        Ok(local_val)
     }
 }

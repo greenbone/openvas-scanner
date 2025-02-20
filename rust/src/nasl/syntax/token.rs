@@ -10,7 +10,7 @@ use std::ops::Range;
 use serde::{Deserialize, Serialize};
 
 use super::cursor::Cursor;
-use crate::storage::item::ACT;
+use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -430,6 +430,14 @@ impl Token {
             category: Category::UnknownSymbol,
             line_column: (0, 0),
             position: (0, 0),
+        }
+    }
+
+    // TODO: I don't think this method should exist.
+    pub fn identifier(&self) -> Result<String, InterpretError> {
+        match self.category() {
+            Category::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
+            cat => Err(InterpretError::wrong_category(cat)),
         }
     }
 }

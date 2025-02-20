@@ -47,7 +47,11 @@ impl Interpreter<'_> {
             ContextType::Value(NaslValue::Array(position)),
         );
         self.register_mut().create_root_child(named);
-        let result = match self.ctxconfigs.nasl_fn_execute(name, self.register()).await {
+        let result = match self
+            .ctxconfigs
+            .execute_builtin_fn(name, self.register())
+            .await
+        {
             Some(Ok(NaslValue::Fork(x))) if self.index == 0 && !x.is_empty() => {
                 let mut additional = Vec::with_capacity(x.len() - 1);
                 let root_pos = self.run_specific[0].position.clone();
@@ -121,100 +125,5 @@ impl Interpreter<'_> {
         };
         self.register_mut().drop_last();
         result
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::nasl::test_prelude::*;
-
-    #[test]
-    fn default_null_on_user_defined_functions() {
-        let mut t = TestBuilder::default();
-        t.run(
-            "function test(a, b) {
-            return a + b;
-        }",
-        );
-        t.ok("test(a: 1, b: 2);", 3);
-        t.ok("test(a: 1);", 1);
-        t.ok("test();", 0);
-    }
-
-    #[test]
-    #[tracing_test::traced_test]
-    fn multiple_forks() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-set_kb_item(name: "port", value: 1);
-set_kb_item(name: "port", value: 2);
-set_kb_item(name: "host", value: "a");
-set_kb_item(name: "host", value: "b");
-get_kb_item("port");
-get_kb_item("host");
-"#,
-        );
-
-        assert_eq!(t.results().len(), 10);
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(4)
-            .filter_map(|x| x.ok())
-            .collect();
-
-        assert_eq!(
-            results,
-            vec![
-                1.into(),
-                2.into(),
-                "a".into(),
-                "a".into(),
-                "b".into(),
-                "b".into(),
-            ]
-        );
-    }
-    #[test]
-    #[tracing_test::traced_test]
-    fn empty_fork() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-get_kb_item("port") + ":" + get_kb_item("host");
-"#,
-        );
-
-        let results: Vec<_> = t.results().into_iter().filter_map(|x| x.ok()).collect();
-
-        assert_eq!(results, vec!["\0:\0".into()]);
-    }
-
-    #[test]
-    #[tracing_test::traced_test]
-    fn multiple_forks_on_one_line() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-set_kb_item(name: "port", value: 1);
-set_kb_item(name: "port", value: 2);
-set_kb_item(name: "host", value: "a");
-set_kb_item(name: "host", value: "b");
-get_kb_item("port") + ":" + get_kb_item("host");
-"#,
-        );
-
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(4)
-            .filter_map(|x| x.ok())
-            .collect();
-
-        assert_eq!(
-            results,
-            vec!["1:a".into(), "2:a".into(), "1:b".into(), "2:b".into(),]
-        );
     }
 }

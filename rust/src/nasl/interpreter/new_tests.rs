@@ -9,5 +9,20 @@ fn forking_does_not_happen_twice() {
         foo2 = get_kb_item(name: "a");
         "###,
     );
-    todo!()
+    t.results();
+    todo!();
+}
+
+#[test]
+fn syntax_error_is_checked_early() {
+    let t = TestBuilder::from_code(
+        r###"
+        a = 1;
+if (a == 2) {
+    "foo"(3);
+}
+        "###,
+    );
+    t.results();
+    todo!();
 }
