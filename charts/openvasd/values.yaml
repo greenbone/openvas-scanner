@@ -19,7 +19,7 @@ openvasd:
   # Sets the log level and changes the verbosity of openvasd.
   # Can be set to TRACE, DEBUG, INFO, WARNING, ERROR
   # openvasd is provided by the openvas image
-  loglevel: TRACE
+  loglevel: DEBUG
   # When set it will be the used API-KEY. It is not required when deploy_client is true.
   # apikey: changeme
   # can be either service: fill openvasd capabilities, service_notus: only notus
@@ -94,6 +94,7 @@ securityContext:
 
 service:
   type: ClusterIP
+  # type: LoadBalancer
   port: 443
 
 # enables routing.yaml

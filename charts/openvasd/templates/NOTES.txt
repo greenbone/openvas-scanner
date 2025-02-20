@@ -1,24 +1,23 @@
 This deployment takes a while.
 
 To verify if the rollout is complete, you can use:
-  $ kubectl rollout status --watch --timeout 600s deployment/openvasd
+  $ kubectl rollout status --watch --timeout 600s deployment/openvasd -n {{ .Release.Namespace }} 
 
 After the deployment is finished it should be available via:
 {{- if .Values.routing.enabled -}}
-{{- $svcPort := .Values.service.port -}}
 {{- $apiKey := .Values.openvasd.apikey }}
 {{- if eq .Values.openvasd.tls.certificates.deploy_server true }}
 {{- if eq .Values.openvasd.tls.certificates.deploy_client true }}
-  $ curl -vk -x HEAD https://localhost/ --key yourclientkey.rsa --cert yourclientkey.pem
+  $ curl -vk -X HEAD https://localhost/ --key yourclientkey.rsa --cert yourclientkey.pem
 {{- else }}
-  $ curl -vk -x HEAD https://localhost/ -H "X-API-KEY: {{ .apiKey }}"
+  $ curl -vk -X HEAD https://localhost/ -H "X-API-KEY: {{ .apiKey }}"
 {{- end }}
 {{- else }}
-  $ curl -vk -x HEAD https://localhost/ -H "X-API-KEY: {{ .apiKey }}"
+  $ curl -vk -X HEAD https://localhost/ -H "X-API-KEY: {{ .apiKey }}"
 {{- end }}
 {{- else }}
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "openvasd.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
   export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+  echo "Visit http://127.0.0.1:8080 to use your application"
 {{- end }}
