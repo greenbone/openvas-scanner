@@ -7,13 +7,13 @@ use std::time::Duration;
 use std::{net::IpAddr, sync::Arc};
 
 use async_trait::async_trait;
-use client::{connect, DisconnectReason, Session};
+use client::{DisconnectReason, Session, connect};
 use russh::keys::*;
 use russh::*;
 use tracing::{error, warn};
 
-use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::builtin::ssh::Output;
+use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::utils::error::WithErrorInfo;
 use crate::nasl::utils::function::bytes_to_str;
 

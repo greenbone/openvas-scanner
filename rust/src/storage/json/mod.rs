@@ -9,7 +9,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::storage::{self, item::PerItemDispatcher, ContextKey, Kb, NotusAdvisory, StorageError};
+use crate::storage::{self, ContextKey, Kb, NotusAdvisory, StorageError, item::PerItemDispatcher};
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -171,7 +171,7 @@ where
 mod tests {
     use std::collections::BTreeMap;
 
-    use storage::item::{Nvt, ACT};
+    use storage::item::{ACT, Nvt};
 
     use super::*;
 

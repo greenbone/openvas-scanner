@@ -7,8 +7,8 @@ use std::str::FromStr;
 use crate::nasl::prelude::*;
 
 use crate::storage::{
-    item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
     ContextKey, Field,
+    item::{NVTField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue},
 };
 
 use crate::nasl::utils::get_named_parameter;

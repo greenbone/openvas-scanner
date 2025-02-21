@@ -5,15 +5,15 @@
 use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
 use scannerlib::storage::{ContextKey, DefaultDispatcher, Retriever, StorageError};
 use serde::Deserialize;
 
-use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
-use scannerlib::storage::item::{NVTField, NVTKey};
+use crate::{CliError, CliErrorKind, get_path_from_openvas, read_openvas_config};
 use scannerlib::storage::Field;
 use scannerlib::storage::Retrieve;
+use scannerlib::storage::item::{NVTField, NVTKey};
 use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
@@ -373,7 +373,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field, Storage};
+    use scannerlib::storage::{ContextKey, DefaultDispatcher, Field, Storage, item::NVTField};
 
     use super::*;
 

@@ -4,16 +4,16 @@
 
 use std::{fs, path::PathBuf};
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
 use scannerlib::models::Scan;
-use scannerlib::nasl::{nasl_std_functions, FSPluginLoader};
+use scannerlib::nasl::{FSPluginLoader, nasl_std_functions};
 use scannerlib::scanner::ScanRunner;
 use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
 use tracing::{info, warn, warn_span};
 
-use crate::{interpret, CliError, CliErrorKind, Db};
+use crate::{CliError, CliErrorKind, Db, interpret};
 
 pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let (args, _) = crate::get_args_set_logging(root, "execute")?;
@@ -22,7 +22,9 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         Some(("scan", args)) => Some(scan(args).await),
         Some((x, _)) => panic!("Unknown subcommand{}", x),
         None => {
-            warn!("`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions");
+            warn!(
+                "`scannerctl execute` without subcommand is deprecrated and may be removed in the next versions"
+            );
             script(args).await
         }
     }

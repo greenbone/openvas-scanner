@@ -8,8 +8,8 @@ use crate::nasl::utils::context::Target;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::item::Nvt;
-use crate::storage::{types::Primitive, Retriever, Storage};
 use crate::storage::{ContextKey, Field, Retrieve, StorageError};
+use crate::storage::{Retriever, Storage, types::Primitive};
 use futures::StreamExt;
 use tracing::{error_span, trace, warn};
 
@@ -18,8 +18,8 @@ use crate::nasl::prelude::*;
 
 use super::ExecuteError;
 use super::{
-    error::{ScriptResult, ScriptResultKind},
     ScannerStack,
+    error::{ScriptResult, ScriptResultKind},
 };
 
 /// Runs a single VT to completion on a single host.

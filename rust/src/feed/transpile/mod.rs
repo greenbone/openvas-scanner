@@ -8,7 +8,7 @@ mod error;
 
 use crate::nasl::syntax::{Statement, StatementKind};
 
-use crate::feed::{verify, NaslFileFinder};
+use crate::feed::{NaslFileFinder, verify};
 
 use self::error::{ReplaceError, TranspileError};
 

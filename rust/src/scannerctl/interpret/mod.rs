@@ -8,22 +8,23 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnBehavior};
 use scannerlib::nasl::{
+    Loader, NoOpLoader,
     interpreter::InterpretErrorKind,
     prelude::*,
-    syntax::{load_non_utf8_path, LoadError},
-    Loader, NoOpLoader,
+    syntax::{LoadError, load_non_utf8_path},
 };
+use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnBehavior};
 use scannerlib::storage::redis::FEEDUPDATE_SELECTOR;
 use scannerlib::storage::{ContextKey, DefaultDispatcher};
 use scannerlib::{
     feed,
     storage::{
-        item::{NVTField, Nvt, PerItemDispatcher},
-        redis, Dispatcher,
+        Dispatcher,
         Field::NVT,
         Retrieve, Storage,
+        item::{NVTField, Nvt, PerItemDispatcher},
+        redis,
     },
 };
 

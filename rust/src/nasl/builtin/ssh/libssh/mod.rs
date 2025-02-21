@@ -16,8 +16,8 @@ use russh_keys::key;
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::debug;
 
-use super::error::Result;
 use super::Ssh;
+use super::error::Result;
 
 pub use libssh_rs::AuthMethods;
 pub use session::SshSession;

@@ -5,7 +5,7 @@
 //! Contains implementations of Interpreter that handle the simulation of forking methods for the
 //! caller.
 
-use futures::{stream, Stream};
+use futures::{Stream, stream};
 
 use crate::nasl::syntax::{Lexer, Statement, Tokenizer};
 

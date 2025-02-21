@@ -18,6 +18,14 @@ use redis::*;
 use crate::models;
 use crate::models::Vulnerability;
 use crate::storage;
+use crate::storage::ContextKey;
+use crate::storage::Field;
+use crate::storage::Kb;
+use crate::storage::NotusAdvisory;
+use crate::storage::Retrieve;
+use crate::storage::Retriever;
+use crate::storage::StorageError;
+use crate::storage::item::ACT;
 use crate::storage::item::ItemDispatcher;
 use crate::storage::item::NVTKey;
 use crate::storage::item::Nvt;
@@ -26,14 +34,6 @@ use crate::storage::item::NvtRef;
 use crate::storage::item::PerItemDispatcher;
 use crate::storage::item::TagKey;
 use crate::storage::item::TagValue;
-use crate::storage::item::ACT;
-use crate::storage::ContextKey;
-use crate::storage::Field;
-use crate::storage::Kb;
-use crate::storage::NotusAdvisory;
-use crate::storage::Retrieve;
-use crate::storage::Retriever;
-use crate::storage::StorageError;
 
 enum KbNvtPos {
     Filename,
@@ -71,7 +71,7 @@ impl TryFrom<NVTKey> for KbNvtPos {
             _ => {
                 return Err(StorageError::UnexpectedData(format!(
                     "{value:?} is not a redis position and must be handled differently"
-                )))
+                )));
             }
         })
     }
@@ -590,7 +590,7 @@ impl RedisCtx {
                     return Ok(RedisCtx {
                         kb: Some(kb),
                         db: x,
-                    })
+                    });
                 }
                 Err(DbError::NoAvailDbErr) => {}
                 Err(x) => return Err(x),
@@ -804,10 +804,10 @@ mod tests {
 
     use super::super::dberror::RedisStorageResult;
     use super::{CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisWrapper};
+    use crate::storage::Field::NVT;
     use crate::storage::item::NVTField::*;
     use crate::storage::item::PerItemDispatcher;
-    use crate::storage::item::{NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT};
-    use crate::storage::Field::NVT;
+    use crate::storage::item::{ACT, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue};
     use crate::storage::{ContextKey, Dispatcher};
 
     #[derive(Clone)]

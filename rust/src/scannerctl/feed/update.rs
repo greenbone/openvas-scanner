@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use scannerlib::storage::Dispatcher;
 use scannerlib::{
     feed,
-    nasl::{syntax::LoadError, FSPluginLoader},
+    nasl::{FSPluginLoader, syntax::LoadError},
 };
 
 use crate::{CliError, CliErrorKind};

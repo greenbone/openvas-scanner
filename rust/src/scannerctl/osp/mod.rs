@@ -5,15 +5,15 @@
 use std::io::BufRead;
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 use scannerlib::models::{self, Parameter, Scan, VT};
 use scannerlib::storage::{self, DefaultDispatcher, StorageError};
 use start_scan::{StartScan, VtSelection};
 
 use crate::{CliError, CliErrorKind};
-use scannerlib::storage::item::{NVTField, NVTKey};
 use scannerlib::storage::Field;
 use scannerlib::storage::Retrieve;
+use scannerlib::storage::item::{NVTField, NVTKey};
 mod start_scan;
 
 pub fn extend_args(cmd: Command) -> Command {
@@ -49,9 +49,9 @@ where
     match quick_xml::de::from_reader(reader) {
         Ok(x) if print_back => Some(Ok(format!("{x}"))),
         Ok(x) if feed.is_some() => Some(transform_start_scan(feed.unwrap(), x).await),
-        Ok(_) => Some(Err(CliErrorKind::MissingArguments(
-            vec!["path".to_string()],
-        ))),
+        Ok(_) => Some(Err(CliErrorKind::MissingArguments(vec![
+            "path".to_string(),
+        ]))),
         Err(_) => None,
     }
 }
@@ -185,7 +185,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 mod tests {
     use std::io::Cursor;
 
-    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field};
+    use scannerlib::storage::{ContextKey, DefaultDispatcher, Field, item::NVTField};
     use storage::Dispatcher;
 
     use super::*;

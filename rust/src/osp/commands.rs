@@ -4,8 +4,8 @@
 
 use std::io::{self, Cursor};
 
-use crate::models::{scanner, PortRange, Protocol, Scan};
-use quick_xml::events::{attributes::Attribute, BytesEnd, BytesStart, BytesText, Event};
+use crate::models::{PortRange, Protocol, Scan, scanner};
+use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event, attributes::Attribute};
 
 use super::response::Status;
 

@@ -3,18 +3,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use blowfish::{
+    Blowfish,
     cipher::{
-        block_padding::{NoPadding, ZeroPadding},
         BlockCipher, BlockDecrypt, BlockDecryptMut, BlockEncrypt, BlockEncryptMut, KeyInit,
         KeyIvInit,
+        block_padding::{NoPadding, ZeroPadding},
     },
-    Blowfish,
 };
 use cbc::{Decryptor, Encryptor};
 
 use crate::nasl::prelude::*;
 
-use super::{get_data, get_iv, get_key, get_len, Crypt};
+use super::{Crypt, get_data, get_iv, get_key, get_len};
 
 /// Base function for en- and decrypting Cipher Block Chaining (CBC) mode
 fn cbc<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FnError>

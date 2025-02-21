@@ -15,12 +15,12 @@ use models::{Scan, Status};
 use scannerlib::{
     models,
     storage::{
+        ContextKey, DefaultDispatcher, StorageError,
         infisto::{
             ChaCha20IndexFileStorer, Serialization,
             {IndexedByteStorage, IndexedByteStorageIterator, IndexedFileStorer, Range},
         },
         item::Nvt,
-        ContextKey, DefaultDispatcher, StorageError,
     },
 };
 use tokio::task::spawn_blocking;
@@ -478,7 +478,9 @@ where
             // is unsupported as then the result index wouldn't match tyhye file index anymore
             // which could have side effects for get results in the openvasd api as we store the
             // json as is.
-            tracing::warn!("called an unsupported function to delete a result within the file storage, ignoring");
+            tracing::warn!(
+                "called an unsupported function to delete a result within the file storage, ignoring"
+            );
         } else {
             let key = format!("results_{}", key.value());
             let store = &mut self.storage.write().unwrap();
@@ -496,8 +498,8 @@ pub(crate) mod tests {
 
     use models::{Phase, Scan, Status};
     use scannerlib::storage::{
-        infisto::{CachedIndexFileStorer, IndexedByteStorage},
         ContextKey,
+        infisto::{CachedIndexFileStorer, IndexedByteStorage},
     };
     use tracing::debug;
 

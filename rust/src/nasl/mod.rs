@@ -17,6 +17,13 @@ pub mod prelude {
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::syntax::NaslValue;
+    pub use super::utils::ArgumentError;
+    pub use super::utils::Context;
+    pub use super::utils::ContextType;
+    pub use super::utils::FnError;
+    pub use super::utils::InternalError;
+    pub use super::utils::NaslResult;
+    pub use super::utils::Register;
     pub use super::utils::error::FnErrorKind;
     pub use super::utils::error::Retryable;
     pub use super::utils::error::ReturnValue;
@@ -25,13 +32,6 @@ pub mod prelude {
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;
     pub use super::utils::function::ToNaslResult;
-    pub use super::utils::ArgumentError;
-    pub use super::utils::Context;
-    pub use super::utils::ContextType;
-    pub use super::utils::FnError;
-    pub use super::utils::InternalError;
-    pub use super::utils::NaslResult;
-    pub use super::utils::Register;
     pub use crate::function_set;
     pub use nasl_function_proc_macro::nasl_function;
 }
@@ -45,9 +45,9 @@ pub use syntax::NoOpLoader;
 #[cfg(test)]
 pub mod test_prelude {
     pub use super::prelude::*;
-    pub use super::test_utils::check_code_result;
     pub use super::test_utils::DefaultTestBuilder;
     pub use super::test_utils::TestBuilder;
+    pub use super::test_utils::check_code_result;
     pub use crate::check_code_result_matches;
     pub use crate::check_err_matches;
 }

@@ -6,9 +6,9 @@ use crate::nasl::syntax::{Statement, StatementKind::*};
 use crate::nasl::utils::lookup_keys::FC_ANON_ARGS;
 
 use crate::nasl::interpreter::{
+    Interpreter,
     error::{FunctionCallError, InterpretError},
     interpreter::{InterpretResult, RunSpecific},
-    Interpreter,
 };
 
 use crate::nasl::syntax::NaslValue;
@@ -86,7 +86,9 @@ impl Interpreter<'_> {
             Some(Ok(NaslValue::Fork(x))) if self.index == 0 && x.is_empty() => Ok(NaslValue::Null),
 
             Some(Ok(NaslValue::Fork(_))) => {
-                unreachable!("NaslValue::Fork must only occur on root instance, all other cases should return a value within run_specific")
+                unreachable!(
+                    "NaslValue::Fork must only occur on root instance, all other cases should return a value within run_specific"
+                )
             }
             Some(r) => r.map_err(|e| {
                 InterpretError::new(

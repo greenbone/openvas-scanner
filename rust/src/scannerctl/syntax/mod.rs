@@ -4,9 +4,9 @@
 
 use std::path::PathBuf;
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 
-use crate::{add_verbose, CliError};
+use crate::{CliError, add_verbose};
 
 pub mod check;
 

@@ -5,7 +5,7 @@
 //! # Responses of OSPD commands
 use std::{collections::HashMap, fmt};
 
-use serde::{de::Visitor, Deserialize};
+use serde::{Deserialize, de::Visitor};
 
 use super::commands::Error;
 

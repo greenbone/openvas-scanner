@@ -5,8 +5,8 @@
 use crate::{
     models,
     storage::{
-        item::{NVTField, NVTKey, Nvt},
         ContextKey, Field, StorageError,
+        item::{NVTField, NVTKey, Nvt},
     },
 };
 

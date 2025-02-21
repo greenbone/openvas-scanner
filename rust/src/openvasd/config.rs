@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use clap::{builder::TypedValueParser, ArgAction};
+use clap::{ArgAction, builder::TypedValueParser};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

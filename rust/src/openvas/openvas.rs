@@ -10,13 +10,13 @@ use super::{
     result_collector::ResultHelper,
 };
 use crate::models::{
+    HostInfoBuilder, Phase, Status,
     scanner::{
         Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
     },
-    HostInfoBuilder, Phase, Status,
 };
 use crate::{
-    models::{self, resources::check::Checker, Scan},
+    models::{self, Scan, resources::check::Checker},
     storage::redis::{NameSpaceSelector, RedisCtx},
 };
 use async_trait::async_trait;
@@ -261,7 +261,7 @@ impl ScanDeleter for Scanner {
                 return Err(ScanError::Unexpected(format!(
                     "Not allowed to delete a running scan {}",
                     scan_id
-                )))
+                )));
             }
             _ => match self.remove_running(scan_id) {
                 Some(_) => {

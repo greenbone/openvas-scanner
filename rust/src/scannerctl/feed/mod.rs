@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::{arg, value_parser, ArgAction, Command};
+use clap::{ArgAction, Command, arg, value_parser};
 // re-export to work around name conflict
 
 use scannerlib::{
@@ -16,15 +16,15 @@ use scannerlib::{
     storage::{
         json::{ArrayWrapper, ItemDispatcher},
         redis::{
-            CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+            CacheDispatcher, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, NameSpaceSelector, RedisCtx,
         },
     },
 };
 
 use scannerlib::feed::{FeedReplacer, ReplaceCommand};
-use scannerlib::storage::{item::PerItemDispatcher, StorageError};
+use scannerlib::storage::{StorageError, item::PerItemDispatcher};
 
-use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
+use crate::{CliError, CliErrorKind, get_path_from_openvas, notusupdate, read_openvas_config};
 
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(

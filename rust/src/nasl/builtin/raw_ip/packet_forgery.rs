@@ -10,8 +10,8 @@ use std::{
 };
 
 use super::{
-    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
     RawIpError,
+    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
 use super::super::host::get_host_ip;
@@ -22,14 +22,13 @@ use crate::nasl::utils::NaslVars;
 
 use pcap::Capture;
 use pnet::packet::{
-    self,
+    self, Packet, PrimitiveValues,
     ethernet::EthernetPacket,
     icmp::*,
     ip::{IpNextHeaderProtocol, IpNextHeaderProtocols},
-    ipv4::{checksum, Ipv4Packet, MutableIpv4Packet},
+    ipv4::{Ipv4Packet, MutableIpv4Packet, checksum},
     tcp::{TcpOption, TcpOptionNumbers, TcpPacket, *},
     udp::UdpPacket,
-    Packet, PrimitiveValues,
 };
 
 use pnet_macros_support::types::u9be;
@@ -1894,7 +1893,7 @@ fn nasl_tcp_ping(register: &Register, configs: &Context) -> Result<NaslValue, Fn
             return Err(FnError::wrong_unnamed_argument(
                 "Number",
                 "Invalid length value",
-            ))
+            ));
         }
     };
 
@@ -2002,7 +2001,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
             return Err(FnError::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid pcap_active value",
-            ))
+            ));
         }
     };
 
@@ -2013,7 +2012,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
             return Err(FnError::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
-            ))
+            ));
         }
     };
 
@@ -2024,7 +2023,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
             return Err(FnError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            ))
+            ));
         }
     };
 
@@ -2035,7 +2034,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
             return Err(FnError::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid allow_broadcast value",
-            ))
+            ));
         }
     };
 
@@ -2057,7 +2056,7 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
             return Err(FnError::wrong_unnamed_argument(
                 "Number",
                 "Invalid length value",
-            ))
+            ));
         }
     };
 
@@ -2093,10 +2092,11 @@ fn nasl_send_packet(register: &Register, configs: &Context) -> Result<NaslValue,
         // No broadcast destination and dst ip address inside the IP packet
         // differs from target IP, is consider a malicious or buggy script.
         if packet.get_destination() != target_ip && !allow_broadcast {
-            return Err(error(
-                format!("send_packet: malicious or buggy script is trying to send packet to {} instead of designated target {}",
-                        packet.get_destination(), target_ip)
-            ));
+            return Err(error(format!(
+                "send_packet: malicious or buggy script is trying to send packet to {} instead of designated target {}",
+                packet.get_destination(),
+                target_ip
+            )));
         }
 
         let sock_str = format!("{}:{}", &packet.get_destination().to_string().as_str(), 0);
@@ -2142,7 +2142,7 @@ fn nasl_send_capture(register: &Register, configs: &Context) -> Result<NaslValue
             return Err(FnError::wrong_unnamed_argument(
                 "String",
                 "Invalid interface value",
-            ))
+            ));
         }
     };
 
@@ -2153,7 +2153,7 @@ fn nasl_send_capture(register: &Register, configs: &Context) -> Result<NaslValue
             return Err(FnError::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
-            ))
+            ));
         }
     };
 
@@ -2164,7 +2164,7 @@ fn nasl_send_capture(register: &Register, configs: &Context) -> Result<NaslValue
             return Err(FnError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            ))
+            ));
         }
     };
 

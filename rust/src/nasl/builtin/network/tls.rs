@@ -12,8 +12,8 @@ use std::{
 
 use pkcs8::der::Decode;
 use rustls::{
-    pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
     ClientConfig, ClientConnection, RootCertStore,
+    pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
 };
 
 pub enum TLSError {

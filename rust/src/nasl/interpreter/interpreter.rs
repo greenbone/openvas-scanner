@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 
 use crate::nasl::interpreter::{
-    declare::{DeclareFunctionExtension, DeclareVariableExtension},
     InterpretError,
+    declare::{DeclareFunctionExtension, DeclareVariableExtension},
 };
 use crate::nasl::syntax::{
     IdentifierType, NaslValue, Statement, StatementKind::*, SyntaxError, Token, TokenCategory,

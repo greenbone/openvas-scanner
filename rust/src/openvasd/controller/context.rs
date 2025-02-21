@@ -176,7 +176,9 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
         let tls_config = match self.tls_config.take() {
             Some(tls_config) => {
                 if tls_config.has_clients && self.api_key.is_some() {
-                    tracing::warn!("Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored.");
+                    tracing::warn!(
+                        "Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored."
+                    );
                     self.api_key = None;
                 }
                 Some(tls_config)

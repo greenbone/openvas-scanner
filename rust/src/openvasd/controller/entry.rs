@@ -8,12 +8,12 @@
 
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
-use super::{context::Context, ClientIdentifier};
+use super::{ClientIdentifier, context::Context};
 
 use http::StatusCode;
 use hyper::{Method, Request};
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
-use scannerlib::models::{scanner::*, Action, Phase, Scan, ScanAction};
+use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
 use scannerlib::notus::NotusError;
 
 use crate::{
@@ -470,7 +470,7 @@ pub mod client {
     use http::StatusCode;
     use http_body_util::{BodyExt, Empty, Full};
     use hyper::{
-        body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
+        HeaderMap, Method, Request, body::Bytes, header::HeaderValue, service::HttpService,
     };
     use scannerlib::models::scanner::{self, Scanner};
     use scannerlib::models::{self, Action, Scan, ScanAction, Status};
@@ -483,7 +483,7 @@ pub mod client {
     use crate::storage::inmemory;
     use crate::{
         controller::{ClientIdentifier, Context},
-        storage::{file::Storage, NVTStorer, UserNASLStorageForKBandVT},
+        storage::{NVTStorer, UserNASLStorageForKBandVT, file::Storage},
     };
 
     use super::KnownPaths;

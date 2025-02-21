@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use crate::nasl::syntax::{AssignOrder, Statement, TokenCategory};
 
-use super::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+use super::{Interpreter, error::InterpretError, interpreter::InterpretResult};
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::syntax::StatementKind::*;
 use crate::nasl::utils::ContextType;

@@ -13,8 +13,8 @@ use std::{
 use crate::models::{self, Vulnerability, VulnerabilityData};
 
 use crate::storage::{
-    time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Remover,
-    Retriever, StorageError,
+    ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Remover, Retriever, StorageError,
+    time::AsUnixTimeStamp, types,
 };
 
 use super::{FieldKeyResult, Retrieve};

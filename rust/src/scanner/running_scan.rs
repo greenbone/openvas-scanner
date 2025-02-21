@@ -4,13 +4,13 @@
 
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::SystemTime,
 };
 
-use crate::models::{scanner::Error, HostInfo, Phase, Scan, Status};
+use crate::models::{HostInfo, Phase, Scan, Status, scanner::Error};
 use crate::nasl::utils::Executor;
 use crate::{
     scanner::scan_runner::ScanRunner,
@@ -186,15 +186,15 @@ mod tests {
 
     use crate::models::Phase;
     use crate::models::{
-        scanner::{ScanResultFetcher, ScanResults, ScanStarter},
         Scan,
+        scanner::{ScanResultFetcher, ScanResults, ScanStarter},
     };
-    use crate::storage::{item::Nvt, DefaultDispatcher};
+    use crate::storage::{DefaultDispatcher, item::Nvt};
     use tracing_test::traced_test;
 
     use crate::scanner::{
-        scan_runner::tests::{setup, setup_success, GenerateScript},
         Scanner,
+        scan_runner::tests::{GenerateScript, setup, setup_success},
     };
 
     type TestStack = (DefaultDispatcher, fn(&str) -> String);

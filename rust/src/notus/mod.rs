@@ -16,8 +16,8 @@ mod vts;
 mod tests;
 
 pub use error::Error as NotusError;
+pub use loader::AdvisoryLoader;
 pub use loader::fs::FSProductLoader;
 pub use loader::hashsum::HashsumAdvisoryLoader;
 pub use loader::hashsum::HashsumProductLoader;
-pub use loader::AdvisoryLoader;
 pub use notus::Notus;

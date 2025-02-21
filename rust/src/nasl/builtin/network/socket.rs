@@ -16,12 +16,11 @@ use rustls::ClientConnection;
 use thiserror::Error;
 
 use super::{
-    get_retry,
+    OpenvasEncaps, Port, get_retry,
     network_utils::{convert_timeout, ipstr2ipaddr},
     tcp::TcpConnection,
     tls::create_tls_client,
     udp::UdpConnection,
-    OpenvasEncaps, Port,
 };
 
 #[derive(Debug, Error)]
@@ -374,7 +373,7 @@ impl NaslSockets {
             Some(OpenvasEncaps::Ip) => None,
             // Unsupported transport layer
             None | Some(OpenvasEncaps::Max) => {
-                return Err(SocketError::UnsupportedTransportLayerUnknown(transport))
+                return Err(SocketError::UnsupportedTransportLayerUnknown(transport));
             }
             // TLS/SSL
             Some(tls_version) => match tls_version {

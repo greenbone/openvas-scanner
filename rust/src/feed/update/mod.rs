@@ -7,18 +7,18 @@ mod error;
 pub use error::Error;
 pub use error::ErrorKind;
 
-use futures::{stream, Stream, StreamExt};
+use futures::{Stream, StreamExt, stream};
 use std::fs::File;
 use tracing::trace;
 
+use crate::nasl::ContextType;
 use crate::nasl::interpreter::{CodeInterpreter, Interpreter};
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
-use crate::nasl::utils::context::Target;
 use crate::nasl::utils::Executor;
-use crate::nasl::ContextType;
-use crate::storage::{item::NVTField, ContextKey, Dispatcher, NoOpRetriever};
+use crate::nasl::utils::context::Target;
+use crate::storage::{ContextKey, Dispatcher, NoOpRetriever, item::NVTField};
 
 use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};

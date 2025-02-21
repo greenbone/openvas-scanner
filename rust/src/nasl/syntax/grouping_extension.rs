@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use super::{
+    AssignOrder, Statement, StatementKind,
     error::SyntaxError,
     lexer::{End, Lexer},
     token::{Category, Token},
-    AssignOrder, Statement, StatementKind,
 };
 
 use crate::{unclosed_token, unexpected_token};
@@ -103,7 +103,7 @@ impl Grouping for Lexer<'_> {
 
 #[cfg(test)]
 mod test {
-    use super::super::{parse, StatementKind};
+    use super::super::{StatementKind, parse};
 
     use StatementKind::*;
 

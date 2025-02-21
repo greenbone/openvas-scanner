@@ -4,7 +4,7 @@
 
 use crate::models::{Host, HostInfo, Scan};
 use crate::nasl::utils::Executor;
-use futures::{stream, Stream};
+use futures::{Stream, stream};
 
 use crate::scanner::ScannerStack;
 use crate::scheduling::{ConcurrentVT, VTError};
@@ -119,10 +119,10 @@ pub(super) mod tests {
     use crate::models::Target;
     use crate::models::VT;
     use crate::nasl::syntax::NaslValue;
-    use crate::nasl::utils::context::Target as ContextTarget;
     use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
+    use crate::nasl::utils::context::Target as ContextTarget;
     use crate::nasl::{interpreter::CodeInterpreter, nasl_std_functions};
     use crate::scanner::{
         error::{ExecuteError, ScriptResult},
@@ -130,8 +130,6 @@ pub(super) mod tests {
         vt_runner::generate_port_kb_key,
     };
     use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
-    use crate::storage::item::NVTField;
-    use crate::storage::item::Nvt;
     use crate::storage::ContextKey;
     use crate::storage::DefaultDispatcher;
     use crate::storage::Dispatcher;
@@ -139,6 +137,8 @@ pub(super) mod tests {
     use crate::storage::Field::NVT;
     use crate::storage::Retrieve;
     use crate::storage::Retriever;
+    use crate::storage::item::NVTField;
+    use crate::storage::item::Nvt;
     use futures::StreamExt;
 
     pub fn only_success() -> [(String, Nvt); 3] {

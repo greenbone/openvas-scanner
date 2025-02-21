@@ -9,11 +9,11 @@ use scannerlib::models::{self, Scan, Status, VulnerabilityData};
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::storage::item::Nvt;
 use scannerlib::storage::redis::{
-    self, CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR,
-    NOTUSUPDATE_SELECTOR,
+    self, CacheDispatcher, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, RedisCtx, RedisGetNvt,
+    RedisWrapper,
 };
-use scannerlib::storage::{item::PerItemDispatcher, Dispatcher, Field};
 use scannerlib::storage::{ContextKey, DefaultDispatcher, StorageError};
+use scannerlib::storage::{Dispatcher, Field, item::PerItemDispatcher};
 use scannerlib::{
     feed,
     notus::{AdvisoryLoader, HashsumAdvisoryLoader},

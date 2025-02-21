@@ -25,7 +25,7 @@ where
                 kind: CliErrorKind::LoadError(LoadError::Dirty(
                     "Problem loading advisory".to_string(),
                 )),
-            })
+            });
         }
     };
 

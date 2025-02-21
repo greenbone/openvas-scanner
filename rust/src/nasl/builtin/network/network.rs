@@ -5,14 +5,14 @@
 use std::{net::IpAddr, process::Command};
 
 use super::socket::SocketError;
-use super::{mtu, Port};
 use super::{
-    network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
     DEFAULT_PORT,
+    network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
 };
+use super::{Port, mtu};
 use crate::function_set;
 use crate::nasl::utils::{Context, FnError};
-use crate::storage::{types::Primitive, Field, Kb};
+use crate::storage::{Field, Kb, types::Primitive};
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host

@@ -10,8 +10,8 @@ use std::{collections::HashMap, fmt::Display};
 use crate::{
     models::{Parameter, Scan},
     storage::{
-        item::{NVTField, Nvt},
         Field, Retrieve, Retriever, StorageError,
+        item::{NVTField, Nvt},
     },
 };
 use thiserror::Error;
@@ -286,10 +286,10 @@ mod tests {
     use crate::scheduling::ExecutionPlaner;
     use crate::scheduling::Stage;
     use crate::scheduling::WaveExecutionPlan;
-    use crate::storage::item::Nvt;
     use crate::storage::ContextKey;
     use crate::storage::DefaultDispatcher;
     use crate::storage::Dispatcher;
+    use crate::storage::item::Nvt;
 
     #[test]
     #[tracing_test::traced_test]

@@ -5,7 +5,7 @@
 use crate::nasl::syntax::{Statement, TokenCategory};
 use regex::Regex;
 
-use crate::nasl::interpreter::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+use crate::nasl::interpreter::{Interpreter, error::InterpretError, interpreter::InterpretResult};
 
 use crate::nasl::syntax::NaslValue;
 

@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use super::{
+    ErrorKind, Statement, StatementKind,
     error::SyntaxError,
     grouping_extension::Grouping,
     lexer::{End, Lexer},
     token::{Category, IdentifierType, Token},
-    ErrorKind, Statement, StatementKind,
 };
 use crate::{
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
@@ -491,9 +491,8 @@ impl Keywords for Lexer<'_> {
 mod test {
 
     use super::super::{
-        parse,
+        Statement, parse,
         token::{Category, IdentifierType},
-        Statement,
     };
 
     use super::super::StatementKind::*;
@@ -714,9 +713,11 @@ mod test {
         assert!(parse("local_var a, 1, c;").next().unwrap().is_err());
         assert!(parse("local_var 1;").next().unwrap().is_err());
         assert!(parse("if (description) { ; ").next().unwrap().is_err());
-        assert!(parse("if (description) display(1)")
-            .next()
-            .unwrap()
-            .is_err());
+        assert!(
+            parse("if (description) display(1)")
+                .next()
+                .unwrap()
+                .is_err()
+        );
     }
 }

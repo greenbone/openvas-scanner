@@ -18,7 +18,7 @@ pub use error::*;
 use scannerlib::storage::StorageError;
 use std::{path::PathBuf, process};
 
-use clap::{arg, ArgAction, ArgMatches, Command};
+use clap::{ArgAction, ArgMatches, Command, arg};
 
 #[derive(Debug, Clone)]
 pub enum Db {

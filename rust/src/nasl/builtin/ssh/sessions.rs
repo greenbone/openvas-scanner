@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use tokio::sync::{Mutex, MutexGuard};
 
 use super::error::SshErrorKind;
-use super::{error::Result, SessionId, SshSession};
+use super::{SessionId, SshSession, error::Result};
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 

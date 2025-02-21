@@ -532,13 +532,13 @@ mod tests {
     use crate::{
         config,
         scheduling::{self, Scheduler},
-        storage::{inmemory, ScanStorer as _},
+        storage::{ScanStorer as _, inmemory},
     };
 
     mod synchronize {
         use scannerlib::models::{
-            scanner::{self, Lambda, LambdaBuilder, ScanResults, ScanStopper as _},
             Phase, Status,
+            scanner::{self, Lambda, LambdaBuilder, ScanResults, ScanStopper as _},
         };
 
         use super::*;
@@ -770,7 +770,7 @@ mod tests {
     }
 
     mod start {
-        use scannerlib::models::{scanner::Lambda, Phase};
+        use scannerlib::models::{Phase, scanner::Lambda};
 
         use crate::storage::ProgressGetter;
 

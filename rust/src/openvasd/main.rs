@@ -26,7 +26,7 @@ use tracing_subscriber::EnvFilter;
 use crate::{
     config::StorageType,
     crypt::ChaCha20Crypt,
-    storage::{file, inmemory, redis, FeedHash},
+    storage::{FeedHash, file, inmemory, redis},
 };
 pub mod config;
 pub mod controller;
@@ -61,7 +61,11 @@ fn get_feeds(config: &Config) -> Vec<FeedHash> {
 fn check_redis_url(config: &mut Config) -> String {
     let redis_url = cmd::get_redis_socket();
     if redis_url != config.storage.redis.url {
-        warn!(openvas_redis=&redis_url, openvasd_redis=&config.storage.redis.url, "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url");
+        warn!(
+            openvas_redis = &redis_url,
+            openvasd_redis = &config.storage.redis.url,
+            "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url"
+        );
         config.storage.redis.url = redis_url.clone();
     }
     redis_url
@@ -69,7 +73,10 @@ fn check_redis_url(config: &mut Config) -> String {
 
 fn make_osp_scanner(config: &Config) -> osp::Scanner {
     if !config.scanner.ospd.socket.exists() {
-        warn!("OSPD socket {} does not exist. Some commands will not work until the socket is created!", config.scanner.ospd.socket.display());
+        warn!(
+            "OSPD socket {} does not exist. Some commands will not work until the socket is created!",
+            config.scanner.ospd.socket.display()
+        );
     }
     osp::Scanner::new(
         config.scanner.ospd.socket.clone(),

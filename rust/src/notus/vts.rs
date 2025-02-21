@@ -9,7 +9,7 @@ use crate::models::{self, FixedPackage, FixedVersion, PackageType, Specifier};
 use crate::{
     notus::error::Error,
     notus::packages::{
-        deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, windows::Windows, Package,
+        Package, deb::Deb, ebuild::EBuild, rpm::Rpm, slack::Slack, windows::Windows,
     },
 };
 
@@ -48,7 +48,7 @@ impl Product {
                             return Err(Error::VulnerabilityTestParseError(
                                 "".to_string(),
                                 fixed_package,
-                            ))
+                            ));
                         }
                     };
                 // Add vulnerability test to map

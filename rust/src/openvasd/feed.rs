@@ -11,7 +11,7 @@ use scannerlib::storage::{ContextKey, StorageError};
 use scannerlib::{
     feed::{self, HashSumNameLoader},
     nasl::FSPluginLoader,
-    storage::{item::NVTField, Dispatcher, Field},
+    storage::{Dispatcher, Field, item::NVTField},
 };
 
 #[derive(Debug, Default, Clone)]

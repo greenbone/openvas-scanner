@@ -23,8 +23,8 @@ use std::sync::Arc;
 
 use crate::nasl::builtin::ContextFactory;
 use crate::nasl::test_prelude::*;
-use crate::storage::item::{NvtPreference, NvtRef, PreferenceType::*, TagKey, ACT::Denial};
-use crate::storage::{item, ContextKey, DefaultDispatcher, Retrieve, Retriever};
+use crate::storage::item::{ACT::Denial, NvtPreference, NvtRef, PreferenceType::*, TagKey};
+use crate::storage::{ContextKey, DefaultDispatcher, Retrieve, Retriever, item};
 
 #[test]
 fn description() {
@@ -73,44 +73,46 @@ if(description)
             .retrieve(&key, Retrieve::NVT(None))
             .unwrap()
             .collect::<Vec<_>>(),
-        vec![item::Nvt {
-            oid: "0.0.0.0.0.0.0.0.0.1".into(),
-            name: "that is a very long and descriptive name".into(),
-            filename: "test.nasl".into(),
-            tag,
-            dependencies: vec!["ssh_detect.nasl".into(), "ssh2.nasl".into()],
-            required_keys: vec!["WMI/Apache/RootPath".into()],
-            mandatory_keys: vec!["ssh/blubb/detected".into()],
-            excluded_keys: vec!["Settings/disable_cgi_scanning".into(), "bla/bla".into()],
-            required_ports: vec!["Services/ssh".into(), "22".into()],
-            required_udp_ports: vec!["Services/udp/unknown".into(), "17".into()],
-            references: vec![
-                NvtRef {
-                    class: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
-                    id: "URL".into()
-                },
-                NvtRef {
-                    class: "cve".into(),
-                    id: "CVE-1999-0524".into()
-                }
-            ],
-            preferences: vec![
-                NvtPreference {
-                    id: Some(2),
-                    class: Password,
-                    name: "Enable Password".into(),
-                    default: "".into()
-                },
-                NvtPreference {
-                    id: None,
-                    class: Password,
-                    name: "Without ID".into(),
-                    default: "".into()
-                }
-            ],
-            category: Denial,
-            family: "Denial of Service".into()
-        }
-        .into(),]
+        vec![
+            item::Nvt {
+                oid: "0.0.0.0.0.0.0.0.0.1".into(),
+                name: "that is a very long and descriptive name".into(),
+                filename: "test.nasl".into(),
+                tag,
+                dependencies: vec!["ssh_detect.nasl".into(), "ssh2.nasl".into()],
+                required_keys: vec!["WMI/Apache/RootPath".into()],
+                mandatory_keys: vec!["ssh/blubb/detected".into()],
+                excluded_keys: vec!["Settings/disable_cgi_scanning".into(), "bla/bla".into()],
+                required_ports: vec!["Services/ssh".into(), "22".into()],
+                required_udp_ports: vec!["Services/udp/unknown".into(), "17".into()],
+                references: vec![
+                    NvtRef {
+                        class: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
+                        id: "URL".into()
+                    },
+                    NvtRef {
+                        class: "cve".into(),
+                        id: "CVE-1999-0524".into()
+                    }
+                ],
+                preferences: vec![
+                    NvtPreference {
+                        id: Some(2),
+                        class: Password,
+                        name: "Enable Password".into(),
+                        default: "".into()
+                    },
+                    NvtPreference {
+                        id: None,
+                        class: Password,
+                        name: "Without ID".into(),
+                        default: "".into()
+                    }
+                ],
+                category: Denial,
+                family: "Denial of Service".into()
+            }
+            .into(),
+        ]
     );
 }

@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use rc4::Rc4;
-use rc4::{consts::*, KeyInit, StreamCipher};
+use rc4::{KeyInit, StreamCipher, consts::*};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::nasl::prelude::*;
 
-use super::{get_data, get_key, CryptographicError};
+use super::{CryptographicError, get_data, get_key};
 
 /// Structure to hold a Cipher Handler
 pub struct CipherHandler {

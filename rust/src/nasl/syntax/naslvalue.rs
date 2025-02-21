@@ -6,7 +6,7 @@ use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 use crate::storage::types::Primitive;
 
-use super::{IdentifierType, Token, TokenCategory, ACT};
+use super::{ACT, IdentifierType, Token, TokenCategory};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]

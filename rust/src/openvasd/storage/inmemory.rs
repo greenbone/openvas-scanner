@@ -7,7 +7,7 @@ use std::{collections::HashSet, sync::RwLock};
 use super::*;
 use scannerlib::{
     models, notus,
-    storage::{item::Nvt, ContextKey, DefaultDispatcher, StorageError},
+    storage::{ContextKey, DefaultDispatcher, StorageError, item::Nvt},
 };
 use tokio::task::JoinSet;
 

@@ -8,10 +8,10 @@ mod connector;
 /// Module to handle custom errors
 mod dberror;
 
-pub use connector::NameSpaceSelector;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
 pub use connector::NOTUSUPDATE_SELECTOR;
+pub use connector::NameSpaceSelector;
 pub use connector::{
     CacheDispatcher, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper,
 };

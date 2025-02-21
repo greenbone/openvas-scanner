@@ -9,8 +9,8 @@ pub use scannerlib::storage::Storage as NaslStorage;
 use scannerlib::{
     models::{self, Scan, Status, VulnerabilityData},
     storage::{
-        item::Nvt, ContextKey, DefaultDispatcher, Dispatcher, Field, FieldKeyResult, Kb, Remover,
-        Retrieve, Retriever, StorageError,
+        ContextKey, DefaultDispatcher, Dispatcher, Field, FieldKeyResult, Kb, Remover, Retrieve,
+        Retriever, StorageError, item::Nvt,
     },
 };
 
@@ -75,7 +75,7 @@ impl From<crate::storage::Error> for models::scanner::Error {
 #[async_trait]
 pub trait ScanIDClientMapper {
     async fn add_scan_client_id(&self, scan_id: String, client_id: ClientHash)
-        -> Result<(), Error>;
+    -> Result<(), Error>;
     async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;

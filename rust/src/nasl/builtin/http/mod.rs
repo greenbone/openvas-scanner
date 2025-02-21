@@ -14,7 +14,7 @@ pub use error::HttpError;
 use h2::client;
 
 use core::convert::AsRef;
-use http::{response::Parts, Method, Request};
+use http::{Method, Request, response::Parts};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use std::sync::Arc;
 
@@ -359,7 +359,7 @@ impl NaslHttp {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => {
-                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into())
+                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into());
             }
         };
 
@@ -392,7 +392,7 @@ impl NaslHttp {
         let handle_id = match register.named("handle") {
             Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
             _ => {
-                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into())
+                return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into());
             }
         };
 
