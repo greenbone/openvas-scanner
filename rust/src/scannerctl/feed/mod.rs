@@ -152,7 +152,6 @@ pub async fn update(args: UpdateArgs) -> Result<(), CliError> {
         (true, false) => update_notus(&redis, args.notus_path, args.signature_check).await,
         (false, false) => {
             let r1 = update_vts(&redis, args.vts_path, args.signature_check).await;
-            // TODO: Confirm that I'm not insane and this was completely wrong before.
             let r2 = update_notus(&redis, args.notus_path, args.signature_check).await;
             r1.and(r2)
         }
