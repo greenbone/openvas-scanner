@@ -96,3 +96,118 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         Ok(local_val)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::nasl::{nasl_std_functions, test_prelude::*};
+
+    #[test]
+    fn forked_interpreter_statements() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+        set_kb_item(name: "test", value: 1);
+        set_kb_item(name: "test", value: 2);
+        if (get_kb_item("test") == 1) {
+             return 3;
+        }
+        else {
+            return 4;
+        }
+        "#,
+        );
+        let mut results = t.results();
+        let mut next_result = || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(3)))
+        );
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(4)))
+        );
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn forked_interpreter_with_trailing_statements() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+        set_kb_item(name: "test", value: 1);
+        set_kb_item(name: "test", value: 2);
+        if (get_kb_item("test") == 1) {
+            return 3;
+        }
+        else {
+        }
+        return 4;
+        "#,
+        );
+        let mut results = t.results();
+        let mut next_result = || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(3)))
+        );
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(4)))
+        );
+        assert!(results.is_empty());
+    }
+
+    struct MySet(usize);
+
+    impl MySet {
+        #[nasl_function]
+        fn rand_sim(&mut self) -> usize {
+            self.0 += 1;
+            self.0 - 1
+        }
+    }
+
+    function_set! {
+        MySet,
+        (
+            (MySet::rand_sim, "rand_sim"),
+        )
+    }
+
+    #[test]
+    fn forked_interpreter_with_nondeterministic_behavior() {
+        let mut exec = nasl_std_functions();
+        exec.add_set(MySet(0));
+        let mut t = TestBuilder::default().with_executor(exec);
+        t.run_all(
+            r#"
+        set_kb_item(name: "test", value: 1);
+        set_kb_item(name: "test", value: 2);
+        if (rand_sim() == 0) {
+            x = "foo"; # Noop statement to make sure we don't accidentally do the right thing
+            return get_kb_item("test");
+        }
+        else {
+            return 3;
+        }
+        "#,
+        );
+        let mut results = t.results();
+        let mut next_result = || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(1)))
+        );
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(2)))
+        );
+        assert!(results.is_empty());
+    }
+}
