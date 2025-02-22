@@ -73,6 +73,10 @@ impl Executor {
     pub fn contains(&self, k: &str) -> bool {
         self.sets.iter().any(|set| set.contains(k))
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &str> {
+        self.sets.iter().flat_map(|set| set.iter())
+    }
 }
 
 pub struct StoredFunctionSet<State> {
@@ -191,6 +195,8 @@ pub trait FunctionSet {
     ) -> NaslResult;
 
     fn contains(&self, k: &str) -> bool;
+
+    fn iter(&self) -> Box<dyn Iterator<Item = &str> + '_>;
 }
 
 #[async_trait]
@@ -226,6 +232,10 @@ impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
 
     fn contains(&self, k: &str) -> bool {
         self.fns.contains_key(k)
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = &str> + '_> {
+        Box::new(self.fns.keys().map(|x| x.as_str()))
     }
 }
 
