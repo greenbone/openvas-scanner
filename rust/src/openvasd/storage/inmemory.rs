@@ -442,7 +442,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use models::Scan;
+    use models::{Credential, CredentialType, Scan};
     use scannerlib::storage::ContextKey;
 
     use super::*;
@@ -481,6 +481,15 @@ mod tests {
         );
     }
 
+    fn password(c: &Credential) -> &str {
+        match &c.credential_type {
+            CredentialType::UP { password, .. }
+            | CredentialType::USK { password, .. }
+            | CredentialType::SNMP { password, .. }
+            | CredentialType::KRB5 { password, .. } => password,
+        }
+    }
+
     #[tokio::test]
     async fn store_delete_scan() {
         let storage = Storage::default();
@@ -499,7 +508,7 @@ mod tests {
         let pw = models::Credential {
             credential_type: models::CredentialType::UP {
                 username: "test".to_string(),
-                password: "test".to_string(),
+                password: "pass".to_string(),
                 privilege: None,
             },
             ..Default::default()
@@ -511,11 +520,11 @@ mod tests {
         storage.insert_scan(scan).await.unwrap();
         let (retrieved, _) = storage.get_scan(&id).await.unwrap();
         assert_eq!(retrieved.scan_id, id);
-        assert_ne!(retrieved.target.credentials[0].password(), "test");
+        assert_ne!(password(&retrieved.target.credentials[0]), "pass");
 
         let (retrieved, _) = storage.get_decrypted_scan(&id).await.unwrap();
         assert_eq!(retrieved.scan_id, id);
-        assert_eq!(retrieved.target.credentials[0].password(), "test");
+        assert_eq!(password(&retrieved.target.credentials[0]), "pass");
     }
 
     async fn store_scan(storage: &Storage<crypt::ChaCha20Crypt>) -> String {

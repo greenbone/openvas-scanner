@@ -30,17 +30,6 @@ impl Credential {
             credential_type: self.credential_type.map_password(f)?,
         })
     }
-
-    /// Gets the password of the credential.
-    // FIXME: delete
-    pub fn password(&self) -> &str {
-        match &self.credential_type {
-            CredentialType::UP { password, .. } => password,
-            CredentialType::USK { password, .. } => password,
-            CredentialType::SNMP { password, .. } => password,
-            CredentialType::KRB5 { password, .. } => password,
-        }
-    }
 }
 
 impl Default for Credential {
