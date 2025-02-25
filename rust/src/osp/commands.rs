@@ -330,6 +330,17 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
                         write_str_element(writer, "privacy_password", privacy_password)?;
                         write_str_element(writer, "privacy_algorithm", privacy_algorithm)?;
                     }
+                    CredentialType::KRB5 {
+                        username,
+                        password,
+                        realm,
+                        kdc,
+                    } => {
+                        write_str_element(writer, "username", username)?;
+                        write_str_element(writer, "password", password)?;
+                        write_str_element(writer, "realm", realm)?;
+                        write_str_element(writer, "kdc", kdc)?;
+                    }
                 }
 
                 Ok(())
