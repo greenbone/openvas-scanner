@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 mod builtin;
-pub mod inter;
+pub mod interpreter;
 pub mod syntax;
 pub mod utils;
 

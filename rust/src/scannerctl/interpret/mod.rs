@@ -8,9 +8,9 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::{inter::ForkingInterpreter, utils::error::ReturnBehavior};
+use scannerlib::nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior};
 use scannerlib::nasl::{
-    inter::InterpretErrorKind,
+    interpreter::InterpretErrorKind,
     prelude::*,
     syntax::{load_non_utf8_path, LoadError},
     Loader, NoOpLoader,

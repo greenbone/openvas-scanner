@@ -117,7 +117,7 @@ pub(super) mod tests {
     use crate::models::Scan;
     use crate::models::Target;
     use crate::models::VT;
-    use crate::nasl::inter::ForkingInterpreter;
+    use crate::nasl::interpreter::ForkingInterpreter;
     use crate::nasl::nasl_std_functions;
     use crate::nasl::syntax::NaslValue;
     use crate::nasl::utils::context::Target as ContextTarget;

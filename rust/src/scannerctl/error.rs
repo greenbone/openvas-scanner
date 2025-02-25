@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
-use scannerlib::nasl::{inter::InterpretError, syntax::LoadError};
+use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
 use scannerlib::storage::StorageError;
 use scannerlib::{feed, notus};
 use scannerlib::{

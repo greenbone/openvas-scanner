@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::{
-    inter::InterpretError,
+    interpreter::InterpretError,
     syntax::{Statement, TokenCategory},
 };
 use regex::Regex;

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::models::{Host, Parameter, Protocol, ScanId};
-use crate::nasl::inter::ForkingInterpreter;
+use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::{Executor, Register};

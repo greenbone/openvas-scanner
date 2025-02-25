@@ -4,7 +4,7 @@
 
 use crate::models::{Host, Protocol};
 
-use crate::nasl::inter::InterpretError;
+use crate::nasl::interpreter::InterpretError;
 use crate::scheduling::Stage;
 
 #[derive(thiserror::Error, Debug, Clone)]

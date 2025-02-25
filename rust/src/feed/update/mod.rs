@@ -11,8 +11,8 @@ use futures::{stream, Stream, StreamExt};
 use std::fs::File;
 use tracing::trace;
 
-use crate::nasl::inter::ForkingInterpreter;
-use crate::nasl::inter::Interpreter;
+use crate::nasl::interpreter::ForkingInterpreter;
+use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
