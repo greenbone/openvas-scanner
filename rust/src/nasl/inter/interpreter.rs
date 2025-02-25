@@ -1,20 +1,144 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    inter::{
-        declare::{DeclareFunctionExtension, DeclareVariableExtension},
-        forking_interpreter::InterpreterState,
-    },
+    inter::declare::{DeclareFunctionExtension, DeclareVariableExtension},
     interpreter::InterpretError,
     prelude::NaslValue,
     syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, TokenCategory},
     Context, ContextType, Register,
 };
 
+use super::forking_interpreter::InterpreterState;
+
+#[derive(Clone)]
+pub enum ForkReentryData<'code> {
+    Collecting {
+        data: Vec<NaslValue>,
+        register: Register,
+        lexer: Lexer<'code>,
+    },
+    Restoring(VecDeque<NaslValue>),
+}
+
+impl<'code> ForkReentryData<'code> {
+    fn drain(&mut self) -> VecDeque<NaslValue> {
+        match self {
+            Self::Collecting { data, .. } => data.drain(..).collect(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn contains_fork(&self) -> bool {
+        match self {
+            Self::Collecting { data, .. } => {
+                data.iter().any(|val| matches!(val, NaslValue::Fork(_)))
+            }
+            _ => false,
+        }
+    }
+
+    pub(crate) fn try_push(&mut self, result: NaslValue) {
+        match self {
+            ForkReentryData::Collecting { data, .. } => data.push(result),
+            ForkReentryData::Restoring(_) => {}
+        }
+    }
+
+    pub(crate) fn try_pop(&mut self) -> Option<NaslValue> {
+        match self {
+            Self::Restoring(data) => data.pop_front(),
+            _ => None,
+        }
+    }
+
+    fn register(&self) -> &Register {
+        match self {
+            Self::Collecting { register, .. } => register,
+            _ => unreachable!(),
+        }
+    }
+
+    fn lexer(&self) -> &Lexer<'code> {
+        match self {
+            Self::Collecting { lexer, .. } => lexer,
+            _ => unreachable!(),
+        }
+    }
+
+    fn create_forks(&mut self) -> Vec<Self> {
+        let mut data = vec![self.drain()];
+        loop {
+            let (changed, new_data) = expand_first_fork(data);
+            data = new_data;
+            if !changed {
+                break;
+            }
+        }
+        data.into_iter().map(|data| Self::Restoring(data)).collect()
+    }
+
+    fn new() -> Self {
+        Self::Restoring(VecDeque::new())
+    }
+
+    fn collecting(register: Register, lexer: Lexer<'code>) -> Self {
+        Self::Collecting {
+            data: vec![],
+            register,
+            lexer,
+        }
+    }
+
+    fn is_empty_or_collecting(&self) -> bool {
+        match self {
+            ForkReentryData::Collecting { .. } => true,
+            ForkReentryData::Restoring(data) => data.is_empty(),
+        }
+    }
+}
+
+fn expand_first_fork(data: Vec<VecDeque<NaslValue>>) -> (bool, Vec<VecDeque<NaslValue>>) {
+    let first_fork = data[0]
+        .iter()
+        .enumerate()
+        .filter_map(|(index, val)| {
+            if let NaslValue::Fork(vals) = val {
+                Some((index, vals.clone()))
+            } else {
+                None
+            }
+        })
+        .next();
+    if first_fork.is_none() {
+        return (false, data);
+    }
+    let first_fork = first_fork.unwrap();
+    let data = data
+        .into_iter()
+        .flat_map(|d| expand_fork_at(d, first_fork.0, first_fork.1.clone()))
+        .collect();
+    (true, data)
+}
+
+fn expand_fork_at(
+    data: VecDeque<NaslValue>,
+    index: usize,
+    vals: Vec<NaslValue>,
+) -> Vec<VecDeque<NaslValue>> {
+    vals.iter()
+        .map(|val| {
+            let mut data = data.clone();
+            data[index] = val.clone();
+            data
+        })
+        .collect()
+}
+
 pub struct Interpreter<'code, 'ctx> {
     pub register: Register,
     lexer: Lexer<'code>,
     pub context: &'ctx Context<'ctx>,
+    pub fork_reentry_data: ForkReentryData<'code>,
 }
 
 pub type InterpretResult = Result<NaslValue, InterpretError>;
@@ -26,21 +150,12 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
             register,
             lexer,
             context,
+            fork_reentry_data: ForkReentryData::new(),
         }
     }
 
-    pub fn make_fork(&self, val: NaslValue) -> (InterpreterState, Interpreter<'code, 'ctx>) {
-        (
-            InterpreterState::Running,
-            Interpreter {
-                register: self.register.clone(),
-                lexer: self.lexer.clone(),
-                context: self.context,
-            },
-        )
-    }
-
     pub async fn execute_next_statement(&mut self) -> Option<InterpretResult> {
+        self.initialize_fork_data();
         match self.lexer.next() {
             Some(Ok(stmt)) => Some(self.resolve(&stmt).await),
             Some(Err(err)) => Some(Err(err.into())),
@@ -246,6 +361,42 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         match stmt {
             Ok(stmt) => self.resolve(&stmt).await,
             Err(err) => Err(InterpretError::include_syntax_error(key, err)),
+        }
+    }
+
+    pub(crate) fn create_forks(mut self) -> Vec<(InterpreterState, Interpreter<'code, 'ctx>)> {
+        let forks = self.fork_reentry_data.create_forks();
+        let register = self.fork_reentry_data.register();
+        let lexer = self.fork_reentry_data.lexer().clone();
+        forks
+            .into_iter()
+            .map(|fork| self.make_fork(fork, register, &lexer))
+            .collect()
+    }
+
+    fn make_fork(
+        &self,
+        fork_reentry_data: ForkReentryData<'code>,
+        register: &Register,
+        lexer: &Lexer<'code>,
+    ) -> (InterpreterState, Interpreter<'code, 'ctx>) {
+        let interpreter = Self {
+            register: register.clone(),
+            lexer: lexer.clone(),
+            context: self.context,
+            fork_reentry_data,
+        };
+        (InterpreterState::Running, interpreter)
+    }
+
+    pub(crate) fn should_fork(&self) -> bool {
+        self.fork_reentry_data.contains_fork()
+    }
+
+    pub(crate) fn initialize_fork_data(&mut self) {
+        if self.fork_reentry_data.is_empty_or_collecting() {
+            self.fork_reentry_data =
+                ForkReentryData::collecting(self.register.clone(), self.lexer.clone());
         }
     }
 }

@@ -119,8 +119,7 @@ impl Display for NaslValue {
             NaslValue::Break => write!(f, "break"),
             NaslValue::Fork(x) => write!(
                 f,
-                "Creates {} runs, for {}",
-                x.len(),
+                "Fork[{}]",
                 x.iter()
                     .map(|v| v.to_string())
                     .collect::<Vec<String>>()

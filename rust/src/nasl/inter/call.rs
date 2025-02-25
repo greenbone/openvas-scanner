@@ -107,15 +107,33 @@ impl Interpreter<'_, '_> {
         statement: &Statement,
         arguments: &[Statement],
     ) -> InterpretResult {
+        if let Some(val) = self.fork_reentry_data.try_pop() {
+            return Ok(val);
+        }
         let fn_name = statement.as_token().identifier()?;
         let arguments = self.create_arguments_map(arguments).await?;
         self.register.create_root_child(arguments);
-        if let Some(result) = self.execute_builtin_fn(statement, &fn_name).await {
+        let val = if let Some(result) = self.execute_builtin_fn(statement, &fn_name).await {
             result
         } else {
             self.execute_user_defined_fn(&fn_name).await
+        }?;
+        let val = replace_empty_or_identity_fork(val);
+        self.fork_reentry_data.try_push(val.clone());
+        Ok(val)
+    }
+}
+
+fn replace_empty_or_identity_fork(mut val: NaslValue) -> NaslValue {
+    if let NaslValue::Fork(ref mut x) = val {
+        if x.is_empty() {
+            return NaslValue::Null;
+        }
+        if x.len() == 1 {
+            return x.remove(0);
         }
     }
+    val
 }
 
 #[cfg(test)]
@@ -133,105 +151,5 @@ mod tests {
         t.ok("test(a: 1, b: 2);", 3);
         t.ok("test(a: 1);", 1);
         t.ok("test();", 0);
-    }
-
-    #[test]
-    #[tracing_test::traced_test]
-    fn multiple_forks() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-set_kb_item(name: "port", value: 1);
-set_kb_item(name: "port", value: 2);
-set_kb_item(name: "host", value: "a");
-set_kb_item(name: "host", value: "b");
-get_kb_item("port");
-get_kb_item("host");
-"#,
-        );
-
-        assert_eq!(t.results().len(), 10);
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(4)
-            .filter_map(|x| x.ok())
-            .collect();
-
-        assert_eq!(
-            results,
-            vec![
-                1.into(),
-                2.into(),
-                "a".into(),
-                "a".into(),
-                "b".into(),
-                "b".into(),
-            ]
-        );
-    }
-    #[test]
-    #[tracing_test::traced_test]
-    fn empty_fork() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-get_kb_item("port") + ":" + get_kb_item("host");
-"#,
-        );
-
-        let results: Vec<_> = t.results().into_iter().filter_map(|x| x.ok()).collect();
-
-        assert_eq!(results, vec!["\0:\0".into()]);
-    }
-
-    #[test]
-    #[tracing_test::traced_test]
-    fn multiple_forks_on_one_line() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-set_kb_item(name: "port", value: 1);
-set_kb_item(name: "port", value: 2);
-set_kb_item(name: "host", value: "a");
-set_kb_item(name: "host", value: "b");
-get_kb_item("port") + ":" + get_kb_item("host");
-"#,
-        );
-
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(4)
-            .filter_map(|x| x.ok())
-            .collect();
-
-        assert_eq!(
-            results,
-            vec!["1:a".into(), "2:a".into(), "1:b".into(), "2:b".into(),]
-        );
-    }
-
-    #[test]
-    #[tracing_test::traced_test]
-    fn simple_fork() {
-        let mut t = TestBuilder::default();
-        t.run_all(
-            r#"
-set_kb_item(name: "foo", value: 1);
-set_kb_item(name: "foo", value: 2);
-get_kb_item("foo");
-display("hi");
-"#,
-        );
-
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(2)
-            .filter_map(|x| x.ok())
-            .collect();
-
-        assert_eq!(results, vec![1.into(), 2.into()]);
     }
 }

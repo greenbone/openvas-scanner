@@ -2,7 +2,7 @@ use futures::{stream, Stream};
 
 use crate::nasl::{
     syntax::{Lexer, Tokenizer},
-    Context, NaslValue, Register,
+    Context, Register,
 };
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
@@ -65,35 +65,48 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
 
     async fn try_next(&mut self) -> Option<InterpretResult> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
-        dbg!(self.interpreter_index);
         let (state, interpreter) = &mut self.interpreters[self.interpreter_index];
         if *state == InterpreterState::Running {
             let result = interpreter.execute_next_statement().await;
-            if let Some(Ok(NaslValue::Fork(v))) = result {
-                return Some(self.handle_fork(v));
-            }
             if result.is_none() {
                 *state = InterpreterState::Finished;
             }
-            result
+            if self.handle_forks() {
+                None
+            } else {
+                result
+            }
         } else {
             None
         }
     }
 
-    fn handle_fork(&mut self, mut values: Vec<NaslValue>) -> InterpretResult {
-        // TODO check that we are on root interpreter (if its necessary)
-        let (_, active_interpreter) = &self.interpreters[self.interpreter_index];
-        if values.is_empty() {
-            return Ok(NaslValue::Null);
+    fn handle_forks(&mut self) -> bool {
+        // This check is not necessary, but otherwise we will
+        // remove and re-insert the interpreter on every statement,
+        // even if the statement does not create a fork, which
+        // might cause performance issues.
+        if self.interpreters[self.interpreter_index].1.should_fork() {
+            // TODO check that we are on root interpreter (if its necessary)
+            let (_, interpreter) = self.interpreters.remove(self.interpreter_index);
+            let forks = interpreter.create_forks();
+            // Insert the new interpreters in order and "in place", so
+            // that the first fork has exactly the same position that the
+            // interpreter which created the fork had previously.  This is
+            // most likely very inefficient, but performance is of
+            // secondary importance for now.
+            let num_forks = forks.len();
+            for (i, fork) in forks.into_iter().enumerate() {
+                self.interpreters.insert(self.interpreter_index + i, fork);
+            }
+            // For consistency with previous behavior, make sure that the next interpreter
+            // that advances is the one just behind the last newly inserted interpreter
+            self.interpreter_index =
+                (self.interpreter_index + num_forks - 1) % self.interpreters.len();
+            true
+        } else {
+            false
         }
-        let local_val = values.remove(0);
-        let forks: Vec<_> = values
-            .into_iter()
-            .map(|val| active_interpreter.make_fork(val))
-            .collect();
-        self.interpreters.extend(forks);
-        Ok(local_val)
     }
 }
 
@@ -209,5 +222,128 @@ mod tests {
             NaslValue::Return(Box::new(NaslValue::Number(2)))
         );
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn will_not_work() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            set_kb_item(name: "test", value: 1);
+            set_kb_item(name: "test", value: 2);
+            if (get_kb_item("test") == 1) {
+                return 3;
+            }
+            else {
+                return 4;
+            }
+            "#,
+        );
+        let mut results = t.results();
+        let mut next_result = || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(3)))
+        );
+        assert_eq!(
+            next_result(),
+            NaslValue::Return(Box::new(NaslValue::Number(3)))
+        );
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn multiple_forks() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            set_kb_item(name: "port", value: 1);
+            set_kb_item(name: "port", value: 2);
+            set_kb_item(name: "host", value: "a");
+            set_kb_item(name: "host", value: "b");
+            get_kb_item("port");
+            get_kb_item("host");
+            "#,
+        );
+
+        assert_eq!(t.results().len(), 10);
+        let results: Vec<_> = t
+            .results()
+            .into_iter()
+            .skip(4)
+            .filter_map(|x| x.ok())
+            .collect();
+
+        assert_eq!(
+            results,
+            vec![
+                1.into(),
+                2.into(),
+                "a".into(),
+                "b".into(),
+                "a".into(),
+                "b".into(),
+            ]
+        );
+    }
+    #[test]
+    fn empty_fork() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            get_kb_item("port") + ":" + get_kb_item("host");
+            "#,
+        );
+
+        let results: Vec<_> = t.results().into_iter().filter_map(|x| x.ok()).collect();
+
+        assert_eq!(results, vec!["\0:\0".into()]);
+    }
+
+    #[test]
+    fn multiple_forks_on_one_line() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            set_kb_item(name: "port", value: 1);
+            set_kb_item(name: "port", value: 2);
+            set_kb_item(name: "host", value: "a");
+            set_kb_item(name: "host", value: "b");
+            get_kb_item("port") + ":" + get_kb_item("host");
+            "#,
+        );
+
+        let results: Vec<_> = t
+            .results()
+            .into_iter()
+            .skip(4)
+            .filter_map(|x| x.ok())
+            .collect();
+
+        assert_eq!(
+            results,
+            vec!["1:a".into(), "1:b".into(), "2:a".into(), "2:b".into(),]
+        );
+    }
+
+    #[test]
+    fn simple_fork() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+            set_kb_item(name: "foo", value: 1);
+            set_kb_item(name: "foo", value: 2);
+            get_kb_item("foo");
+            "#,
+        );
+
+        let results: Vec<_> = t.results().into_iter().filter_map(|x| x.ok()).collect();
+
+        assert_eq!(
+            results,
+            vec![NaslValue::Null, NaslValue::Null, 1.into(), 2.into()]
+        );
     }
 }
