@@ -117,12 +117,13 @@ pub(super) mod tests {
     use crate::models::Scan;
     use crate::models::Target;
     use crate::models::VT;
+    use crate::nasl::inter::ForkingInterpreter;
+    use crate::nasl::nasl_std_functions;
     use crate::nasl::syntax::NaslValue;
     use crate::nasl::utils::context::Target as ContextTarget;
     use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
-    use crate::nasl::{interpreter::CodeInterpreter, nasl_std_functions};
     use crate::scanner::{
         error::{ExecuteError, ScriptResult},
         scan_runner::ScanRunner,
@@ -327,7 +328,7 @@ exit({rc});
         let key = ContextKey::FileName(id.to_string());
 
         let context = Context::new(key, target, &storage, &storage, &loader, &functions);
-        let interpreter = CodeInterpreter::new(code, register, &context);
+        let interpreter = ForkingInterpreter::new(code, register, &context);
         for stmt in interpreter.iter_blocking() {
             if let NaslValue::Exit(_) = stmt.expect("stmt success") {
                 storage.on_exit(context.key()).expect("result");

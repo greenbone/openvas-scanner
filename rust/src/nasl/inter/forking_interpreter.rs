@@ -49,6 +49,12 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         }))
     }
 
+    pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> {
+        use futures::StreamExt;
+
+        futures::executor::block_on(async { self.stream().collect::<Vec<_>>().await.into_iter() })
+    }
+
     async fn next(&mut self) -> Option<InterpretResult> {
         while self
             .interpreters
@@ -345,5 +351,18 @@ mod tests {
             results,
             vec![NaslValue::Null, NaslValue::Null, 1.into(), 2.into()]
         );
+    }
+
+    #[test]
+    fn forking_does_not_happen_twice() {
+        let t = TestBuilder::from_code(
+            r###"
+            set_kb_item(name: "a", value: [1,2,3]);
+            foo1 = get_kb_item(name: "a");
+            foo2 = get_kb_item(name: "a");
+            "###,
+        );
+        t.results();
+        todo!();
     }
 }

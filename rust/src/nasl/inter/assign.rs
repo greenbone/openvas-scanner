@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::nasl::interpreter::InterpretError;
+use crate::nasl::inter::InterpretError;
 use crate::nasl::syntax::{AssignOrder, Statement, TokenCategory};
 
 use super::interpreter::InterpretResult;

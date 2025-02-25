@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use super::interpreter::{InterpretResult, Interpreter};
 use crate::nasl::{
-    interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
+    inter::{FunctionCallError, InterpretError, InterpretErrorKind},
     syntax::{Statement, StatementKind},
     utils::lookup_keys::FC_ANON_ARGS,
     ContextType, NaslValue,

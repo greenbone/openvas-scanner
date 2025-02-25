@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::models::{Host, Parameter, Protocol, ScanId};
+use crate::nasl::inter::ForkingInterpreter;
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::{Executor, Register};
@@ -13,7 +14,6 @@ use crate::storage::{ContextKey, Field, Retrieve, StorageError};
 use futures::StreamExt;
 use tracing::{error_span, trace, warn};
 
-use crate::nasl::interpreter::CodeInterpreter;
 use crate::nasl::prelude::*;
 
 use super::ExecuteError;
@@ -209,7 +209,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             self.loader,
             self.executor,
         );
-        let mut results = Box::pin(CodeInterpreter::new(code, register, &context).stream());
+        let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),

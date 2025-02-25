@@ -20,8 +20,7 @@ use crate::{
 use futures::{Stream, StreamExt};
 
 use super::{
-    builtin::ContextFactory, inter::ForkingInterpreter, interpreter::InterpretErrorKind,
-    utils::Executor,
+    builtin::ContextFactory, inter::ForkingInterpreter, inter::InterpretErrorKind, utils::Executor,
 };
 
 // The following exists to trick the trait solver into

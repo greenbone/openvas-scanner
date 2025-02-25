@@ -8,9 +8,9 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::nasl::{interpreter::CodeInterpreter, utils::error::ReturnBehavior};
+use scannerlib::nasl::{inter::ForkingInterpreter, utils::error::ReturnBehavior};
 use scannerlib::nasl::{
-    interpreter::InterpretErrorKind,
+    inter::InterpretErrorKind,
     prelude::*,
     syntax::{load_non_utf8_path, LoadError},
     Loader, NoOpLoader,
@@ -134,7 +134,7 @@ where
             .build(ContextKey::Scan(self.scan_id.clone(), target));
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
-        let mut results = CodeInterpreter::new(&code, register, &context).stream();
+        let mut results = ForkingInterpreter::new(&code, register, &context).stream();
         while let Some(result) = results.next().await {
             let r = match result {
                 Ok(x) => x,

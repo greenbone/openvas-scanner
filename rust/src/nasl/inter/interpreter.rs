@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
     inter::declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    interpreter::InterpretError,
+    inter::InterpretError,
     prelude::NaslValue,
     syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, TokenCategory},
     Context, ContextType, Register,

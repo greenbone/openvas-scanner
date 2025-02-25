@@ -4,7 +4,6 @@
 
 mod builtin;
 pub mod inter;
-pub mod interpreter;
 pub mod syntax;
 pub mod utils;
 
