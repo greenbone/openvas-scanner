@@ -13,6 +13,7 @@ use super::cmd;
 use super::openvas_redis::{KbAccess, VtHelper};
 
 const OID_SSH_AUTH: &str = "1.3.6.1.4.1.25623.1.0.103591";
+const OID_KRB5_AUTH: &str = "1.3.6.1.4.1.25623.1.81.0";
 const OID_SMB_AUTH: &str = "1.3.6.1.4.1.25623.1.0.90023";
 const OID_ESXI_AUTH: &str = "1.3.6.1.4.1.25623.1.0.105058";
 const OID_SNMP_AUTH: &str = "1.3.6.1.4.1.25623.1.0.105076";
@@ -373,7 +374,30 @@ where
 
         let mut credential_preferences: Vec<String> = vec![];
         for credential in credentials {
+            // TODO: refactor that
             match credential.service {
+                Service::KRB5 => {
+                    if let Some(port) = credential.port {
+                        credential_preferences.push(format!("auth_port_krb5|||{}", port));
+                    } else {
+                        credential_preferences.push("auth_port_krb5|||445".to_string());
+                    };
+                    if let CredentialType::KRB5 {
+                        username,
+                        password,
+                        realm,
+                        kdc,
+                    } = credential.credential_type
+                    {
+                        credential_preferences
+                            .push(format!("{OID_KRB5_AUTH}:1:entry::|||{}", username));
+                        credential_preferences
+                            .push(format!("{OID_KRB5_AUTH}:2:password::|||{}", password));
+                        credential_preferences
+                            .push(format!("{OID_KRB5_AUTH}:3:entry::|||{}", realm));
+                        credential_preferences.push(format!("{OID_KRB5_AUTH}:4:entry::|||{}", kdc));
+                    }
+                }
                 Service::SSH => {
                     if let Some(port) = credential.port {
                         credential_preferences.push(format!("auth_port_ssh|||{}", port));
@@ -550,15 +574,27 @@ mod tests {
         };
         scan.target.hosts = vec!["127.0.0.1".to_string(), "10.0.0.1".to_string()];
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
-        scan.target.credentials = vec![Credential {
-            service: Service::SSH,
-            port: Some(22),
-            credential_type: CredentialType::UP {
-                username: "user".to_string(),
-                password: "pass".to_string(),
-                privilege: None,
+        scan.target.credentials = vec![
+            Credential {
+                service: Service::SSH,
+                port: Some(22),
+                credential_type: CredentialType::UP {
+                    username: "user".to_string(),
+                    password: "pass".to_string(),
+                    privilege: None,
+                },
             },
-        }];
+            Credential {
+                service: Service::KRB5,
+                port: None,
+                credential_type: CredentialType::KRB5 {
+                    username: "user".to_string(),
+                    password: "pass".to_string(),
+                    realm: "realm".to_string(),
+                    kdc: "kdc".to_string(),
+                },
+            },
+        ];
         scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
         scan.target.ports = vec![Port {
             protocol: Some(Protocol::TCP),
@@ -632,6 +668,23 @@ mod tests {
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||user"
+        ));
+
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.81.0:1:entry::|||user"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.81.0:2:password::|||pass"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.81.0:3:entry::|||realm"
+        ));
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.81.0:4:entry::|||kdc"
         ));
 
         // Prepare and test Plugins
