@@ -23,3 +23,21 @@ a;
         &Ok(NaslValue::Number(1))
     ));
 }
+
+#[test]
+fn in_function() {
+    let t = TestBuilder::from_code(
+        r###"
+function foo(a) {
+    return a;
+}
+a = 1;
+foo(a: 2);
+b = a;
+        "###,
+    );
+    assert!(matches!(
+        t.results().last().unwrap(),
+        &Ok(NaslValue::Number(1))
+    ));
+}

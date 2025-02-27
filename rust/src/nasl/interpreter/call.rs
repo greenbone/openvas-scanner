@@ -118,6 +118,7 @@ impl Interpreter<'_, '_> {
         } else {
             self.execute_user_defined_fn(&fn_name).await
         }?;
+        self.register.drop_last();
         let val = replace_empty_or_identity_fork(val);
         self.fork_reentry_data.try_push(val.clone());
         Ok(val)
