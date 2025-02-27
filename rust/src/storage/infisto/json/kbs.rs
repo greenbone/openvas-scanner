@@ -7,7 +7,7 @@ use std::io::Write;
 use crate::storage::{
     dispatch::Dispatcher,
     error::StorageError,
-    items::kb::{KbContextKey, KbItem},
+    items::kb::{GetKbContextKey, KbContextKey, KbItem},
     remove::Remover,
     Retriever,
 };
@@ -24,6 +24,13 @@ impl<S: Write> Dispatcher<KbContextKey> for JsonStorage<S> {
 impl<S: Write> Retriever<KbContextKey> for JsonStorage<S> {
     type Item = Vec<KbItem>;
     fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl<S: Write> Retriever<GetKbContextKey> for JsonStorage<S> {
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
         self.kbs.retrieve(key)
     }
 }

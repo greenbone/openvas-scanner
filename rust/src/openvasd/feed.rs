@@ -14,7 +14,7 @@ use scannerlib::{
         dispatch::Dispatcher,
         error::StorageError,
         items::{
-            kb::{KbContextKey, KbItem},
+            kb::{GetKbContextKey, KbContextKey, KbItem},
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
@@ -135,6 +135,13 @@ impl Dispatcher<FeedVersion> for FeedIdentifier {
 impl Retriever<KbContextKey> for FeedIdentifier {
     type Item = Vec<KbItem>;
     fn retrieve(&self, _: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        Ok(None)
+    }
+}
+
+impl Retriever<GetKbContextKey> for FeedIdentifier {
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, _: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
         Ok(None)
     }
 }
