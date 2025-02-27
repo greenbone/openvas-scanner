@@ -122,7 +122,7 @@ where
         let key = self.generate_key();
         let check_required_key = |k: &str| {
             self.check_key(
-                &(key.clone(), k.into()),
+                &KbContextKey(key.clone(), k.into()),
                 || Some(ScriptResultKind::MissingRequiredKey(k.into())),
                 |_| None,
                 |_| Some(ScriptResultKind::MissingRequiredKey(k.into())),
@@ -134,7 +134,7 @@ where
 
         let check_mandatory_key = |k: &str| {
             self.check_key(
-                &(key.clone(), k.into()),
+                &KbContextKey(key.clone(), k.into()),
                 || Some(ScriptResultKind::MissingMandatoryKey(k.into())),
                 |_| None,
                 |_| Some(ScriptResultKind::MissingMandatoryKey(k.into())),
@@ -146,7 +146,7 @@ where
 
         let check_exclude_key = |k: &str| {
             self.check_key(
-                &(key.clone(), k.into()),
+                &KbContextKey(key.clone(), k.into()),
                 || None,
                 |_| Some(ScriptResultKind::ContainsExcludedKey(k.into())),
                 |_| None,
@@ -159,7 +159,7 @@ where
         let check_port = |pt: Protocol, port: &str| {
             let kbk = KbKey::Port(pt.to_string(), port.to_string());
             self.check_key(
-                &(key.clone(), kbk),
+                &KbContextKey(key.clone(), kbk),
                 || Some(ScriptResultKind::MissingPort(pt, port.to_string())),
                 |mut v| {
                     if !v.is_empty() && v.pop().unwrap().into() {

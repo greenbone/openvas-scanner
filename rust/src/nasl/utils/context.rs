@@ -4,10 +4,12 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use rand::seq::SliceRandom;
+
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::storage::items::kb::{KbContextKey, KbItem, KbKey};
+use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem, KbKey};
 use crate::storage::items::nvt::{FileName, Nvt, NvtField};
 use crate::storage::{self, ContextStorage, ScanID};
 
@@ -531,7 +533,7 @@ impl<'a> Context<'a> {
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
-        (
+        KbContextKey(
             (
                 self.scan.clone(),
                 storage::Target(self.target.target.clone()),
@@ -549,6 +551,23 @@ impl<'a> Context<'a> {
         let result = self
             .storage
             .retrieve(&self.kb_key(key.clone()))?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
+    pub fn get_kb_items_with_keys(
+        &self,
+        key: &KbKey,
+    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
+        let result = self
+            .storage
+            .retrieve(&GetKbContextKey(
+                (
+                    self.scan.clone(),
+                    storage::Target(self.target.target.clone()),
+                ),
+                key.clone(),
+            ))?
             .unwrap_or_default();
         Ok(result)
     }
@@ -610,37 +629,36 @@ impl<'a> Context<'a> {
     /// countermeasures. Also, avoid returning 80 and 21 as
     /// open ports, as many transparent proxies are acting for these...
     pub fn get_host_open_port(&self) -> Result<u16, FnError> {
-        todo!()
-        // let mut open21 = false;
-        // let mut open80 = false;
-        // let ports: Vec<u16> = self
-        //     .get_kb_item(&KbKey::PortTcp("*".to_string()))?
-        //     .iter()
-        //     .filter_map(|x| {
-        //         x.key.split('/').last().and_then(|x| {
-        //             if x == "21" {
-        //                 open21 = true;
-        //                 None
-        //             } else if x == "80" {
-        //                 open80 = true;
-        //                 None
-        //             } else {
-        //                 x.parse::<u16>().ok()
-        //             }
-        //         })
-        //     })
-        //     .collect();
+        let mut open21 = false;
+        let mut open80 = false;
+        let ports: Vec<u16> = self
+            .get_kb_items_with_keys(&KbKey::PortTcp("*".to_string()))?
+            .iter()
+            .filter_map(|x| {
+                x.0.split('/').last().and_then(|x| {
+                    if x == "21" {
+                        open21 = true;
+                        None
+                    } else if x == "80" {
+                        open80 = true;
+                        None
+                    } else {
+                        x.parse::<u16>().ok()
+                    }
+                })
+            })
+            .collect();
 
-        // let ret = if ports.len() != 0 {
-        //     *ports.choose(&mut rand::thread_rng()).unwrap()
-        // } else if open21 {
-        //     21
-        // } else if open80 {
-        //     80
-        // } else {
-        //     0
-        // };
-        // Ok(ret)
+        let ret = if ports.len() != 0 {
+            *ports.choose(&mut rand::thread_rng()).unwrap()
+        } else if open21 {
+            21
+        } else if open80 {
+            80
+        } else {
+            0
+        };
+        Ok(ret)
     }
 }
 

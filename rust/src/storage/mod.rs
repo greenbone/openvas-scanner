@@ -21,7 +21,7 @@ use dispatch::Dispatcher;
 use error::StorageError;
 
 use items::{
-    kb::{KbContextKey, KbItem},
+    kb::{GetKbContextKey, KbContextKey, KbItem},
     notus_advisory::NotusCache,
     nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
     result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
@@ -109,6 +109,7 @@ pub trait ContextStorage:
     // kb
     + Dispatcher<KbContextKey, Item = KbItem>
     + Retriever<KbContextKey, Item = Vec<KbItem>>
+    + Retriever<GetKbContextKey, Item = Vec<(String, Vec<KbItem>)>>
     + Remover<KbContextKey, Item = Vec<KbItem>>
     // results
     + Dispatcher<ScanID, Item = ResultItem>

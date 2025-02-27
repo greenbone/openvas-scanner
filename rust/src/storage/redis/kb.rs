@@ -5,7 +5,7 @@
 use crate::storage::{
     dispatch::Dispatcher,
     error::StorageError,
-    items::kb::{KbContextKey, KbItem},
+    items::kb::{GetKbContextKey, KbContextKey, KbItem},
     remove::Remover,
     Retriever,
 };
@@ -28,6 +28,16 @@ where
 {
     type Item = Vec<KbItem>;
     fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl<S> Retriever<GetKbContextKey> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
         self.kbs.retrieve(key)
     }
 }

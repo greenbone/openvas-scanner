@@ -133,6 +133,7 @@ pub(super) mod tests {
     use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
     use crate::storage::dispatch::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
+    use crate::storage::items::kb::KbContextKey;
     use crate::storage::items::kb::KbItem;
     use crate::storage::items::kb::KbKey;
     use crate::storage::items::nvt::FileName;
@@ -437,7 +438,7 @@ exit({rc});
         .for_each(|(p, port, enabled)| {
             storage
                 .dispatch(
-                    (
+                    KbContextKey(
                         (
                             ScanID("sid".to_string()),
                             crate::storage::Target("test.host".to_string()),
@@ -457,7 +458,7 @@ exit({rc});
         let storage = prepare_vt_storage(vts);
         storage
             .dispatch(
-                (
+                KbContextKey(
                     (
                         ScanID("sid".to_string()),
                         crate::storage::Target("test.host".to_string()),
