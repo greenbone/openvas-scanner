@@ -327,4 +327,7 @@ impl std::fmt::Display for KbItem {
 
 pub type KbContext = (ScanID, Target);
 
-pub type KbContextKey = (KbContext, KbKey);
+#[derive(Debug, Clone, Default)]
+pub struct KbContextKey(pub KbContext, pub KbKey);
+#[derive(Debug, Clone, Default)]
+pub struct GetKbContextKey(pub KbContext, pub KbKey);

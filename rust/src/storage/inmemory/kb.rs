@@ -7,7 +7,7 @@ use std::{collections::HashMap, sync::RwLock};
 use crate::storage::{
     dispatch::Dispatcher,
     error::StorageError,
-    items::kb::{KbContext, KbContextKey, KbItem, KbKey},
+    items::kb::{GetKbContextKey, KbContext, KbContextKey, KbItem, KbKey},
     remove::Remover,
     retrieve::Retriever,
 };
@@ -66,6 +66,30 @@ impl Retriever<KbContextKey> for InMemoryKbStorage {
     }
 }
 
+impl Retriever<GetKbContextKey> for InMemoryKbStorage {
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        let kbs = self.0.read()?;
+        if let Some(kb) = kbs.get(&key.0) {
+            if key.1.is_pattern() {
+                let mut ret = vec![];
+                for (kb_key, items) in kb {
+                    if kb_key.matches(&key.1) {
+                        ret.push((kb_key.to_string(), items.clone()));
+                    }
+                }
+                Ok(Some(ret))
+            } else {
+                Ok(kb
+                    .get(&key.1)
+                    .map(|items| vec![(key.1.to_string(), items.clone())]))
+            }
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 impl Remover<KbContextKey> for InMemoryKbStorage {
     type Item = Vec<KbItem>;
     fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
@@ -88,6 +112,13 @@ impl Dispatcher<KbContextKey> for InMemoryStorage {
 impl Retriever<KbContextKey> for InMemoryStorage {
     type Item = Vec<KbItem>;
     fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl Retriever<GetKbContextKey> for InMemoryStorage {
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
         self.kbs.retrieve(key)
     }
 }
