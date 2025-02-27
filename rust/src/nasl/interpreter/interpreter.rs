@@ -13,7 +13,7 @@ use crate::nasl::{
 use super::InterpretErrorKind;
 
 #[derive(PartialEq, Eq)]
-pub enum InterpreterState {
+enum InterpreterState {
     Running,
     Finished,
 }
@@ -57,7 +57,7 @@ impl<'code> ForkReentryData<'code> {
         }
     }
 
-    pub(crate) fn try_push(&mut self, value: NaslValue, token: &Token) {
+    pub(crate) fn try_collect(&mut self, value: NaslValue, token: &Token) {
         match self {
             ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
                 value,
@@ -67,7 +67,10 @@ impl<'code> ForkReentryData<'code> {
         }
     }
 
-    pub(crate) fn try_pop(&mut self, token: &Token) -> Result<Option<NaslValue>, InterpretError> {
+    pub(crate) fn try_restore(
+        &mut self,
+        token: &Token,
+    ) -> Result<Option<NaslValue>, InterpretError> {
         match self {
             Self::Restoring(data) => {
                 if let Some(data) = data.pop_front() {
@@ -174,11 +177,11 @@ fn expand_fork_at(
 }
 
 pub struct Interpreter<'code, 'ctx> {
-    pub register: Register,
+    pub(super) register: Register,
+    pub(super) context: &'ctx Context<'ctx>,
+    pub(super) fork_reentry_data: ForkReentryData<'code>,
     lexer: Lexer<'code>,
-    pub context: &'ctx Context<'ctx>,
-    pub fork_reentry_data: ForkReentryData<'code>,
-    pub state: InterpreterState,
+    state: InterpreterState,
 }
 
 pub type InterpretResult = Result<NaslValue, InterpretError>;
@@ -414,7 +417,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         }
     }
 
-    pub(crate) fn create_forks(mut self) -> Vec<Interpreter<'code, 'ctx>> {
+    pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'code, 'ctx>> {
         let forks = self.fork_reentry_data.create_forks();
         let register = self.fork_reentry_data.register();
         let lexer = self.fork_reentry_data.lexer().clone();
@@ -440,7 +443,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         interpreter
     }
 
-    pub(crate) fn should_fork(&self) -> bool {
+    pub(crate) fn wants_to_fork(&self) -> bool {
         self.fork_reentry_data.contains_fork()
     }
 
@@ -453,5 +456,9 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
 
     pub(crate) fn is_finished(&self) -> bool {
         self.state.is_finished()
+    }
+
+    pub fn register(&self) -> &Register {
+        &self.register
     }
 }

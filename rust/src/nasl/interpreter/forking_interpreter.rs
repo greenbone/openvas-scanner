@@ -57,7 +57,7 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         let interpreter = &mut self.interpreters[self.interpreter_index];
         if !interpreter.is_finished() {
             let result = interpreter.execute_next_statement().await;
-            if self.handle_forks() {
+            if self.create_forks_if_necessary() {
                 None
             } else {
                 result
@@ -67,14 +67,18 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         }
     }
 
-    fn handle_forks(&mut self) -> bool {
+    /// Checks if the current interpreter wants to fork.
+    /// If it does, it replaces the current interpreter by
+    /// as many new interpreters as desired and returns `true`.
+    /// Otherwise returns `false`.
+    fn create_forks_if_necessary(&mut self) -> bool {
         // This check is not necessary, but otherwise we will
         // remove and re-insert the interpreter on every statement,
         // even if the statement does not create a fork, which
         // might cause performance issues.
-        if self.interpreters[self.interpreter_index].should_fork() {
+        if self.interpreters[self.interpreter_index].wants_to_fork() {
             let interpreter = self.interpreters.remove(self.interpreter_index);
-            let forks = interpreter.create_forks();
+            let forks = interpreter.make_forks();
             // Insert the new interpreters in order and "in place", so
             // that the first fork has exactly the same position that the
             // interpreter which created the fork had previously.  This is

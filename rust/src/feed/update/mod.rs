@@ -65,7 +65,7 @@ pub async fn feed_version(
     }
 
     let feed_version = interpreter
-        .register
+        .register()
         .named("PLUGIN_SET")
         .map(|x| x.to_string())
         .unwrap_or_else(|| "0".to_owned());

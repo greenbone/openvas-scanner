@@ -106,7 +106,7 @@ impl Interpreter<'_, '_> {
         statement: &Statement,
         arguments: &[Statement],
     ) -> InterpretResult {
-        if let Some(val) = self.fork_reentry_data.try_pop(statement.as_token())? {
+        if let Some(val) = self.fork_reentry_data.try_restore(statement.as_token())? {
             return Ok(val);
         }
         let fn_name = statement.as_token().identifier()?;
@@ -120,7 +120,7 @@ impl Interpreter<'_, '_> {
         self.register.drop_last();
         let val = replace_empty_or_identity_fork(val);
         self.fork_reentry_data
-            .try_push(val.clone(), statement.as_token());
+            .try_collect(val.clone(), statement.as_token());
         Ok(val)
     }
 }
