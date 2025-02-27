@@ -13,7 +13,7 @@ use super::cmd;
 use super::openvas_redis::{KbAccess, VtHelper};
 
 const OID_SSH_AUTH: &str = "1.3.6.1.4.1.25623.1.0.103591";
-const OID_KRB5_AUTH: &str = "1.3.6.1.4.1.25623.1.81.0";
+const OID_KRB5_AUTH: &str = "1.3.6.1.4.1.25623.1.0.102114";
 const OID_SMB_AUTH: &str = "1.3.6.1.4.1.25623.1.0.90023";
 const OID_ESXI_AUTH: &str = "1.3.6.1.4.1.25623.1.0.105058";
 const OID_SNMP_AUTH: &str = "1.3.6.1.4.1.25623.1.0.105076";
@@ -672,19 +672,19 @@ mod tests {
 
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
-            "1.3.6.1.4.1.25623.1.81.0:1:entry::|||user"
+            "1.3.6.1.4.1.25623.1.0.102114:1:entry::|||user"
         ));
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
-            "1.3.6.1.4.1.25623.1.81.0:2:password::|||pass"
+            "1.3.6.1.4.1.25623.1.0.102114:2:password::|||pass"
         ));
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
-            "1.3.6.1.4.1.25623.1.81.0:3:entry::|||realm"
+            "1.3.6.1.4.1.25623.1.0.102114:3:entry::|||realm"
         ));
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
-            "1.3.6.1.4.1.25623.1.81.0:4:entry::|||kdc"
+            "1.3.6.1.4.1.25623.1.0.102114:4:entry::|||kdc"
         ));
 
         // Prepare and test Plugins
