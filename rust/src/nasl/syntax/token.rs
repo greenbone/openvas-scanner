@@ -433,7 +433,6 @@ impl Token {
         }
     }
 
-    // TODO: I don't think this method should exist.
     pub fn identifier(&self) -> Result<String, InterpretError> {
         match self.category() {
             Category::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),

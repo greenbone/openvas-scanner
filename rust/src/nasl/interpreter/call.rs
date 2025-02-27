@@ -74,10 +74,9 @@ impl Interpreter<'_, '_> {
                             .add_local(&arg, ContextType::Value(NaslValue::Null));
                     }
                 }
-                // TODO: Implicit return is a thing?
                 match self.resolve(&stmt).await? {
                     NaslValue::Return(x) => Ok(*x),
-                    a => Ok(a),
+                    _ => Ok(NaslValue::Null),
                 }
             }
             ContextType::Value(_) => Err(InterpretError::expected_function()),

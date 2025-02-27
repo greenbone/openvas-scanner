@@ -93,7 +93,6 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         // even if the statement does not create a fork, which
         // might cause performance issues.
         if self.interpreters[self.interpreter_index].1.should_fork() {
-            // TODO check that we are on root interpreter (if its necessary)
             let (_, interpreter) = self.interpreters.remove(self.interpreter_index);
             let forks = interpreter.create_forks();
             // Insert the new interpreters in order and "in place", so
