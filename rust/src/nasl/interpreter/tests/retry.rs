@@ -14,7 +14,7 @@ struct Counter {
 impl Counter {
     fn check_and_increment(&mut self) -> Result<usize, FnError> {
         self.count += 1;
-        if self.count < 5 {
+        if self.count < 3 {
             // Return a dummy error, it doesnt matter what it is.
             Err(FnError::from(ArgumentError::WrongArgument("test".into())))
         } else {
@@ -45,5 +45,5 @@ function_set! {
 fn retryable_error() {
     let mut t = TestBuilder::default().with_executor(Executor::single(Counter { count: 0 }));
     check_err_matches!(t, "check_counter();", ArgumentError::WrongArgument(_));
-    t.ok("check_counter_retry();", 5);
+    t.ok("check_counter_retry();", 3);
 }
