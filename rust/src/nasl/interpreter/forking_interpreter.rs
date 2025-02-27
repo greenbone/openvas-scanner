@@ -8,7 +8,6 @@ use crate::nasl::{
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
 
 pub struct ForkingInterpreter<'code, 'ctx> {
-    _context: &'ctx Context<'ctx>,
     interpreters: Vec<Interpreter<'code, 'ctx>>,
     interpreter_index: usize,
 }
@@ -19,7 +18,6 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         let lexer = Lexer::new(tokenizer);
         let interpreters = vec![Interpreter::new(register, lexer, context)];
         Self {
-            _context: context,
             interpreters,
             interpreter_index: 0,
         }
