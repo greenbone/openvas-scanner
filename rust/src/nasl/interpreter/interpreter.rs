@@ -24,12 +24,32 @@ impl InterpreterState {
     }
 }
 
+/// Represents the result of a function call (`value`) along with
+/// the `Token` pointing to the identifier of the function that
+/// resulted in this value originally.
 #[derive(Clone)]
 pub struct FunctionCallData {
     value: NaslValue,
     token: Token,
 }
 
+/// This type contains the necessary data to reproduce the execution
+/// flow in the case of interpreter forks.
+///
+/// Its two variants are
+///
+/// 1. `Collecting`: This variant is used by any interpreter which is
+/// currently executing normally.  In this mode, the result of any
+/// function call performed by the interpreter within a single
+/// top-level statement will be stored along with the `Token` at which
+/// the function call took place (as a safeguard). The variant also
+/// stores the original `Register` and `Lexer` in order to be able to "rewind"
+/// into the exact state before the statement that caused the fork.
+/// 2. `Restoring`: This variant is used by all interpreters which were just created due to a fork.
+/// In this mode, the interpreter will not perform normal function
+/// calls, and will instead return the first value in the `data` field
+/// in place of the function call. This is done until the `data` field is
+/// exhausted. At that point, execution proceeds normally.
 #[derive(Clone)]
 pub enum ForkReentryData<'code> {
     Collecting {
@@ -37,7 +57,9 @@ pub enum ForkReentryData<'code> {
         register: Register,
         lexer: Lexer<'code>,
     },
-    Restoring(VecDeque<FunctionCallData>),
+    Restoring {
+        data: VecDeque<FunctionCallData>,
+    },
 }
 
 impl<'code> ForkReentryData<'code> {
@@ -45,44 +67,6 @@ impl<'code> ForkReentryData<'code> {
         match self {
             Self::Collecting { data, .. } => data.drain(..).collect(),
             _ => unreachable!(),
-        }
-    }
-
-    fn contains_fork(&self) -> bool {
-        match self {
-            Self::Collecting { data, .. } => data
-                .iter()
-                .any(|value| matches!(value.value, NaslValue::Fork(_))),
-            _ => false,
-        }
-    }
-
-    pub(crate) fn try_collect(&mut self, value: NaslValue, token: &Token) {
-        match self {
-            ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
-                value,
-                token: token.clone(),
-            }),
-            ForkReentryData::Restoring(_) => {}
-        }
-    }
-
-    pub(crate) fn try_restore(
-        &mut self,
-        token: &Token,
-    ) -> Result<Option<NaslValue>, InterpretError> {
-        match self {
-            Self::Restoring(data) => {
-                if let Some(data) = data.pop_front() {
-                    if *token != data.token {
-                        return Err(InterpretError::new(InterpretErrorKind::InvalidFork, None));
-                    }
-                    Ok(Some(data.value))
-                } else {
-                    Ok(None)
-                }
-            }
-            _ => Ok(None),
         }
     }
 
@@ -100,6 +84,48 @@ impl<'code> ForkReentryData<'code> {
         }
     }
 
+    fn contains_fork(&self) -> bool {
+        match self {
+            Self::Collecting { data, .. } => data
+                .iter()
+                .any(|value| matches!(value.value, NaslValue::Fork(_))),
+            _ => false,
+        }
+    }
+
+    /// If in `Collecting` mode, remember the given result. Otherwise
+    /// do nothing.
+    pub(crate) fn try_collect(&mut self, value: NaslValue, token: &Token) {
+        match self {
+            ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
+                value,
+                token: token.clone(),
+            }),
+            ForkReentryData::Restoring { data: _ } => {}
+        }
+    }
+
+    /// If in `Restoring` mode, remove and return the first stored
+    /// result from the queue. Otherwise do nothing.
+    pub(crate) fn try_restore(
+        &mut self,
+        token: &Token,
+    ) -> Result<Option<NaslValue>, InterpretError> {
+        match self {
+            Self::Restoring { data } => {
+                if let Some(data) = data.pop_front() {
+                    if *token != data.token {
+                        return Err(InterpretError::new(InterpretErrorKind::InvalidFork, None));
+                    }
+                    Ok(Some(data.value))
+                } else {
+                    Ok(None)
+                }
+            }
+            _ => Ok(None),
+        }
+    }
+
     fn create_forks(&mut self) -> Vec<Self> {
         let mut data = vec![self.drain()];
         loop {
@@ -109,11 +135,15 @@ impl<'code> ForkReentryData<'code> {
                 break;
             }
         }
-        data.into_iter().map(|data| Self::Restoring(data)).collect()
+        data.into_iter()
+            .map(|data| Self::Restoring { data })
+            .collect()
     }
 
     fn new() -> Self {
-        Self::Restoring(VecDeque::new())
+        Self::Restoring {
+            data: VecDeque::new(),
+        }
     }
 
     fn collecting(register: Register, lexer: Lexer<'code>) -> Self {
@@ -127,11 +157,18 @@ impl<'code> ForkReentryData<'code> {
     fn is_empty_or_collecting(&self) -> bool {
         match self {
             ForkReentryData::Collecting { .. } => true,
-            ForkReentryData::Restoring(data) => data.is_empty(),
+            ForkReentryData::Restoring { data } => data.is_empty(),
         }
     }
 }
 
+/// Expand the first occurence of `NaslValue::Fork(...)` in the list of collected function
+/// calls (i.e. any called function wants to fork), by returning one list per fork value.
+///
+/// For example (in pseudo-code):
+/// expand_first_fork([[1, Fork(2, 3)]]) = [[1, 2], [1, 3]]
+/// The boolean return value is true if any expansion took place or false if
+/// no expansion took place (that is, if there was no `NaslValue::Fork` in the data).
 fn expand_first_fork(
     data: Vec<VecDeque<FunctionCallData>>,
 ) -> (bool, Vec<VecDeque<FunctionCallData>>) {
