@@ -10,7 +10,19 @@ use crate::nasl::{
     Context, ContextType, Register,
 };
 
-use super::{forking_interpreter::InterpreterState, InterpretErrorKind};
+use super::InterpretErrorKind;
+
+#[derive(PartialEq, Eq)]
+pub enum InterpreterState {
+    Running,
+    Finished,
+}
+
+impl InterpreterState {
+    fn is_finished(&self) -> bool {
+        matches!(self, Self::Finished)
+    }
+}
 
 #[derive(Clone)]
 pub struct FunctionCallData {
@@ -166,6 +178,7 @@ pub struct Interpreter<'code, 'ctx> {
     lexer: Lexer<'code>,
     pub context: &'ctx Context<'ctx>,
     pub fork_reentry_data: ForkReentryData<'code>,
+    pub state: InterpreterState,
 }
 
 pub type InterpretResult = Result<NaslValue, InterpretError>;
@@ -178,15 +191,25 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
             lexer,
             context,
             fork_reentry_data: ForkReentryData::new(),
+            state: InterpreterState::Running,
         }
     }
 
     pub async fn execute_next_statement(&mut self) -> Option<InterpretResult> {
         self.initialize_fork_data();
         match self.lexer.next() {
-            Some(Ok(stmt)) => Some(self.resolve(&stmt).await),
+            Some(Ok(stmt)) => {
+                let result = self.resolve(&stmt).await;
+                if matches!(result, Ok(NaslValue::Exit(_))) {
+                    self.state = InterpreterState::Finished;
+                }
+                Some(result)
+            }
             Some(Err(err)) => Some(Err(err.into())),
-            None => None,
+            None => {
+                self.state = InterpreterState::Finished;
+                None
+            }
         }
     }
 
@@ -391,7 +414,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         }
     }
 
-    pub(crate) fn create_forks(mut self) -> Vec<(InterpreterState, Interpreter<'code, 'ctx>)> {
+    pub(crate) fn create_forks(mut self) -> Vec<Interpreter<'code, 'ctx>> {
         let forks = self.fork_reentry_data.create_forks();
         let register = self.fork_reentry_data.register();
         let lexer = self.fork_reentry_data.lexer().clone();
@@ -406,14 +429,15 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         fork_reentry_data: ForkReentryData<'code>,
         register: &Register,
         lexer: &Lexer<'code>,
-    ) -> (InterpreterState, Interpreter<'code, 'ctx>) {
+    ) -> Interpreter<'code, 'ctx> {
         let interpreter = Self {
             register: register.clone(),
             lexer: lexer.clone(),
             context: self.context,
             fork_reentry_data,
+            state: InterpreterState::Running,
         };
-        (InterpreterState::Running, interpreter)
+        interpreter
     }
 
     pub(crate) fn should_fork(&self) -> bool {
@@ -425,5 +449,9 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
             self.fork_reentry_data =
                 ForkReentryData::collecting(self.register.clone(), self.lexer.clone());
         }
+    }
+
+    pub(crate) fn is_finished(&self) -> bool {
+        self.state.is_finished()
     }
 }

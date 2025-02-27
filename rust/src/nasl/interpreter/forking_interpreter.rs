@@ -2,26 +2,14 @@ use futures::{stream, Stream};
 
 use crate::nasl::{
     syntax::{Lexer, Tokenizer},
-    Context, NaslValue, Register,
+    Context, Register,
 };
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
 
-#[derive(PartialEq, Eq)]
-pub enum InterpreterState {
-    Running,
-    Finished,
-}
-
-impl InterpreterState {
-    fn is_finished(&self) -> bool {
-        matches!(self, Self::Finished)
-    }
-}
-
 pub struct ForkingInterpreter<'code, 'ctx> {
     _context: &'ctx Context<'ctx>,
-    interpreters: Vec<(InterpreterState, Interpreter<'code, 'ctx>)>,
+    interpreters: Vec<Interpreter<'code, 'ctx>>,
     interpreter_index: usize,
 }
 
@@ -29,10 +17,7 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
     pub fn new(code: &'code str, register: Register, context: &'ctx Context<'ctx>) -> Self {
         let tokenizer = Tokenizer::new(code);
         let lexer = Lexer::new(tokenizer);
-        let interpreters = vec![(
-            InterpreterState::Running,
-            Interpreter::new(register, lexer, context),
-        )];
+        let interpreters = vec![Interpreter::new(register, lexer, context)];
         Self {
             _context: context,
             interpreters,
@@ -59,7 +44,7 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         while self
             .interpreters
             .iter()
-            .any(|(state, _)| !state.is_finished())
+            .any(|interpreter| !interpreter.is_finished())
         {
             let next_result = self.try_next().await;
             if next_result.is_some() {
@@ -71,12 +56,9 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
 
     async fn try_next(&mut self) -> Option<InterpretResult> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
-        let (state, interpreter) = &mut self.interpreters[self.interpreter_index];
-        if *state == InterpreterState::Running {
+        let interpreter = &mut self.interpreters[self.interpreter_index];
+        if !interpreter.is_finished() {
             let result = interpreter.execute_next_statement().await;
-            if result.is_none() || matches!(result.as_ref().unwrap(), Ok(NaslValue::Exit(_))) {
-                *state = InterpreterState::Finished;
-            }
             if self.handle_forks() {
                 None
             } else {
@@ -92,8 +74,8 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         // remove and re-insert the interpreter on every statement,
         // even if the statement does not create a fork, which
         // might cause performance issues.
-        if self.interpreters[self.interpreter_index].1.should_fork() {
-            let (_, interpreter) = self.interpreters.remove(self.interpreter_index);
+        if self.interpreters[self.interpreter_index].should_fork() {
+            let interpreter = self.interpreters.remove(self.interpreter_index);
             let forks = interpreter.create_forks();
             // Insert the new interpreters in order and "in place", so
             // that the first fork has exactly the same position that the
