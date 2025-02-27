@@ -224,6 +224,17 @@ where
         })
     }
 
+    /// Return the list of `NaslValue`s returned by all the lines of
+    /// code, panics on any occuring error.
+    pub fn values(&self) -> Vec<NaslValue> {
+        futures::executor::block_on(async {
+            self.results_stream(&self.code(), &self.context())
+                .map(|x| x.unwrap())
+                .collect()
+                .await
+        })
+    }
+
     fn code(&self) -> String {
         self.lines.join("\n")
     }
