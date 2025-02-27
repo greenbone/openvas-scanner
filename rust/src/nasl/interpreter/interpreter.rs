@@ -1,27 +1,35 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    interpreter::declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    interpreter::InterpretError,
+    interpreter::{
+        declare::{DeclareFunctionExtension, DeclareVariableExtension},
+        InterpretError,
+    },
     prelude::NaslValue,
-    syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, TokenCategory},
+    syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, Token, TokenCategory},
     Context, ContextType, Register,
 };
 
-use super::forking_interpreter::InterpreterState;
+use super::{forking_interpreter::InterpreterState, InterpretErrorKind};
+
+#[derive(Clone)]
+pub struct FunctionCallData {
+    value: NaslValue,
+    token: Token,
+}
 
 #[derive(Clone)]
 pub enum ForkReentryData<'code> {
     Collecting {
-        data: Vec<NaslValue>,
+        data: Vec<FunctionCallData>,
         register: Register,
         lexer: Lexer<'code>,
     },
-    Restoring(VecDeque<NaslValue>),
+    Restoring(VecDeque<FunctionCallData>),
 }
 
 impl<'code> ForkReentryData<'code> {
-    fn drain(&mut self) -> VecDeque<NaslValue> {
+    fn drain(&mut self) -> VecDeque<FunctionCallData> {
         match self {
             Self::Collecting { data, .. } => data.drain(..).collect(),
             _ => unreachable!(),
@@ -30,24 +38,36 @@ impl<'code> ForkReentryData<'code> {
 
     fn contains_fork(&self) -> bool {
         match self {
-            Self::Collecting { data, .. } => {
-                data.iter().any(|val| matches!(val, NaslValue::Fork(_)))
-            }
+            Self::Collecting { data, .. } => data
+                .iter()
+                .any(|value| matches!(value.value, NaslValue::Fork(_))),
             _ => false,
         }
     }
 
-    pub(crate) fn try_push(&mut self, result: NaslValue) {
+    pub(crate) fn try_push(&mut self, value: NaslValue, token: &Token) {
         match self {
-            ForkReentryData::Collecting { data, .. } => data.push(result),
+            ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
+                value,
+                token: token.clone(),
+            }),
             ForkReentryData::Restoring(_) => {}
         }
     }
 
-    pub(crate) fn try_pop(&mut self) -> Option<NaslValue> {
+    pub(crate) fn try_pop(&mut self, token: &Token) -> Result<Option<NaslValue>, InterpretError> {
         match self {
-            Self::Restoring(data) => data.pop_front(),
-            _ => None,
+            Self::Restoring(data) => {
+                if let Some(data) = data.pop_front() {
+                    if *token != data.token {
+                        return Err(InterpretError::new(InterpretErrorKind::InvalidFork, None));
+                    }
+                    Ok(Some(data.value))
+                } else {
+                    Ok(None)
+                }
+            }
+            _ => Ok(None),
         }
     }
 
@@ -97,13 +117,16 @@ impl<'code> ForkReentryData<'code> {
     }
 }
 
-fn expand_first_fork(data: Vec<VecDeque<NaslValue>>) -> (bool, Vec<VecDeque<NaslValue>>) {
+fn expand_first_fork(
+    data: Vec<VecDeque<FunctionCallData>>,
+) -> (bool, Vec<VecDeque<FunctionCallData>>) {
     let first_fork = data[0]
         .iter()
         .enumerate()
-        .filter_map(|(index, val)| {
-            if let NaslValue::Fork(vals) = val {
-                Some((index, vals.clone()))
+        .filter_map(|(index, data)| {
+            let FunctionCallData { value, token } = data;
+            if let NaslValue::Fork(vals) = value {
+                Some((index, vals.clone(), token.clone()))
             } else {
                 None
             }
@@ -115,20 +138,24 @@ fn expand_first_fork(data: Vec<VecDeque<NaslValue>>) -> (bool, Vec<VecDeque<Nasl
     let first_fork = first_fork.unwrap();
     let data = data
         .into_iter()
-        .flat_map(|d| expand_fork_at(d, first_fork.0, first_fork.1.clone()))
+        .flat_map(|d| expand_fork_at(d, first_fork.0, first_fork.1.clone(), first_fork.2.clone()))
         .collect();
     (true, data)
 }
 
 fn expand_fork_at(
-    data: VecDeque<NaslValue>,
+    data: VecDeque<FunctionCallData>,
     index: usize,
     vals: Vec<NaslValue>,
-) -> Vec<VecDeque<NaslValue>> {
+    token: Token,
+) -> Vec<VecDeque<FunctionCallData>> {
     vals.iter()
         .map(|val| {
             let mut data = data.clone();
-            data[index] = val.clone();
+            data[index] = FunctionCallData {
+                value: val.clone(),
+                token: token.clone(),
+            };
             data
         })
         .collect()

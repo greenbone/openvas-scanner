@@ -118,7 +118,11 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::{nasl_std_functions, test_prelude::*};
+    use crate::nasl::{
+        interpreter::{InterpretError, InterpretErrorKind},
+        nasl_std_functions,
+        test_prelude::*,
+    };
 
     #[test]
     fn forked_interpreter_statements() {
@@ -158,26 +162,55 @@ mod tests {
         set_kb_item(name: "test", value: 1);
         set_kb_item(name: "test", value: 2);
         if (get_kb_item("test") == 1) {
-            return 3;
+            exit(3);
         }
         else {
         }
-        return 4;
+        exit(4);
         "#,
         );
         let mut results = t.results();
         let mut next_result = || results.remove(0).unwrap();
         assert_eq!(next_result(), NaslValue::Null);
         assert_eq!(next_result(), NaslValue::Null);
-        assert_eq!(
-            next_result(),
-            NaslValue::Return(Box::new(NaslValue::Number(3)))
-        );
-        assert_eq!(
-            next_result(),
-            NaslValue::Return(Box::new(NaslValue::Number(4)))
-        );
+        assert_eq!(next_result(), NaslValue::Exit(3));
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), NaslValue::Exit(4));
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn forks_with_different_branches() {
+        let mut t = TestBuilder::default();
+        t.run_all(
+            r#"
+        set_kb_item(name: "test1", value: 1);
+        set_kb_item(name: "test1", value: 2);
+        set_kb_item(name: "test2", value: 3);
+        set_kb_item(name: "test2", value: 4);
+        set_kb_item(name: "test3", value: 5);
+        set_kb_item(name: "test3", value: 6);
+        if (get_kb_item("test1") == 1) {
+            get_kb_item("test2");
+        }
+        else {
+            get_kb_item("test3");
+        }
+        "#,
+        );
+        let mut results = t.interpreter_results();
+        for _ in 0..6 {
+            assert_eq!(results.remove(0).unwrap(), NaslValue::Null);
+        }
+        // Advancing the iterator into the if statement
+        // should return an error.
+        match results.remove(0) {
+            Err(InterpretError {
+                kind: InterpretErrorKind::InvalidFork,
+                ..
+            }) => {}
+            _ => panic!(),
+        }
     }
 
     struct MySet(usize);
@@ -364,5 +397,21 @@ mod tests {
         );
         t.results();
         todo!();
+    }
+
+    #[test]
+    fn exit_ends_execution() {
+        let t = TestBuilder::from_code(
+            r###"
+            exit(1);
+            2;
+            "###,
+        );
+        let mut results = t.results();
+        assert_eq!(
+            results.remove(0).unwrap(),
+            NaslValue::Return(Box::new(1.into()))
+        );
+        assert!(results.is_empty());
     }
 }

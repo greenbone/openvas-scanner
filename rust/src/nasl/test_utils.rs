@@ -20,7 +20,8 @@ use crate::{
 use futures::{Stream, StreamExt};
 
 use super::{
-    builtin::ContextFactory, interpreter::ForkingInterpreter, interpreter::InterpretErrorKind,
+    builtin::ContextFactory,
+    interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
     utils::Executor,
 };
 
@@ -227,18 +228,33 @@ where
         self.lines.join("\n")
     }
 
-    pub fn results_stream<'a>(
-        &'a self,
-        code: &'a str,
-        context: &'a Context,
-    ) -> impl Stream<Item = NaslResult> + 'a {
+    fn interpreter<'code, 'ctx>(
+        &self,
+        code: &'code str,
+        context: &'ctx Context,
+    ) -> ForkingInterpreter<'code, 'ctx> {
         let variables: Vec<_> = self
             .variables
             .iter()
             .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
             .collect();
         let register = Register::root_initial(&variables);
-        let interpreter = ForkingInterpreter::new(code, register, context);
+        ForkingInterpreter::new(code, register, context)
+    }
+
+    pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpretError>> {
+        let code = self.code();
+        let context = self.context();
+        let interpreter = self.interpreter(&code, &context);
+        futures::executor::block_on(async { interpreter.stream().collect().await })
+    }
+
+    pub fn results_stream<'a>(
+        &'a self,
+        code: &'a str,
+        context: &'a Context,
+    ) -> impl Stream<Item = NaslResult> + 'a {
+        let interpreter = self.interpreter(code, context);
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpretErrorKind::FunctionCallError(f) => f.kind,

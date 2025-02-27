@@ -101,6 +101,11 @@ pub enum InterpretErrorKind {
     /// An error occurred while calling a built-in function.
     #[error("{0}")]
     FunctionCallError(FunctionCallError),
+    /// A script tried to fork in a way that caused
+    /// forks to run into different branches of
+    /// the original statement which caused the fork.
+    #[error("Invalid fork. The interpreter forked in a position which was not reached by the created forks.")]
+    InvalidFork,
 }
 
 impl InterpretError {
