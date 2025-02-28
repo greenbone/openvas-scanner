@@ -177,14 +177,10 @@ mod tests {
             "#,
         );
 
-        assert_eq!(t.results().len(), 10);
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(4)
-            // .filter_map(|x| x.ok())
-            .map(|x| x.unwrap())
-            .collect();
+        let results = t.results();
+        assert_eq!(results.len(), 10);
+
+        let results: Vec<_> = results.into_iter().skip(4).filter_map(|x| x.ok()).collect();
 
         assert_eq!(
             results,
