@@ -179,7 +179,7 @@ mod tests {
             set_kb_item(name: "port", value: 2);
             set_kb_item(name: "host", value: "a");
             set_kb_item(name: "host", value: "b");
-            get_kb_item("port") + ":" + get_kb_item("host");
+            get_kb_item("host") + ":" + get_kb_item("port");
             "#,
         );
         assert_eq!(
@@ -189,10 +189,10 @@ mod tests {
                 NaslValue::Null,
                 NaslValue::Null,
                 NaslValue::Null,
-                "1:a".into(),
-                "1:b".into(),
-                "2:a".into(),
-                "2:b".into(),
+                "a:1".into(),
+                "a:2".into(),
+                "b:1".into(),
+                "b:2".into(),
             ]
         );
     }
