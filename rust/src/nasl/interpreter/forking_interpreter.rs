@@ -7,6 +7,11 @@ use crate::nasl::{
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
 
+/// Handles code execution with forking behavior.
+/// In order to do so, this struct maintains a list of
+/// `Interpreter`s. Whenever a statement that results
+/// in a fork is executed, new interpreters will be added
+/// for each of the forks.
 pub struct ForkingInterpreter<'code, 'ctx> {
     interpreters: Vec<Interpreter<'code, 'ctx>>,
     interpreter_index: usize,
@@ -52,6 +57,11 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         None
     }
 
+    /// Tries to execute a statement for the next running interpreter
+    /// Returns `None` if the current interpreter is not running, or
+    /// if the current interpreter wanted to fork (in which case we return
+    /// `None` once but subsequent calls to `try_next` will begin executing
+    /// the same statement for the forks).
     async fn try_next(&mut self) -> Option<InterpretResult> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
         let interpreter = &mut self.interpreters[self.interpreter_index];
