@@ -5,6 +5,7 @@ mod call;
 mod declare;
 mod forking_interpreter;
 mod include;
+#[allow(clippy::module_inception)]
 mod interpreter;
 mod loop_extension;
 mod operator;

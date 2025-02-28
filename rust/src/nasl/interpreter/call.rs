@@ -63,7 +63,7 @@ impl Interpreter<'_, '_> {
         let found = self
             .register
             .named(fn_name)
-            .ok_or_else(|| InterpretError::not_found(&fn_name))?
+            .ok_or_else(|| InterpretError::not_found(fn_name))?
             .clone();
         match found {
             ContextType::Function(arguments, stmt) => {

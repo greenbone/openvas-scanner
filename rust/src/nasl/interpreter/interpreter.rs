@@ -39,17 +39,17 @@ pub struct FunctionCallData {
 /// Its two variants are
 ///
 /// 1. `Collecting`: This variant is used by any interpreter which is
-/// currently executing normally.  In this mode, the result of any
-/// function call performed by the interpreter within a single
-/// top-level statement will be stored along with the `Token` at which
-/// the function call took place (as a safeguard). The variant also
-/// stores the original `Register` and `Lexer` in order to be able to "rewind"
-/// into the exact state before the statement that caused the fork.
+///    currently executing normally.  In this mode, the result of any
+///    function call performed by the interpreter within a single
+///    top-level statement will be stored along with the `Token` at which
+///    the function call took place (as a safeguard). The variant also
+///    stores the original `Register` and `Lexer` in order to be able to "rewind"
+///    into the exact state before the statement that caused the fork.
 /// 2. `Restoring`: This variant is used by all interpreters which were just created due to a fork.
-/// In this mode, the interpreter will not perform normal function
-/// calls, and will instead return the first value in the `data` field
-/// in place of the function call. This is done until the `data` field is
-/// exhausted. At that point, execution proceeds normally.
+///    In this mode, the interpreter will not perform normal function
+///    calls, and will instead return the first value in the `data` field
+///    in place of the function call. This is done until the `data` field is
+///    exhausted. At that point, execution proceeds normally.
 #[derive(Clone)]
 pub enum ForkReentryData<'code> {
     Collecting {
@@ -470,14 +470,13 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         register: &Register,
         lexer: &Lexer<'code>,
     ) -> Interpreter<'code, 'ctx> {
-        let interpreter = Self {
+        Self {
             register: register.clone(),
             lexer: lexer.clone(),
             context: self.context,
             fork_reentry_data,
             state: InterpreterState::Running,
-        };
-        interpreter
+        }
     }
 
     pub(crate) fn wants_to_fork(&self) -> bool {
