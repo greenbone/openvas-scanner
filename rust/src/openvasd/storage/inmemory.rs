@@ -484,9 +484,12 @@ mod tests {
     fn password(c: &Credential) -> &str {
         match &c.credential_type {
             CredentialType::UP { password, .. }
-            | CredentialType::USK { password, .. }
             | CredentialType::SNMP { password, .. }
             | CredentialType::KRB5 { password, .. } => password,
+            CredentialType::USK { password, .. } => match password {
+                Some(p) => p,
+                None => "",
+            },
         }
     }
 
