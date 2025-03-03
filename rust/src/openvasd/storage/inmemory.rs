@@ -489,7 +489,7 @@ mod tests {
             CredentialType::USK { password, .. } => match password {
                 Some(p) => p,
                 None => "",
-            }
+            },
         }
     }
 

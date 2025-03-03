@@ -581,10 +581,7 @@ impl From<models::Credential> for Credential {
                 privilege,
             } => {
                 credentials.push(("username".to_string(), username));
-                credentials.push((
-                    "password".to_string(),
-                    password.unwrap_or_default()
-                ));
+                credentials.push(("password".to_string(), password.unwrap_or_default()));
                 credentials.push(("private".to_string(), private_key));
                 if let Some(p) = privilege {
                     credentials.push(("priv_username".to_string(), p.username));

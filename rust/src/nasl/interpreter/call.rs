@@ -161,7 +161,8 @@ get_kb_item("host");
             .results()
             .into_iter()
             .skip(4)
-            .filter_map(|x| x.ok())
+            // .filter_map(|x| x.ok())
+            .map(|x| x.unwrap())
             .collect();
 
         assert_eq!(

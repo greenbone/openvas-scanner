@@ -311,7 +311,7 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
                         write_str_element(
                             writer,
                             "password",
-                            password.clone().unwrap_or_default().as_ref()
+                            password.clone().unwrap_or_default().as_ref(),
                         )?;
                         write_str_element(writer, "private", private_key)?;
                         if let Some(p) = privilege {
