@@ -6,7 +6,7 @@ ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,
                      ip_tos : 0,
                      ip_len : 20,
-                     ip_id : rand(),
+                     ip_id : 1234,
                      ip_p : IPPROTO_TCP, # 0x06
                      ip_ttl : 255,
                      ip_off : 0,
