@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use itertools::Itertools;
+
 use crate::storage::{
     dispatch::Dispatcher,
     error::StorageError,
@@ -11,6 +13,8 @@ use crate::storage::{
 };
 
 use super::InMemoryStorage;
+// Artificial type for fetching all OIDs
+pub struct OIDs;
 
 impl Dispatcher<FileName> for InMemoryStorage {
     type Item = Nvt;
@@ -18,8 +22,8 @@ impl Dispatcher<FileName> for InMemoryStorage {
     fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
         let mut vts = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
-        oid_lookup.insert(item.oid.clone(), key.0.clone());
-        vts.insert(key.0, item);
+        oid_lookup.insert(Self::to_nasl_key(&item.oid), key.0.clone());
+        vts.insert(Self::to_nasl_key(&key.0), item);
         Ok(())
     }
 }
@@ -42,6 +46,17 @@ impl Retriever<FeedVersion> for InMemoryStorage {
     }
 }
 
+impl Retriever<OIDs> for InMemoryStorage {
+    type Item = Vec<String>;
+    /// Retrieve all OIDs from the storage
+    fn retrieve(&self, _: &OIDs) -> Result<Option<Self::Item>, StorageError> {
+        let vts = self.oid_lookup.read()?;
+
+        let vts = vts.keys().map(|(_, oid)| oid.to_string()).collect_vec();
+        Ok(Some(vts))
+    }
+}
+
 impl Retriever<Feed> for InMemoryStorage {
     type Item = Vec<Nvt>;
     /// Retrieve all NVTs from the storage
@@ -54,18 +69,36 @@ impl Retriever<FileName> for InMemoryStorage {
     type Item = Nvt;
     fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
         let vts = self.vts.read()?;
-        Ok(vts.get(&key.0).cloned())
+        // Duplicate Notus Nasl prevention, when notus available return that otherwise NASL
+        Ok(
+            if let Some(notus_result) = vts.get(&Self::to_notus_advisory_key(&key.0)) {
+                Some(notus_result.clone())
+            } else {
+                vts.get(&Self::to_nasl_key(&key.0)).cloned()
+            },
+        )
     }
 }
 
 impl Retriever<Oid> for InMemoryStorage {
     type Item = Nvt;
     fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
-        let vts = self.vts.read()?;
         let oid_lookup = self.oid_lookup.read()?;
-        Ok(oid_lookup
-            .get(&key.0)
-            .and_then(|filename| vts.get(filename).cloned()))
+        // is it really better to use the filename as a key identifier?
+        // I think in the most cases we would lookup oids?
+        let lookup = |key| match oid_lookup.get(key) {
+            None => Ok(None),
+            Some(file_name) => {
+                let vts = self.vts.read()?;
+                let (ft, _) = key;
+                Ok(vts.get(&(*ft, file_name.to_string())).cloned())
+            }
+        };
+        match lookup(&Self::to_notus_advisory_key(&key.0)) {
+            Ok(Some(vt)) => Ok(Some(vt)),
+            Err(e) => Err(e),
+            _ => lookup(&Self::to_nasl_key(&key.0)),
+        }
     }
 }
 

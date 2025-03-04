@@ -216,7 +216,7 @@ where
         .unwrap()?;
         Ok(nr)
     }
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error> {
         let url = self.url.to_string();
         let noids = tokio::task::spawn_blocking(move || {
             let mut notus_redis = RedisCtx::open(&url, NOTUSUPDATE_SELECTOR)?;
@@ -244,10 +244,10 @@ where
         let noids = noids.await.unwrap()?;
         let foids = foids.await.unwrap()?;
         let results = noids.chain(foids);
-        Ok(Box::new(results))
+        Ok(results.collect())
     }
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+    async fn oids(&self) -> Result<Vec<String>, Error> {
         let url = Arc::new(self.url.to_string());
         let noids = tokio::task::spawn_blocking(move || {
             let mut notus_redis = RedisCtx::open(&url, NOTUSUPDATE_SELECTOR)?;
@@ -271,7 +271,8 @@ where
         let noids = noids.await.unwrap()?;
         let foids = foids.await.unwrap()?;
         let results = noids.chain(foids);
-        Ok(Box::new(results))
+        // FIXME: moep that is probably slower
+        Ok(results.collect())
     }
 
     async fn feed_hash(&self) -> Vec<FeedHash> {

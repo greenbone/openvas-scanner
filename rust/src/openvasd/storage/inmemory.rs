@@ -6,8 +6,9 @@ use std::sync::RwLock;
 
 use super::*;
 use scannerlib::{
-    models, notus,
-    storage::{items::nvt::Feed, Retriever},
+    models::{self, FeedType},
+    notus,
+    storage::{inmemory::nvt::OIDs, items::nvt::Feed, Retriever},
 };
 use tokio::task::JoinSet;
 
@@ -353,7 +354,13 @@ where
         Ok(())
     }
 
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
+        self.underlying
+            .retrieve(&scannerlib::storage::items::nvt::Oid(oid.to_string()))
+            .map_err(|e| e.into())
+    }
+
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error> {
         // TODO: change that setup to a channel based construct to get rid of collecting and
         // cloning, see: response.rs#ok_bytestream. This would effectively change the response to a
         // ByteStream enum. This should be fine as we usually just deliver results without
@@ -362,7 +369,12 @@ where
         // For testing purposes I collect and filter for now. If you see that in production please
         // create a github issue.
         let vts = self.underlying.retrieve(&Feed)?.unwrap_or_default();
-        Ok(Box::new(vts.into_iter()))
+        Ok(vts)
+    }
+
+    async fn oids(&self) -> Result<Vec<String>, Error> {
+        let vts = self.underlying.retrieve(&OIDs)?.unwrap_or_default();
+        Ok(vts)
     }
 
     async fn feed_hash(&self) -> Vec<FeedHash> {
