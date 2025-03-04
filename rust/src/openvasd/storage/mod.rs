@@ -15,8 +15,8 @@ use std::{
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, Scan, Status, VulnerabilityData, scanner::ScanResults},
-    storage::{Dispatcher, error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt},
+    models::{self, scanner::ScanResults, FeedType, Scan, Status, VulnerabilityData},
+    storage::{error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt, Dispatcher},
 };
 
 use crate::{config::Config, controller::ClientHash, crypt};
@@ -142,16 +142,6 @@ pub trait ProgressGetter {
 }
 
 pub type Hash = String;
-/// Describes the type of the feed
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FeedType {
-    /// Notus products
-    Products,
-    /// Notus advisories
-    Advisories,
-    /// NASL scripts
-    NASL,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
@@ -197,19 +187,14 @@ pub trait NVTStorer {
     async fn synchronize_feeds(&self, hash: Vec<FeedHash>) -> Result<(), Error>;
 
     /// Retrieves just all oids.
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
-        let vts = self.vts().await?;
-        Ok(Box::new(vts.map(|x| x.oid)))
-    }
+    async fn oids(&self) -> Result<Vec<String>, Error>;
 
     /// Retrieves NVTs.
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error>;
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error>;
 
     /// Retrieves a NVT.
     ///
-    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
-        Ok(self.vts().await?.find(|x| x.oid == oid))
-    }
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error>;
 
     /// Returns the currently stored feed hash.
     async fn feed_hash(&self) -> Vec<FeedHash>;
@@ -307,11 +292,11 @@ where
         self.as_ref().synchronize_feeds(hash).await
     }
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+    async fn oids(&self) -> Result<Vec<String>, Error> {
         self.as_ref().oids().await
     }
 
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error> {
         self.as_ref().vts().await
     }
 
