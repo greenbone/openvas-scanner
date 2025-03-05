@@ -480,13 +480,13 @@ pub mod client {
     use scannerlib::storage::infisto::{
         CachedIndexFileStorer, ChaCha20IndexFileStorer, IndexedFileStorer,
     };
-    use scannerlib::storage::inmemory::InMemoryStorage;
     use serde::Deserialize;
 
-    use crate::storage::{inmemory, NVTStorer, ResultHandler};
+    use crate::storage::inmemory;
+    use crate::storage::results::ResultCatcher;
     use crate::{
         controller::{ClientIdentifier, Context},
-        storage::file,
+        storage::{file::Storage, NVTStorer},
     };
 
     use super::KnownPaths;
@@ -500,54 +500,59 @@ pub mod client {
     }
 
     pub async fn in_memory_example_feed() -> Client<
-        scannerlib::scanner::Scanner<(Arc<InMemoryStorage>, FSPluginLoader)>,
-        Arc<inmemory::Storage<crate::crypt::ChaCha20Crypt>>,
+        scannerlib::scanner::Scanner<(
+            Arc<ResultCatcher<crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
+            FSPluginLoader,
+        )>,
+        Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
-        let storage = Arc::new(crate::storage::inmemory::Storage::default());
+        let storage = crate::storage::inmemory::Storage::default();
+
+        let storage = Arc::new(ResultCatcher::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
             .await
             .unwrap();
         let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(
-            storage.underlying_storage().clone(),
-            &nasl_feed_path,
-        );
+        let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
         Client::authenticated(scanner, storage)
     }
     pub async fn encrypted_file_based_example_feed(
         prefix: &str,
     ) -> Client<
-        scannerlib::scanner::Scanner<(Arc<InMemoryStorage>, FSPluginLoader)>,
-        Arc<file::Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>,
+        scannerlib::scanner::Scanner<(
+            Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
+            FSPluginLoader,
+        )>,
+        Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
 
         let key = "testdontbother";
         let feeds = example_feeds().await;
-        let storage = Arc::new(file::encrypted(&storage_dir, key, feeds).unwrap());
+        let storage = crate::storage::file::encrypted(&storage_dir, key, feeds).unwrap();
+
+        let storage = Arc::new(ResultCatcher::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
             .await
             .unwrap();
         let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(
-            storage.underlying_storage().clone(),
-            &nasl_feed_path,
-        );
+        let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
         Client::authenticated(scanner, storage)
     }
 
     pub async fn fails_to_fetch_results() -> Client<
         scannerlib::scanner::fake::LambdaScanner,
-        Arc<inmemory::Storage<crate::crypt::ChaCha20Crypt>>,
+        Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
     > {
         use crate::file::tests::example_feeds;
-        let storage = Arc::new(crate::storage::inmemory::Storage::default());
+        let storage = crate::storage::inmemory::Storage::default();
+        let storage = Arc::new(ResultCatcher::new(storage));
         storage
             .synchronize_feeds(example_feeds().await)
             .await
@@ -562,17 +567,18 @@ pub mod client {
     pub async fn file_based_example_feed(
         prefix: &str,
     ) -> Client<
-        scannerlib::scanner::Scanner<(Arc<InMemoryStorage>, FSPluginLoader)>,
-        Arc<file::Storage<CachedIndexFileStorer>>,
+        scannerlib::scanner::Scanner<(
+            Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
+            FSPluginLoader,
+        )>,
+        Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
     > {
         use crate::file::tests::{example_feed_file_storage, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
-        let store = Arc::new(example_feed_file_storage(&storage_dir).await);
+        let store = example_feed_file_storage(&storage_dir).await;
+        let store = Arc::new(ResultCatcher::new(store));
         let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(
-            store.underlying_storage().clone(),
-            &nasl_feed_path,
-        );
+        let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)
     }
     impl<S, DB> Client<S, DB>

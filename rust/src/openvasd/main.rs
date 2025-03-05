@@ -19,7 +19,8 @@ use scannerlib::osp;
 use scannerlib::scanner::ScannerStackWithStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
 use scannerlib::storage::ContextStorage;
-use storage::{FromConfigAndFeeds, Storage};
+use storage::results::ResultCatcher;
+use storage::{FromConfigAndFeeds, ResultHandler, Storage};
 use tls::tls_config;
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
@@ -162,7 +163,7 @@ where
             run_with_scanner_and_storage(scanner, storage, config).await
         }
         ScannerType::Openvasd => {
-            let storage = std::sync::Arc::new(storage);
+            let storage = std::sync::Arc::new(ResultCatcher::new(storage));
             let scanner = make_openvasd_scanner(config, storage.underlying_storage().clone());
             run_with_scanner_and_storage(scanner, storage, config).await
         }
