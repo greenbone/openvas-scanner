@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::nasl::interpreter::InterpretError;
 use crate::nasl::syntax::{Statement, StatementKind, Token, TokenCategory};
 
-use crate::nasl::interpreter::{error::InterpretError, interpreter::InterpretResult, Interpreter};
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
+
+use super::interpreter::{InterpretResult, Interpreter};
 
 /// Is a trait to declare functions
 pub(crate) trait DeclareFunctionExtension {
@@ -18,26 +20,26 @@ pub(crate) trait DeclareFunctionExtension {
     ) -> InterpretResult;
 }
 
-impl DeclareFunctionExtension for Interpreter<'_> {
+impl DeclareFunctionExtension for Interpreter<'_, '_> {
     fn declare_function(
         &mut self,
         name: &Token,
         arguments: &[Statement],
         execution: &Statement,
     ) -> InterpretResult {
-        let name = &Self::identifier(name)?;
+        let name = name.identifier()?;
         let mut names = vec![];
         for a in arguments {
             match a.kind() {
                 StatementKind::Variable => {
-                    let param_name = &Self::identifier(a.as_token())?;
+                    let param_name = &a.as_token().identifier()?;
                     names.push(param_name.to_owned());
                 }
                 _ => return Err(InterpretError::unsupported(a, "variable")),
             }
         }
-        self.register_mut()
-            .add_global(name, ContextType::Function(names, execution.clone()));
+        self.register
+            .add_global(&name, ContextType::Function(names, execution.clone()));
         Ok(NaslValue::Null)
     }
 }
@@ -46,16 +48,16 @@ pub(crate) trait DeclareVariableExtension {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult;
 }
 
-impl DeclareVariableExtension for Interpreter<'_> {
+impl DeclareVariableExtension for Interpreter<'_, '_> {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
             match scope.category() {
                 TokenCategory::Identifier(crate::nasl::syntax::IdentifierType::GlobalVar) => {
-                    self.register_mut().add_global(key, value)
+                    self.register.add_global(key, value)
                 }
                 TokenCategory::Identifier(crate::nasl::syntax::IdentifierType::LocalVar) => {
-                    self.register_mut().add_local(key, value)
+                    self.register.add_local(key, value)
                 }
                 _ => unreachable!(
                     "{} should not be identified as an declare statement",

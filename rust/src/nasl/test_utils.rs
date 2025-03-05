@@ -21,7 +21,7 @@ use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
-    interpreter::{CodeInterpreter, InterpretErrorKind},
+    interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
     utils::Executor,
 };
 
@@ -224,8 +224,40 @@ where
         })
     }
 
+    /// Return the list of `NaslValue`s returned by all the lines of
+    /// code, panics on any occurring error.
+    pub fn values(&self) -> Vec<NaslValue> {
+        futures::executor::block_on(async {
+            self.results_stream(&self.code(), &self.context())
+                .map(|x| x.unwrap())
+                .collect()
+                .await
+        })
+    }
+
     fn code(&self) -> String {
         self.lines.join("\n")
+    }
+
+    fn interpreter<'code, 'ctx>(
+        &self,
+        code: &'code str,
+        context: &'ctx Context,
+    ) -> ForkingInterpreter<'code, 'ctx> {
+        let variables: Vec<_> = self
+            .variables
+            .iter()
+            .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
+            .collect();
+        let register = Register::root_initial(&variables);
+        ForkingInterpreter::new(code, register, context)
+    }
+
+    pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpretError>> {
+        let code = self.code();
+        let context = self.context();
+        let interpreter = self.interpreter(&code, &context);
+        futures::executor::block_on(async { interpreter.stream().collect().await })
     }
 
     pub fn results_stream<'a>(
@@ -233,17 +265,8 @@ where
         code: &'a str,
         context: &'a Context,
     ) -> impl Stream<Item = NaslResult> + 'a {
-        let variables: Vec<_> = self
-            .variables
-            .iter()
-            .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
-            .collect();
-        let register = Register::root_initial(&variables);
-        // let code = self.lines.join("\n");
-        // let context = self.context();
-
-        let parser = CodeInterpreter::new(code, register, context);
-        parser.stream().map(|res| {
+        let interpreter = self.interpreter(code, context);
+        interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpretErrorKind::FunctionCallError(f) => f.kind,
                 e => panic!("Unknown error: {}", e),

@@ -2,14 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::{Statement, TokenCategory};
+use crate::nasl::{
+    interpreter::InterpretError,
+    syntax::{Statement, TokenCategory},
+};
 use regex::Regex;
-
-use crate::nasl::interpreter::{error::InterpretError, interpreter::InterpretResult, Interpreter};
 
 use crate::nasl::syntax::NaslValue;
 
-impl Interpreter<'_> {
+use super::interpreter::{InterpretResult, Interpreter};
+
+impl Interpreter<'_, '_> {
     async fn execute(
         &mut self,
         stmts: &[Statement],
@@ -106,7 +109,7 @@ macro_rules! minus_left_right_data {
     }};
 }
 
-impl Interpreter<'_> {
+impl Interpreter<'_, '_> {
     /// Return the result of a NASL operator.
     pub async fn operator(
         &mut self,
