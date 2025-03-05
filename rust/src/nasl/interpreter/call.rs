@@ -159,14 +159,22 @@ mod tests {
     fn multiple_forks() {
         let mut t = TestBuilder::default();
         t.run_all(
+            // r#"
+            // set_kb_item(name: "port", value: 1);
+            // set_kb_item(name: "port", value: 2);
+            // set_kb_item(name: "host", value: "a");
+            // set_kb_item(name: "host", value: "b");
+            // get_kb_item("port");
+            // get_kb_item("host");
+            // "#,
             r#"
-set_kb_item(name: "port", value: 1);
-set_kb_item(name: "port", value: 2);
-set_kb_item(name: "host", value: "a");
-set_kb_item(name: "host", value: "b");
-get_kb_item("port");
-get_kb_item("host");
-"#,
+            set_kb_item(name: "port", value: 1);
+            set_kb_item(name: "port", value: 2);
+            set_kb_item(name: "host", value: "a");
+            set_kb_item(name: "host", value: "b");
+            get_kb_item("port");
+            get_kb_item("host");
+            "#,
         );
 
         assert_eq!(t.results().len(), 10);
