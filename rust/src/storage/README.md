@@ -9,8 +9,6 @@ Is a specialized library to handle data from the nasl-interpreter to the storage
 
 To be able to introduce new distribution implementations the `Dispatcher` must be implement.
 
-The `Field` enum required by `dispatch` method describes fields to be distributed.
-
 The reason that it uses field descriptions rather than structs are two fold:
 1. it allows the usage of streaming distribution
 2. it makes it easier to store information immediately on execution
