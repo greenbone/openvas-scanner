@@ -162,7 +162,7 @@ impl<'code> ForkReentryData<'code> {
     }
 }
 
-/// Expand the first occurence of `NaslValue::Fork(...)` in the list of collected function
+/// Expand the first occurrence of `NaslValue::Fork(...)` in the list of collected function
 /// calls (i.e. any called function wants to fork), by returning one list per fork value.
 ///
 /// For example (in pseudo-code):
