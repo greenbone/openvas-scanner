@@ -50,7 +50,7 @@ impl From<Credentials> for Vec<models::Credential> {
                 let kind = match &x.kind as &str {
                     "usk" => CredentialType::USK {
                         username,
-                        password,
+                        password: Some(password),
                         private_key: key("private", &x.credentials),
                         privilege,
                     },
@@ -551,6 +551,17 @@ impl From<models::Credential> for Credential {
         let kind = value.credential_type.as_ref().to_string();
         let mut credentials = Vec::new();
         match value.credential_type {
+            models::CredentialType::KRB5 {
+                username,
+                password,
+                realm,
+                kdc,
+            } => {
+                credentials.push(("username".to_string(), username));
+                credentials.push(("password".to_string(), password));
+                credentials.push(("realm".to_string(), realm));
+                credentials.push(("kdc".to_string(), kdc));
+            }
             models::CredentialType::UP {
                 username,
                 password,
@@ -570,7 +581,7 @@ impl From<models::Credential> for Credential {
                 privilege,
             } => {
                 credentials.push(("username".to_string(), username));
-                credentials.push(("password".to_string(), password));
+                credentials.push(("password".to_string(), password.unwrap_or_default()));
                 credentials.push(("private".to_string(), private_key));
                 if let Some(p) = privilege {
                     credentials.push(("priv_username".to_string(), p.username));

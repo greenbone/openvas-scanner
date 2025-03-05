@@ -100,7 +100,6 @@ async fn execute(
     let mut vts = HashSet::new();
     for a in config.iter().map(|f| {
         as_bufreader(f)
-            .map_err(CliError::from)
             .and_then(|r| parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e)))
     }) {
         vts.extend(a?);

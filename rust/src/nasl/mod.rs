@@ -10,6 +10,11 @@ pub mod utils;
 #[cfg(test)]
 pub mod test_utils;
 
+#[cfg(feature = "nasl-builtin-raw-ip")]
+pub mod raw_ip_utils {
+    pub use super::builtin::raw_ip::raw_ip_utils;
+}
+
 pub mod prelude {
     pub use super::builtin::BuiltinError;
     pub use super::builtin::ContextFactory;

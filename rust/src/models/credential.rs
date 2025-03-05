@@ -30,15 +30,6 @@ impl Credential {
             credential_type: self.credential_type.map_password(f)?,
         })
     }
-
-    /// Gets the password of the credential.
-    pub fn password(&self) -> &str {
-        match &self.credential_type {
-            CredentialType::UP { password, .. } => password,
-            CredentialType::USK { password, .. } => password,
-            CredentialType::SNMP { password, .. } => password,
-        }
-    }
 }
 
 impl Default for Credential {
@@ -86,6 +77,9 @@ pub enum Service {
     #[cfg_attr(feature = "serde_support", serde(rename = "snmp"))]
     /// SNMP, supports [SNMP](CredentialType::SNMP)
     SNMP,
+    #[cfg_attr(feature = "serde_support", serde(rename = "krb5"))]
+    /// SNMP, supports [SNMP](CredentialType::SNMP)
+    KRB5,
 }
 
 impl AsRef<str> for Service {
@@ -95,6 +89,7 @@ impl AsRef<str> for Service {
             Service::SMB => "smb",
             Service::ESXi => "esxi",
             Service::SNMP => "snmp",
+            Service::KRB5 => "krb5",
         }
     }
 }
@@ -108,6 +103,7 @@ impl TryFrom<&str> for Service {
             "smb" => Service::SMB,
             "esxi" => Service::ESXi,
             "snmp" => Service::SNMP,
+            "krb5" => Service::KRB5,
             value => return Err(value.to_string()),
         })
     }
@@ -140,7 +136,12 @@ pub enum CredentialType {
         /// The username for authentication.
         username: String,
         /// The password for authentication.
-        password: String,
+        // A key without passphrase can be expected
+        #[cfg_attr(
+            feature = "serde_support",
+            serde(default, skip_serializing_if = "Option::is_none")
+        )]
+        password: Option<String>,
         #[cfg_attr(feature = "serde_support", serde(rename = "private"))]
         /// The private key for authentication.
         private_key: String,
@@ -166,6 +167,12 @@ pub enum CredentialType {
         privacy_password: String,
         /// The SNMP privacy algorithm.
         privacy_algorithm: String,
+    },
+    KRB5 {
+        username: String,
+        password: String,
+        realm: String,
+        kdc: String,
     },
 }
 
@@ -198,7 +205,10 @@ impl CredentialType {
                 privilege,
             } => CredentialType::USK {
                 username,
-                password: f(password)?,
+                password: match password {
+                    Some(p) => Some(f(p)?),
+                    None => None,
+                },
                 private_key: f(private_key)?,
                 privilege: match privilege {
                     Some(p) => Some(PrivilegeInformation {
@@ -223,6 +233,17 @@ impl CredentialType {
                 privacy_password: f(privacy_password)?,
                 privacy_algorithm,
             },
+            CredentialType::KRB5 {
+                username,
+                password,
+                realm,
+                kdc,
+            } => CredentialType::KRB5 {
+                username,
+                password: f(password)?,
+                realm,
+                kdc,
+            },
         })
     }
 }
@@ -233,6 +254,7 @@ impl AsRef<str> for CredentialType {
             CredentialType::UP { .. } => "up",
             CredentialType::USK { .. } => "usk",
             CredentialType::SNMP { .. } => "snmp",
+            CredentialType::KRB5 { .. } => "krb5",
         }
     }
 }

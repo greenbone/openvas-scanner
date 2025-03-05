@@ -10,16 +10,6 @@ use walkdir::WalkDir;
 
 use crate::{CliError, CliErrorKind};
 
-fn read_errors<P: AsRef<Path>>(path: P) -> Result<Vec<SyntaxError>, CliErrorKind> {
-    let code = load_non_utf8_path(path.as_ref())?;
-    Ok(parse(&code)
-        .filter_map(|r| match r {
-            Ok(_) => None,
-            Err(err) => Some(err),
-        })
-        .collect())
-}
-
 fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, CliErrorKind> {
     let code = load_non_utf8_path(path.as_ref())?;
     Ok(parse(&code).collect())
@@ -28,28 +18,47 @@ fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut errors = 0;
 
-    if verbose {
-        println!("# {path:?}");
-        let results = read(path).map_err(|kind| CliError {
-            kind,
-            filename: format!("{path:?}"),
-        })?;
-        for r in results {
-            match r {
-                Ok(stmt) => println!("{stmt:?}"),
-                Err(err) => eprintln!("{err}"),
+    let print_error = |err: &SyntaxError| {
+        if let Some(token) = err.as_token() {
+            eprintln!(
+                "{}:{}:{}: {}",
+                path.to_string_lossy(),
+                token.line(),
+                token.column(),
+                err.kind
+            )
+        } else {
+            eprintln!("{}:{}", path.to_string_lossy(), err)
+        }
+    };
+    let print_stmt = |stmt: Statement| {
+        println!(
+            "{}:{}:{}: {}",
+            path.to_string_lossy(),
+            stmt.as_token().line(),
+            stmt.as_token().column(),
+            stmt
+        )
+    };
+
+    let results = read(path).map_err(|kind| CliError {
+        kind,
+        filename: path.to_string_lossy().to_string(),
+    })?;
+    for r in results {
+        match r {
+            Ok(stmt) if verbose => print_stmt(stmt),
+            Ok(_) => {}
+            Err(err) => {
+                // when we run in interactive mode we should print a new line to
+                // not interfere with the count display.
+                if errors == 0 {
+                    eprintln!()
+                }
+                errors += 1;
+                print_error(&err)
             }
         }
-    } else {
-        let err = read_errors(path).map_err(|kind| CliError {
-            kind,
-            filename: format!("{path:?}"),
-        })?;
-        if !err.is_empty() {
-            eprintln!("# Error in {path:?}");
-        }
-        errors += err.len();
-        err.iter().for_each(|r| eprintln!("{r}"));
     }
     Ok(errors)
 }

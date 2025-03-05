@@ -14,7 +14,6 @@ runs:
         find . -type f -name "scannerctl"
         patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/scannerctl
         patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/scannerctl
-    - run: mkdir assets/
       shell: bash
     - run: mkdir -p assets/linux/arm64
       shell: bash
@@ -24,9 +23,3 @@ runs:
       shell: bash
     - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/linux/arm64/feed-verifier
       shell: bash
-    - name: archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: rs-binaries
-        path: assets/*
-        retention-days: 1

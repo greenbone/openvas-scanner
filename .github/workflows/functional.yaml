@@ -23,10 +23,16 @@ jobs:
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
       - run: docker rmi test || true
   build-rs:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/compile-x86_64
+      - name: archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: rs-binaries
+          path: assets/*
+          retention-days: 1
   build-image:
     runs-on: self-hosted-generic
     steps:

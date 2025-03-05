@@ -126,7 +126,7 @@ jobs:
     # instead it is pushed after the tag is created.
     #
     # For now we just don't use it as a dependency for releases which may is counter intuitive
-    needs: [container, init]
+    needs: [functional, init]
     if: ( needs.init.outputs.release_kind == 'major' || needs.init.outputs.release_kind == 'minor' || needs.init.outputs.release_kind == 'patch' )
 
     uses: ./.github/workflows/release.yml

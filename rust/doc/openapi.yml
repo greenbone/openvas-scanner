@@ -604,12 +604,16 @@ components:
             - smb
             - esxi
             - snmp
+            - krb5
         port:
           description: "The port the authentication service is running."
           type: "integer"
           format: "int32"
         up:
           $ref: "#/components/schemas/UP"
+        krb5:
+          $ref: "#/components/schemas/KRB5"
+          
         usk:
           $ref: "#/components/schemas/USK"
         snmp:
@@ -633,6 +637,29 @@ components:
           type: "string"
       required:
         - username
+
+        
+    KRB5:
+      description: "Authentication via Kerberos GSA."
+      type: "object"
+      properties:
+        username:
+          description: "Username for authentication."
+          type: "string"
+        password:
+          description: "Password for authentication."
+          type: "string"
+        realm:
+          description: "Realm to be used by KRB5"
+          type: "string"
+        kdc:
+          description: "KDC to be defined within the realm."
+          type: "string"
+      required:
+        - username
+        - password
+        - realm
+        - kdc
 
     USK:
       description: "Authentication via Username and Security Key."

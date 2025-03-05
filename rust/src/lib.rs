@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+#[cfg(feature = "nasl-builtin-raw-ip")]
+pub mod alive_test;
 pub mod feed;
 pub mod models;
 pub mod nasl;
