@@ -15,7 +15,7 @@ use crate::storage::items::kb::{KbContext, KbContextKey, KbItem, KbKey};
 use crate::storage::items::nvt::Nvt;
 use crate::storage::{ContextStorage, Retriever};
 use futures::StreamExt;
-use tracing::{trace, warn};
+use tracing::{error_span, trace, warn};
 
 use crate::nasl::prelude::*;
 
@@ -96,8 +96,7 @@ where
         B: Fn(Vec<KbItem>) -> Option<ScriptResultKind>,
         C: Fn(StorageError) -> Option<ScriptResultKind>,
     {
-        // TODO: Set span again
-        // let _span = error_span!("kb_item", %key).entered();
+        let _span = error_span!("kb_item", %key).entered();
         let result = match self.storage.retrieve(key) {
             Ok(x) => {
                 if let Some(x) = x {

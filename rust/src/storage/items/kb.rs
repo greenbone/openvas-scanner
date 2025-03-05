@@ -329,5 +329,15 @@ pub type KbContext = (ScanID, Target);
 
 #[derive(Debug, Clone, Default)]
 pub struct KbContextKey(pub KbContext, pub KbKey);
+
+impl Display for KbContextKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Scan: {}, Target: {}, KbKey: {}",
+            self.0 .0, self.0 .1, self.1
+        )
+    }
+}
 #[derive(Debug, Clone, Default)]
 pub struct GetKbContextKey(pub KbContext, pub KbKey);

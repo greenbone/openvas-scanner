@@ -40,7 +40,6 @@ fn set_kb_item(
 fn get_kb_item(c: &Context, key: &str) -> Result<NaslValue, FnError> {
     let kbs = c.get_kb_item(&KbKey::Custom(key.to_string()))?;
     let ret = NaslValue::Fork(kbs.into_iter().map(NaslValue::from).collect());
-    println!("{:?}", ret);
 
     Ok(ret)
 }

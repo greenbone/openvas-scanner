@@ -208,7 +208,7 @@ pub mod fake {
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
-    storage: S::Storage,
+    storage: Arc<S::Storage>,
     loader: Arc<S::Loader>,
     function_executor: Arc<Executor>,
 }
@@ -221,7 +221,7 @@ where
     pub fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
-            storage,
+            storage: Arc::new(storage),
             loader: Arc::new(loader),
             function_executor: Arc::new(executor),
         }
