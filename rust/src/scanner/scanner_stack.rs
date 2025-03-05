@@ -32,7 +32,7 @@ where
     type Loader = L;
 }
 
-/// The default scanner stack, consisting of `DefaultDispatcher`,
+/// The default scanner stack, consisting of `InMemoryStorage`,
 /// `FSPluginLoader` and `NaslFunctionRegister`.
 pub type DefaultScannerStack = (Arc<InMemoryStorage>, FSPluginLoader);
 

@@ -17,7 +17,7 @@ The reason that it uses field descriptions rather than structs are two fold:
 
 Since we sometimes have the requirement to just store when all information is available the `on_exit` must be called when the interpreter finishes.
 
-A simplified example on how to write a storage implementation can be found in `DefaultDispatcher`
+A simplified example on how to write a storage implementation can be found in `InMemoryStorage`
 
 ## Build
 

@@ -10,13 +10,13 @@ All you have to do as a user is to create the builder
 let cb = scannerlib::nasl::ContextFactory::default();
 ```
 
-and set all but the functions. This will use the DefaultDispatcher as well as an empty String as a key.
+and set all but the functions. This will use the InMemoryStorage as well as an empty String as a key.
 
 For production use cases it is recommended to use new method and include a key and a storage:
 
 ```
 let loader = scannerlib::nasl::FSPluginLoader::new("/feed");
-let storage = scannerlib::storage::DefaultDispatcher::default();
+let storage = scannerlib::storage::inmemory::InMemoryStorage::default();
 let cb = scannerlib::nasl::ContextFactory::new(loader, storage);
 ```
 

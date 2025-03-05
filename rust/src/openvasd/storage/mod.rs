@@ -5,6 +5,7 @@
 pub mod file;
 pub mod inmemory;
 pub mod redis;
+pub mod results;
 
 use std::{
     collections::HashMap,

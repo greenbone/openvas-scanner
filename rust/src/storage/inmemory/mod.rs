@@ -40,7 +40,7 @@ pub struct InMemoryStorage {
 }
 
 impl InMemoryStorage {
-    /// Creates a new DefaultDispatcher
+    /// Creates a new InMemoryStorage.
     pub fn new() -> Self {
         Self {
             ..Default::default()

@@ -80,8 +80,7 @@ impl<S> JsonStorage<S>
 where
     S: Write,
 {
-    /// Creates a new JsonNvtDispatcher
-    ///
+    /// Creates a new JsonStorage
     pub fn new(w: S) -> Self {
         Self {
             w: Mutex::new(w),

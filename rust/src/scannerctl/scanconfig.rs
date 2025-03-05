@@ -336,8 +336,11 @@ where
                             oids
                         } else {
                             let fvts: Vec<_> = vts
+                                .clone()
                                 .into_iter()
-                                .filter(|x| x.family == s.family_or_nvt)
+                                .filter(|x| {
+                                    x.family == s.family_or_nvt && is_not_already_present(&x.oid)
+                                })
                                 .map(|x| oid_to_vt(&x.oid))
                                 .collect();
                             tracing::debug!(
@@ -348,9 +351,7 @@ where
                             fvts
                         }
                     }
-                    Ok(None) => {
-                        unreachable!();
-                    }
+                    Ok(None) => vec![],
                     Err(e) => vec![Err(e.into())],
                 }
             } else {
@@ -493,6 +494,7 @@ mod tests {
                 Nvt {
                     oid: oid.to_string(),
                     filename: oid.to_string(),
+                    family: "Product detection".to_string(),
                     ..Default::default()
                 },
             )
