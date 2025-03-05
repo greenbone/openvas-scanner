@@ -56,44 +56,6 @@ impl Display for Target {
     }
 }
 
-// /// Convenience trait to use a dispatcher and retriever implementation
-// pub trait Storage: Dispatcher + Retriever + Remover {
-//     /// Returns a reference to the retriever
-//     fn as_retriever(&self) -> &dyn Retriever;
-//     /// Returns a reference to the dispatcher
-//     fn as_dispatcher(&self) -> &dyn Dispatcher;
-
-//     /// Is called when the whole scan is finished.
-//     ///
-//     /// It has to remove all knowledge base items of that scan.
-//     fn scan_finished(&self, key: &ContextKey) -> Result<(), StorageError> {
-//         self.remove_kb(key, None)?;
-//         Ok(())
-//     }
-
-//     /// Is called to remove the whole scan and returns its results.
-//     ///
-//     /// It has to remove all kb items as well as results of that scan.
-//     fn remove_scan(&self, key: &ContextKey) -> Result<Vec<models::Result>, StorageError> {
-//         self.remove_kb(key, None)?;
-//         let results = self.remove_result(key, None)?;
-//         Ok(results.unwrap_or_default())
-//     }
-// }
-
-// impl<T, KEY, ITEM> Storage for T
-// where
-//     T: Dispatcher<KEY, ITEM> + Retriever<KEY, ITEM> + Remover<KEY, ITEM>,
-// {
-//     fn as_retriever(&self) -> &dyn Retriever<KEY, ITEM> {
-//         self
-//     }
-
-//     fn as_dispatcher(&self) -> &dyn Dispatcher<KEY, ITEM> {
-//         self
-//     }
-// }
-
 pub trait NotusStorage:
     Dispatcher<(), Item = models::VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
 {
@@ -134,12 +96,6 @@ pub trait ContextStorage:
 
 }
 
-// Macro to implement the trait for Arc<T>
-macro_rules! impl_trait_for_arc {
-    ($trait_name:ident) => {
-        impl<T> $trait_name for Arc<T> where T: $trait_name {}
-    };
-}
+impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
-impl_trait_for_arc!(ContextStorage);
-impl_trait_for_arc!(SchedulerStorage);
+impl<T> SchedulerStorage for Arc<T> where T: SchedulerStorage {}

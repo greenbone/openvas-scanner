@@ -27,7 +27,7 @@ use super::ScannerStack;
 /// reading its status.
 pub struct RunningScan<S: ScannerStack> {
     scan: Scan,
-    storage: S::Storage,
+    storage: Arc<S::Storage>,
     loader: Arc<S::Loader>,
     function_executor: Arc<Executor>,
     keep_running: Arc<AtomicBool>,
@@ -47,7 +47,7 @@ fn current_time_in_seconds(name: &'static str) -> u64 {
 impl<S: ScannerStack> RunningScan<S> {
     pub fn start<Sch: ExecutionPlan + 'static>(
         scan: Scan,
-        storage: S::Storage,
+        storage: Arc<S::Storage>,
         loader: Arc<S::Loader>,
         function_executor: Arc<Executor>,
     ) -> RunningScanHandle
@@ -104,7 +104,7 @@ impl<S: ScannerStack> RunningScan<S> {
             .execution_plan::<T>(&self.scan)
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
-            &self.storage,
+            &*self.storage,
             &*self.loader,
             &self.function_executor,
             schedule,

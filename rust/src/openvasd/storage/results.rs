@@ -325,7 +325,7 @@ where
         let ret = self
             .0
             .remove_result::<StorageError>(&key.0 .0, Some(key.1))?;
-        if ret.len() < 1 {
+        if ret.is_empty() {
             Ok(None)
         } else {
             Ok(Some(ret[0].clone()))
