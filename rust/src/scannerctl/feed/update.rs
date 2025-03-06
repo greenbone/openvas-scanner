@@ -4,17 +4,17 @@
 
 use std::path::PathBuf;
 
-use scannerlib::storage::Dispatcher;
 use scannerlib::{
     feed,
     nasl::{syntax::LoadError, FSPluginLoader},
+    storage::ContextStorage,
 };
 
 use crate::{CliError, CliErrorKind};
 
 pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher,
+    S: ContextStorage,
 {
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path

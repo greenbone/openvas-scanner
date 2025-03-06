@@ -182,6 +182,7 @@ impl RunningScanHandle {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
     use std::time::Duration;
 
     use crate::models::Phase;
@@ -189,7 +190,8 @@ mod tests {
         scanner::{ScanResultFetcher, ScanResults, ScanStarter},
         Scan,
     };
-    use crate::storage::{item::Nvt, DefaultDispatcher};
+    use crate::storage::inmemory::InMemoryStorage;
+    use crate::storage::items::nvt::Nvt;
     use tracing_test::traced_test;
 
     use crate::scanner::{
@@ -197,16 +199,16 @@ mod tests {
         Scanner,
     };
 
-    type TestStack = (DefaultDispatcher, fn(&str) -> String);
+    type TestStack = (Arc<InMemoryStorage>, fn(&str) -> String);
 
     fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
         let ((storage, loader, executor), scan) = setup_success();
-        (Scanner::new(storage, loader, executor), scan)
+        (Scanner::new(Arc::new(storage), loader, executor), scan)
     }
 
     fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (Scanner<TestStack>, Scan) {
         let ((storage, loader, executor), scan) = setup(scripts);
-        (Scanner::new(storage, loader, executor), scan)
+        (Scanner::new(Arc::new(storage), loader, executor), scan)
     }
 
     /// Blocks until given id is in given phase or panics after 1 second
@@ -219,16 +221,19 @@ mod tests {
                 current > 0,
                 "it was not possible to get the system time in seconds"
             );
-            assert!(current - start < 1, "time for finishing scan is up.");
-            // we need the sloep to not instantly read lock running and preventing write access
+            // we need the sleep to not instantly read lock running and preventing write access
             tokio::time::sleep(Duration::from_nanos(100)).await;
             let scan_results = scanner
                 .fetch_results(id.to_string())
                 .await
                 .expect("no error when fetching results");
-            tracing::debug!(status=%scan_results.status.status);
             if scan_results.status.status == phase {
                 return scan_results;
+            }
+            if current - start > 1 {
+                tracing::debug!(status=%scan_results.status.status, expected=%phase);
+
+                panic!("timeout reached");
             }
         }
     }

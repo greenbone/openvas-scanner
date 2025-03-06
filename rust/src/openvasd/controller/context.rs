@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
-use scannerlib::storage::DefaultDispatcher;
-use scannerlib::{feed, nasl::FSPluginLoader};
+use scannerlib::{feed, nasl::FSPluginLoader, storage::inmemory::InMemoryStorage};
 use std::sync::{Arc, RwLock};
 
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
@@ -66,7 +65,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self.feed_config = Some(config);
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = FSPluginLoader::new(fp.path.clone());
-            let dispatcher: DefaultDispatcher = DefaultDispatcher::default();
+            let dispatcher: InMemoryStorage = InMemoryStorage::default();
             let version = feed::version(&loader, &dispatcher)
                 .await
                 .unwrap_or_else(|_| String::from("UNDEFINED"));

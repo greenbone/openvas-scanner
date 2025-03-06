@@ -483,9 +483,10 @@ pub mod client {
     use serde::Deserialize;
 
     use crate::storage::inmemory;
+    use crate::storage::results::ResultCatcher;
     use crate::{
         controller::{ClientIdentifier, Context},
-        storage::{file::Storage, NVTStorer, UserNASLStorageForKBandVT},
+        storage::{file::Storage, NVTStorer},
     };
 
     use super::KnownPaths;
@@ -500,19 +501,15 @@ pub mod client {
 
     pub async fn in_memory_example_feed() -> Client<
         scannerlib::scanner::Scanner<(
-            Arc<
-                UserNASLStorageForKBandVT<
-                    crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
-                >,
-            >,
+            Arc<ResultCatcher<crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
             FSPluginLoader,
         )>,
-        Arc<UserNASLStorageForKBandVT<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
+        Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage = crate::storage::inmemory::Storage::default();
 
-        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(ResultCatcher::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
@@ -526,10 +523,10 @@ pub mod client {
         prefix: &str,
     ) -> Client<
         scannerlib::scanner::Scanner<(
-            Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
+            Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
             FSPluginLoader,
         )>,
-        Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
+        Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
@@ -538,7 +535,7 @@ pub mod client {
         let feeds = example_feeds().await;
         let storage = crate::storage::file::encrypted(&storage_dir, key, feeds).unwrap();
 
-        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(ResultCatcher::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
@@ -551,11 +548,11 @@ pub mod client {
 
     pub async fn fails_to_fetch_results() -> Client<
         scannerlib::scanner::fake::LambdaScanner,
-        Arc<UserNASLStorageForKBandVT<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
+        Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
     > {
         use crate::file::tests::example_feeds;
         let storage = crate::storage::inmemory::Storage::default();
-        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(ResultCatcher::new(storage));
         storage
             .synchronize_feeds(example_feeds().await)
             .await
@@ -571,15 +568,15 @@ pub mod client {
         prefix: &str,
     ) -> Client<
         scannerlib::scanner::Scanner<(
-            Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+            Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
             FSPluginLoader,
         )>,
-        Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+        Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
     > {
         use crate::file::tests::{example_feed_file_storage, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
         let store = example_feed_file_storage(&storage_dir).await;
-        let store = Arc::new(UserNASLStorageForKBandVT::new(store));
+        let store = Arc::new(ResultCatcher::new(store));
         let nasl_feed_path = nasl_root().await;
         let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)

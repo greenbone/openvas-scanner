@@ -3,6 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::syntax::{LoadError, Loader};
+use crate::storage::inmemory::InMemoryStorage;
+use crate::storage::items::nvt::{
+    FileName, Nvt, NvtPreference, NvtRef, PreferenceType::Password, TagKey, ACT::Denial,
+};
+use crate::storage::Retriever;
 
 #[derive(Default)]
 pub struct NoOpLoader {}
@@ -23,8 +28,6 @@ use std::sync::Arc;
 
 use crate::nasl::builtin::ContextFactory;
 use crate::nasl::test_prelude::*;
-use crate::storage::item::{NvtPreference, NvtRef, PreferenceType::*, TagKey, ACT::Denial};
-use crate::storage::{item, ContextKey, DefaultDispatcher, Retrieve, Retriever};
 
 #[test]
 fn description() {
@@ -52,12 +55,12 @@ if(description)
     exit(rc);
 }
         "#;
-    let storage = Arc::new(DefaultDispatcher::new());
-    let key: ContextKey = "test.nasl".into();
+    let storage = Arc::new(InMemoryStorage::new());
+    let key = FileName("test.nasl".to_string());
     let context = ContextFactory::new(NoOpLoader::default(), storage.clone());
     let mut t = TestBuilder::default()
         .with_context(context)
-        .with_context_key(key.clone());
+        .with_filename(key.0.clone().into());
     t.set_variable("description", NaslValue::Number(1));
     t.run_all(code);
     let results = t.results();
@@ -68,12 +71,10 @@ if(description)
 
     let mut tag = BTreeMap::new();
     tag.insert(TagKey::CreationDate, 1366091481.into());
+    let nvt = storage.retrieve(&key).unwrap().unwrap();
     assert_eq!(
-        storage
-            .retrieve(&key, Retrieve::NVT(None))
-            .unwrap()
-            .collect::<Vec<_>>(),
-        vec![item::Nvt {
+        nvt,
+        Nvt {
             oid: "0.0.0.0.0.0.0.0.0.1".into(),
             name: "that is a very long and descriptive name".into(),
             filename: "test.nasl".into(),
@@ -111,6 +112,6 @@ if(description)
             category: Denial,
             family: "Denial of Service".into()
         }
-        .into(),]
+        .into()
     );
 }
