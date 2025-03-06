@@ -11,15 +11,13 @@ use scannerlib::{
     feed::{self, HashSumNameLoader},
     nasl::FSPluginLoader,
     storage::{
-        dispatch::Dispatcher,
         error::StorageError,
         items::{
             kb::{GetKbContextKey, KbContextKey, KbItem},
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
-        remove::Remover,
-        ContextStorage, Retriever, ScanID, SchedulerStorage,
+        ContextStorage, Dispatcher, Remover, Retriever, ScanID, SchedulerStorage,
     },
 };
 

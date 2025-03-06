@@ -145,14 +145,13 @@ impl Iterator for WaveExecutionPlan {
 mod tests {
     use crate::models::{Scan, VT};
 
-    use crate::storage::dispatch::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
 
     use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, Stage};
     use crate::storage::items::nvt::{FileName, Nvt, ACT};
 
     use super::WaveExecutionPlan;
-    use crate::storage::SchedulerStorage;
+    use crate::storage::{Dispatcher, SchedulerStorage};
 
     struct OidGenerator {
         latest_number: u64,

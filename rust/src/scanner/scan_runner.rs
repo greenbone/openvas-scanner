@@ -131,13 +131,13 @@ pub(super) mod tests {
         scan_runner::ScanRunner,
     };
     use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
-    use crate::storage::dispatch::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
     use crate::storage::items::kb::KbContextKey;
     use crate::storage::items::kb::KbItem;
     use crate::storage::items::kb::KbKey;
     use crate::storage::items::nvt::FileName;
     use crate::storage::items::nvt::Nvt;
+    use crate::storage::Dispatcher;
     use crate::storage::Retriever;
     use crate::storage::ScanID;
     use futures::StreamExt;

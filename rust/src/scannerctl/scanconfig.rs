@@ -381,8 +381,8 @@ where
 mod tests {
 
     use scannerlib::storage::{
-        dispatch::Dispatcher,
         items::nvt::{FileName, Nvt},
+        Dispatcher,
     };
 
     use super::*;

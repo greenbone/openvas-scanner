@@ -10,13 +10,15 @@ use std::{
 };
 
 use crate::storage::{
-    self, inmemory::kb::InMemoryKbStorage, items::nvt::Nvt, ContextStorage, SchedulerStorage,
-    StorageError,
+    self,
+    inmemory::kb::InMemoryKbStorage,
+    items::{
+        kb::{GetKbContextKey, KbContextKey, KbItem},
+        nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
+        result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+    },
+    ContextStorage, Dispatcher, Remover, Retriever, ScanID, SchedulerStorage, StorageError,
 };
-
-mod kbs;
-mod nvt;
-mod result;
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -93,6 +95,107 @@ where
         serde_json::to_vec(&nvt)
             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
             .and_then(|x| context.write_all(&x).map_err(StorageError::from))
+    }
+}
+
+impl<S: Write> Dispatcher<KbContextKey> for JsonStorage<S> {
+    type Item = KbItem;
+    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item)
+    }
+}
+
+impl<S: Write> Retriever<KbContextKey> for JsonStorage<S> {
+    type Item = Vec<KbItem>;
+    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl<S: Write> Retriever<GetKbContextKey> for JsonStorage<S> {
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl<S: Write> Remover<KbContextKey> for JsonStorage<S> {
+    type Item = Vec<KbItem>;
+    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.remove(key)
+    }
+}
+
+impl<S: Write> Dispatcher<FileName> for JsonStorage<S> {
+    type Item = Nvt;
+    fn dispatch(&self, _: FileName, item: Self::Item) -> Result<(), StorageError> {
+        self.as_json(item)
+    }
+}
+
+impl<S: Write> Dispatcher<FeedVersion> for JsonStorage<S> {
+    type Item = String;
+    fn dispatch(&self, _: FeedVersion, _: Self::Item) -> Result<(), StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: Write> Retriever<FeedVersion> for JsonStorage<S> {
+    type Item = String;
+    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: Write> Retriever<Feed> for JsonStorage<S> {
+    type Item = Vec<Nvt>;
+    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: Write> Retriever<Oid> for JsonStorage<S> {
+    type Item = Nvt;
+    fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: Write> Retriever<FileName> for JsonStorage<S> {
+    type Item = Nvt;
+    fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: Write> Dispatcher<ScanID> for JsonStorage<S> {
+    type Item = ResultItem;
+    fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
+        unimplemented!()
+    }
+}
+impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S> {
+    type Item = ResultItem;
+    fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S: Write> Retriever<ResultContextKeyAll> for JsonStorage<S> {
+    type Item = Vec<ResultItem>;
+    fn retrieve(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S: Write> Remover<ResultContextKeySingle> for JsonStorage<S> {
+    type Item = ResultItem;
+    fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S: Write> Remover<ResultContextKeyAll> for JsonStorage<S> {
+    type Item = Vec<ResultItem>;
+    fn remove(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
     }
 }
 

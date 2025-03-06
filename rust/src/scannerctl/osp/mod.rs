@@ -181,9 +181,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 mod tests {
     use std::io::Cursor;
 
-    use scannerlib::storage::{
-        dispatch::Dispatcher, inmemory::InMemoryStorage, items::nvt::FileName,
-    };
+    use scannerlib::storage::{inmemory::InMemoryStorage, items::nvt::FileName, Dispatcher};
 
     use super::*;
 
