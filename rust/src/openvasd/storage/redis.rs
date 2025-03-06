@@ -7,7 +7,6 @@ use std::{path::PathBuf, sync::Arc};
 use async_trait::async_trait;
 use scannerlib::models::{self, Scan, Status, VulnerabilityData};
 use scannerlib::nasl::FSPluginLoader;
-use scannerlib::storage::dispatch::Dispatcher;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::items::notus_advisory::NotusCache;
@@ -16,6 +15,7 @@ use scannerlib::storage::redis::{
     self, RedisCtx, RedisGetNvt, RedisStorage, RedisWrapper, FEEDUPDATE_SELECTOR,
     NOTUSUPDATE_SELECTOR,
 };
+use scannerlib::storage::Dispatcher;
 use scannerlib::{
     feed,
     notus::{AdvisoryLoader, HashsumAdvisoryLoader},

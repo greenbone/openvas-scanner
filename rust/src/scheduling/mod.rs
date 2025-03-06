@@ -251,10 +251,10 @@ mod tests {
     use crate::scheduling::ExecutionPlaner;
     use crate::scheduling::Stage;
     use crate::scheduling::WaveExecutionPlan;
-    use crate::storage::dispatch::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
     use crate::storage::items::nvt::FileName;
     use crate::storage::items::nvt::Nvt;
+    use crate::storage::Dispatcher;
 
     #[test]
     #[tracing_test::traced_test]

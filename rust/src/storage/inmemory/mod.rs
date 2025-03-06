@@ -10,14 +10,16 @@ use crate::models;
 
 use super::{
     error::StorageError,
-    items::{nvt::Nvt, result::ResultItem},
-    ContextStorage, OspStorage, ScanID, SchedulerStorage,
+    items::{
+        kb::{GetKbContextKey, KbContextKey, KbItem},
+        notus_advisory::NotusAdvisory,
+        nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
+        result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+    },
+    ContextStorage, Dispatcher, OspStorage, Remover, Retriever, ScanID, SchedulerStorage,
 };
 
 pub mod kb;
-pub mod notus_advisory;
-pub mod nvt;
-pub mod result;
 
 /// Vts are using a relative file path as a key. This should make includes, script_dependency
 /// lookups relative simple.
@@ -91,6 +93,158 @@ impl InMemoryStorage {
     }
 }
 
+impl Dispatcher<KbContextKey> for InMemoryStorage {
+    type Item = KbItem;
+    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item)
+    }
+}
+
+impl Retriever<KbContextKey> for InMemoryStorage {
+    type Item = Vec<KbItem>;
+    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl Retriever<GetKbContextKey> for InMemoryStorage {
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl Remover<KbContextKey> for InMemoryStorage {
+    type Item = Vec<KbItem>;
+    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.remove(key)
+    }
+}
+
+impl Dispatcher<()> for InMemoryStorage {
+    type Item = NotusAdvisory;
+    fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
+        self.cache_notus_advisory(item)
+    }
+}
+
+impl Dispatcher<FileName> for InMemoryStorage {
+    type Item = Nvt;
+    /// Dispatch a single NVT into the storage with a given Key
+    fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
+        let mut vts = self.vts.write()?;
+        let mut oid_lookup = self.oid_lookup.write()?;
+        oid_lookup.insert(item.oid.clone(), key.0.clone());
+        vts.insert(key.0, item);
+        Ok(())
+    }
+}
+
+impl Dispatcher<FeedVersion> for InMemoryStorage {
+    type Item = String;
+    /// Dispatch the feed version into the storage
+    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+        let mut feed_version = self.feed_version.write()?;
+        *feed_version = item;
+        Ok(())
+    }
+}
+
+impl Retriever<FeedVersion> for InMemoryStorage {
+    type Item = String;
+    /// Retrieve the feed version from the storage
+    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
+        Ok(Some(self.feed_version.read()?.clone()))
+    }
+}
+
+impl Retriever<Feed> for InMemoryStorage {
+    type Item = Vec<Nvt>;
+    /// Retrieve all NVTs from the storage
+    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+        self.all_vts().map(Some)
+    }
+}
+
+impl Retriever<FileName> for InMemoryStorage {
+    type Item = Nvt;
+    fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
+        let vts = self.vts.read()?;
+        Ok(vts.get(&key.0).cloned())
+    }
+}
+
+impl Retriever<Oid> for InMemoryStorage {
+    type Item = Nvt;
+    fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
+        let vts = self.vts.read()?;
+        let oid_lookup = self.oid_lookup.read()?;
+        Ok(oid_lookup
+            .get(&key.0)
+            .and_then(|filename| vts.get(filename).cloned()))
+    }
+}
+
+impl Remover<Feed> for InMemoryStorage {
+    type Item = ();
+    fn remove(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+        self.clean_vts()?;
+        Ok(Some(()))
+    }
+}
+
+impl Dispatcher<ScanID> for InMemoryStorage {
+    type Item = ResultItem;
+    fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
+        let mut results = self.results.write()?;
+        if let Some(scan_results) = results.get_mut(&key) {
+            scan_results.push(item);
+        } else {
+            results.insert(key, vec![item]);
+        }
+        Ok(())
+    }
+}
+
+impl Retriever<ResultContextKeySingle> for InMemoryStorage {
+    type Item = ResultItem;
+    fn retrieve(&self, key: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+        let results = self.results.read()?;
+        if let Some(scan_results) = results.get(&key.0) {
+            return Ok(scan_results.get(key.1).cloned());
+        }
+        Ok(None)
+    }
+}
+
+impl Retriever<ResultContextKeyAll> for InMemoryStorage {
+    type Item = Vec<ResultItem>;
+    fn retrieve(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+        let results = self.results.read()?;
+
+        Ok(results.get(key).cloned())
+    }
+}
+
+impl Remover<ResultContextKeyAll> for InMemoryStorage {
+    type Item = Vec<ResultItem>;
+    fn remove(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+        let mut results = self.results.write()?;
+        Ok(results.remove(key))
+    }
+}
+
+impl Remover<ResultContextKeySingle> for InMemoryStorage {
+    type Item = ResultItem;
+    fn remove(&self, key: &ResultContextKeySingle) -> Result<Option<ResultItem>, StorageError> {
+        let mut results = self.results.write()?;
+        if let Some(results) = results.get_mut(&key.0) {
+            return Ok(Some(results.remove(key.1)));
+        }
+        Ok(None)
+    }
+}
+
 impl ContextStorage for InMemoryStorage {}
 
 impl SchedulerStorage for InMemoryStorage {}
@@ -100,14 +254,13 @@ impl OspStorage for InMemoryStorage {}
 #[cfg(test)]
 mod tests {
     use crate::storage::{
-        dispatch::Dispatcher,
         error::StorageError,
         inmemory::InMemoryStorage,
         items::{
             kb::{KbContextKey, KbItem},
             nvt::{FileName, Nvt},
         },
-        Retriever,
+        Dispatcher, Retriever,
     };
 
     #[test]

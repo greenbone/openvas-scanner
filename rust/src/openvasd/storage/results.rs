@@ -8,7 +8,6 @@ use async_trait::async_trait;
 use scannerlib::{
     models::{self, scanner::ScanResults, Scan, Status},
     storage::{
-        dispatch::Dispatcher,
         error::StorageError,
         inmemory::InMemoryStorage,
         items::{
@@ -16,8 +15,7 @@ use scannerlib::{
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
-        remove::Remover,
-        ContextStorage, Retriever, ScanID, SchedulerStorage,
+        ContextStorage, Dispatcher, Remover, Retriever, ScanID, SchedulerStorage,
     },
 };
 

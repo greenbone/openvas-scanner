@@ -8,24 +8,38 @@ mod connector;
 /// Module to handle custom errors
 mod dberror;
 
-mod kb;
-mod notus_advisory;
-mod nvt;
-mod result;
-
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 
 pub use connector::NameSpaceSelector;
+use connector::CACHE_KEY;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
 pub use connector::NOTUSUPDATE_SELECTOR;
 pub use connector::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper};
 pub use dberror::{DbError, RedisStorageResult};
 
+use super::error::StorageError;
 use super::inmemory::kb::InMemoryKbStorage;
+use super::items::kb::GetKbContextKey;
+use super::items::kb::KbContextKey;
+use super::items::kb::KbItem;
+use super::items::notus_advisory::NotusAdvisory;
+use super::items::notus_advisory::NotusCache;
+use super::items::nvt::Feed;
+use super::items::nvt::FeedVersion;
+use super::items::nvt::FileName;
+use super::items::nvt::Nvt;
+use super::items::nvt::Oid;
+use super::items::result::ResultContextKeyAll;
+use super::items::result::ResultContextKeySingle;
+use super::items::result::ResultItem;
 use super::ContextStorage;
+use super::Dispatcher;
 use super::NotusStorage;
+use super::Remover;
+use super::Retriever;
+use super::ScanID;
 use super::SchedulerStorage;
 
 /// Cache implementation.
@@ -81,6 +95,184 @@ impl RedisStorage<RedisCtx> {
     }
 }
 
+impl<S> Dispatcher<KbContextKey> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = KbItem;
+    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item)
+    }
+}
+
+impl<S> Retriever<KbContextKey> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<KbItem>;
+    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl<S> Retriever<GetKbContextKey> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<(String, Vec<KbItem>)>;
+    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key)
+    }
+}
+
+impl<S> Remover<KbContextKey> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<KbItem>;
+    fn remove(&self, key: &KbContextKey) -> Result<Option<Vec<KbItem>>, StorageError> {
+        self.kbs.remove(key)
+    }
+}
+
+impl<S: RedisAddNvt> Dispatcher<FileName> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Nvt;
+    fn dispatch(
+        &self,
+        _: FileName,
+        item: Self::Item,
+    ) -> Result<(), crate::storage::error::StorageError> {
+        let mut vts = self.cache.lock()?;
+        vts.redis_add_nvt(item)?;
+        Ok(())
+    }
+}
+
+impl<S: RedisWrapper> Dispatcher<FeedVersion> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = String;
+    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+        let mut vts = self.cache.lock()?;
+        vts.del(CACHE_KEY)?;
+        vts.rpush(CACHE_KEY, &[&item])?;
+        Ok(())
+    }
+}
+
+impl<S: RedisWrapper> Retriever<FeedVersion> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = String;
+    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: RedisWrapper> Retriever<Feed> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<Nvt>;
+    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S: RedisWrapper> Retriever<Oid> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Nvt;
+    fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S: RedisWrapper> Retriever<FileName> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Nvt;
+    fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S> Dispatcher<ScanID> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = ResultItem;
+    fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S> Retriever<ResultContextKeySingle> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = ResultItem;
+    fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S> Retriever<ResultContextKeyAll> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<ResultItem>;
+    fn retrieve(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S> Remover<ResultContextKeySingle> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = ResultItem;
+    fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+impl<S> Remover<ResultContextKeyAll> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = Vec<ResultItem>;
+    fn remove(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+        unimplemented!()
+    }
+}
+
+impl<S: RedisAddAdvisory> Dispatcher<()> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = NotusAdvisory;
+    fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
+        let mut cache = self.cache.lock()?;
+        cache.redis_add_advisory(Some(item))?;
+        Ok(())
+    }
+}
+
+impl<S: RedisAddAdvisory> Dispatcher<NotusCache> for RedisStorage<S>
+where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+{
+    type Item = ();
+    fn dispatch(&self, _: NotusCache, _: Self::Item) -> Result<(), StorageError> {
+        let mut cache = self.cache.lock()?;
+        cache.redis_add_advisory(None)?;
+        Ok(())
+    }
+}
+
 impl<S> SchedulerStorage for RedisStorage<S> where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt
 {
@@ -102,12 +294,12 @@ mod tests {
     use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::Mutex;
 
-    use crate::storage::dispatch::Dispatcher;
     use crate::storage::inmemory::kb::InMemoryKbStorage;
     use crate::storage::items::nvt::{
         FeedVersion, FileName, Nvt, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT,
     };
     use crate::storage::redis::RedisStorage;
+    use crate::storage::Dispatcher;
 
     use super::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorageResult, RedisWrapper};
 

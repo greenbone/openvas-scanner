@@ -5,14 +5,10 @@
 use std::{collections::HashMap, sync::RwLock};
 
 use crate::storage::{
-    dispatch::Dispatcher,
     error::StorageError,
     items::kb::{GetKbContextKey, KbContext, KbContextKey, KbItem, KbKey},
-    remove::Remover,
-    retrieve::Retriever,
+    Dispatcher, Remover, Retriever,
 };
-
-use super::InMemoryStorage;
 
 pub type Kb = HashMap<KbKey, Vec<KbItem>>;
 
@@ -99,33 +95,5 @@ impl Remover<KbContextKey> for InMemoryKbStorage {
         } else {
             Ok(None)
         }
-    }
-}
-
-impl Dispatcher<KbContextKey> for InMemoryStorage {
-    type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
-    }
-}
-
-impl Retriever<KbContextKey> for InMemoryStorage {
-    type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
-    }
-}
-
-impl Retriever<GetKbContextKey> for InMemoryStorage {
-    type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
-    }
-}
-
-impl Remover<KbContextKey> for InMemoryStorage {
-    type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.remove(key)
     }
 }
