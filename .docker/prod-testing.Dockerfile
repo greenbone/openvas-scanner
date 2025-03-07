@@ -4,7 +4,7 @@ ARG REPOSITORY=greenbone/openvas-scanner
 ARG GVM_LIBS_VERSION=testing-edge
 
 FROM greenbone/openvas-smb:testing-edge AS openvas-smb
-FROM rust AS rust
+FROM rust:latest AS rust
 
 FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION} AS build
 COPY . /source
