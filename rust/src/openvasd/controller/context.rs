@@ -32,6 +32,7 @@ pub struct ContextBuilder<S, DB, T> {
     notus: Option<NotusWrapper>,
     scheduler_config: Option<config::Scheduler>,
     mode: config::Mode,
+    enable_get_performance: bool,
 }
 
 impl<S>
@@ -51,6 +52,7 @@ impl<S>
             notus: None,
             scheduler_config: None,
             mode: config::Mode::default(),
+            enable_get_performance: false,
         }
     }
 }
@@ -93,6 +95,11 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self
     }
 
+    pub fn enable_get_performance(mut self, enable: Option<bool>) -> Self {
+        self.enable_get_performance = enable.unwrap_or_default();
+        self
+    }
+
     /// Set notus
     pub fn notus(mut self, notus: NotusWrapper) -> Self {
         self.notus = Some(notus);
@@ -119,6 +126,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             notus,
             scheduler_config,
             mode,
+            enable_get_performance,
         } = self;
         ContextBuilder {
             scanner,
@@ -132,6 +140,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             notus,
             scheduler_config,
             mode,
+            enable_get_performance,
         }
     }
 }
@@ -154,6 +163,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             notus,
             scheduler_config,
             mode,
+            enable_get_performance,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
@@ -167,6 +177,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             notus,
             scheduler_config,
             mode,
+            enable_get_performance,
         }
     }
 }
@@ -212,6 +223,7 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             api_key: self.api_key,
             tls_config: self.tls_config,
             enable_get_scans: self.enable_get_scans,
+            enable_get_performance: self.enable_get_performance,
             notus: self.notus,
             mode: self.mode,
         }
@@ -232,6 +244,8 @@ pub struct Context<S, DB> {
     pub tls_config: Option<TlsConfig>,
     /// Whether to enable the GET /scans endpoint
     pub enable_get_scans: bool,
+    /// Whether to enable the GET /health/performance endpoint
+    pub enable_get_performance: bool,
     pub mode: config::Mode,
     /// Aborts the background loops
     pub abort: RwLock<bool>,
