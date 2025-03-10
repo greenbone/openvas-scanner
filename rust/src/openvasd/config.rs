@@ -72,7 +72,7 @@ pub enum ScannerType {
 
 impl Default for ScannerType {
     fn default() -> Self {
-        Self::OSPD
+        Self::Openvas
     }
 }
 
