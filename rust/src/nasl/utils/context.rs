@@ -4,12 +4,14 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use itertools::Itertools;
+use rand::seq::SliceRandom;
 
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::storage::{ContextKey, Dispatcher, Field, Retrieve, Retriever};
+use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem, KbKey};
+use crate::storage::items::nvt::{FileName, Nvt, NvtField};
+use crate::storage::{self, ContextStorage, ScanID};
 
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
@@ -297,6 +299,7 @@ impl Default for Register {
 }
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Mutex;
 
@@ -378,6 +381,10 @@ impl Target {
         self.vhosts.lock().unwrap().push((hostname, source));
         self
     }
+
+    pub fn target(&self) -> &str {
+        &self.target
+    }
 }
 
 impl Default for Target {
@@ -395,36 +402,39 @@ impl Default for Target {
 /// New objects must be added here in
 pub struct Context<'a> {
     /// key for this context. A file name or a scan id
-    key: ContextKey,
+    scan: ScanID,
     /// target to run a scan against
     target: Target,
-    /// Default Dispatcher
-    dispatcher: &'a dyn Dispatcher,
-    /// Default Retriever
-    retriever: &'a dyn Retriever,
+    /// File Name of the current script
+    filename: PathBuf,
+    /// Storage
+    storage: &'a dyn ContextStorage,
     /// Default Loader
     loader: &'a dyn Loader,
     /// Default function executor.
     executor: &'a Executor,
+    /// NVT object, which is put into the storage, when set
+    nvt: Mutex<Option<Nvt>>,
 }
 
 impl<'a> Context<'a> {
     /// Creates an empty configuration
     pub fn new(
-        key: ContextKey,
+        scan: ScanID,
         target: Target,
-        dispatcher: &'a dyn Dispatcher,
-        retriever: &'a dyn Retriever,
+        filename: PathBuf,
+        storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
         executor: &'a Executor,
     ) -> Self {
         Self {
-            key,
+            scan,
             target,
-            dispatcher,
-            retriever,
+            filename,
+            storage,
             loader,
             executor,
+            nvt: Mutex::new(None),
         }
     }
 
@@ -462,13 +472,17 @@ impl<'a> Context<'a> {
     }
 
     /// Get the Key
-    pub fn key(&self) -> &ContextKey {
-        &self.key
+    pub fn scan(&self) -> &ScanID {
+        &self.scan
     }
 
     /// Get the target IP as string
     pub fn target(&self) -> &str {
         &self.target.target
+    }
+
+    pub fn filename(&self) -> &PathBuf {
+        &self.filename
     }
 
     /// Get the target host as IpAddr enum member
@@ -490,18 +504,78 @@ impl<'a> Context<'a> {
     }
 
     /// Get the storage
-    pub fn dispatcher(&self) -> &dyn Dispatcher {
-        self.dispatcher
+    pub fn storage(&self) -> &dyn ContextStorage {
+        self.storage
     }
-
-    /// Get the storage
-    pub fn retriever(&self) -> &dyn Retriever {
-        self.retriever
-    }
-
     /// Get the loader
     pub fn loader(&self) -> &dyn Loader {
         self.loader
+    }
+
+    pub fn set_nvt_field(&self, field: NvtField) {
+        let mut nvt = self.nvt.lock().unwrap();
+        if let Some(nvt) = nvt.as_mut() {
+            nvt.set_from_field(field);
+        } else {
+            let mut new = Nvt {
+                filename: self.filename().to_string_lossy().to_string(),
+                ..Default::default()
+            };
+            new.set_from_field(field);
+            *nvt = Some(new);
+        }
+    }
+
+    pub fn dispatch_nvt(&self, nvt: Nvt) {
+        self.storage
+            .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
+            .unwrap();
+    }
+
+    fn kb_key(&self, key: KbKey) -> KbContextKey {
+        KbContextKey(
+            (
+                self.scan.clone(),
+                storage::Target(self.target.target.clone()),
+            ),
+            key,
+        )
+    }
+
+    pub fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
+        self.storage.dispatch(self.kb_key(key), value)?;
+        Ok(())
+    }
+
+    pub fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
+        let result = self
+            .storage
+            .retrieve(&self.kb_key(key.clone()))?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
+    pub fn get_kb_items_with_keys(
+        &self,
+        key: &KbKey,
+    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
+        let result = self
+            .storage
+            .retrieve(&GetKbContextKey(
+                (
+                    self.scan.clone(),
+                    storage::Target(self.target.target.clone()),
+                ),
+                key.clone(),
+            ))?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
+    pub fn set_single_kb_item<T: Into<KbItem>>(&self, key: KbKey, value: T) -> Result<(), FnError> {
+        self.storage
+            .dispatch_replace(self.kb_key(key), value.into())?;
+        Ok(())
     }
 
     /// Return a single item from the knowledge base.
@@ -512,30 +586,88 @@ impl<'a> Context<'a> {
     /// and returns the appropriate error if necessary.
     pub fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
         &self,
-        name: &str,
+        key: &KbKey,
     ) -> Result<T, FnError> {
         // If we find multiple or no items at all, return an error that
         // exits the script instead of continuing execution with a return
         // value, since this is most likely an error in the feed.
         let val = self
-            .get_single_kb_item_inner(name)
+            .get_single_kb_item_inner(key)
             .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
-        T::from_nasl_value(&val)
+        T::from_nasl_value(&val.into())
     }
 
-    fn get_single_kb_item_inner(&self, name: &str) -> Result<NaslValue, FnError> {
-        let result = self
-            .retriever()
-            .retrieve(&self.key, Retrieve::KB(name.to_string()))?;
-        let single_item = result
-            .filter_map(|field| match field {
-                Field::KB(kb) => Some(kb.value.into()),
+    fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
+        let result = self.storage().retrieve(&self.kb_key(key.clone()))?;
+        let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
+
+        match item.len() {
+            0 => Ok(KbItem::Null),
+            1 => Ok(item[0].clone()),
+            _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
+        }
+    }
+    // TODO: Check which KbKey is used for Port Transport
+    /// Sets the state of a port
+    pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
+        self.set_single_kb_item(
+            KbKey::PortTcp(port.to_string()),
+            KbItem::Number(transport as i64),
+        )
+    }
+
+    pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
+        self.get_single_kb_item_inner(&KbKey::PortTcp(port.to_string()))
+            .map(|x| match x {
+                KbItem::Number(n) => Some(n),
                 _ => None,
             })
-            .at_most_one()
-            .map_err(|_| KBError::MultipleItemsFound(name.to_string()))?
-            .ok_or_else(|| KBError::ItemNotFound(name.to_string()))?;
-        Ok(single_item)
+    }
+
+    /// Don't always return the first open port, otherwise
+    /// we might get bitten by OSes doing active SYN flood
+    /// countermeasures. Also, avoid returning 80 and 21 as
+    /// open ports, as many transparent proxies are acting for these...
+    pub fn get_host_open_port(&self) -> Result<u16, FnError> {
+        let mut open21 = false;
+        let mut open80 = false;
+        let ports: Vec<u16> = self
+            .get_kb_items_with_keys(&KbKey::PortTcp("*".to_string()))?
+            .iter()
+            .filter_map(|x| {
+                x.0.split('/').last().and_then(|x| {
+                    if x == "21" {
+                        open21 = true;
+                        None
+                    } else if x == "80" {
+                        open80 = true;
+                        None
+                    } else {
+                        x.parse::<u16>().ok()
+                    }
+                })
+            })
+            .collect();
+
+        let ret = if ports.is_empty() {
+            *ports.choose(&mut rand::thread_rng()).unwrap()
+        } else if open21 {
+            21
+        } else if open80 {
+            80
+        } else {
+            0
+        };
+        Ok(ret)
+    }
+}
+
+impl Drop for Context<'_> {
+    fn drop(&mut self) {
+        let mut nvt = self.nvt.lock().unwrap();
+        if let Some(nvt) = nvt.take() {
+            self.dispatch_nvt(nvt);
+        }
     }
 }
 

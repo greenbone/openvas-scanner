@@ -6,11 +6,11 @@
 #[cfg(test)]
 mod tests {
 
-    use nasl_builtin_raw_ip::RawIp;
-    use nasl_builtin_std::ContextFactory;
-    use crate::nasl::utils::{error::FnError, Executor};
     use crate::nasl::interpreter::test_utils::TestBuilder;
     use crate::nasl::syntax::NaslValue;
+    use crate::nasl::utils::{error::FnError, Executor};
+    use nasl_builtin_raw_ip::RawIp;
+    use nasl_builtin_std::ContextFactory;
 
     /// Copy from a slice in safe way, performing the necessary test to avoid panicking
     fn safe_copy_from_slice(
@@ -38,7 +38,8 @@ mod tests {
         Ok(())
     }
 
-    pub fn setup() -> TestBuilder<crate::nasl::syntax::NoOpLoader, storage::DefaultDispatcher> {
+    pub fn setup(
+    ) -> TestBuilder<crate::nasl::syntax::NoOpLoader, storage::inmemory::InMemoryStorage> {
         let t = TestBuilder::default();
         let mut context = ContextFactory::default();
         context.functions = Executor::single(RawIp);

@@ -24,8 +24,8 @@ mod tests {
         let context = t.context();
         let get_result = |index| {
             context
-                .retriever()
-                .result(context.key(), index)
+                .storage()
+                .retrieve(&(context.scan().clone(), index as usize))
                 .unwrap()
                 .unwrap()
         };
@@ -40,7 +40,7 @@ mod tests {
             r_type: result_type.clone(),
             ip_address: Some(context.target().to_string()),
             hostname: None,
-            oid: Some(context.key().value()),
+            oid: Some(context.scan().0.clone()),
             port,
             protocol: Some(protocol),
             message: Some(format!("test{id}")),

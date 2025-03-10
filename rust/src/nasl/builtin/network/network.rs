@@ -5,14 +5,14 @@
 use std::{net::IpAddr, process::Command};
 
 use super::socket::SocketError;
-use super::{mtu, Port};
+use super::{mtu, NaslValue, Port};
 use super::{
     network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
     DEFAULT_PORT,
 };
 use crate::function_set;
 use crate::nasl::utils::{Context, FnError};
-use crate::storage::{types::Primitive, Field, Kb};
+use crate::storage::items::kb::{KbItem, KbKey};
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
@@ -137,16 +137,45 @@ fn islocalnet(context: &Context) -> Result<bool, SocketError> {
 fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Result<(), FnError> {
     let protocol = proto.unwrap_or("tcp");
 
-    context.dispatcher().dispatch(
-        context.key(),
-        Field::KB(Kb {
-            key: format!("Port/{}/{}", protocol, port.0),
-            value: Primitive::Number(1),
-            expire: None,
-        }),
+    context.set_single_kb_item(
+        KbKey::Port(protocol.to_string(), port.0.to_string()),
+        KbItem::Number(1),
     )?;
 
     Ok(())
+}
+
+#[nasl_function]
+fn get_host_open_port(context: &Context) -> i64 {
+    context.get_host_open_port().unwrap_or_default() as i64
+}
+
+#[nasl_function(named(asstring))]
+fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<NaslValue, FnError> {
+    let transport = context.get_port_transport(port)?.unwrap_or(1);
+    let ret = if asstring {
+        let transport_str = match transport {
+            0 => "auto".to_string(),
+            1 => "IP".to_string(),
+            3 => "SSLv2".to_string(),
+            2 => "SSLv23".to_string(),
+            4 => "SSLv3".to_string(),
+            5 => "TLSv1".to_string(),
+            6 => "TLSv11".to_string(),
+            7 => "TLSv12".to_string(),
+            8 => "TLSv13".to_string(),
+            9 => "TLScustom".to_string(),
+            _ => format!(
+                "[unknown transport layer - code {} (0x{:x})]",
+                transport, transport
+            ),
+        };
+        NaslValue::String(transport_str)
+    } else {
+        NaslValue::Number(transport)
+    };
+
+    Ok(ret)
 }
 
 pub struct Network;
@@ -161,5 +190,7 @@ function_set! {
         this_host_name,
         get_mtu,
         get_host_ip,
+        get_host_open_port,
+        get_port_transport
     )
 }

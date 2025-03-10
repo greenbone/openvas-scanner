@@ -7,6 +7,7 @@
 mod base;
 mod crypto;
 mod error;
+pub mod json;
 mod serde;
 
 pub use base::{
