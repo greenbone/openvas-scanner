@@ -39,7 +39,7 @@ The same happens with a dead hosts when it is found as dead during the scan. The
 Suppose a target with 15 hosts and 3 from the list are excluded. `openvas` found a total of 12 hosts. Also, during the alive test scan with `Boreas`, or even during the scan, 2 hosts where found dead.
 One hosts is already scanned, and 2 hosts are currently being scanned.
 
-```
+```json
 {
   "start_time": 1709111465,
   "end_time": 1709111496,
@@ -80,7 +80,7 @@ In this case, a resume scan with some finished hosts, should not start with a pr
 Then, imagine that the scan of example above, with an initial target of 15 hosts, was stopped/interrupted and you want to resume it. It has an already finished hosts. This hosts is added to the list of `excluded hosts`.
 At the beginning of the resumed scan you have:
 
-```
+```json
 {
   "start_time": 1709111465,
   "end_time": 1709111496,
@@ -96,7 +96,6 @@ At the beginning of the resumed scan you have:
     ]
   }
 }
-
 ``` 
 
 As you already know the amount of finished hosts, you use this value for the progress calculation. You have to add the finished hosts to the total amount of hosts and the add them also to the `count_alive`, because in the end, they were already scanned and finished.
