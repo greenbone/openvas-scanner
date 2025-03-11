@@ -45,13 +45,8 @@ pub struct InterpretError {
 
 impl InterpretError {
     fn format_origin(&self) -> String {
-        if let Some(ref origin) = self.origin {
-            let line = self.line();
-            let col = self.column();
-            format!("Error in statement '{origin}' at {}:{}.", line, col)
-        } else {
-            "".into()
-        }
+        // TODO
+        format!("")
     }
 
     pub fn retryable(&self) -> bool {
@@ -124,38 +119,6 @@ impl InterpretError {
             kind,
             origin: Some(stmt.clone()),
         }
-    }
-
-    /// Returns the column number
-    pub fn column(&self) -> usize {
-        let (_, col) = self.line_column();
-        col
-    }
-
-    /// Returns the line number
-    pub fn line(&self) -> usize {
-        let (line, _) = self.line_column();
-        line
-    }
-
-    /// Returns the line and column number
-    ///
-    /// Based on the stored statement the line and column number are retained.
-    /// That start both at 1 the only occurrence when there is no such number is when either
-    /// no statement is stored in this error or when the given statement is either a
-    /// - Statement::EoF,
-    /// - Statement::AttackCategory,
-    /// - Statement::Continue,
-    /// - Statement::Break
-    ///
-    /// On resolve of an interpreter that should be an map_err adding a origin when there is none so the
-    /// case of returning 0,0 is in most cases a bug.
-    pub fn line_column(&self) -> (usize, usize) {
-        self.origin
-            .as_ref()
-            .map(|stmt| stmt.as_token())
-            .map(|x| x.line_column)
-            .unwrap_or_default()
     }
 
     /// Creates a InterpreterError for an unsupported statement

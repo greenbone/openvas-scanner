@@ -428,7 +428,6 @@ impl Tokenizer {
         use TokenKind::*;
         let start = self.cursor.position();
         self.begin_match_position = start;
-        let line_column = (self.cursor.line, self.cursor.col);
         // We can unwrap here, since we check that we're not at EOF before calling scan_token.
         let kind = match self.cursor.advance().unwrap() {
             '(' => LeftParen,
@@ -476,7 +475,6 @@ impl Tokenizer {
 
         Ok(Token {
             kind,
-            line_column,
             position: (start.0, self.cursor.position().0),
         })
     }

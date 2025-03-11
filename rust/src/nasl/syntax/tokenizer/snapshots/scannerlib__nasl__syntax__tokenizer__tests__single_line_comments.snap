@@ -6,10 +6,6 @@ snapshot_kind: text
 [
     Token {
         kind: Semicolon,
-        line_column: (
-            2,
-            1,
-        ),
         position: (
             20,
             21,

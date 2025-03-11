@@ -181,12 +181,10 @@ mod test {
     fn single_statement() {
         let no = Token {
             kind: Number(1),
-            line_column: (1, 1),
             position: (0, 1),
         };
         let data = Token {
             kind: Data(vec![97]),
-            line_column: (1, 1),
             position: (0, 3),
         };
         let one = result("1;");

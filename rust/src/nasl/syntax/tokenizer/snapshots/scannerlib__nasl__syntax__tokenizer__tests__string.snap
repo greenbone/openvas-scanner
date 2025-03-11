@@ -8,10 +8,6 @@ snapshot_kind: text
         kind: String(
             "I am a closed string ",
         ),
-        line_column: (
-            1,
-            1,
-        ),
         position: (
             0,
             23,

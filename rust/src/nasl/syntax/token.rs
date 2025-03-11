@@ -359,8 +359,6 @@ impl Display for TokenKind {
 pub struct Token {
     /// The kind of a token
     pub kind: TokenKind,
-    /// The line and the column of the start of the token
-    pub line_column: (usize, usize),
     /// Byte position
     pub position: (usize, usize),
 }
@@ -369,7 +367,6 @@ impl Default for Token {
     fn default() -> Self {
         Token {
             kind: TokenKind::UnknownSymbol,
-            line_column: (0, 0),
             position: (0, 0),
         }
     }
@@ -380,7 +377,6 @@ impl Token {
     pub fn unexpected_none() -> Self {
         Self {
             kind: TokenKind::UnknownSymbol,
-            line_column: (0, 0),
             position: (0, 0),
         }
     }
@@ -406,16 +402,6 @@ impl Display for Token {
 impl Token {
     pub fn kind(&self) -> &TokenKind {
         &self.kind
-    }
-
-    /// Returns the line number of the token
-    pub fn line(&self) -> usize {
-        self.line_column.0
-    }
-
-    /// Returns the column number of the token
-    pub fn column(&self) -> usize {
-        self.line_column.1
     }
 
     /// Returns true when a Token is faulty

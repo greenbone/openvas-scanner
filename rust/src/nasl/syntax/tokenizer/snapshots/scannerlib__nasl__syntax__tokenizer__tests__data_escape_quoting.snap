@@ -22,10 +22,6 @@ snapshot_kind: text
                 34,
             ],
         ),
-        line_column: (
-            1,
-            1,
-        ),
         position: (
             0,
             17,

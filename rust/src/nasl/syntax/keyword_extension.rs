@@ -236,7 +236,6 @@ impl Lexer {
         match e.kind() {
             ErrorKind::UnexpectedToken(k) => unclosed_token!(Token {
                 kind: TokenKind::LeftParen,
-                line_column: k.line_column,
                 position: k.position,
             }),
             _ => e,
@@ -272,14 +271,12 @@ impl Lexer {
             // no update statement provided
             Some(Token {
                 kind: TokenKind::RightParen,
-                line_column,
                 position,
             }) => {
                 self.token();
                 (
                     End::Done(Token {
                         kind: TokenKind::RightParen,
-                        line_column,
                         position,
                     }),
                     Statement::without_token(StatementKind::NoOp),
@@ -293,7 +290,6 @@ impl Lexer {
             let ut = update.as_token();
             return Err(unclosed_token!(Token {
                 kind: TokenKind::LeftParen,
-                line_column: ut.line_column,
                 position: ut.position
             }));
         }
@@ -322,7 +318,6 @@ impl Lexer {
         if !Self::is_end_of_token(&end, TokenKind::RightParen) {
             return Err(unclosed_token!(Token {
                 kind: TokenKind::LeftParen,
-                line_column: ct.line_column,
                 position: ct.position,
             }));
         }

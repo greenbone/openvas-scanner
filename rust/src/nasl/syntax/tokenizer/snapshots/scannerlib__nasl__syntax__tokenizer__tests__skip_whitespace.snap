@@ -6,10 +6,6 @@ snapshot_kind: text
 [
     Token {
         kind: LeftParen,
-        line_column: (
-            1,
-            6,
-        ),
         position: (
             5,
             6,

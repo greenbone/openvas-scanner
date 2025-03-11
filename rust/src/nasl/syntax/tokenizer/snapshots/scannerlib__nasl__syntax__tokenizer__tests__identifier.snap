@@ -10,10 +10,6 @@ snapshot_kind: text
                 "help_lo",
             ),
         ),
-        line_column: (
-            1,
-            1,
-        ),
         position: (
             0,
             7,
@@ -24,10 +20,6 @@ snapshot_kind: text
             Undefined(
                 "_hello",
             ),
-        ),
-        line_column: (
-            1,
-            9,
         ),
         position: (
             8,
@@ -40,10 +32,6 @@ snapshot_kind: text
                 "_h4llo",
             ),
         ),
-        line_column: (
-            1,
-            16,
-        ),
         position: (
             15,
             21,
@@ -52,10 +40,6 @@ snapshot_kind: text
     Token {
         kind: Number(
             4,
-        ),
-        line_column: (
-            1,
-            23,
         ),
         position: (
             22,
@@ -67,10 +51,6 @@ snapshot_kind: text
             Undefined(
                 "_h4llo",
             ),
-        ),
-        line_column: (
-            1,
-            24,
         ),
         position: (
             23,

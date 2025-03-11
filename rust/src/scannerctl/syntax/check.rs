@@ -18,28 +18,8 @@ fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut errors = 0;
 
-    let print_error = |err: &SyntaxError| {
-        if let Some(token) = err.as_token() {
-            eprintln!(
-                "{}:{}:{}: {}",
-                path.to_string_lossy(),
-                token.line(),
-                token.column(),
-                err.kind
-            )
-        } else {
-            eprintln!("{}:{}", path.to_string_lossy(), err)
-        }
-    };
-    let print_stmt = |stmt: Statement| {
-        println!(
-            "{}:{}:{}: {}",
-            path.to_string_lossy(),
-            stmt.as_token().line(),
-            stmt.as_token().column(),
-            stmt
-        )
-    };
+    let print_error = |_: &SyntaxError| todo!();
+    let print_stmt = |_: Statement| todo!();
 
     let results = read(path).map_err(|kind| CliError {
         kind,

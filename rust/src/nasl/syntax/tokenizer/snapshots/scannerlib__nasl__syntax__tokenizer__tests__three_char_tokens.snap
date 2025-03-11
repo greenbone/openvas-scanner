@@ -6,10 +6,6 @@ snapshot_kind: text
 [
     Token {
         kind: GreaterGreaterGreater,
-        line_column: (
-            1,
-            1,
-        ),
         position: (
             0,
             3,
@@ -17,10 +13,6 @@ snapshot_kind: text
     },
     Token {
         kind: GreaterGreaterEqual,
-        line_column: (
-            1,
-            5,
-        ),
         position: (
             4,
             7,
@@ -28,10 +20,6 @@ snapshot_kind: text
     },
     Token {
         kind: GreaterBangLess,
-        line_column: (
-            1,
-            9,
-        ),
         position: (
             8,
             11,
@@ -39,10 +27,6 @@ snapshot_kind: text
     },
     Token {
         kind: LessLessEqual,
-        line_column: (
-            1,
-            13,
-        ),
         position: (
             12,
             15,

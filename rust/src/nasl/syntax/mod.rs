@@ -58,27 +58,22 @@ mod tests {
             vec![
                 Token {
                     kind: TokenKind::Identifier(Keyword::LocalVar),
-                    line_column: (1, 1),
                     position: (0, 9)
                 },
                 Token {
                     kind: TokenKind::Identifier(Keyword::Undefined("hello".to_owned())),
-                    line_column: (1, 11),
                     position: (10, 15)
                 },
                 Token {
                     kind: TokenKind::Equal,
-                    line_column: (1, 17),
                     position: (16, 17)
                 },
                 Token {
                     kind: TokenKind::Data("World!".as_bytes().to_vec()),
-                    line_column: (1, 19),
                     position: (18, 26)
                 },
                 Token {
                     kind: TokenKind::Semicolon,
-                    line_column: (1, 27),
                     position: (26, 27)
                 },
             ]
