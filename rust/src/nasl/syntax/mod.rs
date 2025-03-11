@@ -14,6 +14,7 @@ mod operation;
 mod prefix_extension;
 mod statement;
 mod token;
+mod tokenizer;
 mod variable_extension;
 
 pub use crate::storage::item::ACT;
@@ -22,11 +23,10 @@ pub use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;
-pub use token::Base as NumberBase;
 pub use token::IdentifierType;
 pub use token::Token;
 pub use token::TokenKind;
-pub use token::Tokenizer;
+pub use tokenizer::Tokenizer;
 
 /// Parses given code and returns found Statements and Errors
 ///
@@ -47,7 +47,8 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::nasl::syntax::{
         cursor::Cursor,
-        token::{IdentifierType, Token, TokenKind, Tokenizer},
+        token::{IdentifierType, Token, TokenKind},
+        Tokenizer,
     };
 
     #[test]

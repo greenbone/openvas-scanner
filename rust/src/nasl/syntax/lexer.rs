@@ -9,8 +9,8 @@ use super::{
     error::SyntaxError,
     operation::Operation,
     prefix_extension::Prefix,
-    token::{Token, TokenKind, Tokenizer},
-    AssignOrder, Statement, StatementKind,
+    token::{Token, TokenKind},
+    AssignOrder, Statement, StatementKind, Tokenizer,
 };
 
 use crate::{max_recursion, unexpected_statement, unexpected_token};
