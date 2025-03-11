@@ -166,9 +166,9 @@ impl FunctionNameMatcher<'_> {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
-                if let crate::nasl::syntax::TokenCategory::Identifier(
+                if let crate::nasl::syntax::TokenKind::Identifier(
                     crate::nasl::syntax::IdentifierType::Undefined(ref x),
-                ) = s.start().category()
+                ) = s.start().kind()
                 {
                     self.name.map(|y| x == y).unwrap_or(true)
                 } else {
@@ -176,9 +176,9 @@ impl FunctionNameMatcher<'_> {
                 }
             }
             StatementKind::FunctionDeclaration(id, ..) => {
-                if let crate::nasl::syntax::TokenCategory::Identifier(
+                if let crate::nasl::syntax::TokenKind::Identifier(
                     crate::nasl::syntax::IdentifierType::Undefined(ref x),
-                ) = id.category()
+                ) = id.kind()
                 {
                     self.name.map(|y| x == y).unwrap_or(true)
                 } else {
@@ -209,7 +209,7 @@ impl Matcher for FunctionNameMatcher<'_> {
                     .iter()
                     .filter_map(|p| match p.kind() {
                         StatementKind::NamedParameter(value) => {
-                            Some((p.start().category().to_string(), value.to_string()))
+                            Some((p.start().kind().to_string(), value.to_string()))
                         }
                         _ => None,
                     })
@@ -228,7 +228,7 @@ impl Matcher for FunctionNameMatcher<'_> {
                     // the given indices number when available
                     //
                     // let fcta = _block.find(&|x| {
-                    //     use crate::nasl::syntax::{IdentifierType as IT, Token, TokenCategory as TC};
+                    //     use crate::nasl::syntax::{IdentifierType as IT, Token, TokenKind as TC};
                     //     matches!(
                     //         x,
                     //         Statement::Array(
@@ -255,7 +255,7 @@ impl Matcher for FunctionNameMatcher<'_> {
                     .children()
                     .iter()
                     .filter_map(|p| match p.kind() {
-                        StatementKind::Variable => Some(p.start().category().to_string()),
+                        StatementKind::Variable => Some(p.start().kind().to_string()),
                         _ => None,
                     })
                     .map(|x| (x, "".to_owned()))
@@ -330,12 +330,12 @@ impl CodeReplacer {
         wanted: &str,
     ) -> Option<(usize, &'a Statement)> {
         use crate::nasl::syntax::IdentifierType::Undefined;
-        use crate::nasl::syntax::TokenCategory::Identifier;
+        use crate::nasl::syntax::TokenKind::Identifier;
         for (i, s) in stmts.iter().enumerate() {
             match s.kind() {
                 StatementKind::Variable | StatementKind::NamedParameter(_) => {
                     if let crate::nasl::syntax::Token {
-                        category: Identifier(Undefined(name)),
+                        kind: Identifier(Undefined(name)),
                         ..
                     } = s.start()
                     {

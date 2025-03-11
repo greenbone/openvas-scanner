@@ -6,7 +6,7 @@ use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 use crate::storage::types::Primitive;
 
-use super::{IdentifierType, Token, TokenCategory, ACT};
+use super::{IdentifierType, Token, TokenKind, ACT};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -264,21 +264,19 @@ impl From<NaslValue> for i64 {
 }
 
 impl TryFrom<&Token> for NaslValue {
-    type Error = TokenCategory;
+    type Error = TokenKind;
 
     fn try_from(token: &Token) -> Result<Self, Self::Error> {
-        match token.category() {
-            TokenCategory::String(category) | TokenCategory::IPv4Address(category) => {
-                Ok(NaslValue::String(category.clone()))
-            }
-            TokenCategory::Data(data) => Ok(NaslValue::Data(data.clone())),
-            TokenCategory::Identifier(IdentifierType::Undefined(id)) => {
+        match token.kind() {
+            TokenKind::String(s) | TokenKind::IPv4Address(s) => Ok(NaslValue::String(s.clone())),
+            TokenKind::Data(data) => Ok(NaslValue::Data(data.clone())),
+            TokenKind::Identifier(IdentifierType::Undefined(id)) => {
                 Ok(NaslValue::String(id.clone()))
             }
-            TokenCategory::Number(num) => Ok(NaslValue::Number(*num)),
-            TokenCategory::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
-            TokenCategory::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
-            TokenCategory::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
+            TokenKind::Number(num) => Ok(NaslValue::Number(*num)),
+            TokenKind::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
+            TokenKind::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
+            TokenKind::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
             o => Err(o.clone()),
         }
     }

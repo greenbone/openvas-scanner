@@ -6,7 +6,7 @@ use super::{
     error::SyntaxError,
     grouping_extension::Grouping,
     lexer::{End, Lexer},
-    token::{Category, IdentifierType, Token},
+    token::{IdentifierType, Token, TokenKind},
     ErrorKind, Statement, StatementKind,
 };
 use crate::{
@@ -24,7 +24,7 @@ pub(crate) trait Keywords {
 
 impl Lexer<'_> {
     fn parse_declaration(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let (end, params) = self.parse_comma_group(Category::Semicolon)?;
+        let (end, params) = self.parse_comma_group(TokenKind::Semicolon)?;
         match end {
             End::Done(end) => {
                 if let Some(errstmt) = params
@@ -42,12 +42,12 @@ impl Lexer<'_> {
     }
     fn parse_if(&mut self, kw: Token) -> Result<Statement, SyntaxError> {
         let ptoken = self.token().ok_or_else(|| unexpected_end!("if parsing"))?;
-        let condition = match ptoken.category() {
-            Category::LeftParen => self.parse_paren(ptoken.clone())?,
+        let condition = match ptoken.kind() {
+            TokenKind::LeftParen => self.parse_paren(ptoken.clone())?,
             _ => return Err(unexpected_token!(ptoken.clone())),
         }
         .as_returnable_or_err()?;
-        let (end, body) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
         let end = {
             match end {
                 End::Done(end) => end,
@@ -57,10 +57,10 @@ impl Lexer<'_> {
 
         let (ekw, r#else, end) = {
             match self.peek() {
-                Some(token) => match token.category() {
-                    Category::Identifier(IdentifierType::Else) => {
+                Some(token) => match token.kind() {
+                    TokenKind::Identifier(IdentifierType::Else) => {
                         self.token();
-                        let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+                        let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
 
                         match end {
                             End::Done(end) => (Some(token), Some(stmt), end),
@@ -89,7 +89,7 @@ impl Lexer<'_> {
         let token = self
             .token()
             .ok_or_else(|| unexpected_end!("expected paren."))?;
-        if token.category() != &Category::LeftParen {
+        if token.kind() != &TokenKind::LeftParen {
             Err(unexpected_token!(token))
         } else {
             Ok(())
@@ -98,7 +98,7 @@ impl Lexer<'_> {
 
     fn parse_call_return_params(&mut self) -> Result<Statement, SyntaxError> {
         self.jump_to_left_parenthesis()?;
-        let (end, parameter) = self.statement(0, &|cat| cat == &Category::RightParen)?;
+        let (end, parameter) = self.statement(0, &|cat| cat == &TokenKind::RightParen)?;
         let parameter = parameter.as_returnable_or_err()?;
         match end {
             End::Done(_) => Ok(parameter),
@@ -109,7 +109,7 @@ impl Lexer<'_> {
     fn parse_exit(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         // TODO maybe refactor to reuse function call and hindsight verification
         let parameter = self.parse_call_return_params()?;
-        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
 
         if !matches!(should_be_semicolon.kind(), &StatementKind::NoOp) {
             // exit must be followed by ; nothing else
@@ -126,7 +126,7 @@ impl Lexer<'_> {
     fn parse_include(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         // TODO maybe refactor to reuse function call and hindsight verification
         let parameter = self.parse_call_return_params()?;
-        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+        let (_, should_be_semicolon) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
 
         if !matches!(should_be_semicolon.kind(), &StatementKind::NoOp) {
             // exit must be followed by ; nothing else
@@ -144,18 +144,18 @@ impl Lexer<'_> {
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
         if !matches!(
-            id.category(),
-            Category::Identifier(IdentifierType::Undefined(_))
+            id.kind(),
+            TokenKind::Identifier(IdentifierType::Undefined(_))
         ) {
             return Err(unexpected_token!(id));
         }
         let paren = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(paren.category(), Category::LeftParen) {
+        if !matches!(paren.kind(), TokenKind::LeftParen) {
             return Err(unexpected_token!(paren));
         }
-        let (gend, parameter) = self.parse_comma_group(Category::RightParen)?;
+        let (gend, parameter) = self.parse_comma_group(TokenKind::RightParen)?;
         let parameter_end_token = match gend {
             End::Done(t) => t,
             End::Continue => return Err(unclosed_token!(token)),
@@ -169,7 +169,7 @@ impl Lexer<'_> {
         let block = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(block.category(), Category::LeftCurlyBracket) {
+        if !matches!(block.kind(), TokenKind::LeftCurlyBracket) {
             return Err(unexpected_token!(block));
         }
         let block = self.parse_block(block)?;
@@ -182,7 +182,7 @@ impl Lexer<'_> {
 
     fn parse_return(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         if let Some(sc) = self.peek() {
-            if matches!(sc.category(), Category::Semicolon) {
+            if matches!(sc.kind(), TokenKind::Semicolon) {
                 self.token();
                 return Ok(Statement::with_start_end_token(
                     token,
@@ -191,7 +191,7 @@ impl Lexer<'_> {
                 ));
             }
         }
-        let (end, parameter) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+        let (end, parameter) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
         let parameter = parameter.as_returnable_or_err()?;
         match end {
             End::Done(end) => Ok(Statement::with_start_end_token(
@@ -205,7 +205,7 @@ impl Lexer<'_> {
     fn parse_continue(&mut self, kw: Token) -> Result<Statement, SyntaxError> {
         let token = self.peek();
         if let Some(token) = token {
-            if matches!(token.category(), Category::Semicolon) {
+            if matches!(token.kind(), TokenKind::Semicolon) {
                 self.token();
                 return Ok(Statement::with_start_end_token(
                     kw,
@@ -221,7 +221,7 @@ impl Lexer<'_> {
     fn parse_break(&mut self, kw: Token) -> Result<Statement, SyntaxError> {
         let token = self.peek();
         if let Some(token) = token {
-            if matches!(token.category(), Category::Semicolon) {
+            if matches!(token.kind(), TokenKind::Semicolon) {
                 self.token();
                 return Ok(Statement::with_start_end_token(
                     kw,
@@ -238,7 +238,7 @@ impl Lexer<'_> {
     fn map_syntax_error_to_unclosed_left_paren(e: SyntaxError) -> SyntaxError {
         match e.kind() {
             ErrorKind::UnexpectedToken(k) => unclosed_token!(Token {
-                category: Category::LeftParen,
+                kind: TokenKind::LeftParen,
                 line_column: k.line_column,
                 position: k.position,
             }),
@@ -246,16 +246,16 @@ impl Lexer<'_> {
         }
     }
 
-    fn is_end_of_category(end: &End, category: Category) -> bool {
+    fn is_end_of_token(end: &End, kind: TokenKind) -> bool {
         match end {
-            End::Done(x) => x.category() == &category,
+            End::Done(x) => x.kind() == &kind,
             End::Continue => false,
         }
     }
 
     fn parse_for(&mut self, kw: Token) -> Result<Statement, SyntaxError> {
         self.jump_to_left_parenthesis()?;
-        let (end, assignment) = self.statement(0, &|c| c == &Category::Semicolon)?;
+        let (end, assignment) = self.statement(0, &|c| c == &TokenKind::Semicolon)?;
         if !matches!(
             assignment.kind(),
             StatementKind::Assign(..) | StatementKind::NoOp
@@ -266,7 +266,7 @@ impl Lexer<'_> {
             return Err(unclosed_statement!(assignment));
         }
         // `for (i = 0; i < 10; i++) display("hi");`
-        let (end, condition) = self.statement(0, &|c| c == &Category::Semicolon)?;
+        let (end, condition) = self.statement(0, &|c| c == &TokenKind::Semicolon)?;
         let condition = condition.as_returnable_or_err()?;
         if end == End::Continue {
             return Err(unclosed_statement!(condition));
@@ -274,14 +274,14 @@ impl Lexer<'_> {
         let (end, update) = match self.peek() {
             // no update statement provided
             Some(Token {
-                category: Category::RightParen,
+                kind: TokenKind::RightParen,
                 line_column,
                 position,
             }) => {
                 self.token();
                 (
                     End::Done(Token {
-                        category: Category::RightParen,
+                        kind: TokenKind::RightParen,
                         line_column,
                         position,
                     }),
@@ -289,18 +289,18 @@ impl Lexer<'_> {
                 )
             }
             _ => self
-                .statement(0, &|c| c == &Category::RightParen)
+                .statement(0, &|c| c == &TokenKind::RightParen)
                 .map_err(Self::map_syntax_error_to_unclosed_left_paren)?,
         };
-        if !Self::is_end_of_category(&end, Category::RightParen) {
+        if !Self::is_end_of_token(&end, TokenKind::RightParen) {
             let ut = update.as_token();
             return Err(unclosed_token!(Token {
-                category: Category::LeftParen,
+                kind: TokenKind::LeftParen,
                 line_column: ut.line_column,
                 position: ut.position
             }));
         }
-        let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == &TokenKind::Semicolon)?;
         match end {
             End::Continue => Err(unclosed_statement!(body)),
             End::Done(end) => Ok(Statement::with_start_end_token(
@@ -319,18 +319,18 @@ impl Lexer<'_> {
     fn parse_while(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         self.jump_to_left_parenthesis()?;
         let (end, condition) = self
-            .statement(0, &|c| c == &Category::RightParen)
+            .statement(0, &|c| c == &TokenKind::RightParen)
             .map_err(Self::map_syntax_error_to_unclosed_left_paren)?;
         let ct = condition.as_token();
-        if !Self::is_end_of_category(&end, Category::RightParen) {
+        if !Self::is_end_of_token(&end, TokenKind::RightParen) {
             return Err(unclosed_token!(Token {
-                category: Category::LeftParen,
+                kind: TokenKind::LeftParen,
                 line_column: ct.line_column,
                 position: ct.position,
             }));
         }
         let condition = condition.as_returnable_or_err()?;
-        let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == &TokenKind::Semicolon)?;
         match end {
             End::Done(end) => Ok(Statement::with_start_end_token(
                 token,
@@ -341,16 +341,16 @@ impl Lexer<'_> {
         }
     }
     fn parse_repeat(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let (end, body) = self.statement(0, &|c| c == &Category::Semicolon)?;
+        let (end, body) = self.statement(0, &|c| c == &TokenKind::Semicolon)?;
 
         if !end {
             return Err(unclosed_token!(token));
         }
         let (until, end) = {
             match self.token() {
-                Some(token) => match token.category() {
-                    Category::Identifier(IdentifierType::Until) => {
-                        let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+                Some(token) => match token.kind() {
+                    TokenKind::Identifier(IdentifierType::Until) => {
+                        let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
                         match end {
                             End::Done(end) => Ok((stmt, end)),
                             End::Continue => return Err(unclosed_token!(token)),
@@ -372,8 +372,8 @@ impl Lexer<'_> {
     fn parse_foreach(&mut self, token: Token) -> Result<Statement, SyntaxError> {
         let variable: Token = {
             match self.token() {
-                Some(token) => match token.category() {
-                    Category::Identifier(IdentifierType::Undefined(_)) => Ok(token),
+                Some(token) => match token.kind() {
+                    TokenKind::Identifier(IdentifierType::Undefined(_)) => Ok(token),
                     _ => Err(unexpected_token!(token)),
                 },
                 None => Err(unexpected_end!("in foreach")),
@@ -381,14 +381,14 @@ impl Lexer<'_> {
         };
         let r#in: Statement = {
             let token = self.token().ok_or_else(|| unexpected_end!("in foreach"))?;
-            match token.category() {
-                Category::LeftParen => self
+            match token.kind() {
+                TokenKind::LeftParen => self
                     .parse_paren(token.clone())
                     .map_err(|_| unclosed_token!(token)),
                 _ => Err(unexpected_token!(token)),
             }?
         };
-        let (end, block) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+        let (end, block) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
         match end {
             End::Done(end) => Ok(Statement::with_start_end_token(
                 token,
@@ -401,10 +401,10 @@ impl Lexer<'_> {
     }
     fn parse_fct_anon_args(&mut self, keyword: Token) -> Result<Statement, SyntaxError> {
         match self.peek() {
-            Some(token) => match token.category() {
-                Category::LeftBrace => {
+            Some(token) => match token.kind() {
+                TokenKind::LeftBrace => {
                     self.token();
-                    let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
+                    let (end, lookup) = self.statement(0, &|c| c == &TokenKind::RightBrace)?;
                     let lookup = lookup.as_returnable_or_err()?;
                     match end {
                         End::Done(end) => Ok(Statement::with_start_end_token(
@@ -492,12 +492,12 @@ mod test {
 
     use super::super::{
         parse,
-        token::{Category, IdentifierType},
+        token::{IdentifierType, TokenKind},
         Statement,
     };
 
     use super::super::StatementKind::*;
-    use super::super::TokenCategory::*;
+    use super::super::TokenKind::*;
 
     #[test]
     fn if_statement() {
@@ -536,20 +536,20 @@ mod test {
 
     #[test]
     fn local_var() {
-        let expected = |actual: Statement, scope: Category| match actual.kind() {
+        let expected = |actual: Statement, scope: TokenKind| match actual.kind() {
             Declare(vars) => {
-                assert_eq!(actual.as_token().category(), &scope);
+                assert_eq!(actual.as_token().kind(), &scope);
                 assert_eq!(vars.len(), 3);
             }
             _ => unreachable!("{actual} must be an declare stmt."),
         };
         expected(
             parse("local_var a, b, c;").next().unwrap().unwrap(),
-            Category::Identifier(IdentifierType::LocalVar),
+            TokenKind::Identifier(IdentifierType::LocalVar),
         );
         expected(
             parse("global_var a, b, c;").next().unwrap().unwrap(),
-            Category::Identifier(IdentifierType::GlobalVar),
+            TokenKind::Identifier(IdentifierType::GlobalVar),
         );
     }
 
@@ -557,26 +557,17 @@ mod test {
     fn null() {
         let result = parse("NULL;").next().unwrap().unwrap();
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(
-            result.as_token().category(),
-            &Identifier(IdentifierType::Null)
-        );
+        assert_eq!(result.as_token().kind(), &Identifier(IdentifierType::Null));
     }
 
     #[test]
     fn boolean() {
         let result = parse("TRUE;").next().unwrap().unwrap();
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(
-            result.as_token().category(),
-            &Identifier(IdentifierType::True)
-        );
+        assert_eq!(result.as_token().kind(), &Identifier(IdentifierType::True));
         let result = parse("FALSE;").next().unwrap().unwrap();
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(
-            result.as_token().category(),
-            &Identifier(IdentifierType::False)
-        );
+        assert_eq!(result.as_token().kind(), &Identifier(IdentifierType::False));
     }
 
     #[test]
@@ -696,14 +687,14 @@ mod test {
         let result = parse("_FCT_ANON_ARGS[0];").next().unwrap().unwrap();
         assert!(matches!(result.kind(), &Array(Some(_))));
         assert_eq!(
-            result.as_token().category(),
+            result.as_token().kind(),
             &Identifier(IdentifierType::FCTAnonArgs)
         );
 
         let result = parse("_FCT_ANON_ARGS;").next().unwrap().unwrap();
         assert!(matches!(result.kind(), &Array(None)));
         assert_eq!(
-            result.as_token().category(),
+            result.as_token().kind(),
             &Identifier(IdentifierType::FCTAnonArgs)
         );
     }

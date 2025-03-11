@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::interpreter::InterpretError;
-use crate::nasl::syntax::{IdentifierType, Statement, Token, TokenCategory};
+use crate::nasl::syntax::{IdentifierType, Statement, Token, TokenKind};
 
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
@@ -67,9 +67,9 @@ impl Interpreter<'_, '_> {
         body: &Statement,
     ) -> InterpretResult {
         // Get name of the iteration variable
-        let iter_name = match variable.category() {
-            TokenCategory::Identifier(IdentifierType::Undefined(name)) => name,
-            o => return Err(InterpretError::wrong_category(o)),
+        let iter_name = match variable.kind() {
+            TokenKind::Identifier(IdentifierType::Undefined(name)) => name,
+            o => return Err(InterpretError::wrong_kind(o)),
         };
         // Iterate through the iterable Statement
         for val in Vec::<NaslValue>::from(self.resolve(iterable).await?) {

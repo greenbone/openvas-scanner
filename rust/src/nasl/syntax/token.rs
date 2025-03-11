@@ -62,11 +62,10 @@ impl Base {
     }
 }
 
-/// Is used to identify which Category type is unclosed
+/// Is used to identify which token type is unclosed
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize, Deserialize))]
-pub enum UnclosedCategory {
-    /// Is a unclosed String.
+pub enum UnclosedTokenKind {
     String,
     Data,
 }
@@ -208,7 +207,7 @@ make_keyword_matcher! {
 /// Is used to identify a Token
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize, Deserialize))]
-pub enum Category {
+pub enum TokenKind {
     /// `(`
     LeftParen,
     /// `)`
@@ -328,75 +327,75 @@ pub enum Category {
     /// Identifier are literals that are not strings and don't start with a number
     Identifier(IdentifierType),
     /// Unclosed token. This can happen on e.g. string literals
-    Unclosed(UnclosedCategory),
+    Unclosed(UnclosedTokenKind),
     /// Number starts with an unidentifiable base
     UnknownBase,
     /// used when the symbol is unknown
     UnknownSymbol,
 }
 
-impl Display for Category {
+impl Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Category::LeftParen => write!(f, "("),
-            Category::RightParen => write!(f, ")"),
-            Category::LeftBrace => write!(f, "["),
-            Category::RightBrace => write!(f, "]"),
-            Category::LeftCurlyBracket => write!(f, "{{"),
-            Category::RightCurlyBracket => write!(f, "}}"),
-            Category::Comma => write!(f, ","),
-            Category::Dot => write!(f, "."),
-            Category::Percent => write!(f, "%"),
-            Category::PercentEqual => write!(f, "%="),
-            Category::Semicolon => write!(f, ";"),
-            Category::DoublePoint => write!(f, ":"),
-            Category::Tilde => write!(f, "~"),
-            Category::Caret => write!(f, "^"),
-            Category::Ampersand => write!(f, "&"),
-            Category::AmpersandAmpersand => write!(f, "&&"),
-            Category::Pipe => write!(f, "|"),
-            Category::PipePipe => write!(f, "||"),
-            Category::Bang => write!(f, "!"),
-            Category::BangEqual => write!(f, "!="),
-            Category::BangTilde => write!(f, "!~"),
-            Category::Equal => write!(f, "="),
-            Category::EqualEqual => write!(f, "=="),
-            Category::EqualTilde => write!(f, "=~"),
-            Category::Greater => write!(f, ">"),
-            Category::GreaterGreater => write!(f, ">>"),
-            Category::GreaterEqual => write!(f, ">="),
-            Category::GreaterLess => write!(f, "><"),
-            Category::Less => write!(f, "<"),
-            Category::LessLess => write!(f, "<<"),
-            Category::LessEqual => write!(f, "<="),
-            Category::Minus => write!(f, "-"),
-            Category::MinusMinus => write!(f, "--"),
-            Category::MinusEqual => write!(f, "-="),
-            Category::Plus => write!(f, "+"),
-            Category::PlusEqual => write!(f, "+="),
-            Category::PlusPlus => write!(f, "++"),
-            Category::Slash => write!(f, "/"),
-            Category::SlashEqual => write!(f, "/="),
-            Category::Star => write!(f, "*"),
-            Category::StarStar => write!(f, "**"),
-            Category::StarEqual => write!(f, "*="),
-            Category::GreaterGreaterGreater => write!(f, ">>>"),
-            Category::GreaterGreaterEqual => write!(f, ">>="),
-            Category::LessLessEqual => write!(f, "<<="),
-            Category::GreaterBangLess => write!(f, ">!<"),
-            Category::GreaterGreaterGreaterEqual => write!(f, ">>>="),
-            Category::X => write!(f, "X"),
-            Category::String(x) => write!(f, "\"{x}\""),
-            Category::Number(x) => write!(f, "{x}"),
-            Category::IPv4Address(x) => write!(f, "{x}"),
-            Category::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
-            Category::IllegalNumber(_) => write!(f, "IllegalNumber"),
-            Category::Comment => write!(f, "Comment"),
-            Category::Identifier(x) => write!(f, "{}", x),
-            Category::Unclosed(x) => write!(f, "Unclosed{x:?}"),
-            Category::UnknownBase => write!(f, "UnknownBase"),
-            Category::UnknownSymbol => write!(f, "UnknownSymbol"),
-            Category::Data(x) => write!(f, "{x:?}"),
+            TokenKind::LeftParen => write!(f, "("),
+            TokenKind::RightParen => write!(f, ")"),
+            TokenKind::LeftBrace => write!(f, "["),
+            TokenKind::RightBrace => write!(f, "]"),
+            TokenKind::LeftCurlyBracket => write!(f, "{{"),
+            TokenKind::RightCurlyBracket => write!(f, "}}"),
+            TokenKind::Comma => write!(f, ","),
+            TokenKind::Dot => write!(f, "."),
+            TokenKind::Percent => write!(f, "%"),
+            TokenKind::PercentEqual => write!(f, "%="),
+            TokenKind::Semicolon => write!(f, ";"),
+            TokenKind::DoublePoint => write!(f, ":"),
+            TokenKind::Tilde => write!(f, "~"),
+            TokenKind::Caret => write!(f, "^"),
+            TokenKind::Ampersand => write!(f, "&"),
+            TokenKind::AmpersandAmpersand => write!(f, "&&"),
+            TokenKind::Pipe => write!(f, "|"),
+            TokenKind::PipePipe => write!(f, "||"),
+            TokenKind::Bang => write!(f, "!"),
+            TokenKind::BangEqual => write!(f, "!="),
+            TokenKind::BangTilde => write!(f, "!~"),
+            TokenKind::Equal => write!(f, "="),
+            TokenKind::EqualEqual => write!(f, "=="),
+            TokenKind::EqualTilde => write!(f, "=~"),
+            TokenKind::Greater => write!(f, ">"),
+            TokenKind::GreaterGreater => write!(f, ">>"),
+            TokenKind::GreaterEqual => write!(f, ">="),
+            TokenKind::GreaterLess => write!(f, "><"),
+            TokenKind::Less => write!(f, "<"),
+            TokenKind::LessLess => write!(f, "<<"),
+            TokenKind::LessEqual => write!(f, "<="),
+            TokenKind::Minus => write!(f, "-"),
+            TokenKind::MinusMinus => write!(f, "--"),
+            TokenKind::MinusEqual => write!(f, "-="),
+            TokenKind::Plus => write!(f, "+"),
+            TokenKind::PlusEqual => write!(f, "+="),
+            TokenKind::PlusPlus => write!(f, "++"),
+            TokenKind::Slash => write!(f, "/"),
+            TokenKind::SlashEqual => write!(f, "/="),
+            TokenKind::Star => write!(f, "*"),
+            TokenKind::StarStar => write!(f, "**"),
+            TokenKind::StarEqual => write!(f, "*="),
+            TokenKind::GreaterGreaterGreater => write!(f, ">>>"),
+            TokenKind::GreaterGreaterEqual => write!(f, ">>="),
+            TokenKind::LessLessEqual => write!(f, "<<="),
+            TokenKind::GreaterBangLess => write!(f, ">!<"),
+            TokenKind::GreaterGreaterGreaterEqual => write!(f, ">>>="),
+            TokenKind::X => write!(f, "X"),
+            TokenKind::String(x) => write!(f, "\"{x}\""),
+            TokenKind::Number(x) => write!(f, "{x}"),
+            TokenKind::IPv4Address(x) => write!(f, "{x}"),
+            TokenKind::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
+            TokenKind::IllegalNumber(_) => write!(f, "IllegalNumber"),
+            TokenKind::Comment => write!(f, "Comment"),
+            TokenKind::Identifier(x) => write!(f, "{}", x),
+            TokenKind::Unclosed(x) => write!(f, "Unclosed{x:?}"),
+            TokenKind::UnknownBase => write!(f, "UnknownBase"),
+            TokenKind::UnknownSymbol => write!(f, "UnknownSymbol"),
+            TokenKind::Data(x) => write!(f, "{x:?}"),
         }
     }
 }
@@ -405,8 +404,8 @@ impl Display for Category {
 /// Contains the TokenType as well as the position.
 #[cfg_attr(test, derive(Serialize, Deserialize))]
 pub struct Token {
-    /// The category or kind of a token
-    pub category: Category,
+    /// The kind of a token
+    pub kind: TokenKind,
     /// The line and the column of the start of the token
     pub line_column: (usize, usize),
     /// Byte position
@@ -416,7 +415,7 @@ pub struct Token {
 impl Default for Token {
     fn default() -> Self {
         Token {
-            category: Category::UnknownSymbol,
+            kind: TokenKind::UnknownSymbol,
             line_column: (0, 0),
             position: (0, 0),
         }
@@ -427,30 +426,29 @@ impl Token {
     /// Returns UnknownSymbol without line column or position
     pub fn unexpected_none() -> Self {
         Self {
-            category: Category::UnknownSymbol,
+            kind: TokenKind::UnknownSymbol,
             line_column: (0, 0),
             position: (0, 0),
         }
     }
 
     pub fn identifier(&self) -> Result<String, InterpretError> {
-        match self.category() {
-            Category::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
-            cat => Err(InterpretError::wrong_category(cat)),
+        match self.kind() {
+            TokenKind::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
+            cat => Err(InterpretError::wrong_kind(cat)),
         }
     }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "'{}'", self.category,)
+        write!(f, "'{}'", self.kind,)
     }
 }
 
 impl Token {
-    /// Returns the Category
-    pub fn category(&self) -> &Category {
-        &self.category
+    pub fn kind(&self) -> &TokenKind {
+        &self.kind
     }
 
     /// Returns the line number of the token
@@ -463,22 +461,22 @@ impl Token {
         self.line_column.1
     }
 
-    /// Returns true when an Token is faulty
+    /// Returns true when a Token is faulty
     ///
     /// A Token is faulty when it is a syntactical error like
-    /// - [Category::IllegalIPv4Address]
-    /// - [Category::Unclosed]
-    /// - [Category::UnknownBase]
-    /// - [Category::UnknownSymbol]
-    /// - [Category::IllegalNumber]
+    /// - [TokenKind::IllegalIPv4Address]
+    /// - [TokenKind::Unclosed]
+    /// - [TokenKind::UnknownBase]
+    /// - [TokenKind::UnknownSymbol]
+    /// - [TokenKind::IllegalNumber]
     pub fn is_faulty(&self) -> bool {
         matches!(
-            self.category(),
-            Category::IllegalIPv4Address
-                | Category::IllegalNumber(_)
-                | Category::Unclosed(_)
-                | Category::UnknownBase
-                | Category::UnknownSymbol
+            self.kind(),
+            TokenKind::IllegalIPv4Address
+                | TokenKind::IllegalNumber(_)
+                | TokenKind::Unclosed(_)
+                | TokenKind::UnknownBase
+                | TokenKind::UnknownSymbol
         )
     }
 }
@@ -511,8 +509,8 @@ impl<'a> Tokenizer<'a> {
     // >>>=
     // >!<
     // most operators don't have triple or tuple variant
-    fn tokenize_greater(&mut self) -> Category {
-        use Category::*;
+    fn tokenize_greater(&mut self) -> TokenKind {
+        use TokenKind::*;
         let next = self.cursor.peek(0);
         match next {
             '=' => {
@@ -555,8 +553,8 @@ impl<'a> Tokenizer<'a> {
     // we break out of the macro since < can be parsed to:
     // <<=
     // most operators don't have triple or tuple variant
-    fn tokenize_less(&mut self) -> Category {
-        use Category::*;
+    fn tokenize_less(&mut self) -> TokenKind {
+        use TokenKind::*;
         let next = self.cursor.peek(0);
         match next {
             '=' => {
@@ -579,12 +577,11 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Skips initial and ending data identifier ' and verifies that a string is closed
-    fn tokenize_string(&mut self) -> Category {
-        //'"' => self.tokenize_string(StringCategory::Unquotable, |c| c != '"'),
+    fn tokenize_string(&mut self) -> TokenKind {
         let start = self.cursor.len_consumed();
         self.cursor.skip_while(|c| c != '"');
         if self.cursor.is_eof() {
-            Category::Unclosed(UnclosedCategory::String)
+            TokenKind::Unclosed(UnclosedTokenKind::String)
         } else {
             let result = self.code[Range {
                 start,
@@ -592,12 +589,12 @@ impl<'a> Tokenizer<'a> {
             }]
             .to_owned();
             self.cursor.advance();
-            Category::String(result)
+            TokenKind::String(result)
         }
     }
 
     // Skips initial and ending string identifier ' || " and verifies that a string is closed
-    fn tokenize_data(&mut self) -> Category {
+    fn tokenize_data(&mut self) -> TokenKind {
         // we don't want the lookup to contain "
         let start = self.cursor.len_consumed();
         let mut back_slash = false;
@@ -610,7 +607,7 @@ impl<'a> Tokenizer<'a> {
             }
         });
         if self.cursor.is_eof() {
-            Category::Unclosed(UnclosedCategory::Data)
+            TokenKind::Unclosed(UnclosedTokenKind::Data)
         } else {
             let mut raw_str = self.code[Range {
                 start,
@@ -624,10 +621,10 @@ impl<'a> Tokenizer<'a> {
             raw_str = raw_str.replace(r"\r", "\r");
             raw_str = raw_str.replace(r"\t", "\t");
             self.cursor.advance();
-            Category::Data(raw_str.as_bytes().to_vec())
+            TokenKind::Data(raw_str.as_bytes().to_vec())
         }
     }
-    fn may_parse_ipv4(&mut self, base: Base, start: usize) -> Option<Category> {
+    fn may_parse_ipv4(&mut self, base: Base, start: usize) -> Option<TokenKind> {
         use Base::*;
         // IPv4Address start as Base10
         if base == Base10 && self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
@@ -642,16 +639,16 @@ impl<'a> Tokenizer<'a> {
                     self.cursor.advance();
                     self.cursor.skip_while(base.verifier());
                 } else {
-                    return Some(Category::IllegalIPv4Address);
+                    return Some(TokenKind::IllegalIPv4Address);
                 }
 
                 if self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
                     self.cursor.advance();
                     self.cursor.skip_while(base.verifier());
                 } else {
-                    return Some(Category::IllegalIPv4Address);
+                    return Some(TokenKind::IllegalIPv4Address);
                 }
-                return Some(Category::IPv4Address(
+                return Some(TokenKind::IPv4Address(
                     self.code[Range {
                         start,
                         end: self.cursor.len_consumed(),
@@ -659,14 +656,14 @@ impl<'a> Tokenizer<'a> {
                     .to_owned(),
                 ));
             } else {
-                return Some(Category::IllegalIPv4Address);
+                return Some(TokenKind::IllegalIPv4Address);
             }
         }
         None
     }
 
     // checks if a number is binary, octal, base10 or hex
-    fn tokenize_number(&mut self, mut start: usize, current: char) -> Category {
+    fn tokenize_number(&mut self, mut start: usize, current: char) -> TokenKind {
         use Base::*;
         let may_base = {
             if current == '0' {
@@ -705,7 +702,7 @@ impl<'a> Tokenizer<'a> {
                     // we verify that the cursor actually moved to prevent scenarios like
                     // 0b without any actual number in it
                     if start == self.cursor.len_consumed() {
-                        Category::IllegalNumber(base)
+                        TokenKind::IllegalNumber(base)
                     } else {
                         match i64::from_str_radix(
                             &self.code[Range {
@@ -714,32 +711,32 @@ impl<'a> Tokenizer<'a> {
                             }],
                             base.radix(),
                         ) {
-                            Ok(num) => Category::Number(num),
-                            Err(_) => Category::IllegalNumber(base),
+                            Ok(num) => TokenKind::Number(num),
+                            Err(_) => TokenKind::IllegalNumber(base),
                         }
                     }
                 }
             }
         } else {
-            Category::UnknownBase
+            TokenKind::UnknownBase
         }
     }
 
     // Checks if an identifier is a Keyword or not
-    fn tokenize_identifier(&mut self, start: usize) -> Category {
+    fn tokenize_identifier(&mut self, start: usize) -> TokenKind {
         self.cursor
             .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
         let end = self.cursor.len_consumed();
         let lookup = self.lookup(Range { start, end });
         if lookup != "x" {
             let keyword = IdentifierType::new(lookup);
-            Category::Identifier(keyword)
+            TokenKind::Identifier(keyword)
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
             if self.cursor.peek(0).is_numeric() {
-                Category::X
+                TokenKind::X
             } else {
-                Category::Identifier(IdentifierType::Undefined(lookup.to_owned()))
+                TokenKind::Identifier(IdentifierType::Undefined(lookup.to_owned()))
             }
         }
     }
@@ -768,11 +765,11 @@ impl Iterator for Tokenizer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use Category::*;
+        use TokenKind::*;
         self.cursor.skip_while(|c| c.is_whitespace());
         let start = self.cursor.len_consumed();
         let position = self.cursor.line_column();
-        let category: Category = match self.cursor.advance()? {
+        let kind: TokenKind = match self.cursor.advance()? {
             '(' => LeftParen,
             ')' => RightParen,
             '[' => LeftBrace,
@@ -809,7 +806,7 @@ impl Iterator for Tokenizer<'_> {
         };
         let byte_position = (start, self.cursor.len_consumed());
         Some(Token {
-            category,
+            kind,
             line_column: position,
             position: byte_position,
         })
@@ -825,7 +822,7 @@ mod tests {
         ($code:expr, $expected:expr) => {{
             use std::string::String;
             let tokenizer = Tokenizer::new($code);
-            let actual: Vec<String> = tokenizer.map(|t| t.category().to_string()).collect();
+            let actual: Vec<String> = tokenizer.map(|t| t.kind().to_string()).collect();
             let expected: Vec<String> = $expected.iter().map(|s| s.to_string()).collect();
             assert_eq!(actual, expected);
         }};

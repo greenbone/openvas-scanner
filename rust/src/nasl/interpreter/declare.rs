@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::interpreter::InterpretError;
-use crate::nasl::syntax::{Statement, StatementKind, Token, TokenCategory};
+use crate::nasl::syntax::{Statement, StatementKind, Token, TokenKind};
 
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
@@ -52,23 +52,23 @@ impl DeclareVariableExtension for Interpreter<'_, '_> {
     fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> InterpretResult {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
-            match scope.category() {
-                TokenCategory::Identifier(crate::nasl::syntax::IdentifierType::GlobalVar) => {
+            match scope.kind() {
+                TokenKind::Identifier(crate::nasl::syntax::IdentifierType::GlobalVar) => {
                     self.register.add_global(key, value)
                 }
-                TokenCategory::Identifier(crate::nasl::syntax::IdentifierType::LocalVar) => {
+                TokenKind::Identifier(crate::nasl::syntax::IdentifierType::LocalVar) => {
                     self.register.add_local(key, value)
                 }
                 _ => unreachable!(
                     "{} should not be identified as an declare statement",
-                    scope.category()
+                    scope.kind()
                 ),
             }
         };
 
         for stmt in stmts {
             if let StatementKind::Variable = stmt.kind() {
-                if let TokenCategory::Identifier(name) = stmt.as_token().category() {
+                if let TokenKind::Identifier(name) = stmt.as_token().kind() {
                     add(&name.to_string());
                 }
             };

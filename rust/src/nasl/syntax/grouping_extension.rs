@@ -5,7 +5,7 @@
 use super::{
     error::SyntaxError,
     lexer::{End, Lexer},
-    token::{Category, Token},
+    token::{Token, TokenKind},
     AssignOrder, Statement, StatementKind,
 };
 
@@ -22,7 +22,7 @@ pub(crate) trait Grouping {
 
 impl Grouping for Lexer<'_> {
     fn parse_paren(&mut self, token: Token) -> Result<Statement, SyntaxError> {
-        let (end, right) = self.statement(0, &|cat| cat == &Category::RightParen)?;
+        let (end, right) = self.statement(0, &|cat| cat == &TokenKind::RightParen)?;
 
         match end {
             End::Done(end) => {
@@ -52,7 +52,7 @@ impl Grouping for Lexer<'_> {
     fn parse_block(&mut self, kw: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
         while let Some(token) = self.peek() {
-            if token.category() == &Category::RightCurlyBracket {
+            if token.kind() == &TokenKind::RightCurlyBracket {
                 let _ = self.token();
 
                 self.depth = 0;
@@ -63,7 +63,7 @@ impl Grouping for Lexer<'_> {
                 );
                 return Ok(stmt);
             }
-            let (end, stmt) = self.statement(0, &|cat| cat == &Category::Semicolon)?;
+            let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
             if end.is_done() && !matches!(stmt.kind(), StatementKind::NoOp) {
                 results.push(stmt);
             }
@@ -79,11 +79,11 @@ impl Grouping for Lexer<'_> {
         fn as_con(stmt: Statement) -> (End, Statement) {
             (End::Continue, stmt)
         }
-        match token.category() {
-            Category::LeftParen => self.parse_paren(token).map(as_con),
-            Category::LeftCurlyBracket => self.parse_block(token).map(as_done),
-            Category::LeftBrace => {
-                let (end, right) = self.parse_comma_group(Category::RightBrace)?;
+        match token.kind() {
+            TokenKind::LeftParen => self.parse_paren(token).map(as_con),
+            TokenKind::LeftCurlyBracket => self.parse_block(token).map(as_done),
+            TokenKind::LeftBrace => {
+                let (end, right) = self.parse_comma_group(TokenKind::RightBrace)?;
                 match end {
                     End::Done(end) => Ok((
                         End::Continue,

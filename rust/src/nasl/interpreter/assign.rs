@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use crate::nasl::interpreter::InterpretError;
-use crate::nasl::syntax::{AssignOrder, Statement, TokenCategory};
+use crate::nasl::syntax::{AssignOrder, Statement, TokenKind};
 
 use super::interpreter::InterpretResult;
 use super::interpreter::Interpreter;
@@ -179,7 +179,7 @@ impl Interpreter<'_, '_> {
     /// previous or the new value, based on the order.
     pub async fn assign(
         &mut self,
-        category: &TokenCategory,
+        kind: &TokenKind,
         order: &AssignOrder,
         left: &Statement,
         right: &Statement,
@@ -196,29 +196,29 @@ impl Interpreter<'_, '_> {
             }
         };
         let val = self.resolve(right).await?;
-        match category {
-            TokenCategory::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
-            TokenCategory::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {
+        match kind {
+            TokenKind::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
+            TokenKind::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) + i64::from(right))
             }),
-            TokenCategory::MinusEqual => self.store_return(&key, lookup, &val, |left, right| {
+            TokenKind::MinusEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) - i64::from(right))
             }),
-            TokenCategory::SlashEqual => self.store_return(&key, lookup, &val, |left, right| {
+            TokenKind::SlashEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) / i64::from(right))
             }),
-            TokenCategory::StarEqual => self.store_return(&key, lookup, &val, |left, right| {
+            TokenKind::StarEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) * i64::from(right))
             }),
-            TokenCategory::GreaterGreaterEqual => {
+            TokenKind::GreaterGreaterEqual => {
                 self.store_return(&key, lookup, &val, |left, right| {
                     NaslValue::Number(i64::from(left) >> i64::from(right))
                 })
             }
-            TokenCategory::LessLessEqual => self.store_return(&key, lookup, &val, |left, right| {
+            TokenKind::LessLessEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) << i64::from(right))
             }),
-            TokenCategory::GreaterGreaterGreaterEqual => {
+            TokenKind::GreaterGreaterGreaterEqual => {
                 self.store_return(&key, lookup, &val, |left, right| {
                     // get rid of minus sign
                     let left = i64::from(left) as u32;
@@ -226,17 +226,17 @@ impl Interpreter<'_, '_> {
                     NaslValue::Number((left << right) as i64)
                 })
             }
-            TokenCategory::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
+            TokenKind::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
                 NaslValue::Number(i64::from(left) % i64::from(right))
             }),
-            TokenCategory::PlusPlus => self.without_right(order, &key, lookup, |left, _| {
+            TokenKind::PlusPlus => self.without_right(order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) + 1)
             }),
-            TokenCategory::MinusMinus => self.without_right(order, &key, lookup, |left, _| {
+            TokenKind::MinusMinus => self.without_right(order, &key, lookup, |left, _| {
                 NaslValue::Number(i64::from(left) - 1)
             }),
 
-            cat => Err(InterpretError::wrong_category(cat)),
+            kind => Err(InterpretError::wrong_kind(kind)),
         }
     }
 }

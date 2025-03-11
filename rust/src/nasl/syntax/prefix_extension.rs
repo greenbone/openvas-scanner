@@ -9,7 +9,7 @@ use super::{
     keyword_extension::Keywords,
     lexer::{End, Lexer},
     operation::Operation,
-    token::{Category, Token},
+    token::{Token, TokenKind},
     Statement, {AssignOrder, StatementKind},
 };
 
@@ -22,14 +22,14 @@ pub(crate) trait Prefix {
     fn prefix_statement(
         &mut self,
         token: Token,
-        abort: &impl Fn(&Category) -> bool,
+        abort: &impl Fn(&TokenKind) -> bool,
     ) -> Result<(End, Statement), SyntaxError>;
 }
 
 /// Is used to verify operations.
 fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
-    match token.category() {
-        Category::Plus | Category::Minus | Category::Tilde | Category::Bang => Ok(21),
+    match token.kind() {
+        TokenKind::Plus | TokenKind::Minus | TokenKind::Tilde | TokenKind::Bang => Ok(21),
         _ => Err(unexpected_token!(token.clone())),
     }
 }
@@ -37,18 +37,18 @@ fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
 impl Lexer<'_> {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         if !matches!(
-            token.category(),
-            Category::Identifier(IdentifierType::Undefined(_))
+            token.kind(),
+            TokenKind::Identifier(IdentifierType::Undefined(_))
         ) {
             return Err(unexpected_token!(token));
         }
         use End::*;
         let (kind, end) = {
             if let Some(nt) = self.peek() {
-                match nt.category() {
-                    Category::LeftParen => {
+                match nt.kind() {
+                    TokenKind::LeftParen => {
                         self.token();
-                        let (end, params) = self.parse_comma_group(Category::RightParen)?;
+                        let (end, params) = self.parse_comma_group(TokenKind::RightParen)?;
                         match end {
                             Done(end) => {
                                 let params = Statement::with_start_end_token(
@@ -61,9 +61,9 @@ impl Lexer<'_> {
                             Continue => Err(unclosed_token!(nt)),
                         }
                     }
-                    Category::LeftBrace => {
+                    TokenKind::LeftBrace => {
                         self.token();
-                        let (end, lookup) = self.statement(0, &|c| c == &Category::RightBrace)?;
+                        let (end, lookup) = self.statement(0, &|c| c == &TokenKind::RightBrace)?;
                         let lookup = lookup.as_returnable_or_err()?;
                         match end {
                             Done(end) => Ok((StatementKind::Array(Some(Box::new(lookup))), end)),
@@ -84,7 +84,7 @@ impl Lexer<'_> {
     /// Parses Operations that have an prefix (e.g. -1)
     fn parse_prefix_assign_operator(
         &mut self,
-        assign: Category,
+        assign: TokenKind,
         token: Token,
     ) -> Result<Statement, SyntaxError> {
         let next = self
@@ -114,7 +114,7 @@ impl Prefix for Lexer<'_> {
     fn prefix_statement(
         &mut self,
         token: Token,
-        abort: &impl Fn(&Category) -> bool,
+        abort: &impl Fn(&TokenKind) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         use End::*;
         let op = Operation::new(&token).ok_or_else(|| unexpected_token!(token.clone()))?;
@@ -135,11 +135,11 @@ impl Prefix for Lexer<'_> {
             )),
             Operation::Variable => self.parse_variable(token),
             Operation::Grouping(_) => self.parse_grouping(token),
-            Operation::Assign(Category::MinusMinus) => self
-                .parse_prefix_assign_operator(Category::MinusMinus, token)
+            Operation::Assign(TokenKind::MinusMinus) => self
+                .parse_prefix_assign_operator(TokenKind::MinusMinus, token)
                 .map(|stmt| (Continue, stmt)),
-            Operation::Assign(Category::PlusPlus) => self
-                .parse_prefix_assign_operator(Category::PlusPlus, token)
+            Operation::Assign(TokenKind::PlusPlus) => self
+                .parse_prefix_assign_operator(TokenKind::PlusPlus, token)
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
@@ -156,12 +156,12 @@ mod test {
 
     use super::super::{
         parse,
-        token::{Category, Token},
+        token::{Token, TokenKind},
         AssignOrder, Statement, StatementKind,
     };
 
-    use Category::*;
     use StatementKind::*;
+    use TokenKind::*;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -169,26 +169,26 @@ mod test {
 
     #[test]
     fn operations() {
-        let expected = |stmt: Statement, category: Category| match stmt.kind() {
-            StatementKind::Operator(cat, _) => assert_eq!(cat, &category),
+        let expected = |stmt: Statement, kind1: TokenKind| match stmt.kind() {
+            StatementKind::Operator(kind2, _) => assert_eq!(kind2, &kind1),
             kind => panic!("expected Operator, but got: {:?}", kind),
         };
 
-        expected(result("-1;"), Category::Minus);
-        expected(result("+1;"), Category::Plus);
-        expected(result("~1;"), Category::Tilde);
-        expected(result("!1;"), Category::Bang);
+        expected(result("-1;"), TokenKind::Minus);
+        expected(result("+1;"), TokenKind::Plus);
+        expected(result("~1;"), TokenKind::Tilde);
+        expected(result("!1;"), TokenKind::Bang);
     }
 
     #[test]
     fn single_statement() {
         let no = Token {
-            category: Number(1),
+            kind: Number(1),
             line_column: (1, 1),
             position: (0, 1),
         };
         let data = Token {
-            category: Data(vec![97]),
+            kind: Data(vec![97]),
             line_column: (1, 1),
             position: (0, 3),
         };
@@ -202,15 +202,15 @@ mod test {
 
     #[test]
     fn assignment_operator() {
-        let expected = |stmt: Statement, assign_operator: Category| match stmt.kind() {
+        let expected = |stmt: Statement, assign_operator: TokenKind| match stmt.kind() {
             StatementKind::Assign(operator, AssignOrder::AssignReturn, _, _) => {
                 assert_eq!(operator, &assign_operator)
             }
             kind => panic!("expected Assign, but got: {:?}", kind),
         };
-        expected(result("++a;"), Category::PlusPlus);
-        expected(result("--a;"), Category::MinusMinus);
-        expected(result("++a[0];"), Category::PlusPlus);
-        expected(result("--a[0];"), Category::MinusMinus);
+        expected(result("++a;"), TokenKind::PlusPlus);
+        expected(result("--a;"), TokenKind::MinusMinus);
+        expected(result("++a[0];"), TokenKind::PlusPlus);
+        expected(result("--a[0];"), TokenKind::MinusMinus);
     }
 }

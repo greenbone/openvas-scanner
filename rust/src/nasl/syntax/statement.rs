@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::unexpected_statement;
 
-use super::{SyntaxError, Token, TokenCategory};
+use super::{SyntaxError, Token, TokenKind};
 
 /// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -53,9 +53,9 @@ pub enum StatementKind {
     /// Named parameter on a function
     NamedParameter(Box<Statement>),
     /// Assignment to a variable
-    Assign(TokenCategory, AssignOrder, Box<Statement>, Box<Statement>),
+    Assign(TokenKind, AssignOrder, Box<Statement>, Box<Statement>),
     /// An Operator (e.g. +, -, *)
-    Operator(TokenCategory, Vec<Statement>),
+    Operator(TokenKind, Vec<Statement>),
     /// If statement, containing a condition, expression to be executed when the condition is true and an optional else expression
     If(
         Box<Statement>,
@@ -398,26 +398,26 @@ impl std::fmt::Display for Statement {
         };
         let x = self.start();
         match self.kind() {
-            StatementKind::Primitive => write!(f, "{}", x.category()),
+            StatementKind::Primitive => write!(f, "{}", x.kind()),
             StatementKind::AttackCategory => write!(f, "{x:?}"),
-            StatementKind::Variable => write!(f, "{}", x.category()),
+            StatementKind::Variable => write!(f, "{}", x.kind()),
             StatementKind::Array(e) => match e {
                 Some(e) => {
-                    write!(f, "{}[{e}]", x.category())
+                    write!(f, "{}[{e}]", x.kind())
                 }
-                None => write!(f, "{}", x.category()),
+                None => write!(f, "{}", x.kind()),
             },
             StatementKind::Call(args) => {
-                write!(f, "{}{};", x.category(), args)
+                write!(f, "{}{};", x.kind(), args)
             }
             StatementKind::Exit(x) => write!(f, "exit({x});"),
             StatementKind::Return(x) => write!(f, "return {x};"),
             StatementKind::Include(x) => write!(f, "include({x});"),
             StatementKind::Declare(y) => {
-                write!(f, "{} {}", x.category(), as_str_list(y),)
+                write!(f, "{} {}", x.kind(), as_str_list(y),)
             }
             StatementKind::Parameter(x) => write!(f, "({})", as_str_list(x),),
-            StatementKind::NamedParameter(s) => write!(f, "{}: {s}", x.category()),
+            StatementKind::NamedParameter(s) => write!(f, "{}: {s}", x.kind()),
             StatementKind::Assign(c, o, l, r) => match (o, r.kind().clone()) {
                 (AssignOrder::AssignReturn, StatementKind::NoOp) => write!(f, "{c}{l}"),
                 (AssignOrder::ReturnAssign, StatementKind::NoOp) => write!(f, "{l}{c}"),
@@ -440,11 +440,11 @@ impl std::fmt::Display for Statement {
             StatementKind::While(c, e) => write!(f, "while ({c}) {{{e}}}"),
             StatementKind::Repeat(e, c) => write!(f, "repeat {e} until {c}"),
             StatementKind::ForEach(v, a, e) => {
-                write!(f, "foreach {}({a}) {{{e}}}", v.category())
+                write!(f, "foreach {}({a}) {{{e}}}", v.kind())
             }
             StatementKind::Block(..) => write!(f, "{{ ... }}"),
             StatementKind::FunctionDeclaration(n, p, _) => {
-                write!(f, "function {}({}) {{ ... }}", n.category(), p)
+                write!(f, "function {}({}) {{ ... }}", n.kind(), p)
             }
             StatementKind::NoOp => write!(f, "NoOp"),
             StatementKind::EoF => write!(f, "EoF"),

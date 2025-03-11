@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod test {
-    use super::super::{parse, AssignOrder, Statement, StatementKind, TokenCategory};
+    use super::super::{parse, AssignOrder, Statement, StatementKind, TokenKind};
 
     use StatementKind::*;
 
@@ -22,7 +22,7 @@ mod test {
         assert!(matches!(result("a[0];").kind(), Array(Some(_))));
         let re = result("a = [1, 2, 3];");
         match re.kind() {
-            Assign(TokenCategory::Equal, AssignOrder::AssignReturn, arr, _) => {
+            Assign(TokenKind::Equal, AssignOrder::AssignReturn, arr, _) => {
                 assert!(matches!(arr.kind(), Array(None)))
             }
             _ => panic!("{re} must be an assign statement"),
@@ -30,7 +30,7 @@ mod test {
 
         let re = result("a[0] = [1, 2, 4];");
         match re.kind() {
-            Assign(TokenCategory::Equal, AssignOrder::AssignReturn, arr, _) => {
+            Assign(TokenKind::Equal, AssignOrder::AssignReturn, arr, _) => {
                 assert!(matches!(arr.kind(), &Array(Some(_))))
             }
             _ => panic!("{re} must be an assign statement"),

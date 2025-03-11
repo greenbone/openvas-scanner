@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::syntax::LoadError;
-use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
+use crate::nasl::syntax::{Statement, SyntaxError, TokenKind};
 use crate::nasl::utils::error::FnError;
 use thiserror::Error;
 
@@ -75,9 +75,9 @@ pub enum InterpretErrorKind {
     /// When a specific type is expected
     #[error("Expected the type {0}")]
     WrongType(String),
-    /// When a specific token category is required but not given.
-    #[error("Expected the category {0}")]
-    WrongCategory(TokenCategory),
+    /// When a specific token kind is required but not given.
+    #[error("Expected the kind {0}")]
+    WrongCategory(TokenKind),
     /// Regex parsing went wrong.
     #[error("Invalid regular expression: {0}")]
     InvalidRegex(String),
@@ -175,8 +175,8 @@ impl InterpretError {
         Self::new(InterpretErrorKind::ValueExpectedFunction, None)
     }
 
-    /// Creates an error if the TokenCategory is wrong
-    pub fn wrong_category(cat: &TokenCategory) -> Self {
+    /// Creates an error if the TokenKind is wrong
+    pub fn wrong_kind(cat: &TokenKind) -> Self {
         Self::new(InterpretErrorKind::WrongCategory(cat.clone()), None)
     }
 
@@ -201,8 +201,8 @@ impl InterpretError {
     }
 }
 
-impl From<TokenCategory> for InterpretError {
-    fn from(cat: TokenCategory) -> Self {
+impl From<TokenKind> for InterpretError {
+    fn from(cat: TokenKind) -> Self {
         Self::new(InterpretErrorKind::WrongCategory(cat), None)
     }
 }

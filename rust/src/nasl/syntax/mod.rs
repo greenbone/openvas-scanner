@@ -23,9 +23,9 @@ pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;
 pub use token::Base as NumberBase;
-pub use token::Category as TokenCategory;
 pub use token::IdentifierType;
 pub use token::Token;
+pub use token::TokenKind;
 pub use token::Tokenizer;
 
 /// Parses given code and returns found Statements and Errors
@@ -47,7 +47,7 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::nasl::syntax::{
         cursor::Cursor,
-        token::{Category, IdentifierType, Token, Tokenizer},
+        token::{IdentifierType, Token, TokenKind, Tokenizer},
     };
 
     #[test]
@@ -65,27 +65,27 @@ mod tests {
             all_tokens,
             vec![
                 Token {
-                    category: Category::Identifier(IdentifierType::LocalVar),
+                    kind: TokenKind::Identifier(IdentifierType::LocalVar),
                     line_column: (1, 1),
                     position: (0, 9)
                 },
                 Token {
-                    category: Category::Identifier(IdentifierType::Undefined("hello".to_owned())),
+                    kind: TokenKind::Identifier(IdentifierType::Undefined("hello".to_owned())),
                     line_column: (1, 11),
                     position: (10, 15)
                 },
                 Token {
-                    category: Category::Equal,
+                    kind: TokenKind::Equal,
                     line_column: (1, 17),
                     position: (16, 17)
                 },
                 Token {
-                    category: Category::Data("World!".as_bytes().to_vec()),
+                    kind: TokenKind::Data("World!".as_bytes().to_vec()),
                     line_column: (1, 19),
                     position: (18, 26)
                 },
                 Token {
-                    category: Category::Semicolon,
+                    kind: TokenKind::Semicolon,
                     line_column: (1, 27),
                     position: (26, 27)
                 },

@@ -73,11 +73,11 @@ impl SyntaxError {
 ///
 /// Basic usage:
 /// ```rust
-/// use scannerlib::nasl::syntax::{ErrorKind, Token, TokenCategory};
+/// use scannerlib::nasl::syntax::{ErrorKind, Token, TokenKind};
 /// use scannerlib::syntax_error;
 /// syntax_error!(
 ///     ErrorKind::UnexpectedToken(Token {
-///         category: TokenCategory::UnknownSymbol,
+///         kind: TokenKind::UnknownSymbol,
 ///         line_column: (42, 42),
 ///         position: (42, 42),
 ///     })
@@ -97,10 +97,10 @@ macro_rules! syntax_error {
 ///
 /// Basic usage:
 /// ```rust
-/// use scannerlib::nasl::syntax::{Token, TokenCategory};
+/// use scannerlib::nasl::syntax::{Token, TokenKind};
 /// use scannerlib::unexpected_token;
 /// unexpected_token!(Token {
-///     category: TokenCategory::UnknownSymbol,
+///     kind: TokenKind::UnknownSymbol,
 ///     line_column: (42, 42),
 ///     position: (42, 42),
 /// });
@@ -159,10 +159,10 @@ macro_rules! unclosed_statement {
 ///
 /// Basic usage:
 /// ```rust
-/// use scannerlib::nasl::syntax::{Token, TokenCategory};
+/// use scannerlib::nasl::syntax::{Token, TokenKind};
 /// use scannerlib::unclosed_token;
 /// unclosed_token!(Token {
-///     category: TokenCategory::UnknownSymbol,
+///     kind: TokenKind::UnknownSymbol,
 ///     position: (42, 42),
 ///     line_column: (42, 42),
 /// });
@@ -239,7 +239,7 @@ impl From<io::Error> for SyntaxError {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::syntax::{parse, ErrorKind, TokenCategory};
+    use crate::nasl::syntax::{parse, ErrorKind, TokenKind};
 
     fn test_for_missing_semicolon(code: &str) {
         let result = parse(code).next().unwrap();
@@ -252,13 +252,13 @@ mod tests {
         }
     }
 
-    fn test_for_unclosed_token(code: &str, category: TokenCategory) {
+    fn test_for_unclosed_token(code: &str, kind: TokenKind) {
         let result = parse(code).next().unwrap();
         match result {
             Ok(_) => panic!("expected test to return Err"),
             Err(e) => match e.kind {
                 ErrorKind::UnclosedToken(token) => {
-                    assert_eq!(token.category(), &category);
+                    assert_eq!(token.kind(), &kind);
                 }
                 _ => panic!("Expected UnclosedToken but got: {e:?} for {code}"),
             },
@@ -280,17 +280,17 @@ mod tests {
 
     #[test]
     fn missing_right_paren() {
-        test_for_unclosed_token("called(me;", TokenCategory::LeftParen);
-        test_for_unclosed_token("foreach a(x { a = 2;", TokenCategory::LeftParen);
-        test_for_unclosed_token("for (i = 0; i < 10; i++ ;", TokenCategory::LeftParen);
-        test_for_unclosed_token("while (TRUE ;", TokenCategory::LeftParen);
+        test_for_unclosed_token("called(me;", TokenKind::LeftParen);
+        test_for_unclosed_token("foreach a(x { a = 2;", TokenKind::LeftParen);
+        test_for_unclosed_token("for (i = 0; i < 10; i++ ;", TokenKind::LeftParen);
+        test_for_unclosed_token("while (TRUE ;", TokenKind::LeftParen);
     }
 
     #[test]
     fn missing_right_curly_bracket() {
-        test_for_unclosed_token("if (a) { a = 2", TokenCategory::LeftCurlyBracket);
-        test_for_unclosed_token("foreach a(x) { a = 2;", TokenCategory::LeftCurlyBracket);
-        test_for_unclosed_token("{ a = 2;", TokenCategory::LeftCurlyBracket);
-        test_for_unclosed_token("function a() { a = 2;", TokenCategory::LeftCurlyBracket);
+        test_for_unclosed_token("if (a) { a = 2", TokenKind::LeftCurlyBracket);
+        test_for_unclosed_token("foreach a(x) { a = 2;", TokenKind::LeftCurlyBracket);
+        test_for_unclosed_token("{ a = 2;", TokenKind::LeftCurlyBracket);
+        test_for_unclosed_token("function a() { a = 2;", TokenKind::LeftCurlyBracket);
     }
 }

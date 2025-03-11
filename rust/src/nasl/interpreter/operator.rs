@@ -4,7 +4,7 @@
 
 use crate::nasl::{
     interpreter::InterpretError,
-    syntax::{Statement, TokenCategory},
+    syntax::{Statement, TokenKind},
 };
 use regex::Regex;
 
@@ -111,14 +111,10 @@ macro_rules! minus_left_right_data {
 
 impl Interpreter<'_, '_> {
     /// Return the result of a NASL operator.
-    pub async fn operator(
-        &mut self,
-        category: &TokenCategory,
-        stmts: &[Statement],
-    ) -> InterpretResult {
-        match category {
+    pub async fn operator(&mut self, kind: &TokenKind, stmts: &[Statement]) -> InterpretResult {
+        match kind {
             // number and string
-            TokenCategory::Plus => {
+            TokenKind::Plus => {
                 self.execute(stmts, |a, b| match a {
                     NaslValue::String(x) => add_left_right_string!(x, b),
                     NaslValue::Data(x) => add_left_right_data!(x, b),
@@ -133,7 +129,7 @@ impl Interpreter<'_, '_> {
                 })
                 .await
             }
-            TokenCategory::Minus => {
+            TokenKind::Minus => {
                 self.execute(stmts, |a, b| match a {
                     NaslValue::String(x) => minus_left_right_string!(x, b),
                     NaslValue::Data(x) => minus_left_right_data!(x, b),
@@ -152,13 +148,13 @@ impl Interpreter<'_, '_> {
                 .await
             }
             // number
-            TokenCategory::Star => self.execute(stmts, |a, b| num_expr!(* a b)).await,
-            TokenCategory::Slash => self.execute(stmts, |a, b| num_expr!(/ a b)).await,
-            TokenCategory::Percent => self.execute(stmts, |a, b| num_expr!(% a b)).await,
-            TokenCategory::LessLess => self.execute(stmts, |a, b| num_expr!(<< a b)).await,
-            TokenCategory::GreaterGreater => self.execute(stmts, |a, b| num_expr!(>> a b)).await,
+            TokenKind::Star => self.execute(stmts, |a, b| num_expr!(* a b)).await,
+            TokenKind::Slash => self.execute(stmts, |a, b| num_expr!(/ a b)).await,
+            TokenKind::Percent => self.execute(stmts, |a, b| num_expr!(% a b)).await,
+            TokenKind::LessLess => self.execute(stmts, |a, b| num_expr!(<< a b)).await,
+            TokenKind::GreaterGreater => self.execute(stmts, |a, b| num_expr!(>> a b)).await,
             // let left_casted = left as u32; (left_casted >> right) as i64
-            TokenCategory::GreaterGreaterGreater => {
+            TokenKind::GreaterGreaterGreater => {
                 self.execute(
                     stmts,
                     //|a, b| num_expr!(|a, b| ((a as u32) >> b) as i32 => a b),
@@ -170,10 +166,10 @@ impl Interpreter<'_, '_> {
                 )
                 .await
             }
-            TokenCategory::Ampersand => self.execute(stmts, |a, b| num_expr!(& a b)).await,
-            TokenCategory::Pipe => self.execute(stmts, |a, b| num_expr!(| a b)).await,
-            TokenCategory::Caret => self.execute(stmts, |a, b| num_expr!(^ a b)).await,
-            TokenCategory::StarStar => {
+            TokenKind::Ampersand => self.execute(stmts, |a, b| num_expr!(& a b)).await,
+            TokenKind::Pipe => self.execute(stmts, |a, b| num_expr!(| a b)).await,
+            TokenKind::Caret => self.execute(stmts, |a, b| num_expr!(^ a b)).await,
+            TokenKind::StarStar => {
                 self.execute(stmts, |a, b| {
                     let (a, b) = as_i64(a, b);
                     let result = (a as u32).pow(b as u32);
@@ -181,21 +177,21 @@ impl Interpreter<'_, '_> {
                 })
                 .await
             }
-            TokenCategory::Tilde => {
+            TokenKind::Tilde => {
                 self.execute(stmts, |a, _| Ok((!i64::from(&a)).into()))
                     .await
             }
             // string
-            TokenCategory::EqualTilde => self.execute(stmts, match_regex).await,
-            TokenCategory::BangTilde => self.execute(stmts, not_match_regex).await,
-            TokenCategory::GreaterLess => {
+            TokenKind::EqualTilde => self.execute(stmts, match_regex).await,
+            TokenKind::BangTilde => self.execute(stmts, not_match_regex).await,
+            TokenKind::GreaterLess => {
                 self.execute(stmts, |a, b| {
                     let substr = b.map(|x| x.to_string()).unwrap_or_default();
                     Ok(NaslValue::Boolean(a.to_string().contains(&substr)))
                 })
                 .await
             }
-            TokenCategory::GreaterBangLess => {
+            TokenKind::GreaterBangLess => {
                 self.execute(stmts, |a, b| {
                     let substr = b.map(|x| x.to_string()).unwrap_or_default();
                     Ok(NaslValue::Boolean(!a.to_string().contains(&substr)))
@@ -203,67 +199,67 @@ impl Interpreter<'_, '_> {
                 .await
             }
             // bool
-            TokenCategory::Bang => {
+            TokenKind::Bang => {
                 self.execute(stmts, |a, _| Ok(NaslValue::Boolean(!bool::from(a))))
                     .await
             }
-            TokenCategory::AmpersandAmpersand => {
+            TokenKind::AmpersandAmpersand => {
                 self.execute(stmts, |a, b| {
                     let right = b.map(bool::from).unwrap_or_default();
                     Ok(NaslValue::Boolean(bool::from(a) && right))
                 })
                 .await
             }
-            TokenCategory::PipePipe => {
+            TokenKind::PipePipe => {
                 self.execute(stmts, |a, b| {
                     let right = b.map(bool::from).unwrap_or_default();
                     Ok(NaslValue::Boolean(bool::from(a) || right))
                 })
                 .await
             }
-            TokenCategory::EqualEqual => {
+            TokenKind::EqualEqual => {
                 self.execute(stmts, |a, b| {
                     let right = b.unwrap_or(NaslValue::Null);
                     Ok(NaslValue::Boolean(a == right))
                 })
                 .await
             }
-            TokenCategory::BangEqual => {
+            TokenKind::BangEqual => {
                 self.execute(stmts, |a, b| {
                     let right = b.unwrap_or(NaslValue::Null);
                     Ok(NaslValue::Boolean(a != right))
                 })
                 .await
             }
-            TokenCategory::Greater => {
+            TokenKind::Greater => {
                 self.execute(stmts, |a, b| {
                     let right = b.map(|x| i64::from(&x)).unwrap_or_default();
                     Ok(NaslValue::Boolean(i64::from(&a) > right))
                 })
                 .await
             }
-            TokenCategory::Less => {
+            TokenKind::Less => {
                 self.execute(stmts, |a, b| {
                     let right = b.map(|x| i64::from(&x)).unwrap_or_default();
                     Ok(NaslValue::Boolean(i64::from(&a) < right))
                 })
                 .await
             }
-            TokenCategory::GreaterEqual => {
+            TokenKind::GreaterEqual => {
                 self.execute(stmts, |a, b| {
                     let right = b.map(|x| i64::from(&x)).unwrap_or_default();
                     Ok(NaslValue::Boolean(i64::from(&a) >= right))
                 })
                 .await
             }
-            TokenCategory::LessEqual => {
+            TokenKind::LessEqual => {
                 self.execute(stmts, |a, b| {
                     let right = b.map(|x| i64::from(&x)).unwrap_or_default();
                     Ok(NaslValue::Boolean(i64::from(&a) <= right))
                 })
                 .await
             }
-            TokenCategory::X => {
+            TokenKind::X => {
                 // neither empty statements nor statements over 2 arguments should ever happen
                 // because it is handled as a SyntaxError. Therefore we don't double check and
                 // and let it run into a index out of bound panic to immediately escalate.
@@ -282,7 +278,7 @@ impl Interpreter<'_, '_> {
                 self.resolve(repeatable).await
             }
 
-            o => Err(InterpretError::wrong_category(o)),
+            o => Err(InterpretError::wrong_kind(o)),
         }
     }
 }

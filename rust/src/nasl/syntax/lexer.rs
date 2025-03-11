@@ -9,7 +9,7 @@ use super::{
     error::SyntaxError,
     operation::Operation,
     prefix_extension::Prefix,
-    token::{Category, Token, Tokenizer},
+    token::{Token, TokenKind, Tokenizer},
     AssignOrder, Statement, StatementKind,
 };
 
@@ -61,10 +61,10 @@ impl Not for End {
 /// The first number represents the left hand, the second number the right hand binding power
 fn infix_binding_power(op: &Operation) -> Option<(u8, u8)> {
     use self::Operation::*;
-    use Category::*;
+    use TokenKind::*;
     let res = match op {
-        Operator(Category::StarStar) => (22, 23),
-        Operator(Category::Star | Category::Slash | Category::Percent) => (20, 21),
+        Operator(TokenKind::StarStar) => (22, 23),
+        Operator(TokenKind::Star | TokenKind::Slash | TokenKind::Percent) => (20, 21),
         Operator(Plus | Minus) => (18, 19),
         Operator(LessLess | GreaterGreater | GreaterGreaterGreater) => (16, 17),
         Operator(Ampersand) => (14, 15),
@@ -100,7 +100,7 @@ impl<'a> Lexer<'a> {
     /// Returns next token of tokenizer
     pub(crate) fn token(&mut self) -> Option<Token> {
         for token in self.tokenizer.by_ref() {
-            if token.category() == &Category::Comment {
+            if token.kind() == &TokenKind::Comment {
                 continue;
             }
             return Some(token);
@@ -111,7 +111,7 @@ impl<'a> Lexer<'a> {
     /// Returns peeks token of tokenizer
     pub(crate) fn peek(&mut self) -> Option<Token> {
         for token in self.tokenizer.clone() {
-            if token.category() == &Category::Comment {
+            if token.kind() == &TokenKind::Comment {
                 continue;
             }
             return Some(token);
@@ -121,25 +121,24 @@ impl<'a> Lexer<'a> {
 
     pub(crate) fn parse_comma_group(
         &mut self,
-        category: Category,
+        kind: TokenKind,
     ) -> Result<(End, Vec<Statement>), SyntaxError> {
         let mut params = vec![];
         let mut end = End::Continue;
         while let Some(token) = self.peek() {
-            if *token.category() == category {
+            if *token.kind() == kind {
                 self.token();
                 end = End::Done(token);
                 break;
             }
-            let (stmtend, param) =
-                self.statement(0, &|c| c == &category || c == &Category::Comma)?;
+            let (stmtend, param) = self.statement(0, &|c| c == &kind || c == &TokenKind::Comma)?;
             match param.kind() {
                 StatementKind::Parameter(nparams) => params.extend_from_slice(nparams),
                 _ => params.push(param),
             }
             match stmtend {
                 End::Done(endcat) => {
-                    if endcat.category() == &category {
+                    if endcat.kind() == &kind {
                         end = End::Done(endcat);
                         break;
                     }
@@ -156,14 +155,14 @@ impl<'a> Lexer<'a> {
         right_bp: u8,
         token: Token,
         lhs: Statement,
-        abort: &impl Fn(&Category) -> bool,
+        abort: &impl Fn(&TokenKind) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         let (end, rhs) = self.statement(right_bp, abort)?;
         if matches!(rhs.kind(), StatementKind::EoF) {
             return Ok((End::Done(token), rhs));
         }
         let end_token = match &end {
-            End::Done(x) if abort(x.category()) => x.clone(),
+            End::Done(x) if abort(x.kind()) => x.clone(),
             End::Done(_) | End::Continue => rhs.end().clone(),
         };
         let start_token = lhs.start().clone();
@@ -171,7 +170,7 @@ impl<'a> Lexer<'a> {
 
         let stmt = match op {
             // DoublePoint operation needs to be changed to NamedParameter statement
-            Operation::Assign(Category::DoublePoint) => {
+            Operation::Assign(TokenKind::DoublePoint) => {
                 match lhs.kind() {
                     StatementKind::Variable => {
                         // if the right side is a parameter we need to transform the NamedParameter
@@ -183,7 +182,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             // Assign needs to be translated due handle the return cases for e.g. ( a = 1) * 2
-            Operation::Assign(category) => match lhs.kind() {
+            Operation::Assign(kind) => match lhs.kind() {
                 StatementKind::Variable => {
                     let lhs = match rhs.kind() {
                         StatementKind::Parameter(..) => Statement::with_start_end_token(
@@ -195,26 +194,26 @@ impl<'a> Lexer<'a> {
                     };
 
                     build_stmt(StatementKind::Assign(
-                        category,
+                        kind,
                         AssignOrder::AssignReturn,
                         Box::new(lhs),
                         Box::new(rhs),
                     ))
                 }
                 StatementKind::Array(..) => build_stmt(StatementKind::Assign(
-                    category,
+                    kind,
                     AssignOrder::AssignReturn,
                     Box::new(lhs),
                     Box::new(rhs),
                 )),
 
                 _ => build_stmt(StatementKind::Operator(
-                    token.category().clone(),
+                    token.kind().clone(),
                     vec![lhs, rhs],
                 )),
             },
             _ => build_stmt(StatementKind::Operator(
-                token.category().clone(),
+                token.kind().clone(),
                 vec![lhs, rhs],
             )),
         };
@@ -233,7 +232,7 @@ impl<'a> Lexer<'a> {
         min_bp: u8,
         token: Token,
         left: Statement,
-        abort: &impl Fn(&Category) -> bool,
+        abort: &impl Fn(&TokenKind) -> bool,
     ) -> Result<InFixState, SyntaxError> {
         // returns three states 1. not handled, 2. return continue, 3. return done 4. continue
         // loop
@@ -267,7 +266,7 @@ impl<'a> Lexer<'a> {
     pub(crate) fn statement(
         &mut self,
         min_binding_power: u8,
-        abort: &impl Fn(&Category) -> bool,
+        abort: &impl Fn(&TokenKind) -> bool,
     ) -> Result<(End, Statement), SyntaxError> {
         self.depth += 1;
         if self.depth >= MAX_DEPTH {
@@ -288,7 +287,7 @@ impl<'a> Lexer<'a> {
                 if token.is_faulty() {
                     return Err(unexpected_token!(token));
                 }
-                if abort(token.category()) {
+                if abort(token.kind()) {
                     let result = Statement::with_start_token(token.clone(), StatementKind::NoOp);
                     return done(token, result);
                 }
@@ -306,14 +305,16 @@ impl<'a> Lexer<'a> {
         }
 
         while let Some(token) = self.peek() {
-            if abort(token.category()) {
+            if abort(token.kind()) {
                 self.token();
                 self.depth = 0;
                 return done(token, left);
             }
             let op = Operation::new(&token).ok_or_else(|| unexpected_token!(token.clone()))?;
             match op {
-                Operation::Assign(c) if matches!(c, Category::PlusPlus | Category::MinusMinus) => {
+                Operation::Assign(c)
+                    if matches!(c, TokenKind::PlusPlus | TokenKind::MinusMinus) =>
+                {
                     let token = self.token().expect("expected token");
                     match left.kind() {
                         StatementKind::Variable | StatementKind::Array(..) => {
@@ -353,7 +354,7 @@ impl Iterator for Lexer<'_> {
     type Item = Result<Statement, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.statement(0, &|cat| cat == &Category::Semicolon);
+        let result = self.statement(0, &|cat| cat == &TokenKind::Semicolon);
         // simulate eof if end::continue is stuck in a recursive loop
         if self.depth >= MAX_DEPTH {
             return None;
@@ -387,7 +388,7 @@ mod infix {
     use super::super::parse;
     use super::*;
 
-    use super::super::token::Category::*;
+    use super::super::token::TokenKind::*;
 
     use StatementKind::*;
 
@@ -403,7 +404,7 @@ mod infix {
             calculus(resolve(left))
         };
         match s.kind() {
-            Primitive => match s.start().category() {
+            Primitive => match s.start().kind() {
                 Number(num) => *num,
                 String(_) => todo!(),
                 _ => todo!(),
@@ -489,11 +490,11 @@ mod infix {
 
     #[test]
     fn operator_assignment() {
-        use Category::*;
-        fn expected(stmt: Statement, category: Category) {
+        use TokenKind::*;
+        fn expected(stmt: Statement, kind: TokenKind) {
             match stmt.kind() {
                 StatementKind::Assign(cat, AssignOrder::AssignReturn, ..) => {
-                    assert_eq!(cat, &category);
+                    assert_eq!(cat, &kind);
                 }
                 kind => panic!("Expected Assign, got: {:?}", kind),
             }
@@ -510,12 +511,12 @@ mod infix {
 
     #[test]
     fn compare_operator() {
-        use Category::*;
+        use TokenKind::*;
 
-        fn expected(stmt: Statement, category: Category) {
+        fn expected(stmt: Statement, kind: TokenKind) {
             match stmt.kind() {
                 StatementKind::Operator(cat, ..) => {
-                    assert_eq!(cat, &category);
+                    assert_eq!(cat, &kind);
                 }
                 kind => panic!("Expected Operator, got: {:?}", kind),
             }
@@ -535,10 +536,10 @@ mod infix {
 
     #[test]
     fn logical_operator() {
-        fn expected(stmt: Statement, category: Category) {
+        fn expected(stmt: Statement, kind: TokenKind) {
             match stmt.kind() {
                 StatementKind::Operator(cat, ..) => {
-                    assert_eq!(cat, &category);
+                    assert_eq!(cat, &kind);
                 }
                 kind => panic!("Expected Operator, got: {:?}", kind),
             }
@@ -549,23 +550,23 @@ mod infix {
 
     #[test]
     fn assignment() {
-        fn expected(stmt: Statement, category: Category) {
+        fn expected(stmt: Statement, kind: TokenKind) {
             match stmt.kind() {
                 StatementKind::Assign(cat, AssignOrder::AssignReturn, ..) => {
-                    assert_eq!(cat, &category);
+                    assert_eq!(cat, &kind);
                 }
                 kind => panic!("Expected Assign, got: {:?}", kind),
             }
         }
-        expected(result("(a = 1);"), Category::Equal);
+        expected(result("(a = 1);"), TokenKind::Equal);
     }
 }
 
 #[cfg(test)]
 mod postfix {
-    use super::super::{parse, token::Category, AssignOrder, Statement, StatementKind};
+    use super::super::{parse, token::TokenKind, AssignOrder, Statement, StatementKind};
 
-    use Category::*;
+    use TokenKind::*;
 
     fn result(code: &str) -> Statement {
         parse(code).next().unwrap().unwrap()
@@ -573,7 +574,7 @@ mod postfix {
 
     #[test]
     fn variable_assignment_operator() {
-        let expected = |stmt: Statement, assign_operator: Category| match stmt.kind() {
+        let expected = |stmt: Statement, assign_operator: TokenKind| match stmt.kind() {
             StatementKind::Assign(operator, AssignOrder::ReturnAssign, _, _) => {
                 assert_eq!(operator, &assign_operator)
             }
