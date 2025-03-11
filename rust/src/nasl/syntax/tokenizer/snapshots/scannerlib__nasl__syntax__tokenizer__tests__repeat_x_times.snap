@@ -1,0 +1,79 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (repeat_x_times), \"x() x 10;\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Identifier(
+            Undefined(
+                "x",
+            ),
+        ),
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            1,
+        ),
+    },
+    Token {
+        kind: LeftParen,
+        line_column: (
+            1,
+            2,
+        ),
+        position: (
+            1,
+            2,
+        ),
+    },
+    Token {
+        kind: RightParen,
+        line_column: (
+            1,
+            3,
+        ),
+        position: (
+            2,
+            3,
+        ),
+    },
+    Token {
+        kind: X,
+        line_column: (
+            1,
+            5,
+        ),
+        position: (
+            4,
+            6,
+        ),
+    },
+    Token {
+        kind: Number(
+            10,
+        ),
+        line_column: (
+            1,
+            7,
+        ),
+        position: (
+            6,
+            8,
+        ),
+    },
+    Token {
+        kind: Semicolon,
+        line_column: (
+            1,
+            9,
+        ),
+        position: (
+            8,
+            9,
+        ),
+    },
+]

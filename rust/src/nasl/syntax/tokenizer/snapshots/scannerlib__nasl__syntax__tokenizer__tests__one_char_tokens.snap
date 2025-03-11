@@ -1,0 +1,205 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (one_char_tokens),\n\"( ) [ ] { } . - + % ; / * : ~ & | ^\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: LeftParen,
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            1,
+        ),
+    },
+    Token {
+        kind: RightParen,
+        line_column: (
+            1,
+            3,
+        ),
+        position: (
+            2,
+            3,
+        ),
+    },
+    Token {
+        kind: LeftBrace,
+        line_column: (
+            1,
+            5,
+        ),
+        position: (
+            4,
+            5,
+        ),
+    },
+    Token {
+        kind: RightBrace,
+        line_column: (
+            1,
+            7,
+        ),
+        position: (
+            6,
+            7,
+        ),
+    },
+    Token {
+        kind: LeftCurlyBracket,
+        line_column: (
+            1,
+            9,
+        ),
+        position: (
+            8,
+            9,
+        ),
+    },
+    Token {
+        kind: RightCurlyBracket,
+        line_column: (
+            1,
+            11,
+        ),
+        position: (
+            10,
+            11,
+        ),
+    },
+    Token {
+        kind: Dot,
+        line_column: (
+            1,
+            13,
+        ),
+        position: (
+            12,
+            13,
+        ),
+    },
+    Token {
+        kind: Minus,
+        line_column: (
+            1,
+            15,
+        ),
+        position: (
+            14,
+            15,
+        ),
+    },
+    Token {
+        kind: Plus,
+        line_column: (
+            1,
+            17,
+        ),
+        position: (
+            16,
+            17,
+        ),
+    },
+    Token {
+        kind: Percent,
+        line_column: (
+            1,
+            19,
+        ),
+        position: (
+            18,
+            19,
+        ),
+    },
+    Token {
+        kind: Semicolon,
+        line_column: (
+            1,
+            21,
+        ),
+        position: (
+            20,
+            21,
+        ),
+    },
+    Token {
+        kind: Slash,
+        line_column: (
+            1,
+            23,
+        ),
+        position: (
+            22,
+            23,
+        ),
+    },
+    Token {
+        kind: Star,
+        line_column: (
+            1,
+            25,
+        ),
+        position: (
+            24,
+            25,
+        ),
+    },
+    Token {
+        kind: DoublePoint,
+        line_column: (
+            1,
+            27,
+        ),
+        position: (
+            26,
+            27,
+        ),
+    },
+    Token {
+        kind: Tilde,
+        line_column: (
+            1,
+            29,
+        ),
+        position: (
+            28,
+            29,
+        ),
+    },
+    Token {
+        kind: Ampersand,
+        line_column: (
+            1,
+            31,
+        ),
+        position: (
+            30,
+            31,
+        ),
+    },
+    Token {
+        kind: Pipe,
+        line_column: (
+            1,
+            33,
+        ),
+        position: (
+            32,
+            33,
+        ),
+    },
+    Token {
+        kind: Caret,
+        line_column: (
+            1,
+            35,
+        ),
+        position: (
+            34,
+            35,
+        ),
+    },
+]

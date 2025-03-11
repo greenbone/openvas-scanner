@@ -1,0 +1,80 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (identifier), \"help_lo _hello _h4llo 4_h4llo\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Identifier(
+            Undefined(
+                "help_lo",
+            ),
+        ),
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            7,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Undefined(
+                "_hello",
+            ),
+        ),
+        line_column: (
+            1,
+            9,
+        ),
+        position: (
+            8,
+            14,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Undefined(
+                "_h4llo",
+            ),
+        ),
+        line_column: (
+            1,
+            16,
+        ),
+        position: (
+            15,
+            21,
+        ),
+    },
+    Token {
+        kind: Number(
+            4,
+        ),
+        line_column: (
+            1,
+            23,
+        ),
+        position: (
+            22,
+            23,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Undefined(
+                "_h4llo",
+            ),
+        ),
+        line_column: (
+            1,
+            24,
+        ),
+        position: (
+            23,
+            29,
+        ),
+    },
+]

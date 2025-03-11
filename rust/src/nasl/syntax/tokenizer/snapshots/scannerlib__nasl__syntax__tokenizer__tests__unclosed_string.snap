@@ -1,0 +1,20 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (unclosed_string), \"\\\"hello I am a unclosed string\\\\\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Unclosed(
+            String,
+        ),
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            30,
+        ),
+    },
+]

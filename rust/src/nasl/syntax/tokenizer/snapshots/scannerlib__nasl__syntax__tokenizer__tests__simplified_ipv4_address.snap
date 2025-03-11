@@ -1,0 +1,20 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (simplified_ipv4_address), \"10.187.76.12\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: IPv4Address(
+            "10.187.76.12",
+        ),
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            12,
+        ),
+    },
+]

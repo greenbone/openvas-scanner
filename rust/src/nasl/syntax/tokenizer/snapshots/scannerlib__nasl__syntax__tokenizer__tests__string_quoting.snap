@@ -1,0 +1,41 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (string_quoting), r\"'webapps\\\\\\\\appliance\\\\\\\\'\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Data(
+            [
+                119,
+                101,
+                98,
+                97,
+                112,
+                112,
+                115,
+                92,
+                92,
+                97,
+                112,
+                112,
+                108,
+                105,
+                97,
+                110,
+                99,
+                101,
+                92,
+                92,
+            ],
+        ),
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            26,
+        ),
+    },
+]

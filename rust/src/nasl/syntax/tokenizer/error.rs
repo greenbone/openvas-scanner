@@ -1,5 +1,7 @@
 use std::{fmt::Display, ops::Range};
 
+use crate::nasl::error::AsCodespanError;
+
 #[derive(Debug)]
 pub struct TokenizerError {
     pub kind: TokenizerErrorKind,
@@ -24,5 +26,15 @@ impl Display for TokenizerErrorKind {
                 write!(f, "Failed to parse number literal. {e}")
             }
         }
+    }
+}
+
+impl AsCodespanError for TokenizerError {
+    fn range(&self) -> Range<usize> {
+        self.range.clone()
+    }
+
+    fn message(&self) -> String {
+        self.kind.to_string()
     }
 }

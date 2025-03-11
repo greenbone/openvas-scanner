@@ -1,0 +1,202 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (keywords),\n\"for foreach if else while repeat until local_var global_var NULL return include exit break continue\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Identifier(
+            For,
+        ),
+        line_column: (
+            1,
+            1,
+        ),
+        position: (
+            0,
+            3,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            ForEach,
+        ),
+        line_column: (
+            1,
+            5,
+        ),
+        position: (
+            4,
+            11,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            If,
+        ),
+        line_column: (
+            1,
+            13,
+        ),
+        position: (
+            12,
+            14,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Else,
+        ),
+        line_column: (
+            1,
+            16,
+        ),
+        position: (
+            15,
+            19,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            While,
+        ),
+        line_column: (
+            1,
+            21,
+        ),
+        position: (
+            20,
+            25,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Repeat,
+        ),
+        line_column: (
+            1,
+            27,
+        ),
+        position: (
+            26,
+            32,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Until,
+        ),
+        line_column: (
+            1,
+            34,
+        ),
+        position: (
+            33,
+            38,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            LocalVar,
+        ),
+        line_column: (
+            1,
+            40,
+        ),
+        position: (
+            39,
+            48,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            GlobalVar,
+        ),
+        line_column: (
+            1,
+            50,
+        ),
+        position: (
+            49,
+            59,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Null,
+        ),
+        line_column: (
+            1,
+            61,
+        ),
+        position: (
+            60,
+            64,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Return,
+        ),
+        line_column: (
+            1,
+            66,
+        ),
+        position: (
+            65,
+            71,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Include,
+        ),
+        line_column: (
+            1,
+            73,
+        ),
+        position: (
+            72,
+            79,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Exit,
+        ),
+        line_column: (
+            1,
+            81,
+        ),
+        position: (
+            80,
+            84,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Break,
+        ),
+        line_column: (
+            1,
+            86,
+        ),
+        position: (
+            85,
+            90,
+        ),
+    },
+    Token {
+        kind: Identifier(
+            Continue,
+        ),
+        line_column: (
+            1,
+            92,
+        ),
+        position: (
+            91,
+            99,
+        ),
+    },
+]
