@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
-mod cursor;
 mod error;
 mod grouping_extension;
 mod keyword_extension;
@@ -47,17 +46,9 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 #[cfg(test)]
 mod tests {
     use crate::nasl::syntax::{
-        cursor::Cursor,
         token::{Keyword, Token, TokenKind},
         Tokenizer,
     };
-
-    #[test]
-    fn use_cursor() {
-        let mut cursor = Cursor::new("  \n\tdisplay(12);");
-        cursor.skip_while(|c| c.is_whitespace());
-        assert_eq!(cursor.advance(), Some('d'));
-    }
 
     #[test]
     fn use_tokenizer() {

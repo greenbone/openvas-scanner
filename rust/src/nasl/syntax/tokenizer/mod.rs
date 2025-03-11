@@ -2,15 +2,82 @@ mod error;
 #[cfg(test)]
 mod tests;
 
-use std::ops::Range;
+use std::ops::AddAssign;
 
-use super::{cursor::Cursor, token::UnclosedTokenKind, Keyword, Token, TokenKind};
+use super::{token::UnclosedTokenKind, Keyword, Token, TokenKind};
 use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Default, Clone, Debug, PartialEq, Eq)]
 pub struct CharIndex(pub usize);
+
+impl AddAssign<usize> for CharIndex {
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 += rhs
+    }
+}
+
+pub struct Cursor {
+    chars: Vec<char>,
+    position: CharIndex,
+    line: usize,
+    col: usize,
+}
+
+impl Cursor {
+    fn new(code: &str) -> Self {
+        Self {
+            chars: code.chars().collect(),
+            position: CharIndex(0),
+            line: 1,
+            col: 1,
+        }
+    }
+
+    fn is_at_eof(&self) -> bool {
+        self.position.0 == self.chars.len()
+    }
+
+    fn peek(&self) -> char {
+        self.peek_ahead(0)
+    }
+
+    fn peek_ahead(&self, ahead: usize) -> char {
+        const EOF_CHAR: char = '\0';
+        self.chars
+            .get(self.position.0 + ahead)
+            .copied()
+            .unwrap_or(EOF_CHAR)
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        let result = self.chars.get(self.position.0).copied();
+        self.position.0 += 1;
+        match result {
+            Some('\n') => {
+                self.line += 1;
+                self.col = 1;
+            }
+            Some(_) => {
+                self.col += 1;
+            }
+            _ => {}
+        }
+        result
+    }
+
+    fn position(&self) -> CharIndex {
+        self.position
+    }
+
+    /// Skips characters while given predicate returns true
+    fn skip_while(&mut self, mut predicate: impl FnMut(char) -> bool) {
+        while !self.is_at_eof() && predicate(self.peek()) {
+            self.advance();
+        }
+    }
+}
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -64,11 +131,11 @@ impl NumberBase {
 
 /// Tokenizer uses a cursor to create tokens
 pub struct Tokenizer<'a> {
-    // Is used to lookup keywords
+    // TODO maybe remove
     code: &'a str,
-    cursor: Cursor<'a>,
-    errors: Vec<TokenizerError>,
+    cursor: Cursor,
     begin_match_position: CharIndex,
+    errors: Vec<TokenizerError>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -76,8 +143,8 @@ impl<'a> Tokenizer<'a> {
     pub fn tokenize(code: &'a str) -> Result<Vec<Token>, Vec<TokenizerError>> {
         let mut tokenizer = Tokenizer {
             code,
-            cursor: Cursor::new(code),
             errors: vec![],
+            cursor: Cursor::new(code),
             begin_match_position: CharIndex::default(),
         };
         tokenizer.tokenize_internal().map_err(|_| tokenizer.errors)
@@ -85,7 +152,7 @@ impl<'a> Tokenizer<'a> {
 
     fn tokenize_internal(&mut self) -> Result<Vec<Token>, ()> {
         let mut tokens = vec![];
-        while !self.cursor.is_eof() {
+        while !self.cursor.is_at_eof() {
             let token = self.scan_token();
             match token {
                 Ok(token) => {
@@ -108,13 +175,12 @@ impl<'a> Tokenizer<'a> {
     pub fn match_error(&self, kind: TokenizerErrorKind) -> TokenizerError {
         TokenizerError {
             kind,
-            range: self.begin_match_position.0 - 1..self.cursor.len_consumed(),
+            range: self.begin_match_position.0 - 1..self.cursor.position().0,
         }
     }
 
-    /// Returns a reference of a substring within code at given range
-    pub fn lookup(&self, range: Range<usize>) -> &'a str {
-        &self.code[range]
+    fn substring(&self, start: CharIndex, end: CharIndex) -> String {
+        self.cursor.chars[start.0..end.0].iter().collect()
     }
 
     // we break out of the macro since > can be parsed to:
@@ -125,7 +191,7 @@ impl<'a> Tokenizer<'a> {
     // most operators don't have triple or tuple variant
     fn tokenize_greater(&mut self) -> TokenKind {
         use TokenKind::*;
-        let next = self.cursor.peek(0);
+        let next = self.cursor.peek();
         match next {
             '=' => {
                 self.cursor.advance();
@@ -137,11 +203,11 @@ impl<'a> Tokenizer<'a> {
             }
             '>' => {
                 self.cursor.advance();
-                let next = self.cursor.peek(0);
+                let next = self.cursor.peek();
                 match next {
                     '>' => {
                         self.cursor.advance();
-                        if self.cursor.peek(0) == '=' {
+                        if self.cursor.peek() == '=' {
                             self.cursor.advance();
                             return GreaterGreaterGreaterEqual;
                         }
@@ -155,7 +221,7 @@ impl<'a> Tokenizer<'a> {
                     _ => GreaterGreater,
                 }
             }
-            '!' if self.cursor.peek(1) == '<' => {
+            '!' if self.cursor.peek_ahead(1) == '<' => {
                 self.cursor.advance();
                 self.cursor.advance();
                 GreaterBangLess
@@ -169,7 +235,7 @@ impl<'a> Tokenizer<'a> {
     // most operators don't have triple or tuple variant
     fn tokenize_less(&mut self) -> TokenKind {
         use TokenKind::*;
-        let next = self.cursor.peek(0);
+        let next = self.cursor.peek();
         match next {
             '=' => {
                 self.cursor.advance();
@@ -177,7 +243,7 @@ impl<'a> Tokenizer<'a> {
             }
             '<' => {
                 self.cursor.advance();
-                let next = self.cursor.peek(0);
+                let next = self.cursor.peek();
                 match next {
                     '=' => {
                         self.cursor.advance();
@@ -192,16 +258,12 @@ impl<'a> Tokenizer<'a> {
 
     // Skips initial and ending data identifier ' and verifies that a string is closed
     fn tokenize_string(&mut self) -> TokenKind {
-        let start = self.cursor.len_consumed();
+        let start = self.cursor.position();
         self.cursor.skip_while(|c| c != '"');
-        if self.cursor.is_eof() {
+        if self.cursor.is_at_eof() {
             TokenKind::Unclosed(UnclosedTokenKind::String)
         } else {
-            let result = self.code[Range {
-                start,
-                end: self.cursor.len_consumed(),
-            }]
-            .to_owned();
+            let result = self.substring(start, self.cursor.position());
             self.cursor.advance();
             TokenKind::String(result)
         }
@@ -210,7 +272,7 @@ impl<'a> Tokenizer<'a> {
     // Skips initial and ending string identifier ' || " and verifies that a string is closed
     fn tokenize_data(&mut self) -> TokenKind {
         // we don't want the lookup to contain "
-        let start = self.cursor.len_consumed();
+        let start = self.cursor.position();
         let mut back_slash = false;
         self.cursor.skip_while(|c| {
             if !back_slash && c == '\'' {
@@ -220,14 +282,10 @@ impl<'a> Tokenizer<'a> {
                 true
             }
         });
-        if self.cursor.is_eof() {
+        if self.cursor.is_at_eof() {
             TokenKind::Unclosed(UnclosedTokenKind::Data)
         } else {
-            let mut raw_str = self.code[Range {
-                start,
-                end: self.cursor.len_consumed(),
-            }]
-            .to_owned();
+            let mut raw_str = self.substring(start, self.cursor.position());
             raw_str = raw_str.replace(r#"\""#, "\"");
             raw_str = raw_str.replace(r#"\n"#, "\n");
             raw_str = raw_str.replace(r"\\", "\\");
@@ -238,36 +296,32 @@ impl<'a> Tokenizer<'a> {
             TokenKind::Data(raw_str.as_bytes().to_vec())
         }
     }
-    fn may_parse_ipv4(&mut self, base: NumberBase, start: usize) -> Option<TokenKind> {
+    fn may_parse_ipv4(&mut self, base: NumberBase, start: CharIndex) -> Option<TokenKind> {
         use NumberBase::*;
         // IPv4Address start as Base10
-        if base == Base10 && self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
+        if base == Base10 && self.cursor.peek() == '.' && self.cursor.peek_ahead(1).is_numeric() {
             self.cursor.advance();
             self.cursor.skip_while(base.verifier());
             // verify it may be an IPv4Address
             // if the next one is a dot we are at
             // 127.0
             // and need to parse .0
-            if self.cursor.peek(0) == '.' {
-                if self.cursor.peek(1).is_numeric() {
+            if self.cursor.peek() == '.' {
+                if self.cursor.peek_ahead(1).is_numeric() {
                     self.cursor.advance();
                     self.cursor.skip_while(base.verifier());
                 } else {
                     return Some(TokenKind::IllegalIPv4Address);
                 }
 
-                if self.cursor.peek(0) == '.' && self.cursor.peek(1).is_numeric() {
+                if self.cursor.peek() == '.' && self.cursor.peek_ahead(1).is_numeric() {
                     self.cursor.advance();
                     self.cursor.skip_while(base.verifier());
                 } else {
                     return Some(TokenKind::IllegalIPv4Address);
                 }
                 return Some(TokenKind::IPv4Address(
-                    self.code[Range {
-                        start,
-                        end: self.cursor.len_consumed(),
-                    }]
-                    .to_owned(),
+                    self.substring(start, self.cursor.position()),
                 ));
             } else {
                 return Some(TokenKind::IllegalIPv4Address);
@@ -277,11 +331,11 @@ impl<'a> Tokenizer<'a> {
     }
 
     // checks if a number is binary, octal, base10 or hex
-    fn tokenize_number(&mut self, mut start: usize, current: char) -> TokenKind {
+    fn tokenize_number(&mut self, mut start: CharIndex, current: char) -> TokenKind {
         use NumberBase::*;
         let may_base = {
             if current == '0' {
-                match self.cursor.peek(0) {
+                match self.cursor.peek() {
                     'b' => {
                         // jump over non numeric
                         self.cursor.advance();
@@ -315,14 +369,11 @@ impl<'a> Tokenizer<'a> {
                 None => {
                     // we verify that the cursor actually moved to prevent scenarios like
                     // 0b without any actual number in it
-                    if start == self.cursor.len_consumed() {
+                    if start == self.cursor.position() {
                         TokenKind::IllegalNumber(base)
                     } else {
                         match i64::from_str_radix(
-                            &self.code[Range {
-                                start,
-                                end: self.cursor.len_consumed(),
-                            }],
+                            &self.substring(start, self.cursor.position()),
                             base.radix(),
                         ) {
                             Ok(num) => TokenKind::Number(num),
@@ -337,17 +388,17 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Checks if an identifier is a Keyword or not
-    fn tokenize_identifier(&mut self, start: usize) -> TokenKind {
+    fn tokenize_identifier(&mut self, start: CharIndex) -> TokenKind {
         self.cursor
             .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
-        let end = self.cursor.len_consumed();
-        let lookup = self.lookup(Range { start, end });
+        let end = self.cursor.position();
+        let lookup = self.substring(start, end);
         if lookup != "x" {
-            let keyword = Keyword::new(lookup);
+            let keyword = Keyword::new(&lookup);
             TokenKind::Identifier(keyword)
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
-            if self.cursor.peek(0).is_numeric() {
+            if self.cursor.peek().is_numeric() {
                 TokenKind::X
             } else {
                 TokenKind::Identifier(Keyword::Undefined(lookup.to_owned()))
@@ -363,7 +414,7 @@ impl<'a> Tokenizer<'a> {
 macro_rules! two_symbol_token {
     ($cursor:expr, $start:tt, $single_symbol:tt, $($matching_char:tt, $two_symbol_token:expr ), *) => {
         {
-            let next = $cursor.peek(0);
+            let next = $cursor.peek();
             match next {
                 $($matching_char => {
                   $cursor.advance();
@@ -378,9 +429,9 @@ macro_rules! two_symbol_token {
 impl Tokenizer<'_> {
     fn scan_token(&mut self) -> Result<Token, TokenizerError> {
         use TokenKind::*;
-        let start = self.cursor.len_consumed();
-        let position = self.cursor.line_column();
-        self.begin_match_position = CharIndex(start);
+        let start = self.cursor.position();
+        self.begin_match_position = start;
+        let line_column = (self.cursor.line, self.cursor.col);
         // We can unwrap here, since we check that we're not at EOF before calling scan_token.
         let kind = match self.cursor.advance().unwrap() {
             '(' => LeftParen,
@@ -426,11 +477,10 @@ impl Tokenizer<'_> {
             _ => UnknownSymbol,
         };
 
-        let byte_position = (start, self.cursor.len_consumed());
         Ok(Token {
             kind,
-            line_column: position,
-            position: byte_position,
+            line_column,
+            position: (start.0, self.cursor.position().0),
         })
     }
 }
