@@ -58,7 +58,12 @@ pub async fn feed_version(
     // TODO add parameter to struct
     let functions = nasl_std_functions();
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
-    let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
+    // TODO do not unwrap here, handle errors
+    let mut interpreter = Interpreter::new(
+        register,
+        Lexer::new(Tokenizer::tokenize(&code).unwrap()),
+        &context,
+    );
     for stmt in crate::nasl::syntax::parse(&code) {
         let stmt = stmt?;
         interpreter.resolve(&stmt).await?;

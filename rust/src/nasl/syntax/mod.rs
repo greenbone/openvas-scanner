@@ -39,8 +39,9 @@ pub use tokenizer::Tokenizer;
 ///     parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
 /// ````
 pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>> + '_ {
-    let tokenizer = Tokenizer::new(code);
-    Lexer::new(tokenizer)
+    // TODO Do not unwrap here, handle errors properly.
+    let tokens = Tokenizer::tokenize(code).unwrap();
+    Lexer::new(tokens)
 }
 
 #[cfg(test)]
@@ -60,8 +61,7 @@ mod tests {
 
     #[test]
     fn use_tokenizer() {
-        let tokenizer = Tokenizer::new("local_var hello = 'World!';");
-        let all_tokens = tokenizer.collect::<Vec<Token>>();
+        let all_tokens = Tokenizer::tokenize("local_var hello = 'World!';").unwrap();
         assert_eq!(
             all_tokens,
             vec![

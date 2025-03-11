@@ -10,17 +10,19 @@ use super::{
     operation::Operation,
     prefix_extension::Prefix,
     token::{Token, TokenKind},
-    AssignOrder, Statement, StatementKind, Tokenizer,
+    AssignOrder, Statement, StatementKind,
 };
 
 use crate::{max_recursion, unexpected_statement, unexpected_token};
 
+#[derive(Default, Clone, Copy)]
+struct TokenIndex(usize);
+
 /// Is used to parse Token to Statement
 #[derive(Clone)]
-pub struct Lexer<'a> {
-    // TODO: change to iterator of Token instead of Tokenizer
-    // to allopw statements of a Vec
-    tokenizer: Tokenizer<'a>,
+pub struct Lexer {
+    tokens: Vec<Token>,
+    position: TokenIndex,
 
     // is the current depth call within a statement call. The current
     // implementation relies that the iterator implementation resets depth to 0
@@ -90,33 +92,40 @@ enum InFixState {
     ReturnEnd(Token, Statement),
     Unfinished(Statement),
 }
-impl<'a> Lexer<'a> {
+
+impl Lexer {
     /// Creates a Lexer
-    pub fn new(tokenizer: Tokenizer<'a>) -> Lexer<'a> {
+    pub fn new(tokens: Vec<Token>) -> Lexer {
         let depth = 0;
-        Lexer { tokenizer, depth }
+        Lexer {
+            tokens,
+            depth,
+            position: TokenIndex(0),
+        }
+    }
+
+    fn advance_to_first_non_comment(&mut self) {
+        // TODO I dont want to do this comment logic here. Move this to the
+        // tokenizer.
+        while self.tokens.get(self.position.0).map(|token| token.kind())
+            == Some(&TokenKind::Comment)
+        {
+            self.position.0 += 1;
+        }
     }
 
     /// Returns next token of tokenizer
     pub(crate) fn token(&mut self) -> Option<Token> {
-        for token in self.tokenizer.by_ref() {
-            if token.kind() == &TokenKind::Comment {
-                continue;
-            }
-            return Some(token);
-        }
-        None
+        self.advance_to_first_non_comment();
+        let token = self.tokens.get(self.position.0).cloned();
+        self.position.0 += 1;
+        token
     }
 
     /// Returns peeks token of tokenizer
     pub(crate) fn peek(&mut self) -> Option<Token> {
-        for token in self.tokenizer.clone() {
-            if token.kind() == &TokenKind::Comment {
-                continue;
-            }
-            return Some(token);
-        }
-        None
+        self.advance_to_first_non_comment();
+        self.tokens.get(self.position.0).cloned()
     }
 
     pub(crate) fn parse_comma_group(
@@ -350,7 +359,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl Iterator for Lexer<'_> {
+impl Iterator for Lexer {
     type Item = Result<Statement, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -51,18 +51,18 @@ pub struct FunctionCallData {
 ///    in place of the function call. This is done until the `data` field is
 ///    exhausted. At that point, execution proceeds normally.
 #[derive(Clone)]
-pub enum ForkReentryData<'code> {
+pub enum ForkReentryData {
     Collecting {
         data: Vec<FunctionCallData>,
         register: Register,
-        lexer: Lexer<'code>,
+        lexer: Lexer,
     },
     Restoring {
         data: VecDeque<FunctionCallData>,
     },
 }
 
-impl<'code> ForkReentryData<'code> {
+impl ForkReentryData {
     fn drain(&mut self) -> VecDeque<FunctionCallData> {
         match self {
             Self::Collecting { data, .. } => data.drain(..).collect(),
@@ -77,7 +77,7 @@ impl<'code> ForkReentryData<'code> {
         }
     }
 
-    fn lexer(&self) -> &Lexer<'code> {
+    fn lexer(&self) -> &Lexer {
         match self {
             Self::Collecting { lexer, .. } => lexer,
             _ => unreachable!(),
@@ -146,7 +146,7 @@ impl<'code> ForkReentryData<'code> {
         }
     }
 
-    fn collecting(register: Register, lexer: Lexer<'code>) -> Self {
+    fn collecting(register: Register, lexer: Lexer) -> Self {
         Self::Collecting {
             data: vec![],
             register,
@@ -213,19 +213,19 @@ fn expand_fork_at(
         .collect()
 }
 
-pub struct Interpreter<'code, 'ctx> {
+pub struct Interpreter<'ctx> {
     pub(super) register: Register,
     pub(super) context: &'ctx Context<'ctx>,
-    pub(super) fork_reentry_data: ForkReentryData<'code>,
-    lexer: Lexer<'code>,
+    pub(super) fork_reentry_data: ForkReentryData,
+    lexer: Lexer,
     state: InterpreterState,
 }
 
 pub type InterpretResult = Result<NaslValue, InterpretError>;
 
-impl<'code, 'ctx> Interpreter<'code, 'ctx> {
+impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
-    pub fn new(register: Register, lexer: Lexer<'code>, context: &'ctx Context) -> Self {
+    pub fn new(register: Register, lexer: Lexer, context: &'ctx Context) -> Self {
         Interpreter {
             register,
             lexer,
@@ -452,7 +452,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         }
     }
 
-    pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'code, 'ctx>> {
+    pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
         let forks = self.fork_reentry_data.create_forks();
         let register = self.fork_reentry_data.register();
         let lexer = self.fork_reentry_data.lexer().clone();
@@ -464,10 +464,10 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
 
     fn make_fork(
         &self,
-        fork_reentry_data: ForkReentryData<'code>,
+        fork_reentry_data: ForkReentryData,
         register: &Register,
-        lexer: &Lexer<'code>,
-    ) -> Interpreter<'code, 'ctx> {
+        lexer: &Lexer,
+    ) -> Interpreter<'ctx> {
         Self {
             register: register.clone(),
             lexer: lexer.clone(),

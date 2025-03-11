@@ -12,7 +12,7 @@ use crate::nasl::syntax::NaslValue;
 
 use super::interpreter::{InterpretResult, Interpreter};
 
-impl Interpreter<'_, '_> {
+impl Interpreter<'_> {
     async fn execute(
         &mut self,
         stmts: &[Statement],
@@ -109,7 +109,7 @@ macro_rules! minus_left_right_data {
     }};
 }
 
-impl Interpreter<'_, '_> {
+impl Interpreter<'_> {
     /// Return the result of a NASL operator.
     pub async fn operator(&mut self, kind: &TokenKind, stmts: &[Statement]) -> InterpretResult {
         match kind {

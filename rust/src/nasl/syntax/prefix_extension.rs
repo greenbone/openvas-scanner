@@ -34,7 +34,7 @@ fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
     }
 }
 
-impl Lexer<'_> {
+impl Lexer {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
         if !matches!(token.kind(), TokenKind::Identifier(Keyword::Undefined(_))) {
             return Err(unexpected_token!(token));
@@ -107,7 +107,7 @@ impl Lexer<'_> {
     }
 }
 
-impl Prefix for Lexer<'_> {
+impl Prefix for Lexer {
     fn prefix_statement(
         &mut self,
         token: Token,

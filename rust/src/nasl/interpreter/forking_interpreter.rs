@@ -12,15 +12,19 @@ use super::{interpreter::InterpretResult, interpreter::Interpreter};
 /// `Interpreter`s. Whenever a statement that results
 /// in a fork is executed, new interpreters will be added
 /// for each of the forks.
-pub struct ForkingInterpreter<'code, 'ctx> {
-    interpreters: Vec<Interpreter<'code, 'ctx>>,
+pub struct ForkingInterpreter<'ctx> {
+    interpreters: Vec<Interpreter<'ctx>>,
     interpreter_index: usize,
 }
 
-impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
-    pub fn new(code: &'code str, register: Register, context: &'ctx Context<'ctx>) -> Self {
-        let tokenizer = Tokenizer::new(code);
-        let lexer = Lexer::new(tokenizer);
+impl<'ctx> ForkingInterpreter<'ctx> {
+    pub fn new(code: &str, register: Register, context: &'ctx Context<'ctx>) -> Self {
+        // TODO: Get rid of the unwrap and emit errors here.
+        // We probably want to rename this method
+        // or alternatively take an already parsed AST as input to the method.
+        // so we don't have to do TokenizerError/SyntaxError handling here.
+        let tokens = Tokenizer::tokenize(code).unwrap();
+        let lexer = Lexer::new(tokens);
         let interpreters = vec![Interpreter::new(register, lexer, context)];
         Self {
             interpreters,
@@ -28,10 +32,7 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
         }
     }
 
-    pub fn stream(self) -> impl Stream<Item = InterpretResult> + 'code
-    where
-        'ctx: 'code,
-    {
+    pub fn stream(self) -> impl Stream<Item = InterpretResult> + use<'ctx> {
         Box::pin(stream::unfold(self, |mut s| async move {
             s.next().await.map(|x| (x, s))
         }))

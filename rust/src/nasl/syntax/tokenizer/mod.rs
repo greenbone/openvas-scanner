@@ -1,6 +1,9 @@
+mod error;
+
 use std::ops::Range;
 
 use super::{cursor::Cursor, token::UnclosedTokenKind, Keyword, Token, TokenKind};
+use error::TokenizerError;
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 
@@ -64,11 +67,12 @@ pub struct Tokenizer<'a> {
 
 impl<'a> Tokenizer<'a> {
     /// Creates a new Tokenizer
-    pub fn new(code: &'a str) -> Self {
-        Tokenizer {
+    pub fn tokenize(code: &'a str) -> Result<Vec<Token>, Vec<TokenizerError>> {
+        let tokenizer = Tokenizer {
             code,
             cursor: Cursor::new(code),
-        }
+        };
+        Ok(tokenizer.collect())
     }
 
     /// Returns a reference of a substring within code at given range
@@ -394,8 +398,8 @@ mod tests {
     macro_rules! verify_tokens {
         ($code:expr, $expected:expr) => {{
             use std::string::String;
-            let tokenizer = Tokenizer::new($code);
-            let actual: Vec<String> = tokenizer.map(|t| t.kind().to_string()).collect();
+            let tokens = Tokenizer::tokenize($code).unwrap();
+            let actual: Vec<String> = tokens.iter().map(|t| t.kind().to_string()).collect();
             let expected: Vec<String> = $expected.iter().map(|s| s.to_string()).collect();
             assert_eq!(actual, expected);
         }};

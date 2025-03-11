@@ -41,7 +41,7 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl Interpreter<'_, '_> {
+impl Interpreter<'_> {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
         self.register
             .add_to_index(idx, key, ContextType::Value(value));
@@ -174,7 +174,7 @@ impl Interpreter<'_, '_> {
     }
 }
 
-impl Interpreter<'_, '_> {
+impl Interpreter<'_> {
     /// Assign a right value to a left value. Return either the
     /// previous or the new value, based on the order.
     pub async fn assign(

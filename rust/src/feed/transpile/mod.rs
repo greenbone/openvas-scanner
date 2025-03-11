@@ -1123,7 +1123,6 @@ if (user_ports = get_kb_list("sophos/xg_firewall/http-user/port")) {
             },
         ];
         let result = CodeReplacer::replace(code, &replaces).unwrap();
-
         assert_eq!(result, expected.to_owned(),);
     }
 

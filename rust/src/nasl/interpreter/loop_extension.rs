@@ -12,7 +12,7 @@ use super::interpreter::{InterpretResult, Interpreter};
 
 /// Note that for all loops, we do not
 /// change the context, as the current NASL also does not change it too.
-impl Interpreter<'_, '_> {
+impl Interpreter<'_> {
     /// Interpreting a NASL for loop. A NASL for loop is built up with the
     /// following:
     ///

@@ -17,7 +17,7 @@ enum ArgumentKind {
     Positional,
 }
 
-impl Interpreter<'_, '_> {
+impl Interpreter<'_> {
     async fn resolve_argument(
         &mut self,
         arg: &Statement,
