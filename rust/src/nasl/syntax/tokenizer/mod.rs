@@ -5,9 +5,12 @@ mod tests;
 use std::ops::Range;
 
 use super::{cursor::Cursor, token::UnclosedTokenKind, Keyword, Token, TokenKind};
-use error::TokenizerError;
+use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
+
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
+pub struct CharIndex(pub usize);
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -65,6 +68,7 @@ pub struct Tokenizer<'a> {
     code: &'a str,
     cursor: Cursor<'a>,
     errors: Vec<TokenizerError>,
+    begin_match_position: CharIndex,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -74,6 +78,7 @@ impl<'a> Tokenizer<'a> {
             code,
             cursor: Cursor::new(code),
             errors: vec![],
+            begin_match_position: CharIndex::default(),
         };
         tokenizer.tokenize_internal().map_err(|_| tokenizer.errors)
     }
@@ -97,6 +102,13 @@ impl<'a> Tokenizer<'a> {
             Ok(tokens)
         } else {
             Err(())
+        }
+    }
+
+    pub fn match_error(&self, kind: TokenizerErrorKind) -> TokenizerError {
+        TokenizerError {
+            kind,
+            range: self.begin_match_position.0 - 1..self.cursor.len_consumed(),
         }
     }
 
@@ -368,6 +380,7 @@ impl Tokenizer<'_> {
         use TokenKind::*;
         let start = self.cursor.len_consumed();
         let position = self.cursor.line_column();
+        self.begin_match_position = CharIndex(start);
         // We can unwrap here, since we check that we're not at EOF before calling scan_token.
         let kind = match self.cursor.advance().unwrap() {
             '(' => LeftParen,
