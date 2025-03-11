@@ -84,7 +84,7 @@ enum Action {
     NotusUpdate(NotusUpdateArgs),
     Feed(FeedArgs),
     #[cfg(feature = "nasl-builtin-raw-ip")]
-    AliveTest(AliveTestArgs),
+    Alivetest(alivetest::AliveTestArgs),
 }
 
 #[tokio::main]
@@ -118,7 +118,7 @@ async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError>
         Action::NotusUpdate(args) => notus_update::scanner::run(args).await,
         Action::Feed(args) => feed::run(args).await,
         #[cfg(feature = "nasl-builtin-raw-ip")]
-        Action::AliveTest(args) => alivetest::run(args).await,
+        Action::Alivetest(args) => alivetest::run(args).await,
     }
 }
 
