@@ -154,3 +154,7 @@ harness = false
 [[bench]]
 name = "nasl_syntax_parse"
 harness = false
+
+[[bench]]
+name = "interpreter"
+harness = false
