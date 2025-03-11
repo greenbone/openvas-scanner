@@ -9,6 +9,8 @@ pub use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 
+type TokenizerResult<T> = Result<T, TokenizerError>;
+
 #[derive(Copy, Default, Clone, Debug, PartialEq, Eq)]
 pub struct CharIndex(pub usize);
 
@@ -129,6 +131,25 @@ impl NumberBase {
     }
 }
 
+// Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
+// this macro can be used:
+//'+' => double_token!(self.cursor, start, '+', '+', PlusPlus, '=', PlusEqual),
+// within the Iterator implementation of Tokenizer
+macro_rules! two_symbol_token {
+    ($cursor:expr, $start:tt, $single_symbol:tt, $($matching_char:tt, $two_symbol_token:expr ), *) => {
+        {
+            let next = $cursor.peek();
+            match next {
+                $($matching_char => {
+                  $cursor.advance();
+                  $two_symbol_token
+                }, )*
+                _ => $single_symbol,
+            }
+        }
+    };
+}
+
 /// Tokenizer uses a cursor to create tokens
 pub struct Tokenizer {
     cursor: Cursor,
@@ -167,6 +188,61 @@ impl Tokenizer {
         } else {
             Err(())
         }
+    }
+
+    fn scan_token(&mut self) -> Result<Token, TokenizerError> {
+        use TokenKind::*;
+        let start = self.cursor.position();
+        self.begin_match_position = start;
+        // We can unwrap here, since we check that we're not at EOF before calling scan_token.
+        let kind = match self.cursor.advance().unwrap() {
+            '(' => LeftParen,
+            ')' => RightParen,
+            '[' => LeftBrace,
+            ']' => RightBrace,
+            '{' => LeftCurlyBracket,
+            '}' => RightCurlyBracket,
+            ',' => Comma,
+            '.' => Dot,
+            '#' => {
+                self.cursor.skip_while(|c| c != '\n');
+                Comment
+            }
+            '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
+            '+' => {
+                two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual)
+            }
+            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),
+            ';' => Semicolon,
+            '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
+            '*' => {
+                two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual)
+            }
+            ':' => DoublePoint,
+            '~' => Tilde,
+            '&' => {
+                two_symbol_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand)
+            }
+            '|' => two_symbol_token!(self.cursor, start, Pipe, '|', PipePipe),
+            '^' => Caret,
+            '!' => {
+                two_symbol_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde)
+            }
+            '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
+            '>' => self.tokenize_greater(),
+            '<' => self.tokenize_less(),
+            '"' => self.tokenize_string(),
+            '\'' => self.tokenize_data(),
+            c if c.is_ascii_digit() => self.tokenize_number(start, c),
+            c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
+            c if c.is_whitespace() => Whitespace,
+            _ => UnknownSymbol,
+        };
+
+        Ok(Token {
+            kind,
+            position: (start.0, self.cursor.position().0),
+        })
     }
 
     pub fn match_error(&self, kind: TokenizerErrorKind) -> TokenizerError {
@@ -293,6 +369,7 @@ impl Tokenizer {
             TokenKind::Data(raw_str.as_bytes().to_vec())
         }
     }
+
     fn may_parse_ipv4(&mut self, base: NumberBase, start: CharIndex) -> Option<TokenKind> {
         use NumberBase::*;
         // IPv4Address start as Base10
@@ -401,81 +478,5 @@ impl Tokenizer {
                 TokenKind::Identifier(Keyword::Undefined(lookup.to_owned()))
             }
         }
-    }
-}
-
-// Is used to simplify cases for double_tokens, instead of having to rewrite each match case for each double_token
-// this macro can be used:
-//'+' => double_token!(self.cursor, start, '+', '+', PlusPlus, '=', PlusEqual),
-// within the Iterator implementation of Tokenizer
-macro_rules! two_symbol_token {
-    ($cursor:expr, $start:tt, $single_symbol:tt, $($matching_char:tt, $two_symbol_token:expr ), *) => {
-        {
-            let next = $cursor.peek();
-            match next {
-                $($matching_char => {
-                  $cursor.advance();
-                  $two_symbol_token
-                }, )*
-                _ => $single_symbol,
-            }
-        }
-    };
-}
-
-impl Tokenizer {
-    fn scan_token(&mut self) -> Result<Token, TokenizerError> {
-        use TokenKind::*;
-        let start = self.cursor.position();
-        self.begin_match_position = start;
-        // We can unwrap here, since we check that we're not at EOF before calling scan_token.
-        let kind = match self.cursor.advance().unwrap() {
-            '(' => LeftParen,
-            ')' => RightParen,
-            '[' => LeftBrace,
-            ']' => RightBrace,
-            '{' => LeftCurlyBracket,
-            '}' => RightCurlyBracket,
-            ',' => Comma,
-            '.' => Dot,
-            '#' => {
-                self.cursor.skip_while(|c| c != '\n');
-                Comment
-            }
-            '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
-            '+' => {
-                two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual)
-            }
-            '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),
-            ';' => Semicolon,
-            '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
-            '*' => {
-                two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual)
-            }
-            ':' => DoublePoint,
-            '~' => Tilde,
-            '&' => {
-                two_symbol_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand)
-            }
-            '|' => two_symbol_token!(self.cursor, start, Pipe, '|', PipePipe),
-            '^' => Caret,
-            '!' => {
-                two_symbol_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde)
-            }
-            '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
-            '>' => self.tokenize_greater(),
-            '<' => self.tokenize_less(),
-            '"' => self.tokenize_string(),
-            '\'' => self.tokenize_data(),
-            c if c.is_ascii_digit() => self.tokenize_number(start, c),
-            c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
-            c if c.is_whitespace() => Whitespace,
-            _ => UnknownSymbol,
-        };
-
-        Ok(Token {
-            kind,
-            position: (start.0, self.cursor.position().0),
-        })
     }
 }
