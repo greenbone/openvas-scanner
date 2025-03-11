@@ -9,8 +9,6 @@ pub use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 
-type TokenizerResult<T> = Result<T, TokenizerError>;
-
 #[derive(Copy, Default, Clone, Debug, PartialEq, Eq)]
 pub struct CharIndex(pub usize);
 
@@ -193,9 +191,10 @@ impl Tokenizer {
     fn scan_token(&mut self) -> Result<Token, TokenizerError> {
         use TokenKind::*;
         let start = self.cursor.position();
-        self.begin_match_position = start;
         // We can unwrap here, since we check that we're not at EOF before calling scan_token.
-        let kind = match self.cursor.advance().unwrap() {
+        let char = self.cursor.advance().unwrap();
+        self.begin_match_position = self.cursor.position();
+        let kind = match char {
             '(' => LeftParen,
             ')' => RightParen,
             '[' => LeftBrace,
@@ -233,7 +232,7 @@ impl Tokenizer {
             '<' => self.tokenize_less(),
             '"' => self.tokenize_string(),
             '\'' => self.tokenize_data(),
-            c if c.is_ascii_digit() => self.tokenize_number(start, c),
+            c if c.is_ascii_digit() => self.tokenize_number(start, c)?,
             c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
             c if c.is_whitespace() => Whitespace,
             _ => UnknownSymbol,
@@ -404,60 +403,58 @@ impl Tokenizer {
         None
     }
 
-    // checks if a number is binary, octal, base10 or hex
-    fn tokenize_number(&mut self, mut start: CharIndex, current: char) -> TokenKind {
+    fn tokenize_number(
+        &mut self,
+        mut start: CharIndex,
+        current: char,
+    ) -> Result<TokenKind, TokenizerError> {
         use NumberBase::*;
-        let may_base = {
-            if current == '0' {
-                match self.cursor.peek() {
-                    'b' => {
-                        // jump over non numeric
-                        self.cursor.advance();
-                        // we don't need `0b` later
-                        start += 2;
-                        Some(Binary)
-                    }
-                    'x' => {
-                        // jump over non numeric
-                        self.cursor.advance();
-                        // we don't need `0x` later
-                        start += 2;
-                        Some(Hex)
-                    }
-                    peeked if ('0'..='7').contains(&peeked) => {
-                        // we don't need leading 0 later
-                        start += 1;
-                        Some(Octal)
-                    }
-                    peeked if peeked.is_alphabetic() => None,
-                    _ => Some(Base10),
+        let base = match (current, self.cursor.peek()) {
+            ('0', 'b') => {
+                // jump over non numeric
+                self.cursor.advance();
+                // we don't need `0b` later
+                start += 2;
+                Binary
+            }
+            ('0', 'x') => {
+                // jump over non numeric
+                self.cursor.advance();
+                // we don't need `0x` later
+                start += 2;
+                Hex
+            }
+            ('0', c) if ('0'..='7').contains(&c) => {
+                // we don't need leading 0 later
+                start += 1;
+                Octal
+            }
+            (_, c) => {
+                if c.is_alphabetic() {
+                    return Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral));
+                } else {
+                    Base10
                 }
-            } else {
-                Some(Base10)
             }
         };
-        if let Some(base) = may_base {
-            self.cursor.skip_while(base.verifier());
-            match self.may_parse_ipv4(base, start) {
-                Some(token) => token,
-                None => {
-                    // we verify that the cursor actually moved to prevent scenarios like
-                    // 0b without any actual number in it
-                    if start == self.cursor.position() {
-                        TokenKind::IllegalNumber(base)
-                    } else {
-                        match i64::from_str_radix(
-                            &self.substring(start, self.cursor.position()),
-                            base.radix(),
-                        ) {
-                            Ok(num) => TokenKind::Number(num),
-                            Err(_) => TokenKind::IllegalNumber(base),
-                        }
+        self.cursor.skip_while(base.verifier());
+        match self.may_parse_ipv4(base, start) {
+            Some(token) => Ok(token),
+            None => {
+                // we verify that the cursor actually moved to prevent scenarios like
+                // 0b without any actual number in it
+                if start == self.cursor.position() {
+                    Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
+                } else {
+                    match i64::from_str_radix(
+                        &self.substring(start, self.cursor.position()),
+                        base.radix(),
+                    ) {
+                        Ok(num) => Ok(TokenKind::Number(num)),
+                        Err(_) => Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral)),
                     }
                 }
             }
-        } else {
-            TokenKind::UnknownBase
         }
     }
 

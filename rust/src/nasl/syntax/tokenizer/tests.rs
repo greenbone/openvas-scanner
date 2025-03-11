@@ -75,10 +75,12 @@ test_ok!(unclosed_string, "\"hello I am a unclosed string\\");
 test_ok!(data_string, r#"'Hello \\\'you\\\'!'"#);
 test_ok!(unclosed_data_string, "'Hello \\'you\\'!\\'");
 
+test_ok!(simple_number, "1");
 test_ok!(
     numbers,
-    "0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02 0b2"
+    "0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02"
 );
+test_err!(invalid_numbers, "0x 0b 0b2");
 
 test_ok!(single_line_comments, "# this is a comment\n;");
 

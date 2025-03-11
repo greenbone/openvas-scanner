@@ -1,0 +1,16 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (simple_number), \"1\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Number(
+            1,
+        ),
+        position: (
+            0,
+            1,
+        ),
+    },
+]

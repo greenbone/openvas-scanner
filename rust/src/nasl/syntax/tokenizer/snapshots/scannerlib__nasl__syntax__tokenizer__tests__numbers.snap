@@ -1,6 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
-expression: "tokenize_ok(stringify! (numbers),\n\"0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02 0b2\")"
+expression: "tokenize_ok(stringify! (numbers),\n\"0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02\")"
 snapshot_kind: text
 ---
 [
@@ -65,24 +65,6 @@ snapshot_kind: text
         position: (
             50,
             51,
-        ),
-    },
-    Token {
-        kind: IllegalNumber(
-            Binary,
-        ),
-        position: (
-            52,
-            54,
-        ),
-    },
-    Token {
-        kind: Number(
-            2,
-        ),
-        position: (
-            54,
-            55,
         ),
     },
 ]

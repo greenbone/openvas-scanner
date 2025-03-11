@@ -11,7 +11,10 @@ pub struct TokenizerError {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
-pub enum TokenizerErrorKind {}
+pub enum TokenizerErrorKind {
+    #[error("Invalid number literal.")]
+    InvalidNumberLiteral,
+}
 
 impl AsCodespanError for TokenizerError {
     fn range(&self) -> Range<usize> {

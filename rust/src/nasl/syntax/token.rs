@@ -10,8 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
 
-use super::tokenizer::NumberBase;
-
 /// Is used to identify which token type is unclosed
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize, Deserialize))]
@@ -270,8 +268,6 @@ pub enum TokenKind {
     IPv4Address(String),
     /// Wrongfully identified as IpV4
     IllegalIPv4Address,
-    /// An illegal Number e.g. 0b2
-    IllegalNumber(NumberBase),
     /// A comment starts with # and should be ignored
     Comment,
     /// Identifier are literals that are not strings and don't start with a number
@@ -341,7 +337,6 @@ impl Display for TokenKind {
             TokenKind::Number(x) => write!(f, "{x}"),
             TokenKind::IPv4Address(x) => write!(f, "{x}"),
             TokenKind::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
-            TokenKind::IllegalNumber(_) => write!(f, "IllegalNumber"),
             TokenKind::Comment => write!(f, "Comment"),
             TokenKind::Identifier(x) => write!(f, "{}", x),
             TokenKind::Unclosed(x) => write!(f, "Unclosed{x:?}"),
@@ -411,12 +406,10 @@ impl Token {
     /// - [TokenKind::Unclosed]
     /// - [TokenKind::UnknownBase]
     /// - [TokenKind::UnknownSymbol]
-    /// - [TokenKind::IllegalNumber]
     pub fn is_faulty(&self) -> bool {
         matches!(
             self.kind(),
             TokenKind::IllegalIPv4Address
-                | TokenKind::IllegalNumber(_)
                 | TokenKind::Unclosed(_)
                 | TokenKind::UnknownBase
                 | TokenKind::UnknownSymbol
