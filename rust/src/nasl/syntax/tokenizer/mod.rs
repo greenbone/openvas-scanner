@@ -58,21 +58,44 @@ impl NumberBase {
 }
 
 /// Tokenizer uses a cursor to create tokens
-#[derive(Clone)]
 pub struct Tokenizer<'a> {
     // Is used to lookup keywords
     code: &'a str,
     cursor: Cursor<'a>,
+    errors: Vec<TokenizerError>,
 }
 
 impl<'a> Tokenizer<'a> {
     /// Creates a new Tokenizer
     pub fn tokenize(code: &'a str) -> Result<Vec<Token>, Vec<TokenizerError>> {
-        let tokenizer = Tokenizer {
+        let mut tokenizer = Tokenizer {
             code,
             cursor: Cursor::new(code),
+            errors: vec![],
         };
-        Ok(tokenizer.collect())
+        tokenizer.tokenize_internal().map_err(|_| tokenizer.errors)
+    }
+
+    fn tokenize_internal(&mut self) -> Result<Vec<Token>, ()> {
+        let mut tokens = vec![];
+        while !self.cursor.is_eof() {
+            let token = self.scan_token();
+            match token {
+                Ok(token) => {
+                    if token.is_relevant() {
+                        tokens.push(token)
+                    }
+                }
+                Err(err) => {
+                    self.errors.push(err);
+                }
+            }
+        }
+        if self.errors.is_empty() {
+            Ok(tokens)
+        } else {
+            Err(())
+        }
     }
 
     /// Returns a reference of a substring within code at given range
@@ -338,15 +361,13 @@ macro_rules! two_symbol_token {
     };
 }
 
-impl Iterator for Tokenizer<'_> {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
+impl Tokenizer<'_> {
+    fn scan_token(&mut self) -> Result<Token, TokenizerError> {
         use TokenKind::*;
-        self.cursor.skip_while(|c| c.is_whitespace());
         let start = self.cursor.len_consumed();
         let position = self.cursor.line_column();
-        let kind: TokenKind = match self.cursor.advance()? {
+        // We can unwrap here, since we check that we're not at EOF before calling scan_token.
+        let kind = match self.cursor.advance().unwrap() {
             '(' => LeftParen,
             ')' => RightParen,
             '[' => LeftBrace,
@@ -360,29 +381,38 @@ impl Iterator for Tokenizer<'_> {
                 Comment
             }
             '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
-            '+' => two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual),
+            '+' => {
+                two_symbol_token!(self.cursor, start, Plus, '+', PlusPlus, '=', PlusEqual)
+            }
             '%' => two_symbol_token!(self.cursor, start, Percent, '=', PercentEqual),
             ';' => Semicolon,
             '/' => two_symbol_token!(self.cursor, start, Slash, '=', SlashEqual), /* self.tokenize_slash(start), */
-            '*' => two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual),
+            '*' => {
+                two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual)
+            }
             ':' => DoublePoint,
             '~' => Tilde,
-            '&' => two_symbol_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand),
+            '&' => {
+                two_symbol_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand)
+            }
             '|' => two_symbol_token!(self.cursor, start, Pipe, '|', PipePipe),
             '^' => Caret,
-            '!' => two_symbol_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde),
+            '!' => {
+                two_symbol_token!(self.cursor, start, Bang, '=', BangEqual, '~', BangTilde)
+            }
             '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
             '"' => self.tokenize_string(),
             '\'' => self.tokenize_data(),
-
-            current if current.is_ascii_digit() => self.tokenize_number(start, current),
-            current if current.is_alphabetic() || current == '_' => self.tokenize_identifier(start),
+            c if c.is_ascii_digit() => self.tokenize_number(start, c),
+            c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
+            c if c.is_whitespace() => Whitespace,
             _ => UnknownSymbol,
         };
+
         let byte_position = (start, self.cursor.len_consumed());
-        Some(Token {
+        Ok(Token {
             kind,
             line_column: position,
             position: byte_position,
@@ -510,7 +540,7 @@ mod tests {
 
     #[test]
     fn single_line_comments() {
-        verify_tokens!("# this is a comment\n;", ["Comment", ";"]);
+        verify_tokens!("# this is a comment\n;", [";"]);
     }
 
     #[test]

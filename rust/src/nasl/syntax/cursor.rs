@@ -10,7 +10,7 @@ pub const EOF_CHAR: char = '\0';
 /// Peekable iterator over a char sequence.
 ///
 /// Next characters can be peeked via `peek` method,
-/// and position can be shifted forward via `bump` method.
+/// and position can be shifted forward via `advance` method.
 #[derive(Clone)]
 pub struct Cursor<'a> {
     /// is needed to calculate the length when e.g. tokenizing

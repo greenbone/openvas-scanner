@@ -282,6 +282,8 @@ pub enum TokenKind {
     UnknownBase,
     /// used when the symbol is unknown
     UnknownSymbol,
+    /// Whitespace
+    Whitespace,
 }
 
 impl Display for TokenKind {
@@ -346,6 +348,7 @@ impl Display for TokenKind {
             TokenKind::UnknownBase => write!(f, "UnknownBase"),
             TokenKind::UnknownSymbol => write!(f, "UnknownSymbol"),
             TokenKind::Data(x) => write!(f, "{x:?}"),
+            TokenKind::Whitespace => write!(f, " "),
         }
     }
 }
@@ -387,6 +390,10 @@ impl Token {
             TokenKind::Identifier(Keyword::Undefined(x)) => Ok(x.to_owned()),
             cat => Err(InterpretError::wrong_kind(cat)),
         }
+    }
+
+    pub fn is_relevant(&self) -> bool {
+        !matches!(self.kind, TokenKind::Comment | TokenKind::Whitespace)
     }
 }
 
