@@ -18,7 +18,7 @@ impl AddAssign<usize> for CharIndex {
     }
 }
 
-pub struct Cursor {
+struct Cursor {
     chars: Vec<char>,
     position: CharIndex,
     line: usize,
@@ -130,19 +130,16 @@ impl NumberBase {
 }
 
 /// Tokenizer uses a cursor to create tokens
-pub struct Tokenizer<'a> {
-    // TODO maybe remove
-    code: &'a str,
+pub struct Tokenizer {
     cursor: Cursor,
     begin_match_position: CharIndex,
     errors: Vec<TokenizerError>,
 }
 
-impl<'a> Tokenizer<'a> {
+impl Tokenizer {
     /// Creates a new Tokenizer
-    pub fn tokenize(code: &'a str) -> Result<Vec<Token>, Vec<TokenizerError>> {
+    pub fn tokenize(code: &str) -> Result<Vec<Token>, Vec<TokenizerError>> {
         let mut tokenizer = Tokenizer {
-            code,
             errors: vec![],
             cursor: Cursor::new(code),
             begin_match_position: CharIndex::default(),
@@ -426,7 +423,7 @@ macro_rules! two_symbol_token {
     };
 }
 
-impl Tokenizer<'_> {
+impl Tokenizer {
     fn scan_token(&mut self) -> Result<Token, TokenizerError> {
         use TokenKind::*;
         let start = self.cursor.position();
