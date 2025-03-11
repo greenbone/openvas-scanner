@@ -4,13 +4,13 @@
 
 # Is currently reqired by openvasd to control openvas
 ospd:
-  repository: greenbone/ospd-openvas
+  repository: registry.community.greenbone.net/community/ospd-openvas
   pullPolicy: Always
   tag: "edge"
 
 # Contains openvasd
 openvas:
-  repository: greenbone/openvas-scanner
+  repository: registry.community.greenbone.net/community/openvas-scanner
   pullPolicy: Always
   tag: "edge"
 
@@ -19,7 +19,7 @@ openvasd:
   # Sets the log level and changes the verbosity of openvasd.
   # Can be set to TRACE, DEBUG, INFO, WARNING, ERROR
   # openvasd is provided by the openvas image
-  loglevel: TRACE
+  loglevel: DEBUG
   # When set it will be the used API-KEY. It is not required when deploy_client is true.
   # apikey: changeme
   # can be either service: fill openvasd capabilities, service_notus: only notus
@@ -42,31 +42,20 @@ openvasd:
       deploy_server: true
       deploy_client: true
 
-# Required for version checks 
-notus:
-  repository: greenbone/notus-scanner
-  pullPolicy: Always
-  tag: "edge"
 
 # NASL scripts also known as feed
 vulnerabilitytests:
   # latest is the most current community feed.
-  repository: greenbone/vulnerability-tests
+  repository: registry.community.greenbone.net/community/vulnerability-tests
   pullPolicy: Always
-  tag: "latest"
+  tag: "community"
 
 # Notus description json also known as feed
 notusdata:
   # latest is the most current community feed.
-  repository: greenbone/notus-data
+  repository: registry.community.greenbone.net/community/notus-data
   pullPolicy: Always
-  tag: "latest"
-
-# Required by notus
-mqtt:
-  repository: greenbone/mqtt-broker
-  pullPolicy: Always
-  tag: "latest"
+  tag: "community"
 
 # required by openvas and ospd
 redis:
@@ -105,6 +94,7 @@ securityContext:
 
 service:
   type: ClusterIP
+  # type: LoadBalancer
   port: 443
 
 # enables routing.yaml

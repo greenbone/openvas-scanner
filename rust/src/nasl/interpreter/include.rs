@@ -6,7 +6,7 @@
 mod tests {
     use std::{collections::HashMap, string::String};
 
-    use crate::nasl::interpreter::CodeInterpreter;
+    use crate::nasl::test_utils::TestBuilder;
     use crate::nasl::{syntax::LoadError, Loader};
 
     use crate::nasl::{nasl_std_functions, prelude::*};
@@ -28,8 +28,9 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn function_variable() {
+    #[test]
+    fn function_variable() {
+        let t = TestBuilder::default();
         let example = r#"
         a = 12;
         function test() {
@@ -45,24 +46,19 @@ mod tests {
         a;
         test();
         "#;
-        let register = Register::default();
         let context = ContextFactory {
             loader,
             functions: nasl_std_functions(),
             storage: DefaultDispatcher::default(),
         };
-        let ctx = context.build(Default::default());
-        let mut interpreter = CodeInterpreter::new(code, register, &ctx);
+        let mut t = t.with_context(context);
+        t.run_all(code);
+        let mut results = t.results();
+        let mut next_result = move || results.remove(0).unwrap();
+        assert_eq!(next_result(), NaslValue::Null);
+        assert_eq!(next_result(), 12.into());
         assert_eq!(
-            interpreter.next_statement().await.unwrap().unwrap(),
-            NaslValue::Null
-        );
-        assert_eq!(
-            interpreter.next_statement().await.unwrap().unwrap(),
-            12.into()
-        );
-        assert_eq!(
-            interpreter.next_statement().await.unwrap().unwrap(),
+            next_result(),
             NaslValue::Dict(HashMap::from([(
                 "hello".to_owned(),
                 NaslValue::Data("world".as_bytes().into())

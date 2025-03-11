@@ -18,6 +18,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pcap.h>
+#include <pcap/pcap.h>
 #include <resolv.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,12 @@
  * @brief Maximum length of an interface's name
  */
 #define MAX_IFACE_NAME_LEN 64
+
+#ifndef DEBUG_IPV4
+#define DEBUG_IPV4(x)                                              \
+  g_debug ("AAA %d.%d.%d.%d", x & 0x000000ff, x >> 8 & 0x000000ff, \
+           x >> 16 & 0x000000ff, x >> 24 & 0x000000ff);
+#endif
 
 struct interface_info
 {
@@ -111,7 +118,6 @@ v6_is_local_ip (struct in6_addr *addr)
   struct interface_info *ifs;
   static struct myroute myroutes[MAXROUTES];
   struct in6_addr network, mask;
-  bpf_u_int32 v4mappednet, v4mappedmask;
 
   if ((ifs = v6_getinterfaces (&ifaces)) == NULL)
     return -1;
@@ -120,10 +126,14 @@ v6_is_local_ip (struct in6_addr *addr)
     {
       for (i = 0; i < ifaces; i++)
         {
-          char errbuf[PCAP_ERRBUF_SIZE];
-          pcap_lookupnet (ifs[i].name, &v4mappednet, &v4mappedmask, errbuf);
-          if ((v4mappednet & v4mappedmask)
-              == (addr->s6_addr32[3] & v4mappedmask))
+          int if_net = ifs[i].mask.s6_addr32[3] & ifs[i].addr6.s6_addr32[3];
+          int addr_net = addr->s6_addr32[3] & ifs[i].mask.s6_addr32[3];
+          g_debug ("iface %s", ifs[i].name);
+          DEBUG_IPV4 (if_net)
+          DEBUG_IPV4 (addr_net)
+          DEBUG_IPV4 (ifs[i].mask.s6_addr32[3])
+
+          if (if_net == addr_net && addr_net)
             return 1;
         }
     }
@@ -351,6 +361,9 @@ v6_getinterfaces (int *howmany)
               strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
                        sizeof (mydevs[numinterfaces].name) - 1);
               saddr = (struct sockaddr_in *) ifa->ifa_addr;
+              g_debug ("interface name is %s", ifa->ifa_name);
+              g_debug ("\tAF_INET family");
+              g_debug ("\taddress is %s", inet_ntoa (saddr->sin_addr));
               mydevs[numinterfaces].addr6.s6_addr32[0] = 0;
               mydevs[numinterfaces].addr6.s6_addr32[1] = 0;
               mydevs[numinterfaces].addr6.s6_addr32[2] = htonl (0xffff);
@@ -360,9 +373,6 @@ v6_getinterfaces (int *howmany)
               mydevs[numinterfaces].mask.s6_addr32[1] = 0;
               mydevs[numinterfaces].mask.s6_addr32[2] = htonl (0xffff);
               mydevs[numinterfaces].mask.s6_addr32[3] = saddr->sin_addr.s_addr;
-              g_debug ("interface name is %s", ifa->ifa_name);
-              g_debug ("\tAF_INET family");
-              g_debug ("\taddress is %s", inet_ntoa (saddr->sin_addr));
               g_debug ("\tnetmask is %s", inet_ntoa (saddr->sin_addr));
               numinterfaces++;
             }

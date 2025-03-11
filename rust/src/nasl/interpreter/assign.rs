@@ -4,9 +4,11 @@
 
 use std::collections::HashMap;
 
+use crate::nasl::interpreter::InterpretError;
 use crate::nasl::syntax::{AssignOrder, Statement, TokenCategory};
 
-use super::{error::InterpretError, interpreter::InterpretResult, Interpreter};
+use super::interpreter::InterpretResult;
+use super::interpreter::Interpreter;
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::syntax::StatementKind::*;
 use crate::nasl::utils::ContextType;
@@ -39,15 +41,15 @@ fn prepare_dict(left: NaslValue) -> HashMap<String, NaslValue> {
     }
 }
 
-impl Interpreter<'_> {
+impl Interpreter<'_, '_> {
     fn save(&mut self, idx: usize, key: &str, value: NaslValue) {
-        self.register_mut()
+        self.register
             .add_to_index(idx, key, ContextType::Value(value));
     }
 
     fn named_value(&self, key: &str) -> Result<(usize, NaslValue), InterpretError> {
         match self
-            .register()
+            .register
             .index_named(key)
             .unwrap_or((0, &ContextType::Value(NaslValue::Null)))
         {
@@ -55,6 +57,7 @@ impl Interpreter<'_> {
             (idx, ContextType::Value(val)) => Ok((idx, val.clone())),
         }
     }
+
     #[allow(clippy::too_many_arguments)]
     fn handle_dict(
         &mut self,
@@ -171,7 +174,7 @@ impl Interpreter<'_> {
     }
 }
 
-impl Interpreter<'_> {
+impl Interpreter<'_, '_> {
     /// Assign a right value to a left value. Return either the
     /// previous or the new value, based on the order.
     pub async fn assign(
@@ -183,12 +186,12 @@ impl Interpreter<'_> {
     ) -> InterpretResult {
         let (key, lookup) = {
             match left.kind() {
-                Variable => (Self::identifier(left.as_token())?, None),
+                Variable => (left.as_token().identifier()?, None),
                 Array(Some(stmt)) => (
-                    Self::identifier(left.as_token())?,
+                    left.as_token().identifier()?,
                     Some(self.resolve(stmt).await?),
                 ),
-                Array(None) => (Self::identifier(left.as_token())?, None),
+                Array(None) => (left.as_token().identifier()?, None),
                 _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
             }
         };

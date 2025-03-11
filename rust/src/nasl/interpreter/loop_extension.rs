@@ -2,17 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::nasl::interpreter::InterpretError;
 use crate::nasl::syntax::{IdentifierType, Statement, Token, TokenCategory};
 
-use crate::nasl::interpreter::{InterpretError, Interpreter};
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
 
-use super::interpreter::InterpretResult;
+use super::interpreter::{InterpretResult, Interpreter};
 
 /// Note that for all loops, we do not
 /// change the context, as the current NASL also does not change it too.
-impl Interpreter<'_> {
+impl Interpreter<'_, '_> {
     /// Interpreting a NASL for loop. A NASL for loop is built up with the
     /// following:
     ///
@@ -30,7 +30,6 @@ impl Interpreter<'_> {
     ) -> InterpretResult {
         // Resolve assignment
         self.resolve(assignment).await?;
-
         loop {
             // Check condition statement
             if !bool::from(self.resolve(condition).await?) {
@@ -75,8 +74,7 @@ impl Interpreter<'_> {
         // Iterate through the iterable Statement
         for val in Vec::<NaslValue>::from(self.resolve(iterable).await?) {
             // Change the value of the iteration variable after each iteration
-            self.register_mut()
-                .add_local(iter_name, ContextType::Value(val));
+            self.register.add_local(iter_name, ContextType::Value(val));
 
             // Execute loop body
             let ret = self.resolve(body).await?;

@@ -4,7 +4,7 @@
 
 mod frame_forgery;
 mod packet_forgery;
-mod raw_ip_utils;
+pub mod raw_ip_utils;
 use std::io;
 
 use crate::nasl::utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};

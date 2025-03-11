@@ -10,7 +10,7 @@ use std::ops::Range;
 use serde::{Deserialize, Serialize};
 
 use super::cursor::Cursor;
-use crate::storage::item::ACT;
+use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -432,15 +432,18 @@ impl Token {
             position: (0, 0),
         }
     }
+
+    pub fn identifier(&self) -> Result<String, InterpretError> {
+        match self.category() {
+            Category::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
+            cat => Err(InterpretError::wrong_category(cat)),
+        }
+    }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}:{} {}",
-            self.line_column.0, self.line_column.1, self.category
-        )
+        write!(f, "'{}'", self.category,)
     }
 }
 
@@ -448,6 +451,16 @@ impl Token {
     /// Returns the Category
     pub fn category(&self) -> &Category {
         &self.category
+    }
+
+    /// Returns the line number of the token
+    pub fn line(&self) -> usize {
+        self.line_column.0
+    }
+
+    /// Returns the column number of the token
+    pub fn column(&self) -> usize {
+        self.line_column.1
     }
 
     /// Returns true when an Token is faulty

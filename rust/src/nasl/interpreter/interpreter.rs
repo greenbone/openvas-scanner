@@ -1,303 +1,304 @@
-// SPDX-FileCopyrightText: 2023 Greenbone AG
-//
-// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+use std::collections::{HashMap, VecDeque};
 
-use std::collections::HashMap;
-
-use crate::nasl::interpreter::{
-    declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    InterpretError,
-};
-use crate::nasl::syntax::{
-    IdentifierType, NaslValue, Statement, StatementKind::*, SyntaxError, Token, TokenCategory,
+use crate::nasl::{
+    interpreter::{
+        declare::{DeclareFunctionExtension, DeclareVariableExtension},
+        InterpretError,
+    },
+    prelude::NaslValue,
+    syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, Token, TokenCategory},
+    Context, ContextType, Register,
 };
 
-use crate::nasl::utils::{Context, ContextType, Register};
+use super::InterpretErrorKind;
 
-/// Is used to identify the depth of the current statement
+#[derive(PartialEq, Eq)]
+enum InterpreterState {
+    Running,
+    Finished,
+}
+
+impl InterpreterState {
+    fn is_finished(&self) -> bool {
+        matches!(self, Self::Finished)
+    }
+}
+
+/// Represents the result of a function call (`value`) along with
+/// the `Token` pointing to the identifier of the function that
+/// resulted in this value originally.
+#[derive(Clone)]
+pub struct FunctionCallData {
+    value: NaslValue,
+    token: Token,
+}
+
+/// This type contains the necessary data to reproduce the execution
+/// flow in the case of interpreter forks.
 ///
-/// Initial call of retry_resolce sets the first element all others are only
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Position {
-    index: Vec<usize>,
+/// Its two variants are
+///
+/// 1. `Collecting`: This variant is used by any interpreter which is
+///    currently executing normally.  In this mode, the result of any
+///    function call performed by the interpreter within a single
+///    top-level statement will be stored along with the `Token` at which
+///    the function call took place (as a safeguard). The variant also
+///    stores the original `Register` and `Lexer` in order to be able to "rewind"
+///    into the exact state before the statement that caused the fork.
+/// 2. `Restoring`: This variant is used by all interpreters which were just created due to a fork.
+///    In this mode, the interpreter will not perform normal function
+///    calls, and will instead return the first value in the `data` field
+///    in place of the function call. This is done until the `data` field is
+///    exhausted. At that point, execution proceeds normally.
+#[derive(Clone)]
+pub enum ForkReentryData<'code> {
+    Collecting {
+        data: Vec<FunctionCallData>,
+        register: Register,
+        lexer: Lexer<'code>,
+    },
+    Restoring {
+        data: VecDeque<FunctionCallData>,
+    },
 }
 
-impl std::fmt::Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.index
+impl<'code> ForkReentryData<'code> {
+    fn drain(&mut self) -> VecDeque<FunctionCallData> {
+        match self {
+            Self::Collecting { data, .. } => data.drain(..).collect(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn register(&self) -> &Register {
+        match self {
+            Self::Collecting { register, .. } => register,
+            _ => unreachable!(),
+        }
+    }
+
+    fn lexer(&self) -> &Lexer<'code> {
+        match self {
+            Self::Collecting { lexer, .. } => lexer,
+            _ => unreachable!(),
+        }
+    }
+
+    fn contains_fork(&self) -> bool {
+        match self {
+            Self::Collecting { data, .. } => data
                 .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>()
-                .join(".")
-        )
-    }
-}
-
-impl Position {
-    pub fn new(index: usize) -> Self {
-        Self { index: vec![index] }
+                .any(|value| matches!(value.value, NaslValue::Fork(_))),
+            _ => false,
+        }
     }
 
-    pub fn up(&mut self) {
-        self.index.push(0);
+    /// If in `Collecting` mode, remember the given result. Otherwise
+    /// do nothing.
+    pub(crate) fn try_collect(&mut self, value: NaslValue, token: &Token) {
+        match self {
+            ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
+                value,
+                token: token.clone(),
+            }),
+            ForkReentryData::Restoring { data: _ } => {}
+        }
     }
 
-    pub fn reduce_last(&mut self) {
-        if let Some(last) = self.index.last_mut() {
-            if *last > 0 {
-                *last -= 1;
+    /// If in `Restoring` mode, remove and return the first stored
+    /// result from the queue. Otherwise do nothing.
+    pub(crate) fn try_restore(
+        &mut self,
+        token: &Token,
+    ) -> Result<Option<NaslValue>, InterpretError> {
+        match self {
+            Self::Restoring { data } => {
+                if let Some(data) = data.pop_front() {
+                    if *token != data.token {
+                        return Err(InterpretError::new(InterpretErrorKind::InvalidFork, None));
+                    }
+                    Ok(Some(data.value))
+                } else {
+                    Ok(None)
+                }
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn create_forks(&mut self) -> Vec<Self> {
+        let mut data = vec![self.drain()];
+        loop {
+            let (changed, new_data) = expand_first_fork(data);
+            data = new_data;
+            if !changed {
+                break;
             }
         }
+        data.into_iter()
+            .map(|data| Self::Restoring { data })
+            .collect()
     }
 
-    pub fn down(&mut self) -> Option<usize> {
-        let result = self.index.pop();
-        if let Some(last) = self.index.last_mut() {
-            *last += 1;
-        }
-        result
-    }
-
-    pub fn current_init_statement(&self) -> Self {
-        Self {
-            index: vec![*self.index.first().unwrap_or(&0)],
+    fn new() -> Self {
+        Self::Restoring {
+            data: VecDeque::new(),
         }
     }
 
-    fn root_index(&self) -> usize {
-        *self.index.first().unwrap_or(&0)
+    fn collecting(register: Register, lexer: Lexer<'code>) -> Self {
+        Self::Collecting {
+            data: vec![],
+            register,
+            lexer,
+        }
+    }
+
+    fn is_empty_or_collecting(&self) -> bool {
+        match self {
+            ForkReentryData::Collecting { .. } => true,
+            ForkReentryData::Restoring { data } => data.is_empty(),
+        }
     }
 }
 
-/// Contains data that is specific for a single run
+/// Expand the first occurrence of `NaslValue::Fork(...)` in the list of collected function
+/// calls (i.e. any called function wants to fork), by returning one list per fork value.
 ///
-/// Some methods start multiple runs (e.g. get_kb_item) and need to have their own specific data to
-/// manipulate. To make it more convencient the data that is bound to run is summarized within this
-/// struct.
-pub(crate) struct RunSpecific {
-    pub(crate) register: Register,
-    pub(crate) position: Position,
-    pub(crate) skip_until_return: Vec<(Position, NaslValue)>,
+/// For example (in pseudo-code):
+/// expand_first_fork([[1, Fork(2, 3)]]) = [[1, 2], [1, 3]]
+/// The boolean return value is true if any expansion took place or false if
+/// no expansion took place (that is, if there was no `NaslValue::Fork` in the data).
+fn expand_first_fork(
+    data: Vec<VecDeque<FunctionCallData>>,
+) -> (bool, Vec<VecDeque<FunctionCallData>>) {
+    let first_fork = data[0]
+        .iter()
+        .enumerate()
+        .filter_map(|(index, data)| {
+            let FunctionCallData { value, token } = data;
+            if let NaslValue::Fork(vals) = value {
+                Some((index, vals.clone(), token.clone()))
+            } else {
+                None
+            }
+        })
+        .next();
+    if first_fork.is_none() {
+        return (false, data);
+    }
+    let first_fork = first_fork.unwrap();
+    let data = data
+        .into_iter()
+        .flat_map(|d| expand_fork_at(d, first_fork.0, first_fork.1.clone(), first_fork.2.clone()))
+        .collect();
+    (true, data)
 }
 
-/// Used to interpret a Statement
-pub struct Interpreter<'a> {
-    pub(crate) run_specific: Vec<RunSpecific>,
-    pub(crate) ctxconfigs: &'a Context<'a>,
-    pub(crate) index: usize,
+fn expand_fork_at(
+    data: VecDeque<FunctionCallData>,
+    index: usize,
+    vals: Vec<NaslValue>,
+    token: Token,
+) -> Vec<VecDeque<FunctionCallData>> {
+    vals.iter()
+        .map(|val| {
+            let mut data = data.clone();
+            data[index] = FunctionCallData {
+                value: val.clone(),
+                token: token.clone(),
+            };
+            data
+        })
+        .collect()
 }
 
-/// Interpreter always returns a NaslValue or an InterpretError
-///
-/// When a result does not contain a value than NaslValue::Null must be returned.
+pub struct Interpreter<'code, 'ctx> {
+    pub(super) register: Register,
+    pub(super) context: &'ctx Context<'ctx>,
+    pub(super) fork_reentry_data: ForkReentryData<'code>,
+    lexer: Lexer<'code>,
+    state: InterpreterState,
+}
+
 pub type InterpretResult = Result<NaslValue, InterpretError>;
 
-impl<'a> Interpreter<'a> {
+impl<'code, 'ctx> Interpreter<'code, 'ctx> {
     /// Creates a new Interpreter
-    pub fn new(register: Register, ctxconfigs: &'a Context) -> Self {
-        let root_run = RunSpecific {
-            register,
-            position: Position::new(0),
-            skip_until_return: Vec::new(),
-        };
+    pub fn new(register: Register, lexer: Lexer<'code>, context: &'ctx Context) -> Self {
         Interpreter {
-            run_specific: vec![root_run],
-            ctxconfigs,
-            index: 0,
+            register,
+            lexer,
+            context,
+            fork_reentry_data: ForkReentryData::new(),
+            state: InterpreterState::Running,
         }
     }
 
-    pub(crate) fn identifier(token: &Token) -> Result<String, InterpretError> {
-        match token.category() {
-            TokenCategory::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
-            cat => Err(InterpretError::wrong_category(cat)),
-        }
-    }
-
-    /// May return the next interpreter to run against that statement
-    ///
-    /// When the interpreter are done a None will be returned. Afterwards it will begin at at 0
-    /// again. This is done to inform the caller that all interpreter interpret this statement and
-    /// the next Statement can be executed.
-    // TODO remove in favor of iterrator of run_specific
-    pub fn next_interpreter(&mut self) -> Option<&mut Interpreter<'a>> {
-        if self.run_specific.len() == 1 || self.index + 1 == self.run_specific.len() {
-            return None;
-        }
-
-        // if self.forked_interpreter.is_empty() {
-        //     return None;
-        // }
-        tracing::trace!(amount = self.run_specific.len(), index = self.index,);
-
-        self.index += 1;
-        Some(self)
-    }
-
-    async fn execute_statements(
-        &self,
-        key: &str,
-        inter: &mut Interpreter<'_>,
-        stmt: Result<Statement, SyntaxError>,
-    ) -> InterpretResult {
-        match stmt {
-            Ok(stmt) => inter.resolve(&stmt).await,
-            Err(err) => Err(InterpretError::include_syntax_error(key, err)),
-        }
-    }
-
-    /// Includes a script into to the current runtime by executing it and share the register as
-    /// well as DB of the current runtime.
-    ///
-    // NOTE: This is currently optimized for interpreting runs, but it is very inefficient if we want to
-    // switch to a jitc approach or do parallelization of statements within a script. For that it
-    // would be necessary to include the statements within a statement list of a script prior of
-    // execution. In the current usage (2024-04-02) it would be overkill, but I'm writing a note as
-    // I think this can be easily overlooked.
-    async fn include(&mut self, name: &Statement) -> InterpretResult {
-        match self.resolve(name).await? {
-            NaslValue::String(key) => {
-                let code = self.ctxconfigs.loader().load(&key)?;
-
-                let mut inter = Interpreter::new(self.register().clone(), self.ctxconfigs);
-                for stmt in crate::nasl::syntax::parse(&code) {
-                    self.execute_statements(&key, &mut inter, stmt).await?;
+    pub async fn execute_next_statement(&mut self) -> Option<InterpretResult> {
+        self.initialize_fork_data();
+        match self.lexer.next() {
+            Some(Ok(stmt)) => {
+                let result = self.resolve(&stmt).await;
+                if matches!(result, Ok(NaslValue::Exit(_))) {
+                    self.state = InterpreterState::Finished;
                 }
-                self.set_register(inter.register().clone());
-                Ok(NaslValue::Null)
+                Some(result)
             }
-            _ => Err(InterpretError::unsupported(name, "string")),
-        }
-    }
-
-    /// Changes the internal position and tries to interpret a statement while retrying n times on specific error
-    ///
-    /// When encountering a retrievable error:
-    /// - LoadError(Retry(_))
-    /// - StorageError(Retry(_))
-    /// - IOError(Interrupted(_))
-    ///
-    /// then it retries the statement for a given max_attempts times.
-    ///
-    /// When max_attempts is set to 0 it will it execute it once.
-    pub async fn retry_resolve_next(
-        &mut self,
-        stmt: &Statement,
-        max_attempts: usize,
-    ) -> InterpretResult {
-        self.index = 0;
-        self.retry_resolve(stmt, max_attempts).await
-    }
-
-    /// Tries to interpret a statement and retries n times on a retry error
-    ///
-    /// When encountering a retrievable error:
-    /// - LoadError(Retry(_))
-    /// - StorageError(Retry(_))
-    /// - IOError(Interrupted(_))
-    ///
-    /// then it retries the statement for a given max_attempts times.
-    ///
-    /// When max_attempts is set to 0 it will it execute it once.
-    pub async fn retry_resolve(
-        &mut self,
-        stmt: &Statement,
-        max_attempts: usize,
-    ) -> InterpretResult {
-        match self.resolve(stmt).await {
-            Ok(x) => Ok(x),
-            Err(e) => {
-                if max_attempts > 0 {
-                    if e.retryable() {
-                        Box::pin(self.retry_resolve_next(stmt, max_attempts - 1)).await
-                    } else {
-                        Err(e)
-                    }
-                } else {
-                    Err(e)
-                }
+            Some(Err(err)) => Some(Err(err.into())),
+            None => {
+                self.state = InterpreterState::Finished;
+                None
             }
         }
     }
 
-    //// Checks for skip_until_return and returns the value if the current position is in the list
-    /// if the root index is smaller than the current position it will return None this is done to
-    /// prevent unnecessary statement execution and has to be seen as guardian functionality.
-    fn may_return_value(&mut self) -> Option<NaslValue> {
-        for (cp, value) in self.skip_until_return().iter() {
-            if self.position().root_index() < cp.root_index() {
-                return Some(NaslValue::Null);
+    pub async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
+        use StatementKind::*;
+        match statement.kind() {
+            Include(inc) => Box::pin(self.include(inc)).await,
+            Array(position) => self.resolve_array(statement, position.clone()).await,
+            Exit(stmt) => self.resolve_exit(stmt).await,
+            Return(stmt) => self.resolve_return(stmt).await,
+            NamedParameter(..) => {
+                unreachable!("named parameter should not be an executable statement.")
             }
-            if cp == self.position() {
-                return Some(value.clone());
+            For(assignment, condition, update, body) => {
+                Box::pin(self.for_loop(assignment, condition, update, body)).await
             }
+            While(condition, body) => Box::pin(self.while_loop(condition, body)).await,
+            Repeat(body, condition) => Box::pin(self.repeat_loop(body, condition)).await,
+            ForEach(variable, iterable, body) => {
+                Box::pin(self.for_each_loop(variable, iterable, body)).await
+            }
+            FunctionDeclaration(name, args, exec) => {
+                self.declare_function(name, args.children(), exec)
+            }
+            Primitive => self.resolve_primitive(statement),
+            Variable => self.resolve_variable(statement),
+            Call(arguments) => Box::pin(self.call(statement, arguments.children())).await,
+            Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
+            Parameter(x) => self.resolve_parameter(x).await,
+            Assign(cat, order, left, right) => Box::pin(self.assign(cat, order, left, right)).await,
+            Operator(sign, stmts) => Box::pin(self.operator(sign, stmts)).await,
+            If(condition, if_block, _, else_block) => {
+                self.resolve_if(condition, if_block, else_block.clone())
+                    .await
+            }
+            Block(blocks) => self.resolve_block(blocks).await,
+            NoOp => Ok(NaslValue::Null),
+            EoF => Ok(NaslValue::Null),
+            AttackCategory => self.resolve_attack_category(statement),
+            Continue => Ok(NaslValue::Continue),
+            Break => Ok(NaslValue::Break),
         }
-        None
-    }
-
-    /// Interprets a Statement
-    pub(crate) async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
-        self.position_mut().up();
-        if let Some(val) = self.may_return_value() {
-            tracing::trace!(returns=?val, "skipped" );
-            self.position_mut().down();
-            return Ok(val);
-        }
-        tracing::trace!("executing");
-
-        let results = {
-            match statement.kind() {
-                Include(inc) => Box::pin(self.include(inc)).await,
-                Array(position) => self.resolve_array(statement, position.clone()).await,
-                Exit(stmt) => self.resolve_exit(stmt).await,
-                Return(stmt) => self.resolve_return(stmt).await,
-                NamedParameter(..) => {
-                    unreachable!("named parameter should not be an executable statement.")
-                }
-                For(assignment, condition, update, body) => {
-                    Box::pin(self.for_loop(assignment, condition, update, body)).await
-                }
-                While(condition, body) => Box::pin(self.while_loop(condition, body)).await,
-                Repeat(body, condition) => Box::pin(self.repeat_loop(body, condition)).await,
-                ForEach(variable, iterable, body) => {
-                    Box::pin(self.for_each_loop(variable, iterable, body)).await
-                }
-                FunctionDeclaration(name, args, exec) => {
-                    self.declare_function(name, args.children(), exec)
-                }
-                Primitive => self.resolve_primitive(statement),
-                Variable => self.resolve_variable(statement),
-                Call(arguments) => Box::pin(self.call(statement, arguments.children())).await,
-                Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
-                Parameter(x) => self.resolve_parameter(x).await,
-                Assign(cat, order, left, right) => {
-                    Box::pin(self.assign(cat, order, left, right)).await
-                }
-                Operator(sign, stmts) => Box::pin(self.operator(sign, stmts)).await,
-                If(condition, if_block, _, else_block) => {
-                    self.resolve_if(condition, if_block, else_block.clone())
-                        .await
-                }
-                Block(blocks) => self.resolve_block(blocks).await,
-                NoOp => Ok(NaslValue::Null),
-                EoF => Ok(NaslValue::Null),
-                AttackCategory => self.resolve_attack_category(statement),
-                Continue => Ok(NaslValue::Continue),
-                Break => Ok(NaslValue::Break),
+        .map_err(|e| {
+            if e.origin.is_none() {
+                InterpretError::from_statement(statement, e.kind)
+            } else {
+                e
             }
-            .map_err(|e| {
-                if e.origin.is_none() {
-                    InterpretError::from_statement(statement, e.kind)
-                } else {
-                    e
-                }
-            })
-        };
-        self.position_mut().down();
-        results
+        })
     }
 
     async fn resolve_array(
@@ -305,9 +306,9 @@ impl<'a> Interpreter<'a> {
         statement: &Statement,
         position: Option<Box<Statement>>,
     ) -> Result<NaslValue, InterpretError> {
-        let name = Self::identifier(statement.start())?;
+        let name = statement.start().identifier()?;
         let val = self
-            .register()
+            .register
             .named(&name)
             .unwrap_or(&ContextType::Value(NaslValue::Null));
         let val = val.clone();
@@ -333,33 +334,6 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    /// Returns used register
-    pub fn register(&self) -> &Register {
-        &self.run_specific[self.index].register
-    }
-
-    /// Returns used register
-    pub(crate) fn register_mut(&mut self) -> &mut Register {
-        &mut self.run_specific[self.index].register
-    }
-
-    pub(crate) fn position_mut(&mut self) -> &mut Position {
-        &mut self.run_specific[self.index].position
-    }
-
-    pub(crate) fn position(&self) -> &Position {
-        &self.run_specific[self.index].position
-    }
-
-    fn set_register(&mut self, val: Register) {
-        let rs = &mut self.run_specific[self.index];
-        rs.register = val;
-    }
-
-    pub(crate) fn skip_until_return(&self) -> &[(Position, NaslValue)] {
-        &self.run_specific[self.index].skip_until_return
-    }
-
     async fn resolve_exit(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
         let rc = Box::pin(self.resolve(statement)).await?;
         match rc {
@@ -379,7 +353,7 @@ impl<'a> Interpreter<'a> {
 
     fn resolve_variable(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
         let name: NaslValue = TryFrom::try_from(statement.as_token())?;
-        match self.register().named(&name.to_string()) {
+        match self.register.named(&name.to_string()) {
             Some(ContextType::Value(result)) => Ok(result.clone()),
             None => Ok(NaslValue::Null),
             Some(ContextType::Function(_, _)) => {
@@ -417,7 +391,7 @@ impl<'a> Interpreter<'a> {
     }
 
     async fn resolve_block(&mut self, blocks: &[Statement]) -> Result<NaslValue, InterpretError> {
-        self.register_mut().create_child(HashMap::default());
+        self.register.create_child(HashMap::default());
         for stmt in blocks {
             match Box::pin(self.resolve(stmt)).await {
                 Ok(x) => {
@@ -428,14 +402,14 @@ impl<'a> Interpreter<'a> {
                             | NaslValue::Break
                             | NaslValue::Continue
                     ) {
-                        self.register_mut().drop_last();
+                        self.register.drop_last();
                         return Ok(x);
                     }
                 }
                 Err(e) => return Err(e),
             }
         }
-        self.register_mut().drop_last();
+        self.register.drop_last();
         // currently blocks don't return something
         Ok(NaslValue::Null)
     }
@@ -450,5 +424,77 @@ impl<'a> Interpreter<'a> {
                 statement.as_token()
             ),
         }
+    }
+
+    async fn include(&mut self, name: &Statement) -> InterpretResult {
+        match self.resolve(name).await? {
+            NaslValue::String(key) => {
+                let code = self.context.loader().load(&key)?;
+
+                let mut inter =
+                    Interpreter::new(self.register.clone(), self.lexer.clone(), self.context);
+                for stmt in crate::nasl::syntax::parse(&code) {
+                    inter.execute_included_statement(&key, stmt).await?;
+                }
+                self.register = inter.register;
+                Ok(NaslValue::Null)
+            }
+            _ => Err(InterpretError::unsupported(name, "string")),
+        }
+    }
+
+    async fn execute_included_statement(
+        &mut self,
+        key: &str,
+        stmt: Result<Statement, SyntaxError>,
+    ) -> InterpretResult {
+        match stmt {
+            Ok(stmt) => self.resolve(&stmt).await,
+            Err(err) => Err(InterpretError::include_syntax_error(key, err)),
+        }
+    }
+
+    pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'code, 'ctx>> {
+        let forks = self.fork_reentry_data.create_forks();
+        let register = self.fork_reentry_data.register();
+        let lexer = self.fork_reentry_data.lexer().clone();
+        forks
+            .into_iter()
+            .map(|fork| self.make_fork(fork, register, &lexer))
+            .collect()
+    }
+
+    fn make_fork(
+        &self,
+        fork_reentry_data: ForkReentryData<'code>,
+        register: &Register,
+        lexer: &Lexer<'code>,
+    ) -> Interpreter<'code, 'ctx> {
+        Self {
+            register: register.clone(),
+            lexer: lexer.clone(),
+            context: self.context,
+            fork_reentry_data,
+            state: InterpreterState::Running,
+        }
+    }
+
+    pub(crate) fn wants_to_fork(&self) -> bool {
+        self.fork_reentry_data.contains_fork()
+    }
+
+    pub(crate) fn initialize_fork_data(&mut self) {
+        if self.fork_reentry_data.is_empty_or_collecting() {
+            self.fork_reentry_data =
+                ForkReentryData::collecting(self.register.clone(), self.lexer.clone());
+        }
+    }
+
+    pub(crate) fn is_finished(&self) -> bool {
+        self.state.is_finished()
+    }
+
+    pub fn register(&self) -> &Register {
+        &self.register
     }
 }

@@ -4,14 +4,14 @@ on: [workflow_call]
 
 jobs:
   C:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v4
       - name: Formatting
         run: sh .github/check-c-formatting.sh ${{ github.base_ref }}
   Rust:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     defaults:
       run:
         working-directory: rust
@@ -21,26 +21,26 @@ jobs:
       - run: cargo clippy -- -D warnings
       - run: cargo fmt --check
   Rust-Typos:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     defaults:
       run:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
-      - run: cargo install typos-cli
+      - run: cargo install typos-cli || true
       - run: typos
   Rust-Audit:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     defaults:
       run:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install cargo-audit
+      - run: cargo install cargo-audit || true
       - run: cargo audit
   License-Headers:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-generic
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v4

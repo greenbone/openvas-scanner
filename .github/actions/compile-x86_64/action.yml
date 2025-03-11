@@ -1,0 +1,25 @@
+name: "Compile Rust x86_64"
+runs:
+  using: "composite"
+  steps:
+    - uses: ./.github/actions/setup-rust
+    - run: cargo install cross || true
+      shell: bash
+    - run: CROSS_CONFIG=Cross.toml cross build --release --target x86_64-unknown-linux-gnu
+      working-directory: rust
+      shell: bash
+    - name: "patch for debian stable"
+      working-directory: rust
+      shell: bash
+      run: |
+        find . -type f -name "scannerctl"
+        patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/x86_64-unknown-linux-gnu/release/scannerctl
+        patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release/scannerctl
+    - run: mkdir -p assets/linux/amd64
+      shell: bash
+    - run: mv rust/target/x86_64-unknown-linux-gnu/release/openvasd assets/linux/amd64/openvasd
+      shell: bash
+    - run: mv rust/target/x86_64-unknown-linux-gnu/release/scannerctl assets/linux/amd64/scannerctl
+      shell: bash
+    - run: mv rust/target/x86_64-unknown-linux-gnu/release/feed-verifier assets/linux/amd64/feed-verifier
+      shell: bash

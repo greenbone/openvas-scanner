@@ -1,0 +1,25 @@
+name: "Compile Rust aarch64"
+runs:
+  using: "composite"
+  steps:
+    - uses: ./.github/actions/setup-rust
+    - run: cargo install cross || true
+      shell: bash
+    - run: CROSS_CONFIG=Cross.toml cross -v build --release --target aarch64-unknown-linux-gnu
+      working-directory: rust
+      shell: bash
+    - name: "patch for debian stable"
+      working-directory: rust
+      run: |
+        find . -type f -name "scannerctl"
+        patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/aarch64-unknown-linux-gnu/release/scannerctl
+        patchelf --replace-needed libz.so libz.so.1 target/aarch64-unknown-linux-gnu/release/scannerctl
+      shell: bash
+    - run: mkdir -p assets/linux/arm64
+      shell: bash
+    - run: mv rust/target/aarch64-unknown-linux-gnu/release/openvasd assets/linux/arm64/openvasd
+      shell: bash
+    - run: mv rust/target/aarch64-unknown-linux-gnu/release/scannerctl assets/linux/arm64/scannerctl
+      shell: bash
+    - run: mv rust/target/aarch64-unknown-linux-gnu/release/feed-verifier assets/linux/arm64/feed-verifier
+      shell: bash

@@ -404,37 +404,38 @@ okrb5_gss_init_context (void)
 void
 okrb5_gss_free_context (struct OKrb5GSSContext *context)
 {
+  OM_uint32 min_stat;
   if (context != NULL)
     {
       if (context->gss_creds != GSS_C_NO_CREDENTIAL)
         {
-          gss_release_cred (NULL, &context->gss_creds);
+          gss_release_cred (&min_stat, &context->gss_creds);
         }
       if (context->gss_ctx != GSS_C_NO_CONTEXT)
         {
-          gss_delete_sec_context (NULL, &context->gss_ctx, GSS_C_NO_BUFFER);
+          gss_delete_sec_context (&min_stat, &context->gss_ctx, GSS_C_NO_BUFFER);
         }
       if (context->gss_target != GSS_C_NO_NAME)
         {
-          gss_release_name (NULL, &context->gss_target);
+          gss_release_name (&min_stat, &context->gss_target);
         }
       if (context->gss_mech != NULL)
         {
-          gss_release_oid (NULL, &context->gss_mech);
+          gss_release_oid (&min_stat, &context->gss_mech);
         }
       if (context->gss_channel_bindings != GSS_C_NO_CHANNEL_BINDINGS)
         {
           gss_release_buffer (
             NULL, &context->gss_channel_bindings->initiator_address);
-          gss_release_buffer (NULL,
+          gss_release_buffer (&min_stat,
                               &context->gss_channel_bindings->acceptor_address);
-          gss_release_buffer (NULL,
+          gss_release_buffer (&min_stat,
                               &context->gss_channel_bindings->application_data);
           free (context->gss_channel_bindings);
         }
       if (context->gss_actual_mech_type != NULL)
         {
-          gss_release_oid (NULL, &context->gss_actual_mech_type);
+          gss_release_oid (&min_stat, &context->gss_actual_mech_type);
         }
       free (context);
     }
@@ -524,7 +525,6 @@ o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
   OM_uint32 maj_stat;
   OM_uint32 min_stat;
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
-  // TODO: validate in data
   gss_buffer_desc in_buf = {
     .length = in_data->len,
     .value = in_data->data,
@@ -542,12 +542,18 @@ o_krb5_gss_update_context (struct OKrb5GSSContext *gss_context,
       result = O_KRB5_ERROR + maj_stat;
       goto result;
     }
-  *out_data = malloc (sizeof (struct OKrb5Slice));
-  (*out_data)->data = calloc (1, out_buf.length);
-  memcpy ((*out_data)->data, out_buf.value, out_buf.length);
+  if ((*out_data = malloc (sizeof (struct OKrb5Slice))) == NULL)
+    {
+      result = O_KRB5_NOMEM;
+      gss_release_buffer (&min_stat, &out_buf);
+      goto result;
+    }
+  // transfers ownership of out_buf.value into out_data->data.
+  // This simplifies the code as we don't have to alloc and check if the system
+  // had sufficient memory and don't have to memcpy.
+  (*out_data)->data = out_buf.value;
   (*out_data)->len = out_buf.length;
 
-  gss_release_buffer (&min_stat, &out_buf);
   *more = maj_stat == GSS_S_CONTINUE_NEEDED;
 result:
   return result;
@@ -635,6 +641,14 @@ okrb5_error_code_to_string (const OKrb5ErrorCode code)
 
           (void) gss_display_status (&min_stat, maj_stat, GSS_C_GSS_CODE,
                                      GSS_C_NULL_OID, &msg_ctx, &msg);
+          // Instead of calling gss_release_buffer, we transfer ownership of
+          // msg.value (a heap-allocated string) directly to result.
+          // The caller is responsible for freeing result later, this conforms
+          // to other values as well.
+          //
+          // msg itself is stack-allocated, but msg.value is dynamically
+          // allocated, so we must not call gss_release_buffer on msg after
+          // ownership transfer.
           result = msg.value;
         }
       else

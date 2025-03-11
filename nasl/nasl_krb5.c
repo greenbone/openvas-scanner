@@ -26,7 +26,27 @@
     }                                                                     \
   while (0)
 
-OKrb5ErrorCode last_okrb5_result;
+// Is used for krb5_is_success, krb5_is_failure which allows the script author
+// to verify if the last called krb5 function failed or not. This is strictly
+// speaking a safety net for incorrect usage as most krb5 functions return
+// the error code.
+static OKrb5ErrorCode last_okrb5_result;
+
+// cached_gss_context is used on cases that require an already existing session.
+// NASL does currently not have the concept of a pointer nor struct so we need
+// to store it as a global variable.
+// 
+// We use one context per run, this means that per run (target + oid) there is
+// only on credential allowed making it safe to be cached in that fashion.
+static struct OKrb5GSSContext *cached_gss_context = NULL;
+
+// Is used for `krb5_gss_update_context_out` and is essential a 
+// cache for the data from `krb5_gss_update_context`. 
+static struct OKrb5Slice *to_application = NULL;
+
+// Is used for `krb5_gss_update_context_needs_more` which indicates to the
+// script author that `krb5_gss_update_context` is not satisfied yet. 
+static bool gss_update_context_more = false;
 
 #define SET_SLICE_FROM_LEX_OR_ENV(lexic, slice, name, env_name)            \
   do                                                                       \
@@ -50,6 +70,7 @@ OKrb5ErrorCode last_okrb5_result;
         }                                                              \
     }                                                                  \
   while (0)
+
 
 static OKrb5Credential
 build_krb5_credential (lex_ctxt *lexic)
@@ -219,18 +240,11 @@ nasl_okrb5_is_failure (lex_ctxt *lexic)
   return retc;
 }
 
-// We use one context per run, this means that per run (target + oid) there is
-// only on credential allowed.
-struct OKrb5GSSContext *cached_gss_context = NULL;
 
 tree_cell *
 nasl_okrb5_gss_init (lex_ctxt *lexic)
 {
   (void) lexic;
-  if (cached_gss_context != NULL)
-    {
-      okrb5_gss_free_context (cached_gss_context);
-    }
   cached_gss_context = okrb5_gss_init_context ();
   if (cached_gss_context == NULL)
     {
@@ -263,8 +277,6 @@ nasl_okrb5_gss_prepare_context (lex_ctxt *lexic)
   return retc;
 }
 
-struct OKrb5Slice *to_application = NULL;
-bool gss_update_context_more = false;
 
 tree_cell *
 nasl_okrb5_gss_update_context (lex_ctxt *lexic)

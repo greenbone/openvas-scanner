@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
+#[cfg(feature = "nasl-builtin-raw-ip")]
+mod alivetest;
 mod error;
 mod execute;
 mod feed;
@@ -81,6 +83,8 @@ enum Action {
     Execute(ExecuteArgs),
     NotusUpdate(NotusUpdateArgs),
     Feed(FeedArgs),
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    AliveTest(AliveTestArgs),
 }
 
 #[tokio::main]
@@ -113,6 +117,8 @@ async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError>
         Action::Execute(args) => execute::run(args).await,
         Action::NotusUpdate(args) => notus_update::scanner::run(args).await,
         Action::Feed(args) => feed::run(args).await,
+        #[cfg(feature = "nasl-builtin-raw-ip")]
+        Action::AliveTest(args) => alivetest::run(args).await,
     }
 }
 

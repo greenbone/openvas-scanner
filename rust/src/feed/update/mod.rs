@@ -11,10 +11,13 @@ use futures::{stream, Stream, StreamExt};
 use std::fs::File;
 use tracing::trace;
 
-use crate::nasl::interpreter::{CodeInterpreter, Interpreter};
+use crate::nasl::interpreter::ForkingInterpreter;
+use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
+use crate::nasl::syntax::Lexer;
+use crate::nasl::syntax::Tokenizer;
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::Executor;
 use crate::nasl::ContextType;
@@ -55,10 +58,10 @@ pub async fn feed_version(
     // TODO add parameter to struct
     let functions = nasl_std_functions();
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
-    let mut interpreter = Interpreter::new(register, &context);
+    let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
     for stmt in crate::nasl::syntax::parse(&code) {
         let stmt = stmt?;
-        interpreter.retry_resolve_next(&stmt, 3).await?;
+        interpreter.resolve(&stmt).await?;
     }
 
     let feed_version = interpreter
@@ -160,7 +163,7 @@ where
             self.loader,
             &self.executor,
         );
-        let mut results = Box::pin(CodeInterpreter::new(&code, register, &context).stream());
+        let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());
         while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {

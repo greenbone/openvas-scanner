@@ -11,6 +11,30 @@ use walkdir::WalkDir;
 
 use crate::{CliError, CliErrorKind, Filename};
 
+fn print_error(path: &Path, err: &SyntaxError) {
+    if let Some(token) = err.as_token() {
+        eprintln!(
+            "{}:{}:{}: {}",
+            path.to_string_lossy(),
+            token.line(),
+            token.column(),
+            err.kind
+        )
+    } else {
+        eprintln!("{}:{}", path.to_string_lossy(), err)
+    }
+}
+
+fn print_stmt(path: &Path, stmt: Statement) {
+    println!(
+        "{}:{}:{}: {}",
+        path.to_string_lossy(),
+        stmt.as_token().line(),
+        stmt.as_token().column(),
+        stmt
+    )
+}
+
 fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, CliErrorKind> {
     let code = load_non_utf8_path(path.as_ref())?;
     Ok(parse(&code).collect())
@@ -27,12 +51,17 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
         match r {
             Ok(stmt) => {
                 if verbose {
-                    println!("{stmt:?}")
+                    print_stmt(path, stmt);
                 }
             }
             Err(err) => {
+                // when we run in interactive mode we should print a new line to
+                // not interfere with the count display.
+                if num_errors == 0 {
+                    eprintln!();
+                }
                 num_errors += 1;
-                eprintln!("{err}")
+                print_error(path, &err);
             }
         }
     }

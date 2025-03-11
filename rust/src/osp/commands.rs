@@ -188,7 +188,12 @@ fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
     for p in &scan.scan_preferences {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
-        writer.write_event(Event::Text(BytesText::new(&p.value)))?;
+        let value = match p.value.as_ref() {
+            "yes" => "1",
+            "no" => "0",
+            v => v,
+        };
+        writer.write_event(Event::Text(BytesText::new(value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;
     }
 
@@ -303,7 +308,11 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
                         privilege,
                     } => {
                         write_str_element(writer, "username", username)?;
-                        write_str_element(writer, "password", password)?;
+                        write_str_element(
+                            writer,
+                            "password",
+                            password.clone().unwrap_or_default().as_ref(),
+                        )?;
                         write_str_element(writer, "private", private_key)?;
                         if let Some(p) = privilege {
                             write_str_element(writer, "priv_username", &p.username)?;
@@ -324,6 +333,17 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
                         write_str_element(writer, "auth_algorithm", auth_algorithm)?;
                         write_str_element(writer, "privacy_password", privacy_password)?;
                         write_str_element(writer, "privacy_algorithm", privacy_algorithm)?;
+                    }
+                    CredentialType::KRB5 {
+                        username,
+                        password,
+                        realm,
+                        kdc,
+                    } => {
+                        write_str_element(writer, "username", username)?;
+                        write_str_element(writer, "password", password)?;
+                        write_str_element(writer, "realm", realm)?;
+                        write_str_element(writer, "kdc", kdc)?;
                     }
                 }
 

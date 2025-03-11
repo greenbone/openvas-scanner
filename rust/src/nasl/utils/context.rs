@@ -431,12 +431,24 @@ impl<'a> Context<'a> {
     /// Executes a function by name
     ///
     /// Returns None when the function was not found.
-    pub async fn nasl_fn_execute(
+    pub async fn execute_builtin_fn(
         &self,
         name: &str,
         register: &Register,
     ) -> Option<super::NaslResult> {
-        self.executor.exec(name, self, register).await
+        const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
+
+        let mut i = 0;
+        loop {
+            i += 1;
+            let result = self.executor.exec(name, self, register).await;
+            if let Some(Err(ref e)) = result {
+                if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
+                    continue;
+                }
+            }
+            return result;
+        }
     }
 
     /// Checks if a function is defined

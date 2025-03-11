@@ -4,6 +4,7 @@ ARG REPOSITORY=greenbone/openvas-scanner
 ARG GVM_LIBS_VERSION=testing-edge
 
 FROM greenbone/openvas-smb:testing-edge AS openvas-smb
+FROM rust AS rust
 
 FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION} AS build
 COPY . /source
@@ -42,8 +43,17 @@ COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
+COPY --from=rust /usr/local/cargo/ /usr/local/cargo/
+COPY --from=rust /usr/local/rustup/ /usr/local/rustup/
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+RUN apt update && apt install -y ca-certificates
+RUN cargo build --release
+RUN cp target/release/openvasd /install/usr/local/bin
+RUN cp target/release/scannerctl /install/usr/local/bin
+
 FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION}
-ARG TARGETPLATFORM
 RUN apt-get update
 RUN apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
@@ -76,11 +86,6 @@ RUN apt-get install --no-install-recommends --no-install-suggests -y \
   zlib1g
 RUN rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
-# must be pre built within the rust dir and moved to the bin dir
-# usually this image is created within in a ci ensuring that the
-# binary is available.
-COPY assets/$TARGETPLATFORM/scannerctl /usr/local/bin/scannerctl
-RUN chmod +x /usr/local/bin/scannerctl
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/

@@ -34,17 +34,21 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libpopt0 \
   libcurl4-gnutls-dev \
   libcurl4 \
-  libcgreen1-dev \
+  # libcgreen1-dev \
   libhiredis-dev \
   libkrb5-dev \
   && rm -rf /var/lib/apt/lists/*
 
+RUN curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.3.tar.gz -k
+RUN tar -xzf cgreen.tar.gz && cd cgreen-1.6.3
+RUN make install
+RUN ldconfig
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
+# TODO: add rust?
 
 FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION}
-ARG TARGETPLATFORM
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
   libglib2.0-0 \
@@ -75,11 +79,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   zlib1g\
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
-# must be pre built within the rust dir and moved to the bin dir
-# usually this image is created within in a ci ensuring that the
-# binary is available.
-COPY assets/$TARGETPLATFORM/scannerctl /usr/local/bin/scannerctl
-RUN chmod +x /usr/local/bin/scannerctl
 COPY --from=build /install/ /
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
