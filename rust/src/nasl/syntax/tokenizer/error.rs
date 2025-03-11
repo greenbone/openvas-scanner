@@ -16,6 +16,8 @@ pub enum TokenizerErrorKind {
     InvalidNumberLiteral,
     #[error("Invalid IPv4 address.")]
     InvalidIpv4Address,
+    #[error("Invalid character.")]
+    InvalidCharacter,
 }
 
 impl AsCodespanError for TokenizerError {

@@ -272,8 +272,6 @@ pub enum TokenKind {
     Identifier(Keyword),
     /// Unclosed token. This can happen on e.g. string literals
     Unclosed(UnclosedTokenKind),
-    /// used when the symbol is unknown
-    UnknownSymbol,
     /// Whitespace
     Whitespace,
 }
@@ -335,7 +333,6 @@ impl Display for TokenKind {
             TokenKind::Comment => write!(f, "Comment"),
             TokenKind::Identifier(x) => write!(f, "{}", x),
             TokenKind::Unclosed(x) => write!(f, "Unclosed{x:?}"),
-            TokenKind::UnknownSymbol => write!(f, "UnknownSymbol"),
             TokenKind::Data(x) => write!(f, "{x:?}"),
             TokenKind::Whitespace => write!(f, " "),
         }
@@ -352,24 +349,7 @@ pub struct Token {
     pub position: (usize, usize),
 }
 
-impl Default for Token {
-    fn default() -> Self {
-        Token {
-            kind: TokenKind::UnknownSymbol,
-            position: (0, 0),
-        }
-    }
-}
-
 impl Token {
-    /// Returns UnknownSymbol without line column or position
-    pub fn unexpected_none() -> Self {
-        Self {
-            kind: TokenKind::UnknownSymbol,
-            position: (0, 0),
-        }
-    }
-
     pub fn identifier(&self) -> Result<String, InterpretError> {
         match self.kind() {
             TokenKind::Identifier(Keyword::Undefined(x)) => Ok(x.to_owned()),
@@ -379,6 +359,14 @@ impl Token {
 
     pub fn is_relevant(&self) -> bool {
         !matches!(self.kind, TokenKind::Comment | TokenKind::Whitespace)
+    }
+
+    // TODO get rid of this
+    pub fn sentinel() -> Token {
+        Self {
+            kind: TokenKind::Whitespace,
+            position: (usize::MAX, usize::MAX),
+        }
     }
 }
 
@@ -397,12 +385,7 @@ impl Token {
     ///
     /// A Token is faulty when it is a syntactical error like
     /// - [TokenKind::Unclosed]
-    /// - [TokenKind::UnknownBase]
-    /// - [TokenKind::UnknownSymbol]
     pub fn is_faulty(&self) -> bool {
-        matches!(
-            self.kind(),
-            TokenKind::Unclosed(_) | TokenKind::UnknownSymbol
-        )
+        matches!(self.kind(), TokenKind::Unclosed(_))
     }
 }

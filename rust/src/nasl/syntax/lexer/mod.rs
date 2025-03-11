@@ -302,7 +302,7 @@ impl Lexer {
                 self.prefix_statement(token, abort)
             })
             .unwrap_or(Ok((
-                End::Done(Token::unexpected_none()),
+                End::Done(Token::sentinel()),
                 Statement::without_token(StatementKind::EoF),
             )))?;
         match state {

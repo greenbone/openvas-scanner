@@ -264,7 +264,7 @@ impl Tokenizer {
             c if c.is_ascii_digit() => self.tokenize_number(start, c)?,
             c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
             c if c.is_whitespace() => Whitespace,
-            _ => UnknownSymbol,
+            _ => return Err(self.match_error(TokenizerErrorKind::InvalidCharacter)),
         };
 
         Ok(Token {

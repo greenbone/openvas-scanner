@@ -378,7 +378,7 @@ impl Statement {
     pub fn without_token(kind: StatementKind) -> Self {
         Self {
             kind,
-            start: Token::default(),
+            start: Token::sentinel(),
             end: None,
         }
     }
