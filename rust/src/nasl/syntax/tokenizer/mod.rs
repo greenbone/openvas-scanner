@@ -109,6 +109,7 @@ impl NumberBase {
     fn verify_hex(peeked: char) -> bool {
         peeked.is_ascii_hexdigit()
     }
+
     pub(crate) fn verifier(self) -> impl Fn(char) -> bool {
         match self {
             Self::Binary => Self::verify_binary,
@@ -444,6 +445,9 @@ impl Tokenizer {
                 // we verify that the cursor actually moved to prevent scenarios like
                 // 0b without any actual number in it
                 if start == self.cursor.position() {
+                    Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
+                } else if self.cursor.peek().is_alphabetic() {
+                    self.cursor.advance();
                     Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
                 } else {
                     match i64::from_str_radix(

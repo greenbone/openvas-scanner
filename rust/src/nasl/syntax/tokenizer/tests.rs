@@ -81,6 +81,7 @@ test_ok!(
     "0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02"
 );
 test_err!(invalid_numbers, "0x 0b 0b2");
+test_err!(invalid_hex_characters, "0x123h");
 
 test_ok!(single_line_comments, "# this is a comment\n;");
 
