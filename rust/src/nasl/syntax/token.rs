@@ -272,8 +272,6 @@ pub enum TokenKind {
     Identifier(Keyword),
     /// Unclosed token. This can happen on e.g. string literals
     Unclosed(UnclosedTokenKind),
-    /// Number starts with an unidentifiable base
-    UnknownBase,
     /// used when the symbol is unknown
     UnknownSymbol,
     /// Whitespace
@@ -337,7 +335,6 @@ impl Display for TokenKind {
             TokenKind::Comment => write!(f, "Comment"),
             TokenKind::Identifier(x) => write!(f, "{}", x),
             TokenKind::Unclosed(x) => write!(f, "Unclosed{x:?}"),
-            TokenKind::UnknownBase => write!(f, "UnknownBase"),
             TokenKind::UnknownSymbol => write!(f, "UnknownSymbol"),
             TokenKind::Data(x) => write!(f, "{x:?}"),
             TokenKind::Whitespace => write!(f, " "),
@@ -405,7 +402,7 @@ impl Token {
     pub fn is_faulty(&self) -> bool {
         matches!(
             self.kind(),
-            TokenKind::Unclosed(_) | TokenKind::UnknownBase | TokenKind::UnknownSymbol
+            TokenKind::Unclosed(_) | TokenKind::UnknownSymbol
         )
     }
 }
