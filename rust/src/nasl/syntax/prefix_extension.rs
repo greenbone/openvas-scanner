@@ -13,7 +13,7 @@ use super::{
     Statement, {AssignOrder, StatementKind},
 };
 
-use crate::{nasl::syntax::IdentifierType, unclosed_token, unexpected_end, unexpected_token};
+use crate::{nasl::syntax::Keyword, unclosed_token, unexpected_end, unexpected_token};
 
 pub(crate) trait Prefix {
     /// Handles statements before operation statements get handled.
@@ -36,10 +36,7 @@ fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
 
 impl Lexer<'_> {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        if !matches!(
-            token.kind(),
-            TokenKind::Identifier(IdentifierType::Undefined(_))
-        ) {
+        if !matches!(token.kind(), TokenKind::Identifier(Keyword::Undefined(_))) {
             return Err(unexpected_token!(token));
         }
         use End::*;

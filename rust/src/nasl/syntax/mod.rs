@@ -23,7 +23,7 @@ pub use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;
-pub use token::IdentifierType;
+pub use token::Keyword;
 pub use token::Token;
 pub use token::TokenKind;
 pub use tokenizer::Tokenizer;
@@ -47,7 +47,7 @@ pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>>
 mod tests {
     use crate::nasl::syntax::{
         cursor::Cursor,
-        token::{IdentifierType, Token, TokenKind},
+        token::{Keyword, Token, TokenKind},
         Tokenizer,
     };
 
@@ -66,12 +66,12 @@ mod tests {
             all_tokens,
             vec![
                 Token {
-                    kind: TokenKind::Identifier(IdentifierType::LocalVar),
+                    kind: TokenKind::Identifier(Keyword::LocalVar),
                     line_column: (1, 1),
                     position: (0, 9)
                 },
                 Token {
-                    kind: TokenKind::Identifier(IdentifierType::Undefined("hello".to_owned())),
+                    kind: TokenKind::Identifier(Keyword::Undefined("hello".to_owned())),
                     line_column: (1, 11),
                     position: (10, 15)
                 },

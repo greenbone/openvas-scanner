@@ -6,7 +6,7 @@ use crate::nasl::{
         InterpretError,
     },
     prelude::NaslValue,
-    syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, Token, TokenKind},
+    syntax::{Keyword, Lexer, Statement, StatementKind, SyntaxError, Token, TokenKind},
     Context, ContextType, Register,
 };
 
@@ -416,7 +416,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
 
     fn resolve_attack_category(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
         match statement.as_token().kind() {
-            TokenKind::Identifier(IdentifierType::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
+            TokenKind::Identifier(Keyword::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
             _ => unreachable!(
                 "AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.",
                 statement.as_token()

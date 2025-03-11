@@ -6,7 +6,7 @@ use super::{
     error::SyntaxError,
     grouping_extension::Grouping,
     lexer::{End, Lexer},
-    token::{IdentifierType, Token, TokenKind},
+    token::{Keyword, Token, TokenKind},
     ErrorKind, Statement, StatementKind,
 };
 use crate::{
@@ -17,7 +17,7 @@ pub(crate) trait Keywords {
     /// Parses keywords.
     fn parse_keyword(
         &mut self,
-        keyword: IdentifierType,
+        keyword: Keyword,
         token: Token,
     ) -> Result<(End, Statement), SyntaxError>;
 }
@@ -58,7 +58,7 @@ impl Lexer<'_> {
         let (ekw, r#else, end) = {
             match self.peek() {
                 Some(token) => match token.kind() {
-                    TokenKind::Identifier(IdentifierType::Else) => {
+                    TokenKind::Identifier(Keyword::Else) => {
                         self.token();
                         let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
 
@@ -143,10 +143,7 @@ impl Lexer<'_> {
         let id = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(
-            id.kind(),
-            TokenKind::Identifier(IdentifierType::Undefined(_))
-        ) {
+        if !matches!(id.kind(), TokenKind::Identifier(Keyword::Undefined(_))) {
             return Err(unexpected_token!(id));
         }
         let paren = self
@@ -349,7 +346,7 @@ impl Lexer<'_> {
         let (until, end) = {
             match self.token() {
                 Some(token) => match token.kind() {
-                    TokenKind::Identifier(IdentifierType::Until) => {
+                    TokenKind::Identifier(Keyword::Until) => {
                         let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
                         match end {
                             End::Done(end) => Ok((stmt, end)),
@@ -373,7 +370,7 @@ impl Lexer<'_> {
         let variable: Token = {
             match self.token() {
                 Some(token) => match token.kind() {
-                    TokenKind::Identifier(IdentifierType::Undefined(_)) => Ok(token),
+                    TokenKind::Identifier(Keyword::Undefined(_)) => Ok(token),
                     _ => Err(unexpected_token!(token)),
                 },
                 None => Err(unexpected_end!("in foreach")),
@@ -428,61 +425,61 @@ impl Lexer<'_> {
 impl Keywords for Lexer<'_> {
     fn parse_keyword(
         &mut self,
-        keyword: IdentifierType,
+        keyword: Keyword,
         token: Token,
     ) -> Result<(End, Statement), SyntaxError> {
         match keyword {
-            IdentifierType::For => self
+            Keyword::For => self
                 .parse_for(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::ForEach => self
+            Keyword::ForEach => self
                 .parse_foreach(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::If => self
+            Keyword::If => self
                 .parse_if(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Else => Err(unexpected_token!(token)), // handled in if
-            IdentifierType::While => self
+            Keyword::Else => Err(unexpected_token!(token)), // handled in if
+            Keyword::While => self
                 .parse_while(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Repeat => self
+            Keyword::Repeat => self
                 .parse_repeat(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Until => Err(unexpected_token!(token)), // handled in repeat
-            IdentifierType::LocalVar | IdentifierType::GlobalVar => self
+            Keyword::Until => Err(unexpected_token!(token)), // handled in repeat
+            Keyword::LocalVar | Keyword::GlobalVar => self
                 .parse_declaration(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Return => self
+            Keyword::Return => self
                 .parse_return(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Include => self
+            Keyword::Include => self
                 .parse_include(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Exit => self
+            Keyword::Exit => self
                 .parse_exit(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::FCTAnonArgs => self
+            Keyword::FCTAnonArgs => self
                 .parse_fct_anon_args(token)
                 .map(|stmt| (End::Continue, stmt)),
-            IdentifierType::Null | IdentifierType::True | IdentifierType::False => Ok((
+            Keyword::Null | Keyword::True | Keyword::False => Ok((
                 End::Continue,
                 Statement::with_start_token(token, StatementKind::Primitive),
             )),
-            IdentifierType::ACT(_) => Ok((
+            Keyword::ACT(_) => Ok((
                 End::Continue,
                 Statement::with_start_token(token, StatementKind::AttackCategory),
             )),
-            IdentifierType::Function => self
+            Keyword::Function => self
                 .parse_function(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Continue => self
+            Keyword::Continue => self
                 .parse_continue(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
 
-            IdentifierType::Break => self
+            Keyword::Break => self
                 .parse_break(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            IdentifierType::Undefined(_) => Err(unexpected_token!(token)),
+            Keyword::Undefined(_) => Err(unexpected_token!(token)),
         }
     }
 }
@@ -492,7 +489,7 @@ mod test {
 
     use super::super::{
         parse,
-        token::{IdentifierType, TokenKind},
+        token::{Keyword, TokenKind},
         Statement,
     };
 
@@ -545,11 +542,11 @@ mod test {
         };
         expected(
             parse("local_var a, b, c;").next().unwrap().unwrap(),
-            TokenKind::Identifier(IdentifierType::LocalVar),
+            TokenKind::Identifier(Keyword::LocalVar),
         );
         expected(
             parse("global_var a, b, c;").next().unwrap().unwrap(),
-            TokenKind::Identifier(IdentifierType::GlobalVar),
+            TokenKind::Identifier(Keyword::GlobalVar),
         );
     }
 
@@ -557,17 +554,17 @@ mod test {
     fn null() {
         let result = parse("NULL;").next().unwrap().unwrap();
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Identifier(IdentifierType::Null));
+        assert_eq!(result.as_token().kind(), &Identifier(Keyword::Null));
     }
 
     #[test]
     fn boolean() {
         let result = parse("TRUE;").next().unwrap().unwrap();
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Identifier(IdentifierType::True));
+        assert_eq!(result.as_token().kind(), &Identifier(Keyword::True));
         let result = parse("FALSE;").next().unwrap().unwrap();
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Identifier(IdentifierType::False));
+        assert_eq!(result.as_token().kind(), &Identifier(Keyword::False));
     }
 
     #[test]
@@ -686,17 +683,11 @@ mod test {
     fn fct_anon_args() {
         let result = parse("_FCT_ANON_ARGS[0];").next().unwrap().unwrap();
         assert!(matches!(result.kind(), &Array(Some(_))));
-        assert_eq!(
-            result.as_token().kind(),
-            &Identifier(IdentifierType::FCTAnonArgs)
-        );
+        assert_eq!(result.as_token().kind(), &Identifier(Keyword::FCTAnonArgs));
 
         let result = parse("_FCT_ANON_ARGS;").next().unwrap().unwrap();
         assert!(matches!(result.kind(), &Array(None)));
-        assert_eq!(
-            result.as_token().kind(),
-            &Identifier(IdentifierType::FCTAnonArgs)
-        );
+        assert_eq!(result.as_token().kind(), &Identifier(Keyword::FCTAnonArgs));
     }
 
     #[test]

@@ -6,7 +6,7 @@ use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 use crate::storage::types::Primitive;
 
-use super::{IdentifierType, Token, TokenKind, ACT};
+use super::{Keyword, Token, TokenKind, ACT};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -112,7 +112,7 @@ impl Display for NaslValue {
             NaslValue::Null => write!(f, "\0"),
             NaslValue::Exit(rc) => write!(f, "exit({})", rc),
             NaslValue::AttackCategory(category) => {
-                write!(f, "{}", IdentifierType::ACT(*category))
+                write!(f, "{}", Keyword::ACT(*category))
             }
             NaslValue::Return(rc) => write!(f, "return({:?})", *rc),
             NaslValue::Continue => write!(f, "continue"),
@@ -270,13 +270,11 @@ impl TryFrom<&Token> for NaslValue {
         match token.kind() {
             TokenKind::String(s) | TokenKind::IPv4Address(s) => Ok(NaslValue::String(s.clone())),
             TokenKind::Data(data) => Ok(NaslValue::Data(data.clone())),
-            TokenKind::Identifier(IdentifierType::Undefined(id)) => {
-                Ok(NaslValue::String(id.clone()))
-            }
+            TokenKind::Identifier(Keyword::Undefined(id)) => Ok(NaslValue::String(id.clone())),
             TokenKind::Number(num) => Ok(NaslValue::Number(*num)),
-            TokenKind::Identifier(IdentifierType::Null) => Ok(NaslValue::Null),
-            TokenKind::Identifier(IdentifierType::True) => Ok(NaslValue::Boolean(true)),
-            TokenKind::Identifier(IdentifierType::False) => Ok(NaslValue::Boolean(false)),
+            TokenKind::Identifier(Keyword::Null) => Ok(NaslValue::Null),
+            TokenKind::Identifier(Keyword::True) => Ok(NaslValue::Boolean(true)),
+            TokenKind::Identifier(Keyword::False) => Ok(NaslValue::Boolean(false)),
             o => Err(o.clone()),
         }
     }

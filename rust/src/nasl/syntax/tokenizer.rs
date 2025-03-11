@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use super::{cursor::Cursor, token::UnclosedTokenKind, IdentifierType, Token, TokenKind};
+use super::{cursor::Cursor, token::UnclosedTokenKind, Keyword, Token, TokenKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 
@@ -302,14 +302,14 @@ impl<'a> Tokenizer<'a> {
         let end = self.cursor.len_consumed();
         let lookup = self.lookup(Range { start, end });
         if lookup != "x" {
-            let keyword = IdentifierType::new(lookup);
+            let keyword = Keyword::new(lookup);
             TokenKind::Identifier(keyword)
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
             if self.cursor.peek(0).is_numeric() {
                 TokenKind::X
             } else {
-                TokenKind::Identifier(IdentifierType::Undefined(lookup.to_owned()))
+                TokenKind::Identifier(Keyword::Undefined(lookup.to_owned()))
             }
         }
     }

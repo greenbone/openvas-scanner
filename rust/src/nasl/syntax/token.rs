@@ -20,63 +20,10 @@ pub enum UnclosedTokenKind {
     Data,
 }
 
-macro_rules! make_keyword_matcher {
-    ($($matcher:ident : $define:expr),+) => {
-
-impl IdentifierType {
-    /// Creates a new keyword based on a string identifier
-    pub fn new(keyword: &str) -> Self {
-        match keyword {
-           $(
-           stringify!($matcher) => $define,
-           )*
-            _ => Self::Undefined(keyword.to_owned())
-        }
-
-    }
-
-    /// Returns the length of the identifier
-    pub fn len(&self) -> usize {
-        $(
-        if self == &$define {
-            return stringify!($matcher).len();
-        }
-        )*
-        if let IdentifierType::Undefined(r) = self {
-            return r.len();
-        } else {
-            return 0;
-        }
-    }
-
-    /// Returns true when len == 0
-    pub fn is_empty(&self) -> bool {
-         self.len() == 0
-    }
-
-}
-impl Display for IdentifierType {
-
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        $(
-        if self == &$define {
-            return write!(f, stringify!($matcher));
-        }
-        )*
-        if let IdentifierType::Undefined(r) = self {
-            return write!(f, "{r}");
-        } else {
-            return Ok(());
-        }
-    }
-}
-    };
-}
-
-/// Unless Dynamic those are reserved words that cannot be reused otherwise.
+/// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize, Deserialize))]
-pub enum IdentifierType {
+pub enum Keyword {
     /// function declaration
     Function,
     /// _FCT_ANON_ARGS
@@ -121,37 +68,90 @@ pub enum IdentifierType {
     Undefined(String),
 }
 
+macro_rules! make_keyword_matcher {
+    ($($matcher:ident : $define:expr),+) => {
+
+impl Keyword {
+    /// Creates a new keyword based on a string identifier
+    pub fn new(keyword: &str) -> Self {
+        match keyword {
+           $(
+           stringify!($matcher) => $define,
+           )*
+            _ => Self::Undefined(keyword.to_owned())
+        }
+
+    }
+
+    /// Returns the length of the identifier
+    pub fn len(&self) -> usize {
+        $(
+        if self == &$define {
+            return stringify!($matcher).len();
+        }
+        )*
+        if let Keyword::Undefined(r) = self {
+            return r.len();
+        } else {
+            return 0;
+        }
+    }
+
+    /// Returns true when len == 0
+    pub fn is_empty(&self) -> bool {
+         self.len() == 0
+    }
+
+}
+impl Display for Keyword {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        $(
+        if self == &$define {
+            return write!(f, stringify!($matcher));
+        }
+        )*
+        if let Keyword::Undefined(r) = self {
+            return write!(f, "{r}");
+        } else {
+            return Ok(());
+        }
+    }
+}
+    };
+}
+
 make_keyword_matcher! {
-    function: IdentifierType::Function,
-    _FCT_ANON_ARGS: IdentifierType::FCTAnonArgs,
-    TRUE: IdentifierType::True,
-    FALSE: IdentifierType::False,
-    for: IdentifierType::For,
-    foreach: IdentifierType::ForEach,
-    if: IdentifierType::If,
-    else: IdentifierType::Else,
-    while: IdentifierType::While,
-    repeat: IdentifierType::Repeat,
-    until: IdentifierType::Until,
-    local_var: IdentifierType::LocalVar,
-    global_var: IdentifierType::GlobalVar,
-    NULL: IdentifierType::Null,
-    return: IdentifierType::Return,
-    include: IdentifierType::Include,
-    exit: IdentifierType::Exit,
-    ACT_ATTACK: IdentifierType::ACT(ACT::Attack),
-    ACT_DENIAL: IdentifierType::ACT(ACT::Denial),
-    ACT_DESTRUCTIVE_ATTACK: IdentifierType::ACT(ACT::DestructiveAttack),
-    ACT_END: IdentifierType::ACT(ACT::End),
-    ACT_FLOOD: IdentifierType::ACT(ACT::Flood),
-    ACT_GATHER_INFO: IdentifierType::ACT(ACT::GatherInfo),
-    ACT_INIT: IdentifierType::ACT(ACT::Init),
-    ACT_KILL_HOST: IdentifierType::ACT(ACT::KillHost),
-    ACT_MIXED_ATTACK: IdentifierType::ACT(ACT::MixedAttack),
-    ACT_SCANNER: IdentifierType::ACT(ACT::Scanner),
-    ACT_SETTINGS: IdentifierType::ACT(ACT::Settings),
-    continue: IdentifierType::Continue,
-    break: IdentifierType::Break
+    function: Keyword::Function,
+    _FCT_ANON_ARGS: Keyword::FCTAnonArgs,
+    TRUE: Keyword::True,
+    FALSE: Keyword::False,
+    for: Keyword::For,
+    foreach: Keyword::ForEach,
+    if: Keyword::If,
+    else: Keyword::Else,
+    while: Keyword::While,
+    repeat: Keyword::Repeat,
+    until: Keyword::Until,
+    local_var: Keyword::LocalVar,
+    global_var: Keyword::GlobalVar,
+    NULL: Keyword::Null,
+    return: Keyword::Return,
+    include: Keyword::Include,
+    exit: Keyword::Exit,
+    ACT_ATTACK: Keyword::ACT(ACT::Attack),
+    ACT_DENIAL: Keyword::ACT(ACT::Denial),
+    ACT_DESTRUCTIVE_ATTACK: Keyword::ACT(ACT::DestructiveAttack),
+    ACT_END: Keyword::ACT(ACT::End),
+    ACT_FLOOD: Keyword::ACT(ACT::Flood),
+    ACT_GATHER_INFO: Keyword::ACT(ACT::GatherInfo),
+    ACT_INIT: Keyword::ACT(ACT::Init),
+    ACT_KILL_HOST: Keyword::ACT(ACT::KillHost),
+    ACT_MIXED_ATTACK: Keyword::ACT(ACT::MixedAttack),
+    ACT_SCANNER: Keyword::ACT(ACT::Scanner),
+    ACT_SETTINGS: Keyword::ACT(ACT::Settings),
+    continue: Keyword::Continue,
+    break: Keyword::Break
 }
 
 /// Is used to identify a Token
@@ -275,7 +275,7 @@ pub enum TokenKind {
     /// A comment starts with # and should be ignored
     Comment,
     /// Identifier are literals that are not strings and don't start with a number
-    Identifier(IdentifierType),
+    Identifier(Keyword),
     /// Unclosed token. This can happen on e.g. string literals
     Unclosed(UnclosedTokenKind),
     /// Number starts with an unidentifiable base
@@ -384,7 +384,7 @@ impl Token {
 
     pub fn identifier(&self) -> Result<String, InterpretError> {
         match self.kind() {
-            TokenKind::Identifier(IdentifierType::Undefined(x)) => Ok(x.to_owned()),
+            TokenKind::Identifier(Keyword::Undefined(x)) => Ok(x.to_owned()),
             cat => Err(InterpretError::wrong_kind(cat)),
         }
     }
