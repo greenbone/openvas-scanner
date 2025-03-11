@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::nasl::error::AsCodespanError;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TokenizerError {
     pub kind: TokenizerErrorKind,
     pub range: Range<usize>,
@@ -14,6 +14,8 @@ pub struct TokenizerError {
 pub enum TokenizerErrorKind {
     #[error("Invalid number literal.")]
     InvalidNumberLiteral,
+    #[error("Invalid IPv4 address.")]
+    InvalidIpv4Address,
 }
 
 impl AsCodespanError for TokenizerError {

@@ -31,12 +31,15 @@ fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
 }
 
 fn tokenize_err(file_name: &str, code: &str) -> Vec<TokenizerError> {
-    let (_, _, results) = tokenize(file_name, code);
+    let (files, file_id, results) = tokenize(file_name, code);
     match results {
         Ok(_) => {
             panic!("Properly tokenized code that should result in error.")
         }
-        Err(errors) => errors,
+        Err(errors) => {
+            emit_errors(&files, file_id, errors.clone().into_iter());
+            errors
+        }
     }
 }
 
@@ -94,5 +97,6 @@ test_ok!(string_quoting, r"'webapps\\\\appliance\\\\'");
 test_ok!(data_escape_quoting, r#"'version=\"1.0\"'"#);
 
 test_ok!(simplified_ipv4_address, "10.187.76.12");
+test_err!(wrong_ipv4_address, "10.0x 10.0.x 10.0.0.x");
 
 test_ok!(repeat_x_times, "x() x 10;");

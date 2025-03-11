@@ -77,6 +77,24 @@ impl Cursor {
             self.advance();
         }
     }
+
+    /// Skips characters while given predicate returns true. Returns
+    /// the given error kind if no character was skipped.
+    fn consume_while(
+        &mut self,
+        predicate: impl FnMut(char) -> bool,
+        e: TokenizerErrorKind,
+    ) -> Result<(), TokenizerErrorKind> {
+        let pos = self.position;
+        self.skip_while(predicate);
+        if pos == self.position {
+            // Advance to set the error position correctly.
+            self.advance();
+            Err(e)
+        } else {
+            Ok(())
+        }
+    }
 }
 
 /// Identifies if number is base10, base 8, hex or binary
@@ -186,6 +204,16 @@ impl Tokenizer {
             Ok(tokens)
         } else {
             Err(())
+        }
+    }
+
+    fn consume(&mut self, expected: char, f: TokenizerErrorKind) -> Result<(), TokenizerErrorKind> {
+        if self.cursor.peek() != expected {
+            self.cursor.advance();
+            Err(f)
+        } else {
+            self.cursor.advance();
+            Ok(())
         }
     }
 
@@ -370,38 +398,31 @@ impl Tokenizer {
         }
     }
 
-    fn may_parse_ipv4(&mut self, base: NumberBase, start: CharIndex) -> Option<TokenKind> {
+    fn parse_ipv4(
+        &mut self,
+        base: NumberBase,
+        start: CharIndex,
+    ) -> Result<TokenKind, TokenizerErrorKind> {
         use NumberBase::*;
+        use TokenizerErrorKind::*;
         // IPv4Address start as Base10
-        if base == Base10 && self.cursor.peek() == '.' && self.cursor.peek_ahead(1).is_numeric() {
-            self.cursor.advance();
-            self.cursor.skip_while(base.verifier());
-            // verify it may be an IPv4Address
-            // if the next one is a dot we are at
-            // 127.0
-            // and need to parse .0
-            if self.cursor.peek() == '.' {
-                if self.cursor.peek_ahead(1).is_numeric() {
-                    self.cursor.advance();
-                    self.cursor.skip_while(base.verifier());
-                } else {
-                    return Some(TokenKind::IllegalIPv4Address);
-                }
-
-                if self.cursor.peek() == '.' && self.cursor.peek_ahead(1).is_numeric() {
-                    self.cursor.advance();
-                    self.cursor.skip_while(base.verifier());
-                } else {
-                    return Some(TokenKind::IllegalIPv4Address);
-                }
-                return Some(TokenKind::IPv4Address(
-                    self.substring(start, self.cursor.position()),
-                ));
-            } else {
-                return Some(TokenKind::IllegalIPv4Address);
-            }
+        if base != Base10 {
+            return Err(InvalidIpv4Address);
         }
-        None
+        self.consume('.', InvalidIpv4Address)?;
+        self.cursor
+            .consume_while(base.verifier(), InvalidIpv4Address)?;
+        self.consume('.', InvalidIpv4Address)?;
+        self.cursor
+            .consume_while(base.verifier(), InvalidIpv4Address)?;
+        self.consume('.', InvalidIpv4Address)?;
+        self.cursor
+            .consume_while(base.verifier(), InvalidIpv4Address)?;
+        Ok(TokenKind::IPv4Address(
+            self.substring(start, self.cursor.position())
+                .parse()
+                .map_err(|_| InvalidIpv4Address)?,
+        ))
     }
 
     fn tokenize_number(
@@ -439,24 +460,24 @@ impl Tokenizer {
             }
         };
         self.cursor.skip_while(base.verifier());
-        match self.may_parse_ipv4(base, start) {
-            Some(token) => Ok(token),
-            None => {
-                // we verify that the cursor actually moved to prevent scenarios like
-                // 0b without any actual number in it
-                if start == self.cursor.position() {
-                    Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
-                } else if self.cursor.peek().is_alphabetic() {
-                    self.cursor.advance();
-                    Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
-                } else {
-                    match i64::from_str_radix(
-                        &self.substring(start, self.cursor.position()),
-                        base.radix(),
-                    ) {
-                        Ok(num) => Ok(TokenKind::Number(num)),
-                        Err(_) => Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral)),
-                    }
+        if self.cursor.peek() == '.' && self.cursor.peek_ahead(1).is_numeric() {
+            self.parse_ipv4(base, start)
+                .map_err(|e| self.match_error(e))
+        } else {
+            // we verify that the cursor actually moved to prevent scenarios like
+            // 0b without any actual number in it
+            if start == self.cursor.position() {
+                Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
+            } else if self.cursor.peek().is_alphabetic() {
+                self.cursor.advance();
+                Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
+            } else {
+                match i64::from_str_radix(
+                    &self.substring(start, self.cursor.position()),
+                    base.radix(),
+                ) {
+                    Ok(num) => Ok(TokenKind::Number(num)),
+                    Err(_) => Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral)),
                 }
             }
         }

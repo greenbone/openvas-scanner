@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
-use std::fmt::Display;
+use std::{fmt::Display, net::Ipv4Addr};
 
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
@@ -265,9 +265,7 @@ pub enum TokenKind {
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(i64),
     /// We currently just support 127.0.0.1 notation
-    IPv4Address(String),
-    /// Wrongfully identified as IpV4
-    IllegalIPv4Address,
+    IPv4Address(Ipv4Addr),
     /// A comment starts with # and should be ignored
     Comment,
     /// Identifier are literals that are not strings and don't start with a number
@@ -336,7 +334,6 @@ impl Display for TokenKind {
             TokenKind::String(x) => write!(f, "\"{x}\""),
             TokenKind::Number(x) => write!(f, "{x}"),
             TokenKind::IPv4Address(x) => write!(f, "{x}"),
-            TokenKind::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
             TokenKind::Comment => write!(f, "Comment"),
             TokenKind::Identifier(x) => write!(f, "{}", x),
             TokenKind::Unclosed(x) => write!(f, "Unclosed{x:?}"),
@@ -402,17 +399,13 @@ impl Token {
     /// Returns true when a Token is faulty
     ///
     /// A Token is faulty when it is a syntactical error like
-    /// - [TokenKind::IllegalIPv4Address]
     /// - [TokenKind::Unclosed]
     /// - [TokenKind::UnknownBase]
     /// - [TokenKind::UnknownSymbol]
     pub fn is_faulty(&self) -> bool {
         matches!(
             self.kind(),
-            TokenKind::IllegalIPv4Address
-                | TokenKind::Unclosed(_)
-                | TokenKind::UnknownBase
-                | TokenKind::UnknownSymbol
+            TokenKind::Unclosed(_) | TokenKind::UnknownBase | TokenKind::UnknownSymbol
         )
     }
 }

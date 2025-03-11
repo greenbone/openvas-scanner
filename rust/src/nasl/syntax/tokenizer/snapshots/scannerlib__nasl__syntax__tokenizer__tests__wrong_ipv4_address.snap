@@ -1,0 +1,19 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_err(stringify! (wrong_ipv4_address), \"10.0x 10.0.x 10.0.0.x\")"
+snapshot_kind: text
+---
+[
+    TokenizerError {
+        kind: InvalidIpv4Address,
+        range: 0..5,
+    },
+    TokenizerError {
+        kind: InvalidIpv4Address,
+        range: 6..12,
+    },
+    TokenizerError {
+        kind: InvalidIpv4Address,
+        range: 13..21,
+    },
+]

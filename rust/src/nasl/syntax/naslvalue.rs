@@ -268,7 +268,8 @@ impl TryFrom<&Token> for NaslValue {
 
     fn try_from(token: &Token) -> Result<Self, Self::Error> {
         match token.kind() {
-            TokenKind::String(s) | TokenKind::IPv4Address(s) => Ok(NaslValue::String(s.clone())),
+            TokenKind::String(s) => Ok(NaslValue::String(s.clone())),
+            TokenKind::IPv4Address(s) => Ok(NaslValue::String(s.to_string())),
             TokenKind::Data(data) => Ok(NaslValue::Data(data.clone())),
             TokenKind::Identifier(Keyword::Undefined(id)) => Ok(NaslValue::String(id.clone())),
             TokenKind::Number(num) => Ok(NaslValue::Number(*num)),
