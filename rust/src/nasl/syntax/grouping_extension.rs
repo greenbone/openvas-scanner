@@ -108,7 +108,7 @@ mod test {
     use StatementKind::*;
 
     fn result(code: &str) -> StatementKind {
-        parse(code).next().unwrap().unwrap().kind().clone()
+        parse(code).unwrap()[0].kind().clone()
     }
 
     #[test]

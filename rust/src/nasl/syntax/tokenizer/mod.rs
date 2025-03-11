@@ -5,7 +5,7 @@ mod tests;
 use std::ops::AddAssign;
 
 use super::{token::UnclosedTokenKind, Keyword, Token, TokenKind};
-use error::{TokenizerError, TokenizerErrorKind};
+pub use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
 

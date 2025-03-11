@@ -4,11 +4,16 @@
 
 //! Defines TokenError and its companion macros.
 
-use std::io;
+use std::{io, ops::Range};
 
 use thiserror::Error;
 
-use crate::nasl::syntax::{token::Token, Statement};
+use crate::nasl::{
+    error::AsCodespanError,
+    syntax::{token::Token, Statement},
+};
+
+use super::{tokenizer::TokenizerErrorKind, TokenizerError};
 
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 /// A list specifying general categories of Syntax error.
@@ -39,6 +44,17 @@ pub enum ErrorKind {
     /// An IO Error occurred while loading a NASL file
     #[error("IOError: {0}")]
     IOError(io::ErrorKind),
+    #[error("Invalid token: {0}")]
+    Tokenizer(#[from] TokenizerErrorKind),
+}
+
+impl From<TokenizerError> for SyntaxError {
+    fn from(value: TokenizerError) -> Self {
+        Self {
+            kind: ErrorKind::Tokenizer(value.kind),
+            range: value.range,
+        }
+    }
 }
 
 /// Is used to express errors while parsing.
@@ -47,10 +63,10 @@ pub enum ErrorKind {
 pub struct SyntaxError {
     /// A human readable reason why this error is returned
     pub kind: ErrorKind,
-    pub(crate) line: u32,
-    pub(crate) file: String,
+    pub range: Range<usize>,
 }
 
+// TODO Remove this
 impl SyntaxError {
     /// Returns a token of the underlying error kind
     pub fn as_token(&self) -> Option<&Token> {
@@ -63,6 +79,7 @@ impl SyntaxError {
             ErrorKind::EoF => None,
             ErrorKind::IOError(_) => None,
             ErrorKind::MaxRecursionDepth(_) => None,
+            ErrorKind::Tokenizer(_) => None,
         }
     }
 }
@@ -87,7 +104,11 @@ impl SyntaxError {
 macro_rules! syntax_error {
     ($kind:expr) => {{
         use $crate::nasl::syntax::SyntaxError;
-        SyntaxError::new($kind, line!(), file!().to_string())
+        // TODO
+        SyntaxError {
+            kind: $kind,
+            range: 0..0,
+        }
     }};
 }
 
@@ -216,52 +237,41 @@ macro_rules! max_recursion {
 }
 
 impl SyntaxError {
-    /// Creates a new SyntaxError.
-    pub fn new(kind: ErrorKind, line: u32, file: String) -> Self {
-        Self { kind, line, file }
-    }
-
     /// Returns the ErrorKind of SyntaxError
     pub fn kind(&self) -> &ErrorKind {
         &self.kind
     }
 }
 
-impl From<io::Error> for SyntaxError {
-    fn from(initial: io::Error) -> Self {
-        SyntaxError::new(
-            ErrorKind::IOError(initial.kind()),
-            line!(),
-            file!().to_owned(),
-        )
+impl AsCodespanError for SyntaxError {
+    fn range(&self) -> std::ops::Range<usize> {
+        self.range.clone()
+    }
+
+    fn message(&self) -> String {
+        format!("{}", self.kind)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::syntax::{parse, ErrorKind, TokenKind};
+    use crate::nasl::syntax::{parse_only_first_error, ErrorKind, TokenKind};
 
     fn test_for_missing_semicolon(code: &str) {
-        let result = parse(code).next().unwrap();
-        match result {
-            Ok(_) => panic!("expected test to return Err for {code}"),
-            Err(e) => match e.kind {
-                ErrorKind::MissingSemicolon(_) => {}
-                _ => panic!("Expected MissingSemicolon but got: {e:?}"),
-            },
+        let err = parse_only_first_error(code).unwrap_err();
+        match err.kind {
+            ErrorKind::MissingSemicolon(_) => {}
+            _ => panic!("Expected MissingSemicolon but got: {err:?}"),
         }
     }
 
     fn test_for_unclosed_token(code: &str, kind: TokenKind) {
-        let result = parse(code).next().unwrap();
-        match result {
-            Ok(_) => panic!("expected test to return Err"),
-            Err(e) => match e.kind {
-                ErrorKind::UnclosedToken(token) => {
-                    assert_eq!(token.kind(), &kind);
-                }
-                _ => panic!("Expected UnclosedToken but got: {e:?} for {code}"),
-            },
+        let err = parse_only_first_error(code).unwrap_err();
+        match err.kind {
+            ErrorKind::UnclosedToken(token) => {
+                assert_eq!(token.kind(), &kind);
+            }
+            _ => panic!("Expected UnclosedToken but got: {err:?} for {code}"),
         }
     }
     #[test]

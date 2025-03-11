@@ -8,9 +8,7 @@ fn change_to_peek() {
     let code = r###"
 send_packet( udp, pcap_active:FALSE ) x 200;
     "###;
-    for stmt in parse(code) {
-        stmt.unwrap();
-    }
+    assert!(parse(code).is_ok());
 }
 
 #[test]
@@ -119,7 +117,7 @@ req = raw_string(0x00, 0x00, 0x03, 0x14, 0x08, 0x14, 0xff, 0x9f,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x0a);
     "###;
-    parse(code).next();
+    assert!(parse(code).is_ok());
 }
 
 #[test]
@@ -128,9 +126,7 @@ fn jsp_example() {
 gms_path = gms_path + 'webapps\\appliance\\';
 jsp = '<% out.println( "' + jsp_print  + '" ); %>';
     "#;
-    for x in parse(code) {
-        x.unwrap();
-    }
+    assert!(parse(code).is_ok());
 }
 
 #[test]
@@ -140,9 +136,7 @@ while(y = recv(socket:soc, length:1024)) {
 buf1 += y;
 }
     "###;
-    for x in parse(code) {
-        x.unwrap();
-    }
+    assert!(parse(code).is_ok());
 }
 
 #[test]
@@ -150,9 +144,7 @@ fn unexpected_noop() {
     let code = r###"
 if( ! version || version == '' ) return;
     "###;
-    for x in parse(code) {
-        x.unwrap();
-    }
+    assert!(parse(code).is_ok());
 }
 
 #[test]
@@ -166,9 +158,7 @@ exit(0);
 soc = open_sock_tcp(port);
 
     "###;
-    for x in parse(code) {
-        x.unwrap();
-    }
+    assert!(parse(code).is_ok());
 }
 
 #[test]
@@ -176,7 +166,5 @@ fn unexpected_plusplus() {
     let code = r###"
     cookie_jar[this_cookie]++;
     "###;
-    for x in parse(code) {
-        x.unwrap();
-    }
+    assert!(parse(code).is_ok());
 }

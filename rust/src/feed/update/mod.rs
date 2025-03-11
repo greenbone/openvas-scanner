@@ -64,8 +64,7 @@ pub async fn feed_version(
         Lexer::new(Tokenizer::tokenize(&code).unwrap()),
         &context,
     );
-    for stmt in crate::nasl::syntax::parse(&code) {
-        let stmt = stmt?;
+    for stmt in crate::nasl::syntax::parse_only_first_error(&code)? {
         interpreter.resolve(&stmt).await?;
     }
 

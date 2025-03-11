@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-//! Lexer is used to parse a single statement based on token::Tokenizer.
 use std::ops::Not;
 
 use super::{
@@ -394,7 +393,8 @@ mod infix {
 
     use core::panic;
 
-    use super::super::parse;
+    use crate::nasl::syntax::parse_return_first;
+
     use super::*;
 
     use super::super::token::TokenKind::*;
@@ -456,12 +456,12 @@ mod infix {
     }
 
     fn result(code: &str) -> Statement {
-        parse(code).next().unwrap().unwrap()
+        parse_return_first(code)
     }
 
     macro_rules! calculated_test {
         ($code:expr, $expected:expr) => {
-            let expr = parse($code).next().unwrap().unwrap();
+            let expr = parse_return_first($code);
             assert_eq!(resolve(&expr), $expected);
         };
     }
@@ -573,12 +573,14 @@ mod infix {
 
 #[cfg(test)]
 mod postfix {
-    use super::super::{parse, token::TokenKind, AssignOrder, Statement, StatementKind};
+    use crate::nasl::syntax::parse_return_first;
+
+    use super::super::{token::TokenKind, AssignOrder, Statement, StatementKind};
 
     use TokenKind::*;
 
     fn result(code: &str) -> Statement {
-        parse(code).next().unwrap().unwrap()
+        parse_return_first(code)
     }
 
     #[test]

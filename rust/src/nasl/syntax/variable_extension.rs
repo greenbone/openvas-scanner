@@ -4,12 +4,14 @@
 
 #[cfg(test)]
 mod test {
-    use super::super::{parse, AssignOrder, Statement, StatementKind, TokenKind};
+    use crate::nasl::syntax::parse_return_first;
+
+    use super::super::{AssignOrder, Statement, StatementKind, TokenKind};
 
     use StatementKind::*;
 
     fn result(code: &str) -> Statement {
-        parse(code).next().unwrap().unwrap()
+        parse_return_first(code)
     }
 
     #[test]

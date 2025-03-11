@@ -81,7 +81,7 @@ pub enum InterpretErrorKind {
     IncludeSyntaxError {
         /// The name of the file trying to include
         filename: String,
-        /// The syntactical error that occurred
+        /// The syntactical errors that occurred
         err: SyntaxError,
     },
     /// SyntaxError

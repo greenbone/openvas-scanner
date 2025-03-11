@@ -482,6 +482,8 @@ impl StatementKind {
 mod tests {
     use insta::assert_snapshot;
 
+    use crate::nasl::syntax::parse_return_first;
+
     use super::super::parse;
 
     #[test]
@@ -534,8 +536,7 @@ mod tests {
         let mut tests = 0;
 
         let mut ri = expected.iter();
-        for stmt in parser {
-            let stmt = stmt.unwrap();
+        for stmt in parser.unwrap() {
             let a: &str = ri.next().unwrap();
             let range = stmt.range();
             tests += 1;
@@ -548,8 +549,7 @@ mod tests {
     #[track_caller]
     fn test_statement(name: &str, code: &str) {
         insta::with_settings!({ prepend_module_to_snapshot => false }, {
-            let mut parser = parse(code);
-            let stmt = parser.next().unwrap().unwrap();
+            let stmt = parse_return_first(code);
             assert_snapshot!(format!("statement_{name}"), stmt);
         });
     }

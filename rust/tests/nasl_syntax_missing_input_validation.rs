@@ -8,20 +8,9 @@ fn validate_recursion_depth_to_prevent_stackoverflow() {
     // Crash due to depth limit on recursion.
     let code = include_str!("data/crash-recursion-depth.nasl");
     assert_eq!(code.len(), 708);
-    let result = scannerlib::nasl::syntax::parse(code).collect::<Vec<_>>();
-
-    assert_eq!(
-        result.iter().filter_map(|x| x.as_ref().ok()).count(),
-        0,
-        "crash-recursion-depth should not have any valid statements."
-    );
+    assert!(scannerlib::nasl::syntax::parse(code).is_err());
 
     let code = include_str!("data/crash-prefix-recursion.nasl");
     assert_eq!(code.len(), 636);
-    let result = scannerlib::nasl::syntax::parse(code).collect::<Vec<_>>();
-    assert_eq!(
-        result.iter().filter_map(|x| x.as_ref().ok()).count(),
-        0,
-        "crash-prefix-recursion should not have any valid statements."
-    );
+    assert!(scannerlib::nasl::syntax::parse(code).is_err());
 }

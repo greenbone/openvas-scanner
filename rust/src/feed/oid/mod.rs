@@ -55,8 +55,11 @@ where
     /// Returns the OID string or update::Error::MissingExit.
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
-        for stmt in crate::nasl::syntax::parse(&code) {
-            if let StatementKind::If(_, stmts, _, _) = stmt?.kind() {
+        // TODO: This makes no sense.
+        for stmt in crate::nasl::syntax::parse(&code)
+            .map_err(|_| update::ErrorKind::MissingExit(key.clone()))?
+        {
+            if let StatementKind::If(_, stmts, _, _) = stmt.kind() {
                 if let StatementKind::Block(x) = stmts.kind() {
                     for stmt in x {
                         if let Some(oid) = Self::script_oid(stmt) {

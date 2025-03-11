@@ -151,8 +151,9 @@ impl Prefix for Lexer {
 #[cfg(test)]
 mod test {
 
+    use crate::nasl::syntax::parse_return_first;
+
     use super::super::{
-        parse,
         token::{Token, TokenKind},
         AssignOrder, Statement, StatementKind,
     };
@@ -161,7 +162,7 @@ mod test {
     use TokenKind::*;
 
     fn result(code: &str) -> Statement {
-        parse(code).next().unwrap().unwrap()
+        parse_return_first(code)
     }
 
     #[test]

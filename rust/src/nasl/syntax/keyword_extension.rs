@@ -482,6 +482,8 @@ impl Keywords for Lexer {
 #[cfg(test)]
 mod test {
 
+    use crate::nasl::syntax::parse_return_first;
+
     use super::super::{
         parse,
         token::{Keyword, TokenKind},
@@ -493,19 +495,13 @@ mod test {
 
     #[test]
     fn if_statement() {
-        let actual = parse("if (description) script_oid('1'); else display('hi');")
-            .next()
-            .unwrap()
-            .unwrap();
+        let actual = parse_return_first("if (description) script_oid('1'); else display('hi');");
         match actual.kind() {
             If(_, _, Some(_), Some(_)) => {}
             _ => unreachable!("{actual} must be if with else stmt."),
         }
 
-        let actual = parse("if( version[1] ) report += '\nVersion: ' + version[1];")
-            .next()
-            .unwrap()
-            .unwrap();
+        let actual = &parse_return_first("if( version[1] ) report += '\nVersion: ' + version[1];");
         match actual.kind() {
             If(_, _, None, None) => {}
             _ => unreachable!("{actual} must be if without else stmt."),
@@ -514,7 +510,7 @@ mod test {
 
     #[test]
     fn if_block() {
-        let actual = parse("if (description) { ; }").next().unwrap().unwrap();
+        let actual = &parse_return_first("if (description) { ; }");
         match actual.kind() {
             If(_, b, _, _) => match b.kind() {
                 Block(v) => {
@@ -536,28 +532,28 @@ mod test {
             _ => unreachable!("{actual} must be an declare stmt."),
         };
         expected(
-            parse("local_var a, b, c;").next().unwrap().unwrap(),
+            parse_return_first("local_var a, b, c;"),
             TokenKind::Identifier(Keyword::LocalVar),
         );
         expected(
-            parse("global_var a, b, c;").next().unwrap().unwrap(),
+            parse_return_first("global_var a, b, c;"),
             TokenKind::Identifier(Keyword::GlobalVar),
         );
     }
 
     #[test]
     fn null() {
-        let result = parse("NULL;").next().unwrap().unwrap();
+        let result = parse_return_first("NULL;");
         assert_eq!(result.kind(), &Primitive);
         assert_eq!(result.as_token().kind(), &Identifier(Keyword::Null));
     }
 
     #[test]
     fn boolean() {
-        let result = parse("TRUE;").next().unwrap().unwrap();
+        let result = parse_return_first("TRUE;");
         assert_eq!(result.kind(), &Primitive);
         assert_eq!(result.as_token().kind(), &Identifier(Keyword::True));
-        let result = parse("FALSE;").next().unwrap().unwrap();
+        let result = parse_return_first("FALSE;");
         assert_eq!(result.kind(), &Primitive);
         assert_eq!(result.as_token().kind(), &Identifier(Keyword::False));
     }
@@ -572,7 +568,7 @@ mod test {
             "exit((4 * 5))",
         ];
         for call in test_cases {
-            let result = parse(&format!("{call};")).next().unwrap().unwrap();
+            let result = parse_return_first(&format!("{call};"));
             assert!(matches!(result.kind(), &Exit(..),), "{}", call);
         }
     }
@@ -587,7 +583,7 @@ mod test {
             "return (4 * 5)",
         ];
         for call in test_cases {
-            let result = parse(&format!("{call};")).next().unwrap().unwrap();
+            let result = parse_return_first(&format!("{call};"));
             assert!(matches!(result.kind(), &Return(..),), "{}", call);
         }
     }
@@ -595,33 +591,21 @@ mod test {
     #[test]
     fn for_loop() {
         let code = "for (i = 0; i < 10; i++) display('hi');";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap().kind(),
-            &For(..)
-        ));
+        assert!(matches!(parse_return_first(code).kind(), &For(..)));
         let code = "for (i = 0; i < 10; ) i = 10;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap().kind(),
-            &For(..)
-        ))
+        assert!(matches!(parse_return_first(code).kind(), &For(..)))
     }
 
     #[test]
     fn while_loop() {
         let code = "while (TRUE) ;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap().kind(),
-            &While(..)
-        ))
+        assert!(matches!(parse_return_first(code).kind(), &While(..)))
     }
 
     #[test]
     fn repeat_loop() {
         let code = "repeat ; until 1 == 1;";
-        assert!(matches!(
-            parse(code).next().unwrap().unwrap().kind(),
-            &Repeat(..)
-        ))
+        assert!(matches!(parse_return_first(code).kind(), &Repeat(..)))
     }
 
     #[test]
@@ -632,10 +616,7 @@ mod test {
         ];
         for call in test_cases {
             assert!(
-                matches!(
-                    parse(&format!("{call};")).next().unwrap().unwrap().kind(),
-                    &ForEach(..),
-                ),
+                matches!(parse_return_first(&format!("{call};")).kind(), &ForEach(..),),
                 "{}",
                 call
             );
@@ -645,11 +626,7 @@ mod test {
     #[test]
     fn include() {
         assert!(matches!(
-            parse("include('test.inc');")
-                .next()
-                .unwrap()
-                .unwrap()
-                .kind(),
+            parse_return_first("include('test.inc');").kind(),
             &Include(..)
         ))
     }
@@ -657,43 +634,32 @@ mod test {
     #[test]
     fn function() {
         assert!(matches!(
-            parse("function register_packages( buf ) { return 1; }")
-                .next()
-                .unwrap()
-                .unwrap()
-                .kind(),
+            parse_return_first("function register_packages( buf ) { return 1; }").kind(),
             &FunctionDeclaration(..)
         ));
         assert!(matches!(
-            parse("function register_packages( ) { return 1; }")
-                .next()
-                .unwrap()
-                .unwrap()
-                .kind(),
+            parse_return_first("function register_packages( ) { return 1; }").kind(),
             &FunctionDeclaration(..)
         ));
     }
 
     #[test]
     fn fct_anon_args() {
-        let result = parse("_FCT_ANON_ARGS[0];").next().unwrap().unwrap();
+        let result = parse_return_first("_FCT_ANON_ARGS[0];");
         assert!(matches!(result.kind(), &Array(Some(_))));
         assert_eq!(result.as_token().kind(), &Identifier(Keyword::FCTAnonArgs));
 
-        let result = parse("_FCT_ANON_ARGS;").next().unwrap().unwrap();
+        let result = parse_return_first("_FCT_ANON_ARGS;");
         assert!(matches!(result.kind(), &Array(None)));
         assert_eq!(result.as_token().kind(), &Identifier(Keyword::FCTAnonArgs));
     }
 
     #[test]
     fn unclosed() {
-        assert!(parse("local_var a, b, c").next().unwrap().is_err());
-        assert!(parse("local_var a, 1, c;").next().unwrap().is_err());
-        assert!(parse("local_var 1;").next().unwrap().is_err());
-        assert!(parse("if (description) { ; ").next().unwrap().is_err());
-        assert!(parse("if (description) display(1)")
-            .next()
-            .unwrap()
-            .is_err());
+        assert!(parse("local_var a, b, c").is_err());
+        assert!(parse("local_var a, 1, c;").is_err());
+        assert!(parse("local_var 1;").is_err());
+        assert!(parse("if (description) { ; ").is_err());
+        assert!(parse("if (description) display(1)").is_err());
     }
 }

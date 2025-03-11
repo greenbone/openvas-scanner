@@ -14,9 +14,13 @@ mod prefix_extension;
 mod statement;
 mod token;
 mod tokenizer;
+mod utils;
 mod variable_extension;
 
+use std::path::Path;
+
 pub use crate::storage::item::ACT;
+use codespan_reporting::files::SimpleFiles;
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
 pub use loader::*;
@@ -26,21 +30,60 @@ pub use token::Keyword;
 pub use token::Token;
 pub use token::TokenKind;
 pub use tokenizer::Tokenizer;
+pub use tokenizer::TokenizerError;
+use utils::read_single_files;
 
-/// Parses given code and returns found Statements and Errors
-///
-/// # Examples
-/// Basic usage:
-///
-/// ```
-/// use scannerlib::nasl::syntax::{Statement, SyntaxError, parse};
-/// let statements =
-///     parse("a = 23;b = 1;").collect::<Vec<Result<Statement, SyntaxError>>>();
-/// ````
-pub fn parse(code: &str) -> impl Iterator<Item = Result<Statement, SyntaxError>> + '_ {
-    // TODO Do not unwrap here, handle errors properly.
-    let tokens = Tokenizer::tokenize(code).unwrap();
-    Lexer::new(tokens)
+type ParseResult = Result<Vec<Statement>, Vec<SyntaxError>>;
+
+pub fn parse(code: &str) -> ParseResult {
+    let tokens = Tokenizer::tokenize(code).map_err(|e| {
+        e.into_iter()
+            .map(|e| SyntaxError::from(e))
+            .collect::<Vec<_>>()
+    })?;
+    let lexer = Lexer::new(tokens);
+    let results = lexer.collect::<Result<Vec<_>, _>>();
+    // TODO support multiple errors
+    let results = results.map_err(|e| vec![e])?;
+    Ok(results)
+}
+
+// TODO remove
+// This is a helper method while the code structure isnt the way I want it to be
+pub fn parse_return_first(code: &str) -> Statement {
+    parse(code).unwrap().remove(0)
+}
+
+// TODO remove
+// This is a helper method while the code structure isnt the way I want it to be
+pub fn parse_only_first_error(code: &str) -> Result<Vec<Statement>, SyntaxError> {
+    parse(code).map_err(|mut e| e.remove(0))
+}
+
+pub struct ParseInfo {
+    pub result: ParseResult,
+    files: SimpleFiles<String, String>,
+    file_id: usize,
+}
+
+impl ParseInfo {
+    pub fn new(code: &str, path: &Path) -> Self {
+        let (files, file_id) = read_single_files(path, code);
+        let result = parse(code);
+        Self {
+            files,
+            file_id,
+            result,
+        }
+    }
+
+    pub fn emit_errors(self) {
+        super::error::emit_errors(
+            &self.files,
+            self.file_id,
+            self.result.unwrap_err().into_iter(),
+        )
+    }
 }
 
 #[cfg(test)]
@@ -84,9 +127,7 @@ mod tests {
     fn use_parser() {
         let code = "a = 23;b = 1;";
         let expected = ["a = 23;", "b = 1;"];
-        for (i, s) in super::parse(code).enumerate() {
-            let stmt = s.unwrap();
-            //assert!(matches!(stmt.kind(), Assign(..)));
+        for (i, stmt) in super::parse(code).unwrap().into_iter().enumerate() {
             assert_eq!(&code[stmt.range()], expected[i]);
         }
     }

@@ -4,40 +4,36 @@
 
 use std::path::{Path, PathBuf};
 
-use scannerlib::nasl::syntax::load_non_utf8_path;
-use scannerlib::nasl::syntax::{parse, Statement, SyntaxError};
+use scannerlib::nasl::syntax::{load_non_utf8_path, ParseInfo, Statement};
 use walkdir::WalkDir;
 
 use crate::{CliError, CliErrorKind};
 
-fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, CliErrorKind> {
+fn read<P: AsRef<Path>>(path: P) -> Result<ParseInfo, CliErrorKind> {
     let code = load_non_utf8_path(path.as_ref())?;
-    Ok(parse(&code).collect())
+    Ok(ParseInfo::new(&code, path.as_ref()))
 }
 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut errors = 0;
 
-    let print_error = |_: &SyntaxError| todo!();
     let print_stmt = |_: Statement| todo!();
 
     let results = read(path).map_err(|kind| CliError {
         kind,
         filename: path.to_string_lossy().to_string(),
     })?;
-    for r in results {
-        match r {
-            Ok(stmt) if verbose => print_stmt(stmt),
-            Ok(_) => {}
-            Err(err) => {
-                // when we run in interactive mode we should print a new line to
-                // not interfere with the count display.
-                if errors == 0 {
-                    eprintln!()
+    match results.result {
+        Ok(statements) => {
+            if verbose {
+                for stmt in statements {
+                    print_stmt(stmt);
                 }
-                errors += 1;
-                print_error(&err)
             }
+        }
+        Err(ref errs) => {
+            errors += errs.len();
+            results.emit_errors();
         }
     }
     Ok(errors)

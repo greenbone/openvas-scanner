@@ -6,7 +6,7 @@ use crate::nasl::{
         InterpretError,
     },
     prelude::NaslValue,
-    syntax::{Keyword, Lexer, Statement, StatementKind, SyntaxError, Token, TokenKind},
+    syntax::{Keyword, Lexer, Statement, StatementKind, Token, TokenKind},
     Context, ContextType, Register,
 };
 
@@ -431,24 +431,15 @@ impl<'ctx> Interpreter<'ctx> {
 
                 let mut inter =
                     Interpreter::new(self.register.clone(), self.lexer.clone(), self.context);
-                for stmt in crate::nasl::syntax::parse(&code) {
-                    inter.execute_included_statement(&key, stmt).await?;
+                for stmt in crate::nasl::syntax::parse_only_first_error(&code)
+                    .map_err(|e| InterpretError::include_syntax_error(&key, e))?
+                {
+                    inter.resolve(&stmt).await?;
                 }
                 self.register = inter.register;
                 Ok(NaslValue::Null)
             }
             _ => Err(InterpretError::unsupported(name, "string")),
-        }
-    }
-
-    async fn execute_included_statement(
-        &mut self,
-        key: &str,
-        stmt: Result<Statement, SyntaxError>,
-    ) -> InterpretResult {
-        match stmt {
-            Ok(stmt) => self.resolve(&stmt).await,
-            Err(err) => Err(InterpretError::include_syntax_error(key, err)),
         }
     }
 

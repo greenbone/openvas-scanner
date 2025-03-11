@@ -444,9 +444,7 @@ impl CodeReplacer {
                 changed: false,
             };
             if cached_stmts.is_empty() {
-                cached_stmts = crate::nasl::syntax::parse(&code)
-                    .filter_map(|x| x.ok())
-                    .collect();
+                cached_stmts = crate::nasl::syntax::parse(&code).unwrap_or(vec![]);
             }
 
             for s in cached_stmts.iter() {

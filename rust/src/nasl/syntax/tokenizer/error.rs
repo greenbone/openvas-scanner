@@ -1,4 +1,6 @@
-use std::{fmt::Display, ops::Range};
+use std::ops::Range;
+
+use thiserror::Error;
 
 use crate::nasl::error::AsCodespanError;
 
@@ -8,26 +10,8 @@ pub struct TokenizerError {
     pub range: Range<usize>,
 }
 
-#[derive(Debug)]
-pub enum TokenizerErrorKind {
-    UnexpectedToken,
-    UnterminatedStringLiteral,
-    WrongNumberLiteral(String),
-}
-
-impl Display for TokenizerErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TokenizerErrorKind::UnexpectedToken => write!(f, "Unexpected token."),
-            TokenizerErrorKind::UnterminatedStringLiteral => {
-                write!(f, "Unterminated string literal.")
-            }
-            TokenizerErrorKind::WrongNumberLiteral(e) => {
-                write!(f, "Failed to parse number literal. {e}")
-            }
-        }
-    }
-}
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
+pub enum TokenizerErrorKind {}
 
 impl AsCodespanError for TokenizerError {
     fn range(&self) -> Range<usize> {
