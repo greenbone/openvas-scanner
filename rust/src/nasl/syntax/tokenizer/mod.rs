@@ -4,7 +4,7 @@ mod tests;
 
 use std::ops::AddAssign;
 
-use super::{token::UnclosedTokenKind, Keyword, Token, TokenKind};
+use super::{Keyword, Token, TokenKind};
 pub use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
@@ -259,12 +259,12 @@ impl Tokenizer {
             '=' => two_symbol_token!(self.cursor, start, Equal, '=', EqualEqual, '~', EqualTilde),
             '>' => self.tokenize_greater(),
             '<' => self.tokenize_less(),
-            '"' => self.tokenize_string(),
-            '\'' => self.tokenize_data(),
+            '"' => self.tokenize_string()?,
+            '\'' => self.tokenize_data()?,
             c if c.is_ascii_digit() => self.tokenize_number(start, c)?,
             c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
             c if c.is_whitespace() => Whitespace,
-            _ => return Err(self.match_error(TokenizerErrorKind::InvalidCharacter)),
+            _ => return Err(self.error(TokenizerErrorKind::InvalidCharacter)),
         };
 
         Ok(Token {
@@ -273,7 +273,7 @@ impl Tokenizer {
         })
     }
 
-    pub fn match_error(&self, kind: TokenizerErrorKind) -> TokenizerError {
+    pub fn error(&self, kind: TokenizerErrorKind) -> TokenizerError {
         TokenizerError {
             kind,
             range: self.begin_match_position.0 - 1..self.cursor.position().0,
@@ -358,20 +358,20 @@ impl Tokenizer {
     }
 
     // Skips initial and ending data identifier ' and verifies that a string is closed
-    fn tokenize_string(&mut self) -> TokenKind {
+    fn tokenize_string(&mut self) -> Result<TokenKind, TokenizerError> {
         let start = self.cursor.position();
         self.cursor.skip_while(|c| c != '"');
         if self.cursor.is_at_eof() {
-            TokenKind::Unclosed(UnclosedTokenKind::String)
+            Err(self.error(TokenizerErrorKind::UnclosedString))
         } else {
             let result = self.substring(start, self.cursor.position());
             self.cursor.advance();
-            TokenKind::String(result)
+            Ok(TokenKind::String(result))
         }
     }
 
     // Skips initial and ending string identifier ' || " and verifies that a string is closed
-    fn tokenize_data(&mut self) -> TokenKind {
+    fn tokenize_data(&mut self) -> Result<TokenKind, TokenizerError> {
         // we don't want the lookup to contain "
         let start = self.cursor.position();
         let mut back_slash = false;
@@ -384,7 +384,7 @@ impl Tokenizer {
             }
         });
         if self.cursor.is_at_eof() {
-            TokenKind::Unclosed(UnclosedTokenKind::Data)
+            Err(self.error(TokenizerErrorKind::UnclosedData))
         } else {
             let mut raw_str = self.substring(start, self.cursor.position());
             raw_str = raw_str.replace(r#"\""#, "\"");
@@ -394,7 +394,7 @@ impl Tokenizer {
             raw_str = raw_str.replace(r"\r", "\r");
             raw_str = raw_str.replace(r"\t", "\t");
             self.cursor.advance();
-            TokenKind::Data(raw_str.as_bytes().to_vec())
+            Ok(TokenKind::Data(raw_str.as_bytes().to_vec()))
         }
     }
 
@@ -453,7 +453,7 @@ impl Tokenizer {
             }
             (_, c) => {
                 if c.is_alphabetic() {
-                    return Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral));
+                    return Err(self.error(TokenizerErrorKind::InvalidNumberLiteral));
                 } else {
                     Base10
                 }
@@ -461,23 +461,22 @@ impl Tokenizer {
         };
         self.cursor.skip_while(base.verifier());
         if self.cursor.peek() == '.' && self.cursor.peek_ahead(1).is_numeric() {
-            self.parse_ipv4(base, start)
-                .map_err(|e| self.match_error(e))
+            self.parse_ipv4(base, start).map_err(|e| self.error(e))
         } else {
             // we verify that the cursor actually moved to prevent scenarios like
             // 0b without any actual number in it
             if start == self.cursor.position() {
-                Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
+                Err(self.error(TokenizerErrorKind::InvalidNumberLiteral))
             } else if self.cursor.peek().is_alphabetic() {
                 self.cursor.advance();
-                Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral))
+                Err(self.error(TokenizerErrorKind::InvalidNumberLiteral))
             } else {
                 match i64::from_str_radix(
                     &self.substring(start, self.cursor.position()),
                     base.radix(),
                 ) {
                     Ok(num) => Ok(TokenKind::Number(num)),
-                    Err(_) => Err(self.match_error(TokenizerErrorKind::InvalidNumberLiteral)),
+                    Err(_) => Err(self.error(TokenizerErrorKind::InvalidNumberLiteral)),
                 }
             }
         }

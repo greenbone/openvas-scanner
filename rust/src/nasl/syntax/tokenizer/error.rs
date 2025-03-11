@@ -18,6 +18,10 @@ pub enum TokenizerErrorKind {
     InvalidIpv4Address,
     #[error("Invalid character.")]
     InvalidCharacter,
+    #[error("Unclosed string literal.")]
+    UnclosedString,
+    #[error("Unclosed data string literal.")]
+    UnclosedData,
 }
 
 impl AsCodespanError for TokenizerError {

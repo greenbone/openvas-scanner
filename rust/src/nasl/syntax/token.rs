@@ -10,14 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
 
-/// Is used to identify which token type is unclosed
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
-pub enum UnclosedTokenKind {
-    String,
-    Data,
-}
-
 /// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize, Deserialize))]
@@ -270,8 +262,6 @@ pub enum TokenKind {
     Comment,
     /// Identifier are literals that are not strings and don't start with a number
     Identifier(Keyword),
-    /// Unclosed token. This can happen on e.g. string literals
-    Unclosed(UnclosedTokenKind),
     /// Whitespace
     Whitespace,
 }
@@ -332,7 +322,6 @@ impl Display for TokenKind {
             TokenKind::IPv4Address(x) => write!(f, "{x}"),
             TokenKind::Comment => write!(f, "Comment"),
             TokenKind::Identifier(x) => write!(f, "{}", x),
-            TokenKind::Unclosed(x) => write!(f, "Unclosed{x:?}"),
             TokenKind::Data(x) => write!(f, "{x:?}"),
             TokenKind::Whitespace => write!(f, " "),
         }
@@ -381,11 +370,7 @@ impl Token {
         &self.kind
     }
 
-    /// Returns true when a Token is faulty
-    ///
-    /// A Token is faulty when it is a syntactical error like
-    /// - [TokenKind::Unclosed]
     pub fn is_faulty(&self) -> bool {
-        matches!(self.kind(), TokenKind::Unclosed(_))
+        false
     }
 }

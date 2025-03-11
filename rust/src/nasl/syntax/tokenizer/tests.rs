@@ -25,7 +25,7 @@ fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
         Ok(results) => results,
         Err(errors) => {
             emit_errors(&files, file_id, errors.into_iter());
-            panic!()
+            panic!("Code failed to tokenize.")
         }
     }
 }
@@ -73,10 +73,10 @@ test_ok!(three_char_tokens, ">>> >>= >!< <<=");
 test_ok!(four_symbol_tokens, ">>>=");
 
 test_ok!(string, "\"I am a closed string \"");
-test_ok!(unclosed_string, "\"hello I am a unclosed string\\");
+test_err!(unclosed_string, "\"hello I am a unclosed string\\");
 
 test_ok!(data_string, r#"'Hello \\\'you\\\'!'"#);
-test_ok!(unclosed_data_string, "'Hello \\'you\\'!\\'");
+test_err!(unclosed_data_string, "'Hello \\'you\\'!\\'");
 
 test_ok!(simple_number, "1");
 test_ok!(

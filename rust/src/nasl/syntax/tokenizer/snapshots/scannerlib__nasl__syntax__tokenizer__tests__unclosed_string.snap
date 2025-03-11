@@ -1,16 +1,11 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
-expression: "tokenize_ok(stringify! (unclosed_string), \"\\\"hello I am a unclosed string\\\\\")"
+expression: "tokenize_err(stringify! (unclosed_string), \"\\\"hello I am a unclosed string\\\\\")"
 snapshot_kind: text
 ---
 [
-    Token {
-        kind: Unclosed(
-            String,
-        ),
-        position: (
-            0,
-            30,
-        ),
+    TokenizerError {
+        kind: UnclosedString,
+        range: 0..30,
     },
 ]

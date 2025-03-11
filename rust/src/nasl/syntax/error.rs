@@ -44,7 +44,7 @@ pub enum ErrorKind {
     /// An IO Error occurred while loading a NASL file
     #[error("IOError: {0}")]
     IOError(io::ErrorKind),
-    #[error("Invalid token: {0}")]
+    #[error("{0}")]
     Tokenizer(#[from] TokenizerErrorKind),
 }
 
