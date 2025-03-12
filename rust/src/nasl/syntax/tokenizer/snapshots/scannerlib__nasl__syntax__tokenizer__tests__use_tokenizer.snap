@@ -1,0 +1,57 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (use_tokenizer), \"local_var hello = 'World!';\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Keyword(
+            LocalVar,
+        ),
+        position: (
+            0,
+            9,
+        ),
+    },
+    Token {
+        kind: Keyword(
+            Undefined(
+                "hello",
+            ),
+        ),
+        position: (
+            10,
+            15,
+        ),
+    },
+    Token {
+        kind: Equal,
+        position: (
+            16,
+            17,
+        ),
+    },
+    Token {
+        kind: Data(
+            [
+                87,
+                111,
+                114,
+                108,
+                100,
+                33,
+            ],
+        ),
+        position: (
+            18,
+            26,
+        ),
+    },
+    Token {
+        kind: Semicolon,
+        position: (
+            26,
+            27,
+        ),
+    },
+]

@@ -88,41 +88,6 @@ impl ParseInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::syntax::{
-        token::{Keyword, Token, TokenKind},
-        Tokenizer,
-    };
-
-    #[test]
-    fn use_tokenizer() {
-        let all_tokens = Tokenizer::tokenize("local_var hello = 'World!';").unwrap();
-        assert_eq!(
-            all_tokens,
-            vec![
-                Token {
-                    kind: TokenKind::Keyword(Keyword::LocalVar),
-                    position: (0, 9)
-                },
-                Token {
-                    kind: TokenKind::Keyword(Keyword::Undefined("hello".to_owned())),
-                    position: (10, 15)
-                },
-                Token {
-                    kind: TokenKind::Equal,
-                    position: (16, 17)
-                },
-                Token {
-                    kind: TokenKind::Data("World!".as_bytes().to_vec()),
-                    position: (18, 26)
-                },
-                Token {
-                    kind: TokenKind::Semicolon,
-                    position: (26, 27)
-                },
-            ]
-        );
-    }
-
     #[test]
     fn use_parser() {
         let code = "a = 23;b = 1;";

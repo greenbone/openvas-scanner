@@ -19,7 +19,7 @@ fn tokenize(
     (files, file_id, tokens)
 }
 
-fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
+pub fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
     let (files, file_id, results) = tokenize(file_name, code);
     match results {
         Ok(results) => results,
@@ -30,7 +30,7 @@ fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
     }
 }
 
-fn tokenize_err(file_name: &str, code: &str) -> Vec<TokenizerError> {
+pub fn tokenize_err(file_name: &str, code: &str) -> Vec<TokenizerError> {
     let (files, file_id, results) = tokenize(file_name, code);
     match results {
         Ok(_) => {
@@ -100,3 +100,5 @@ test_ok!(simplified_ipv4_address, "10.187.76.12");
 test_err!(wrong_ipv4_address, "10.0x 10.0.x 10.0.0.x");
 
 test_ok!(repeat_x_times, "x() x 10;");
+
+test_ok!(use_tokenizer, "local_var hello = 'World!';");
