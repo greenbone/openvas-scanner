@@ -6,7 +6,7 @@
 
 use std::fs::File;
 
-use crate::nasl::syntax::{AsBufReader, Ident, Loader};
+use crate::nasl::syntax::{AsBufReader, Ident, Loader, Parser};
 use crate::nasl::syntax::{Statement, StatementKind, TokenKind};
 
 use crate::feed::{
@@ -56,7 +56,8 @@ where
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         let code = self.loader.load(key.as_ref())?;
         // TODO: This makes no sense.
-        for stmt in crate::nasl::syntax::parse(&code)
+        for stmt in Parser::new_without_file(&code)
+            .result()
             .map_err(|_| update::ErrorKind::MissingExit(key.clone()))?
         {
             if let StatementKind::If(_, stmts, _, _) = stmt.kind() {

@@ -9,6 +9,7 @@ pub use error::ErrorKind;
 
 use futures::{stream, Stream, StreamExt};
 use std::fs::File;
+use std::path::Path;
 use tracing::trace;
 
 use crate::nasl::interpreter::ForkingInterpreter;
@@ -17,6 +18,7 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::syntax::Lexer;
+use crate::nasl::syntax::Parser;
 use crate::nasl::syntax::Tokenizer;
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::Executor;
@@ -64,7 +66,10 @@ pub async fn feed_version(
         Lexer::new(Tokenizer::tokenize(&code).unwrap()),
         &context,
     );
-    for stmt in crate::nasl::syntax::parse(&code).map_err(|errs| ErrorKind::SyntaxError(errs))? {
+    for stmt in Parser::new(&code, Path::new(feed_info_key))
+        .result()
+        .map_err(|errs| ErrorKind::SyntaxError(errs))?
+    {
         interpreter.resolve(&stmt).await?;
     }
 

@@ -35,7 +35,7 @@ use utils::read_single_files;
 
 type ParseResult = Result<Vec<Statement>, Vec<SyntaxError>>;
 
-pub fn parse(code: &str) -> ParseResult {
+fn parse(code: &str) -> ParseResult {
     let tokens = Tokenizer::tokenize(code).map_err(|e| {
         e.into_iter()
             .map(|e| SyntaxError::from(e))
@@ -48,13 +48,13 @@ pub fn parse(code: &str) -> ParseResult {
     Ok(results)
 }
 
-pub struct ParseInfo {
-    pub result: ParseResult,
+pub struct Parser {
+    result: ParseResult,
     files: SimpleFiles<String, String>,
     file_id: usize,
 }
 
-impl ParseInfo {
+impl Parser {
     pub fn new(code: &str, path: &Path) -> Self {
         let (files, file_id) = read_single_files(path, code);
         let result = parse(code);
@@ -65,12 +65,20 @@ impl ParseInfo {
         }
     }
 
+    pub fn new_without_file(code: &str) -> Self {
+        Self::new(code, Path::new(""))
+    }
+
     pub fn emit_errors(self) {
         super::error::emit_errors(
             &self.files,
             self.file_id,
             self.result.unwrap_err().into_iter(),
         )
+    }
+
+    pub fn result(self) -> ParseResult {
+        self.result
     }
 }
 

@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use crate::nasl::syntax::{parse, ParseInfo, Statement};
+use crate::nasl::syntax::{parse, Parser, Statement};
 
 pub fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
-    let results = ParseInfo::new(code, Path::new(file_name));
+    let results = Parser::new(code, Path::new(file_name));
     match results.result {
         Ok(results) => results,
         Err(_) => {
@@ -14,7 +14,7 @@ pub fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
 }
 
 pub fn parse_err(file_name: &str, code: &str) -> Vec<SyntaxError> {
-    let results = ParseInfo::new(code, Path::new(file_name));
+    let results = Parser::new(code, Path::new(file_name));
     match results.result {
         Ok(result) => {
             panic!(

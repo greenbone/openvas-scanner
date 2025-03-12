@@ -4,14 +4,14 @@
 
 use std::path::{Path, PathBuf};
 
-use scannerlib::nasl::syntax::{load_non_utf8_path, ParseInfo, Statement};
+use scannerlib::nasl::syntax::{load_non_utf8_path, Parser, Statement};
 use walkdir::WalkDir;
 
 use crate::{CliError, CliErrorKind};
 
-fn read<P: AsRef<Path>>(path: P) -> Result<ParseInfo, CliErrorKind> {
+fn read<P: AsRef<Path>>(path: P) -> Result<Parser, CliErrorKind> {
     let code = load_non_utf8_path(path.as_ref())?;
-    Ok(ParseInfo::new(&code, path.as_ref()))
+    Ok(Parser::new(&code, path.as_ref()))
 }
 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
