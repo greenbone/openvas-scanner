@@ -246,7 +246,8 @@ where
             .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
             .collect();
         let register = Register::root_initial(&variables);
-        ForkingInterpreter::new(code, register, context)
+        let ast = Code::from_string(code).parse().emit_errors().unwrap();
+        ForkingInterpreter::new(ast, register, context)
     }
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpretError>> {

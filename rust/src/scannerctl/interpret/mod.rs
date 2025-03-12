@@ -133,8 +133,9 @@ where
             .context_builder
             .build(ContextKey::Scan(self.scan_id.clone(), target));
         let register = RegisterBuilder::build();
-        let code = self.load(script)?;
-        let mut results = ForkingInterpreter::new(&code, register, &context).stream();
+        let code = Code::from_string_fake_filename(&self.load(script)?, script);
+        let ast = code.parse().emit_errors().unwrap();
+        let mut results = ForkingInterpreter::new(ast, register, &context).stream();
         while let Some(result) = results.next().await {
             let r = match result {
                 Ok(x) => x,

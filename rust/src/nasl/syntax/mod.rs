@@ -17,7 +17,7 @@ mod tokenizer;
 
 pub use crate::storage::item::ACT;
 pub use error::{ErrorKind, SyntaxError};
-pub use lexer::Lexer;
+pub(super) use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;

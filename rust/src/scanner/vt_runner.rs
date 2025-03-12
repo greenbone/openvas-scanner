@@ -4,7 +4,7 @@
 
 use crate::models::{Host, Parameter, Protocol, ScanId};
 use crate::nasl::interpreter::ForkingInterpreter;
-use crate::nasl::syntax::{Loader, NaslValue};
+use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
@@ -194,7 +194,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         ContextKey::Scan(self.scan_id.clone(), Some(self.target.clone()))
     }
 
-    async fn get_result_kind(&self, code: &str, register: Register) -> ScriptResultKind {
+    async fn get_result_kind(&self, code: Code, register: Register) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
@@ -209,7 +209,9 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             self.loader,
             self.executor,
         );
-        let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
+        // TODO figure out what to do with the syntax errors here.
+        let ast = code.parse().emit_errors().unwrap();
+        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
@@ -223,13 +225,13 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
     }
 
     async fn execute(mut self) -> Result<ScriptResult, ExecuteError> {
-        let code = self.loader.load(&self.vt.filename)?;
+        let code = Code::load(self.loader, &self.vt.filename)?;
         let mut register = Register::default();
         self.set_parameters(&mut register)?;
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self.get_result_kind(&code, register).await;
+        let kind = self.get_result_kind(code, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),

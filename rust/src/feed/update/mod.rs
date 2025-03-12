@@ -16,8 +16,6 @@ use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
-use crate::nasl::syntax::Lexer;
-use crate::nasl::syntax::Tokenizer;
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::Executor;
 use crate::nasl::ContextType;
@@ -50,7 +48,7 @@ pub async fn feed_version(
     dispatcher: &dyn Dispatcher,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
-    let code = loader.load(feed_info_filename)?;
+    let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let k = ContextKey::default();
     let fr = NoOpRetriever::default();
@@ -59,11 +57,7 @@ pub async fn feed_version(
     let functions = nasl_std_functions();
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
     // TODO do not unwrap here, handle errors
-    let mut interpreter = Interpreter::new(
-        register,
-        Lexer::new(Tokenizer::tokenize(&code).unwrap()),
-        &context,
-    );
+    let mut interpreter = Interpreter::new(register, code.parse().emit_errors().unwrap(), &context);
     for stmt in Code::load(loader, feed_info_filename)?
         .parse()
         .result()
@@ -158,7 +152,7 @@ where
 
     /// Runs a single plugin in description mode.
     async fn single(&self, key: &ContextKey) -> Result<i64, ErrorKind> {
-        let code = self.loader.load(&key.value())?;
+        let code = Code::load(self.loader, key.value())?;
 
         let register = Register::root_initial(&self.initial);
         let fr = NoOpRetriever::default();
@@ -171,7 +165,8 @@ where
             self.loader,
             &self.executor,
         );
-        let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());
+        let ast = code.parse().emit_errors().unwrap();
+        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {

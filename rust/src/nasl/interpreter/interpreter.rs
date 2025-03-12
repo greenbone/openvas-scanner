@@ -1,12 +1,13 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
+    code::Ast,
     interpreter::{
         declare::{DeclareFunctionExtension, DeclareVariableExtension},
         InterpretError,
     },
     prelude::NaslValue,
-    syntax::{Keyword, Lexer, Statement, StatementKind, Token, TokenKind},
+    syntax::{Keyword, Statement, StatementKind, Token, TokenKind},
     Code, Context, ContextType, Register,
 };
 
@@ -43,7 +44,7 @@ pub struct FunctionCallData {
 ///    function call performed by the interpreter within a single
 ///    top-level statement will be stored along with the `Token` at which
 ///    the function call took place (as a safeguard). The variant also
-///    stores the original `Register` and `Lexer` in order to be able to "rewind"
+///    stores the original `Register` and `Ast` in order to be able to "rewind"
 ///    into the exact state before the statement that caused the fork.
 /// 2. `Restoring`: This variant is used by all interpreters which were just created due to a fork.
 ///    In this mode, the interpreter will not perform normal function
@@ -55,7 +56,9 @@ pub enum ForkReentryData {
     Collecting {
         data: Vec<FunctionCallData>,
         register: Register,
-        lexer: Lexer,
+        // TODO: make this a cursor or something similar,
+        // since cloning the entire AST seems wasteful.
+        ast: Ast,
     },
     Restoring {
         data: VecDeque<FunctionCallData>,
@@ -77,9 +80,9 @@ impl ForkReentryData {
         }
     }
 
-    fn lexer(&self) -> &Lexer {
+    fn ast(&self) -> &Ast {
         match self {
-            Self::Collecting { lexer, .. } => lexer,
+            Self::Collecting { ast, .. } => ast,
             _ => unreachable!(),
         }
     }
@@ -146,11 +149,11 @@ impl ForkReentryData {
         }
     }
 
-    fn collecting(register: Register, lexer: Lexer) -> Self {
+    fn collecting(register: Register, ast: Ast) -> Self {
         Self::Collecting {
             data: vec![],
             register,
-            lexer,
+            ast,
         }
     }
 
@@ -217,7 +220,7 @@ pub struct Interpreter<'ctx> {
     pub(super) register: Register,
     pub(super) context: &'ctx Context<'ctx>,
     pub(super) fork_reentry_data: ForkReentryData,
-    lexer: Lexer,
+    ast: Ast,
     state: InterpreterState,
 }
 
@@ -225,10 +228,10 @@ pub type InterpretResult = Result<NaslValue, InterpretError>;
 
 impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
-    pub fn new(register: Register, lexer: Lexer, context: &'ctx Context) -> Self {
+    pub fn new(register: Register, ast: Ast, context: &'ctx Context) -> Self {
         Interpreter {
             register,
-            lexer,
+            ast,
             context,
             fork_reentry_data: ForkReentryData::new(),
             state: InterpreterState::Running,
@@ -237,15 +240,14 @@ impl<'ctx> Interpreter<'ctx> {
 
     pub async fn execute_next_statement(&mut self) -> Option<InterpretResult> {
         self.initialize_fork_data();
-        match self.lexer.next() {
-            Some(Ok(stmt)) => {
+        match self.ast.next() {
+            Some(stmt) => {
                 let result = self.resolve(&stmt).await;
                 if matches!(result, Ok(NaslValue::Exit(_))) {
                     self.state = InterpreterState::Finished;
                 }
                 Some(result)
             }
-            Some(Err(err)) => Some(Err(err.into())),
             None => {
                 self.state = InterpreterState::Finished;
                 None
@@ -428,7 +430,7 @@ impl<'ctx> Interpreter<'ctx> {
         match self.resolve(name).await? {
             NaslValue::String(key) => {
                 let mut inter =
-                    Interpreter::new(self.register.clone(), self.lexer.clone(), self.context);
+                    Interpreter::new(self.register.clone(), self.ast.clone(), self.context);
                 let loader = self.context.loader();
                 let stmts = Code::load(loader, &key)?
                     .parse()
@@ -447,10 +449,10 @@ impl<'ctx> Interpreter<'ctx> {
     pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
         let forks = self.fork_reentry_data.create_forks();
         let register = self.fork_reentry_data.register();
-        let lexer = self.fork_reentry_data.lexer().clone();
+        let ast = self.fork_reentry_data.ast().clone();
         forks
             .into_iter()
-            .map(|fork| self.make_fork(fork, register, &lexer))
+            .map(|fork| self.make_fork(fork, register, &ast))
             .collect()
     }
 
@@ -458,11 +460,11 @@ impl<'ctx> Interpreter<'ctx> {
         &self,
         fork_reentry_data: ForkReentryData,
         register: &Register,
-        lexer: &Lexer,
+        ast: &Ast,
     ) -> Interpreter<'ctx> {
         Self {
             register: register.clone(),
-            lexer: lexer.clone(),
+            ast: ast.clone(),
             context: self.context,
             fork_reentry_data,
             state: InterpreterState::Running,
@@ -476,7 +478,7 @@ impl<'ctx> Interpreter<'ctx> {
     pub(crate) fn initialize_fork_data(&mut self) {
         if self.fork_reentry_data.is_empty_or_collecting() {
             self.fork_reentry_data =
-                ForkReentryData::collecting(self.register.clone(), self.lexer.clone());
+                ForkReentryData::collecting(self.register.clone(), self.ast.clone());
         }
     }
 
