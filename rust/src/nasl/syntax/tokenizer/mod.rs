@@ -190,10 +190,9 @@ impl Tokenizer {
         while !self.cursor.is_at_eof() {
             let token = self.scan_token();
             match token {
-                Ok(token) => {
-                    if token.is_relevant() {
-                        tokens.push(token)
-                    }
+                Ok(Some(token)) => tokens.push(token),
+                Ok(None) => {
+                    // Encountered whitespace or a comment, ignore it.
                 }
                 Err(err) => {
                     self.errors.push(err);
@@ -217,7 +216,7 @@ impl Tokenizer {
         }
     }
 
-    fn scan_token(&mut self) -> Result<Token, TokenizerError> {
+    fn scan_token(&mut self) -> Result<Option<Token>, TokenizerError> {
         use TokenKind::*;
         let start = self.cursor.position();
         // We can unwrap here, since we check that we're not at EOF before calling scan_token.
@@ -234,7 +233,7 @@ impl Tokenizer {
             '.' => Dot,
             '#' => {
                 self.cursor.skip_while(|c| c != '\n');
-                Comment
+                return Ok(None);
             }
             '-' => two_symbol_token!(self.cursor, start, Minus, '-', MinusMinus, '=', MinusEqual),
             '+' => {
@@ -263,14 +262,14 @@ impl Tokenizer {
             '\'' => self.tokenize_data()?,
             c if c.is_ascii_digit() => self.tokenize_number(start, c)?,
             c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
-            c if c.is_whitespace() => Whitespace,
+            c if c.is_whitespace() => return Ok(None),
             _ => return Err(self.error(TokenizerErrorKind::InvalidCharacter)),
         };
 
-        Ok(Token {
+        Ok(Some(Token {
             kind,
             position: (start.0, self.cursor.position().0),
-        })
+        }))
     }
 
     pub fn error(&self, kind: TokenizerErrorKind) -> TokenizerError {

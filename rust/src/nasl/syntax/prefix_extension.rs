@@ -140,10 +140,6 @@ impl Prefix for Lexer {
                 .map(|stmt| (Continue, stmt)),
             Operation::Assign(_) => Err(unexpected_token!(token)),
             Operation::Keyword(keyword) => self.parse_keyword(keyword, token),
-            Operation::NoOp => Ok((
-                Done(token.clone()),
-                Statement::with_start_token(token, StatementKind::NoOp),
-            )),
         }
     }
 }

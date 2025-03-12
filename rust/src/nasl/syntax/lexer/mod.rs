@@ -103,19 +103,8 @@ impl Lexer {
         }
     }
 
-    fn advance_to_first_non_comment(&mut self) {
-        // TODO I dont want to do this comment logic here. Move this to the
-        // tokenizer.
-        while self.tokens.get(self.position.0).map(|token| token.kind())
-            == Some(&TokenKind::Comment)
-        {
-            self.position.0 += 1;
-        }
-    }
-
     /// Returns next token of tokenizer
     pub(crate) fn token(&mut self) -> Option<Token> {
-        self.advance_to_first_non_comment();
         let token = self.tokens.get(self.position.0).cloned();
         self.position.0 += 1;
         token
@@ -123,7 +112,6 @@ impl Lexer {
 
     /// Returns peeks token of tokenizer
     pub(crate) fn peek(&mut self) -> Option<Token> {
-        self.advance_to_first_non_comment();
         self.tokens.get(self.position.0).cloned()
     }
 

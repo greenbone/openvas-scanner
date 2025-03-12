@@ -24,8 +24,6 @@ pub(crate) enum Operation {
     Primitive,
     /// Is handled in prefix.
     Keyword(Keyword),
-    /// Empty statement
-    NoOp,
 }
 
 impl Operation {
@@ -82,7 +80,6 @@ impl Operation {
             | TokenKind::Comma => Some(Operation::Grouping(token.kind().clone())),
             TokenKind::Identifier(Keyword::Undefined(_)) => Some(Operation::Variable),
             TokenKind::Identifier(keyword) => Some(Operation::Keyword(keyword.clone())),
-            TokenKind::Comment => Some(Operation::NoOp),
             _ => None,
         }
     }

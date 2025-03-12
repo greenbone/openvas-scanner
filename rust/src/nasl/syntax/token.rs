@@ -258,12 +258,8 @@ pub enum TokenKind {
     Number(i64),
     /// We currently just support 127.0.0.1 notation
     IPv4Address(Ipv4Addr),
-    /// A comment starts with # and should be ignored
-    Comment,
     /// Identifier are literals that are not strings and don't start with a number
     Identifier(Keyword),
-    /// Whitespace
-    Whitespace,
 }
 
 impl Display for TokenKind {
@@ -320,10 +316,8 @@ impl Display for TokenKind {
             TokenKind::String(x) => write!(f, "\"{x}\""),
             TokenKind::Number(x) => write!(f, "{x}"),
             TokenKind::IPv4Address(x) => write!(f, "{x}"),
-            TokenKind::Comment => write!(f, "Comment"),
             TokenKind::Identifier(x) => write!(f, "{}", x),
             TokenKind::Data(x) => write!(f, "{x:?}"),
-            TokenKind::Whitespace => write!(f, " "),
         }
     }
 }
@@ -346,14 +340,10 @@ impl Token {
         }
     }
 
-    pub fn is_relevant(&self) -> bool {
-        !matches!(self.kind, TokenKind::Comment | TokenKind::Whitespace)
-    }
-
     // TODO get rid of this
     pub fn sentinel() -> Token {
         Self {
-            kind: TokenKind::Whitespace,
+            kind: TokenKind::X,
             position: (usize::MAX, usize::MAX),
         }
     }
