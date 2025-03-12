@@ -1,0 +1,7 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (use_parser),\n\"a = 23;b = 1;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec <\n_ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+a = 23
+b = 1

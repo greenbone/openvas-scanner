@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (change_to_peek),\n\"send_packet( udp, pcap_active:FALSE ) x 200;\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+send_packet(udp, pcap_active: false); X 200

@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (unexpected_assign),\nr###\"\n    while(y = recv(socket:soc, length:1024)) {\n    buf1 += y;\n    }\n    \"###).into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+while (y = recv(socket: soc, length: 1024);) {{ ... }}

@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    path::Path,
-};
+use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
     interpreter::{
@@ -9,8 +6,8 @@ use crate::nasl::{
         InterpretError,
     },
     prelude::NaslValue,
-    syntax::{Keyword, Lexer, Parser, Statement, StatementKind, Token, TokenKind},
-    Context, ContextType, Register,
+    syntax::{Keyword, Lexer, Statement, StatementKind, Token, TokenKind},
+    Code, Context, ContextType, Register,
 };
 
 use super::InterpretErrorKind;
@@ -430,14 +427,14 @@ impl<'ctx> Interpreter<'ctx> {
     async fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name).await? {
             NaslValue::String(key) => {
-                let code = self.context.loader().load(&key)?;
-
                 let mut inter =
                     Interpreter::new(self.register.clone(), self.lexer.clone(), self.context);
-                for stmt in Parser::new(&code, Path::new(&key))
+                let loader = self.context.loader();
+                let stmts = Code::load(loader, &key)?
+                    .parse()
                     .result()
-                    .map_err(|e| InterpretError::include_syntax_error(&key, e))?
-                {
+                    .map_err(|e| InterpretError::include_syntax_error(&key, e))?;
+                for stmt in stmts {
                     inter.resolve(&stmt).await?;
                 }
                 self.register = inter.register;

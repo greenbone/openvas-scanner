@@ -14,12 +14,8 @@ mod prefix_extension;
 mod statement;
 mod token;
 mod tokenizer;
-mod utils;
-
-use std::path::Path;
 
 pub use crate::storage::item::ACT;
-use codespan_reporting::files::SimpleFiles;
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
 pub use loader::*;
@@ -31,65 +27,3 @@ pub use token::Token;
 pub use token::TokenKind;
 pub use tokenizer::Tokenizer;
 pub use tokenizer::TokenizerError;
-use utils::read_single_files;
-
-type ParseResult = Result<Vec<Statement>, Vec<SyntaxError>>;
-
-fn parse(code: &str) -> ParseResult {
-    let tokens = Tokenizer::tokenize(code).map_err(|e| {
-        e.into_iter()
-            .map(|e| SyntaxError::from(e))
-            .collect::<Vec<_>>()
-    })?;
-    let lexer = Lexer::new(tokens);
-    let results = lexer.collect::<Result<Vec<_>, _>>();
-    // TODO support multiple errors
-    let results = results.map_err(|e| vec![e])?;
-    Ok(results)
-}
-
-pub struct Parser {
-    result: ParseResult,
-    files: SimpleFiles<String, String>,
-    file_id: usize,
-}
-
-impl Parser {
-    pub fn new(code: &str, path: &Path) -> Self {
-        let (files, file_id) = read_single_files(path, code);
-        let result = parse(code);
-        Self {
-            files,
-            file_id,
-            result,
-        }
-    }
-
-    pub fn new_without_file(code: &str) -> Self {
-        Self::new(code, Path::new(""))
-    }
-
-    pub fn emit_errors(self) {
-        super::error::emit_errors(
-            &self.files,
-            self.file_id,
-            self.result.unwrap_err().into_iter(),
-        )
-    }
-
-    pub fn result(self) -> ParseResult {
-        self.result
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn use_parser() {
-        let code = "a = 23;b = 1;";
-        let expected = ["a = 23;", "b = 1;"];
-        for (i, stmt) in super::parse(code).unwrap().into_iter().enumerate() {
-            assert_eq!(&code[stmt.range()], expected[i]);
-        }
-    }
-}

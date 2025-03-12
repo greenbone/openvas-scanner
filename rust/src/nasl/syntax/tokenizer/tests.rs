@@ -1,45 +1,22 @@
-use std::path::Path;
-
-use codespan_reporting::files::SimpleFiles;
-
-use crate::nasl::{error::emit_errors, syntax::utils::read_single_files};
+use crate::nasl::Code;
 
 use super::*;
 
-fn tokenize(
-    file_name: &str,
-    code: &str,
-) -> (
-    SimpleFiles<String, String>,
-    usize,
-    Result<Vec<Token>, Vec<TokenizerError>>,
-) {
-    let (files, file_id) = read_single_files(Path::new(file_name), code);
-    let tokens = Tokenizer::tokenize(code);
-    (files, file_id, tokens)
-}
-
 pub fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
-    let (files, file_id, results) = tokenize(file_name, code);
-    match results {
-        Ok(results) => results,
-        Err(errors) => {
-            emit_errors(&files, file_id, errors.into_iter());
-            panic!("Code failed to tokenize.")
-        }
-    }
+    let results = Code::from_string_fake_filename(code, file_name).tokenize();
+    results.emit_errors().unwrap()
 }
 
 pub fn tokenize_err(file_name: &str, code: &str) -> Vec<TokenizerError> {
-    let (files, file_id, results) = tokenize(file_name, code);
-    match results {
-        Ok(_) => {
-            panic!("Properly tokenized code that should result in error.")
+    let results = Code::from_string_fake_filename(code, file_name).tokenize();
+    match results.result() {
+        Ok(result) => {
+            panic!(
+                "Properly tokenized code that should result in error. Parsing result: {:?}",
+                result
+            );
         }
-        Err(errors) => {
-            emit_errors(&files, file_id, errors.clone().into_iter());
-            errors
-        }
+        Err(errors) => errors,
     }
 }
 

@@ -3,19 +3,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use scannerlib::nasl::syntax::parse;
+use scannerlib::nasl::Code;
 
 pub fn simple_parse_benchmark(c: &mut Criterion) {
     let code = include_str!("../data/nasl_syntax/simple_parse.nasl");
     c.bench_function("simple_parse", |b| {
-        b.iter(|| parse(black_box(code)).unwrap())
+        b.iter(|| Code::from_string(black_box(code)).parse())
     });
 }
 
 pub fn parse_large_benchmark(c: &mut Criterion) {
     let code = include_str!("../data/nasl_syntax/smb_nt.inc");
     c.bench_function(&format!("smb_nt.inc {}", code.len()), |b| {
-        b.iter(|| parse(black_box(code)).unwrap())
+        b.iter(|| Code::from_string(black_box(code)).parse())
     });
 }
 

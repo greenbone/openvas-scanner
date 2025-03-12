@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 mod builtin;
+mod code;
 pub mod error;
 pub mod interpreter;
 pub mod syntax;
@@ -20,6 +21,8 @@ pub mod prelude {
     pub use super::builtin::BuiltinError;
     pub use super::builtin::ContextFactory;
     pub use super::builtin::RegisterBuilder;
+    pub use super::code::Code;
+    pub use super::code::ParseResult;
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::syntax::NaslValue;

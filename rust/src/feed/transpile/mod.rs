@@ -6,9 +6,10 @@
 
 mod error;
 
-use crate::nasl::syntax::{Ident, Parser, Statement, StatementKind, TokenKind};
+use crate::nasl::syntax::{Ident, Statement, StatementKind, TokenKind};
 
 use crate::feed::{verify, NaslFileFinder};
+use crate::nasl::Code;
 
 use self::error::{ReplaceError, TranspileError};
 
@@ -436,7 +437,7 @@ impl CodeReplacer {
                 changed: false,
             };
             if cached_stmts.is_empty() {
-                cached_stmts = Parser::new_without_file(&code).result().unwrap_or(vec![]);
+                cached_stmts = Code::from_string(&code).parse().unwrap_stmts();
             }
 
             for s in cached_stmts.iter() {

@@ -4,39 +4,44 @@
 
 use std::path::{Path, PathBuf};
 
-use scannerlib::nasl::syntax::{load_non_utf8_path, Parser, Statement};
+use scannerlib::nasl::{
+    syntax::{load_non_utf8_path, LoadError, Statement},
+    Code, Loader,
+};
 use walkdir::WalkDir;
 
-use crate::{CliError, CliErrorKind};
+use crate::CliError;
 
-fn read<P: AsRef<Path>>(path: P) -> Result<Parser, CliErrorKind> {
-    let code = load_non_utf8_path(path.as_ref())?;
-    Ok(Parser::new(&code, path.as_ref()))
+struct NonUtf8Loader;
+
+impl Loader for NonUtf8Loader {
+    fn load(&self, key: &str) -> Result<String, LoadError> {
+        load_non_utf8_path(key)
+    }
+
+    fn root_path(&self) -> Result<String, LoadError> {
+        Ok(".".to_owned())
+    }
 }
 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut errors = 0;
 
-    let print_stmt = |stmt: Statement| {
+    let print_stmt = |stmt: &Statement| {
         println!("{}: {}", path.to_string_lossy(), stmt);
     };
 
-    let results = read(path).map_err(|kind| CliError {
-        kind,
-        filename: path.to_string_lossy().to_string(),
-    })?;
-    match results.result {
-        Ok(statements) => {
+    let results = Code::load(&NonUtf8Loader, path)?.parse();
+    errors += results.num_errors();
+    match results.emit_errors() {
+        Some(statements) => {
             if verbose {
-                for stmt in statements {
+                for stmt in statements.stmts().iter() {
                     print_stmt(stmt);
                 }
             }
         }
-        Err(ref errs) => {
-            errors += errs.len();
-            results.emit_errors();
-        }
+        None => {}
     }
     Ok(errors)
 }

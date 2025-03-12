@@ -6,13 +6,14 @@
 
 use std::fs::File;
 
-use crate::nasl::syntax::{AsBufReader, Ident, Loader, Parser};
+use crate::nasl::syntax::{AsBufReader, Ident, Loader};
 use crate::nasl::syntax::{Statement, StatementKind, TokenKind};
 
 use crate::feed::{
     update,
     verify::{self, HashSumFileItem},
 };
+use crate::nasl::Code;
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
 pub struct Oid<L, V> {
@@ -54,9 +55,9 @@ where
 
     /// Returns the OID string or update::Error::MissingExit.
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
-        let code = self.loader.load(key.as_ref())?;
         // TODO: This makes no sense.
-        for stmt in Parser::new_without_file(&code)
+        for stmt in Code::load(&self.loader, &key)?
+            .parse()
             .result()
             .map_err(|_| update::ErrorKind::MissingExit(key.clone()))?
         {

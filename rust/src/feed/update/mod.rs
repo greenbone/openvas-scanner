@@ -9,7 +9,6 @@ pub use error::ErrorKind;
 
 use futures::{stream, Stream, StreamExt};
 use std::fs::File;
-use std::path::Path;
 use tracing::trace;
 
 use crate::nasl::interpreter::ForkingInterpreter;
@@ -18,7 +17,6 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::syntax::Lexer;
-use crate::nasl::syntax::Parser;
 use crate::nasl::syntax::Tokenizer;
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::Executor;
@@ -51,8 +49,8 @@ pub async fn feed_version(
     loader: &dyn Loader,
     dispatcher: &dyn Dispatcher,
 ) -> Result<String, ErrorKind> {
-    let feed_info_key = "plugin_feed_info.inc";
-    let code = loader.load(feed_info_key)?;
+    let feed_info_filename = "plugin_feed_info.inc";
+    let code = loader.load(feed_info_filename)?;
     let register = Register::default();
     let k = ContextKey::default();
     let fr = NoOpRetriever::default();
@@ -66,7 +64,8 @@ pub async fn feed_version(
         Lexer::new(Tokenizer::tokenize(&code).unwrap()),
         &context,
     );
-    for stmt in Parser::new(&code, Path::new(feed_info_key))
+    for stmt in Code::load(loader, feed_info_filename)?
+        .parse()
         .result()
         .map_err(|errs| ErrorKind::SyntaxError(errs))?
     {
