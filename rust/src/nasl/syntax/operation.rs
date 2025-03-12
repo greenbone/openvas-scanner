@@ -73,10 +73,7 @@ impl Operation {
             | TokenKind::DoublePoint
             | TokenKind::PercentEqual
             | TokenKind::MinusMinus => Some(Operation::Assign(token.kind().clone())),
-            TokenKind::String(_)
-            | TokenKind::Data(_)
-            | TokenKind::Number(_)
-            | TokenKind::IPv4Address(_) => Some(Operation::Primitive),
+            TokenKind::Literal(_) => Some(Operation::Primitive),
             TokenKind::LeftParen
             | TokenKind::LeftBrace
             | TokenKind::LeftCurlyBracket

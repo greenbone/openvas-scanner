@@ -136,6 +136,25 @@ make_keyword_matcher! {
 #[cfg_attr(test, derive(Serialize, Deserialize))]
 pub struct Ident(pub String);
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
+pub enum Literal {
+    /// A String (")
+    ///
+    /// Strings can be over multiple lines and are not escapable (`a = "a\";` is valid).
+    /// A string type will be cast to utf8 string.
+    String(String),
+    /// Data is defined Quotable (')
+    ///
+    /// Data can be over multiple lines and are escaped (`a = "a\";` is valid).
+    /// Unlike string the data types are stored in bytes.
+    Data(Vec<u8>),
+    /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
+    Number(i64),
+    /// We currently just support 127.0.0.1 notation
+    IPv4Address(Ipv4Addr),
+}
+
 /// Is used to identify a Token
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize, Deserialize))]
@@ -236,20 +255,8 @@ pub enum TokenKind {
     GreaterGreaterGreaterEqual,
     /// `x` is a special functionality to redo a function call n times.E.g. `send_packet( udp, pcap_active:FALSE ) x 200;`
     X,
-    /// A String (")
-    ///
-    /// Strings can be over multiple lines and are not escapable (`a = "a\";` is valid).
-    /// A string type will be cast to utf8 string.
-    String(String),
-    /// Data is defined Quotable (')
-    ///
-    /// Data can be over multiple lines and are escaped (`a = "a\";` is valid).
-    /// Unlike string the data types are stored in bytes.
-    Data(Vec<u8>),
-    /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
-    Number(i64),
-    /// We currently just support 127.0.0.1 notation
-    IPv4Address(Ipv4Addr),
+    /// A literal, such as a number, string, data or IP address
+    Literal(Literal),
     /// Special keywords reserved within NASL.
     Keyword(Keyword),
     /// An identifier for a variable or function.
@@ -307,12 +314,12 @@ impl Display for TokenKind {
             TokenKind::GreaterBangLess => write!(f, ">!<"),
             TokenKind::GreaterGreaterGreaterEqual => write!(f, ">>>="),
             TokenKind::X => write!(f, "X"),
-            TokenKind::String(x) => write!(f, "\"{x}\""),
-            TokenKind::Number(x) => write!(f, "{x}"),
-            TokenKind::IPv4Address(x) => write!(f, "{x}"),
             TokenKind::Keyword(x) => write!(f, "{}", x),
             TokenKind::Ident(ident) => write!(f, "{}", ident.0),
-            TokenKind::Data(x) => write!(f, "{x:?}"),
+            TokenKind::Literal(Literal::Number(num)) => write!(f, "{num}"),
+            TokenKind::Literal(Literal::String(s)) => write!(f, "\"{s}\""),
+            TokenKind::Literal(Literal::Data(data)) => write!(f, "{data:?}"),
+            TokenKind::Literal(Literal::IPv4Address(ip)) => write!(f, "{ip}"),
         }
     }
 }

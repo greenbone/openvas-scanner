@@ -5,8 +5,10 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: IPv4Address(
-            10.187.76.12,
+        kind: Literal(
+            IPv4Address(
+                10.187.76.12,
+            ),
         ),
         position: (
             0,

@@ -147,7 +147,7 @@ impl Prefix for Lexer {
 #[cfg(test)]
 mod test {
 
-    use crate::nasl::syntax::parse_return_first;
+    use crate::nasl::syntax::{parse_return_first, token};
 
     use super::super::{
         token::{Token, TokenKind},
@@ -177,11 +177,11 @@ mod test {
     #[test]
     fn single_statement() {
         let no = Token {
-            kind: Number(1),
+            kind: Literal(token::Literal::Number(1)),
             position: (0, 1),
         };
         let data = Token {
-            kind: Data(vec![97]),
+            kind: Literal(token::Literal::Data(vec![97])),
             position: (0, 3),
         };
         let one = result("1;");

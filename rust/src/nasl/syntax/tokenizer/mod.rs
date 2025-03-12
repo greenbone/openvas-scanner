@@ -4,6 +4,8 @@ mod tests;
 
 use std::ops::AddAssign;
 
+use crate::nasl::syntax::token::Literal;
+
 use super::{Ident, Keyword, Token, TokenKind};
 pub use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
@@ -351,7 +353,7 @@ impl Tokenizer {
         } else {
             let result = self.substring(start, self.cursor.position());
             self.cursor.advance();
-            Ok(TokenKind::String(result))
+            Ok(TokenKind::Literal(Literal::String(result)))
         }
     }
 
@@ -379,7 +381,9 @@ impl Tokenizer {
             raw_str = raw_str.replace(r"\r", "\r");
             raw_str = raw_str.replace(r"\t", "\t");
             self.cursor.advance();
-            Ok(TokenKind::Data(raw_str.as_bytes().to_vec()))
+            Ok(TokenKind::Literal(Literal::Data(
+                raw_str.as_bytes().to_vec(),
+            )))
         }
     }
 
@@ -403,11 +407,11 @@ impl Tokenizer {
         self.consume('.', InvalidIpv4Address)?;
         self.cursor
             .consume_while(base.verifier(), InvalidIpv4Address)?;
-        Ok(TokenKind::IPv4Address(
+        Ok(TokenKind::Literal(Literal::IPv4Address(
             self.substring(start, self.cursor.position())
                 .parse()
                 .map_err(|_| InvalidIpv4Address)?,
-        ))
+        )))
     }
 
     fn tokenize_number(
@@ -460,7 +464,7 @@ impl Tokenizer {
                     &self.substring(start, self.cursor.position()),
                     base.radix(),
                 ) {
-                    Ok(num) => Ok(TokenKind::Number(num)),
+                    Ok(num) => Ok(TokenKind::Literal(Literal::Number(num))),
                     Err(_) => Err(self.error(TokenizerErrorKind::InvalidNumberLiteral)),
                 }
             }

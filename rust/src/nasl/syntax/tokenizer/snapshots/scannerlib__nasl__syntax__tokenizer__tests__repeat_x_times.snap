@@ -37,8 +37,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            10,
+        kind: Literal(
+            Number(
+                10,
+            ),
         ),
         position: (
             6,

@@ -381,7 +381,7 @@ mod infix {
 
     use core::panic;
 
-    use crate::nasl::syntax::parse_return_first;
+    use crate::nasl::syntax::{parse_return_first, token};
 
     use super::*;
 
@@ -402,8 +402,7 @@ mod infix {
         };
         match s.kind() {
             Primitive => match s.start().kind() {
-                Number(num) => *num,
-                String(_) => todo!(),
+                Literal(token::Literal::Number(num)) => *num,
                 _ => todo!(),
             },
             Operator(head, rest) => match head {

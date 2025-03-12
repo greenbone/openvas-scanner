@@ -5,8 +5,10 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: String(
-            "I am a closed string ",
+        kind: Literal(
+            String(
+                "I am a closed string ",
+            ),
         ),
         position: (
             0,

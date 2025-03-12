@@ -5,8 +5,10 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: Number(
-            1,
+        kind: Literal(
+            Number(
+                1,
+            ),
         ),
         position: (
             0,

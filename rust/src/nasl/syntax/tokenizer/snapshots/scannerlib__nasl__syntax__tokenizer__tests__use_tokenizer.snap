@@ -32,15 +32,17 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Data(
-            [
-                87,
-                111,
-                114,
-                108,
-                100,
-                33,
-            ],
+        kind: Literal(
+            Data(
+                [
+                    87,
+                    111,
+                    114,
+                    108,
+                    100,
+                    33,
+                ],
+            ),
         ),
         position: (
             18,

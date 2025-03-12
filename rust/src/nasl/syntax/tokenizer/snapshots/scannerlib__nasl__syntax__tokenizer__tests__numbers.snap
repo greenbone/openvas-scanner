@@ -5,8 +5,10 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: Number(
-            0,
+        kind: Literal(
+            Number(
+                0,
+            ),
         ),
         position: (
             0,
@@ -14,8 +16,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            1,
+        kind: Literal(
+            Number(
+                1,
+            ),
         ),
         position: (
             2,
@@ -23,8 +27,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            1234567890,
+        kind: Literal(
+            Number(
+                1234567890,
+            ),
         ),
         position: (
             7,
@@ -32,8 +38,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            2739128,
+        kind: Literal(
+            Number(
+                2739128,
+            ),
         ),
         position: (
             18,
@@ -41,8 +49,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            1311768467294899695,
+        kind: Literal(
+            Number(
+                1311768467294899695,
+            ),
         ),
         position: (
             28,
@@ -50,8 +60,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            0,
+        kind: Literal(
+            Number(
+                0,
+            ),
         ),
         position: (
             47,
@@ -59,8 +71,10 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Number(
-            2,
+        kind: Literal(
+            Number(
+                2,
+            ),
         ),
         position: (
             50,
