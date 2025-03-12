@@ -283,9 +283,6 @@ impl Lexer {
         let (state, mut left) = self
             .token()
             .map(|token| {
-                if token.is_faulty() {
-                    return Err(unexpected_token!(token));
-                }
                 if abort(token.kind()) {
                     let result = Statement::with_start_token(token.clone(), StatementKind::NoOp);
                     return done(token, result);

@@ -47,76 +47,62 @@ pub enum Keyword {
 }
 
 macro_rules! make_keyword_matcher {
-    ($(($matcher:ident, $define:expr, $define_pat:pat)),+) => {
-
-impl Keyword {
-    /// Creates a new keyword based on a string identifier
-    pub fn new(keyword: &str) -> Option<Self> {
-        match keyword {
-           $(
-           stringify!($matcher) => Some($define),
-           )*
-            _ => None,
+    ($($matcher:ident, $define:expr),+) => {
+        impl Keyword {
+            /// Creates a new keyword based on a string identifier
+            pub fn new(keyword: &str) -> Option<Self> {
+                match keyword {
+                    $(
+                    stringify!($matcher) => Some($define),
+                    )*
+                    _ => None,
+                }
+            }
         }
 
-    }
-
-    /// Returns the length of the identifier
-    pub fn len(&self) -> usize {
-        match self {
-           $(
-               $define_pat => stringify!($matcher).len(),
-           )*
+        impl std::fmt::Display for Keyword {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                // $define is not a pattern but expr, so in the
+                // name of simplicity we use a chained if here
+                $(
+                    if *self == $define {
+                        return write!(f, stringify!($matcher));
+                    }
+                )*
+                unreachable!()
+            }
         }
     }
-
-    /// Returns true when len == 0
-    pub fn is_empty(&self) -> bool {
-         self.len() == 0
-    }
-
-}
-impl Display for Keyword {
-
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-           $(
-               $define_pat => write!(f, "{}", stringify!($matcher)),
-           )*
-        }
-    }
-}
-    };
 }
 
 make_keyword_matcher! {
-    (function, Keyword::Function, Keyword::Function),
-    (_FCT_ANON_ARGS, Keyword::FCTAnonArgs, Keyword::FCTAnonArgs),
-    (for, Keyword::For, Keyword::For),
-    (foreach, Keyword::ForEach, Keyword::ForEach),
-    (if, Keyword::If, Keyword::If),
-    (else, Keyword::Else, Keyword::Else),
-    (while, Keyword::While, Keyword::While),
-    (repeat, Keyword::Repeat, Keyword::Repeat),
-    (until, Keyword::Until, Keyword::Until),
-    (local_var, Keyword::LocalVar, Keyword::LocalVar),
-    (global_var, Keyword::GlobalVar, Keyword::GlobalVar),
-    (return, Keyword::Return, Keyword::Return),
-    (include, Keyword::Include, Keyword::Include),
-    (exit, Keyword::Exit, Keyword::Exit),
-    (ACT_ATTACK, Keyword::ACT(ACT::Attack), Keyword::ACT(ACT::Attack)),
-    (ACT_DENIAL, Keyword::ACT(ACT::Denial), Keyword::ACT(ACT::Denial)),
-    (ACT_DESTRUCTIVE_ATTACK, Keyword::ACT(ACT::DestructiveAttack), Keyword::ACT(ACT::DestructiveAttack)),
-    (ACT_END, Keyword::ACT(ACT::End), Keyword::ACT(ACT::End)),
-    (ACT_FLOOD, Keyword::ACT(ACT::Flood), Keyword::ACT(ACT::Flood)),
-    (ACT_GATHER_INFO, Keyword::ACT(ACT::GatherInfo), Keyword::ACT(ACT::GatherInfo)),
-    (ACT_INIT, Keyword::ACT(ACT::Init), Keyword::ACT(ACT::Init)),
-    (ACT_KILL_HOST, Keyword::ACT(ACT::KillHost), Keyword::ACT(ACT::KillHost)),
-    (ACT_MIXED_ATTACK, Keyword::ACT(ACT::MixedAttack), Keyword::ACT(ACT::MixedAttack)),
-    (ACT_SCANNER, Keyword::ACT(ACT::Scanner), Keyword::ACT(ACT::Scanner)),
-    (ACT_SETTINGS, Keyword::ACT(ACT::Settings), Keyword::ACT(ACT::Settings)),
-    (continue, Keyword::Continue, Keyword::Continue),
-    (break, Keyword::Break, Keyword::Break)
+    function, Keyword::Function,
+    _FCT_ANON_ARGS, Keyword::FCTAnonArgs,
+    for, Keyword::For,
+    foreach, Keyword::ForEach,
+    if, Keyword::If,
+    else, Keyword::Else,
+    while, Keyword::While,
+    repeat, Keyword::Repeat,
+    until, Keyword::Until,
+    local_var, Keyword::LocalVar,
+    global_var, Keyword::GlobalVar,
+    return, Keyword::Return,
+    include, Keyword::Include,
+    exit, Keyword::Exit,
+    ACT_ATTACK, Keyword::ACT(ACT::Attack),
+    ACT_DENIAL, Keyword::ACT(ACT::Denial),
+    ACT_DESTRUCTIVE_ATTACK, Keyword::ACT(ACT::DestructiveAttack),
+    ACT_END, Keyword::ACT(ACT::End),
+    ACT_FLOOD, Keyword::ACT(ACT::Flood),
+    ACT_GATHER_INFO, Keyword::ACT(ACT::GatherInfo),
+    ACT_INIT, Keyword::ACT(ACT::Init),
+    ACT_KILL_HOST, Keyword::ACT(ACT::KillHost),
+    ACT_MIXED_ATTACK, Keyword::ACT(ACT::MixedAttack),
+    ACT_SCANNER, Keyword::ACT(ACT::Scanner),
+    ACT_SETTINGS, Keyword::ACT(ACT::Settings),
+    continue, Keyword::Continue,
+    break, Keyword::Break
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -313,7 +299,7 @@ impl Display for TokenKind {
             TokenKind::GreaterBangLess => write!(f, ">!<"),
             TokenKind::GreaterGreaterGreaterEqual => write!(f, ">>>="),
             TokenKind::X => write!(f, "X"),
-            TokenKind::Keyword(x) => write!(f, "{}", x),
+            TokenKind::Keyword(kw) => write!(f, "{}", kw),
             TokenKind::Ident(ident) => write!(f, "{}", ident.0),
             TokenKind::Literal(Literal::Number(num)) => write!(f, "{num}"),
             TokenKind::Literal(Literal::String(s)) => write!(f, "\"{s}\""),
@@ -369,9 +355,5 @@ impl Display for Token {
 impl Token {
     pub fn kind(&self) -> &TokenKind {
         &self.kind
-    }
-
-    pub fn is_faulty(&self) -> bool {
-        false
     }
 }
